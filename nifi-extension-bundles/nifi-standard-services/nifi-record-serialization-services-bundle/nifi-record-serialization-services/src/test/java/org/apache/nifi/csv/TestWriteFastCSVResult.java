@@ -51,12 +51,12 @@ public class TestWriteFastCSVResult {
         .setEscape('\"')
         .setQuoteMode(QuoteMode.NONE)
         .setRecordSeparator("\n")
-        .build();
+        .get();
 
 
     @Test
     public void testDataTypes() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.RFC4180.builder().setQuoteMode(QuoteMode.NON_NUMERIC).setRecordSeparator("\n").build();
+        final CSVFormat csvFormat = CSVFormat.RFC4180.builder().setQuoteMode(QuoteMode.NON_NUMERIC).setRecordSeparator("\n").get();
 
         final StringBuilder headerBuilder = new StringBuilder();
         final List<RecordField> fields = new ArrayList<>();
@@ -291,7 +291,7 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testEscapeCharInValueWriteRecord() throws IOException {
-        final CSVFormat csvFormat = defaultFormat.builder().setQuote('"').build();
+        final CSVFormat csvFormat = defaultFormat.builder().setQuote('"').get();
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -319,7 +319,7 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testEmptyEscapeCharWriteRecord() throws IOException {
-        final CSVFormat csvFormat = defaultFormat.builder().setQuote('"').build();
+        final CSVFormat csvFormat = defaultFormat.builder().setQuote('"').get();
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -348,7 +348,7 @@ public class TestWriteFastCSVResult {
 
     @Test
     public void testWriteHeaderWithNoRecords() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setEscape('\"').setQuoteMode(QuoteMode.NONE).setRecordSeparator("\n").build();
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setEscape('\"').setQuoteMode(QuoteMode.NONE).setRecordSeparator("\n").get();
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));

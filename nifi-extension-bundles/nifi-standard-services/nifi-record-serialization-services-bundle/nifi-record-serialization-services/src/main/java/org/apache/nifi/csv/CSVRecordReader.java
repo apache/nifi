@@ -66,7 +66,10 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
             withHeader = csvFormat.builder().setHeader(schema.getFieldNames().toArray(new String[0]));
         }
 
-        csvParser = new CSVParser(reader, withHeader.build());
+        csvParser = CSVParser.builder()
+                .setReader(reader)
+                .setFormat(withHeader.get())
+                .get();
     }
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
