@@ -39,7 +39,7 @@ public class ThrowExceptionInFlowFileFilter extends AbstractProcessor {
         .defaultValue("true")
         .build();
 
-    private static final List<PropertyDescriptor> properties = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         THROW_EXCEPTION
     );
 
@@ -48,18 +48,18 @@ public class ThrowExceptionInFlowFileFilter extends AbstractProcessor {
         .description("All FlowFiles are routed to this Relationship")
         .build();
 
-    private static final Set<Relationship> relationships = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
         REL_SUCCESS
     );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
