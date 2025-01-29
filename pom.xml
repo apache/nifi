@@ -1154,36 +1154,5 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
-            <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
-            <id>dependency-check</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>11.1.0</version>
-                        <executions>
-                            <execution>
-                                <inherited>false</inherited>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>aggregate</goal>
-                                </goals>
-                                <configuration>
-                                    <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
-                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
-                                    <skipSystemScope>true</skipSystemScope>
-                                    <!-- Disable .NET Assembly Analyzer to avoid non-applicable errors -->
-                                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                                    <skipProvidedScope>true</skipProvidedScope>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
 </project>
