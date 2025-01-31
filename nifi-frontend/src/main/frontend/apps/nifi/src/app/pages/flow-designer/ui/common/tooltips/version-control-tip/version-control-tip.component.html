@@ -20,25 +20,25 @@
         <div class="flex flex-col gap-y-2 mb-3">
             <div>
                 <div>Flow Name</div>
-                <div class="tertiary-color font-medium">{{ vci.flowName }}</div>
+                <div class="tertiary-color font-medium truncate" [title]="vci.flowName">{{ vci.flowName }}</div>
             </div>
             <div>
                 <div>Version</div>
-                <div class="tertiary-color font-medium">{{ vci.version }}</div>
+                <div class="tertiary-color font-medium truncate" [title]="vci.version">{{ vci.version }}</div>
             </div>
             <div>
                 <div>Registry</div>
-                <div class="tertiary-color font-medium">{{ vci.registryName }}</div>
+                <div class="tertiary-color font-medium truncate" [title]="vci.registryName">{{ vci.registryName }}</div>
             </div>
             @if (supportsBranching() && vci.branch) {
                 <div>
                     <div>Branch</div>
-                    <div class="tertiary-color font-medium">{{ vci.branch }}</div>
+                    <div class="tertiary-color font-medium truncate" [title]="vci.branch">{{ vci.branch }}</div>
                 </div>
             }
             <div>
                 <div>Bucket</div>
-                <div class="tertiary-color font-medium">{{ vci.bucketName }}</div>
+                <div class="tertiary-color font-medium truncate" [title]="vci.bucketName">{{ vci.bucketName }}</div>
             </div>
         </div>
     }
