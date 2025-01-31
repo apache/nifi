@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface ProvenanceClient {
     ProvenanceEntity submitProvenanceQuery(ProvenanceEntity provenanceQuery) throws NiFiClientException, IOException;
@@ -39,6 +40,10 @@ public interface ProvenanceClient {
     ReplayLastEventResponseEntity replayLastEvent(String processorId, ReplayEventNodes replayEventNodes) throws NiFiClientException, IOException;
 
     LatestProvenanceEventsEntity getLatestEvents(String processorId) throws NiFiClientException, IOException;
+
+    InputStream getInputFlowFileContent(String provenanceEventId, String nodeId) throws NiFiClientException, IOException;
+
+    InputStream getOutputFlowFileContent(String provenanceEventId, String nodeId) throws NiFiClientException, IOException;
 
     enum ReplayEventNodes {
         PRIMARY,
