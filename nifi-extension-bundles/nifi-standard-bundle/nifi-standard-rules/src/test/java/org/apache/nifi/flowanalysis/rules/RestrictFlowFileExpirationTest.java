@@ -16,12 +16,16 @@
  */
 package org.apache.nifi.flowanalysis.rules;
 
+import org.apache.nifi.components.ValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collection;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RestrictFlowFileExpirationTest extends AbstractFlowAnalaysisRuleTest<RestrictFlowFileExpiration> {
     @Override
@@ -42,7 +46,13 @@ public class RestrictFlowFileExpirationTest extends AbstractFlowAnalaysisRuleTes
     public void testBadConfiguration() {
         setProperty(RestrictFlowFileExpiration.MIN_FLOWFILE_EXPIRATION, "2 days");
         setProperty(RestrictFlowFileExpiration.MAX_FLOWFILE_EXPIRATION, "1 day");
-        assertFalse(rule.customValidate(validationContext).isEmpty());
+        Collection<ValidationResult> results = rule.customValidate(validationContext);
+        assertEquals(1, results.size());
+        results.forEach(result -> {
+            assertFalse(result.isValid());
+            assertEquals(RestrictFlowFileExpiration.MIN_FLOWFILE_EXPIRATION.getName(), result.getSubject());
+            assertTrue(result.getExplanation().contains("cannot be greater than"));
+        });
     }
 
     @Test
