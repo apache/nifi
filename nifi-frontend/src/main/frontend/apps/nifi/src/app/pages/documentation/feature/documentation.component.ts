@@ -38,7 +38,7 @@ import {
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, selectCurrentRoute } from '@nifi/shared';
 import { MatAccordion } from '@angular/material/expansion';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
-import {combineLatestWith, debounceTime, distinctUntilChanged, map} from 'rxjs';
+import { combineLatestWith, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentedType } from '../../../state/shared';
 import {
