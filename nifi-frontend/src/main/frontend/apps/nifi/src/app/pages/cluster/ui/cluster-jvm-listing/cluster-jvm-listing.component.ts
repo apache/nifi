@@ -33,7 +33,6 @@ import { clearJvmNodeSelection, selectJvmNode } from '../../state/cluster-listin
 
 @Component({
     selector: 'cluster-jvm-listing',
-    standalone: true,
     imports: [ClusterSystemTable, NgxSkeletonLoaderModule, ClusterJvmTable],
     templateUrl: './cluster-jvm-listing.component.html',
     styleUrl: './cluster-jvm-listing.component.scss'

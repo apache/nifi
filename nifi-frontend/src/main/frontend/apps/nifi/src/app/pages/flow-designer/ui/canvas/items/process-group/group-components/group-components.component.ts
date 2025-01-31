@@ -36,7 +36,6 @@ import { Client } from '../../../../../../../service/client.service';
 
 @Component({
     selector: 'group-components',
-    standalone: true,
     imports: [
         AsyncPipe,
         MatButtonModule,

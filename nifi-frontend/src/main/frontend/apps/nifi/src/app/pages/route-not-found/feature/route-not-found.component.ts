@@ -20,6 +20,7 @@ import { Component } from '@angular/core';
 @Component({
     selector: 'route-not-found',
     templateUrl: './route-not-found.component.html',
-    styleUrl: './route-not-found.component.scss'
+    styleUrl: './route-not-found.component.scss',
+    standalone: false
 })
 export class RouteNotFound {}

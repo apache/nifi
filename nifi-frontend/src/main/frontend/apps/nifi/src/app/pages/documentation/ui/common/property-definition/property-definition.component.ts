@@ -37,7 +37,6 @@ import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'property-definition',
-    standalone: true,
     imports: [
         NgxSkeletonLoaderModule,
         MatTableModule,

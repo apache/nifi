@@ -24,7 +24,6 @@ import { NiFiCommon } from '@nifi/shared';
 
 @Component({
     selector: 'parameter-groups-table',
-    standalone: true,
     imports: [MatSortModule, MatTableModule],
     templateUrl: './parameter-groups-table.component.html',
     styleUrls: ['./parameter-groups-table.component.scss']

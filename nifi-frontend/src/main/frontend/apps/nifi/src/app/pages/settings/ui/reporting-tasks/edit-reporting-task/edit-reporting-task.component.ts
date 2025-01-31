@@ -57,7 +57,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-reporting-task',
-    standalone: true,
     templateUrl: './edit-reporting-task.component.html',
     imports: [
         ReactiveFormsModule,

@@ -42,7 +42,8 @@ import * as ClusterStatusActions from '../../state/component-cluster-status/comp
 @Component({
     selector: 'input-port-status-listing',
     templateUrl: './input-port-status-listing.component.html',
-    styleUrls: ['./input-port-status-listing.component.scss']
+    styleUrls: ['./input-port-status-listing.component.scss'],
+    standalone: false
 })
 export class InputPortStatusListing {
     portStatusSnapshots$ = this.store.select(selectInputPortStatusSnapshots);

@@ -21,7 +21,6 @@ import { MatIconButton } from '@angular/material/button';
 @Component({
     selector: 'copy-button',
     template: ` <button mat-icon-button class="primary-icon-button"><i class="fa fa-copy"></i></button>`,
-    imports: [MatIconButton],
-    standalone: true
+    imports: [MatIconButton]
 })
 export class CopyButtonComponent {}

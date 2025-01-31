@@ -72,7 +72,6 @@ export interface PropertyItem extends Property {
 
 @Component({
     selector: 'property-table',
-    standalone: true,
     templateUrl: './property-table.component.html',
     imports: [
         MatButtonModule,

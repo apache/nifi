@@ -51,7 +51,8 @@ import { ComponentType } from '@nifi/shared';
 @Component({
     selector: 'reporting-tasks',
     templateUrl: './reporting-tasks.component.html',
-    styleUrls: ['./reporting-tasks.component.scss']
+    styleUrls: ['./reporting-tasks.component.scss'],
+    standalone: false
 })
 export class ReportingTasks implements OnInit, OnDestroy {
     reportingTaskState$ = this.store.select(selectReportingTasksState);

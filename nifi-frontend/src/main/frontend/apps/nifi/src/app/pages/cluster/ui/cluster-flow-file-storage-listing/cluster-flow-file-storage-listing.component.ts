@@ -39,7 +39,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'cluster-flow-file-storage-listing',
-    standalone: true,
     imports: [RepositoryStorageTable, NgxSkeletonLoaderModule, AsyncPipe],
     templateUrl: './cluster-flow-file-storage-listing.component.html',
     styleUrl: './cluster-flow-file-storage-listing.component.scss'

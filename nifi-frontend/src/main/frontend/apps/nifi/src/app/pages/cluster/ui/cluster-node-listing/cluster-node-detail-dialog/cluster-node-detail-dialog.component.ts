@@ -23,7 +23,6 @@ import { CloseOnEscapeDialog, CopyDirective } from '@nifi/shared';
 
 @Component({
     selector: 'cluster-node-detail-dialog',
-    standalone: true,
     imports: [MatDialogModule, MatButton, CopyDirective],
     templateUrl: './cluster-node-detail-dialog.component.html',
     styleUrl: './cluster-node-detail-dialog.component.scss'

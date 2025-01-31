@@ -28,7 +28,6 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 
 @Component({
     selector: 'cluster-version-table',
-    standalone: true,
     imports: [ClusterTableFilter, MatTableModule, MatSortModule],
     templateUrl: './cluster-version-table.component.html',
     styleUrl: './cluster-version-table.component.scss'

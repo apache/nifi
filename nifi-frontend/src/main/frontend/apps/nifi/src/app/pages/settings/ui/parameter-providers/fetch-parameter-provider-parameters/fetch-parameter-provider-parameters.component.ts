@@ -51,7 +51,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'fetch-parameter-provider-parameters',
-    standalone: true,
     imports: [
         CommonModule,
         MatDialogModule,

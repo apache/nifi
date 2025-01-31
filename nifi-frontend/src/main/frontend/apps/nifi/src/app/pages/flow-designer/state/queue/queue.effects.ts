@@ -85,7 +85,7 @@ export class QueueEffects {
                     disableClose: true
                 });
 
-                dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
+                dialogReference.componentInstance.close.pipe(take(1)).subscribe(() => {
                     this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
                 });
 
@@ -149,7 +149,7 @@ export class QueueEffects {
                     disableClose: true
                 });
 
-                dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
+                dialogReference.componentInstance.close.pipe(take(1)).subscribe(() => {
                     this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
                 });
 

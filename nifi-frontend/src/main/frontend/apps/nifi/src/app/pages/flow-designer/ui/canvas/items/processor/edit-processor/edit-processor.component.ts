@@ -86,7 +86,6 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
     selector: 'edit-processor',
-    standalone: true,
     templateUrl: './edit-processor.component.html',
     imports: [
         ReactiveFormsModule,

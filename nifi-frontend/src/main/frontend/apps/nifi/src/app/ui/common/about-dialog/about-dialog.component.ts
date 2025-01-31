@@ -32,7 +32,6 @@ import { selectAbout } from '../../../state/about/about.selectors';
 
 @Component({
     selector: 'about',
-    standalone: true,
     templateUrl: './about-dialog.component.html',
     imports: [
         MatButtonModule,

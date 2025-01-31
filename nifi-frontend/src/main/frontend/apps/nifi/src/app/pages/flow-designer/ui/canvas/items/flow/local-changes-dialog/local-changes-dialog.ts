@@ -33,7 +33,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'local-changes-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButton,

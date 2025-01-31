@@ -25,7 +25,6 @@ import { MatProgressBar } from '@angular/material/progress-bar';
 
 @Component({
     selector: 'change-version-progress-dialog',
-    standalone: true,
     imports: [MatDialogTitle, MatDialogModule, MatButton, AsyncPipe, MatProgressBar],
     templateUrl: './change-version-progress-dialog.html',
     styleUrl: './change-version-progress-dialog.scss'

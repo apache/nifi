@@ -21,7 +21,6 @@ import { MatSliderModule } from '@angular/material/slider';
 
 @Component({
     selector: 'run-duration-slider',
-    standalone: true,
     templateUrl: './run-duration-slider.component.html',
     imports: [MatSliderModule],
     styleUrls: ['./run-duration-slider.component.scss'],

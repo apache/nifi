@@ -47,7 +47,8 @@ import {
 @Component({
     selector: 'process-group-status-listing',
     templateUrl: './process-group-status-listing.component.html',
-    styleUrls: ['./process-group-status-listing.component.scss']
+    styleUrls: ['./process-group-status-listing.component.scss'],
+    standalone: false
 })
 export class ProcessGroupStatusListing {
     processGroupStatusSnapshots$ = this.store.select(selectProcessGroupStatusSnapshots);

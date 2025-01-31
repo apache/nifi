@@ -43,7 +43,6 @@ import { MapTableEntryData } from '../../types';
 
 @Component({
     selector: 'new-map-table-entry-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatButton,

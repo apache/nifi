@@ -30,7 +30,6 @@ import { NfEl } from './modes/nfel';
 
 @Component({
     selector: 'ua-editor',
-    standalone: true,
     templateUrl: './ua-editor.component.html',
     imports: [
         CdkDrag,
@@ -65,7 +64,7 @@ export class UaEditor implements OnDestroy {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string> = new EventEmitter<string>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() close: EventEmitter<void> = new EventEmitter<void>();
 
     isRequired: boolean = true;
 
@@ -147,7 +146,7 @@ export class UaEditor implements OnDestroy {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.close.next();
     }
 
     ngOnDestroy(): void {

@@ -22,7 +22,6 @@ import { Restriction } from '../../../state';
 
 @Component({
     selector: 'restrictions-definition',
-    standalone: true,
     imports: [MatTableModule],
     templateUrl: './restrictions-definition.component.html',
     styleUrl: './restrictions-definition.component.scss'

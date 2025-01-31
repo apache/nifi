@@ -20,7 +20,6 @@ import { SearchMatchTipInput } from '../../../../state/shared';
 
 @Component({
     selector: 'search-match-tip',
-    standalone: true,
     templateUrl: './search-match-tip.component.html',
     imports: [],
     styleUrls: ['./search-match-tip.component.scss']

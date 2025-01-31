@@ -29,7 +29,6 @@ import { ComponentType, SelectOption, CloseOnEscapeDialog, NiFiCommon } from '@n
 
 @Component({
     selector: 'user-access-policies',
-    standalone: true,
     templateUrl: './user-access-policies.component.html',
     imports: [
         MatButtonModule,

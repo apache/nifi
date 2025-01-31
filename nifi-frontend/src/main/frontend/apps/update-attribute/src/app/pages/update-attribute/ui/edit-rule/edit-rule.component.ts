@@ -43,7 +43,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'edit-rule',
-    standalone: true,
     imports: [
         CommonModule,
         MatSlideToggleModule,
@@ -102,7 +101,7 @@ export class EditRule implements AfterViewInit {
     @Output() addRule: EventEmitter<NewRule> = new EventEmitter<NewRule>();
     @Output() editRule: EventEmitter<Rule> = new EventEmitter<Rule>();
     @Output() dirty: EventEmitter<boolean> = new EventEmitter<boolean>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() close: EventEmitter<void> = new EventEmitter<void>();
 
     editRuleForm: FormGroup;
     isEditable: boolean = true;
@@ -239,7 +238,7 @@ export class EditRule implements AfterViewInit {
         });
 
         this.dirty.next(false);
-        this.cancel.next();
+        this.close.next();
     }
 
     saveClicked(): void {

@@ -47,7 +47,6 @@ import {
 
 @Component({
     selector: 'disable-controller-service',
-    standalone: true,
     templateUrl: './disable-controller-service.component.html',
     imports: [
         MatDialogModule,

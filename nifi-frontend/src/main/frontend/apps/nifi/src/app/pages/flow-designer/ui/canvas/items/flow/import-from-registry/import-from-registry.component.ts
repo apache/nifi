@@ -62,7 +62,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 
 @Component({
     selector: 'import-from-registry',
-    standalone: true,
     imports: [
         AsyncPipe,
         ErrorBanner,

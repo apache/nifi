@@ -30,7 +30,6 @@ import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'provenance-event-dialog',
-    standalone: true,
     templateUrl: './provenance-event-dialog.component.html',
     styleUrls: ['./provenance-event-dialog.component.scss'],
     imports: [

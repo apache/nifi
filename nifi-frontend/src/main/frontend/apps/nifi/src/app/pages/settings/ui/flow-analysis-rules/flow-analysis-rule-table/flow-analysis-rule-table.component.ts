@@ -33,7 +33,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flow-analysis-rule-table',
-    standalone: true,
     templateUrl: './flow-analysis-rule-table.component.html',
     imports: [
         MatButtonModule,

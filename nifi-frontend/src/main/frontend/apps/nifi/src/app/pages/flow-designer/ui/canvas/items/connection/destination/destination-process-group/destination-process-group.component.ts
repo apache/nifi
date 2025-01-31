@@ -26,7 +26,6 @@ import { NifiTooltipDirective, TextTip, SelectOption } from '@nifi/shared';
 
 @Component({
     selector: 'destination-process-group',
-    standalone: true,
     templateUrl: './destination-process-group.component.html',
     styleUrls: ['./destination-process-group.component.scss'],
     imports: [

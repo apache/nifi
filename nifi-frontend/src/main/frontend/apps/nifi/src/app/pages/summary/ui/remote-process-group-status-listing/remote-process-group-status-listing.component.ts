@@ -46,7 +46,8 @@ import { NodeSearchResult } from '../../../../state/cluster-summary';
 @Component({
     selector: 'remote-process-group-status-listing',
     templateUrl: './remote-process-group-status-listing.component.html',
-    styleUrls: ['./remote-process-group-status-listing.component.scss']
+    styleUrls: ['./remote-process-group-status-listing.component.scss'],
+    standalone: false
 })
 export class RemoteProcessGroupStatusListing {
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);

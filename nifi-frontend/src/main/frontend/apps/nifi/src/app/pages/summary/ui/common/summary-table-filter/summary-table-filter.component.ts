@@ -42,7 +42,8 @@ export interface SummaryTableFilterContext extends SummaryTableFilterArgs {
 @Component({
     selector: 'summary-table-filter',
     templateUrl: './summary-table-filter.component.html',
-    styleUrls: ['./summary-table-filter.component.scss']
+    styleUrls: ['./summary-table-filter.component.scss'],
+    standalone: false
 })
 export class SummaryTableFilter implements AfterViewInit {
     filterForm: FormGroup;

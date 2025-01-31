@@ -46,7 +46,8 @@ import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-su
 @Component({
     selector: 'queue-listing',
     templateUrl: './queue-listing.component.html',
-    styleUrls: ['./queue-listing.component.scss']
+    styleUrls: ['./queue-listing.component.scss'],
+    standalone: false
 })
 export class QueueListing implements OnInit, OnDestroy {
     status$ = this.store.select(selectStatus);

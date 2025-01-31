@@ -30,7 +30,6 @@ import { ErrorContextKey } from '../../../state/error';
 
 @Component({
     selector: 'context-error-banner',
-    standalone: true,
     imports: [CommonModule, ErrorBanner],
     templateUrl: './context-error-banner.component.html',
     styleUrl: './context-error-banner.component.scss'

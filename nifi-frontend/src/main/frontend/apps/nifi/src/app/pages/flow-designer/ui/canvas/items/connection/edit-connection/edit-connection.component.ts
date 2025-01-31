@@ -60,7 +60,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 
 @Component({
     selector: 'edit-connection',
-    standalone: true,
     imports: [
         ExtensionCreation,
         AsyncPipe,

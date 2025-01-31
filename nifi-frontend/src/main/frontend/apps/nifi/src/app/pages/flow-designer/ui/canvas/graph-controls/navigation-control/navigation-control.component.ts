@@ -29,7 +29,6 @@ import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'navigation-control',
-    standalone: true,
     templateUrl: './navigation-control.component.html',
     imports: [Birdseye, MatButtonModule],
     styleUrls: ['./navigation-control.component.scss']

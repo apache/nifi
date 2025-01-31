@@ -34,7 +34,6 @@ import { MatDialogModule } from '@angular/material/dialog';
 
 @Component({
     selector: 'controller-service-references',
-    standalone: true,
     templateUrl: './controller-service-references.component.html',
     imports: [
         MatTreeModule,

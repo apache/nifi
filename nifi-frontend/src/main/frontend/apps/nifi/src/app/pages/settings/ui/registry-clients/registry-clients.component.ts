@@ -43,7 +43,8 @@ import { RegistryClientEntity } from '../../../../state/shared';
 @Component({
     selector: 'registry-clients',
     templateUrl: './registry-clients.component.html',
-    styleUrls: ['./registry-clients.component.scss']
+    styleUrls: ['./registry-clients.component.scss'],
+    standalone: false
 })
 export class RegistryClients implements OnInit, OnDestroy {
     registryClientsState$ = this.store.select(selectRegistryClientsState);

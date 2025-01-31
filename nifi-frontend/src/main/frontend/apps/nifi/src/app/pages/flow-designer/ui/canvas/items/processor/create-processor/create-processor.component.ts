@@ -28,7 +28,6 @@ import { AsyncPipe } from '@angular/common';
 
 @Component({
     selector: 'create-processor',
-    standalone: true,
     imports: [ExtensionCreation, AsyncPipe],
     templateUrl: './create-processor.component.html',
     styleUrls: ['./create-processor.component.scss']

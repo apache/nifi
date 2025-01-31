@@ -43,7 +43,6 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
 
 @Component({
     selector: 'component-state',
-    standalone: true,
     templateUrl: './component-state.component.html',
     imports: [
         MatButtonModule,

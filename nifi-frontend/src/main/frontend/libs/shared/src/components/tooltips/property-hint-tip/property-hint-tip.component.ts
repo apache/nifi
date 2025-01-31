@@ -21,7 +21,6 @@ import { PropertyHintTipInput } from '../../../types';
 
 @Component({
     selector: 'property-hint-tip',
-    standalone: true,
     templateUrl: './property-hint-tip.component.html',
     imports: [NgTemplateOutlet],
     styleUrls: ['./property-hint-tip.component.scss']

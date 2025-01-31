@@ -22,7 +22,6 @@ import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'parameter-provider-references',
-    standalone: true,
     imports: [CommonModule, RouterLink],
     templateUrl: './parameter-providers-references.component.html',
     styleUrls: ['./parameter-providers-references.component.scss']

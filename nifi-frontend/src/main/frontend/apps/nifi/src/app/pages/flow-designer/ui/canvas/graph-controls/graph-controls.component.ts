@@ -29,7 +29,6 @@ import { NiFiState } from '../../../../../state';
 
 @Component({
     selector: 'graph-controls',
-    standalone: true,
     templateUrl: './graph-controls.component.html',
     imports: [NavigationControl, OperationControl, AsyncPipe],
     styleUrls: ['./graph-controls.component.scss']

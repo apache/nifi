@@ -30,7 +30,7 @@
                         </mat-form-field>
                     </form>
                     <mat-accordion multi>
-                        <mat-expansion-panel>
+                        <mat-expansion-panel [expanded]="generalExpanded">
                             <mat-expansion-panel-header>
                                 <mat-panel-title>General</mat-panel-title>
                             </mat-expansion-panel-header>
@@ -47,7 +47,7 @@
                                 }
                             </div>
                         </mat-expansion-panel>
-                        <mat-expansion-panel>
+                        <mat-expansion-panel [expanded]="processorsExpanded">
                             <mat-expansion-panel-header>
                                 <mat-panel-title>Processors</mat-panel-title>
                             </mat-expansion-panel-header>
@@ -60,7 +60,7 @@
                                     }
                                 "></ng-container>
                         </mat-expansion-panel>
-                        <mat-expansion-panel>
+                        <mat-expansion-panel [expanded]="controllerServicesExpanded">
                             <mat-expansion-panel-header>
                                 <mat-panel-title>Controller Services</mat-panel-title>
                             </mat-expansion-panel-header>
@@ -73,7 +73,7 @@
                                     }
                                 "></ng-container>
                         </mat-expansion-panel>
-                        <mat-expansion-panel>
+                        <mat-expansion-panel [expanded]="reportingTasksExpanded">
                             <mat-expansion-panel-header>
                                 <mat-panel-title>Reporting Tasks</mat-panel-title>
                             </mat-expansion-panel-header>
@@ -86,7 +86,7 @@
                                     }
                                 "></ng-container>
                         </mat-expansion-panel>
-                        <mat-expansion-panel>
+                        <mat-expansion-panel [expanded]="parameterProvidersExpanded">
                             <mat-expansion-panel-header>
                                 <mat-panel-title>Parameter Providers</mat-panel-title>
                             </mat-expansion-panel-header>

@@ -53,7 +53,6 @@ export interface ContextMenuDefinition {
 
 @Component({
     selector: 'fd-context-menu',
-    standalone: true,
     templateUrl: './context-menu.component.html',
     imports: [AsyncPipe, CdkMenu, CdkMenuItem, CdkMenuTrigger],
     styleUrls: ['./context-menu.component.scss']

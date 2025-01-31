@@ -53,7 +53,6 @@ export interface ConditionItem {
 
 @Component({
     selector: 'condition-table',
-    standalone: true,
     templateUrl: './condition-table.component.html',
     imports: [
         MatButtonModule,

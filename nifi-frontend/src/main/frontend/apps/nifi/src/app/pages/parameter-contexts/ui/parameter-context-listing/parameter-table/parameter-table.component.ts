@@ -42,7 +42,6 @@ export interface ParameterItem {
 
 @Component({
     selector: 'parameter-table',
-    standalone: true,
     templateUrl: './parameter-table.component.html',
     imports: [
         MatButtonModule,

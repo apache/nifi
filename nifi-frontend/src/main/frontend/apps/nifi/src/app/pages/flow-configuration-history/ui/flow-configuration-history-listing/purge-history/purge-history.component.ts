@@ -33,7 +33,6 @@ import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
 
 @Component({
     selector: 'purge-history',
-    standalone: true,
     imports: [
         CommonModule,
         MatDialogModule,

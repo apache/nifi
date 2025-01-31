@@ -20,6 +20,7 @@ import { Component } from '@angular/core';
 @Component({
     selector: 'access-policies',
     templateUrl: './access-policies.component.html',
-    styleUrls: ['./access-policies.component.scss']
+    styleUrls: ['./access-policies.component.scss'],
+    standalone: false
 })
 export class AccessPolicies {}

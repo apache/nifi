@@ -53,7 +53,6 @@ export interface ActionItem {
 
 @Component({
     selector: 'action-table',
-    standalone: true,
     templateUrl: './action-table.component.html',
     imports: [
         MatButtonModule,

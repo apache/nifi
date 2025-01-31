@@ -39,7 +39,6 @@ import { distinctUntilChanged } from 'rxjs';
 
 @Component({
     selector: 'processor-definition',
-    standalone: true,
     imports: [
         NgxSkeletonLoaderModule,
         ConfigurableExtensionDefinitionComponent,

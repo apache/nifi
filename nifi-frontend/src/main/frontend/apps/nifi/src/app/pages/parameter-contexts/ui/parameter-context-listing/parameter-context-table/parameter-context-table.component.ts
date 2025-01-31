@@ -26,7 +26,8 @@ import { ParameterContextEntity } from '../../../../../state/shared';
 @Component({
     selector: 'parameter-context-table',
     templateUrl: './parameter-context-table.component.html',
-    styleUrls: ['./parameter-context-table.component.scss']
+    styleUrls: ['./parameter-context-table.component.scss'],
+    standalone: false
 })
 export class ParameterContextTable {
     @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';

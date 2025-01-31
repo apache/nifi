@@ -21,7 +21,6 @@ import { CopyDirective } from '@nifi/shared';
 
 @Component({
     selector: 'bulletins-tip',
-    standalone: true,
     templateUrl: './bulletins-tip.component.html',
     imports: [CopyDirective],
     styleUrls: ['./bulletins-tip.component.scss']

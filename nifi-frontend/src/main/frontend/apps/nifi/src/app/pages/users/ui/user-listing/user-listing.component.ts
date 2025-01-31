@@ -47,7 +47,8 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 @Component({
     selector: 'user-listing',
     templateUrl: './user-listing.component.html',
-    styleUrls: ['./user-listing.component.scss']
+    styleUrls: ['./user-listing.component.scss'],
+    standalone: false
 })
 export class UserListing implements OnInit {
     flowConfiguration$ = this.store.select(selectFlowConfiguration);

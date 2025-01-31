@@ -40,7 +40,8 @@ import { DocumentVisibility } from './state/document-visibility';
 @Component({
     selector: 'nifi',
     templateUrl: './app.component.html',
-    styleUrls: ['./app.component.scss']
+    styleUrls: ['./app.component.scss'],
+    standalone: false
 })
 export class AppComponent implements OnDestroy {
     title = 'nifi';
