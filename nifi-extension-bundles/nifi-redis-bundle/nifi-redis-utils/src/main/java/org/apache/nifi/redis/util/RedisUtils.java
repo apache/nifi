@@ -463,7 +463,7 @@ public class RedisUtils {
         poolConfig.setMinIdle(redisConfig.getPoolMinIdle());
         poolConfig.setBlockWhenExhausted(redisConfig.getBlockWhenExhausted());
         poolConfig.setMaxWait(redisConfig.getMaxWaitTime());
-        poolConfig.setMinEvictableIdleTime(redisConfig.getMinEvictableIdleTime());
+        poolConfig.setMinEvictableIdleDuration(redisConfig.getMinEvictableIdleTime());
         poolConfig.setTimeBetweenEvictionRuns(redisConfig.getTimeBetweenEvictionRuns());
         poolConfig.setNumTestsPerEvictionRun(redisConfig.getNumTestsPerEvictionRun());
         poolConfig.setTestOnCreate(redisConfig.getTestOnCreate());

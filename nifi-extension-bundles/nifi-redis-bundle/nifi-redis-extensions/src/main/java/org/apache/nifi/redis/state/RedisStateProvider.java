@@ -211,7 +211,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     public StateMap getState(final String componentId) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] key = getComponentKey(componentId).getBytes(StandardCharsets.UTF_8);
-            final byte[] value = redisConnection.get(key);
+            final byte[] value = redisConnection.stringCommands().get(key);
 
             final RedisStateMap stateMap = serDe.deserialize(value);
             if (stateMap == null) {
@@ -234,7 +234,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
             final Optional<String> previousVersion = oldValue == null ? Optional.empty() : oldValue.getStateVersion();
 
-            final byte[] currValue = redisConnection.get(key);
+            final byte[] currValue = redisConnection.stringCommands().get(key);
             final RedisStateMap currStateMap = serDe.deserialize(currValue);
             final Optional<String> currentVersion = currStateMap == null ? Optional.empty() : currStateMap.getStateVersion();
 
@@ -253,7 +253,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
                 // if we use set(k, newVal) then the results list will always have size == 0 b/c when convertPipelineAndTxResults is set to true,
                 // status responses like "OK" are skipped over, so by using getSet we can rely on the results list to know if the transaction succeeded
-                redisConnection.getSet(key, serDe.serialize(newStateMap));
+                redisConnection.stringCommands().getSet(key, serDe.serialize(newStateMap));
             }
 
             // execute the transaction
@@ -293,7 +293,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     public void onComponentRemoved(final String componentId) throws IOException {
         withConnection(redisConnection -> {
             final byte[] key = getComponentKey(componentId).getBytes(StandardCharsets.UTF_8);
-            redisConnection.del(key);
+            redisConnection.keyCommands().del(key);
             return true;
         });
     }
@@ -320,7 +320,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         final Pattern keyPrefixComponentIdPattern = Pattern.compile(String.format(KEY_PREFIX_COMPONENT_ID_PATTERN, keyPrefix));
 
         return withConnection(redisConnection -> {
-            final Set<byte[]> keys = redisConnection.keys(keyPattern);
+            final Set<byte[]> keys = redisConnection.keyCommands().keys(keyPattern);
             final Set<byte[]> keysFound = keys == null ? Collections.emptySet() : keys;
             return keysFound.stream()
                     .map(key -> new String(key, StandardCharsets.UTF_8))
