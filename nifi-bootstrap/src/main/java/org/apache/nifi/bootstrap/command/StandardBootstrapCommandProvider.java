@@ -24,6 +24,7 @@ import org.apache.nifi.bootstrap.command.io.ResponseStreamHandler;
 import org.apache.nifi.bootstrap.command.io.StandardBootstrapArgumentParser;
 import org.apache.nifi.bootstrap.command.process.StandardProcessHandleProvider;
 import org.apache.nifi.bootstrap.command.process.ProcessHandleProvider;
+import org.apache.nifi.bootstrap.command.process.VirtualMachineProcessHandleProvider;
 import org.apache.nifi.bootstrap.configuration.ApplicationClassName;
 import org.apache.nifi.bootstrap.configuration.ConfigurationProvider;
 import org.apache.nifi.bootstrap.configuration.StandardConfigurationProvider;
@@ -99,7 +100,7 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
 
     private BootstrapCommand getBootstrapCommand(final BootstrapArgument bootstrapArgument, final String[] arguments) {
         final ConfigurationProvider configurationProvider = new StandardConfigurationProvider(System.getenv(), System.getProperties());
-        final ProcessHandleProvider processHandleProvider = new StandardProcessHandleProvider(configurationProvider);
+        final ProcessHandleProvider processHandleProvider = getProcessHandleProvider(configurationProvider);
         final ResponseStreamHandler commandLoggerStreamHandler = new LoggerResponseStreamHandler(commandLogger);
         final BootstrapCommand stopBootstrapCommand = new StopBootstrapCommand(processHandleProvider, configurationProvider);
 
@@ -237,5 +238,22 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
         }
 
         return responseStreamHandler;
+    }
+
+    private ProcessHandleProvider getProcessHandleProvider(final ConfigurationProvider configurationProvider) {
+        final ProcessHandleProvider processHandleProvider;
+
+        final ProcessHandle currentProcessHandle = ProcessHandle.current();
+        final ProcessHandle.Info currentProcessHandleInfo = currentProcessHandle.info();
+        final Optional<String[]> currentProcessArguments = currentProcessHandleInfo.arguments();
+
+        if (currentProcessArguments.isPresent()) {
+            processHandleProvider = new StandardProcessHandleProvider(configurationProvider);
+        } else {
+            // Use Virtual Machine Attach API when ProcessHandle does not support arguments as described in JDK-8176725
+            processHandleProvider = new VirtualMachineProcessHandleProvider(configurationProvider);
+        }
+
+        return processHandleProvider;
     }
 }
