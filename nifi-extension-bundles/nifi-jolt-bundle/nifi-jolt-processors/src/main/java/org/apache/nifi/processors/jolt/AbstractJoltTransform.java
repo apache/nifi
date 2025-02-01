@@ -44,6 +44,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -159,6 +161,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                     customClassLoader = this.getClass().getClassLoader();
                 }
 
+                final boolean filePathElPresent = validationContext.isExpressionLanguagePresent(joltSpecFile);
                 final boolean elPresent = validationContext.isExpressionLanguagePresent(joltSpecValue);
 
                 if (elPresent) {
@@ -169,7 +172,23 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                                 .explanation("Invalid Expression Language: " + invalidExpressionMsg)
                                 .build());
                     }
-                } else if (validationContext.isExpressionLanguagePresent(customTransform)) {
+                } else if (filePathElPresent) {
+                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(joltSpecFile, true);
+                    if (!StringUtils.isEmpty(invalidExpressionMsg)) {
+                        results.add(new ValidationResult.Builder().valid(false)
+                                .subject(JOLT_SPEC_FILE.getDisplayName())
+                                .explanation("Invalid Expression Language: " + invalidExpressionMsg)
+                                .build());
+                    }
+                } else if (!StringUtils.isEmpty(joltSpecFile)) {
+                    final boolean filePathValid = Files.exists(Paths.get(joltSpecFile));
+                    if (!filePathValid) {
+                        results.add(new ValidationResult.Builder().valid(false)
+                                .subject(JOLT_SPEC_FILE.getDisplayName())
+                                .explanation("File Path not found: " + joltSpecFile)
+                                .build());
+                    }
+                }  else if (validationContext.isExpressionLanguagePresent(customTransform)) {
                     final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(customTransform, true);
                     if (!StringUtils.isEmpty(invalidExpressionMsg)) {
                         results.add(new ValidationResult.Builder().valid(false)
@@ -216,6 +235,8 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = Optional.of(context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue());
+        } else if (context.getProperty(JOLT_SPEC_FILE).isSet()) {
+            specString = Optional.of(context.getProperty(JOLT_SPEC_FILE).evaluateAttributeExpressions(flowFile).getValue());
         } else if (JoltTransformStrategy.SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
             specString = Optional.empty();
         } else {
@@ -236,6 +257,13 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         final Object specJson;
         if ((context.getProperty(JOLT_SPEC).isSet() && !JoltTransformStrategy.SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue()))) {
             final String resolvedSpec = readTransform(context.getProperty(JOLT_SPEC), flowFile);
+            specJson = JsonUtils.jsonToObject(resolvedSpec, StandardCharsets.UTF_8.toString());
+        } else if (context.getProperty(JOLT_SPEC_FILE).isSet()) {
+            String resolvedSpec = readTransform(context.getProperty(JOLT_SPEC_FILE).evaluateAttributeExpressions(flowFile), flowFile);
+            PropertyValue specPropertyValue = context.newPropertyValue(resolvedSpec);
+            if (specPropertyValue.isExpressionLanguagePresent()){
+                resolvedSpec = specPropertyValue.evaluateAttributeExpressions(flowFile).getValue();
+            }
             specJson = JsonUtils.jsonToObject(resolvedSpec, StandardCharsets.UTF_8.toString());
         } else {
             specJson = null;
