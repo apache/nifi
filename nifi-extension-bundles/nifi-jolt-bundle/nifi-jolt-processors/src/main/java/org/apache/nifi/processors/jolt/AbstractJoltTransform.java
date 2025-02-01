@@ -59,14 +59,22 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
             .defaultValue(JoltTransformStrategy.CHAINR.getValue())
             .build();
 
+    public static final PropertyDescriptor JOLT_SPEC_FILE = new PropertyDescriptor.Builder()
+            .name("Jolt Specification File")
+            .description("Path to a file containing the Jolt specification.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .required(false)
+            .build();
+
     public static final PropertyDescriptor JOLT_SPEC = new PropertyDescriptor.Builder()
             .name("Jolt Specification")
-            .description("Jolt Specification for transformation of JSON data. The value for this property may be the text of a Jolt specification "
-                    + "or the path to a file containing a Jolt specification. 'Jolt Specification' must be set, or "
+            .description("Jolt Specification for transformation of JSON data. The value for this property must be the text of a Jolt specification. "
                     + "the value is ignored if the Jolt Sort Transformation is selected.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT)
             .required(false)
             .build();
 
@@ -102,6 +110,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             JOLT_TRANSFORM,
             JOLT_SPEC,
+            JOLT_SPEC_FILE,
             CUSTOM_CLASS,
             MODULES,
             TRANSFORM_CACHE_SIZE
@@ -133,10 +142,13 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
         final String modulePath = validationContext.getProperty(MODULES).isSet() ? validationContext.getProperty(MODULES).getValue() : null;
         final String joltSpecValue = validationContext.getProperty(JOLT_SPEC).getValue();
+        final String joltSpecFile = validationContext.getProperty(JOLT_SPEC_FILE).getValue();
 
-        if (StringUtils.isEmpty(joltSpecValue) && !JoltTransformStrategy.SORTR.getValue().equals(transform)) {
-            results.add(new ValidationResult.Builder().subject(JOLT_SPEC.getDisplayName()).valid(false).explanation(
-                    "'Jolt Specification' must be set, or the Transformation must be 'Sort'").build());
+        if (StringUtils.isEmpty(joltSpecValue) && StringUtils.isEmpty(joltSpecFile) && !JoltTransformStrategy.SORTR.getValue().equals(transform)) {
+            results.add(new ValidationResult.Builder().subject(JOLT_SPEC.getDisplayName())
+                    .valid(false)
+                    .explanation("Either 'Jolt Specification' or 'Jolt Specification File' must be set, or the Transformation must be 'Sort'")
+                    .build());
         } else {
             final ClassLoader customClassLoader;
 
