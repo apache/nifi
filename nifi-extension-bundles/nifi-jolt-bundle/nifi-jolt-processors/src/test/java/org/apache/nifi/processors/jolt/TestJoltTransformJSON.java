@@ -148,7 +148,7 @@ class TestJoltTransformJSON {
 
     @Test
     void testInvalidFlowFileContentJsonFromFile() {
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC, CHAINR_SPEC_PATH);
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, CHAINR_SPEC_PATH);
         runner.enqueue("invalid json");
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
@@ -233,7 +233,7 @@ class TestJoltTransformJSON {
     @Test
     void testTransformInputWithShiftrFromFile() throws IOException {
         final String spec = "./src/test/resources/specs/shiftrSpec.json";
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
         runner.enqueue(JSON_INPUT);
         runner.run();
