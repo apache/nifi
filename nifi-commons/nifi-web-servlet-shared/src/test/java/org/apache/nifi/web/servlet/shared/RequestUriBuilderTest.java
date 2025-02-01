@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.servlet.shared;
 
+import jakarta.servlet.ServletContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,8 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
-import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -48,16 +47,22 @@ public class RequestUriBuilderTest {
 
     private static final String EMPTY = "";
 
+    private static final String ALLOWED_CONTEXT_PATHS = "allowedContextPaths";
+
     @Mock
     private HttpServletRequest httpServletRequest;
 
+    @Mock
+    private ServletContext servletContext;
+
     @Test
     public void testFromHttpServletRequestBuild() {
+        when(httpServletRequest.getServletContext()).thenReturn(servletContext);
         when(httpServletRequest.getServerPort()).thenReturn(PORT);
         when(httpServletRequest.getScheme()).thenReturn(SCHEME);
         lenient().when(httpServletRequest.getHeader(eq(HOST_HEADER))).thenReturn(HOST);
 
-        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, Collections.emptyList());
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
         final URI uri = builder.build();
 
         assertNotNull(uri);
@@ -69,11 +74,12 @@ public class RequestUriBuilderTest {
 
     @Test
     public void testFromHttpServletRequestPathBuild() {
+        when(httpServletRequest.getServletContext()).thenReturn(servletContext);
         when(httpServletRequest.getServerPort()).thenReturn(PORT);
         when(httpServletRequest.getScheme()).thenReturn(SCHEME);
         lenient().when(httpServletRequest.getHeader(eq(HOST_HEADER))).thenReturn(HOST);
 
-        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, Collections.emptyList());
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
         builder.fragment(FRAGMENT).path(CONTEXT_PATH);
         final URI uri = builder.build();
 
@@ -87,12 +93,14 @@ public class RequestUriBuilderTest {
 
     @Test
     public void testFromHttpServletRequestProxyHeadersBuild() {
+        when(httpServletRequest.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getInitParameter(eq(ALLOWED_CONTEXT_PATHS))).thenReturn(CONTEXT_PATH);
         when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_SCHEME.getHeader()))).thenReturn(SCHEME);
         when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_HOST.getHeader()))).thenReturn(HOST);
         when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_PORT.getHeader()))).thenReturn(Integer.toString(PORT));
         when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_CONTEXT_PATH.getHeader()))).thenReturn(CONTEXT_PATH);
 
-        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, List.of(CONTEXT_PATH));
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
         final URI uri = builder.build();
 
         assertNotNull(uri);
