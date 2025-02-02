@@ -237,15 +237,8 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
     }
 
     private String readTransform(final PropertyValue propertyValue, final FlowFile flowFile) {
-        final String transform;
-
-        if (propertyValue.isExpressionLanguagePresent()) {
-            transform = propertyValue.evaluateAttributeExpressions(flowFile).getValue();
-        } else {
-            transform = readTransform(propertyValue);
-        }
-
-        return transform;
+        final PropertyValue evaluatedPropertyValue = propertyValue.evaluateAttributeExpressions(flowFile);
+        return readTransform(evaluatedPropertyValue);
     }
 
     String readTransform(final PropertyValue propertyValue) {
