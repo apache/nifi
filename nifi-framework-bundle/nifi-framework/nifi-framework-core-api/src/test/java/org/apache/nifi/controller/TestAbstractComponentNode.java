@@ -546,7 +546,7 @@ public class TestAbstractComponentNode {
         protected Collection<ValidationResult> computeValidationErrors(ValidationContext context) {
             try {
                 Thread.sleep(pauseMillis);
-            } catch (final InterruptedException ie) {
+            } catch (final InterruptedException ignored) {
             }
 
             return null;

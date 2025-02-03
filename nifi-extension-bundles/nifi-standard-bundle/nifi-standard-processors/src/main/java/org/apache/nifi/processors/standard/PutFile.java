@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -83,23 +82,20 @@ public class PutFile extends AbstractProcessor {
     public static final Pattern RWX_PATTERN = Pattern.compile("^([r-][w-])([x-])([r-][w-])([x-])([r-][w-])([x-])$");
     public static final Pattern NUM_PATTERN = Pattern.compile("^[0-7]{3}$");
 
-    private static final Validator PERMISSIONS_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            ValidationResult.Builder vr = new ValidationResult.Builder();
-            if (context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            }
-
-            if (RWX_PATTERN.matcher(input).matches() || NUM_PATTERN.matcher(input).matches()) {
-                return vr.valid(true).build();
-            }
-            return vr.valid(false)
-                    .subject(subject)
-                    .input(input)
-                    .explanation("This must be expressed in rwxr-x--- form or octal triplet form.")
-                    .build();
+    private static final Validator PERMISSIONS_VALIDATOR = (subject, input, context) -> {
+        ValidationResult.Builder vr = new ValidationResult.Builder();
+        if (context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
         }
+
+        if (RWX_PATTERN.matcher(input).matches() || NUM_PATTERN.matcher(input).matches()) {
+            return vr.valid(true).build();
+        }
+        return vr.valid(false)
+                .subject(subject)
+                .input(input)
+                .explanation("This must be expressed in rwxr-x--- form or octal triplet form.")
+                .build();
     };
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -163,7 +159,7 @@ public class PutFile extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DIRECTORY,
             CONFLICT_RESOLUTION,
             CREATE_DIRS,
@@ -196,7 +192,7 @@ public class PutFile extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -478,7 +474,7 @@ public class PutFile extends AbstractProcessor {
                     }
                 }
                 permissions = permBuilder.toString();
-            } catch (NumberFormatException ignore) {
+            } catch (NumberFormatException ignored) {
             }
         }
 

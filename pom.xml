@@ -19,7 +19,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>2.2.0-SNAPSHOT</version>
+    <version>2.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -105,21 +105,21 @@
         <frontend.mvn.plugin.version>1.15.1</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
         <nifi-api.version>2.0.0</nifi-api.version>
-        <project.build.outputTimestamp>1734995065</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1738009360</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.780</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.29.40</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.30.4</software.amazon.awssdk.version>
         <gson.version>2.11.0</gson.version>
         <io.fabric8.kubernetes.client.version>7.0.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.0</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <okio.version>3.9.1</okio.version>
+        <okio.version>3.10.2</okio.version>
         <org.apache.commons.cli.version>1.9.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.17.1</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.17.2</org.apache.commons.codec.version>
         <org.apache.commons.compress.version>1.27.1</org.apache.commons.compress.version>
-        <com.github.luben.zstd-jni.version>1.5.6-8</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.6-9</com.github.luben.zstd-jni.version>
         <org.apache.commons.configuration.version>2.11.0</org.apache.commons.configuration.version>
         <org.apache.commons.lang3.version>3.17.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.11.1</org.apache.commons.net.version>
@@ -127,8 +127,8 @@
         <org.apache.commons.text.version>1.13.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
-        <org.bouncycastle.version>1.79</org.bouncycastle.version>
-        <pmd.version>7.8.0</pmd.version>
+        <org.bouncycastle.version>1.80</org.bouncycastle.version>
+        <pmd.version>7.10.0</pmd.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <org.slf4j.version>2.0.16</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
@@ -144,20 +144,20 @@
         <groovy.version>4.0.24</groovy.version>
         <surefire.version>3.5.1</surefire.version>
         <hadoop.version>3.4.1</hadoop.version>
-        <ozone.version>1.2.1</ozone.version>
+        <ozone.version>1.4.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.22.1</aspectj.version>
-        <jersey.bom.version>3.1.9</jersey.bom.version>
+        <jersey.bom.version>3.1.10</jersey.bom.version>
         <log4j2.version>2.24.3</log4j2.version>
-        <logback.version>1.5.15</logback.version>
-        <mockito.version>5.14.2</mockito.version>
+        <logback.version>1.5.16</logback.version>
+        <mockito.version>5.15.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.3</snakeyaml.version>
-        <netty.4.version>4.1.116.Final</netty.4.version>
+        <netty.4.version>4.1.117.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.version>6.2.1</spring.version>
+        <spring.version>6.2.2</spring.version>
         <spring.security.version>6.4.2</spring.security.version>
-        <swagger.annotations.version>2.2.27</swagger.annotations.version>
+        <swagger.annotations.version>2.2.28</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
@@ -738,7 +738,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>10.21.0</version>
+                            <version>10.21.1</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -1000,6 +1000,7 @@
                 <configuration>
                     <printFailingErrors>true</printFailingErrors>
                     <linkXRef>false</linkXRef>
+                    <includeTests>true</includeTests>
                     <targetJdk>${maven.compiler.release}</targetJdk>
                     <rulesets>
                         <ruleset>${maven.multiModuleProjectDirectory}/pmd-ruleset.xml</ruleset>
@@ -1147,37 +1148,6 @@
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
-            <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
-            <id>dependency-check</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>11.1.0</version>
-                        <executions>
-                            <execution>
-                                <inherited>false</inherited>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>aggregate</goal>
-                                </goals>
-                                <configuration>
-                                    <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
-                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
-                                    <skipSystemScope>true</skipSystemScope>
-                                    <!-- Disable .NET Assembly Analyzer to avoid non-applicable errors -->
-                                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                                    <skipProvidedScope>true</skipProvidedScope>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

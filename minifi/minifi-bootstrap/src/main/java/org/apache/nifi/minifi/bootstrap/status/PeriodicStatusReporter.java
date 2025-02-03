@@ -57,7 +57,7 @@ public abstract class PeriodicStatusReporter {
         try {
             scheduledExecutorService.shutdown();
             scheduledExecutorService.awaitTermination(termination_wait, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ignore) {
+        } catch (InterruptedException ignored) {
             // Shutting down anyway
         }
     }

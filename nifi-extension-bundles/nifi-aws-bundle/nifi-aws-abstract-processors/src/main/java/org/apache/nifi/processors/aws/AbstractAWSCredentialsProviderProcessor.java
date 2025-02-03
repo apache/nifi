@@ -255,7 +255,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
             return null;
         }
 
-        final String endpointOverride = overrideValue.getValue();
+        final String endpointOverride = overrideValue.evaluateAttributeExpressions().getValue();
         return new AwsClientBuilder.EndpointConfiguration(endpointOverride, region.getName());
     }
 

@@ -231,7 +231,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         while (!result.isFinished()) {
             try {
                 Thread.sleep(100L);
-            } catch (final InterruptedException ie) {
+            } catch (final InterruptedException ignored) {
             }
         }
 
@@ -515,7 +515,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         while (!result.isFinished()) {
             try {
                 Thread.sleep(100L);
-            } catch (final InterruptedException ie) {
+            } catch (final InterruptedException ignored) {
             }
         }
 

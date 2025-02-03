@@ -36,7 +36,6 @@ import { Client } from '../../../../../../../service/client.service';
 
 @Component({
     selector: 'group-components',
-    standalone: true,
     imports: [
         AsyncPipe,
         MatButtonModule,
@@ -73,7 +72,7 @@ export class GroupComponents {
         });
 
         dialogRequest.parameterContexts.forEach((parameterContext) => {
-            if (parameterContext.permissions.canRead) {
+            if (parameterContext.permissions.canRead && parameterContext.component) {
                 this.parameterContextsOptions.push({
                     text: parameterContext.component.name,
                     value: parameterContext.id,

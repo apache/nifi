@@ -59,9 +59,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -69,7 +69,7 @@ import static org.mockito.Mockito.when;
 
 public class TestExecuteSQLRecord {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(TestExecuteSQLRecord.class);;
+    private final Logger LOGGER = LoggerFactory.getLogger(TestExecuteSQLRecord.class);
 
     final static String DB_LOCATION = "target/db";
 
@@ -192,7 +192,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -242,7 +242,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -299,7 +299,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 varchar(50), constraint my_pk primary key (id))");
@@ -342,7 +342,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -396,7 +396,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -433,7 +433,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, image blob(1K), words clob(1K), "
@@ -462,17 +462,17 @@ public class TestExecuteSQLRecord {
 
         Object imageObj = avroRecord.get("IMAGE");
         assertNotNull(imageObj);
-        assertTrue(imageObj instanceof ByteBuffer);
+        assertInstanceOf(ByteBuffer.class, imageObj);
         assertArrayEquals(new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
 
         Object wordsObj = avroRecord.get("WORDS");
         assertNotNull(wordsObj);
-        assertTrue(wordsObj instanceof Utf8);
+        assertInstanceOf(Utf8.class, wordsObj);
         assertEquals("Hello World", wordsObj.toString());
 
         Object natwordsObj = avroRecord.get("NATWORDS");
         assertNotNull(natwordsObj);
-        assertTrue(natwordsObj instanceof Utf8);
+        assertInstanceOf(Utf8.class, natwordsObj);
         assertEquals("I am an NCLOB", natwordsObj.toString());
     }
 
@@ -488,7 +488,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -520,7 +520,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NO_ROWS (id integer)");
@@ -563,7 +563,6 @@ public class TestExecuteSQLRecord {
 
         // ResultSet size will be 1x200x100 = 20 000 rows
         // because of where PER.ID = ${person.id}
-        final int nrOfRows = 20000;
 
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
@@ -647,7 +646,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -680,7 +679,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -714,7 +713,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -745,7 +744,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");

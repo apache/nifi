@@ -46,7 +46,8 @@ import { NodeSearchResult } from '../../../../state/cluster-summary';
 @Component({
     selector: 'connection-status-listing',
     templateUrl: './connection-status-listing.component.html',
-    styleUrls: ['./connection-status-listing.component.scss']
+    styleUrls: ['./connection-status-listing.component.scss'],
+    standalone: false
 })
 export class ConnectionStatusListing {
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);

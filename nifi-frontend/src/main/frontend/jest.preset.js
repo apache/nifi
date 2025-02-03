@@ -20,5 +20,11 @@ const nxPreset = require('@nx/jest/preset').default;
 module.exports = {
     ...nxPreset,
     // Include several code coverage reporting formats by default
-    coverageReporters: ['html', 'lcov', 'json', 'cobertura']
+    coverageReporters: ['html', 'lcov', 'json', 'cobertura'],
+
+    // Workaround for import issues with jest and d3. See https://github.com/jestjs/jest/issues/14911
+    moduleNameMapper: {
+        '^d3$': '<rootDir>/../../node_modules/d3/dist/d3.js',
+        '^d3-(.+)$': '<rootDir>/../../node_modules/d3-$1/dist/d3-$1.js'
+    }
 };

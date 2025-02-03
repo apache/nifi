@@ -53,7 +53,8 @@ import { ComponentType } from '@nifi/shared';
 @Component({
     selector: 'management-controller-services',
     templateUrl: './management-controller-services.component.html',
-    styleUrls: ['./management-controller-services.component.scss']
+    styleUrls: ['./management-controller-services.component.scss'],
+    standalone: false
 })
 export class ManagementControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectManagementControllerServicesState);

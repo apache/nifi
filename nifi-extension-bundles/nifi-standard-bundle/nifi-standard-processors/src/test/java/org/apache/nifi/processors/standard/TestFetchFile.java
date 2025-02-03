@@ -28,8 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -250,7 +250,7 @@ public class TestFetchFile {
         runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
 
         final byte[] replacedContent = Files.readAllBytes(destFile.toPath());
-        assertTrue(Arrays.equals(content, replacedContent));
+        assertArrayEquals(content, replacedContent);
         assertFalse(sourceFile.exists());
         assertTrue(destFile.exists());
     }
@@ -281,7 +281,7 @@ public class TestFetchFile {
         runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
 
         final byte[] replacedContent = Files.readAllBytes(destFile.toPath());
-        assertTrue(Arrays.equals(goodBye, replacedContent));
+        assertArrayEquals(goodBye, replacedContent);
         assertFalse(sourceFile.exists());
         assertTrue(destFile.exists());
     }
@@ -311,7 +311,7 @@ public class TestFetchFile {
         runner.assertAllFlowFilesTransferred(FetchFile.REL_FAILURE, 1);
 
         final byte[] replacedContent = Files.readAllBytes(destFile.toPath());
-        assertTrue(Arrays.equals(goodBye, replacedContent));
+        assertArrayEquals(goodBye, replacedContent);
         assertTrue(sourceFile.exists());
         assertTrue(destFile.exists());
     }
@@ -342,7 +342,7 @@ public class TestFetchFile {
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
 
         final byte[] replacedContent = Files.readAllBytes(destFile.toPath());
-        assertTrue(Arrays.equals(goodBye, replacedContent));
+        assertArrayEquals(goodBye, replacedContent);
         assertFalse(sourceFile.exists());
         assertTrue(destFile.exists());
 

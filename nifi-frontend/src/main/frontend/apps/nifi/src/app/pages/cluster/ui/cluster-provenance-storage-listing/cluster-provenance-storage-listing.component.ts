@@ -40,7 +40,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'cluster-provenance-storage-listing',
-    standalone: true,
     imports: [AsyncPipe, NgxSkeletonLoaderModule, RepositoryStorageTable],
     templateUrl: './cluster-provenance-storage-listing.component.html',
     styleUrl: './cluster-provenance-storage-listing.component.scss'

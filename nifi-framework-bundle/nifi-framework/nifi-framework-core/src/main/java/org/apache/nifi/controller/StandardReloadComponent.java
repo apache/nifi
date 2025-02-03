@@ -81,7 +81,7 @@ public class StandardReloadComponent implements ReloadComponent {
             stateManager, () -> false, flowController);
 
         // call OnRemoved for the existing processor using the previous instance class loader
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
@@ -143,7 +143,7 @@ public class StandardReloadComponent implements ReloadComponent {
 
         // call OnRemoved for the existing service using the previous instance class loader
         final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, flowController.getControllerServiceProvider(), null);
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
@@ -199,7 +199,7 @@ public class StandardReloadComponent implements ReloadComponent {
 
         // call OnRemoved for the existing reporting task using the previous instance class loader
         final ConfigurationContext configurationContext = existingNode.getConfigurationContext();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getReportingTask(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
@@ -248,7 +248,7 @@ public class StandardReloadComponent implements ReloadComponent {
 
         // call OnRemoved for the existing flow analysis rule using the previous instance class loader
         final ConfigurationContext configurationContext = existingNode.getConfigurationContext();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getFlowAnalysisRule(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
@@ -300,7 +300,7 @@ public class StandardReloadComponent implements ReloadComponent {
         final ParameterProviderNode newNode = flowController.getFlowManager().createParameterProvider(newType, id, bundleCoordinate, additionalUrls, true, false);
 
         // call OnRemoved for the existing parameter provider using the previous instance class loader
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getParameterProvider(), existingNode.getConfigurationContext());
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);

@@ -463,7 +463,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         reportingTaskNode.verifyCanDelete();
 
         final Class<?> taskClass = reportingTaskNode.getReportingTask().getClass();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, reportingTaskNode.getReportingTask().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, reportingTaskNode.getReportingTask().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
@@ -511,7 +511,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         flowAnalysisRuleNode.verifyCanDelete();
 
         final Class<?> taskClass = flowAnalysisRuleNode.getFlowAnalysisRule().getClass();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, flowAnalysisRuleNode.getFlowAnalysisRule().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, flowAnalysisRuleNode.getFlowAnalysisRule().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, flowAnalysisRuleNode.getFlowAnalysisRule(), flowAnalysisRuleNode.getConfigurationContext());
         }
 
@@ -556,7 +556,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         }
 
         final Class<?> taskClass = parameterProvider.getParameterProvider().getClass();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, parameterProvider.getParameterProvider().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, parameterProvider.getParameterProvider().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, parameterProvider.getParameterProvider(), parameterProvider.getConfigurationContext());
         }
 

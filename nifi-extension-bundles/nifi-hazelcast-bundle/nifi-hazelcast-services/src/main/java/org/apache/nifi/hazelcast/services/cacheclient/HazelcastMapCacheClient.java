@@ -36,9 +36,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -86,15 +84,11 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
             .build();
 
     private static final long STARTING_REVISION = 1;
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
-
-    static {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(HAZELCAST_CACHE_MANAGER);
-        properties.add(HAZELCAST_CACHE_NAME);
-        properties.add(HAZELCAST_ENTRY_TTL);
-        PROPERTY_DESCRIPTORS = Collections.unmodifiableList(properties);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+        HAZELCAST_CACHE_MANAGER,
+        HAZELCAST_CACHE_NAME,
+        HAZELCAST_ENTRY_TTL
+    );
 
     private volatile HazelcastCache cache = null;
 
@@ -139,7 +133,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
         final String key = serializeCacheEntryKey(entry.getKey(), keySerializer);
 
-        try (final HazelcastCache.HazelcastCacheEntryLock lock = cache.acquireLock(key)) {
+        try (final HazelcastCache.HazelcastCacheEntryLock ignored = cache.acquireLock(key)) {
             final byte[] oldValue = cache.get(key);
 
             if (oldValue == null && (entry.getRevision().isEmpty() || entry.getRevision().get() < STARTING_REVISION)) {

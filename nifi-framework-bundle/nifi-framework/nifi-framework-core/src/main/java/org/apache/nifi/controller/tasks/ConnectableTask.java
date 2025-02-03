@@ -237,7 +237,7 @@ public class ConnectableTask {
 
         final String originalThreadName = Thread.currentThread().getName();
         try {
-            try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
+            try (final AutoCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
                 boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING || connectable.getScheduledState() == ScheduledState.RUN_ONCE;
                 while (shouldRun) {
                     invocationCount++;

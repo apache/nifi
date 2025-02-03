@@ -203,8 +203,7 @@ public class FileUtils {
     public static void sleepQuietly(final long millis) {
         try {
             Thread.sleep(millis);
-        } catch (final InterruptedException ex) {
-            /* do nothing */
+        } catch (final InterruptedException ignored) {
         }
     }
 }

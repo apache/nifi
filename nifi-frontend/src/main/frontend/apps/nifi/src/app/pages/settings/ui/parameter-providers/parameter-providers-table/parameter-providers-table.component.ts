@@ -35,7 +35,6 @@ export type SupportedColumns = 'name' | 'type' | 'bundle';
 
 @Component({
     selector: 'parameter-providers-table',
-    standalone: true,
     imports: [
         CommonModule,
         MatPaginatorModule,

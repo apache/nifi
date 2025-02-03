@@ -92,7 +92,8 @@ import java.util.stream.Collectors;
         + "The messages to send may be individual FlowFiles, may be delimited using a "
         + "user-specified delimiter (such as a new-line), or "
         + "may be record-oriented data that can be read by the configured Record Reader. "
-        + "The complementary NiFi processor for fetching messages is ConsumeKafka.")
+        + "The complementary NiFi processor for fetching messages is ConsumeKafka. "
+        + "To produce a kafka tombstone message while using PublishStrategy.USE_WRAPPER, simply set the value of a record to 'null'.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @ReadsAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "If this attribute is set to 'true', if the processor is not configured "
         + "with a demarcator and if the FlowFile's content is null, then a tombstone message with zero bytes will be sent to Kafka.")
@@ -298,7 +299,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECTION_SERVICE,
             TOPIC_NAME,
             FAILURE_STRATEGY,
@@ -322,14 +323,17 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             RECORD_METADATA_STRATEGY
     );
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private final Queue<KafkaProducerService> producerServices = new LinkedBlockingQueue<>();
 
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

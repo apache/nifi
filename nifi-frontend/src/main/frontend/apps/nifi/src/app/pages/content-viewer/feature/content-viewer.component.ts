@@ -42,7 +42,8 @@ interface SupportedContentViewer {
 @Component({
     selector: 'content-viewer',
     templateUrl: './content-viewer.component.html',
-    styleUrls: ['./content-viewer.component.scss']
+    styleUrls: ['./content-viewer.component.scss'],
+    standalone: false
 })
 export class ContentViewerComponent implements OnInit, OnDestroy {
     viewerForm: FormGroup;

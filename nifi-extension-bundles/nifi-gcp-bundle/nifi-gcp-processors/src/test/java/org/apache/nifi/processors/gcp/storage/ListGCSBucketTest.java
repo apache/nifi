@@ -769,7 +769,6 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
     @Test
     public void testYieldOnBadStateRestore() {
-        final Iterable<Blob> mockList = Collections.emptyList();
 
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
         runner.enqueue("test");

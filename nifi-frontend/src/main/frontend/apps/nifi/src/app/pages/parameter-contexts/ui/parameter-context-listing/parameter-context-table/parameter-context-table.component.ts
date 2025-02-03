@@ -26,7 +26,8 @@ import { ParameterContextEntity } from '../../../../../state/shared';
 @Component({
     selector: 'parameter-context-table',
     templateUrl: './parameter-context-table.component.html',
-    styleUrls: ['./parameter-context-table.component.scss']
+    styleUrls: ['./parameter-context-table.component.scss'],
+    standalone: false
 })
 export class ParameterContextTable {
     @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';
@@ -63,11 +64,11 @@ export class ParameterContextTable {
     }
 
     formatName(entity: ParameterContextEntity): string {
-        return this.canRead(entity) ? entity.component.name : entity.id;
+        return this.canRead(entity) && entity.component ? entity.component.name : entity.id;
     }
 
     formatProvider(entity: ParameterContextEntity): string {
-        if (!this.canRead(entity)) {
+        if (!this.canRead(entity) || !entity.component) {
             return '';
         }
         const paramProvider = entity.component.parameterProviderConfiguration;
@@ -78,7 +79,7 @@ export class ParameterContextTable {
     }
 
     formatDescription(entity: ParameterContextEntity): string {
-        return this.canRead(entity) ? entity.component.description : '';
+        return this.canRead(entity) && entity.component ? entity.component.description : '';
     }
 
     editClicked(entity: ParameterContextEntity): void {
@@ -105,14 +106,14 @@ export class ParameterContextTable {
     }
 
     canGoToParameterProvider(entity: ParameterContextEntity): boolean {
-        if (!this.canRead(entity)) {
+        if (!this.canRead(entity) || !entity.component) {
             return false;
         }
         return !!entity.component.parameterProviderConfiguration;
     }
 
     getParameterProviderLink(entity: ParameterContextEntity): string[] {
-        if (!entity.component.parameterProviderConfiguration) {
+        if (!this.canRead(entity) || !entity.component || !entity.component.parameterProviderConfiguration) {
             return [];
         }
         return ['/settings', 'parameter-providers', entity.component.parameterProviderConfiguration.id];

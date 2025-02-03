@@ -36,7 +36,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
      * @return The action associated with this access policy.
      */
     @Schema(description = "The action associated with this access policy.",
-            allowableValues = "read, write"
+            allowableValues = {"read", "write"}
     )
     public String getAction() {
         return action;

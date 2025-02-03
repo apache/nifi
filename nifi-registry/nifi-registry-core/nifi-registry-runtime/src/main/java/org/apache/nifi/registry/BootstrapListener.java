@@ -141,7 +141,7 @@ public class BootstrapListener {
 
             try {
                 serverSocket.close();
-            } catch (final IOException ioe) {
+            } catch (final IOException ignored) {
                 // nothing to really do here. we could log this, but it would just become
                 // confusing in the logs, as we're shutting down and there's no real benefit
             }

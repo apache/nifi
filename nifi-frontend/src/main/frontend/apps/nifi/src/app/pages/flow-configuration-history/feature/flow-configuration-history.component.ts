@@ -20,6 +20,7 @@ import { Component } from '@angular/core';
 @Component({
     selector: 'flow-configuration-history',
     templateUrl: './flow-configuration-history.component.html',
-    styleUrls: ['./flow-configuration-history.component.scss']
+    styleUrls: ['./flow-configuration-history.component.scss'],
+    standalone: false
 })
 export class FlowConfigurationHistory {}

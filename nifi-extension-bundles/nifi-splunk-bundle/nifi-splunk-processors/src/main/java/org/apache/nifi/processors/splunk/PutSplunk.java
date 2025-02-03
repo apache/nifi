@@ -233,7 +233,7 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
             });
 
             messageBatch.setNumMessages(messagesSent.get());
-        } catch (final IOException ioe) {
+        } catch (final IOException ignored) {
             // Since this can be thrown only from closing the ByteArrayOutputStream(), we have already
             // completed everything that we need to do, so there's nothing really to be done here
         }

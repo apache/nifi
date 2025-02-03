@@ -40,7 +40,7 @@ public final class RetryUtil {
             retries++;
             try {
                 Thread.sleep(pauseDurationMillis);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
             }
         }
     }

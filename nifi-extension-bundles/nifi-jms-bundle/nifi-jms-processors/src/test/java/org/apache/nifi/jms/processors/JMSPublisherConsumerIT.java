@@ -51,6 +51,7 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -222,7 +223,7 @@ public class JMSPublisherConsumerIT {
             publisher.publish(destinationName, "hellomq".getBytes());
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
-            assertTrue(receivedMessage instanceof BytesMessage);
+            assertInstanceOf(BytesMessage.class, receivedMessage);
             byte[] bytes = new byte[7];
             ((BytesMessage) receivedMessage).readBytes(bytes);
             assertEquals("hellomq", new String(bytes));
@@ -249,11 +250,11 @@ public class JMSPublisherConsumerIT {
             publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
-            assertTrue(receivedMessage instanceof BytesMessage);
+            assertInstanceOf(BytesMessage.class, receivedMessage);
             assertEquals("foo", receivedMessage.getStringProperty("foo"));
             assertTrue(receivedMessage.propertyExists("hyphen-property"));
             assertTrue(receivedMessage.propertyExists("fullstop.property"));
-            assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
+            assertInstanceOf(Topic.class, receivedMessage.getJMSReplyTo());
             assertEquals(1, receivedMessage.getJMSDeliveryMode());
             assertEquals(1, receivedMessage.getJMSPriority());
             assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());
@@ -317,12 +318,7 @@ public class JMSPublisherConsumerIT {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
-            jmsTemplate.send(destinationName, new MessageCreator() {
-                @Override
-                public Message createMessage(Session session) throws JMSException {
-                    return session.createObjectMessage();
-                }
-            });
+            jmsTemplate.send(destinationName, Session::createObjectMessage);
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
@@ -455,7 +451,7 @@ public class JMSPublisherConsumerIT {
                     assertEquals("1", new String(responses.getFirst().getMessageBody()));
                     throw new RuntimeException("intentional to avoid explicit ack");
                 });
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // expected
             }
 
@@ -484,7 +480,7 @@ public class JMSPublisherConsumerIT {
                         throw new RuntimeException("intentional to avoid explicit ack");
                     });
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // ignore
             }
             assertTrue(callbackInvoked.get());
@@ -500,7 +496,7 @@ public class JMSPublisherConsumerIT {
                         acknowledge(response);
                     });
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // ignore
             }
         } finally {

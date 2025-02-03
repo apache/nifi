@@ -553,7 +553,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testConvertToBigDecimalWhenUnsupportedType() {
-        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.convertType(new ArrayList<Double>(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10),
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.convertType(new ArrayList<>(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10),
                 null, StandardCharsets.UTF_8));
     }
 
@@ -716,8 +716,8 @@ public class TestDataTypeUtils {
         final Function<Object, BigInteger> toBigInteger = v -> (BigInteger) DataTypeUtils.convertType(v, RecordFieldType.BIGINT.getDataType(), "field");
         assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply(new BigInteger("12345678901234567890")));
         assertEquals(new BigInteger("1234567890123456789"), toBigInteger.apply(1234567890123456789L));
-        assertEquals(new BigInteger("1"), toBigInteger.apply(1));
-        assertEquals(new BigInteger("1"), toBigInteger.apply((short) 1));
+        assertEquals(BigInteger.ONE, toBigInteger.apply(1));
+        assertEquals(BigInteger.ONE, toBigInteger.apply((short) 1));
         // Decimals are truncated.
         assertEquals(new BigInteger("3"), toBigInteger.apply(3.4f));
         assertEquals(new BigInteger("3"), toBigInteger.apply(3.9f));

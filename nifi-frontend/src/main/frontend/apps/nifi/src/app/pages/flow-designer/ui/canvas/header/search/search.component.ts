@@ -44,7 +44,6 @@ import { ErrorHelper } from '../../../../../../service/error-helper.service';
 
 @Component({
     selector: 'search',
-    standalone: true,
     templateUrl: './search.component.html',
     styleUrls: ['./search.component.scss'],
     imports: [

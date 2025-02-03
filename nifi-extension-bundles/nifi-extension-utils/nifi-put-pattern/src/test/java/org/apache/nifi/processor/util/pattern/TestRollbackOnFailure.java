@@ -21,8 +21,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.TestExceptionHandler.ExternalProcedure;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRollbackOnFailure {
-
-    private static final Logger logger = LoggerFactory.getLogger(TestRollbackOnFailure.class);
 
     /**
      * This can be an example for how to compose an ExceptionHandler instance by reusable functions.

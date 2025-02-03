@@ -25,7 +25,6 @@ import { Observable, of } from 'rxjs';
 
 @Component({
     selector: 'property-verification-progress',
-    standalone: true,
     imports: [
         CommonModule,
         MatButton,

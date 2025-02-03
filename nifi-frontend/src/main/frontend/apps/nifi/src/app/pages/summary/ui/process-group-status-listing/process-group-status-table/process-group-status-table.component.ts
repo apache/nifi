@@ -43,7 +43,6 @@ export type SupportedColumns =
 
 @Component({
     selector: 'process-group-status-table',
-    standalone: true,
     imports: [
         CommonModule,
         MatSortModule,

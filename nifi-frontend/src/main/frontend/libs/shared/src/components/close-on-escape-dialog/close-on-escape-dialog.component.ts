@@ -23,7 +23,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'close-on-escape-dialog',
-    standalone: true,
     imports: [CommonModule],
     template: ''
 })

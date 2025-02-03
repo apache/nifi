@@ -22,7 +22,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class Base64DecodeEvaluator extends StringEvaluator {
@@ -40,11 +40,7 @@ public class Base64DecodeEvaluator extends StringEvaluator {
             return new StringQueryResult(null);
         }
 
-        try {
-            return new StringQueryResult(new String(Base64.getDecoder().decode(subjectValue), "UTF-8"));
-        } catch (final UnsupportedEncodingException e) {
-            return null;    // won't happen. It's UTF-8
-        }
+        return new StringQueryResult(new String(Base64.getDecoder().decode(subjectValue), StandardCharsets.UTF_8));
     }
 
     @Override

@@ -41,7 +41,6 @@ export interface ClusterTableFilterContext extends ClusterTableFilterArgs {
 
 @Component({
     selector: 'cluster-table-filter',
-    standalone: true,
     imports: [MatCheckbox, MatFormField, MatInput, MatLabel, MatOption, MatSelect, ReactiveFormsModule],
     templateUrl: './cluster-table-filter.component.html',
     styleUrl: './cluster-table-filter.component.scss'

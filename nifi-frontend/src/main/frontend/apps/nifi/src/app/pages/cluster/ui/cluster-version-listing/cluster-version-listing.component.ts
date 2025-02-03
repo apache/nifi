@@ -33,7 +33,6 @@ import { ClusterVersionTable } from './cluster-version-table/cluster-version-tab
 
 @Component({
     selector: 'cluster-version-listing',
-    standalone: true,
     imports: [ClusterSystemTable, NgxSkeletonLoaderModule, ClusterVersionTable],
     templateUrl: './cluster-version-listing.component.html',
     styleUrl: './cluster-version-listing.component.scss'

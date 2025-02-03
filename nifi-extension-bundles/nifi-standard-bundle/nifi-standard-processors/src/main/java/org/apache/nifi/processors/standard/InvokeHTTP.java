@@ -483,7 +483,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
-    public static final List<PropertyDescriptor> PROPERTIES = List.of(
+    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HTTP_METHOD,
             HTTP_URL,
             HTTP2_DISABLED,
@@ -571,7 +571,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -860,7 +860,6 @@ public class InvokeHTTP extends AbstractProcessor {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, urlProperty);
-            logRequest(logger, httpRequest);
 
             if (httpRequest.body() != null) {
                 session.getProvenanceReporter().send(requestFlowFile, urlProperty, true);
@@ -868,11 +867,12 @@ public class InvokeHTTP extends AbstractProcessor {
 
             final long startNanos = System.nanoTime();
 
+            logger.debug("Request [{}] {} {} starting", txId, httpRequest.method(), httpRequest.url());
             try (Response responseHttp = okHttpClient.newCall(httpRequest).execute()) {
-                logResponse(logger, urlProperty, responseHttp);
+                final int statusCode = responseHttp.code();
+                logger.info("Request [{}] {} {} HTTP {} [{}]", txId, httpRequest.method(), httpRequest.url(), statusCode, responseHttp.protocol());
 
                 // store the status code and message
-                int statusCode = responseHttp.code();
                 String statusMessage = responseHttp.message();
 
                 // Create a map of the status attributes that are always written to the request and response FlowFiles
@@ -1231,39 +1231,6 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private boolean isSuccess(int statusCode) {
         return statusCode / 100 == 2;
-    }
-
-    private void logRequest(ComponentLog logger, Request request) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("\nRequest to remote service:\n\t{}\n{}",
-                    request.url().url().toExternalForm(), getLogString(request.headers().toMultimap()));
-        }
-    }
-
-    private void logResponse(ComponentLog logger, String url, Response response) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                    url, getLogString(response.headers().toMultimap()));
-        }
-    }
-
-    private String getLogString(Map<String, List<String>> map) {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-            List<String> list = entry.getValue();
-            if (!list.isEmpty()) {
-                sb.append("\t");
-                sb.append(entry.getKey());
-                sb.append(": ");
-                if (list.size() == 1) {
-                    sb.append(list.getFirst());
-                } else {
-                    sb.append(list);
-                }
-                sb.append("\n");
-            }
-        }
-        return sb.toString();
     }
 
     /**

@@ -17,13 +17,13 @@
 
 package org.apache.nifi.processors.evtx.parser.bxml.value;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.UnsignedInteger;
 import org.apache.nifi.processors.evtx.parser.BinaryReader;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,20 +34,21 @@ public class BinaryTypeNodeTest extends BxmlNodeTestBase {
     public void testLength() throws IOException {
         String val = "Test String";
         BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(val.length()).putString(val).build();
-        assertEquals(Base64.getEncoder().encodeToString(val.getBytes(Charsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue());
+        assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue());
     }
 
     @Test
     public void testInvalidStringLength() throws IOException {
         String val = "Test String";
         BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(UnsignedInteger.fromIntBits(Integer.MAX_VALUE + 1)).putString(val).build();
-        assertThrows(IOException.class, () -> assertEquals(Base64.getEncoder().encodeToString(val.getBytes(Charsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue()));
+        assertThrows(IOException.class,
+                () -> assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue()));
     }
 
     @Test
     public void testNoLength() throws IOException {
         String val = "Test String";
         BinaryReader binaryReader = testBinaryReaderBuilder.putString(val).build();
-        assertEquals(Base64.getEncoder().encodeToString(val.getBytes(Charsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, val.length()).getValue());
+        assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, val.length()).getValue());
     }
 }

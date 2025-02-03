@@ -30,7 +30,6 @@ import { RecreateViewDirective } from '../recreate-view.directive';
 
 @Component({
     selector: 'external-viewer',
-    standalone: true,
     templateUrl: './external-viewer.component.html',
     imports: [RecreateViewDirective],
     styleUrls: ['./external-viewer.component.scss']

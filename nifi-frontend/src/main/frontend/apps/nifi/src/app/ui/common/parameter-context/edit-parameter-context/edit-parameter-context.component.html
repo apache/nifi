@@ -1,0 +1,202 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>
+    {{ readonly ? 'Parameter Context Details' : isNew ? 'Add Parameter Context' : 'Edit Parameter Context' }}
+</h2>
+<form class="parameter-context-edit-form" [formGroup]="editParameterContextForm">
+    <context-error-banner [context]="ErrorContextKey.PARAMETER_CONTEXTS"></context-error-banner>
+    @if ((updateRequest | async)!; as requestEntity) {
+        <mat-dialog-content>
+            <div class="dialog-tab-content flex gap-x-8">
+                <div class="w-full flex flex-col">
+                    <div>Steps To Update Parameters</div>
+                    <div class="flex flex-col gap-y-1.5">
+                        @for (updateStep of requestEntity.request.updateSteps; track updateStep.description) {
+                            <div class="flex justify-between items-center">
+                                <div class="tertiary-color font-medium">
+                                    {{ updateStep.description }}
+                                </div>
+                                @if (updateStep.failureReason) {
+                                    <div class="fa fa-times error-color"></div>
+                                } @else {
+                                    @if (updateStep.complete) {
+                                        <div class="fa fa-check success-color-default"></div>
+                                    } @else {
+                                        <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
+                                    }
+                                }
+                            </div>
+                            @if (updateStep.failureReason) {
+                                <div class="text-sm ml-2">
+                                    {{ updateStep.failureReason }}
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="w-full flex flex-col gap-y-3">
+                    <div class="flex flex-col">
+                        <div>Parameter</div>
+                        @if (parameters && parameters.length > 0) {
+                            <div class="tertiary-color font-medium">
+                                {{ getUpdatedParameters() }}
+                            </div>
+                        } @else {
+                            <div class="unset neutral-color">No parameters updated</div>
+                        }
+                    </div>
+                    <div class="flex-1 flex flex-col">
+                        <div>
+                            Referencing Components
+                            <i
+                                class="fa fa-info-circle primary-color"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="Components referencing the modified parameters grouped by process group."></i>
+                        </div>
+                        <div class="relative h-full border">
+                            <div class="absolute inset-0 overflow-y-auto p-1">
+                                <parameter-references
+                                    [disabledLinks]="(saving$ | async)!"
+                                    [parameterReferences]="
+                                        requestEntity.request.referencingComponents
+                                    "></parameter-references>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </mat-dialog-content>
+    } @else {
+        <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
+            <mat-tab label="Settings">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content flex gap-x-4">
+                        <div class="w-full">
+                            @if (!isNew) {
+                                <div class="flex w-full flex-col mb-5">
+                                    <div>Id</div>
+                                    @if (request.parameterContext) {
+                                        <div [copy]="request.parameterContext.id" class="tertiary-color font-medium">
+                                            {{ request.parameterContext.id }}
+                                        </div>
+                                    } @else {
+                                        <div class="font-medium unset neutral-color">No value set</div>
+                                    }
+                                </div>
+                            }
+                            @if (parameterProvider) {
+                                <div class="flex flex-col mb-5">
+                                    <div>Parameter Provider</div>
+                                    <a [routerLink]="getParameterProviderLink(parameterProvider)">
+                                        {{ parameterProvider.parameterGroupName }}
+                                        from
+                                        {{ parameterProvider.parameterProviderName }}
+                                    </a>
+                                </div>
+                            }
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Name</mat-label>
+                                    <input matInput formControlName="name" type="text" [readonly]="readonly" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Description</mat-label>
+                                    <textarea
+                                        matInput
+                                        formControlName="description"
+                                        type="text"
+                                        rows="5"
+                                        [readonly]="readonly"></textarea>
+                                </mat-form-field>
+                            </div>
+                        </div>
+                        <div class="flex flex-col w-full">
+                            <div>
+                                Referencing Components
+                                <i
+                                    class="fa fa-info-circle primary-color"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="Other components referencing this parameter context."></i>
+                            </div>
+                            <div class="relative h-full border">
+                                <div class="absolute inset-0 overflow-y-auto p-1">
+                                    <process-group-references
+                                        [processGroupReferences]="
+                                            request.parameterContext?.component?.boundProcessGroups
+                                        "></process-group-references>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-dialog-content>
+            </mat-tab>
+            <mat-tab label="Parameters">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content">
+                        <parameter-table
+                            formControlName="parameters"
+                            [canAddParameters]="!request.parameterContext?.component?.parameterProviderConfiguration"
+                            [createNewParameter]="createNewParameter"
+                            [editParameter]="editParameter"></parameter-table>
+                    </div>
+                </mat-dialog-content>
+            </mat-tab>
+            <mat-tab label="Inheritance">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content">
+                        <parameter-context-inheritance
+                            formControlName="inheritedParameterContexts"
+                            [allParameterContexts]="
+                                (availableParameterContexts$ | async)!
+                            "></parameter-context-inheritance>
+                    </div>
+                </mat-dialog-content>
+            </mat-tab>
+        </mat-tab-group>
+    }
+    @if ((updateRequest | async)!; as requestEntity) {
+        <mat-dialog-actions align="end">
+            @if (requestEntity.request.complete) {
+                <button mat-flat-button mat-dialog-close>Close</button>
+            } @else {
+                <button mat-button mat-dialog-close>Cancel</button>
+            }
+        </mat-dialog-actions>
+    } @else {
+        @if ({ value: (saving$ | async)! }; as saving) {
+            <mat-dialog-actions align="end">
+                @if (readonly) {
+                    <button mat-flat-button mat-dialog-close>Close</button>
+                } @else {
+                    <button mat-button mat-dialog-close>Cancel</button>
+                    <button
+                        [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
+                        type="button"
+                        (click)="submitForm()"
+                        mat-flat-button>
+                        <span *nifiSpinner="saving.value">Apply</span>
+                    </button>
+                }
+            </mat-dialog-actions>
+        }
+    }
+</form>

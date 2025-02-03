@@ -51,7 +51,8 @@ import { ErrorContextKey } from '../../../../state/error';
 @Component({
     selector: 'global-access-policies',
     templateUrl: './component-access-policies.component.html',
-    styleUrls: ['./component-access-policies.component.scss']
+    styleUrls: ['./component-access-policies.component.scss'],
+    standalone: false
 })
 export class ComponentAccessPolicies implements OnInit, OnDestroy {
     flowConfiguration$ = this.store.select(selectFlowConfiguration);

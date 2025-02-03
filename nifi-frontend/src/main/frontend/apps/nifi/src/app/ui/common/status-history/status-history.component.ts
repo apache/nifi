@@ -61,7 +61,6 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
 @Component({
     selector: 'status-history',
     templateUrl: './status-history.component.html',
-    standalone: true,
     imports: [
         MatDialogModule,
         AsyncPipe,

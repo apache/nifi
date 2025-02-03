@@ -27,7 +27,8 @@ import { BulletinsTipInput, RegistryClientEntity, ValidationErrorsTipInput } fro
 @Component({
     selector: 'registry-client-table',
     templateUrl: './registry-client-table.component.html',
-    styleUrls: ['./registry-client-table.component.scss']
+    styleUrls: ['./registry-client-table.component.scss'],
+    standalone: false
 })
 export class RegistryClientTable {
     @Input() set registryClients(registryClientEntities: RegistryClientEntity[]) {

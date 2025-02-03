@@ -31,7 +31,6 @@ import { CanvasActionsService } from '../../../../service/canvas-actions.service
 
 @Component({
     selector: 'operation-control',
-    standalone: true,
     templateUrl: './operation-control.component.html',
     imports: [MatButtonModule, ComponentContext],
     styleUrls: ['./operation-control.component.scss']

@@ -27,7 +27,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 @Component({
     selector: 'counter-table',
     templateUrl: './counter-table.component.html',
-    styleUrls: ['./counter-table.component.scss']
+    styleUrls: ['./counter-table.component.scss'],
+    standalone: false
 })
 export class CounterTable implements AfterViewInit {
     private _canModifyCounters = false;

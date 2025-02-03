@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,7 +61,7 @@ public class TestScanContent {
 
         try (final DataOutputStream dictionaryOut = new DataOutputStream(baos)) {
             for (final String term : terms) {
-                final byte[] termBytes = term.getBytes("UTF-8");
+                final byte[] termBytes = term.getBytes(StandardCharsets.UTF_8);
                 dictionaryOut.writeInt(termBytes.length);
                 dictionaryOut.write(termBytes);
             }
@@ -82,7 +83,7 @@ public class TestScanContent {
                 runner.run(3);
                 try {  //must insert this delay or flowfiles are made so close together they become out of order in the queue
                     Thread.sleep(500);
-                } catch (InterruptedException ex) {
+                } catch (InterruptedException ignored) {
                     //moving on
                 }
             }

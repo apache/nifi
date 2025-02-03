@@ -26,7 +26,6 @@ import { MatSelectModule } from '@angular/material/select';
 
 @Component({
     selector: 'source-remote-process-group',
-    standalone: true,
     templateUrl: './source-remote-process-group.component.html',
     styleUrls: ['./source-remote-process-group.component.scss'],
     imports: [

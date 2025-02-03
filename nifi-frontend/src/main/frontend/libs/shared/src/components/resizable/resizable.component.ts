@@ -24,7 +24,6 @@ import { AsyncPipe } from '@angular/common';
 
 @Component({
     selector: '[resizable]',
-    standalone: true,
     imports: [MatDialogModule, MatButtonModule, CdkDrag, AsyncPipe],
     templateUrl: './resizable.component.html',
     styleUrls: ['./resizable.component.scss']

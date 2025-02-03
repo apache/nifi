@@ -33,6 +33,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -45,6 +46,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -76,6 +78,8 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
+        description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso(classNames = {"org.apache.nifi.processors.script.ExecuteScript"})
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
@@ -136,7 +140,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that failed to be processed").build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SCRIPT_FILE,
             SCRIPT_BODY,
             FAIL_STRATEGY,
@@ -165,7 +169,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTY_DESCRIPTORS;
     }
 
     private File asFile(String f) {
@@ -180,13 +184,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             Method m = null;
             try {
                 m = compiled.getDeclaredMethod(method, ProcessContext.class);
-            } catch (NoSuchMethodException e) {
+            } catch (NoSuchMethodException ignored) {
                 // The method will not be invoked if it does not exist
             }
             if (m == null) {
                 try {
                     m = compiled.getDeclaredMethod(method, Object.class);
-                } catch (NoSuchMethodException e) {
+                } catch (NoSuchMethodException ignored) {
                     // The method will not be invoked if it does not exist
                 }
             }
@@ -392,7 +396,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             try {
                 sql.close();
                 sql = null;
-            } catch (Throwable ei) {
+            } catch (Throwable ignored) {
                 // Nothing to do
             }
         }
@@ -408,7 +412,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 if (!sql.getConnection().getAutoCommit()) {
                     sql.rollback();
                 }
-            } catch (Throwable ei) {
+            } catch (Throwable ignored) {
                 //the rollback error is usually not important, rather it is the DML error that is really important
             }
         }

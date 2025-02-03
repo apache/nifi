@@ -28,6 +28,8 @@ public enum EvictionReason {
 
     BIN_MANAGER_FULL("The oldest Bin was removed because incoming FlowFile could not be placed in an existing Bin, and the Maximum Number of Bins was reached"),
 
+    BIN_TERMINATION_SIGNAL("A FlowFile signaled that the Bin should be terminated"),
+
     UNSET("No reason was determined");
 
     private final String explanation;

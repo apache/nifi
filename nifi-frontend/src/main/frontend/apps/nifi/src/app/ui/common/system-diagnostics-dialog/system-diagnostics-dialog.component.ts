@@ -36,7 +36,6 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
 
 @Component({
     selector: 'system-diagnostics-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatTabsModule,

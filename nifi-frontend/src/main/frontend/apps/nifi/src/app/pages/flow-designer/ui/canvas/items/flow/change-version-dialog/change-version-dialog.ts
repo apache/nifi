@@ -30,7 +30,6 @@ import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'change-version-dialog',
-    standalone: true,
     imports: [AsyncPipe, MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule],
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'

@@ -21,6 +21,10 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+
 /**
  * Unit tests for the GenerateFlowFile processor.
  */
@@ -72,5 +76,31 @@ public class TestGenerateFlowFile {
         generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
     }
+
+    @Test
+    public void testExpressionLanguageSupport() {
+        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "${nextInt()}B");
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
+        runner.setProperty(GenerateFlowFile.BATCH_SIZE, "2");
+        runner.assertValid();
+
+        runner.run();
+
+        // verify multiple files in a batch each have a unique file size based on the given Expression Language and uniqueness set to true
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 2);
+        assertTrue(runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).getSize() < runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(1).getSize());
+        runner.clearTransferState();
+
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "false");
+        runner.assertValid();
+
+        runner.run();
+
+        // verify multiple files in a batch each have the same file size when uniqueness is set to false
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 2);
+        assertEquals(runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).getSize(), runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(1).getSize());
+    }
+
 
 }

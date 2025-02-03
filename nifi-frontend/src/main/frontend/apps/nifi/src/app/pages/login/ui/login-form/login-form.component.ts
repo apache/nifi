@@ -29,7 +29,8 @@ import { logout } from '../../../../state/current-user/current-user.actions';
 @Component({
     selector: 'login-form',
     templateUrl: './login-form.component.html',
-    styleUrls: ['./login-form.component.scss']
+    styleUrls: ['./login-form.component.scss'],
+    standalone: false
 })
 export class LoginForm {
     logoutSupported = this.store.selectSignal(selectLogoutSupported);

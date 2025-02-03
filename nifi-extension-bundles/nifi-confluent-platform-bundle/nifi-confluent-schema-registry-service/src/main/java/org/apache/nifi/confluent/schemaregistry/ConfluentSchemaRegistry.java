@@ -148,35 +148,32 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             .sensitive(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+        SCHEMA_REGISTRY_URLS,
+        SSL_CONTEXT,
+        TIMEOUT,
+        CACHE_SIZE,
+        CACHE_EXPIRATION,
+        AUTHENTICATION_TYPE,
+        USERNAME,
+        PASSWORD
+    );
+
     private volatile SchemaRegistryClient client;
 
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SCHEMA_REGISTRY_URLS);
-        properties.add(SSL_CONTEXT);
-        properties.add(TIMEOUT);
-        properties.add(CACHE_SIZE);
-        properties.add(CACHE_EXPIRATION);
-        properties.add(AUTHENTICATION_TYPE);
-        properties.add(USERNAME);
-        properties.add(PASSWORD);
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
-    private static final Validator REQUEST_HEADER_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
-            return new ValidationResult.Builder()
-                    .subject(subject)
-                    .input(value)
-                    .valid(subject.startsWith(REQUEST_HEADER_PREFIX)
-                            && subject.length() > REQUEST_HEADER_PREFIX.length())
-                    .explanation("Dynamic property names must be of format 'request.header.*'")
-                    .build();
-        }
-    };
+    private static final Validator REQUEST_HEADER_VALIDATOR = (subject, value, context) -> new ValidationResult.Builder()
+            .subject(subject)
+            .input(value)
+            .valid(subject.startsWith(REQUEST_HEADER_PREFIX)
+                    && subject.length() > REQUEST_HEADER_PREFIX.length())
+            .explanation("Dynamic property names must be of format 'request.header.*'")
+            .build();
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptionName) {

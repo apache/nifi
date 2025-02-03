@@ -72,7 +72,6 @@ export interface PropertyItem extends Property {
 
 @Component({
     selector: 'property-table',
-    standalone: true,
     templateUrl: './property-table.component.html',
     imports: [
         MatButtonModule,
@@ -235,7 +234,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 // the dependent value contains parameter reference, if the user can view
                 // the parameter context resolve the parameter value to see if it
                 // satisfies the dependent values
-                if (this.parameterContext?.permissions.canRead) {
+                if (this.parameterContext?.permissions.canRead && this.parameterContext.component) {
                     const referencedParameter = this.parameterContext.component.parameters
                         .map((parameterEntity) => parameterEntity.parameter)
                         .find((parameter: Parameter) => dependentValue == `#{${parameter.name}}`);
@@ -328,7 +327,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         if (!this.supportsParameters || !this.parameterContext) {
             return null;
         }
-        if (this.parameterContext.permissions.canRead) {
+        if (this.parameterContext.permissions.canRead && this.parameterContext.component) {
             return this.parameterContext.component.parameters
                 .map((parameterEntity) => parameterEntity.parameter)
                 .filter((parameter: Parameter) => parameter.sensitive == propertyItem.descriptor.sensitive);

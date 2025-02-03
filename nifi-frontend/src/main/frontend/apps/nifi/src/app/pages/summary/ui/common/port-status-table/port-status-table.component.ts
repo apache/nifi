@@ -33,7 +33,6 @@ export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
 @Component({
     selector: 'port-status-table',
-    standalone: true,
     imports: [
         CommonModule,
         SummaryTableFilterModule,

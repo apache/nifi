@@ -33,7 +33,6 @@ export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | '
 
 @Component({
     selector: 'connection-status-table',
-    standalone: true,
     imports: [
         CommonModule,
         SummaryTableFilterModule,

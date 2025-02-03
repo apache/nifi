@@ -44,7 +44,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -103,7 +102,7 @@ public class TestProcessorResource extends JerseyTest {
         assertNotNull(response);
         JsonNode jsonNode = response.readEntity(JsonNode.class);
         assertNotNull(jsonNode);
-        assertTrue(jsonNode.get("properties").get("Jolt Transform").asText().equals("jolt-transform-chain"));
+        assertEquals("jolt-transform-chain", jsonNode.get("properties").get("Jolt Transform").asText());
     }
 
 

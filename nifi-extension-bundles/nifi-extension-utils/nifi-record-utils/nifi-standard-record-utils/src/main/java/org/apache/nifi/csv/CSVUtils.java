@@ -326,7 +326,7 @@ public class CSVUtils {
             builder = builder.setDuplicateHeaderMode(mode);
         }
 
-        return builder.build();
+        return builder.get();
     }
 
     public static String unescape(String input) {

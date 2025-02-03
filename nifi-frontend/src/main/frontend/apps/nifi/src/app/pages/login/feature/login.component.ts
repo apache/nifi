@@ -27,7 +27,8 @@ import { isDefinedAndNotNull } from '@nifi/shared';
 @Component({
     selector: 'login',
     templateUrl: './login.component.html',
-    styleUrls: ['./login.component.scss']
+    styleUrls: ['./login.component.scss'],
+    standalone: false
 })
 export class Login {
     currentUserState$ = this.store.select(selectCurrentUserState).pipe(take(1));

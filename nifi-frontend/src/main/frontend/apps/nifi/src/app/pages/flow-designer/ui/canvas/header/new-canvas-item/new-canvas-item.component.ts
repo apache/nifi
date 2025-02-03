@@ -29,7 +29,6 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
     selector: 'new-canvas-item',
-    standalone: true,
     templateUrl: './new-canvas-item.component.html',
     imports: [CdkDrag, NifiTooltipDirective],
     styleUrls: ['./new-canvas-item.component.scss']

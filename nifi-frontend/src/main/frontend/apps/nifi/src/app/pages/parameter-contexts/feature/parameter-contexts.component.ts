@@ -20,6 +20,7 @@ import { Component } from '@angular/core';
 @Component({
     selector: 'parameter-contexts',
     templateUrl: './parameter-contexts.component.html',
-    styleUrls: ['./parameter-contexts.component.scss']
+    styleUrls: ['./parameter-contexts.component.scss'],
+    standalone: false
 })
 export class ParameterContexts {}

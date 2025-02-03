@@ -31,6 +31,7 @@ import java.net.URLClassLoader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -155,7 +156,7 @@ public class TestStandardControllerServiceInvocationHandler {
             BaseControllerService nextLevel = getNextLevel();
             for (int i = 0; i < 5; i++) {
                 assertEquals(level + i + 1, nextLevel.getLevel());
-                assertTrue(nextLevel instanceof TestService);
+                assertInstanceOf(TestService.class, nextLevel);
                 assertFalse(Proxy.isProxyClass(nextLevel.getClass()));
 
                 nextLevel = nextLevel.getNextLevel();
@@ -164,7 +165,7 @@ public class TestStandardControllerServiceInvocationHandler {
 
         @Override
         public void assertNotProxied(final BaseControllerService service) {
-            assertTrue(service instanceof TestService);
+            assertInstanceOf(TestService.class, service);
             assertFalse(Proxy.isProxyClass(service.getClass()));
         }
     }

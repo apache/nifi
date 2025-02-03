@@ -29,7 +29,8 @@ import { TextTip } from '@nifi/shared';
 @Component({
     selector: 'general-form',
     templateUrl: './general-form.component.html',
-    styleUrls: ['./general-form.component.scss']
+    styleUrls: ['./general-form.component.scss'],
+    standalone: false
 })
 export class GeneralForm {
     private _controller!: ControllerEntity;

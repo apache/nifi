@@ -57,9 +57,9 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
     }
 
     @Schema(description = "The type of component referenced",
-        allowableValues = AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR + "," + AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
-                + AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT + ", "
-                + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT)
+        allowableValues = {AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR, AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE,
+                AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT, AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT,
+                AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT, AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT})
     public String getReferenceType() {
         return referenceType;
     }

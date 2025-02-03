@@ -90,7 +90,7 @@ public class DefaultSyncResourceStrategyTest {
             for (Path tmpFile : directoryStream) {
                Files.deleteIfExists(tmpFile);
             }
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -113,7 +113,7 @@ public class DefaultSyncResourceStrategyTest {
         c2Items.forEach(resourceItem -> {
             try {
                 when(mockResourceRepository.addResourceItem(eq(resourceItem), any())).thenReturn(Optional.of(resourceItem));
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         });
 
@@ -123,7 +123,7 @@ public class DefaultSyncResourceStrategyTest {
         assertEquals(FULLY_APPLIED, resultState);
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -141,7 +141,7 @@ public class DefaultSyncResourceStrategyTest {
         assertEquals(FULLY_APPLIED, resultState);
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -156,7 +156,7 @@ public class DefaultSyncResourceStrategyTest {
         c2Items.forEach(resourceItem -> {
             try {
                 when(mockResourceRepository.addResourceItem(eq(resourceItem), any())).thenReturn(Optional.of(resourceItem));
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         });
 
@@ -166,7 +166,7 @@ public class DefaultSyncResourceStrategyTest {
         assertEquals(FULLY_APPLIED, resultState);
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -188,7 +188,7 @@ public class DefaultSyncResourceStrategyTest {
             verify(mockResourceRepository, never()).addResourceItem(any());
             verify(mockResourceRepository, never()).addResourceItem(any(), any());
             verify(mockResourceRepository, never()).saveResourcesGlobalHash(C2_GLOBAL_HASH);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -206,7 +206,7 @@ public class DefaultSyncResourceStrategyTest {
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
             verify(mockResourceRepository, never()).saveResourcesGlobalHash(C2_GLOBAL_HASH);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -224,7 +224,7 @@ public class DefaultSyncResourceStrategyTest {
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
             verify(mockResourceRepository, never()).saveResourcesGlobalHash(C2_GLOBAL_HASH);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -245,7 +245,7 @@ public class DefaultSyncResourceStrategyTest {
             try {
                 verify(mockResourceRepository, never()).deleteResourceItem(any());
                 verify(mockResourceRepository, never()).saveResourcesGlobalHash(C2_GLOBAL_HASH);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
     }
@@ -257,7 +257,7 @@ public class DefaultSyncResourceStrategyTest {
         when(mockResourceRepository.findAllResourceItems()).thenReturn(List.of());
         try {
             when(mockResourceRepository.addResourceItem(resourceItem)).thenThrow(Exception.class);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
 
         OperationState resultState =
@@ -267,7 +267,7 @@ public class DefaultSyncResourceStrategyTest {
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
             verify(mockResourceRepository, never()).saveResourcesGlobalHash(C2_GLOBAL_HASH);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -284,7 +284,7 @@ public class DefaultSyncResourceStrategyTest {
         agentItems.forEach(agentItem -> {
             try {
                 when(mockResourceRepository.deleteResourceItem(agentItem)).thenReturn(Optional.of(agentItem));
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         });
 
@@ -294,7 +294,7 @@ public class DefaultSyncResourceStrategyTest {
         assertEquals(FULLY_APPLIED, resultState);
         try {
             verify(mockResourceRepository, never()).addResourceItem(any());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -308,7 +308,7 @@ public class DefaultSyncResourceStrategyTest {
         agentItems.forEach(agentItem -> {
             try {
                 when(mockResourceRepository.deleteResourceItem(agentItem)).thenThrow(Exception.class);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         });
 
@@ -319,7 +319,7 @@ public class DefaultSyncResourceStrategyTest {
         try {
             verify(mockResourceRepository, never()).addResourceItem(any());
             verify(mockResourceRepository, never()).saveResourcesGlobalHash(C2_GLOBAL_HASH);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -330,7 +330,7 @@ public class DefaultSyncResourceStrategyTest {
         try {
             when(mockResourceRepository.addResourceItem(eq(c2Item), any())).thenReturn(Optional.of(c2Item));
             when(mockResourceRepository.saveResourcesGlobalHash(C2_GLOBAL_HASH)).thenThrow(Exception.class);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
 
         OperationState resultState =
@@ -339,7 +339,7 @@ public class DefaultSyncResourceStrategyTest {
         assertEquals(PARTIALLY_APPLIED, resultState);
         try {
             verify(mockResourceRepository, never()).deleteResourceItem(any());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 

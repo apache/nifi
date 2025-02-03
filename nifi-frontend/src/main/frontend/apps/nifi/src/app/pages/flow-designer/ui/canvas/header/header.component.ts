@@ -41,7 +41,6 @@ import { selectFlowAnalysisState } from '../../../state/flow-analysis/flow-analy
 
 @Component({
     selector: 'fd-header',
-    standalone: true,
     templateUrl: './header.component.html',
     imports: [
         NewCanvasItem,

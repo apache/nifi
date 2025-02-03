@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -55,7 +55,7 @@ public class RootNodeTest extends BxmlNodeTestBase {
     public void testInit() {
         List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
-        assertTrue(children.get(0) instanceof EndOfStreamNode);
+        assertInstanceOf(EndOfStreamNode.class, children.get(0));
 
         List<VariantTypeNode> substitutions = rootNode.getSubstitutions();
         assertEquals(1, substitutions.size());

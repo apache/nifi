@@ -42,7 +42,7 @@ public class ListenerProperties {
                 final NetworkInterface ifc = interfaceEnum.nextElement();
                 interfaceSet.add(ifc.getName());
             }
-        } catch (SocketException e) {
+        } catch (SocketException ignored) {
         }
     }
 

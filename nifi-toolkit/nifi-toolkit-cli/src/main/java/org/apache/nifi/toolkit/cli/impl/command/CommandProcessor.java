@@ -147,7 +147,7 @@ public class CommandProcessor {
                     args[i] = resolvedReference.getResolvedValue();
                     resolvedReferences.add(resolvedReference);
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // skip
             }
         }

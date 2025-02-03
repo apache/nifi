@@ -44,7 +44,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-registry-client',
-    standalone: true,
     templateUrl: './edit-registry-client.component.html',
     imports: [
         ReactiveFormsModule,

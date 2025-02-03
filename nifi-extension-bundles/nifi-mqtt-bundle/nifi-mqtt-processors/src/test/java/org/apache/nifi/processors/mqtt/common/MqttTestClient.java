@@ -31,7 +31,7 @@ public class MqttTestClient implements MqttClient {
 
     public ConnectType type;
 
-    public enum ConnectType { Publisher, Subscriber };
+    public enum ConnectType { Publisher, Subscriber }
 
     public String subscribedTopic;
     public int subscribedQos;

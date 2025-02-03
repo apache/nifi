@@ -44,10 +44,12 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -62,6 +64,7 @@ import org.apache.nifi.processor.util.bin.Bin;
 import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.BinManager;
 import org.apache.nifi.processor.util.bin.BinProcessingResult;
+import org.apache.nifi.processor.util.bin.InsertionLocation;
 import org.apache.nifi.processors.standard.merge.AttributeStrategy;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
@@ -95,6 +98,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -395,7 +399,32 @@ public class MergeContent extends BinFiles {
         .dependsOn(MERGE_FORMAT, MERGE_FORMAT_TAR)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    public static final PropertyDescriptor BIN_TERMINATION_CHECK = new PropertyDescriptor.Builder()
+            .name("Bin Termination Check")
+        .description("""
+            Specifies an Expression Language Expression that is to be evaluated against each FlowFile. If the result of the expression is 'true', the
+            bin that the FlowFile corresponds to will be terminated, even if the bin has not met the minimum number of entries or minimum size.
+            Note that if the FlowFile that triggers the termination of the bin is itself larger than the Maximum Bin Size, it will be placed into its
+            own bin without triggering the termination of any other bin. When using this property, it is recommended to use Prioritizers in the flow's
+            connections to ensure that the ordering is as desired.
+            """)
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.BOOLEAN, false))
+        .dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK)
+        .build();
+
+    public static final PropertyDescriptor FLOWFILE_INSERTION_STRATEGY = new PropertyDescriptor.Builder()
+        .name("FlowFile Insertion Strategy")
+        .description("If a given FlowFile terminates the bin based on the <Bin Termination Check> property, specifies where the FlowFile should be included in the bin.")
+        .required(true)
+        .dependsOn(BIN_TERMINATION_CHECK)
+        .defaultValue(InsertionLocation.LAST_IN_BIN)
+        .allowableValues(InsertionLocation.class)
+        .build();
+
+
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             MERGE_STRATEGY,
             MERGE_FORMAT,
             AttributeStrategyUtil.ATTRIBUTE_STRATEGY,
@@ -405,6 +434,8 @@ public class MergeContent extends BinFiles {
             addBinPackingDependency(MAX_ENTRIES),
             addBinPackingDependency(MIN_SIZE),
             addBinPackingDependency(MAX_SIZE),
+            BIN_TERMINATION_CHECK,
+            FLOWFILE_INSERTION_STRATEGY,
             MAX_BIN_AGE,
             MAX_BIN_COUNT,
             DELIMITER_STRATEGY,
@@ -438,7 +469,7 @@ public class MergeContent extends BinFiles {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -495,6 +526,13 @@ public class MergeContent extends BinFiles {
             binManager.setFileCountAttribute(FRAGMENT_COUNT_ATTRIBUTE);
         } else {
             binManager.setFileCountAttribute(null);
+
+            final PropertyValue terminationCheck = context.getProperty(BIN_TERMINATION_CHECK);
+            if (terminationCheck.isSet()) {
+                final InsertionLocation insertionLocation = context.getProperty(FLOWFILE_INSERTION_STRATEGY).asAllowableValue(InsertionLocation.class);
+                final Predicate<FlowFile> predicate = flowFile -> terminationCheck.evaluateAttributeExpressions(flowFile).asBoolean();
+                binManager.setBinTermination(predicate, insertionLocation);
+            }
         }
     }
 

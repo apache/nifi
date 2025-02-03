@@ -50,8 +50,7 @@ public class WeakHashMapProcessSessionFactory implements ActiveProcessSessionFac
         for (final ProcessSession session : sessionMap.keySet()) {
             try {
                 session.rollback();
-            } catch (final TerminatedTaskException tte) {
-                // ignore
+            } catch (final TerminatedTaskException ignored) {
             }
         }
 

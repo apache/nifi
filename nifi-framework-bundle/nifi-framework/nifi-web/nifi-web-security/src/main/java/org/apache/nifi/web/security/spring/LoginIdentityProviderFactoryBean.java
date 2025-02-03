@@ -277,28 +277,28 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
 
             @Override
             public AuthenticationResponse authenticate(LoginCredentials credentials) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return baseProvider.authenticate(credentials);
                 }
             }
 
             @Override
             public void initialize(LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     baseProvider.initialize(initializationContext);
                 }
             }
 
             @Override
             public void onConfigured(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     baseProvider.onConfigured(configurationContext);
                 }
             }
 
             @Override
             public void preDestruction() throws ProviderDestructionException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     baseProvider.preDestruction();
                 }
             }

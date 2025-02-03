@@ -82,6 +82,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_
 import static org.apache.nifi.dbcp.utils.DBCPProperties.VALIDATION_QUERY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -146,7 +147,7 @@ public class DatabaseRecordSinkTest {
         final Statement stmt = con.createStatement();
         try {
             stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
         try {
@@ -185,22 +186,22 @@ public class DatabaseRecordSinkTest {
 
         Object f1 = resultSet.getObject(1);
         assertNotNull(f1);
-        assertTrue(f1 instanceof Integer);
+        assertInstanceOf(Integer.class, f1);
         assertEquals(15, f1);
         Object f2 = resultSet.getObject(2);
         assertNotNull(f2);
-        assertTrue(f2 instanceof String);
+        assertInstanceOf(String.class, f2);
         assertEquals("Hello", f2);
 
         assertTrue(resultSet.next());
 
         f1 = resultSet.getObject(1);
         assertNotNull(f1);
-        assertTrue(f1 instanceof Integer);
+        assertInstanceOf(Integer.class, f1);
         assertEquals(6, f1);
         f2 = resultSet.getObject(2);
         assertNotNull(f2);
-        assertTrue(f2 instanceof String);
+        assertInstanceOf(String.class, f2);
         assertEquals("World!", f2);
 
         assertFalse(resultSet.next());
@@ -234,7 +235,7 @@ public class DatabaseRecordSinkTest {
         final Statement stmt = con.createStatement();
         try {
             stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
         try {
@@ -268,7 +269,7 @@ public class DatabaseRecordSinkTest {
         final Statement stmt = con.createStatement();
         try {
             stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
         try {

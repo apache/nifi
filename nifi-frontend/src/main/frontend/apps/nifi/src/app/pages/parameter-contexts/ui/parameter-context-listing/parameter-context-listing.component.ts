@@ -43,7 +43,8 @@ import { ParameterContextEntity } from '../../../../state/shared';
 @Component({
     selector: 'parameter-context-listing',
     templateUrl: './parameter-context-listing.component.html',
-    styleUrls: ['./parameter-context-listing.component.scss']
+    styleUrls: ['./parameter-context-listing.component.scss'],
+    standalone: false
 })
 export class ParameterContextListing implements OnInit {
     parameterContextListingState$ = this.store.select(selectParameterContextListingState);

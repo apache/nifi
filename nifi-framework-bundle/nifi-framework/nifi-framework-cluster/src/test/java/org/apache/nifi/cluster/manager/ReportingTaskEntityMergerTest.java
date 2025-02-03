@@ -38,7 +38,7 @@ class ReportingTaskEntityMergerTest {
     void testMergeStatusFields() {
         final ReportingTaskEntity nodeOneReportingTaskEntity = getReportingTaskEntity("id1", ReportingTaskStatusDTO.RUNNING, ValidationStatus.VALID.name());
         final ReportingTaskEntity nodeTwoReportingTaskEntity = getReportingTaskEntity("id2", ReportingTaskStatusDTO.RUNNING, ValidationStatus.VALIDATING.name());
-        final Map<NodeIdentifier, ReportingTaskEntity> entityMap = new HashMap();
+        final Map<NodeIdentifier, ReportingTaskEntity> entityMap = new HashMap<>();
         entityMap.put(getNodeIdentifier("node1", 8000), nodeOneReportingTaskEntity);
         entityMap.put(getNodeIdentifier("node2", 8010), nodeTwoReportingTaskEntity);
 

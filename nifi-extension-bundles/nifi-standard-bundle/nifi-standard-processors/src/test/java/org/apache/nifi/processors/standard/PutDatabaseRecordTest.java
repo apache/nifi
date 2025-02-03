@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.dbcp2.DelegatingConnection;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
@@ -170,7 +171,7 @@ public class PutDatabaseRecordTest {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignore) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -179,14 +180,14 @@ public class PutDatabaseRecordTest {
     public static void shutdownDatabase() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignore) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
         System.clearProperty("derby.stream.error.file");
@@ -255,8 +256,6 @@ public class PutDatabaseRecordTest {
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26);
         Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
 
         parser.addRecord(1, "rec1", 101, jdbcDate1);
 
@@ -782,7 +781,7 @@ public class PutDatabaseRecordTest {
         runner.enqueue(new byte[0], attrs);
         runner.run();
 
-        final int maxBatchSize = runner.getProcessContext().getProperty(PutDatabaseRecord.MAX_BATCH_SIZE).asInteger();
+        final int maxBatchSize = runner.getProcessContext().getProperty(PutDatabaseRecord.MAX_BATCH_SIZE).evaluateAttributeExpressions((FlowFile) null).asInteger();
         assertNotNull(spyStmt.get());
         if (sqlStatements.length <= 1) {
             // When there is only 1 sql statement, then never use batching
@@ -1221,7 +1220,6 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
 
         // Set some existing records with different values for name and code
-        Exception e;
         ResultSet rs;
 
         stmt.execute("INSERT INTO SCHEMA1.PERSONS VALUES (1,'x1',101,null)");
@@ -1715,14 +1713,6 @@ public class PutDatabaseRecordTest {
     public void testGenerateTableName() throws InitializationException, ProcessException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        final List<RecordField> fields = Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
-                new RecordField("name", RecordFieldType.STRING.getDataType()),
-                new RecordField("code", RecordFieldType.INT.getDataType()),
-                new RecordField("non_existing", RecordFieldType.BOOLEAN.getDataType())
-        );
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
         final TableSchema tableSchema = new TableSchema(
                 null,
                 null,
@@ -1831,9 +1821,6 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("dt", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.FLOAT.getDataType()).getFieldType());
 
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-
         parser.addRecord("1", "rec1", 101, Arrays.asList(1.0, 2.0));
         parser.addRecord("2", "rec2", 102, Arrays.asList(3.0, 4.0));
         parser.addRecord("3", "rec3", 103, null);
@@ -1861,7 +1848,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, name long varchar)");
@@ -1906,7 +1893,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)");
@@ -2354,7 +2341,7 @@ public class PutDatabaseRecordTest {
              final Statement stmt = conn.createStatement()) {
             stmt.execute("drop table PERSONS");
             stmt.execute(createPersons);
-        } catch (SQLException ignore) {
+        } catch (SQLException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -2378,7 +2365,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("drop table " + tableName);
-        } catch (SQLException ignore) {
+        } catch (SQLException ignored) {
             // Do nothing, may not have existed
         }
         try (conn; stmt) {

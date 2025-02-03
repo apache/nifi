@@ -22,7 +22,7 @@
             <mat-dialog-content>
                 <div class="dialog-tab-content">
                     <div class="flex gap-x-4">
-                        <div class="w-full flex flex-col gap-y-3">
+                        <div class="w-1/2 pr-2 flex flex-col gap-y-3">
                             <div class="flex flex-col">
                                 <div class="font-bold primary-color">FlowFile Details</div>
                             </div>
@@ -31,7 +31,7 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatCopyableValue;
-                                        context: { $implicit: request.flowfile.uuid }
+                                        context: { $implicit: request.flowfile.uuid, title: request.flowfile.uuid }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -39,7 +39,10 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.flowfile.filename }
+                                        context: {
+                                            $implicit: request.flowfile.filename,
+                                            title: request.flowfile.filename
+                                        }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -58,7 +61,10 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.flowfile.position }
+                                        context: {
+                                            $implicit: request.flowfile.position,
+                                            title: request.flowfile.position
+                                        }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -89,7 +95,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.flowfile.clusterNodeAddress }
+                                            context: {
+                                                $implicit: request.flowfile.clusterNodeAddress,
+                                                title: request.flowfile.clusterNodeAddress
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -104,7 +113,7 @@
                                 </ng-template>
                             </ng-template>
                         </div>
-                        <div class="w-full flex flex-col gap-y-3">
+                        <div class="w-1/2 pl-2 flex flex-col gap-y-3">
                             <div class="flex flex-col">
                                 <div class="font-bold primary-color">Content Claim</div>
                             </div>
@@ -116,7 +125,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatContentValue;
-                                            context: { $implicit: request.flowfile.contentClaimContainer }
+                                            context: {
+                                                $implicit: request.flowfile.contentClaimContainer,
+                                                title: request.flowfile.contentClaimContainer
+                                            }
                                         "></ng-container>
                                 </div>
                                 <div>
@@ -124,7 +136,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatContentValue;
-                                            context: { $implicit: request.flowfile.contentClaimSection }
+                                            context: {
+                                                $implicit: request.flowfile.contentClaimSection,
+                                                title: request.flowfile.contentClaimSection
+                                            }
                                         "></ng-container>
                                 </div>
                                 <div>
@@ -132,7 +147,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatCopyableContentValue;
-                                            context: { $implicit: request.flowfile.contentClaimIdentifier }
+                                            context: {
+                                                $implicit: request.flowfile.contentClaimIdentifier,
+                                                title: request.flowfile.contentClaimIdentifier
+                                            }
                                         "></ng-container>
                                 </div>
                                 <div>
@@ -140,7 +158,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatContentValue;
-                                            context: { $implicit: request.flowfile.contentClaimOffset }
+                                            context: {
+                                                $implicit: request.flowfile.contentClaimOffset,
+                                                title: request.flowfile.contentClaimOffset
+                                            }
                                         "></ng-container>
                                 </div>
                                 <div>
@@ -191,7 +212,7 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: attribute.value }
+                                            context: { $implicit: attribute.value, title: attribute.value }
                                         "></ng-container>
                                 </div>
                             </div>
@@ -211,7 +232,7 @@
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
-                    <div class="tertiary-color font-medium" [title]="title">{{ value }}</div>
+                    <div class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
                 </ng-template>
             </ng-template>
         </ng-container>
@@ -229,7 +250,7 @@
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
-                    <div [copy]="value" class="tertiary-color font-medium" [title]="title">{{ value }}</div>
+                    <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
                 </ng-template>
             </ng-template>
         </ng-container>
@@ -244,7 +265,7 @@
                 {{ value }}
             </div>
             <ng-template #valueWithTitle>
-                <div class="tertiary-color font-medium" [title]="title">{{ value }}</div>
+                <div class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
             </ng-template>
         </ng-container>
         <ng-template #nullValue>
@@ -257,7 +278,7 @@
                 {{ value }}
             </div>
             <ng-template #valueWithTitle>
-                <div [copy]="value" class="tertiary-color font-medium" [title]="title">{{ value }}</div>
+                <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
             </ng-template>
         </ng-container>
         <ng-template #nullValue>

@@ -57,7 +57,7 @@ public class SNMPTreeResponseTest {
     private static VariableBinding[] vbs3;
     private static Map<String, String> vbMap;
     @Mock
-    private static Target target;
+    private static Target<UdpAddress> target;
 
     @BeforeAll
     public static void setUp() {
@@ -66,7 +66,7 @@ public class SNMPTreeResponseTest {
         vbMap.put(SNMP_PREFIX + OID_2 + SNMP_SEPARATOR + VB_SYNTAX, OID_2_VALUE);
         vbMap.put(SNMP_PREFIX + OID_3 + SNMP_SEPARATOR + VB_SYNTAX, OID_3_VALUE);
 
-        target = new CommunityTarget();
+        target = new CommunityTarget<>();
         target.setAddress(new UdpAddress(TARGET_ADDRESS));
 
         vbs1 = new VariableBinding[]{

@@ -40,18 +40,15 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"splunk", "logs", "http"})
@@ -133,9 +130,22 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .description("FlowFiles that failed to send to the destination are sent to this relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
+            Stream.of(
+                SOURCE,
+                SOURCE_TYPE,
+                HOST,
+                INDEX,
+                CONTENT_TYPE,
+                CHARSET
+            )
+    ).toList();
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             RELATIONSHIP_SUCCESS,
-            RELATIONSHIP_FAILURE)));
+            RELATIONSHIP_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -144,14 +154,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> result = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        result.add(SOURCE);
-        result.add(SOURCE_TYPE);
-        result.add(HOST);
-        result.add(INDEX);
-        result.add(CONTENT_TYPE);
-        result.add(CHARSET);
-        return result;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -188,14 +191,14 @@ public class PutSplunkHTTP extends SplunkAPICall {
                     // fall-through
                 default:
                     getLogger().error("Putting data into Splunk was not successful. Response with header {} was: {}",
-                            responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), "UTF-8"));
+                            responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), StandardCharsets.UTF_8));
             }
         } catch (final Exception e) {
             getLogger().error("Error during communication with Splunk: {}", e.getMessage(), e);
 
             if (responseMessage != null) {
                 try {
-                    getLogger().error("The response content is: {}", IOUtils.toString(responseMessage.getContent(), "UTF-8"));
+                    getLogger().error("The response content is: {}", IOUtils.toString(responseMessage.getContent(), StandardCharsets.UTF_8));
                 } catch (final IOException ioException) {
                     getLogger().error("An error occurred during reading response content!");
                 }
@@ -259,13 +262,8 @@ public class PutSplunkHTTP extends SplunkAPICall {
         if (!queryParameters.isEmpty()) {
             final List<String> parameters = new LinkedList<>();
 
-            try {
-                for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
-                    parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
-                }
-            } catch (final UnsupportedEncodingException e) {
-                getLogger().error("Could not be initialized because of: {}", e.getMessage(), e);
-                throw new ProcessException(e);
+            for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
+                parameters.add(URLEncoder.encode(parameter.getKey(), StandardCharsets.UTF_8) + '=' + URLEncoder.encode(parameter.getValue(), StandardCharsets.UTF_8));
             }
 
             result.append('?');

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
@@ -55,7 +56,7 @@ public class TestGetFile {
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes(StandardCharsets.UTF_8));
 
         final String path = successFiles.get(0).getAttribute("path");
         assertEquals("/", path);
@@ -95,7 +96,7 @@ public class TestGetFile {
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -120,7 +121,7 @@ public class TestGetFile {
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes(StandardCharsets.UTF_8));
 
         final String path = successFiles.get(0).getAttribute("path");
         assertEquals(dirStruc, path.replace('\\', '/'));
@@ -140,11 +141,9 @@ public class TestGetFile {
         final Path targetPath = destFile.toPath();
         Files.copy(inPath, targetPath);
 
-        boolean verifyLastModified = false;
         try {
             destFile.setLastModified(1000000000);
-            verifyLastModified = true;
-        } catch (Exception doNothing) {
+        } catch (Exception ignored) {
         }
 
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
@@ -152,7 +151,6 @@ public class TestGetFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
         //permissions are not verified as these are very environmentally specific
     }
 }

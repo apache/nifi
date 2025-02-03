@@ -55,7 +55,7 @@ final class CollisionAwareResourceProviderWorker extends ConflictResolvingExtern
         final File backupFile = new File(getTargetDirectory().getPath() + "/.provider_" + getId() + "_aside.tmp");
 
         try (
-                final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProviderClassLoader());
+                final NarCloseable ignored = NarCloseable.withComponentNarLoader(getProviderClassLoader());
                 final InputStream inputStream = getProvider().fetchExternalResource(availableResource);
         ) {
             if (tempFile.exists() && !tempFile.delete()) {

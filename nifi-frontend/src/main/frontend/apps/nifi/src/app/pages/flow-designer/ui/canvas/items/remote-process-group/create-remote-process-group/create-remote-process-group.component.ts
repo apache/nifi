@@ -38,7 +38,6 @@ import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
-    standalone: true,
     imports: [
         AsyncPipe,
         ErrorBanner,

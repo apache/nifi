@@ -172,13 +172,13 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                 .additionalClassPathUrls(additionalUrls)
                 .buildProcessor();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, procNode.getProcessor());
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id);
                 final StandardProcessContext processContext = new StandardProcessContext(procNode, statelessEngine.getControllerServiceProvider(),
                         stateManager, () -> false, new StatelessNodeTypeProvider());
@@ -297,7 +297,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             final Class<?> taskClass = taskNode.getReportingTask().getClass();
             final String identifier = taskNode.getReportingTask().getIdentifier();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(statelessEngine.getExtensionManager(), taskClass, identifier)) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(statelessEngine.getExtensionManager(), taskClass, identifier)) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getReportingTask());
 
                 if (isFlowInitialized()) {
@@ -393,14 +393,14 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
         final ControllerService service = serviceNode.getControllerServiceImplementation();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
 
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
             final ConfigurationContext configurationContext =
                     new StandardConfigurationContext(serviceNode, statelessEngine.getControllerServiceProvider(), null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
         }
 
         final ControllerService serviceImpl = serviceNode.getControllerServiceImplementation();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, serviceImpl.getClass(), serviceImpl.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, serviceImpl.getClass(), serviceImpl.getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, serviceImpl);
         } catch (final Exception e) {
             throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + serviceImpl, e);

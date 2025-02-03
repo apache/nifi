@@ -49,6 +49,8 @@ export interface NewPropertyDialogResponse {
 export interface EditParameterRequest {
     existingParameters?: string[];
     parameter?: Parameter;
+    isNewParameterContext: boolean;
+    isConvert?: boolean;
 }
 
 export interface EditParameterResponse {
@@ -281,7 +283,7 @@ export interface ParameterContextEntity {
     permissions: Permissions;
     id: string;
     uri: string;
-    component: ParameterContext;
+    component?: ParameterContext;
 }
 
 export interface ParameterContext {

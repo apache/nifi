@@ -99,7 +99,7 @@ public class TransferDebugOperationHandlerTest {
             for (Path operationId : directoryStream) {
                 FileUtils.deleteDirectory(operationId.toFile());
             }
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
         }
     }
 

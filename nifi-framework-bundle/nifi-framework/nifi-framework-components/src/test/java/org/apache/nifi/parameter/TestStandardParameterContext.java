@@ -400,7 +400,6 @@ public class TestStandardParameterContext {
     public void testAlertReferencingComponents() {
         final String inheritedParamName = "def";
         final String originalValue = "123";
-        final String changedValue = "321";
 
         final HashMapParameterReferenceManager referenceManager = Mockito.spy(new HashMapParameterReferenceManager());
         final Set<ProcessGroup> processGroups = new HashSet<>();

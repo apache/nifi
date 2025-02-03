@@ -97,7 +97,7 @@ public class StandardSSHClientProvider implements SSHClientProvider {
         final List<AuthMethod> authMethods = getPasswordAuthMethods(context, attributes);
 
         final Config config = SSH_CONFIG_PROVIDER.getConfig(address, context);
-        final SSHClient client = new SSHClient(config);
+        final SSHClient client = new StandardSSHClient(config);
 
         try {
             setClientProperties(client, context);

@@ -26,7 +26,6 @@ import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.mock;
 
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import java.util.HashMap;
@@ -38,7 +37,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,7 +92,6 @@ public class SmbjClientServiceIT {
         writeFile("testDirectory/directory2/nested_directory/file", "content");
         ContainerProxy sambaProxy = toxiproxy.getProxy("samba", 445);
         SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
-        ConfigurationContext context = mock(ConfigurationContext.class);
 
         Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(HOSTNAME, sambaProxy.getContainerIpAddress());
@@ -153,7 +150,7 @@ public class SmbjClientServiceIT {
                     if (s != null) {
                         try {
                             s.close();
-                        } catch (Exception e) {
+                        } catch (Exception ignored) {
                         }
                     }
                 }

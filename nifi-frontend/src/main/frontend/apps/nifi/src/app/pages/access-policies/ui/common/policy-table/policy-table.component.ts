@@ -35,7 +35,6 @@ export interface TenantItem {
 
 @Component({
     selector: 'policy-table',
-    standalone: true,
     templateUrl: './policy-table.component.html',
     imports: [MatTableModule, MatSortModule, MatIconButton, MatMenu, MatMenuTrigger, MatMenuItem],
     styleUrls: ['./policy-table.component.scss']

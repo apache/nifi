@@ -264,7 +264,7 @@ public class PutS3Object extends AbstractS3Processor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = List.of(
+    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
             S3_REGION,
@@ -300,7 +300,8 @@ public class PutS3Object extends AbstractS3Processor {
             MULTIPART_TEMP_DIR,
             USE_CHUNKED_ENCODING,
             USE_PATH_STYLE_ACCESS,
-        PROXY_CONFIGURATION_SERVICE);
+            PROXY_CONFIGURATION_SERVICE
+    );
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -331,7 +332,7 @@ public class PutS3Object extends AbstractS3Processor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -784,7 +785,7 @@ public class PutS3Object extends AbstractS3Processor {
                             int available = 0;
                             try {
                                 available = in.available();
-                            } catch (IOException e) {
+                            } catch (IOException ignored) {
                                 // in case of the last part, the stream is already closed
                             }
                             getLogger().info("Success uploading part flowfile={} part={} available={} etag={} uploadId={}",

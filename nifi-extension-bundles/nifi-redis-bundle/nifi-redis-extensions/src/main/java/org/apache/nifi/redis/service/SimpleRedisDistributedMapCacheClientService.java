@@ -35,8 +35,6 @@ import org.springframework.data.redis.core.types.Expiration;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,13 +48,10 @@ import static org.apache.nifi.redis.util.RedisUtils.TTL;
         "This service is intended to be used when a non-atomic DistributedMapCacheClient is required.")
 public class SimpleRedisDistributedMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
 
-    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(REDIS_CONNECTION_POOL);
-        props.add(TTL);
-        PROPERTY_DESCRIPTORS = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            REDIS_CONNECTION_POOL,
+            TTL
+    );
 
     private volatile RedisConnectionPool redisConnectionPool;
     private Long ttl;
@@ -89,10 +84,10 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            boolean set = redisConnection.setNX(kv.getKey(), kv.getValue());
+            boolean set = redisConnection.stringCommands().setNX(kv.getKey(), kv.getValue());
 
             if (ttl != -1L && set) {
-                redisConnection.expire(kv.getKey(), ttl);
+                redisConnection.keyCommands().expire(kv.getKey(), ttl);
             }
 
             return set;
@@ -106,15 +101,15 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
             do {
                 // start a watch on the key and retrieve the current value
                 redisConnection.watch(kv.getKey());
-                final byte[] existingValue = redisConnection.get(kv.getKey());
+                final byte[] existingValue = redisConnection.stringCommands().get(kv.getKey());
 
                 // start a transaction and perform the put-if-absent
                 redisConnection.multi();
-                redisConnection.setNX(kv.getKey(), kv.getValue());
+                redisConnection.stringCommands().setNX(kv.getKey(), kv.getValue());
 
                 // Set the TTL only if the key doesn't exist already
                 if (ttl != -1L && existingValue == null) {
-                    redisConnection.expire(kv.getKey(), ttl);
+                    redisConnection.keyCommands().expire(kv.getKey(), ttl);
                 }
 
                 // execute the transaction
@@ -144,7 +139,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
-            return redisConnection.exists(k);
+            return redisConnection.keyCommands().exists(k);
         });
     }
 
@@ -152,7 +147,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), RedisStringCommands.SetOption.upsert());
+            redisConnection.stringCommands().set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), RedisStringCommands.SetOption.upsert());
             return null;
         });
     }
@@ -171,9 +166,9 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
             }
 
             if (!values.isEmpty()) {
-                redisConnection.mSet(values);
+                redisConnection.stringCommands().mSet(values);
                 if (ttl != -1L) {
-                    values.keySet().forEach(k -> redisConnection.expire(k, ttl));
+                    values.keySet().forEach(k -> redisConnection.keyCommands().expire(k, ttl));
                 }
             }
             return null;
@@ -184,7 +179,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
-            final byte[] v = redisConnection.get(k);
+            final byte[] v = redisConnection.stringCommands().get(k);
             return v == null ? null : valueDeserializer.deserialize(v);
         });
     }
@@ -198,7 +193,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K> boolean remove(final K key, final Serializer<K> keySerializer) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
-            final long numRemoved = redisConnection.del(k);
+            final long numRemoved = redisConnection.keyCommands().del(k);
             return numRemoved > 0;
         });
     }

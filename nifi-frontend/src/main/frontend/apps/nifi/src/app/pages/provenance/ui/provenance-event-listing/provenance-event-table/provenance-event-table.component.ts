@@ -46,7 +46,6 @@ import { ErrorContextKey } from '../../../../../state/error';
 
 @Component({
     selector: 'provenance-event-table',
-    standalone: true,
     templateUrl: './provenance-event-table.component.html',
     imports: [
         MatTableModule,

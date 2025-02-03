@@ -23,10 +23,9 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
-import java.util.ArrayList;
+
 import java.util.Arrays;
 import java.util.List;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -58,16 +57,14 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         this.mongoClient = createClient(context, this.mongoClient);
     }
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-    static {
-        descriptors.add(URI);
-        descriptors.add(DB_USER);
-        descriptors.add(DB_PASSWORD);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
-        descriptors.add(WRITE_CONCERN);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+        URI,
+        DB_USER,
+        DB_PASSWORD,
+        SSL_CONTEXT_SERVICE,
+        CLIENT_AUTH,
+        WRITE_CONCERN
+    );
 
     protected MongoClient mongoClient;
     private String writeConcernProperty;
@@ -130,12 +127,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         if (!uri.contains("@") && user != null && passw != null) {
-            try {
-                return uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8.toString()) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8.toString()) + "@");
-            } catch (final UnsupportedEncodingException e) {
-                getLogger().warn("Failed to URL encode username and/or password. Using original URI.");
-                return uri;
-            }
+            return uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8) + "@");
         } else {
             return uri;
         }
@@ -182,7 +174,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnDisabled

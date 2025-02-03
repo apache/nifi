@@ -34,7 +34,6 @@ import { ExtensionCreation } from '../../../../../ui/common/extension-creation/e
 
 @Component({
     selector: 'create-registry-client',
-    standalone: true,
     templateUrl: './create-registry-client.component.html',
     imports: [
         ReactiveFormsModule,

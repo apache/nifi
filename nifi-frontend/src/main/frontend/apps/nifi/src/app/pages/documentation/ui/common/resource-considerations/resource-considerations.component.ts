@@ -22,7 +22,6 @@ import { SystemResourceConsideration } from '../../../state';
 
 @Component({
     selector: 'resource-considerations',
-    standalone: true,
     imports: [MatTableModule],
     templateUrl: './resource-considerations.component.html',
     styleUrl: './resource-considerations.component.scss'

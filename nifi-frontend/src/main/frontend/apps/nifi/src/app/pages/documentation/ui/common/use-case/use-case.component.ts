@@ -24,7 +24,6 @@ import { InputRequirementComponent } from '../input-requirement/input-requiremen
 
 @Component({
     selector: 'use-case',
-    standalone: true,
     templateUrl: './use-case.component.html',
     imports: [MatAccordion, MatExpansionModule, MatIconButton, PropertyDefinitionComponent, InputRequirementComponent],
     styleUrl: './use-case.component.scss'

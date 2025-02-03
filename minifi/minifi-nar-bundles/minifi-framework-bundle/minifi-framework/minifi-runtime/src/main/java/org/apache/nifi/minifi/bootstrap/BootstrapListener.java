@@ -203,7 +203,7 @@ public class BootstrapListener implements BootstrapCommunicator {
 
             try {
                 serverSocket.close();
-            } catch (IOException ioe) {
+            } catch (IOException ignored) {
                 // nothing to really do here. we could log this, but it would just become
                 // confusing in the logs, as we're shutting down and there's no real benefit
             }

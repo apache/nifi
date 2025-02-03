@@ -36,7 +36,6 @@ import {
 
 @Component({
     selector: 'prioritizers',
-    standalone: true,
     templateUrl: './prioritizers.component.html',
     imports: [
         MatButtonModule,

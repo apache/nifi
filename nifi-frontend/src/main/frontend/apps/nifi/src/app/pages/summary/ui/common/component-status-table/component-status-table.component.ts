@@ -26,7 +26,6 @@ import { NodeSearchResult } from '../../../../../state/cluster-summary';
 
 @Component({
     selector: 'component-status-table',
-    standalone: true,
     imports: [MatTableModule, MatSortModule],
     template: ''
 })

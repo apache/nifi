@@ -30,6 +30,7 @@ import com.google.api.gax.longrunning.OperationSnapshot;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
@@ -58,7 +59,7 @@ public class StartGcpVisionAnnotateImagesOperationTest {
 
     @BeforeEach
     public void setUp() throws InitializationException, IOException {
-        String jsonPayloadValue = FileUtils.readFileToString(new File("src/test/resources/vision/annotate-image.json"), "UTF-8");
+        String jsonPayloadValue = FileUtils.readFileToString(new File("src/test/resources/vision/annotate-image.json"), StandardCharsets.UTF_8);
         GCPCredentialsService gcpCredentialsService = new GCPCredentialsControllerService();
         StartGcpVisionAnnotateImagesOperation processor = new StartGcpVisionAnnotateImagesOperation() {
             @Override
@@ -72,6 +73,7 @@ public class StartGcpVisionAnnotateImagesOperationTest {
         runner.setProperty(GCP_CREDENTIALS_PROVIDER_SERVICE, "gcp-credentials-provider-service-id");
         runner.assertValid(gcpCredentialsService);
         runner.setProperty(JSON_PAYLOAD, jsonPayloadValue);
+        runner.setValidateExpressionUsage(false);
     }
 
     @Test

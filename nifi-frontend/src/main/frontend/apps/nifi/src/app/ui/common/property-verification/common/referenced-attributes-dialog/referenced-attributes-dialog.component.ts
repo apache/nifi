@@ -36,7 +36,6 @@ export interface ReferencedAttributesDialogData {
 
 @Component({
     selector: 'referenced-attributes-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatDialogTitle,

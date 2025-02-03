@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StreamingOutputResponseBuilderTest {
 
-    private static final byte[] INPUT_BYTES = String.class.getSimpleName().getBytes(StandardCharsets.UTF_8);;
+    private static final byte[] INPUT_BYTES = String.class.getSimpleName().getBytes(StandardCharsets.UTF_8);
 
     private static final String RANGE = "bytes=0-%d".formatted(INPUT_BYTES.length);
 

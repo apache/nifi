@@ -60,7 +60,6 @@ import { MapTableEntry, MapTableItem } from '../../types';
 
 @Component({
     selector: 'map-table',
-    standalone: true,
     imports: [
         CommonModule,
         CdkConnectedOverlay,

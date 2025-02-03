@@ -423,126 +423,126 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return new StateProvider() {
             @Override
             public void initialize(StateProviderInitializationContext context) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.initialize(context);
                 }
             }
 
             @Override
             public void shutdown() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.shutdown();
                 }
             }
 
             @Override
             public void setState(Map<String, String> state, String componentId) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.setState(state, componentId);
                 }
             }
 
             @Override
             public StateMap getState(String componentId) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getState(componentId);
                 }
             }
 
             @Override
             public boolean replace(StateMap oldValue, Map<String, String> newValue, String componentId) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.replace(oldValue, newValue, componentId);
                 }
             }
 
             @Override
             public void clear(String componentId) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.clear(componentId);
                 }
             }
 
             @Override
             public void onComponentRemoved(String componentId) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.onComponentRemoved(componentId);
                 }
             }
 
             @Override
             public void enable() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.enable();
                 }
             }
 
             @Override
             public void disable() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.disable();
                 }
             }
 
             @Override
             public boolean isEnabled() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.isEnabled();
                 }
             }
 
             @Override
             public Scope[] getSupportedScopes() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getSupportedScopes();
                 }
             }
 
             @Override
             public Collection<ValidationResult> validate(ValidationContext context) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.validate(context);
                 }
             }
 
             @Override
             public PropertyDescriptor getPropertyDescriptor(String name) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getPropertyDescriptor(name);
                 }
             }
 
             @Override
             public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.onPropertyModified(descriptor, oldValue, newValue);
                 }
             }
 
             @Override
             public List<PropertyDescriptor> getPropertyDescriptors() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getPropertyDescriptors();
                 }
             }
 
             @Override
             public String getIdentifier() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getIdentifier();
                 }
             }
 
             @Override
             public boolean isComponentEnumerationSupported() {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.isComponentEnumerationSupported();
                 }
             }
 
             @Override
             public Collection<String> getStoredComponentIds() throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getStoredComponentIds();
                 }
             }

@@ -49,7 +49,6 @@ import { selectBackNavigation } from '../../../state/navigation/navigation.selec
 
 @Component({
     selector: 'navigation',
-    standalone: true,
     providers: [Storage],
     imports: [
         NgOptimizedImage,

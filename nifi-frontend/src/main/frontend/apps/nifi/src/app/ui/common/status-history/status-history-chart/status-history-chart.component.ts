@@ -26,7 +26,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'status-history-chart',
-    standalone: true,
     imports: [],
     templateUrl: './status-history-chart.component.html',
     styleUrls: ['./status-history-chart.component.scss']

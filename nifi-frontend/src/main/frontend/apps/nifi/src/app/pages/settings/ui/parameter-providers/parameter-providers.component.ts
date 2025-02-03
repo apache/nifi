@@ -38,7 +38,8 @@ import { navigateToComponentDocumentation } from '../../../../state/documentatio
 @Component({
     selector: 'parameter-providers',
     templateUrl: './parameter-providers.component.html',
-    styleUrls: ['./parameter-providers.component.scss']
+    styleUrls: ['./parameter-providers.component.scss'],
+    standalone: false
 })
 export class ParameterProviders implements OnInit, OnDestroy {
     currentUser$ = this.store.select(selectCurrentUser);

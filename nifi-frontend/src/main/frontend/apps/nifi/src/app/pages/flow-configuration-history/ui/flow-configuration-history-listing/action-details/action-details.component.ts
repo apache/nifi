@@ -33,7 +33,6 @@ import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'action-details',
-    standalone: true,
     imports: [CommonModule, MatDialogModule, PipesModule, MatButtonModule, CopyDirective],
     templateUrl: './action-details.component.html',
     styleUrls: ['./action-details.component.scss']

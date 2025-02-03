@@ -53,7 +53,6 @@ import {
 
 @Component({
     selector: 'enable-controller-service',
-    standalone: true,
     templateUrl: './enable-controller-service.component.html',
     imports: [
         ReactiveFormsModule,

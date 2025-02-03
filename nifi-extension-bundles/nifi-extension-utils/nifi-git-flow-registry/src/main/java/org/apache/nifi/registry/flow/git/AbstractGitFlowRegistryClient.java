@@ -483,7 +483,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             if (inputStream != null) {
                 try {
                     inputStream.close();
-                } catch (final IOException ioe) {
+                } catch (final IOException ignored) {
                     // Close quietly
                 }
             }

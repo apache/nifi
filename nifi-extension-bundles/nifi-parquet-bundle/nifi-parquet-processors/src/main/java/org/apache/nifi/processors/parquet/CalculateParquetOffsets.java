@@ -17,13 +17,9 @@
 
 package org.apache.nifi.processors.parquet;
 
-import static java.util.Collections.singletonList;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -109,12 +105,14 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             .description("FlowFiles, with special attributes that represent a chunk of the input file.")
             .build();
 
-    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             PROP_RECORDS_PER_SPLIT,
             PROP_ZERO_CONTENT_OUTPUT
     );
 
-    static final Set<Relationship> RELATIONSHIPS = new HashSet<>(singletonList(REL_SUCCESS));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -133,7 +131,7 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             return;
         }
 
-        final long partitionSize = context.getProperty(PROP_RECORDS_PER_SPLIT).asLong();
+        final long partitionSize = context.getProperty(PROP_RECORDS_PER_SPLIT).evaluateAttributeExpressions(inputFlowFile).asLong();
         final boolean zeroContentOutput = context.getProperty(PROP_ZERO_CONTENT_OUTPUT).asBoolean();
 
         final long recordOffset = Optional.ofNullable(inputFlowFile.getAttribute(ParquetAttribute.RECORD_OFFSET))

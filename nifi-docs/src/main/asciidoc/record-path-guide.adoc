@@ -1259,6 +1259,62 @@ Each pair of arguments resembles a field in the new record.
 Every odd argument, the first one of each pair, is used as field name and coerced into a String value.
 Every even argument, the second one of each pair, is used as field value.
 
+
+=== arrayOf
+
+Creates an array from multiple values.
+
+```
+{
+    "id": "1234",
+    "elements": [{
+        "name": "book",
+        "color": "red"
+    }, {
+        "name": "computer",
+        "color": "black"
+    }]
+}
+```
+
+We could make use of the `arrayOf` function, in conjunction with the `unescapeJson` function to append a new element to the `elements` array.
+Given this example input, a RecordPath of `arrayOf(/elements[*], unescapeJson('{"name":"phone","color":"blue"}'))` would return the following array:
+
+```
+[{
+    "name": "book",
+    "color": "red"
+}, {
+    "name": "computer",
+    "color": "black"
+}, {
+    "name": "phone",
+    "color": "blue"
+}]
+```
+
+We may also use the `arrayOf` function for appending multiple elements to an array. Given the input record:
+
+```
+{
+  "name": "John Doe",
+  "friends": ["Jane", "Jack", "Jill"]
+}
+```
+
+A RecordPath of `arrayOf(/friends[*], 'Joe', 'Jim', 'Jeremy')` would return the following array:
+
+```
+["Jane", "Jack", "Jill", "Joe", "Jim", "Jeremy"]
+```
+
+We can also simply create an array from arbitrary values, such as `arrayOf('good-bye', 'adios', 'au revoir')` which would return the following array:
+
+```
+["good-bye", "adios", "au revoir"]
+```
+
+
 [[filter_functions]]
 == Filter Functions
 

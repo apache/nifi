@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSplitRecord {
@@ -193,7 +194,7 @@ public class TestSplitRecord {
 
         runner.assertAllFlowFilesTransferred(SplitRecord.REL_FAILURE, 1);
         final MockFlowFile failed = runner.getFlowFilesForRelationship(SplitRecord.REL_FAILURE).get(0);
-        assertTrue(original == failed);
+        assertSame(original, failed);
 
         final MockComponentLog logger = runner.getLogger();
         final Optional<LogMessage> logMessage = logger.getErrorMessages().stream()

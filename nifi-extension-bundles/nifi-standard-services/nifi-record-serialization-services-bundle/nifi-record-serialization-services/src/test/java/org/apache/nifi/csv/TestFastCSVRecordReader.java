@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class TestFastCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
     private CSVFormat format;
-    private static final CSVFormat TRIMMED_RFC4180 = CSVFormat.RFC4180.builder().setTrim(true).build();
+    private static final CSVFormat TRIMMED_RFC4180 = CSVFormat.RFC4180.builder().setTrim(true).get();
 
     @BeforeEach
     public void setUp() {
@@ -231,7 +231,7 @@ public class TestFastCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180.builder().setAllowMissingColumnNames(true).build(), false)) {
+             final FastCSVRecordReader reader = createReader(bais, schema, TRIMMED_RFC4180.builder().setAllowMissingColumnNames(true).get(), false)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -367,7 +367,7 @@ public class TestFastCSVRecordReader {
                 .setTrim(true)
                 .setIgnoreSurroundingSpaces(true)
                 .setAllowMissingColumnNames(true)
-                .build();
+                .get();
 
         // Create another Record Reader that indicates that the header line is present but should be ignored. This should cause
         // our schema to be the definitive list of what fields exist.
@@ -412,7 +412,7 @@ public class TestFastCSVRecordReader {
             try {
                 reader.nextRecord();
                 fail("Should have thrown MalformedRecordException");
-            } catch (MalformedRecordException mre) {
+            } catch (MalformedRecordException ignored) {
                 // Expected behavior
             }
         }
@@ -452,7 +452,7 @@ public class TestFastCSVRecordReader {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
-        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).build();
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).get();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -483,7 +483,7 @@ public class TestFastCSVRecordReader {
                 .setQuote('"')
                 .setDelimiter(",")
                 .setEscape(null)
-                .build();
+                .get();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 

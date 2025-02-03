@@ -33,7 +33,6 @@ import { selectParameterProviderDefinitionState } from '../../state/parameter-pr
 
 @Component({
     selector: 'parameter-provider-definition',
-    standalone: true,
     imports: [NgxSkeletonLoaderModule, ConfigurableExtensionDefinitionComponent],
     templateUrl: './parameter-provider-definition.component.html',
     styleUrl: './parameter-provider-definition.component.scss'

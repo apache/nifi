@@ -42,6 +42,7 @@ import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import org.apache.nifi.util.StringUtils;
+import org.bouncycastle.bcpg.KeyIdentifier;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
@@ -131,7 +132,7 @@ public class DecryptContentPGP extends AbstractProcessor {
             FAILURE
     );
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DECRYPTION_STRATEGY,
             PASSPHRASE,
             PRIVATE_KEY_SERVICE
@@ -158,7 +159,7 @@ public class DecryptContentPGP extends AbstractProcessor {
      */
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**
@@ -323,7 +324,8 @@ public class DecryptContentPGP extends AbstractProcessor {
             } else if (publicKeyData.hasNext()) {
                 while (publicKeyData.hasNext()) {
                     final PGPPublicKeyEncryptedData publicKeyEncryptedData = publicKeyData.next();
-                    final long keyId = publicKeyEncryptedData.getKeyID();
+                    final KeyIdentifier publicKeyIdentifier = publicKeyEncryptedData.getKeyIdentifier();
+                    final long keyId = publicKeyIdentifier.getKeyId();
                     final Optional<PGPPrivateKey> privateKey = privateKeyService.findPrivateKey(keyId);
                     if (privateKey.isPresent()) {
                         supportedEncryptedData = publicKeyEncryptedData;
@@ -404,7 +406,8 @@ public class DecryptContentPGP extends AbstractProcessor {
             if (privateKeyService == null) {
                 throw new PGPProcessException("PGP Public Key Encryption Found: Private Key Service not configured");
             } else {
-                final long keyId = publicKeyEncryptedData.getKeyID();
+                final KeyIdentifier publicKeyIdentifier = publicKeyEncryptedData.getKeyIdentifier();
+                final long keyId = publicKeyIdentifier.getKeyId();
                 final Optional<PGPPrivateKey> foundPrivateKey = privateKeyService.findPrivateKey(keyId);
                 if (foundPrivateKey.isPresent()) {
                     final PGPPrivateKey privateKey = foundPrivateKey.get();
@@ -421,9 +424,13 @@ public class DecryptContentPGP extends AbstractProcessor {
         }
 
         private void setSymmetricKeyAlgorithmAttributes(final int symmetricAlgorithm) {
-            final String blockCipher = PGPUtil.getSymmetricCipherName(symmetricAlgorithm);
-            attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, blockCipher);
-            attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(symmetricAlgorithm));
+            try {
+                final String blockCipher = PGPUtil.getSymmetricCipherName(symmetricAlgorithm);
+                attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, blockCipher);
+                attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(symmetricAlgorithm));
+            } catch (final IllegalArgumentException e) {
+                throw new PGPDecryptionException("PGP Symmetric Algorithm [%d] not valid".formatted(symmetricAlgorithm));
+            }
         }
 
         private boolean isVerified(final PGPEncryptedData encryptedData) {

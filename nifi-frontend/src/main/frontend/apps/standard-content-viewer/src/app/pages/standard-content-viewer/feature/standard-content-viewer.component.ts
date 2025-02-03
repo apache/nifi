@@ -27,7 +27,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 @Component({
     selector: 'standard-content-viewer',
     templateUrl: './standard-content-viewer.component.html',
-    styleUrls: ['./standard-content-viewer.component.scss']
+    styleUrls: ['./standard-content-viewer.component.scss'],
+    standalone: false
 })
 export class StandardContentViewer {
     contentFormGroup: FormGroup;

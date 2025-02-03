@@ -49,6 +49,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.PreparedStatement;
@@ -865,7 +866,7 @@ public class JdbcCommon {
                     switch (valueFormat) {
                         case "":
                         case "ascii":
-                            bValue = parameterValue.getBytes("ASCII");
+                            bValue = parameterValue.getBytes(StandardCharsets.US_ASCII);
                             break;
                         case "hex":
                             try {

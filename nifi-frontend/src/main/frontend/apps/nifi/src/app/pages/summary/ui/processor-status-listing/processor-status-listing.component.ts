@@ -48,7 +48,8 @@ import { NodeSearchResult } from '../../../../state/cluster-summary';
 @Component({
     selector: 'processor-status-listing',
     templateUrl: './processor-status-listing.component.html',
-    styleUrls: ['./processor-status-listing.component.scss']
+    styleUrls: ['./processor-status-listing.component.scss'],
+    standalone: false
 })
 export class ProcessorStatusListing implements AfterViewInit, OnDestroy {
     private destroyRef = inject(DestroyRef);

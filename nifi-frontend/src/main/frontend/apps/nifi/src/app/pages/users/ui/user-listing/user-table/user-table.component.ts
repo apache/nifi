@@ -46,7 +46,6 @@ export interface Tenants {
 
 @Component({
     selector: 'user-table',
-    standalone: true,
     templateUrl: './user-table.component.html',
     imports: [
         ReactiveFormsModule,

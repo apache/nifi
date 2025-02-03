@@ -50,7 +50,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-flow-analysis-rule',
-    standalone: true,
     templateUrl: './edit-flow-analysis-rule.component.html',
     imports: [
         ReactiveFormsModule,

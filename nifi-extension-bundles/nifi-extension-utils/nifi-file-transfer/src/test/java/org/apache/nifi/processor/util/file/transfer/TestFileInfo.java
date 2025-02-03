@@ -25,14 +25,14 @@ public class TestFileInfo {
 
     @Test
     public void testPermissionModeToString() {
-        String rwxPerm = FileInfo.permissionToString(0567);
+        String rwxPerm = FileInfo.permissionToString(Integer.decode("0567"));
         assertEquals("r-xrw-rwx", rwxPerm);
 
         // Test with sticky bit
-        rwxPerm = FileInfo.permissionToString(01567);
+        rwxPerm = FileInfo.permissionToString(Integer.decode("01567"));
         assertEquals("r-xrw-rwx", rwxPerm);
 
-        rwxPerm = FileInfo.permissionToString(03);
+        rwxPerm = FileInfo.permissionToString(Integer.decode("03"));
         assertEquals("-------wx", rwxPerm);
 
     }

@@ -440,8 +440,6 @@ public class StandardProcessSessionIT {
 
     @Test
     public void testCheckpointOnSessionDoesNotInteractWithFlowFile() {
-        final Relationship relationship = new Relationship.Builder().name("A").build();
-
         session.adjustCounter("a", 1, false);
         session.adjustCounter("a", 1, true);
         session.checkpoint();
@@ -2148,7 +2146,7 @@ public class StandardProcessSessionIT {
         in.close();
 
         // Should now be okay
-        try (final OutputStream out = session.write(flowFile)) {
+        try (final OutputStream ignored = session.write(flowFile)) {
 
         }
     }
@@ -2170,7 +2168,7 @@ public class StandardProcessSessionIT {
         out.close();
 
         // Should now be okay
-        try (final InputStream in = session.read(flowFile)) {
+        try (final InputStream ignored = session.read(flowFile)) {
 
         }
     }
@@ -2512,7 +2510,7 @@ public class StandardProcessSessionIT {
 
         final FlowFile flowFile = session.get();
 
-        FlowFile clone = session.clone(flowFile);
+        session.clone(flowFile);
         session.rollback();
         assertEquals(1, contentRepo.getClaimantCount(originalClaim));
     }

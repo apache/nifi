@@ -28,7 +28,6 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Hashtable;
 import java.util.Set;
@@ -121,17 +120,14 @@ public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryH
     }
 
     private static Object instrumentWithClassLoader(final Object obj, final ClassLoader classLoader, final Class<?>... interfaces) {
-        final InvocationHandler invocationHandler = new InvocationHandler() {
-            @Override
-            public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-                final Thread thread = Thread.currentThread();
-                final ClassLoader currentClassLoader = thread.getContextClassLoader();
-                try {
-                    thread.setContextClassLoader(classLoader);
-                    return method.invoke(obj, args);
-                } finally {
-                    thread.setContextClassLoader(currentClassLoader);
-                }
+        final InvocationHandler invocationHandler = (proxy, method, args) -> {
+            final Thread thread = Thread.currentThread();
+            final ClassLoader currentClassLoader = thread.getContextClassLoader();
+            try {
+                thread.setContextClassLoader(classLoader);
+                return method.invoke(obj, args);
+            } finally {
+                thread.setContextClassLoader(currentClassLoader);
             }
         };
 

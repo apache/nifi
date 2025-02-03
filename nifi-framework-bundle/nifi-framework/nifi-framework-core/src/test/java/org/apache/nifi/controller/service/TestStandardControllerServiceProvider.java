@@ -244,7 +244,7 @@ public class TestStandardControllerServiceProvider {
         while (service.getState() != desiredState) {
             try {
                 Thread.sleep(50L);
-            } catch (final InterruptedException e) {
+            } catch (final InterruptedException ignored) {
             }
         }
     }

@@ -46,7 +46,6 @@ import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'bulletin-board',
-    standalone: true,
     imports: [
         NgxSkeletonLoaderModule,
         MatFormFieldModule,

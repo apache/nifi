@@ -22,5 +22,14 @@ export function matchesCamelCaseSearch(value: string, filter: string): boolean {
     }
 
     const joinedParts = camelCaseMatches.join('.*');
-    return new RegExp(joinedParts).test(value);
+
+    let doesMatch = false;
+
+    try {
+        doesMatch = new RegExp(joinedParts).test(value);
+    } catch (e) {
+        // ignore
+    }
+
+    return doesMatch;
 }

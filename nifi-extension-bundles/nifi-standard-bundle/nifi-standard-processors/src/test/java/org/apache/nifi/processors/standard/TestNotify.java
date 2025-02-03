@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -304,7 +305,7 @@ public class TestNotify {
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[] {}, props);
         final AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
-        assertTrue(e.getCause() instanceof RuntimeException);
+        assertInstanceOf(RuntimeException.class, e.getCause());
         service.setFailOnCalls(false);
 
     }

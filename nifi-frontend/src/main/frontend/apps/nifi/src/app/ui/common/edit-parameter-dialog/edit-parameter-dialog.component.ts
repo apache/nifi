@@ -41,7 +41,6 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter } from '@
 
 @Component({
     selector: 'edit-parameter-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButtonModule,
@@ -61,7 +60,7 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter } from '@
 export class EditParameterDialog extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editParameter: EventEmitter<EditParameterResponse> = new EventEmitter<EditParameterResponse>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() close: EventEmitter<void> = new EventEmitter<void>();
 
     name: FormControl;
     sensitive: FormControl;
@@ -181,7 +180,7 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.close.next();
     }
 
     private valueChanged(enteredValue: string | null): boolean {

@@ -55,7 +55,8 @@ import { ErrorContextKey } from '../../../../state/error';
 @Component({
     selector: 'provenance-event-listing',
     templateUrl: './provenance-event-listing.component.html',
-    styleUrls: ['./provenance-event-listing.component.scss']
+    styleUrls: ['./provenance-event-listing.component.scss'],
+    standalone: false
 })
 export class ProvenanceEventListing implements OnInit, OnDestroy {
     status$ = this.store.select(selectStatus);

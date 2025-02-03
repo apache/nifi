@@ -441,7 +441,7 @@ public class TestStandardProcessScheduler {
         final Future<?> future = scheduler.enableControllerService(serviceNode);
         try {
             future.get();
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Expected behavior because the FailingService throws Exception when attempting to enable
         }
 
@@ -471,6 +471,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     @Disabled
+    @SuppressWarnings("PMD.UnusedLocalVariable")
     public void validateEnabledDisableMultiThread() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);

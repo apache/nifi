@@ -55,7 +55,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-parameter-provider',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatTabsModule,

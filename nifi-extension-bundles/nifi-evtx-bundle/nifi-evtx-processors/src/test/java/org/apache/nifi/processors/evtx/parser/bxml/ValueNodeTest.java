@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -52,7 +52,7 @@ public class ValueNodeTest extends BxmlNodeWithTokenTestBase {
         assertEquals(getToken(), valueNode.getToken());
         List<BxmlNode> children = valueNode.getChildren();
         assertEquals(1, children.size());
-        assertTrue(children.get(0) instanceof NullTypeNode);
+        assertInstanceOf(NullTypeNode.class, children.get(0));
     }
 
     @Test

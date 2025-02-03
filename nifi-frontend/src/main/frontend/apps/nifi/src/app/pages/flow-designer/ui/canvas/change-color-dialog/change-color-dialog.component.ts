@@ -36,7 +36,6 @@ import { MatCheckbox } from '@angular/material/checkbox';
 
 @Component({
     selector: 'change-component-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatDialogTitle,

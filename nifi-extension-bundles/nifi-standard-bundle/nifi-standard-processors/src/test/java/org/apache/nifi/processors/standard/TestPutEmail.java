@@ -427,7 +427,7 @@ public class TestPutEmail {
             final MimeMultipart multipart = (MimeMultipart) message.getContent();
             final BodyPart part = multipart.getBodyPart(0);
             final InputStream is = part.getDataHandler().getInputStream();
-            final String encoding = Charset.forName("US-ASCII").equals(charset) ? "7bit" : "base64";
+            final String encoding = StandardCharsets.US_ASCII.equals(charset) ? "7bit" : "base64";
             final byte[] decodedTextBytes = "base64".equals(encoding) ? Base64.decodeBase64(IOUtils.toByteArray(is)) : IOUtils.toByteArray(is);
             final String decodedText = StringUtils.newString(decodedTextBytes, charset.name());
             return decodedText;

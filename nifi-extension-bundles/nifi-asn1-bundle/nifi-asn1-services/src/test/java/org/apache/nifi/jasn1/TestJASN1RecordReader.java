@@ -103,9 +103,9 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
             // Assert integers
             final Object[] numbers = (Object[]) record.getValue("numbers");
             assertEquals(4, numbers.length);
-            assertEquals(new BigInteger("0"), numbers[0]);
-            assertEquals(new BigInteger("1"), numbers[1]);
-            assertEquals(new BigInteger("2"), numbers[2]);
+            assertEquals(BigInteger.ZERO, numbers[0]);
+            assertEquals(BigInteger.ONE, numbers[1]);
+            assertEquals(BigInteger.TWO, numbers[2]);
             assertEquals(new BigInteger("3"), numbers[3]);
 
             // Assert unordered

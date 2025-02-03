@@ -210,7 +210,7 @@ public class ReportingTaskDTO extends ComponentDTO {
      * @return current scheduling state of the reporting task
      */
     @Schema(description = "The state of the reporting task.",
-            allowableValues = "RUNNING, STOPPED, DISABLED"
+            allowableValues = {"RUNNING", "STOPPED", "DISABLED"}
     )
     public String getState() {
         return state;
@@ -316,7 +316,7 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     @Schema(description = "Indicates whether the Reporting Task is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Reporting Task is valid)",
         accessMode = Schema.AccessMode.READ_ONLY,
-        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+        allowableValues = {VALID, INVALID, VALIDATING})
     public String getValidationStatus() {
         return validationStatus;
     }

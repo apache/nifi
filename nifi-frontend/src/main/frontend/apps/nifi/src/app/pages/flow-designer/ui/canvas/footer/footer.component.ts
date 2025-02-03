@@ -24,7 +24,6 @@ import { AsyncPipe } from '@angular/common';
 
 @Component({
     selector: 'fd-footer',
-    standalone: true,
     templateUrl: './footer.component.html',
     imports: [Breadcrumbs, AsyncPipe],
     styleUrls: ['./footer.component.scss']

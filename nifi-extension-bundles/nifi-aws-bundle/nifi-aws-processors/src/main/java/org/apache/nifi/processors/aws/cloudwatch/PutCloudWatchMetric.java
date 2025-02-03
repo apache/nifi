@@ -74,38 +74,32 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
     public static final Set<String> units = Arrays.stream(StandardUnit.values())
             .map(StandardUnit::toString).collect(Collectors.toSet());
 
-    private static final Validator UNIT_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            } else {
-                String reason = null;
+    private static final Validator UNIT_VALIDATOR = (subject, input, context) -> {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        } else {
+            String reason = null;
 
-                if (!units.contains(input)) {
-                    reason = "not a valid Unit";
-                }
-                return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
+            if (!units.contains(input)) {
+                reason = "not a valid Unit";
             }
+            return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
         }
     };
 
-    private static final Validator DOUBLE_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            } else {
-                String reason = null;
+    private static final Validator DOUBLE_VALIDATOR = (subject, input, context) -> {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        } else {
+            String reason = null;
 
-                try {
-                    Double.parseDouble(input);
-                } catch (NumberFormatException e) {
-                    reason = "not a valid Double";
-                }
-
-                return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
+            try {
+                Double.parseDouble(input);
+            } catch (NumberFormatException e) {
+                reason = "not a valid Double";
             }
+
+            return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
         }
     };
 
@@ -190,7 +184,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .addValidator(DOUBLE_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = List.of(
+    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         NAMESPACE,
         METRIC_NAME,
         REGION,
@@ -216,7 +210,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

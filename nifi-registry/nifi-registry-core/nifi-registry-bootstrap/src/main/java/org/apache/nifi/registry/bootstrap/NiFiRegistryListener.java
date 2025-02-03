@@ -79,7 +79,7 @@ public class NiFiRegistryListener {
             executor.shutdown();
             try {
                 executor.awaitTermination(3, TimeUnit.SECONDS);
-            } catch (final InterruptedException ie) {
+            } catch (final InterruptedException ignored) {
             }
 
             serverSocket.close();

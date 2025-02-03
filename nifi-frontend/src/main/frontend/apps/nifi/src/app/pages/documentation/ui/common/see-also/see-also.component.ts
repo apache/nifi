@@ -29,7 +29,6 @@ import { DocumentedType } from '../../../../../state/shared';
 
 @Component({
     selector: 'see-also',
-    standalone: true,
     templateUrl: './see-also.component.html',
     imports: [RouterLink, NifiTooltipDirective, AsyncPipe, NgTemplateOutlet],
     styleUrl: './see-also.component.scss'
