@@ -18,9 +18,9 @@ package org.apache.nifi.redis.testcontainers;
 
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -99,9 +99,8 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
         adjustConfiguration();
 
         Path configurationFilePath = writeConfigurationFile().toAbsolutePath();
-        String hostPath = configurationFilePath.toString();
         String containerPath = "/usr/local/etc/redis/redis.conf";
-        addFileSystemBind(hostPath, containerPath, BindMode.READ_WRITE);
+        withCopyToContainer(MountableFile.forHostPath(configurationFilePath), containerPath);
 
         setCommand(containerPath);
     }
