@@ -80,6 +80,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             throws NiFiClientException, IOException, MissingOptionException {
 
         final String inputSource = getArg(properties, CommandOption.INPUT_SOURCE);
+        final boolean isInputSpecified = StringUtils.isNotBlank(inputSource);
 
         final String bucketId = getArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getArg(properties, CommandOption.FLOW_ID);
@@ -93,9 +94,9 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
 
         final boolean posXExists = StringUtils.isNotBlank(posXStr);
         final boolean posYExists = StringUtils.isNotBlank(posYStr);
-        final File input = new File(inputSource);
+        final File input = isInputSpecified ? new File(inputSource) : null;
 
-        if (StringUtils.isBlank(inputSource)) {
+        if (!isInputSpecified) {
             if (StringUtils.isBlank(bucketId)) {
                 throw new IllegalArgumentException("Input path is not specified so Bucket ID must be specified");
             }
@@ -157,7 +158,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
         ProcessGroupEntity createdEntity = null;
 
-        if (StringUtils.isBlank(inputSource)) {
+        if (!isInputSpecified) {
 
             // if a registry client is specified use it, otherwise see if there is only one
             // available and use that, if more than one is available then throw an exception
