@@ -166,7 +166,6 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .displayName("Retain ID (Record Path)")
         .description("Whether to retain the existing field used as the ID Record Path.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .allowableValues("true", "false")
         .defaultValue("false")
         .required(false)
         .dependsOn(ID_RECORD_PATH)
@@ -242,7 +241,6 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .displayName("Retain @timestamp (Record Path)")
         .description("Whether to retain the existing field used as the @timestamp Record Path.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .allowableValues("true", "false")
         .defaultValue("false")
         .required(false)
         .dependsOn(AT_TIMESTAMP_RECORD_PATH)
@@ -268,7 +266,6 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     "and the error related to the first record within the FlowFile added to the FlowFile as \"elasticsearch.bulk.error\". " +
                     "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() + "\" is \"false\" then records associated with \"not_found\" " +
                     "Elasticsearch document responses will also be send to the \"" + REL_ERRORS.getName() + "\" relationship.")
-            .allowableValues("true", "false")
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .required(false)
