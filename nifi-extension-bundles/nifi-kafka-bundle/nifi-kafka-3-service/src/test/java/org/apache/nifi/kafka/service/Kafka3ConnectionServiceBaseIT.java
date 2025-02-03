@@ -50,7 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -134,7 +134,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     protected TestRunner runner;
 
-    private KafkaContainer kafkaContainer;
+    private ConfluentKafkaContainer kafkaContainer;
 
     private Kafka3ConnectionService service;
 
@@ -161,7 +161,7 @@ public class Kafka3ConnectionServiceBaseIT {
             trustStore.store(outputStream, KEY_STORE_PASSWORD.toCharArray());
         }
 
-        kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
         initializeContainer();
         kafkaContainer.start();
     }
