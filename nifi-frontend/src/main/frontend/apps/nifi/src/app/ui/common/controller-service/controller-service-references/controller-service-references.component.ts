@@ -29,7 +29,6 @@ import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
-import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
 
 @Component({
@@ -42,7 +41,6 @@ import { MatDialogModule } from '@angular/material/dialog';
         NgTemplateOutlet,
         NgClass,
         NifiTooltipDirective,
-        RouterLink,
         MatDialogModule
     ],
     styleUrls: ['./controller-service-references.component.scss']

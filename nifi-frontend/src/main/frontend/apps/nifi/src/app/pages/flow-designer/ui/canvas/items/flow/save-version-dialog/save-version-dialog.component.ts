@@ -24,7 +24,6 @@ import {
     MatDialogTitle
 } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButton } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
@@ -43,7 +42,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     imports: [
         MatDialogTitle,
         ReactiveFormsModule,
-        ErrorBanner,
         MatDialogContent,
         MatDialogActions,
         MatButton,

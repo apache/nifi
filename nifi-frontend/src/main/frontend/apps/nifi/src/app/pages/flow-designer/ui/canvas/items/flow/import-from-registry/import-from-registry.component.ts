@@ -30,8 +30,7 @@ import {
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
-import { AsyncPipe, JsonPipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -64,7 +63,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     selector: 'import-from-registry',
     imports: [
         AsyncPipe,
-        ErrorBanner,
         MatButtonModule,
         MatDialogModule,
         MatFormFieldModule,
@@ -77,8 +75,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         NgForOf,
         NifiTooltipDirective,
         MatIconModule,
-        NgTemplateOutlet,
-        JsonPipe,
         MatCheckboxModule,
         MatSortModule,
         MatTableModule,

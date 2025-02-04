@@ -26,7 +26,6 @@ import { createPort } from '../../../../../state/flow/flow.actions';
 import { CreateComponentRequest } from '../../../../../state/flow';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
@@ -41,7 +40,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         MatDialogModule,
         MatInputModule,
         MatSelectModule,
-        ErrorBanner,
         MatButtonModule,
         AsyncPipe,
         NifiSpinnerDirective,

@@ -19,4 +19,3 @@ export * from './component-type-name.pipe';
 export * from './join.pipe';
 export * from './sort.pipe';
 export * from './sort-by-property.pipe';
-export * from './pipes.module';

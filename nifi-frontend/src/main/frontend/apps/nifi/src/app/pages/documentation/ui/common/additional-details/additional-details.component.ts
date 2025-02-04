@@ -17,8 +17,7 @@
 
 import { AfterViewChecked, Component, Input, OnDestroy, viewChild } from '@angular/core';
 import { ConfigurableExtensionDefinition } from '../../../state';
-import { MatAccordion, MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion';
-import { MatIconButton } from '@angular/material/button';
+import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion';
 import { NiFiState } from '../../../../../state';
 import { Store } from '@ngrx/store';
 import {
@@ -32,7 +31,7 @@ import { MarkdownComponent } from 'ngx-markdown';
 
 @Component({
     selector: 'additional-details',
-    imports: [MatAccordion, MatExpansionModule, MatIconButton, NgxSkeletonLoaderModule, MarkdownComponent],
+    imports: [MatExpansionModule, NgxSkeletonLoaderModule, MarkdownComponent],
     templateUrl: './additional-details.component.html',
     styleUrl: './additional-details.component.scss'
 })

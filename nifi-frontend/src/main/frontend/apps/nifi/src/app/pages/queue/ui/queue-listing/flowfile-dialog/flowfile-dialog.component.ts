@@ -21,7 +21,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, KeyValuePipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { KeyValuePipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatTabsModule } from '@angular/material/tabs';
 import { FlowFileDialogRequest } from '../../../state/queue-listing';
@@ -39,7 +39,6 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
         MatCheckboxModule,
         MatButtonModule,
         NgIf,
-        AsyncPipe,
         NgForOf,
         MatDatepickerModule,
         MatTabsModule,

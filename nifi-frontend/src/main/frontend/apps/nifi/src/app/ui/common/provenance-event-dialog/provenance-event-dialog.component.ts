@@ -21,7 +21,7 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { CopyDirective, NiFiCommon } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -38,7 +38,6 @@ import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
         MatCheckboxModule,
         MatButtonModule,
         NgIf,
-        AsyncPipe,
         NgForOf,
         MatDatepickerModule,
         MatTabsModule,

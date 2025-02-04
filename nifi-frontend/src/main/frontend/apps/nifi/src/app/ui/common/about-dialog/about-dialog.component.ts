@@ -21,8 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
-import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -38,8 +37,6 @@ import { selectAbout } from '../../../state/about/about.selectors';
         MatDialogModule,
         MatTableModule,
         MatSortModule,
-        NifiTooltipDirective,
-        NifiSpinnerDirective,
         AsyncPipe,
         ReactiveFormsModule,
         MatFormFieldModule,

@@ -28,7 +28,6 @@ import { Observable } from 'rxjs';
 import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { CopyDirective, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '@nifi/shared';
@@ -48,7 +47,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         AsyncPipe,
         NifiSpinnerDirective,
         FormsModule,
-        ErrorBanner,
         NifiTooltipDirective,
         ContextErrorBanner,
         CopyDirective

@@ -18,11 +18,10 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NiFiCommon, ParameterContextReferenceEntity } from '@nifi/shared';
-import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'parameter-provider-references',
-    imports: [CommonModule, RouterLink],
+    imports: [CommonModule],
     templateUrl: './parameter-providers-references.component.html',
     styleUrls: ['./parameter-providers-references.component.scss']
 })
@@ -30,8 +29,6 @@ export class ParameterProviderReferences {
     @Input() parameterProviderReferences!: ParameterContextReferenceEntity[];
     @Output() goToParameterContext: EventEmitter<ParameterContextReferenceEntity> =
         new EventEmitter<ParameterContextReferenceEntity>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     getUnauthorized(references: ParameterContextReferenceEntity[]) {
         return references.filter((p) => !p.permissions.canRead);

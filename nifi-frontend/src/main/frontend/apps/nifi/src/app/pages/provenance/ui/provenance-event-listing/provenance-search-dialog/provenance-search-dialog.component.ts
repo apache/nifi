@@ -21,7 +21,6 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe } from '@angular/common';
 import {
     ProvenanceRequest,
     ProvenanceSearchDialogRequest,
@@ -42,7 +41,6 @@ import { CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        AsyncPipe,
         MatDatepickerModule,
         MatOption,
         MatSelect,
