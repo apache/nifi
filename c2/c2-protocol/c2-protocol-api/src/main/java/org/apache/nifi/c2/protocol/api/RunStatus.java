@@ -17,29 +17,7 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import java.util.Arrays;
-import java.util.Optional;
-
-public enum OperandType {
-
-    CONFIGURATION,
-    CONNECTION,
-    DEBUG,
-    MANIFEST,
-    REPOSITORY,
-    PROPERTIES,
-    ASSET,
-    RESOURCE,
-    FLOW;
-
-    public static Optional<OperandType> fromString(String value) {
-        return Arrays.stream(values())
-            .filter(operandType -> operandType.name().equalsIgnoreCase(value))
-            .findAny();
-    }
-
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase();
-    }
+public enum RunStatus {
+    RUNNING,
+    STOPPED,
 }

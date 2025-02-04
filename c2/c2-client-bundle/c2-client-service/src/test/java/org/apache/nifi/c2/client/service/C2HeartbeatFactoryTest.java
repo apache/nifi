@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.c2.client.service;
 
+import static org.apache.nifi.c2.protocol.api.RunStatus.RUNNING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -124,13 +125,14 @@ public class C2HeartbeatFactoryTest {
         List<ProcessorBulletin> processorBulletins = new ArrayList<>();
         List<ProcessorStatus> processorStatus = new ArrayList<>();
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus, RUNNING));
 
         assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
         assertEquals(manifest, heartbeat.getAgentInfo().getAgentManifest());
         assertEquals(queueStatus, heartbeat.getFlowInfo().getQueues());
         assertEquals(processorBulletins, heartbeat.getFlowInfo().getProcessorBulletins());
         assertEquals(processorStatus, heartbeat.getFlowInfo().getProcessorStatuses());
+        assertEquals(RUNNING, heartbeat.getFlowInfo().getRunStatus());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
     }
 
@@ -145,13 +147,14 @@ public class C2HeartbeatFactoryTest {
         List<ProcessorBulletin> processorBulletins = new ArrayList<>();
         List<ProcessorStatus> processorStatus = new ArrayList<>();
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus, RUNNING));
 
         assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
         assertNull(heartbeat.getAgentInfo().getAgentManifest());
         assertEquals(queueStatus, heartbeat.getFlowInfo().getQueues());
         assertEquals(processorBulletins, heartbeat.getFlowInfo().getProcessorBulletins());
         assertEquals(processorStatus, heartbeat.getFlowInfo().getProcessorStatuses());
+        assertEquals(RUNNING, heartbeat.getFlowInfo().getRunStatus());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
     }
 
@@ -168,10 +171,11 @@ public class C2HeartbeatFactoryTest {
         when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), Collections.emptySet())).thenReturn(MANIFEST_HASH);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>()));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>(), RUNNING));
 
         assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
+        assertEquals(RUNNING, heartbeat.getFlowInfo().getRunStatus());
     }
 
     @Test
@@ -184,10 +188,11 @@ public class C2HeartbeatFactoryTest {
         when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), supportedOperations)).thenReturn(MANIFEST_HASH);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>()));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>(), RUNNING));
 
         assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
+        assertEquals(RUNNING, heartbeat.getFlowInfo().getRunStatus());
     }
 
     private RuntimeManifest createManifest() {

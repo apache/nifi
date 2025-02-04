@@ -15,31 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api;
+package org.apache.nifi.c2.client.service.operation;
 
-import java.util.Arrays;
-import java.util.Optional;
+import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 
-public enum OperandType {
+public interface FlowStateStrategy {
 
-    CONFIGURATION,
-    CONNECTION,
-    DEBUG,
-    MANIFEST,
-    REPOSITORY,
-    PROPERTIES,
-    ASSET,
-    RESOURCE,
-    FLOW;
+    OperationState start();
 
-    public static Optional<OperandType> fromString(String value) {
-        return Arrays.stream(values())
-            .filter(operandType -> operandType.name().equalsIgnoreCase(value))
-            .findAny();
-    }
-
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase();
-    }
+    OperationState stop();
 }

@@ -32,6 +32,7 @@ public class FlowInfo implements Serializable {
     private Map<String, FlowQueueStatus> queues;
     private List<ProcessorBulletin> processorBulletins;
     private List<ProcessorStatus> processorStatuses;
+    private RunStatus runStatus;
 
     @Schema(description = "A unique identifier of the flow currently deployed on the agent")
     public String getFlowId() {
@@ -85,5 +86,14 @@ public class FlowInfo implements Serializable {
 
     public void setProcessorStatuses(List<ProcessorStatus> processorStatuses) {
         this.processorStatuses = processorStatuses;
+    }
+
+    @Schema(description = "Run status of the flow")
+    public RunStatus getRunStatus() {
+        return runStatus;
+    }
+
+    public void setRunStatus(RunStatus runStatus) {
+        this.runStatus = runStatus;
     }
 }
