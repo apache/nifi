@@ -24,6 +24,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.Test;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.security.saml2.core.Saml2X509Credential;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -67,9 +68,9 @@ class StandardRelyingPartyRegistrationRepositoryTest {
         assertNull(registration.getSingleLogoutServiceLocation());
         assertNull(registration.getSingleLogoutServiceResponseLocation());
 
-        final RelyingPartyRegistration.AssertingPartyDetails assertingPartyDetails = registration.getAssertingPartyDetails();
-        assertFalse(assertingPartyDetails.getWantAuthnRequestsSigned());
-        assertTrue(assertingPartyDetails.getSigningAlgorithms().contains(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256));
+        final AssertingPartyMetadata assertingPartyMetadata = registration.getAssertingPartyMetadata();
+        assertFalse(assertingPartyMetadata.getWantAuthnRequestsSigned());
+        assertTrue(assertingPartyMetadata.getSigningAlgorithms().contains(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256));
 
         final Collection<Saml2X509Credential> signingCredentials = registration.getSigningX509Credentials();
         assertTrue(signingCredentials.isEmpty());
@@ -96,12 +97,12 @@ class StandardRelyingPartyRegistrationRepositoryTest {
         assertEquals(StandardRelyingPartyRegistrationRepository.SINGLE_LOGOUT_RESPONSE_SERVICE_LOCATION, registration.getSingleLogoutServiceLocation());
         assertEquals(StandardRelyingPartyRegistrationRepository.SINGLE_LOGOUT_RESPONSE_SERVICE_LOCATION, registration.getSingleLogoutServiceResponseLocation());
 
-        final RelyingPartyRegistration.AssertingPartyDetails assertingPartyDetails = registration.getAssertingPartyDetails();
-        assertFalse(assertingPartyDetails.getWantAuthnRequestsSigned());
-        assertTrue(assertingPartyDetails.getSigningAlgorithms().contains(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512));
+        final AssertingPartyMetadata assertingPartyMetadata = registration.getAssertingPartyMetadata();
+        assertFalse(assertingPartyMetadata.getWantAuthnRequestsSigned());
+        assertTrue(assertingPartyMetadata.getSigningAlgorithms().contains(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512));
 
         assertSigningCredentialsFound(registration);
-        assertEncryptionCredentialsFound(assertingPartyDetails);
+        assertEncryptionCredentialsFound(assertingPartyMetadata);
     }
 
     private void assertSigningCredentialsFound(final RelyingPartyRegistration registration) {
@@ -113,8 +114,8 @@ class StandardRelyingPartyRegistrationRepositoryTest {
         assertEquals(CERTIFICATE_PRINCIPAL, certificate.getIssuerX500Principal());
     }
 
-    private void assertEncryptionCredentialsFound(final RelyingPartyRegistration.AssertingPartyDetails assertingPartyDetails) {
-        final Collection<Saml2X509Credential> encryptionCredentials = assertingPartyDetails.getEncryptionX509Credentials();
+    private void assertEncryptionCredentialsFound(final AssertingPartyMetadata assertingPartyMetadata) {
+        final Collection<Saml2X509Credential> encryptionCredentials = assertingPartyMetadata.getEncryptionX509Credentials();
         assertFalse(encryptionCredentials.isEmpty());
         final Optional<Saml2X509Credential> certificateCredential = encryptionCredentials.stream().filter(
                 credential -> CERTIFICATE_PRINCIPAL.equals(credential.getCertificate().getSubjectX500Principal())

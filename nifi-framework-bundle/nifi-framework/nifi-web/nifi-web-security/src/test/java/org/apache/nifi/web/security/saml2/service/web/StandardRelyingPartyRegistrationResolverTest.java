@@ -114,9 +114,9 @@ class StandardRelyingPartyRegistrationResolverTest {
         return RelyingPartyRegistration.withRegistrationId(REGISTRATION_ID)
                 .entityId(REGISTRATION_ID)
                 .assertionConsumerServiceLocation(SERVICE_LOCATION)
-                .assertingPartyDetails(assertingPartyDetails -> {
-                    assertingPartyDetails.entityId(REGISTRATION_ID);
-                    assertingPartyDetails.singleSignOnServiceLocation(SERVICE_LOCATION);
+                .assertingPartyMetadata(assertingPartyMetadata -> {
+                    assertingPartyMetadata.entityId(REGISTRATION_ID);
+                    assertingPartyMetadata.singleSignOnServiceLocation(SERVICE_LOCATION);
                 });
     }
 
