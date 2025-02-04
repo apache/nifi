@@ -27,7 +27,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -52,15 +51,11 @@ class FlowEncryptorCommand implements Runnable {
 
     protected static final String CONFIGURATION_FILE = "nifi.flow.configuration.file";
 
-    private static final List<String> CONFIGURATION_FILES = Arrays.asList(CONFIGURATION_FILE);
-
     private static final String FLOW_PREFIX = "nifi.flow.";
 
     private static final String GZ_EXTENSION = ".gz";
 
     private static final String DEFAULT_PROPERTIES_ALGORITHM = PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256.name();
-
-    private static final String DEFAULT_PROPERTIES_KEY = "nififtw!";
 
     private static final String SENSITIVE_PROPERTIES_KEY = String.format("%s=", PROPS_KEY);
 
@@ -103,18 +98,30 @@ class FlowEncryptorCommand implements Runnable {
 
     private void processFlowConfigurationFiles(final Properties properties) {
         final String outputAlgorithm = requestedPropertiesAlgorithm == null ? getAlgorithm(properties) : requestedPropertiesAlgorithm;
-        final String outputKey = requestedPropertiesKey == null ? getKey(properties) : requestedPropertiesKey;
+        final String outputKey;
+
+        if (requestedPropertiesKey == null) {
+            final String inputKey = properties.getProperty(PROPS_KEY);
+            if (inputKey == null || inputKey.isBlank()) {
+                throw new IllegalStateException("Sensitive Properties Key [%s] not specified".formatted(PROPS_KEY));
+            } else {
+                outputKey = inputKey;
+            }
+        } else {
+            outputKey = requestedPropertiesKey;
+        }
+
         final PropertyEncryptor outputEncryptor = getPropertyEncryptor(outputKey, outputAlgorithm);
 
-        for (final String configurationFilePropertyName : CONFIGURATION_FILES) {
-            final String configurationFileProperty = properties.getProperty(configurationFilePropertyName);
-            if (configurationFileProperty == null || configurationFileProperty.isEmpty()) {
-                System.out.printf("Flow Configuration Property not specified [%s]%n", configurationFileProperty);
+        final String configurationFileProperty = properties.getProperty(CONFIGURATION_FILE);
+        if (configurationFileProperty == null || configurationFileProperty.isEmpty()) {
+            throw new IllegalStateException("Flow Configuration Property not specified [%s]".formatted(configurationFileProperty));
+        } else {
+            final File configurationFile = new File(configurationFileProperty);
+            if (configurationFile.exists()) {
+                processFlowConfiguration(configurationFile, properties, outputEncryptor);
             } else {
-                final File configurationFile = new File(configurationFileProperty);
-                if (configurationFile.exists()) {
-                    processFlowConfiguration(configurationFile, properties, outputEncryptor);
-                }
+                throw new IllegalStateException("Flow Configuration File not found [%s]".formatted(configurationFileProperty));
             }
         }
     }
@@ -125,7 +132,7 @@ class FlowEncryptorCommand implements Runnable {
             final Path flowOutputPath = flowOutputFile.toPath();
             try (final OutputStream flowOutputStream = new GZIPOutputStream(new FileOutputStream(flowOutputFile))) {
                 final String inputAlgorithm = getAlgorithm(properties);
-                final String inputPropertiesKey = getKey(properties);
+                final String inputPropertiesKey = getInputPropertiesKey(properties);
                 final PropertyEncryptor inputEncryptor = getPropertyEncryptor(inputPropertiesKey, inputAlgorithm);
 
                 final FlowEncryptor flowEncryptor = new JsonFlowEncryptor();
@@ -136,23 +143,22 @@ class FlowEncryptorCommand implements Runnable {
             Files.move(flowOutputPath, flowConfigurationPath, StandardCopyOption.REPLACE_EXISTING);
             System.out.printf("Flow Configuration Processed [%s]%n", flowConfigurationPath);
         } catch (final IOException | RuntimeException e) {
-            System.err.printf("Failed to process Flow Configuration [%s]%n", flowConfigurationFile);
-            e.printStackTrace();
+            throw new IllegalStateException("Failed to process Flow Configuration [%s]".formatted(flowConfigurationFile), e);
         }
     }
 
     private String getAlgorithm(final Properties properties) {
         String algorithm = properties.getProperty(PROPS_ALGORITHM, DEFAULT_PROPERTIES_ALGORITHM);
-        if (algorithm.length() == 0) {
+        if (algorithm.isEmpty()) {
             algorithm = DEFAULT_PROPERTIES_ALGORITHM;
         }
         return algorithm;
     }
 
-    private String getKey(final Properties properties) {
-        String key = properties.getProperty(PROPS_KEY, DEFAULT_PROPERTIES_KEY);
-        if (key.length() == 0) {
-            key = DEFAULT_PROPERTIES_KEY;
+    private String getInputPropertiesKey(final Properties properties) {
+        final String key = properties.getProperty(PROPS_KEY);
+        if (key == null || key.isBlank()) {
+            throw new IllegalStateException("Sensitive Properties Key [%s] not found".formatted(PROPS_KEY));
         }
         return key;
     }

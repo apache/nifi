@@ -18,6 +18,7 @@ package org.apache.nifi.flow.encryptor.command;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,6 +55,10 @@ public class FlowEncryptorCommandTest {
 
     private static final String REQUESTED_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256";
 
+    private static final String BACKSLASH_PATTERN = "\\\\";
+
+    private static final String ESCAPED_BACKSLASH = "\\\\\\\\";
+
     @AfterEach
     public void clearProperties() {
         System.clearProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH);
@@ -66,22 +71,20 @@ public class FlowEncryptorCommandTest {
     }
 
     @Test
-    public void testRunPropertiesKeyBlankProperties() throws IOException, URISyntaxException {
-        final Path propertiesPath = getBlankNiFiProperties();
+    public void testRunPropertiesKeyBlankProperties(@TempDir final Path tempDir) throws IOException, URISyntaxException {
+        final Path propertiesPath = getBlankNiFiProperties(tempDir);
         System.setProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
         final FlowEncryptorCommand command = new FlowEncryptorCommand();
 
         final String propertiesKey = UUID.randomUUID().toString();
         command.setRequestedPropertiesKey(propertiesKey);
-        command.run();
-
-        assertPropertiesKeyUpdated(propertiesPath, propertiesKey);
+        assertThrows(IllegalStateException.class, command::run);
     }
 
     @Test
-    public void testRunPropertiesAlgorithmWithPropertiesKeyPopulatedProperties() throws IOException, URISyntaxException {
-        final Path propertiesPath = getPopulatedNiFiProperties();
+    public void testRunPropertiesAlgorithmWithPropertiesKeyPopulatedProperties(@TempDir final Path tempDir) throws IOException, URISyntaxException {
+        final Path propertiesPath = getPopulatedNiFiProperties(tempDir);
         System.setProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
         final FlowEncryptorCommand command = new FlowEncryptorCommand();
@@ -118,34 +121,40 @@ public class FlowEncryptorCommandTest {
         assertEquals(expectedProperty, keyProperty.get(), "Sensitive Key Property not updated");
     }
 
-    protected static Path getBlankNiFiProperties() throws IOException, URISyntaxException {
-        final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
-        return getNiFiProperties(flowConfigurationJson, BLANK_PROPERTIES);
+    protected static Path getBlankNiFiProperties(final Path tempDir) throws IOException, URISyntaxException {
+        final Path flowConfigurationJson = getFlowConfiguration();
+        return getNiFiProperties(flowConfigurationJson, BLANK_PROPERTIES, tempDir);
     }
 
-    protected static Path getPopulatedNiFiProperties() throws IOException, URISyntaxException {
-        final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
-        return getNiFiProperties(flowConfigurationJson, POPULATED_PROPERTIES);
+    protected static Path getPopulatedNiFiProperties(final Path tempDir) throws IOException, URISyntaxException {
+        final Path flowConfigurationJson = getFlowConfiguration();
+        return getNiFiProperties(flowConfigurationJson, POPULATED_PROPERTIES, tempDir);
     }
 
     private static Path getNiFiProperties(
             final Path flowConfigurationJsonPath,
-            String propertiesResource
+            final String propertiesResource,
+            final Path tempDir
     ) throws IOException, URISyntaxException {
         final Path sourcePropertiesPath = Paths.get(getResourceUrl(propertiesResource).toURI());
         final List<String> sourceProperties = Files.readAllLines(sourcePropertiesPath);
         final List<String> flowProperties = sourceProperties.stream().map(line -> {
             if (line.startsWith(FlowEncryptorCommand.CONFIGURATION_FILE)) {
-                return flowConfigurationJsonPath == null ? line : line + flowConfigurationJsonPath;
+                return flowConfigurationJsonPath == null ? line : line + getPropertyFormattedPath(flowConfigurationJsonPath);
             } else {
                 return line;
             }
         }).collect(Collectors.toList());
 
-        final Path propertiesPath = Files.createTempFile(TEMP_FILE_PREFIX, PROPERTIES_EXTENSION);
-        propertiesPath.toFile().deleteOnExit();
+        final Path propertiesPath = Files.createTempFile(tempDir, TEMP_FILE_PREFIX, PROPERTIES_EXTENSION);
         Files.write(propertiesPath, flowProperties);
         return propertiesPath;
+    }
+
+    private static String getPropertyFormattedPath(final Path path) {
+        final String formattedPath = path.toString();
+        // Escape backslash characters for path property value on Windows
+        return formattedPath.replaceAll(BACKSLASH_PATTERN, ESCAPED_BACKSLASH);
     }
 
     private static URL getResourceUrl(String resource) throws FileNotFoundException {
@@ -156,13 +165,13 @@ public class FlowEncryptorCommandTest {
         return resourceUrl;
     }
 
-    private static Path getFlowConfiguration(final String contents, final String extension) throws IOException {
-        final Path flowConfigurationPath = Files.createTempFile(TEMP_FILE_PREFIX, extension);
+    private static Path getFlowConfiguration() throws IOException {
+        final Path flowConfigurationPath = Files.createTempFile(TEMP_FILE_PREFIX, JSON_GZ);
         final File flowConfigurationFile = flowConfigurationPath.toFile();
         flowConfigurationFile.deleteOnExit();
 
         try (final GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(flowConfigurationFile))) {
-            outputStream.write(contents.getBytes(StandardCharsets.UTF_8));
+            outputStream.write(FLOW_CONTENTS_JSON.getBytes(StandardCharsets.UTF_8));
         }
         return flowConfigurationPath;
     }
