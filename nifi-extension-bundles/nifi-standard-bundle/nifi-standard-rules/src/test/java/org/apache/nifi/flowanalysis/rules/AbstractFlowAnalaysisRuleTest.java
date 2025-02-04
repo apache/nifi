@@ -85,6 +85,7 @@ public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalys
 
     protected void testAnalyzeProcessGroup(String flowDefinition, List<String> expected) throws Exception {
         final Collection<GroupAnalysisResult> actual = rule.analyzeProcessGroup(getProcessGroup(flowDefinition), flowAnalysisRuleContext);
-        assertIterableEquals(expected, actual.stream().map(r -> r.getComponent().get().getInstanceIdentifier()).sorted().toList());
+        assertIterableEquals(expected.stream().sorted().toList(),
+                actual.stream().map(r -> r.getComponent().get().getInstanceIdentifier()).sorted().toList());
     }
 }

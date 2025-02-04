@@ -27,7 +27,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
     

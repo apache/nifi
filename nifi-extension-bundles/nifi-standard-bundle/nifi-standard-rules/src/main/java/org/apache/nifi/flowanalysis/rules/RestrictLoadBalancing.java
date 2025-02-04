@@ -137,8 +137,8 @@ public class RestrictLoadBalancing extends AbstractFlowAnalysisRule {
         // In addition, this is only relevant if a load balance strategy is allowed, i.e. if the only allowed strategy is "Do not load balance",
         // then any combination of compression is allowed because it will be ignored.
         if (isLoadBalancingAllowed(validationContext)
-                && validationContext.getProperty(ALLOW_CONTENT_COMPRESSION).isSet() && validationContext.getProperty(ALLOW_CONTENT_COMPRESSION).asBoolean()
-                && validationContext.getProperty(ALLOW_ATTRIBUTE_COMPRESSION).isSet() && !validationContext.getProperty(ALLOW_ATTRIBUTE_COMPRESSION).asBoolean()) {
+                && validationContext.getProperty(ALLOW_CONTENT_COMPRESSION).asBoolean()
+                && !validationContext.getProperty(ALLOW_ATTRIBUTE_COMPRESSION).asBoolean()) {
             results.add(new ValidationResult.Builder()
                     .subject(ALLOW_ATTRIBUTE_COMPRESSION.getName())
                     .valid(false)
