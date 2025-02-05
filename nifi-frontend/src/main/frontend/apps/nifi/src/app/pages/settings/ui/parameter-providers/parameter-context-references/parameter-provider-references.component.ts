@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NiFiCommon, ParameterContextReferenceEntity } from '@nifi/shared';
+import { ParameterContextReferenceEntity } from '@nifi/shared';
 
 @Component({
     selector: 'parameter-provider-references',
