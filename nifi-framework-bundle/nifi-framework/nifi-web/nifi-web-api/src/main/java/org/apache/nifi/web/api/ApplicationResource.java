@@ -172,7 +172,7 @@ public abstract class ApplicationResource {
      * @return the full external UI
      */
     protected String generateExternalUiUri(final String... pathSegments) {
-        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, properties.getAllowedContextPathsAsList());
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
 
         final String path = String.join("/", pathSegments);
         builder.path(path);
@@ -186,7 +186,7 @@ public abstract class ApplicationResource {
     }
 
     private URI buildResourceUri(final URI uri) {
-        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, properties.getAllowedContextPathsAsList());
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
         builder.path(uri.getPath());
         return builder.build();
     }
