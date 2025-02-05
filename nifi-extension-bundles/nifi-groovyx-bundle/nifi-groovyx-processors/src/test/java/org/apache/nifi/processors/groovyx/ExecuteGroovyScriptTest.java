@@ -20,6 +20,7 @@ import groovy.json.JsonOutput;
 import groovy.json.JsonSlurper;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPConnectionPoolLookup;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -56,6 +57,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -68,6 +70,7 @@ public class ExecuteGroovyScriptTest {
 
     protected TestRunner runner;
     protected static DBCPService dbcp = null;  //to make single initialization
+    protected static MockDBCPConnectionPoolLookup dbcpServiceLookup = new MockDBCPConnectionPoolLookup();
     protected MockRecordParser recordParser = null;
     protected RecordSetWriterFactory recordWriter = null;
     protected ExecuteGroovyScript proc;
@@ -131,6 +134,10 @@ public class ExecuteGroovyScriptTest {
         runner = TestRunners.newTestRunner(proc);
         runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
+
+        runner.addControllerService("dbcpLookup", dbcpServiceLookup, new HashMap<>());
+        runner.setProperty(dbcpServiceLookup, "testDB", "dbcp");
+        runner.enableControllerService(dbcpServiceLookup);
 
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
@@ -543,6 +550,18 @@ public class ExecuteGroovyScriptTest {
         assertEquals("onUnscheduled invoked successfully\n", outContent.toString());
     }
 
+    @Test
+    public void test_attribute_passed_to_SQL() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_attributes_passed_to_SQL.groovy");
+        runner.setProperty("database.name", "testDB");
+        runner.setProperty("SQL.mydb", "dbcpLookup");
+
+        runner.assertValid();
+
+        runner.run();
+        assertEquals("testDB", dbcpServiceLookup.getDatabaseName());
+    }
+
 
     private HashMap<String, String> map(String key, String value) {
         HashMap<String, String> attrs = new HashMap<>();
@@ -565,6 +584,30 @@ public class ExecuteGroovyScriptTest {
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+    }
+
+    private static class MockDBCPConnectionPoolLookup extends DBCPConnectionPoolLookup {
+        private String dbName;
+
+        @Override
+        public String getIdentifier() {
+            return "dbcpLookup";
+        }
+
+        @Override
+        public Connection getConnection(Map<String, String> attributes) throws ProcessException {
+            dbName = attributes.get(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE);
+            try {
+                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+            } catch (final Exception e) {
+                throw new ProcessException("getConnection failed: " + e);
+            }
+        }
+
+        public String getDatabaseName() {
+            return dbName;
         }
     }
 }
