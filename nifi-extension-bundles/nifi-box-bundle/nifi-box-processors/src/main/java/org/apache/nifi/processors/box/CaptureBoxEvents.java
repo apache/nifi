@@ -21,7 +21,6 @@ import com.box.sdk.BoxEvent;
 import com.box.sdk.EventListener;
 import com.box.sdk.EventStream;
 import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -52,6 +51,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,17 +61,21 @@ import java.util.concurrent.LinkedBlockingQueue;
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"box", "storage"})
-@CapabilityDescription("Captures all events from Box. This processor can be used to capture events such as uploads, modifications, deletions, etc. The content "
-        + "of the events is sent to the 'success' relationship as a JSON array.")
+@CapabilityDescription("""
+        Captures all events from Box. This processor can be used to capture events such as uploads, modifications, deletions, etc.
+        The content of the events is sent to the 'success' relationship as a JSON array.
+        """)
 @SeeAlso({ FetchBoxFile.class, PutBoxFile.class, ListBoxFile.class })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class CaptureBoxEvents extends AbstractProcessor implements VerifiableProcessor {
 
     public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
-            .name("Max Size of Message Queue")
-            .description("The maximum size of the internal queue used to buffer events being transferred from the underlying stream to the processor. " +
-                    "Setting this value higher allows more messages to be buffered in memory during surges of incoming messages, but increases the total " +
-                    "memory used by the processor during these surges.")
+            .name("Queue Capacity")
+            .description("""
+                    The maximum size of the internal queue used to buffer events being transferred from the underlying stream to the processor.
+                    Setting this value higher allows more messages to be buffered in memory during surges of incoming messages, but increases the total
+                    memory used by the processor during these surges.
+                    """)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10000")
             .required(true)
@@ -118,7 +122,7 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
             @Override
             public void onEvent(BoxEvent event) {
                 if (!events.offer(event)) {
-                    getLogger().warn("Failed to add event to queue. Queue is full.");
+                    getLogger().warn("Failed to add event (ID = {}) to queue. Queue is full.", event.getID());
                 }
             }
 
@@ -159,7 +163,7 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
                     .explanation("Successfully validated Box connection")
                     .build());
         } catch (Exception e) {
-            getLogger().warn("Failed to verify configuration.", e);
+            getLogger().warn("Failed to verify configuration", e);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Box API Connection")
                     .outcome(Outcome.FAILED)
@@ -178,30 +182,32 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
         }
 
         final FlowFile flowFile = session.create();
-        final List<BoxEvent> eventList = new ArrayList<>();
-        final int nbEvents = events.drainTo(eventList);
+        final List<BoxEvent> boxEvents = new ArrayList<>();
+        final int recordCount = events.drainTo(boxEvents);
 
-        try {
-            // converting events to JSON using the library coming with Box SDK
-            final JsonArray jsonEvents = Json.array();
-            for (BoxEvent event : eventList) {
-                jsonEvents.add(toRecord(event));
+        try (final OutputStream out = session.write(flowFile)) {
+            final Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+            writer.write("[");
+            final Iterator<BoxEvent> iterator = boxEvents.iterator();
+            while (iterator.hasNext()) {
+                BoxEvent event = iterator.next();
+                JsonObject jsonEvent = toRecord(event);
+                jsonEvent.writeTo(writer);
+                if (iterator.hasNext()) {
+                    writer.write(",");
+                }
             }
-
-            try (final OutputStream out = session.write(flowFile)) {
-                final Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
-                jsonEvents.writeTo(writer);
-                writer.flush();
-            }
+            writer.write("]");
+            writer.flush();
         } catch (Exception e) {
-            getLogger().error("Failed to write events to FlowFile due to {}; will re-queue events and try again", e.getMessage(), e);
-            eventList.forEach(events::offer);
+            getLogger().error("Failed to write events to FlowFile; will re-queue events and try again", e);
+            boxEvents.forEach(events::offer);
             session.remove(flowFile);
             context.yield();
             return;
         }
 
-        session.putAttribute(flowFile, "record.count", String.valueOf(nbEvents));
+        session.putAttribute(flowFile, "record.count", String.valueOf(recordCount));
         session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(flowFile, REL_SUCCESS);
     }
