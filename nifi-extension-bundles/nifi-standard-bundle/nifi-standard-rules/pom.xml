@@ -22,13 +22,6 @@
 
     <artifactId>nifi-standard-rules</artifactId>
     <packaging>jar</packaging>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-api</artifactId>
-        </dependency>
-    </dependencies>
     
     <build>
         <plugins>

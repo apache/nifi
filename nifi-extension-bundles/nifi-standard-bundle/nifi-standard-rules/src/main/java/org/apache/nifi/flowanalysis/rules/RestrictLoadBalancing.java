@@ -22,8 +22,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.queue.LoadBalanceCompression;
-import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.AbstractFlowAnalysisRule;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
@@ -47,6 +45,16 @@ public class RestrictLoadBalancing extends AbstractFlowAnalysisRule {
     static final AllowableValue ALLOWABLE_ALLOWED = new AllowableValue(ALLOWED, ALLOWED);
     static final AllowableValue ALLOWABLE_DISALLOWED = new AllowableValue(DISALLOWED, DISALLOWED);
     static final String CONFIGURE_STRATEGY_ERROR_MESSAGE = "is set to " + ALLOWED + " so at least one load balancing strategy property must be set to " + ALLOWED;
+
+    // The following constants are derived from LoadBalanceStrategy and LoadBalanceCompression enums in the nifi-framework-api.
+    // If values in the API change, the corresponding values here must also be updated.
+    // The API is not referenced directly to avoid a dependency on the framework API.
+    private static final String PARTITION_BY_ATTRIBUTE = "PARTITION_BY_ATTRIBUTE";
+    private static final String ROUND_ROBIN = "ROUND_ROBIN";
+    private static final String SINGLE_NODE = "SINGLE_NODE";
+    private static final String COMPRESS_ATTRIBUTES_ONLY = "COMPRESS_ATTRIBUTES_ONLY";
+    private static final String COMPRESS_ATTRIBUTES_AND_CONTENT = "COMPRESS_ATTRIBUTES_AND_CONTENT";
+
 
     public static final PropertyDescriptor LOAD_BALANCING_POLICY = new PropertyDescriptor.Builder()
             .name("Load Balancing Policy")
@@ -152,21 +160,21 @@ public class RestrictLoadBalancing extends AbstractFlowAnalysisRule {
                         connection.getLoadBalanceStrategy(),
                         context.getProperty(LOAD_BALANCING_POLICY).getValue()));
             }
-            if (LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE.name().equals(strategy) && !allowPartition) {
+            if (PARTITION_BY_ATTRIBUTE.equals(strategy) && !allowPartition) {
                 violations.add(new ConnectionViolation(connection,
                         LoadBalanceViolationType.PARTITION_DISALLOWED,
                         this.getClass().getSimpleName(),
                         connection.getLoadBalanceStrategy(),
                         context.getProperty(ALLOW_PARTITION).getValue()));
             }
-            if (LoadBalanceStrategy.ROUND_ROBIN.name().equals(strategy) && !allowRoundRobin) {
+            if (ROUND_ROBIN.equals(strategy) && !allowRoundRobin) {
                     violations.add(new ConnectionViolation(connection,
                             LoadBalanceViolationType.ROUND_ROBIN_DISALLOWED,
                             this.getClass().getSimpleName(),
                             connection.getLoadBalanceStrategy(),
                             context.getProperty(ALLOW_ROUND_ROBIN).getValue()));
             }
-            if (LoadBalanceStrategy.SINGLE_NODE.name().equals(strategy) && !allowSingleNode) {
+            if (SINGLE_NODE.equals(strategy) && !allowSingleNode) {
                 violations.add(new ConnectionViolation(connection,
                         LoadBalanceViolationType.SINGLE_NODE_DISALLOWED,
                         this.getClass().getSimpleName(),
@@ -177,14 +185,14 @@ public class RestrictLoadBalancing extends AbstractFlowAnalysisRule {
             // Evaluate compression only if one of the load balance strategies is specified
             if (isLoadBalancingEnabled(strategy)) {
                 String compression = connection.getLoadBalanceCompression();
-                if (LoadBalanceCompression.COMPRESS_ATTRIBUTES_ONLY.name().equals(compression) && !allowAttributesCompression) {
+                if (COMPRESS_ATTRIBUTES_ONLY.equals(compression) && !allowAttributesCompression) {
                     violations.add(new ConnectionViolation(connection,
                             LoadBalanceViolationType.ATTRIBUTE_COMPRESSION_DISALLOWED,
                             this.getClass().getSimpleName(),
                             connection.getLoadBalanceCompression(),
                             context.getProperty(ALLOW_ATTRIBUTE_COMPRESSION).getValue()));
                 }
-                if (LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT.name().equals(compression) && !allowAttributesAndContentCompression) {
+                if (COMPRESS_ATTRIBUTES_AND_CONTENT.equals(compression) && !allowAttributesAndContentCompression) {
                     violations.add(new ConnectionViolation(connection,
                             LoadBalanceViolationType.CONTENT_COMPRESSION_DISALLOWED,
                             this.getClass().getSimpleName(),
@@ -204,9 +212,9 @@ public class RestrictLoadBalancing extends AbstractFlowAnalysisRule {
     }
 
     private boolean isLoadBalancingEnabled(String strategy) {
-        return LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE.name().equals(strategy)
-                || LoadBalanceStrategy.ROUND_ROBIN.name().equals(strategy)
-                || LoadBalanceStrategy.SINGLE_NODE.name().equals(strategy);
+        return PARTITION_BY_ATTRIBUTE.equals(strategy)
+                || ROUND_ROBIN.equals(strategy)
+                || SINGLE_NODE.equals(strategy);
     }
 
     private enum LoadBalanceViolationType implements ViolationType {
