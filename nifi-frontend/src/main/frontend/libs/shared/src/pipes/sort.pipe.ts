@@ -20,8 +20,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 type Direction = 'asc' | 'desc';
 
 @Pipe({
-    name: 'sort',
-    standalone: false
+    name: 'sort'
 })
 export class SortPipe implements PipeTransform {
     transform(array: string[], direction: Direction = 'asc'): string[] {

@@ -16,9 +16,9 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { ComponentType, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
 import { Observable } from 'rxjs';
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { NiFiState } from '../../../../../state';
 import { Store } from '@ngrx/store';
 import { selectExtensionFromTypes } from '../../../../../state/extension-types/extension-types.selectors';
@@ -30,7 +30,7 @@ import { DocumentedType } from '../../../../../state/shared';
 @Component({
     selector: 'see-also',
     templateUrl: './see-also.component.html',
-    imports: [RouterLink, NifiTooltipDirective, AsyncPipe, NgTemplateOutlet],
+    imports: [RouterLink, AsyncPipe],
     styleUrl: './see-also.component.scss'
 })
 export class SeeAlsoComponent {

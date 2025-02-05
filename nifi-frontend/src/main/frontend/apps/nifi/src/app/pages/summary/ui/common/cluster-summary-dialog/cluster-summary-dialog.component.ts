@@ -30,7 +30,6 @@ import {
     ComponentClusterStatusRequest,
     ComponentClusterStatusState
 } from '../../../state/component-cluster-status';
-import { MatPaginator } from '@angular/material/paginator';
 import { map, Observable } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
 import {
@@ -60,7 +59,6 @@ interface Helper {
         MatDialogActions,
         MatDialogClose,
         ComponentContext,
-        MatPaginator,
         AsyncPipe,
         ProcessorClusterTable,
         PortClusterTable,
@@ -73,7 +71,6 @@ interface Helper {
     styleUrl: './cluster-summary-dialog.component.scss'
 })
 export class ClusterSummaryDialog extends CloseOnEscapeDialog {
-    private _componentType: ComponentType = ComponentType.Processor;
     loading$: Observable<boolean> = this.store
         .select(selectComponentClusterStatusLoadingStatus)
         .pipe(map((status) => status === 'loading'));

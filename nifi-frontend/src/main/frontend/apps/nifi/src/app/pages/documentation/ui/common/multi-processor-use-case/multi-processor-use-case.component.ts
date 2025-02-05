@@ -27,12 +27,11 @@ import { selectProcessorFromType } from '../../../../../state/extension-types/ex
 import { RouterLink } from '@angular/router';
 import { MultiProcessorUseCase } from '../../../state/processor-definition';
 import { MatIconButton } from '@angular/material/button';
-import { InputRequirementComponent } from '../input-requirement/input-requirement.component';
 
 @Component({
     selector: 'multi-processor-use-case',
     templateUrl: './multi-processor-use-case.component.html',
-    imports: [MatAccordion, MatExpansionModule, MatIconButton, InputRequirementComponent, AsyncPipe, RouterLink],
+    imports: [MatAccordion, MatExpansionModule, MatIconButton, AsyncPipe, RouterLink],
     styleUrl: './multi-processor-use-case.component.scss'
 })
 export class MultiProcessorUseCaseComponent {

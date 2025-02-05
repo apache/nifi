@@ -31,9 +31,8 @@ import { LoadingService } from '../../../../../service/loading.service';
 import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
-import { AsyncPipe, NgOptimizedImage } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
-import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { Navigation } from '../../../../../ui/common/navigation/navigation.component';
 import { selectClusterSummary } from '../../../../../state/cluster-summary/cluster-summary.selectors';
@@ -42,17 +41,7 @@ import { selectFlowAnalysisState } from '../../../state/flow-analysis/flow-analy
 @Component({
     selector: 'fd-header',
     templateUrl: './header.component.html',
-    imports: [
-        NewCanvasItem,
-        MatButtonModule,
-        MatMenuModule,
-        AsyncPipe,
-        MatDividerModule,
-        RouterLink,
-        FlowStatus,
-        NgOptimizedImage,
-        Navigation
-    ],
+    imports: [NewCanvasItem, MatButtonModule, MatMenuModule, AsyncPipe, MatDividerModule, FlowStatus, Navigation],
     styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent {
