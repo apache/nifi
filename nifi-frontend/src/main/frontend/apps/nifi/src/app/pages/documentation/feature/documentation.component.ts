@@ -47,7 +47,7 @@ import {
 } from '../state/documentation/documentation.selectors';
 import { DefinitionCoordinates } from '../state';
 import { navigateToOverview } from '../state/documentation/documentation.actions';
-import {concatLatestFrom} from "@ngrx/operators";
+import { concatLatestFrom } from '@ngrx/operators';
 
 @Component({
     selector: 'documentation',
