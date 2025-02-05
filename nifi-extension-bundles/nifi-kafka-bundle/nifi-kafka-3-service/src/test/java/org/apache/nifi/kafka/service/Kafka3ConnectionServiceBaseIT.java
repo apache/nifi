@@ -92,7 +92,7 @@ public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
+    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0";  // December 2024
 
     private static final String GROUP_ID = Kafka3ConnectionService.class.getSimpleName();
 

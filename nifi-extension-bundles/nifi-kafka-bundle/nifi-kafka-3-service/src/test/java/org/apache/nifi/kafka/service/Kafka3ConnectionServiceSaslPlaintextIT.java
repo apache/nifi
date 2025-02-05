@@ -29,7 +29,7 @@ public class Kafka3ConnectionServiceSaslPlaintextIT extends Kafka3ConnectionServ
 
     protected Map<String, String> getKafkaContainerConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getKafkaContainerConfigProperties());
-        properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT");
+        properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT");
         properties.put("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN");
         properties.put("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG",
                 getJaasConfigKafkaContainer(TEST_USERNAME, TEST_PASSWORD));
