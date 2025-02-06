@@ -28,7 +28,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -44,11 +44,11 @@ public abstract class AbstractKafkaBaseIT {
 
     protected static final Duration DURATION_POLL = Duration.ofSeconds(3);
 
-    protected static final KafkaContainer kafkaContainer;
+    protected static final ConfluentKafkaContainer kafkaContainer;
 
     // NIFI-11259 - single testcontainers Kafka instance needed for all module integration tests
     static {
-        kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
         kafkaContainer.start();
     }
 

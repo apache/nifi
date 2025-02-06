@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
@@ -61,11 +61,11 @@ public class PublishKafkaAuthSaslPlaintextIT {
     private static final String USERNAME = "nifi";
     private static final String PASSWORD = UUID.randomUUID().toString();
 
-    private static KafkaContainer kafka;
+    private static ConfluentKafkaContainer kafka;
 
     @BeforeAll
     static void beforeAll() {
-        kafka = new KafkaContainer(DockerImageName.parse(AbstractKafkaBaseIT.IMAGE_NAME))
+        kafka = new ConfluentKafkaContainer(DockerImageName.parse(AbstractKafkaBaseIT.IMAGE_NAME))
                 .withEnv(getEnvironmentSaslPlaintext());
         kafka.start();
     }
