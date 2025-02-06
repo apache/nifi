@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -114,11 +115,12 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
         eventStream = new EventStream(boxAPIConnection);
 
         final int eventsCapacity = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
-        if (events == null) {
-            events = new LinkedBlockingQueue<>(eventsCapacity);
-        }
+        events = new LinkedBlockingQueue<>(eventsCapacity);
 
         eventStream.addListener(new EventListener() {
+
+            private final AtomicLong position = new AtomicLong(0);
+
             @Override
             public void onEvent(BoxEvent event) {
                 if (!events.offer(event)) {
@@ -127,13 +129,14 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
             }
 
             @Override
-            public void onNextPosition(long position) {
+            public void onNextPosition(long pos) {
+                position.set(pos);
                 getLogger().debug("Next position: {}", position);
             }
 
             @Override
             public boolean onException(Throwable e) {
-                getLogger().warn("An error has been received from the stream.", e);
+                getLogger().warn("An error has been received from the stream. Last tracked position {}", position.get(), e);
                 return true;
             }
         });
@@ -145,6 +148,7 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
     public void stopped() {
         if (eventStream != null && eventStream.isStarted()) {
             eventStream.stop();
+            events.clear();
         }
     }
 
