@@ -1453,16 +1453,11 @@ public class SiteToSiteRestApiClient implements Closeable {
             logger.debug("commitReceivingFlowFiles responseCode={}", responseCode);
 
             try (InputStream content = response.getEntity().getContent()) {
-                switch (responseCode) {
-                    case RESPONSE_CODE_OK:
-                        return readResponse(content);
-
-                    case RESPONSE_CODE_BAD_REQUEST:
-                        return readResponse(content);
-
-                    default:
-                        throw handleErrResponse(responseCode, content);
-                }
+                return switch (responseCode) {
+                    case RESPONSE_CODE_OK -> readResponse(content);
+                    case RESPONSE_CODE_BAD_REQUEST -> readResponse(content);
+                    default -> throw handleErrResponse(responseCode, content);
+                };
             }
         }
 
@@ -1483,16 +1478,11 @@ public class SiteToSiteRestApiClient implements Closeable {
             logger.debug("commitTransferFlowFiles responseCode={}", responseCode);
 
             try (InputStream content = response.getEntity().getContent()) {
-                switch (responseCode) {
-                    case RESPONSE_CODE_OK:
-                        return readResponse(content);
-
-                    case RESPONSE_CODE_BAD_REQUEST:
-                        return readResponse(content);
-
-                    default:
-                        throw handleErrResponse(responseCode, content);
-                }
+                return switch (responseCode) {
+                    case RESPONSE_CODE_OK -> readResponse(content);
+                    case RESPONSE_CODE_BAD_REQUEST -> readResponse(content);
+                    default -> throw handleErrResponse(responseCode, content);
+                };
             }
         }
 
