@@ -43,6 +43,13 @@ public interface WebClientService {
     HttpRequestUriSpec get();
 
     /**
+     * Create HTTP Request builder starting with HTTP HEAD
+     *
+     * @return HTTP Request URI Specification builder
+     */
+    HttpRequestUriSpec head();
+
+    /**
      * Create HTTP Request builder starting with HTTP PATCH
      *
      * @return HTTP Request URI Specification builder
