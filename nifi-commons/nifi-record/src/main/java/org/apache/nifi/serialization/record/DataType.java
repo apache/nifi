@@ -41,7 +41,6 @@ public class DataType {
         // intentionally blank - to be overridden by concrete DataTypes
     }
 
-    @SuppressWarnings("unused")
     public boolean isRecursive(final List<RecordSchema> schemas) {
         return false;
     }

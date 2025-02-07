@@ -17,19 +17,18 @@
 
 package org.apache.nifi.serialization;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SimpleRecordSchema implements RecordSchema {
     private List<RecordField> fields = null;
@@ -41,6 +40,7 @@ public class SimpleRecordSchema implements RecordSchema {
     private String schemaName;
     private String schemaNamespace;
     private volatile int hashCode;
+    private volatile Boolean recursive;
 
     public SimpleRecordSchema(final List<RecordField> fields) {
         this(fields, null, null, false, SchemaIdentifier.EMPTY);
@@ -99,7 +99,9 @@ public class SimpleRecordSchema implements RecordSchema {
             throw new IllegalArgumentException("Fields have already been set.");
         }
 
-        this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
+        this.recursive = null;
+        this.hashCode = 0;
+        this.fields = List.copyOf(fields);
         this.fieldMap = new HashMap<>(fields.size() * 2);
 
         for (final RecordField field : fields) {
@@ -129,14 +131,20 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public List<DataType> getDataTypes() {
-        return getFields().stream().map(RecordField::getDataType)
-            .collect(Collectors.toList());
+        final List<DataType> dataTypes = new ArrayList<>();
+        for (final RecordField field : fields) {
+            dataTypes.add(field.getDataType());
+        }
+        return dataTypes;
     }
 
     @Override
     public List<String> getFieldNames() {
-        return getFields().stream().map(RecordField::getFieldName)
-            .collect(Collectors.toList());
+        final List<String> fieldNames = new ArrayList<>();
+        for (final RecordField field : fields) {
+            fieldNames.add(field.getFieldName());
+        }
+        return fieldNames;
     }
 
     @Override
@@ -162,11 +170,10 @@ public class SimpleRecordSchema implements RecordSchema {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof RecordSchema)) {
+        if (!(obj instanceof final RecordSchema other)) {
             return false;
         }
 
-        final RecordSchema other = (RecordSchema) obj;
         final boolean thisIsRecursive = isRecursive();
         final boolean otherIsRecursive = other.isRecursive();
         if (thisIsRecursive && otherIsRecursive) {
@@ -326,6 +333,20 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public boolean isRecursive() {
-        return getFields().stream().anyMatch(field -> field.getDataType().isRecursive(Collections.singletonList(this)));
+        final Boolean recursiveFlag = this.recursive;
+        if (recursiveFlag != null) {
+            return recursiveFlag;
+        }
+
+        final List<RecordSchema> schemaList = List.of(this);
+        for (final RecordField field : fields) {
+            if (field.getDataType().isRecursive(schemaList)) {
+                recursive = true;
+                return true;
+            }
+        }
+
+        recursive = false;
+        return false;
     }
 }

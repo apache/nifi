@@ -54,8 +54,15 @@ public class ChoiceDataType extends DataType {
     public boolean isRecursive(final List<RecordSchema> schemas) {
         // allow for null possibleSubTypes during scheme inference
         if (!schemas.isEmpty() && getPossibleSubTypes() != null) {
-            return getPossibleSubTypes().stream().anyMatch(possibleSubType -> possibleSubType.isRecursive(schemas));
+            for (final DataType possibleSubType : getPossibleSubTypes()) {
+                if (possibleSubType.isRecursive(schemas)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
+
         return false;
     }
 
