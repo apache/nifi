@@ -338,7 +338,7 @@ public class SslContextConfiguration {
     }
 
     private boolean isPemStoreType(final String storeTypePropertyName) {
-        final String storeType = properties.getProperty(storeTypePropertyName);
+        final String storeType = properties.getProperty(storeTypePropertyName, EMPTY);
         return PEM_STORE_TYPE.contentEquals(storeType);
     }
 }
