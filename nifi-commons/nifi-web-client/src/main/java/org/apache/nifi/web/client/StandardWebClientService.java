@@ -184,6 +184,16 @@ public class StandardWebClientService implements WebClientService, Closeable {
     }
 
     /**
+     * Create HTTP Request builder starting with HTTP HEAD
+     *
+     * @return HTTP Request URI Specification builder
+     */
+    @Override
+    public HttpRequestUriSpec head() {
+        return method(StandardHttpRequestMethod.HEAD);
+    }
+
+    /**
      * Create HTTP Request builder starting with HTTP PATCH
      *
      * @return HTTP Request URI Specification builder

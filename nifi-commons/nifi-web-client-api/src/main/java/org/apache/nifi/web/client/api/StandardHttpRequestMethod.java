@@ -24,6 +24,8 @@ public enum StandardHttpRequestMethod implements HttpRequestMethod {
 
     GET,
 
+    HEAD,
+
     PATCH,
 
     POST,
