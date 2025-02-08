@@ -362,15 +362,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     @Override
     public boolean canHandle(final ProtocolMessage msg) {
-        switch (msg.getType()) {
-            case RECONNECTION_REQUEST:
-            case OFFLOAD_REQUEST:
-            case DISCONNECTION_REQUEST:
-            case FLOW_REQUEST:
-                return true;
-            default:
-                return false;
-        }
+        return switch (msg.getType()) {
+            case RECONNECTION_REQUEST, OFFLOAD_REQUEST, DISCONNECTION_REQUEST, FLOW_REQUEST -> true;
+            default -> false;
+        };
     }
 
     @Override

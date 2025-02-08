@@ -546,48 +546,21 @@ public final class ResourceFactory {
 
             @Override
             public String getSafeDescription() {
-                final String componentType;
-                switch (resourceType) {
-                    case ControllerService:
-                        componentType = "Controller Service";
-                        break;
-                    case ProcessGroup:
-                        componentType = "Process Group";
-                        break;
-                    case Funnel:
-                        componentType = "Funnel";
-                        break;
-                    case InputPort:
-                        componentType = "Input Port";
-                        break;
-                    case OutputPort:
-                        componentType = "Output Port";
-                        break;
-                    case Processor:
-                        componentType = "Processor";
-                        break;
-                    case RemoteProcessGroup:
-                        componentType = "Remote Process Group";
-                        break;
-                    case ReportingTask:
-                        componentType = "Reporting Task";
-                        break;
-                    case FlowAnalysisRule:
-                        componentType = "Flow Analysis Rule";
-                        break;
-                    case Label:
-                        componentType = "Label";
-                        break;
-                    case ParameterContext:
-                        componentType = "Parameter Context";
-                        break;
-                    case ParameterProvider:
-                        componentType = "Parameter Provider";
-                        break;
-                    default:
-                        componentType = "Component";
-                        break;
-                }
+                final String componentType = switch (resourceType) {
+                    case ControllerService -> "Controller Service";
+                    case ProcessGroup -> "Process Group";
+                    case Funnel -> "Funnel";
+                    case InputPort -> "Input Port";
+                    case OutputPort -> "Output Port";
+                    case Processor -> "Processor";
+                    case RemoteProcessGroup -> "Remote Process Group";
+                    case ReportingTask -> "Reporting Task";
+                    case FlowAnalysisRule -> "Flow Analysis Rule";
+                    case Label -> "Label";
+                    case ParameterContext -> "Parameter Context";
+                    case ParameterProvider -> "Parameter Provider";
+                    default -> "Component";
+                };
                 return componentType + " with ID " + identifier;
             }
         };

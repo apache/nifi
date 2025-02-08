@@ -124,53 +124,53 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
 
-        Component componentType = null;
-        switch (requestContext.getExtensionType()) {
-            case ProcessorConfiguration:
+        Component componentType = switch (requestContext.getExtensionType()) {
+            case ProcessorConfiguration -> {
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getProcessor(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
-                componentType = Component.Processor;
-                break;
-            case ControllerServiceConfiguration:
+                yield Component.Processor;
+            }
+            case ControllerServiceConfiguration -> {
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getControllerService(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
-                componentType = Component.ControllerService;
-                break;
-            case ReportingTaskConfiguration:
+                yield Component.ControllerService;
+            }
+            case ReportingTaskConfiguration -> {
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getReportingTask(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
-                componentType = Component.ReportingTask;
-                break;
-            case ParameterProviderConfiguration:
+                yield Component.ReportingTask;
+            }
+            case ParameterProviderConfiguration -> {
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getParameterProvider(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
-                componentType = Component.ParameterProvider;
-                break;
-            case FlowRegistryClientConfiguration:
+                yield Component.ParameterProvider;
+            }
+            case FlowRegistryClientConfiguration -> {
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getFlowRegistryClient(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
-                componentType = Component.FlowRegistryClient;
-                break;
-        }
+                yield Component.FlowRegistryClient;
+            }
+            default -> null;
+        };
 
         if (componentType == null) {
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
@@ -232,23 +232,14 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         // get the component facade for interacting directly with that type of object
-        ComponentFacade componentFacade = null;
-        switch (requestContext.getExtensionType()) {
-            case ProcessorConfiguration:
-                componentFacade = new ProcessorFacade();
-                break;
-            case ControllerServiceConfiguration:
-                componentFacade = new ControllerServiceFacade();
-                break;
-            case ReportingTaskConfiguration:
-                componentFacade = new ReportingTaskFacade();
-                break;
-            case ParameterProviderConfiguration:
-                componentFacade = new ParameterProviderFacade();
-                break;
-            case FlowRegistryClientConfiguration:
-                componentFacade = new FlowRegistryClientFacade();
-        }
+        ComponentFacade componentFacade = switch (requestContext.getExtensionType()) {
+            case ProcessorConfiguration -> new ProcessorFacade();
+            case ControllerServiceConfiguration -> new ControllerServiceFacade();
+            case ReportingTaskConfiguration -> new ReportingTaskFacade();
+            case ParameterProviderConfiguration -> new ParameterProviderFacade();
+            case FlowRegistryClientConfiguration -> new FlowRegistryClientFacade();
+            default -> null;
+        };
 
         if (componentFacade == null) {
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
@@ -273,18 +264,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         // get the component facade for interacting directly with that type of object
-        ComponentFacade componentFacade = null;
-        switch (requestContext.getExtensionType()) {
-            case ProcessorConfiguration:
-                componentFacade = new ProcessorFacade();
-                break;
-            case ControllerServiceConfiguration:
-                componentFacade = new ControllerServiceFacade();
-                break;
-            case ReportingTaskConfiguration:
-                componentFacade = new ReportingTaskFacade();
-                break;
-        }
+        ComponentFacade componentFacade = switch (requestContext.getExtensionType()) {
+            case ProcessorConfiguration -> new ProcessorFacade();
+            case ControllerServiceConfiguration -> new ControllerServiceFacade();
+            case ReportingTaskConfiguration -> new ReportingTaskFacade();
+            default -> null;
+        };
 
         if (componentFacade == null) {
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
