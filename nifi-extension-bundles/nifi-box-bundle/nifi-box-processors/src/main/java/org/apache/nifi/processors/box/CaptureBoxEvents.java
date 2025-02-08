@@ -25,6 +25,7 @@ import com.eclipsesource.json.JsonObject;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -35,6 +36,7 @@ import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -46,6 +48,7 @@ import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -64,11 +67,19 @@ import java.util.concurrent.atomic.AtomicLong;
 @Tags({"box", "storage"})
 @CapabilityDescription("""
         Captures all events from Box. This processor can be used to capture events such as uploads, modifications, deletions, etc.
-        The content of the events is sent to the 'success' relationship as a JSON array.
+        The content of the events is sent to the 'success' relationship as a JSON array. Events can be dropped in case of NiFi restart
+        or if the queue capacity is exceeded. The last known position of the Box stream is stored in the processor state and is used to
+        resume the stream from the last known position when the processor is restarted.
         """)
 @SeeAlso({ FetchBoxFile.class, PutBoxFile.class, ListBoxFile.class })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
+@Stateful(description = """
+        The last known position of the Box stream is stored in the processor state and is used to
+        resume the stream from the last known position when the processor is restarted.
+        """, scopes = { Scope.CLUSTER })
 public class CaptureBoxEvents extends AbstractProcessor implements VerifiableProcessor {
+
+    private final static String POSITION_KEY = "position";
 
     public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
             .name("Queue Capacity")
@@ -97,6 +108,7 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
     private volatile BoxAPIConnection boxAPIConnection;
     private volatile EventStream eventStream;
     protected volatile LinkedBlockingQueue<BoxEvent> events;
+    private volatile AtomicLong position = new AtomicLong(0);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -112,14 +124,30 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
-        eventStream = new EventStream(boxAPIConnection);
+
+        try {
+            final String position = context.getStateManager().getState(Scope.CLUSTER).get(POSITION_KEY);
+            if (position != null) {
+                // we resume from the last known position
+                eventStream = new EventStream(boxAPIConnection, Long.parseLong(position));
+            } else {
+                eventStream = new EventStream(boxAPIConnection);
+            }
+        } catch (Exception e) {
+            throw new ProcessException("Could not retrieve processor state", e);
+        }
 
         final int eventsCapacity = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
-        events = new LinkedBlockingQueue<>(eventsCapacity);
+        if (events == null) {
+            events = new LinkedBlockingQueue<>(eventsCapacity);
+        } else {
+            // create new one with events from the old queue in case capacity has changed
+            final LinkedBlockingQueue<BoxEvent> newQueue = new LinkedBlockingQueue<>(eventsCapacity);
+            newQueue.addAll(events);
+            events = newQueue;
+        }
 
         eventStream.addListener(new EventListener() {
-
-            private final AtomicLong position = new AtomicLong(0);
 
             @Override
             public void onEvent(BoxEvent event) {
@@ -130,7 +158,12 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
 
             @Override
             public void onNextPosition(long pos) {
-                position.set(pos);
+                try {
+                    context.getStateManager().setState(Map.of(POSITION_KEY, String.valueOf(pos)), Scope.CLUSTER);
+                    position.set(pos);
+                } catch (IOException e) {
+                    getLogger().warn("Failed to save position in processor state", e);
+                }
                 getLogger().debug("Next position: {}", position);
             }
 
@@ -139,6 +172,7 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
                 getLogger().warn("An error has been received from the stream. Last tracked position {}", position.get(), e);
                 return true;
             }
+
         });
 
         eventStream.start();
@@ -148,7 +182,6 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
     public void stopped() {
         if (eventStream != null && eventStream.isStarted()) {
             eventStream.stop();
-            events.clear();
         }
     }
 
