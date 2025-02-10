@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class CorrelationAttributeParserTest {
+class CorrelationAttributePartitionerTest {
     private static final String PARTITIONING_ATTRIBUTE = "group";
 
     private static final String FIRST_ATTRIBUTE = "1";
