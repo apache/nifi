@@ -116,7 +116,7 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>3.1.8</version>
+            <version>${caffeine.version}</version>
         </dependency>
         <dependency>
             <groupId>net.java.dev.stax-utils</groupId>

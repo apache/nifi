@@ -110,14 +110,14 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.780</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.30.4</software.amazon.awssdk.version>
-        <gson.version>2.11.0</gson.version>
-        <io.fabric8.kubernetes.client.version>7.0.1</io.fabric8.kubernetes.client.version>
-        <kotlin.version>2.1.0</kotlin.version>
+        <software.amazon.awssdk.version>2.30.16</software.amazon.awssdk.version>
+        <gson.version>2.12.1</gson.version>
+        <io.fabric8.kubernetes.client.version>7.1.0</io.fabric8.kubernetes.client.version>
+        <kotlin.version>2.1.10</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
         <okio.version>3.10.2</okio.version>
         <org.apache.commons.cli.version>1.9.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.17.2</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.18.0</org.apache.commons.codec.version>
         <org.apache.commons.compress.version>1.27.1</org.apache.commons.compress.version>
         <com.github.luben.zstd-jni.version>1.5.6-9</com.github.luben.zstd-jni.version>
         <org.apache.commons.configuration.version>2.11.0</org.apache.commons.configuration.version>
@@ -141,7 +141,7 @@
         <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <json.smart.version>2.5.1</json.smart.version>
-        <groovy.version>4.0.24</groovy.version>
+        <groovy.version>4.0.25</groovy.version>
         <surefire.version>3.5.1</surefire.version>
         <hadoop.version>3.4.1</hadoop.version>
         <ozone.version>1.4.1</ozone.version>
@@ -160,8 +160,8 @@
         <swagger.annotations.version>2.2.28</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
-        <caffeine.version>3.1.8</caffeine.version>
-        <hapi.version>2.5.1</hapi.version>
+        <caffeine.version>3.2.0</caffeine.version>
+        <hapi.version>2.6.0</hapi.version>
         <commons.dbcp2.version>2.13.0</commons.dbcp2.version>
         <prometheus.version>0.16.0</prometheus.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>

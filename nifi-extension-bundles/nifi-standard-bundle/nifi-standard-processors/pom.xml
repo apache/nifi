@@ -22,7 +22,7 @@
         <dependency>
             <groupId>org.apache.ftpserver</groupId>
             <artifactId>ftpserver-core</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -147,7 +147,7 @@
         <dependency>
             <groupId>org.apache.ftpserver</groupId>
             <artifactId>ftplet-api</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.1</version>
         </dependency>
         <dependency>
             <groupId>jakarta.servlet</groupId>
@@ -164,7 +164,7 @@
         <dependency>
             <groupId>com.squareup.okio</groupId>
             <artifactId>okio-jvm</artifactId>
-            <version>3.9.1</version>
+            <version>${okio.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

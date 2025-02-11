@@ -227,7 +227,6 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
 
     private static class StandardSslConfiguration implements SslConfiguration {
         private final SSLContext sslContext;
-
         private final SSLParameters sslParameters;
 
         private StandardSslConfiguration(final SSLContext sslContext) {
@@ -263,6 +262,11 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         @Override
         public ClientAuth getClientAuth() {
             return ClientAuth.WANT;
+        }
+
+        @Override
+        public String getEnabledProtocol() {
+            return sslContext.getProtocol();
         }
     }
 }
