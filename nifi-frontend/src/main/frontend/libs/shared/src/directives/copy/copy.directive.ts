@@ -19,7 +19,6 @@
 
 import { Directive, ElementRef, HostListener, Input, NgZone, Renderer2 } from '@angular/core';
 import { fromEvent, Subscription, switchMap, take } from 'rxjs';
-import { CanvasUtils } from '../../../../../apps/nifi/src/app/pages/flow-designer/service/canvas-utils.service';
 
 @Directive({
     selector: '[copy]',
