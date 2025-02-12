@@ -23,7 +23,6 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -344,10 +343,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init SQL variables from DBCP services
      */
-    private void onInitSQL(Map<String, Object> SQL) throws SQLException {
+    private void onInitSQL(Map<String, Object> SQL, Map<String, String> attributes) throws SQLException {
         for (Map.Entry<String, Object> e : SQL.entrySet()) {
             DBCPService s = (DBCPService) e.getValue();
-            OSql sql = new OSql(s.getConnection(Collections.emptyMap()));
+            OSql sql = new OSql(s.getConnection(attributes));
             //try to set autocommit to false
             try {
                 if (sql.getConnection().getAutoCommit()) {
@@ -435,6 +434,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             Map bindings = script.getBinding().getVariables();
 
             bindings.clear();
+            Map<String, String> attributes = new HashMap<>();
 
             // Find the user-added properties and bind them for the script
             for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
@@ -458,11 +458,12 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
                             bindings.put(property.getKey().getName(), context.getProperty(property.getKey()));
+                            attributes.put(property.getKey().getName(), context.getProperty(property.getKey()).evaluateAttributeExpressions().getValue());
                         }
                     }
                 }
             }
-            onInitSQL(SQL);
+            onInitSQL(SQL, attributes);
 
             bindings.put("session", session);
             bindings.put("context", context);
