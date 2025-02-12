@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.box.sdk.BoxAPIConnection;
@@ -75,7 +76,7 @@ public class AbstractBoxFileTest {
     @BeforeEach
     void setUp() throws Exception {
         doReturn(mockBoxClientService.toString()).when(mockBoxClientService).getIdentifier();
-        doReturn(mockBoxAPIConnection).when(mockBoxClientService).getBoxApiConnection();
+        lenient().doReturn(mockBoxAPIConnection).when(mockBoxClientService).getBoxApiConnection();
 
         testRunner.addControllerService(mockBoxClientService.getIdentifier(), mockBoxClientService);
         testRunner.enableControllerService(mockBoxClientService);
