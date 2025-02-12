@@ -66,7 +66,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @TriggerSerially
 @Tags({"box", "storage"})
 @CapabilityDescription("""
-        Captures all events from Box. This processor can be used to capture events such as uploads, modifications, deletions, etc.
+        Consumes all events from Box. This processor can be used to capture events such as uploads, modifications, deletions, etc.
         The content of the events is sent to the 'success' relationship as a JSON array. Events can be dropped in case of NiFi restart
         or if the queue capacity is exceeded. The last known position of the Box stream is stored in the processor state and is used to
         resume the stream from the last known position when the processor is restarted.
@@ -77,11 +77,11 @@ import java.util.concurrent.atomic.AtomicLong;
         The last known position of the Box stream is stored in the processor state and is used to
         resume the stream from the last known position when the processor is restarted.
         """, scopes = { Scope.CLUSTER })
-public class CaptureBoxEvents extends AbstractProcessor implements VerifiableProcessor {
+public class ConsumeBoxEvents extends AbstractProcessor implements VerifiableProcessor {
 
     private final static String POSITION_KEY = "position";
 
-    public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor QUEUE_CAPACITY = new PropertyDescriptor.Builder()
             .name("Queue Capacity")
             .description("""
                     The maximum size of the internal queue used to buffer events being transferred from the underlying stream to the processor.
@@ -95,7 +95,7 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
-            MAX_MESSAGE_QUEUE_SIZE
+            QUEUE_CAPACITY
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -127,22 +127,22 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
 
         try {
             final String position = context.getStateManager().getState(Scope.CLUSTER).get(POSITION_KEY);
-            if (position != null) {
+            if (position == null) {
+                eventStream = new EventStream(boxAPIConnection);
+            } else {
                 // we resume from the last known position
                 eventStream = new EventStream(boxAPIConnection, Long.parseLong(position));
-            } else {
-                eventStream = new EventStream(boxAPIConnection);
             }
         } catch (Exception e) {
-            throw new ProcessException("Could not retrieve processor state", e);
+            throw new ProcessException("Could not retrieve last event position", e);
         }
 
-        final int eventsCapacity = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
+        final int queueCapacity = context.getProperty(QUEUE_CAPACITY).asInteger();
         if (events == null) {
-            events = new LinkedBlockingQueue<>(eventsCapacity);
+            events = new LinkedBlockingQueue<>(queueCapacity);
         } else {
             // create new one with events from the old queue in case capacity has changed
-            final LinkedBlockingQueue<BoxEvent> newQueue = new LinkedBlockingQueue<>(eventsCapacity);
+            final LinkedBlockingQueue<BoxEvent> newQueue = new LinkedBlockingQueue<>(queueCapacity);
             newQueue.addAll(events);
             events = newQueue;
         }
@@ -151,8 +151,10 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
 
             @Override
             public void onEvent(BoxEvent event) {
-                if (!events.offer(event)) {
-                    getLogger().warn("Failed to add event (ID = {}) to queue. Queue is full.", event.getID());
+                try {
+                    events.put(event);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException("Interrupted while trying to put the event into the queue", e);
                 }
             }
 
@@ -162,9 +164,8 @@ public class CaptureBoxEvents extends AbstractProcessor implements VerifiablePro
                     context.getStateManager().setState(Map.of(POSITION_KEY, String.valueOf(pos)), Scope.CLUSTER);
                     position.set(pos);
                 } catch (IOException e) {
-                    getLogger().warn("Failed to save position in processor state", e);
+                    getLogger().warn("Failed to save position {} in processor state", pos, e);
                 }
-                getLogger().debug("Next position: {}", position);
             }
 
             @Override

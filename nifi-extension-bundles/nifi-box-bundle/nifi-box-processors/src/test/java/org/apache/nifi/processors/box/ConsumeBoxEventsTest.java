@@ -31,14 +31,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-public class CaptureBoxEventsTest extends AbstractBoxFileTest {
+public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
     private final LinkedBlockingQueue<BoxEvent> queue = new LinkedBlockingQueue<>();
 
     @BeforeEach
     void setUp() throws Exception {
 
-        final CaptureBoxEvents testSubject = new CaptureBoxEvents() {
+        final ConsumeBoxEvents testSubject = new ConsumeBoxEvents() {
             @Override
             public void onScheduled(ProcessContext context) {
                 // do nothing
@@ -68,8 +68,8 @@ public class CaptureBoxEventsTest extends AbstractBoxFileTest {
 
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(CaptureBoxEvents.REL_SUCCESS, 1);
-        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(CaptureBoxEvents.REL_SUCCESS).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ConsumeBoxEvents.REL_SUCCESS, 1);
+        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(ConsumeBoxEvents.REL_SUCCESS).getFirst();
         ff0.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         ff0.assertAttributeEquals("record.count", "2");
 
