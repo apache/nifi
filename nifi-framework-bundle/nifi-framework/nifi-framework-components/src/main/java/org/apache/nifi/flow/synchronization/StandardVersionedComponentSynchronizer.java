@@ -2335,7 +2335,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         // If the current parameter context doesn't have any inherited param contexts but the versioned one does,
         // add the versioned ones.
-        if (versionedParameterContext.getInheritedParameterContexts() != null && !versionedParameterContext.getInheritedParameterContexts().isEmpty()){
+        if (versionedParameterContext.getInheritedParameterContexts() != null && !versionedParameterContext.getInheritedParameterContexts().isEmpty()) {
             currentParameterContext.setInheritedParameterContexts(versionedParameterContext.getInheritedParameterContexts().stream()
                 .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts, parameterProviderReferences, componentIdGenerator))
                 .collect(Collectors.toList()));
