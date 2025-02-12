@@ -1227,6 +1227,92 @@ public class TestAvroTypeUtil {
         assertNotNull(actual);
     }
 
+    @Test
+    public void testNestedSchemasWithInt96Fields() {
+        final Schema schema = new Schema.Parser().parse(
+                """
+                        {
+                           "name": "level1_record",
+                           "type": "record",
+                           "fields": [
+                             {
+                               "name": "level1_timestamp",
+                               "type": [
+                                 "null",
+                                 {
+                                   "type": "fixed",
+                                   "name": "level1_timestamp",
+                                   "size": 12
+                                 }
+                               ]
+                             },
+                             {
+                               "name": "level2_record",
+                               "type": {
+                                 "name": "level2_record",
+                                 "type": "record",
+                                 "fields": [
+                                   {
+                                     "name": "level2_timestamp",
+                                     "type": [
+                                       "null",
+                                       {
+                                         "type": "fixed",
+                                         "name": "level2_timestamp",
+                                         "size": 12
+                                       }
+                                     ]
+                                   },
+                                   {
+                                     "name": "level3_record",
+                                     "type": {
+                                       "name": "level3_record",
+                                       "type": "record",
+                                       "fields": [
+                                         {
+                                           "name": "level3_timestamp",
+                                           "type": [
+                                             "null",
+                                             {
+                                               "type": "fixed",
+                                               "name": "level3_timestamp",
+                                               "size": 12
+                                             }
+                                           ]
+                                         }
+                                       ]
+                                     }
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         }
+                """);
+
+        final List<String> int96TimestampFields = Arrays.asList("level1_timestamp", "level2_record.level3_record.level3_timestamp");
+
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema, int96TimestampFields);
+        final DataType timestamp1 = recordSchema.getField("level1_timestamp").get().getDataType();
+
+        // The 'level1_timestamp' field's data type should be timestamp since it is listed in the int96 list
+        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), timestamp1);
+
+        final RecordField recordField2 = recordSchema.getField("level2_record").get();
+        final RecordSchema recordSchema2 = ((RecordDataType) recordField2.getDataType()).getChildSchema();
+        final DataType timestamp2 = recordSchema2.getField("level2_timestamp").get().getDataType();
+
+        // The 'level1_timestamp' field's data type should be byte array since it is not listed in the int96 list
+        assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), timestamp2);
+
+        final RecordField recordField3 = recordSchema2.getField("level3_record").get();
+        final RecordSchema recordSchema3 = ((RecordDataType) recordField3.getDataType()).getChildSchema();
+        final DataType timestamp3 = recordSchema3.getField("level3_timestamp").get().getDataType();
+
+        // The 'level3_timestamp' field's data type should be timestamp since it is listed in the int96 list
+        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), timestamp3);
+    }
+
     private MapRecord givenRecordContainingNumericMap() {
 
         final Map<String, Object> numberValues = new HashMap<>();

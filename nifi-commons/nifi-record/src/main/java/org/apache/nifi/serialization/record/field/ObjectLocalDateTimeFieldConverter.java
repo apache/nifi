@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.serialization.record.field;
 
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -29,12 +31,15 @@ import java.time.temporal.TemporalQueries;
 import java.time.temporal.TemporalQuery;
 import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Convert Object to java.time.LocalDateTime using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalDateTime> {
     private static final long YEAR_TEN_THOUSAND = 253_402_300_800_000L;
+    private static final int JULIAN_EPOCH_OFFSET_DAYS = 2_440_588;
+    private static final byte INT96_TIMESTAMP_BYTES_LENGTH = 12;
 
     private static final TemporalQuery<LocalDateTime> LOCAL_DATE_TIME_TEMPORAL_QUERY = new LocalDateTimeQuery();
 
@@ -85,11 +90,29 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                     return tryParseAsNumber(string, name);
                 }
             }
+            case Object[] objectArray -> {
+                if (objectArray.length != INT96_TIMESTAMP_BYTES_LENGTH) {
+                    throw new IllegalArgumentException("INT96 timestamp must be 12 bytes long, the provided value is " + objectArray.length);
+                }
+
+                final byte[] byteArray = new byte[INT96_TIMESTAMP_BYTES_LENGTH];
+                for (int i = 0; i < objectArray.length; i++) {
+                    byteArray[i] = DataTypeUtils.toByte(objectArray[i], name);
+                }
+                final ByteBuffer timeOfDayNanos = ByteBuffer.wrap(new byte[] {byteArray[7], byteArray[6], byteArray[5], byteArray[4], byteArray[3], byteArray[2], byteArray[1], byteArray[0]});
+                final ByteBuffer julianDay = ByteBuffer.wrap(new byte[] {byteArray[11], byteArray[10], byteArray[9], byteArray[8]});
+
+                return toLocalDateTime(julianDayToMillis(julianDay.getInt()) + (timeOfDayNanos.getLong() / TimeUnit.MILLISECONDS.toNanos(1)));
+            }
             default -> {
             }
         }
 
         throw new FieldConversionException(LocalDateTime.class, field, name);
+    }
+
+    private long julianDayToMillis(int julianDay) {
+        return (julianDay - JULIAN_EPOCH_OFFSET_DAYS) * TimeUnit.DAYS.toMillis(1);
     }
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {

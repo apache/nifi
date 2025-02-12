@@ -19,6 +19,7 @@ package org.apache.nifi.parquet.record;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.avro.generic.GenericRecord;
@@ -51,7 +52,8 @@ public class ParquetRecordReader implements RecordReader {
             final InputStream inputStream,
             final long inputLength,
             final Configuration configuration,
-            final Map<String, String> variables
+            final Map<String, String> variables,
+            final List<String> int96TimestampFields
     ) throws IOException {
         if (inputLength < 0) {
             throw new IllegalArgumentException("Invalid input length of '" + inputLength + "'. This record reader requires knowing " +
@@ -97,7 +99,7 @@ public class ParquetRecordReader implements RecordReader {
         }
 
         // Convert Avro schema to RecordSchema
-        recordSchema = AvroTypeUtil.createSchema(lastParquetRecord.getSchema());
+        recordSchema = AvroTypeUtil.createSchema(lastParquetRecord.getSchema(), int96TimestampFields);
     }
 
     @Override

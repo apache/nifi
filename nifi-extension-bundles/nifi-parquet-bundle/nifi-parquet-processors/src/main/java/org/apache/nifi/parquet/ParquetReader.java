@@ -16,22 +16,29 @@
  */
 package org.apache.nifi.parquet;
 
+import static org.apache.nifi.parquet.utils.ParquetUtils.AVRO_READ_COMPATIBILITY;
 import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parquet.record.ParquetRecordReader;
 import org.apache.nifi.parquet.utils.ParquetConfig;
-import org.apache.nifi.parquet.utils.ParquetUtils;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
@@ -40,16 +47,37 @@ import org.apache.nifi.serialization.RecordReaderFactory;
         "The schema will come from the Parquet data itself.")
 public class ParquetReader extends AbstractControllerService implements RecordReaderFactory {
 
+    public static final PropertyDescriptor INT96_TIMESTAMP_FIELDS = new PropertyDescriptor.Builder()
+            .name("INT96 timestamp fields")
+            .description("List of INT96 fields with full path that should be treated as timestamps.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(false)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ParquetUtils.AVRO_READ_COMPATIBILITY
+            AVRO_READ_COMPATIBILITY,
+            INT96_TIMESTAMP_FIELDS
     );
+
+    private List<String> int96TimestampFields;
+
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        if (context.getProperty(INT96_TIMESTAMP_FIELDS).isSet()) {
+            int96TimestampFields = Stream.of(context.getProperty(INT96_TIMESTAMP_FIELDS).getValue().split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toList());
+        } else {
+            int96TimestampFields = new ArrayList<>();
+        }
+    }
 
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException {
         final Configuration conf = new Configuration();
         final ParquetConfig parquetConfig = createParquetConfig(getConfigurationContext(), variables);
         applyCommonConfig(conf, parquetConfig);
-        return new ParquetRecordReader(in, inputLength, conf, variables);
+        return new ParquetRecordReader(in, inputLength, conf, variables, int96TimestampFields);
     }
 
     @Override

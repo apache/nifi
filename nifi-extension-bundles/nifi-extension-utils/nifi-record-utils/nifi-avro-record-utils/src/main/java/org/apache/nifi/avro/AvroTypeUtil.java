@@ -345,10 +345,10 @@ public class AvroTypeUtil {
      * @return a Data Type that corresponds to the given Avro Schema
      */
     public static DataType determineDataType(final Schema avroSchema) {
-        return determineDataType(avroSchema, new HashMap<>());
+        return determineDataType(avroSchema, new HashMap<>(), "", new ArrayList<>());
     }
 
-    public static DataType determineDataType(final Schema avroSchema, Map<String, DataType> knownRecordTypes) {
+    public static DataType determineDataType(final Schema avroSchema, Map<String, DataType> knownRecordTypes, String schemaPath, List<String> timestampFields) {
 
         if (knownRecordTypes == null) {
             throw new IllegalArgumentException("'knownRecordTypes' cannot be null.");
@@ -378,11 +378,14 @@ public class AvroTypeUtil {
 
         switch (avroType) {
             case ARRAY:
-                final DataType elementType = determineDataType(avroSchema.getElementType(), knownRecordTypes);
+                final DataType elementType = determineDataType(avroSchema.getElementType(), knownRecordTypes, schemaPath, timestampFields);
                 final boolean elementsNullable = isNullable(avroSchema.getElementType());
                 return RecordFieldType.ARRAY.getArrayDataType(elementType, elementsNullable);
             case BYTES:
             case FIXED:
+                if (timestampFields.contains(schemaPath)) {
+                    return RecordFieldType.TIMESTAMP.getDataType();
+                }
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
             case BOOLEAN:
                 return RecordFieldType.BOOLEAN.getDataType();
@@ -416,7 +419,8 @@ public class AvroTypeUtil {
                     for (final Field field : avroFields) {
                         final String fieldName = field.name();
                         final Schema fieldSchema = field.schema();
-                        final DataType fieldType = determineDataType(fieldSchema, knownRecordTypes);
+                        final String fieldFullPath = schemaPath.isEmpty() ? fieldName : schemaPath + "." + fieldName;
+                        final DataType fieldType = determineDataType(fieldSchema, knownRecordTypes, fieldFullPath, timestampFields);
                         final boolean nullable = isNullable(fieldSchema);
                         addFieldToList(recordFields, field, fieldName, fieldSchema, fieldType, nullable);
                     }
@@ -429,19 +433,19 @@ public class AvroTypeUtil {
                 return RecordFieldType.STRING.getDataType();
             case MAP:
                 final Schema valueSchema = avroSchema.getValueType();
-                final DataType valueType = determineDataType(valueSchema, knownRecordTypes);
+                final DataType valueType = determineDataType(valueSchema, knownRecordTypes, schemaPath, timestampFields);
                 final boolean valuesNullable = isNullable(valueSchema);
                 return RecordFieldType.MAP.getMapDataType(valueType, valuesNullable);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = getNonNullSubSchemas(avroSchema);
 
                 if (nonNullSubSchemas.size() == 1) {
-                    return determineDataType(nonNullSubSchemas.get(0), knownRecordTypes);
+                    return determineDataType(nonNullSubSchemas.getFirst(), knownRecordTypes, schemaPath, timestampFields);
                 }
 
                 final List<DataType> possibleChildTypes = new ArrayList<>(nonNullSubSchemas.size());
                 for (final Schema subSchema : nonNullSubSchemas) {
-                    final DataType childDataType = determineDataType(subSchema, knownRecordTypes);
+                    final DataType childDataType = determineDataType(subSchema, knownRecordTypes, schemaPath, timestampFields);
                     possibleChildTypes.add(childDataType);
                 }
 
@@ -469,16 +473,24 @@ public class AvroTypeUtil {
     }
 
     public static RecordSchema createSchema(final Schema avroSchema) {
-        return createSchema(avroSchema, true);
+        return createSchema(avroSchema, true, "", new ArrayList<>());
     }
 
-    public static RecordSchema createSchema(final Schema avroSchema, final boolean includeText) {
+    public static RecordSchema createSchema(final Schema avroSchema, List<String> timestampFields) {
+        return createSchema(avroSchema, true, "", timestampFields);
+    }
+
+    public static RecordSchema createSchema(final Schema avroSchema, final boolean includeText, String schemaPath, List<String> timestampFields) {
         if (avroSchema == null) {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
 
         SchemaIdentifier identifier = new StandardSchemaIdentifier.Builder().name(avroSchema.getName()).build();
-        return createSchema(avroSchema, includeText ? avroSchema.toString() : null, identifier);
+        return createSchema(avroSchema, includeText ? avroSchema.toString() : null, identifier, schemaPath, timestampFields);
+    }
+
+    public static RecordSchema createSchema(final Schema avroSchema, final String schemaText, final SchemaIdentifier schemaId) {
+        return createSchema(avroSchema, schemaText, schemaId, "", new ArrayList<>());
     }
 
     /**
@@ -489,7 +501,7 @@ public class AvroTypeUtil {
      * @param schemaId the identifier of the schema
      * @return the Corresponding Record Schema
      */
-    public static RecordSchema createSchema(final Schema avroSchema, final String schemaText, final SchemaIdentifier schemaId) {
+    public static RecordSchema createSchema(final Schema avroSchema, final String schemaText, final SchemaIdentifier schemaId, String schemaPath, List<String> timestampFields) {
         if (avroSchema == null) {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
@@ -506,7 +518,8 @@ public class AvroTypeUtil {
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
             final Schema fieldSchema = field.schema();
-            final DataType dataType = determineDataType(fieldSchema, knownRecords);
+            final String fieldFullPath = schemaPath.isEmpty() ? fieldName : schemaPath + "." + fieldName;
+            final DataType dataType = determineDataType(fieldSchema, knownRecords, fieldFullPath, timestampFields);
             final boolean nullable = isNullable(fieldSchema);
             addFieldToList(recordFields, field, fieldName, fieldSchema, dataType, nullable);
         }
@@ -1057,11 +1070,15 @@ public class AvroTypeUtil {
     }
 
 
+    private static Object normalizeValue(final Object value, final Schema avroSchema, final String fieldName) {
+        return normalizeValue(value, avroSchema, fieldName, new ArrayList<>());
+    }
+
     /**
      * Convert an Avro object to a normal Java objects for further processing.
      * The counter-part method which convert a raw value to an Avro object is {@link #convertToAvroObject(Object, Schema, String, Charset)}
      */
-    private static Object normalizeValue(final Object value, final Schema avroSchema, final String fieldName) {
+    private static Object normalizeValue(final Object value, final Schema avroSchema, final String fieldName, List<String> timestampFields) {
         if (value == null) {
             return null;
         }
@@ -1103,9 +1120,9 @@ public class AvroTypeUtil {
             case UNION:
                 if (value instanceof GenericData.Record) {
                     final GenericData.Record avroRecord = (GenericData.Record) value;
-                    return normalizeValue(value, avroRecord.getSchema(), fieldName);
+                    return normalizeValue(value, avroRecord.getSchema(), fieldName, timestampFields);
                 }
-                return convertUnionFieldValue(value, avroSchema, schema -> normalizeValue(value, schema, fieldName), fieldName);
+                return convertUnionFieldValue(value, avroSchema, schema -> normalizeValue(value, schema, fieldName, timestampFields), fieldName);
             case RECORD:
                 final GenericData.Record record = (GenericData.Record) value;
                 final Schema recordSchema = record.getSchema();
@@ -1113,10 +1130,10 @@ public class AvroTypeUtil {
                 final Map<String, Object> values = new HashMap<>(recordFields.size());
                 for (final Field field : recordFields) {
                     final Object avroFieldValue = record.get(field.name());
-                    final Object fieldValue = normalizeValue(avroFieldValue, field.schema(), fieldName + "/" + field.name());
+                    final Object fieldValue = normalizeValue(avroFieldValue, field.schema(), fieldName + "." + field.name(), timestampFields);
                     values.put(field.name(), fieldValue);
                 }
-                final RecordSchema childSchema = createSchema(recordSchema, false);
+                final RecordSchema childSchema = createSchema(recordSchema, false, fieldName, timestampFields);
                 return new MapRecord(childSchema, values);
             case BYTES:
                 final ByteBuffer bb = (ByteBuffer) value;
