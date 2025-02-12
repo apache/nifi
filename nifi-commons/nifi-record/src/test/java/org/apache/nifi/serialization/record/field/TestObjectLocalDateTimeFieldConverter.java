@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
 
@@ -89,7 +88,7 @@ public class TestObjectLocalDateTimeFieldConverter {
 
     @Test
     public void testConvertFieldByteArray() {
-        final Object[] field = new Object[]{ -64, 117, -102, 27, 50, 55, 0, 0, -69, -118, 37, 0 };
+        final Object[] field = new Object[] {-64, 117, -102, 27, 50, 55, 0, 0, -69, -118, 37, 0};
         final LocalDateTime result = converter.convertField(field, Optional.empty(), FIELD_NAME);
         assertEquals(LOCAL_DATE_TIME_MILLIS_PRECISION, result);
     }
