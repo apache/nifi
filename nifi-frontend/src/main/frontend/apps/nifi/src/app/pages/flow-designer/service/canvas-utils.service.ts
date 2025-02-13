@@ -956,7 +956,16 @@ export class CanvasUtils {
         return { x, y };
     }
 
+    public isClipboardAvailable(): boolean {
+        // system clipboard interaction requires the browser to be in a secured context.
+        return window.isSecureContext && Object.hasOwn(window, 'ClipboardItem');
+    }
+
     public isCopyable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.isClipboardAvailable()) {
+            return false;
+        }
+
         // if nothing is selected return
         if (selection.empty()) {
             return false;
@@ -1001,7 +1010,7 @@ export class CanvasUtils {
     }
 
     public isPastable(): boolean {
-        return this.canvasPermissions.canWrite;
+        return this.isClipboardAvailable() && this.canvasPermissions.canWrite;
     }
 
     /**

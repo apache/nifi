@@ -689,6 +689,10 @@ export class Canvas implements OnInit, OnDestroy {
 
     @HostListener('window:keydown.control.c', ['$event'])
     handleKeyDownCtrlC(event: KeyboardEvent) {
+        if (!this.canvasUtils.isClipboardAvailable()) {
+            return;
+        }
+
         if (this.executeAction('copy', event)) {
             event.preventDefault();
         }

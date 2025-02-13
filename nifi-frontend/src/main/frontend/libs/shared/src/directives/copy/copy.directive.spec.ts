@@ -24,7 +24,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 @Component({
     standalone: true,
-    template: `<div [copy]="copyText">test</div>`,
+    template: ` <div [copy]="copyText">test</div>`,
     imports: [CopyDirective]
 })
 class TestComponent {
@@ -35,6 +35,7 @@ describe('CopyDirective', () => {
     let component: TestComponent;
     let fixture: ComponentFixture<TestComponent>;
     let directiveDebugEl: any;
+    let windowSpy;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -44,10 +45,20 @@ describe('CopyDirective', () => {
         component = fixture.componentInstance;
         fixture.detectChanges();
         directiveDebugEl = fixture.debugElement.query(By.directive(CopyDirective));
+        window.isSecureContext = true;
     });
 
     afterEach(() => {
         jest.restoreAllMocks();
+    });
+
+    it('should not create a copy button on mouse enter if the clipboard is not available', () => {
+        window.isSecureContext = false;
+
+        directiveDebugEl.triggerEventHandler('mouseenter', null);
+        fixture.detectChanges();
+        const copyButton = directiveDebugEl.nativeElement.querySelector('.copy-button');
+        expect(copyButton).toBeNull();
     });
 
     it('should create a copy button on mouse enter', () => {
