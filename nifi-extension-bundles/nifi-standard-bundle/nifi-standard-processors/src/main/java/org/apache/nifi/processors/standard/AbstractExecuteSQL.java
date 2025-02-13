@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -26,6 +27,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -101,9 +103,9 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor SQL_SELECT_QUERY = new PropertyDescriptor.Builder()
-            .name("SQL select query")
-            .description("The SQL select query to execute. The query can be empty, a constant value, or built from attributes "
+    public static final PropertyDescriptor SQL_QUERY = new PropertyDescriptor.Builder()
+            .name("SQL Query")
+            .description("The SQL query to execute. The query can be empty, a constant value, or built from attributes "
                     + "using Expression Language. If this property is specified, it will be used regardless of the content of "
                     + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
                     + "to contain a valid SQL select query, to be issued by the processor to the database. Note that Expression "
@@ -188,6 +190,17 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor CONTENT_OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Content Output Strategy")
+            .description("""
+                    If the query didn't return any result, this property specifies if the processor should overwrite the
+                    FlowFile's content or ignore it (when the processor is triggered by an incoming FlowFile).
+                    """)
+            .allowableValues(ContentOutputStrategy.class)
+            .defaultValue(ContentOutputStrategy.EMPTY_RESULT)
+            .required(true)
+            .build();
+
     protected List<PropertyDescriptor> propDescriptors;
 
     protected DBCPService dbcpService;
@@ -202,10 +215,15 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         return propDescriptors;
     }
 
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("SQL select query", SQL_QUERY.getName());
+    }
+
     @OnScheduled
     public void setup(ProcessContext context) {
         // If the query is not set, then an incoming flow file is needed. Otherwise fail the initialization
-        if (!context.getProperty(SQL_SELECT_QUERY).isSet() && !context.hasIncomingConnection()) {
+        if (!context.getProperty(SQL_QUERY).isSet() && !context.hasIncomingConnection()) {
             final String errorString = "Either the Select Query must be specified or there must be an incoming connection "
                     + "providing flowfile(s) containing a SQL select query";
             getLogger().error(errorString);
@@ -244,8 +262,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         SqlWriter sqlWriter = configureSqlWriter(session, context, fileToProcess);
 
         String selectQuery;
-        if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
-            selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+        if (context.getProperty(SQL_QUERY).isSet()) {
+            selectQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         } else {
             // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
@@ -456,7 +474,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         session.remove(fileToProcess);
                     } else {
                         // If we had no results then transfer the original flow file downstream to trigger processors
-                        session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), REL_SUCCESS);
+                        if (context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class) == null
+                            || context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class) == ContentOutputStrategy.EMPTY_RESULT) {
+                            session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), REL_SUCCESS);
+                        } else {
+                            session.transfer(fileToProcess, REL_SUCCESS);
+                        }
                     }
                 } else if (resultCount == 0) {
                     // If we had no inbound FlowFile, no exceptions, and the SQL generated no result sets (Insert/Update/Delete statements only)
@@ -531,4 +554,38 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     }
 
     protected abstract SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess);
+
+    enum ContentOutputStrategy implements DescribedValue {
+        EMPTY_RESULT(
+            "Overwrite Content",
+            "Overwrites the FlowFile content with the empty result set."
+        ),
+        IGNORED(
+            "Ignore Results",
+            "Ignores the result and passes the incoming FlowFile content to the next processor."
+        );
+
+        private final String value;
+        private final String description;
+
+        ContentOutputStrategy(final String value, final String description) {
+            this.value = value;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.value;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
+    }
 }

@@ -124,7 +124,7 @@ public class TestExecuteSQLRecord {
     @Test
     public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
         runner.setIncomingConnection(true);
-        runner.setProperty(AbstractExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM persons");
+        runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "SELECT * FROM persons");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -209,7 +209,7 @@ public class TestExecuteSQLRecord {
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQLRecord.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(ExecuteSQLRecord.OUTPUT_BATCH_SIZE, "5");
-        runner.setProperty(ExecuteSQLRecord.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 200);
@@ -354,7 +354,7 @@ public class TestExecuteSQLRecord {
         runner.setIncomingConnection(false);
         runner.setProperty(AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(AbstractExecuteSQL.OUTPUT_BATCH_SIZE, "0");
-        runner.setProperty(AbstractExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -402,7 +402,7 @@ public class TestExecuteSQLRecord {
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(false);
-        runner.setProperty(AbstractExecuteSQL.SQL_SELECT_QUERY, "insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
+        runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -442,7 +442,7 @@ public class TestExecuteSQLRecord {
                 + "CAST ('Hello World' AS CLOB), CAST ('I am an NCLOB' AS NCLOB))");
 
         runner.setIncomingConnection(false);
-        runner.setProperty(AbstractExecuteSQL.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         AvroRecordSetWriter recordWriter = new AvroRecordSetWriter();
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(recordWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
@@ -455,25 +455,26 @@ public class TestExecuteSQLRecord {
         flowFile.assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "1");
 
         ByteArrayInputStream bais = new ByteArrayInputStream(flowFile.toByteArray());
-        final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(bais, new GenericDatumReader<>());
-        final Schema avroSchema = dataFileStream.getSchema();
-        GenericData.setStringType(avroSchema, GenericData.StringType.String);
-        final GenericRecord avroRecord = dataFileStream.next();
+        try (DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(bais, new GenericDatumReader<>())) {
+            final Schema avroSchema = dataFileStream.getSchema();
+            GenericData.setStringType(avroSchema, GenericData.StringType.String);
+            final GenericRecord avroRecord = dataFileStream.next();
 
-        Object imageObj = avroRecord.get("IMAGE");
-        assertNotNull(imageObj);
-        assertInstanceOf(ByteBuffer.class, imageObj);
-        assertArrayEquals(new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
+            Object imageObj = avroRecord.get("IMAGE");
+            assertNotNull(imageObj);
+            assertInstanceOf(ByteBuffer.class, imageObj);
+            assertArrayEquals(new byte[] {(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
 
-        Object wordsObj = avroRecord.get("WORDS");
-        assertNotNull(wordsObj);
-        assertInstanceOf(Utf8.class, wordsObj);
-        assertEquals("Hello World", wordsObj.toString());
+            Object wordsObj = avroRecord.get("WORDS");
+            assertNotNull(wordsObj);
+            assertInstanceOf(Utf8.class, wordsObj);
+            assertEquals("Hello World", wordsObj.toString());
 
-        Object natwordsObj = avroRecord.get("NATWORDS");
-        assertNotNull(natwordsObj);
-        assertInstanceOf(Utf8.class, natwordsObj);
-        assertEquals("I am an NCLOB", natwordsObj.toString());
+            Object natwordsObj = avroRecord.get("NATWORDS");
+            assertNotNull(natwordsObj);
+            assertInstanceOf(Utf8.class, natwordsObj);
+            assertEquals("I am an NCLOB", natwordsObj.toString());
+        }
     }
 
     @Test
@@ -494,7 +495,39 @@ public class TestExecuteSQLRecord {
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQLRecord.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
+        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        runner.addControllerService("writer", recordWriter);
+        runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.enableControllerService(recordWriter);
+        runner.enqueue("Hello".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "0");
+        firstFlowFile.assertContentEquals("");
+    }
+
+    @Test
+    public void testNoResultCreatesEmptyFlowFile() throws Exception {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException ignored) {
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "drop table TEST_NULL_INT");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -527,7 +560,7 @@ public class TestExecuteSQLRecord {
 
         runner.setIncomingConnection(false);
         // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
-        runner.setProperty(AbstractExecuteSQL.SQL_SELECT_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
+        runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -581,7 +614,7 @@ public class TestExecuteSQLRecord {
         }
 
         if (setQueryProperty) {
-            runner.setProperty(AbstractExecuteSQL.SQL_SELECT_QUERY, query);
+            runner.setProperty(AbstractExecuteSQL.SQL_QUERY, query);
         }
 
         runner.run();
@@ -654,7 +687,7 @@ public class TestExecuteSQLRecord {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        runner.setProperty(ExecuteSQLRecord.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -687,7 +720,7 @@ public class TestExecuteSQLRecord {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        runner.setProperty(ExecuteSQLRecord.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.setProperty(ExecuteSQLRecord.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
@@ -721,7 +754,7 @@ public class TestExecuteSQLRecord {
         runner.setIncomingConnection(true);
         // Simulate failure by not provide parameter
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
-        runner.setProperty(ExecuteSQLRecord.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
@@ -751,7 +784,7 @@ public class TestExecuteSQLRecord {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        runner.setProperty(ExecuteSQLRecord.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
         // Simulate failure by not provide parameter
         runner.setProperty(ExecuteSQLRecord.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
