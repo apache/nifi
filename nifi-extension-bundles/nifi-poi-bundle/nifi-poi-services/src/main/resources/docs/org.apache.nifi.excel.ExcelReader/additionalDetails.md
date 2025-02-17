@@ -73,7 +73,11 @@ encompasses all fields that have been encountered.
 A common concern when inferring schemas is how to handle the condition of two values that have different types. For
 example, consider a FlowFile with the following two records:
 
-`name, age John, 8 Jane, Ten`
+```
+name, age
+John, 8
+Jane, Ten
+```
 
 It is clear that the "name" field will be inferred as a STRING type. However, how should we handle the "age" field?
 Should the field be an CHOICE between INT and STRING? Should we prefer LONG over INT? Should we just use a STRING?

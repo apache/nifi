@@ -71,7 +71,9 @@ A common concern when inferring schemas is how to handle the condition of two va
 example, consider a FlowFile with the following two records:
 
 ```
-name, age John, 8 Jane, Ten
+name, age
+John, 8
+Jane, Ten
 ```
 
 It is clear that the "name" field will be inferred as a STRING type. However, how should we handle the "age" field?
