@@ -25,7 +25,6 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.bson.Document;
 
@@ -102,16 +101,6 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
                     + "connections.")
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
-            .build();
-     PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("ssl-client-auth")
-            .displayName("Client Auth")
-            .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
-                    + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
-                    + "has been defined and enabled.")
-            .required(false)
-            .allowableValues(ClientAuth.values())
-            .defaultValue("REQUIRED")
             .build();
 
      PropertyDescriptor WRITE_CONCERN = new PropertyDescriptor.Builder()
