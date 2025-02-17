@@ -95,12 +95,12 @@ public class MongoDBControllerService extends AbstractControllerService implemen
             final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
 
             final MongoClientSettings.Builder builder = MongoClientSettings.builder();
-
             final ConnectionString cs = new ConnectionString(uri);
-            final String database = cs.getDatabase();
 
             if (user != null && passw != null) {
-                builder.credential(MongoCredential.createCredential(user, database == null ? database : "admin", passw.toCharArray()));
+                final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
+                final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
+                builder.credential(credential);
             }
 
             if (sslContext != null) {
