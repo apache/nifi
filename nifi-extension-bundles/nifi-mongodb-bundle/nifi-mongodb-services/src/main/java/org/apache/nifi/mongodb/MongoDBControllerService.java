@@ -19,17 +19,11 @@ package org.apache.nifi.mongodb;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.client.MongoClient;
+import com.mongodb.MongoCredential;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
-
-import java.util.Arrays;
-import java.util.List;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -43,6 +37,12 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.bson.Document;
 
+import javax.net.ssl.SSLContext;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
         "Provides a controller service that configures a connection to MongoDB and provides access to that connection to " +
@@ -53,7 +53,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.uri = getURI(context);
+        this.uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
         this.mongoClient = createClient(context, this.mongoClient);
     }
 
@@ -90,25 +90,31 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         }
 
         try {
-            final String uri = getURI(context);
-            final MongoClientSettings.Builder builder = getClientSettings(uri, sslContext);
+            final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+            final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
+            final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+
+            final MongoClientSettings.Builder builder = MongoClientSettings.builder();
+            final ConnectionString cs = new ConnectionString(uri);
+
+            if (user != null && passw != null) {
+                final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
+                final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
+                builder.credential(credential);
+            }
+
+            if (sslContext != null) {
+                builder.applyToSslSettings(sslBuilder -> sslBuilder.enabled(true).context(sslContext));
+            }
+
+            builder.applyConnectionString(cs);
+
             final MongoClientSettings clientSettings = builder.build();
             return MongoClients.create(clientSettings);
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", this.getClass().getName(), e, e);
             throw e;
         }
-    }
-
-    protected MongoClientSettings.Builder getClientSettings(final String uri, final SSLContext sslContext) {
-        final MongoClientSettings.Builder builder = MongoClientSettings.builder();
-        builder.applyConnectionString(new ConnectionString(uri));
-        if (sslContext != null) {
-            builder.applyToSslSettings(sslBuilder ->
-                    sslBuilder.enabled(true).context(sslContext)
-            );
-        }
-        return builder;
     }
 
     @OnStopped
@@ -119,17 +125,6 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     private void closeClient(MongoClient client) {
         if (client != null) {
             client.close();
-        }
-    }
-
-    protected String getURI(final ConfigurationContext context) {
-        final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
-        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
-        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        if (!uri.contains("@") && user != null && passw != null) {
-            return uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8) + "@");
-        } else {
-            return uri;
         }
     }
 
