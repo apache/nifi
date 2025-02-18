@@ -104,14 +104,12 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
         for (ColumnDescription column : columnsToAdd) {
             String dataType = getSQLForDataType(column.getDataType());
             StringBuilder sb = new StringBuilder("ADD ")
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
                     .append(dataType);
             columnsAndDatatypes.add(sb.toString());
@@ -119,9 +117,7 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
 
         StringBuilder alterTableStatement = new StringBuilder();
         return alterTableStatement.append("ALTER TABLE ")
-                .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
-                .append(quoteTableName ? getTableQuoteString() : "")
                 .append(" ")
                 .append(String.join(", ", columnsAndDatatypes))
                 .toString();

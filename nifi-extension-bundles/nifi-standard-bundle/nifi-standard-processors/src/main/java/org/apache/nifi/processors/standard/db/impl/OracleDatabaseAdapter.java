@@ -128,25 +128,21 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    public String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd) {
         StringBuilder createTableStatement = new StringBuilder();
 
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
         for (ColumnDescription column : columnsToAdd) {
             String dataType = getSQLForDataType(column.getDataType());
             StringBuilder sb = new StringBuilder()
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
                     .append(dataType);
             columnsAndDatatypes.add(sb.toString());
         }
 
         createTableStatement.append("ALTER TABLE ")
-                .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
-                .append(quoteTableName ? getTableQuoteString() : "")
                 .append(" ADD (")
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
@@ -184,15 +180,13 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
     /**
      * Generates a CREATE TABLE statement using the specified table schema
      * @param tableSchema The table schema including column information
-     * @param quoteTableName Whether to quote the table name in the generated DDL
-     * @param quoteColumnNames Whether to quote column names in the generated DDL
      * @return A String containing DDL to create the specified table
      */
     @Override
-    public String getCreateTableStatement(TableSchema tableSchema, boolean quoteTableName, boolean quoteColumnNames) {
+    public String getCreateTableStatement(TableSchema tableSchema) {
         StringBuilder createTableStatement = new StringBuilder()
                 .append("DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE ")
-                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
+                .append(generateTableName(tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
                 .append(" (");
 
         List<ColumnDescription> columns = tableSchema.getColumnsAsList();
@@ -201,9 +195,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
             ColumnDescription column = columns.get(i);
             createTableStatement
                     .append((i != 0) ? ", " : "")
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
                     .append(getSQLForDataType(column.getDataType()))
                     .append(column.isNullable() ? "" : " NOT NULL")
