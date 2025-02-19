@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -23,14 +25,21 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 public interface GoogleDriveTrait {
 
@@ -40,11 +49,31 @@ public interface GoogleDriveTrait {
 
     JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
+    PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("connect-timeout")
+            .displayName("Connect Timeout")
+            .description("Maximum wait time for connection to Google Drive service.")
+            .required(true)
+            .defaultValue("20 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
+    PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("read-timeout")
+            .displayName("Read Timeout")
+            .description("Maximum wait time for response from Google Drive service.")
+            .required(true)
+            .defaultValue("60 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
     default Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
         Drive driveService = new Drive.Builder(
                 httpTransport,
                 JSON_FACTORY,
-                getHttpCredentialsAdapter(
+                createHttpRequestInitializer(
                         context,
                         Arrays.asList(scopes)
                 )
@@ -55,13 +84,24 @@ public interface GoogleDriveTrait {
         return driveService;
     }
 
-    default HttpCredentialsAdapter getHttpCredentialsAdapter(
+    default HttpRequestInitializer createHttpRequestInitializer(
             final ProcessContext context,
             final Collection<String> scopes
     ) {
-        GoogleCredentials googleCredentials = getGoogleCredentials(context);
+        final GoogleCredentials googleCredentials = getGoogleCredentials(context).createScoped(scopes);
 
-        HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(googleCredentials.createScoped(scopes));
+        final HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(googleCredentials) {
+            @Override
+            public void initialize(HttpRequest request) throws IOException {
+                super.initialize(request);
+
+                final int connectTimeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+                final int readTimeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+
+                request.setConnectTimeout(connectTimeout);
+                request.setReadTimeout(readTimeout);
+            }
+        };
 
         return httpCredentialsAdapter;
     }
