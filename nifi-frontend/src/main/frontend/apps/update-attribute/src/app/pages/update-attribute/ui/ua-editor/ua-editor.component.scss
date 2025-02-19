@@ -20,6 +20,8 @@
 .ua-editor {
     @include mat.button-density(-1);
 
+    box-shadow: var(--mat-sys-level4);
+
     & {
         min-height: 240px;
         min-width: 245px;

@@ -18,63 +18,43 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-error-palette-default: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), default)
-    );
-
-    $material-theme-primary-palette-default: mat.get-theme-color(
-        $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
-    );
-
-    $primary-contrast: map.get(map.get($config, primary), contrast);
-    $caution-contrast: map.get(map.get($config, caution), contrast);
-    $error-contrast: map.get(map.get($config, error), contrast);
-    $success: map.get(map.get($config, success), default);
-    $caution: map.get(map.get($config, caution), default);
-
+@mixin generate-theme() {
     #edit-processor-header {
         .bulletins {
             background-color: unset;
 
             .fa {
-                color: $material-theme-primary-palette-default;
+                color: var(--mat-sys-primary);
             }
         }
 
         .bulletins.has-bulletins {
             .fa {
-                color: $primary-contrast;
+                color: var(--mat-sys-on-primary);
             }
 
             &.error {
                 .fa {
-                    color: $error-contrast;
+                    color: var(--mat-sys-on-error);
                 }
 
-                background-color: $material-theme-error-palette-default;
+                background-color: var(--mat-sys-error);
             }
             &.warning {
                 .fa {
-                    color: $caution-contrast;
+                    color: var(--nf-caution-contrast);
                 }
 
-                background-color: $caution;
+                background-color: var(--nf-caution-default);
             }
             &.info,
             &.debug,
             &.trace {
-                background-color: $success;
+                .fa {
+                    color: var(--nf-success-contrast);
+                }
+
+                background-color: var(--nf-success-default);
             }
         }
     }

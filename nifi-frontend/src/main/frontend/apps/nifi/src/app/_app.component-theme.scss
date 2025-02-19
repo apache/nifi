@@ -18,14 +18,8 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-
+@mixin generate-theme() {
     .splash {
-        background-color: $material-theme-secondary-palette-default;
+        background-color: var(--mat-sys-secondary);
     }
 }

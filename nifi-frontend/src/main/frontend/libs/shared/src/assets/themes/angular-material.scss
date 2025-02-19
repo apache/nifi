@@ -1,0 +1,175 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+// Note: Color palettes are generated from primary: #6750a4
+$_palettes: (
+    primary: (
+        0: var(--md-ref-palette-primary-0),
+        10: var(--md-ref-palette-primary-10),
+        20: var(--md-ref-palette-primary-20),
+        25: var(--md-ref-palette-primary-25),
+        30: var(--md-ref-palette-primary-30),
+        35: var(--md-ref-palette-primary-35),
+        40: var(--md-ref-palette-primary-40),
+        50: var(--md-ref-palette-primary-50),
+        60: var(--md-ref-palette-primary-60),
+        70: var(--md-ref-palette-primary-70),
+        80: var(--md-ref-palette-primary-80),
+        90: var(--md-ref-palette-primary-90),
+        95: var(--md-ref-palette-primary-95),
+        98: var(--md-ref-palette-primary-98),
+        99: var(--md-ref-palette-primary-99),
+        100: var(--md-ref-palette-primary-100)
+    ),
+    secondary: (
+        0: var(--md-ref-palette-secondary-0),
+        10: var(--md-ref-palette-secondary-10),
+        20: var(--md-ref-palette-secondary-20),
+        25: var(--md-ref-palette-secondary-25),
+        30: var(--md-ref-palette-secondary-30),
+        35: var(--md-ref-palette-secondary-35),
+        40: var(--md-ref-palette-secondary-40),
+        50: var(--md-ref-palette-secondary-50),
+        60: var(--md-ref-palette-secondary-60),
+        70: var(--md-ref-palette-secondary-70),
+        80: var(--md-ref-palette-secondary-80),
+        90: var(--md-ref-palette-secondary-90),
+        95: var(--md-ref-palette-secondary-95),
+        98: var(--md-ref-palette-secondary-98),
+        99: var(--md-ref-palette-secondary-99),
+        100: var(--md-ref-palette-secondary-100)
+    ),
+    tertiary: (
+        0: var(--md-ref-palette-tertiary-0),
+        10: var(--md-ref-palette-tertiary-10),
+        20: var(--md-ref-palette-tertiary-20),
+        25: var(--md-ref-palette-tertiary-25),
+        30: var(--md-ref-palette-tertiary-30),
+        35: var(--md-ref-palette-tertiary-35),
+        40: var(--md-ref-palette-tertiary-40),
+        50: var(--md-ref-palette-tertiary-50),
+        60: var(--md-ref-palette-tertiary-60),
+        70: var(--md-ref-palette-tertiary-70),
+        80: var(--md-ref-palette-tertiary-80),
+        90: var(--md-ref-palette-tertiary-90),
+        95: var(--md-ref-palette-tertiary-95),
+        98: var(--md-ref-palette-tertiary-98),
+        99: var(--md-ref-palette-tertiary-99),
+        100: var(--md-ref-palette-tertiary-100)
+    ),
+    neutral: (
+        0: var(--md-ref-palette-neutral-0),
+        4: var(--md-ref-palette-neutral-4),
+        6: var(--md-ref-palette-neutral-6),
+        10: var(--md-ref-palette-neutral-10),
+        12: var(--md-ref-palette-neutral-12),
+        17: var(--md-ref-palette-neutral-17),
+        20: var(--md-ref-palette-neutral-20),
+        22: var(--md-ref-palette-neutral-22),
+        24: var(--md-ref-palette-neutral-24),
+        25: var(--md-ref-palette-neutral-25),
+        30: var(--md-ref-palette-neutral-30),
+        35: var(--md-ref-palette-neutral-35),
+        40: var(--md-ref-palette-neutral-40),
+        50: var(--md-ref-palette-neutral-50),
+        60: var(--md-ref-palette-neutral-60),
+        70: var(--md-ref-palette-neutral-70),
+        80: var(--md-ref-palette-neutral-80),
+        87: var(--md-ref-palette-neutral-87),
+        90: var(--md-ref-palette-neutral-90),
+        92: var(--md-ref-palette-neutral-92),
+        94: var(--md-ref-palette-neutral-94),
+        95: var(--md-ref-palette-neutral-95),
+        96: var(--md-ref-palette-neutral-96),
+        98: var(--md-ref-palette-neutral-98),
+        99: var(--md-ref-palette-neutral-99),
+        100: var(--md-ref-palette-neutral-100)
+    ),
+    neutral-variant: (
+        0: var(--md-ref-palette-neutral-variant-0),
+        10: var(--md-ref-palette-neutral-variant-10),
+        20: var(--md-ref-palette-neutral-variant-20),
+        25: var(--md-ref-palette-neutral-variant-25),
+        30: var(--md-ref-palette-neutral-variant-30),
+        35: var(--md-ref-palette-neutral-variant-35),
+        40: var(--md-ref-palette-neutral-variant-40),
+        50: var(--md-ref-palette-neutral-variant-50),
+        60: var(--md-ref-palette-neutral-variant-60),
+        70: var(--md-ref-palette-neutral-variant-70),
+        80: var(--md-ref-palette-neutral-variant-80),
+        90: var(--md-ref-palette-neutral-variant-90),
+        95: var(--md-ref-palette-neutral-variant-95),
+        98: var(--md-ref-palette-neutral-variant-98),
+        99: var(--md-ref-palette-neutral-variant-99),
+        100: var(--md-ref-palette-neutral-variant-100)
+    ),
+    error: (
+        0: var(--md-ref-palette-error-0),
+        10: var(--md-ref-palette-error-10),
+        20: var(--md-ref-palette-error-20),
+        25: var(--md-ref-palette-error-25),
+        30: var(--md-ref-palette-error-30),
+        35: var(--md-ref-palette-error-35),
+        40: var(--md-ref-palette-error-40),
+        50: var(--md-ref-palette-error-50),
+        60: var(--md-ref-palette-error-60),
+        70: var(--md-ref-palette-error-70),
+        80: var(--md-ref-palette-error-80),
+        90: var(--md-ref-palette-error-90),
+        95: var(--md-ref-palette-error-95),
+        98: var(--md-ref-palette-error-98),
+        99: var(--md-ref-palette-error-99),
+        100: var(--md-ref-palette-error-100)
+    )
+);
+
+$_rest: (
+    secondary: map.get($_palettes, secondary),
+    neutral: map.get($_palettes, neutral),
+    neutral-variant: map.get($_palettes, neutral-variant),
+    error: map.get($_palettes, error)
+);
+
+$primary-palette: map.merge(map.get($_palettes, primary), $_rest);
+$tertiary-palette: map.merge(map.get($_palettes, tertiary), $_rest);
+
+@include mat.app-background();
+
+@mixin generate-material-theme() {
+    html {
+        @include mat.theme(
+            (
+                color: (
+                    primary: $primary-palette,
+                    tertiary: $tertiary-palette
+                ),
+                typography: (
+                    plain-family: var(--md-ref-typeface-plain),
+                    brand-family: var(--md-ref-typeface-brand),
+                    bold-weight: var(--md-ref-typeface-weight-bold),
+                    regular-weight: var(--md-ref-typeface-weight-regular)
+                ),
+                density: (
+                    scale: -3
+                )
+            )
+        );
+    }
+}
