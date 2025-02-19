@@ -18,56 +18,35 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-tertiary-palette-default: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), default)
-    );
-    $material-theme-error-palette-default: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), default)
-    );
-
+@mixin generate-theme() {
     #lineage {
         canvas,
         svg {
             text.event-type {
                 @extend .neutral-contrast;
-                font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+                font-family: var(--mat-sys-body-medium-font);
             }
 
             text.event-type.expand-parents,
             text.event-type.expand-children {
-                font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+                font-family: var(--mat-sys-body-medium-font);
             }
 
             path.link.selected {
-                stroke: $material-theme-error-palette-default;
+                stroke: var(--mat-sys-error);
             }
 
             g.event circle.selected {
-                fill: $material-theme-error-palette-default;
+                fill: var(--mat-sys-error);
             }
 
             g.event circle.context {
-                stroke: $material-theme-secondary-palette-default;
+                stroke: var(--mat-sys-secondary);
             }
 
             g.flowfile circle.context,
             g.event circle.context {
-                stroke: if(
-                    $is-material-dark,
-                    $material-theme-tertiary-palette-default,
-                    $material-theme-tertiary-palette-default
-                );
+                stroke: var(--mat-sys-tertiary);
             }
         }
     }

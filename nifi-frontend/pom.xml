@@ -39,7 +39,7 @@
         <!--
             Name of the theme file to be used.
         -->
-        <frontend.theme.name>material</frontend.theme.name>
+        <frontend.theme.name>apache-nifi</frontend.theme.name>
         <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
@@ -279,7 +279,7 @@
                         </goals>
                         <configuration>
                             <sourceFile>${frontend.theme.dir}/${frontend.theme.name}.scss</sourceFile>
-                            <destinationFile>${frontend.working.dir}/libs/shared/src/assets/themes/material.scss</destinationFile>
+                            <destinationFile>${frontend.working.dir}/libs/shared/src/assets/themes/apache-nifi.scss</destinationFile>
                         </configuration>
                     </execution>
                 </executions>

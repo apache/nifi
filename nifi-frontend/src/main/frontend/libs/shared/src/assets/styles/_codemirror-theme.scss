@@ -18,38 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-codemirror-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-tertiary-palette-variant: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), variant)
-    );
-    $material-theme-neutral-palette-default: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), default)
-    );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-    $primary-contrast: map.get(map.get($config, primary), contrast);
-    $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-    $selected-color: $material-theme-tertiary-palette-variant;
-
+@mixin generate-codemirror-theme() {
     .ngx-codemirror {
         display: none;
     }
@@ -59,174 +28,170 @@
         height: 100%;
         cursor: default;
         line-height: normal;
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
-        border: 1px solid var(--mdc-outlined-text-field-label-text-color);
+        background-color: var(--mat-sys-background);
+        border: 1px solid;
     }
 
     .cm-s-nifi .CodeMirror-gutters {
-        background: if($is-material-dark, #3b3b3b, #efefef);
+        background: var(--nf-codemirror-gutters);
     }
 
     .cm-s-nifi .CodeMirror-guttermarker,
     .cm-s-nifi .CodeMirror-guttermarker-subtle,
     .cm-s-nifi .CodeMirror-linenumber {
-        color: if($is-material-dark, #bbbbbb, #b4b4b4);
+        color: var(--nf-codemirror-linenumber);
     }
 
     .cm-s-nifi .CodeMirror-cursor {
-        border-left: 1px solid $neutral-contrast;
+        border-left: 1px solid var(--mat-sys-on-surface);
     }
 
     .cm-s-nifi div.CodeMirror-selected {
-        background: $selected-color;
+        background: var(--mat-sys-tertiary-container);
     }
 
     .cm-s-nifi.CodeMirror-focused div.CodeMirror-selected {
-        background: $selected-color;
+        background: var(--mat-sys-tertiary-container);
     }
 
     .cm-s-nifi .CodeMirror-line::selection,
     .cm-s-nifi .CodeMirror-line > span::selection,
     .cm-s-nifi .CodeMirror-line > span > span::selection {
-        background: if($is-material-dark, rgba(128, 203, 196, 0.2), rgba(128, 203, 196, 0.8));
+        background: var(--nf-codemirror-selection);
     }
 
     .cm-s-nifi .CodeMirror-line::-moz-selection,
     .cm-s-nifi .CodeMirror-line > span::-moz-selection,
     .cm-s-nifi .CodeMirror-line > span > span::-moz-selection {
-        background: if($is-material-dark, rgba(128, 203, 196, 0.2), rgba(128, 203, 196, 0.8));
+        background: var(--nf-codemirror-selection);
     }
 
     .cm-s-nifi .cm-header {
-        color: if($is-material-dark, #b8b8ff, #0000ff);
+        color: var(--nf-codemirror-header);
     }
 
     .cm-s-nifi .cm-quote {
-        color: if($is-material-dark, #6bfd6b, #009400);
+        color: var(--nf-codemirror-quote);
     }
 
     .cm-s-nifi .cm-negative {
-        color: if($is-material-dark, #fc9797, #de3535);
+        color: var(--nf-codemirror-negative);
     }
 
     .cm-s-nifi .cm-positive {
-        color: if($is-material-dark, #8cfd8c, #219a21);
+        color: var(--nf-codemirror-positive);
     }
 
     .cm-s-nifi .cm-bracket {
-        color: if($is-material-dark, #93937c, #93937c);
+        color: var(--nf-codemirror-bracket);
     }
 
     .cm-s-nifi .cm-link {
-        color: if($is-material-dark, #8e8ef6, #0000ce);
+        color: var(--nf-codemirror-link);
     }
 
     .cm-s-nifi .cm-invalidchar {
-        color: if($is-material-dark, #ff9c9c, #ff0000);
+        color: var(--nf-codemirror-invalidchar);
     }
 
     .cm-s-nifi .cm-keyword {
-        color: if($is-material-dark, #c792ea, #6800ab);
+        color: var(--nf-codemirror-keyword);
     }
 
     .cm-s-nifi .cm-operator {
-        color: if($is-material-dark, #89ddff, #0083b9);
+        color: var(--nf-codemirror-operator);
     }
 
     .cm-s-nifi .cm-variable-2 {
-        color: if($is-material-dark, #72b6fc, #0054a6);
+        color: var(--nf-codemirror-variable-2);
     }
 
     .cm-s-nifi .cm-variable-3,
     .cm-s-nifi .cm-type {
-        color: if($is-material-dark, #f07178, #ad0007);
+        color: var(--nf-codemirror-variable-3);
     }
 
     .cm-s-nifi .cm-builtin {
-        color: if($is-material-dark, #a280f3, #3400ad);
+        color: var(--nf-codemirror-builtin);
     }
 
     .cm-s-nifi .cm-atom {
-        color: if($is-material-dark, #f78c6c, #bd2b00);
+        color: var(--nf-codemirror-atom);
     }
 
     .cm-s-nifi .cm-number {
-        color: if($is-material-dark, #fd758c, #c20021);
+        color: var(--nf-codemirror-number);
     }
 
     .cm-s-nifi .cm-def {
-        color: if($is-material-dark, #82aaff, #0553f8);
+        color: var(--nf-codemirror-def);
     }
 
     .cm-s-nifi .cm-string {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: var(--nf-codemirror-string);
     }
 
     .cm-s-nifi .cm-string-2 {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: var(--nf-codemirror-string2);
     }
 
     .cm-s-nifi .cm-comment {
-        color: if($is-material-dark, #d7d7d7, #545454);
+        color: var(--nf-codemirror-comment);
     }
 
     .cm-s-nifi .cm-variable,
     .cm-s-nifi .cm-punctuation,
     .cm-s-nifi .cm-property,
     .cm-s-nifi .cm-operator {
-        color: if($is-material-dark, #fff, #000);
+        color: var(--nf-codemirror-variable);
     }
 
     .cm-s-nifi .cm-tag {
-        color: if($is-material-dark, #fc768d, #f8052e);
+        color: var(--nf-codemirror-tag);
     }
 
     .cm-s-nifi .cm-meta {
-        color: rgba($material-theme-secondary-palette-default, 0.87);
+        color: var(--mat-sys-secondary);
     }
 
     .cm-s-nifi .cm-attribute {
-        color: if($is-material-dark, #c792ea, #8e01ea);
+        color: var(--nf-codemirror-keyword);
     }
 
     .cm-s-nifi .cm-property {
-        color: if($is-material-dark, #c792ea, #8e01ea);
+        color: var(--nf-codemirror-keyword);
     }
 
     .cm-s-nifi .cm-qualifier {
-        color: rgba($material-theme-secondary-palette-default, 0.87);
+        color: var(--mat-sys-secondary);
     }
 
     .cm-s-nifi .cm-variable-3,
     .cm-s-nifi .cm-s-default,
     .cm-s-nifi .cm-type {
-        color: rgba($material-theme-secondary-palette-default, 0.87);
+        color: var(--mat-sys-secondary);
     }
 
     .cm-s-nifi .cm-error {
-        color: if($is-material-dark, rgba(255, 255, 255, 1), rgba(0, 0, 0, 0));
-        background-color: if($is-material-dark, #ff002a, #ff8094);
+        color: var(--nf-codemirror-error-color);
+        background-color: var(--nf-codemirror-error-background-color);
     }
 
     .cm-s-nifi .CodeMirror-matchingbracket {
         text-decoration: underline;
-        color: $primary-contrast !important;
-        background-color: $material-theme-neutral-palette-default;
+        color: var(--mat-sys-on-primary) !important;
+        background-color: var(--nf-neutral);
     }
 
     .cm-s-nifi .CodeMirror-nonmatchingbracket {
-        color: if($is-material-dark, #fc7a7a, #a62020);
+        color: var(--nf-codemirror-nonmatchingbracket);
     }
 
     .cm-s-nifi .CodeMirror-matchingtag {
-        background: if($is-material-dark, rgba(255, 150, 0, 0.97), rgba(255, 150, 0, 0.3));
+        background: var(--nf-codemirror-matchingtag);
     }
 
     .cm-s-nifi .CodeMirror-activeline-background {
-        background: if($is-material-dark, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.5));
+        background: var(--nf-codemirror-activeline-background);
     }
 }
