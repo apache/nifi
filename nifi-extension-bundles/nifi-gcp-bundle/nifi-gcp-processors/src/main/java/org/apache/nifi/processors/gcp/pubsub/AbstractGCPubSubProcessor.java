@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.processors.gcp.pubsub;
 
+import com.google.api.gax.rpc.TransportChannelProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
-
+import com.google.cloud.pubsub.v1.TopicAdminSettings;
 import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
+import io.grpc.HttpConnectProxiedSocketAddress;
+import io.grpc.ProxiedSocketAddress;
+import io.grpc.ProxyDetector;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -29,10 +33,17 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.proxy.ProxyConfiguration;
 
+import javax.annotation.Nullable;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PUBSUB_SCOPE;
 
 public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor implements VerifiableProcessor {
 
@@ -118,6 +129,36 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
         }
 
         return results;
+    }
+
+    @Override
+    protected GoogleCredentials getGoogleCredentials(ProcessContext context) {
+        return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_PUBSUB_SCOPE);
+    }
+
+    protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+
+        return TopicAdminSettings.defaultGrpcTransportProviderBuilder()
+                .setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(
+                        new ProxyDetector() {
+                            @Nullable
+                            @Override
+                            public ProxiedSocketAddress proxyFor(SocketAddress socketAddress) {
+                                if (Proxy.Type.HTTP.equals(proxyConfiguration.getProxyType())) {
+                                    return HttpConnectProxiedSocketAddress.newBuilder()
+                                            .setUsername(proxyConfiguration.getProxyUserName())
+                                            .setPassword(proxyConfiguration.getProxyUserPassword())
+                                            .setProxyAddress(new InetSocketAddress(proxyConfiguration.getProxyServerHost(),
+                                                    proxyConfiguration.getProxyServerPort()))
+                                            .setTargetAddress((InetSocketAddress) socketAddress)
+                                            .build();
+                                } else {
+                                    return null;
+                                }
+                            }
+                        }))
+                .build();
     }
 
 }
