@@ -27,7 +27,10 @@ public class GoogleDriveAttributes {
     public static final String FILENAME_DESC = "The name of the file";
 
     public static final String SIZE = "drive.size";
-    public static final String SIZE_DESC = "The size of the file";
+    public static final String SIZE_DESC = "The size of the file. Set to 0 when the file size is not available (e.g. externally stored files).";
+
+    public static final String SIZE_AVAILABLE = "drive.size.available";
+    public static final String SIZE_AVAILABLE_DESC = "Indicates if the file size is known / available";
 
     public static final String TIMESTAMP = "drive.timestamp";
     public static final String TIMESTAMP_DESC =  "The last modified time or created time (whichever is greater) of the file." +

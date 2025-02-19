@@ -61,6 +61,8 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
@@ -76,6 +78,7 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
         @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = SIZE_AVAILABLE, description = SIZE_AVAILABLE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)

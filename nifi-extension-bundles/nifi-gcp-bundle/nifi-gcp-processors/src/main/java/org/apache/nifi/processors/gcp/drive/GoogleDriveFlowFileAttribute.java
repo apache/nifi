@@ -18,20 +18,14 @@ package org.apache.nifi.processors.gcp.drive;
 
 import org.apache.nifi.serialization.record.Record;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 public enum GoogleDriveFlowFileAttribute {
     ID(GoogleDriveAttributes.ID, GoogleDriveFileInfo::getId),
     FILENAME(GoogleDriveAttributes.FILENAME, GoogleDriveFileInfo::getName),
-    SIZE(GoogleDriveAttributes.SIZE, fileInfo -> Optional.ofNullable(fileInfo.getSize())
-            .map(String::valueOf)
-            .orElse(null)
-    ),
-    TIMESTAMP(GoogleDriveAttributes.TIMESTAMP, fileInfo -> Optional.ofNullable(fileInfo.getTimestamp())
-            .map(String::valueOf)
-            .orElse(null)
-    ),
+    SIZE(GoogleDriveAttributes.SIZE, fileInfo -> String.valueOf(fileInfo.getSize())),
+    SIZE_AVAILABLE(GoogleDriveAttributes.SIZE_AVAILABLE, fileInfo -> String.valueOf(fileInfo.isSizeAvailable())),
+    TIMESTAMP(GoogleDriveAttributes.TIMESTAMP, fileInfo -> String.valueOf(fileInfo.getTimestamp())),
     MIME_TYPE(GoogleDriveAttributes.MIME_TYPE, GoogleDriveFileInfo::getMimeType);
 
     private final String name;

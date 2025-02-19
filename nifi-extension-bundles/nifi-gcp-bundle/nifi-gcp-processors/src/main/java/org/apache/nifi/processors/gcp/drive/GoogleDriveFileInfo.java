@@ -20,6 +20,7 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAM
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 
 import org.apache.nifi.processor.util.list.ListableEntity;
@@ -44,6 +45,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         recordFields.add(new RecordField(ID, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
+        recordFields.add(new RecordField(SIZE_AVAILABLE, RecordFieldType.BOOLEAN.getDataType(), false));
         recordFields.add(new RecordField(TIMESTAMP, RecordFieldType.LONG.getDataType(), false));
         recordFields.add(new RecordField(MIME_TYPE, RecordFieldType.STRING.getDataType()));
 
@@ -53,6 +55,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
     private final String id;
     private final String fileName;
     private final long size;
+    private final boolean sizeAvailable;
     private final long createdTime;
     private final long modifiedTime;
     private final String mimeType;
@@ -63,6 +66,10 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public boolean isSizeAvailable() {
+        return sizeAvailable;
     }
 
     public long getCreatedTime() {
@@ -84,6 +91,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         values.put(ID, getId());
         values.put(FILENAME, getName());
         values.put(SIZE, getSize());
+        values.put(SIZE_AVAILABLE, isSizeAvailable());
         values.put(TIMESTAMP, getTimestamp());
         values.put(MIME_TYPE, getMimeType());
 
@@ -98,6 +106,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         private String id;
         private String fileName;
         private long size;
+        private boolean sizeAvailable;
         private long createdTime;
         private long modifiedTime;
         private String mimeType;
@@ -114,6 +123,11 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
         public Builder size(long size) {
             this.size = size;
+            return this;
+        }
+
+        public Builder sizeAvailable(boolean sizeAvailable) {
+            this.sizeAvailable = sizeAvailable;
             return this;
         }
 
@@ -172,6 +186,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         this.id = builder.id;
         this.fileName = builder.fileName;
         this.size = builder.size;
+        this.sizeAvailable = builder.sizeAvailable;
         this.createdTime = builder.createdTime;
         this.modifiedTime = builder.modifiedTime;
         this.mimeType = builder.mimeType;
