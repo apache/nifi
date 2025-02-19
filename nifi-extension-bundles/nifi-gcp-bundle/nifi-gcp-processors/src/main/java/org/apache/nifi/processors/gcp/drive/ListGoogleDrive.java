@@ -69,6 +69,8 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
@@ -89,6 +91,7 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
         @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = SIZE_AVAILABLE, description = SIZE_AVAILABLE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
@@ -276,7 +279,8 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                 GoogleDriveFileInfo.Builder builder = new GoogleDriveFileInfo.Builder()
                         .id(file.getId())
                         .fileName(file.getName())
-                        .size(file.getSize())
+                        .size(file.getSize() != null ? file.getSize() : 0L)
+                        .sizeAvailable(file.getSize() != null)
                         .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
                         .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
                         .mimeType(file.getMimeType());

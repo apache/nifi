@@ -93,11 +93,24 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, createdTime);
     }
+
     @Test
     void testOutputAsAttributesWhereTimestampIsModifiedTime() throws Exception {
         String id = "id_1";
         String filename = "file_name_1";
         Long size = 125L;
+        Long createdTime = 123456L;
+        Long modifiedTime = 123456L + 1L;
+        String mimeType = "mime_type_1";
+
+        testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, modifiedTime);
+    }
+
+    @Test
+    void testOutputAsAttributesWhereSizeIsNotAvailable() throws Exception {
+        String id = "id_1";
+        String filename = "file_name_1";
+        Long size = null;
         Long createdTime = 123456L;
         Long modifiedTime = 123456L + 1L;
         String mimeType = "mime_type_1";
@@ -124,6 +137,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                         "\"drive.id\":\"" + id + "\"," +
                         "\"filename\":\"" + filename + "\"," +
                         "\"drive.size\":" + size + "," +
+                        "\"drive.size.available\":" + (size != null) + "," +
                         "\"drive.timestamp\":" + modifiedTime + "," +
                         "\"mime.type\":\"" + mimeType + "\"" +
                         "}" +
@@ -168,7 +182,8 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put(GoogleDriveAttributes.ID, id);
         inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, filename);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size != null ? size : 0L));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, valueOf(size != null));
         inputFlowFileAttributes.put(GoogleDriveAttributes.TIMESTAMP, valueOf(expectedTimestamp));
         inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, mimeType);
 

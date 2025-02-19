@@ -48,6 +48,7 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         inputFlowFileAttributes.put(GoogleDriveAttributes.ID, file.getId());
         inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, file.getName());
         inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(DEFAULT_FILE_CONTENT.length()));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, "true");
         inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, "text/plain");
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));

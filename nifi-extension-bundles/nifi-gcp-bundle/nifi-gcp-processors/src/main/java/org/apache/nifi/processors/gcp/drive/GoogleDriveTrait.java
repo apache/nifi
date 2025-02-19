@@ -79,7 +79,8 @@ public interface GoogleDriveTrait {
         attributes.put(GoogleDriveAttributes.FILENAME, file.getName());
         attributes.put(GoogleDriveAttributes.MIME_TYPE, file.getMimeType());
         attributes.put(GoogleDriveAttributes.TIMESTAMP, String.valueOf(file.getCreatedTime()));
-        attributes.put(GoogleDriveAttributes.SIZE, String.valueOf(file.getSize()));
+        attributes.put(GoogleDriveAttributes.SIZE, String.valueOf(file.getSize() != null ? file.getSize() : 0L));
+        attributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, String.valueOf(file.getSize() != null));
         return attributes;
     }
 }
