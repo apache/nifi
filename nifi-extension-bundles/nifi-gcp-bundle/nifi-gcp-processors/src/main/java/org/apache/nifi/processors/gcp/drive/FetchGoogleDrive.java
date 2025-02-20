@@ -17,6 +17,10 @@
 package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpResponse;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
@@ -112,39 +116,36 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
 )
 public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
 
+    private static final long EXPORT_SIZE_LIMIT = 10_000_000;
+    private static final String EXPORT_SIZE_ERROR = "exportSizeLimitExceeded";
+
     // Google Docs Export Types
     private static final AllowableValue EXPORT_MS_WORD = new AllowableValue("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Microsoft Word");
-    private static final AllowableValue EXPORT_OPEN_DOCUMENT = new AllowableValue("application/vnd.oasis.opendocument.text", "OpenDocument");
-    private static final AllowableValue EXPORT_PDF = new AllowableValue("application/pdf", "PDF");
+    private static final AllowableValue EXPORT_OPEN_DOCUMENT = new AllowableValue("application/vnd.oasis.opendocument.text", "OpenDocument Text");
     private static final AllowableValue EXPORT_RICH_TEXT = new AllowableValue("application/rtf", "Rich Text");
     private static final AllowableValue EXPORT_EPUB = new AllowableValue("application/epub+zip", "EPUB");
 
     // Shared Export Types
-    private static final AllowableValue EXPORT_HTML_DOC = new AllowableValue("application/zip", "Web Page (HTML)");
+    private static final AllowableValue EXPORT_PDF = new AllowableValue("application/pdf", "PDF");
+    private static final AllowableValue EXPORT_HTML = new AllowableValue("application/zip", "Web Page (HTML)");
     private static final AllowableValue EXPORT_PLAIN_TEXT = new AllowableValue("text/plain", "Plain Text");
 
     // Google Spreadsheet Export Types
     private static final AllowableValue EXPORT_MS_EXCEL = new AllowableValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Microsoft Excel");
     private static final AllowableValue EXPORT_OPEN_SPREADSHEET = new AllowableValue("application/x-vnd.oasis.opendocument.spreadsheet", "OpenDocument Spreadsheet");
-    private static final AllowableValue EXPORT_PDF_SPREADSHEET = new AllowableValue("application/pdf", "PDF");
     private static final AllowableValue EXPORT_CSV = new AllowableValue("text/csv", "CSV (first sheet only)",
         "Comma-separated values. Only the first sheet will be exported.");
     private static final AllowableValue EXPORT_TSV = new AllowableValue("text/tab-separated-values", "TSV (first sheet only)",
         "Tab-separate values. Only the first sheet will be exported.");
-    private static final AllowableValue EXPORT_HTML_SPREADSHEET = new AllowableValue("text/html", "Web Page (HTML)");
 
     // Google Presentation Export Types
     private static final AllowableValue EXPORT_MS_POWERPOINT = new AllowableValue("application/vnd.openxmlformats-officedocument.presentationml.presentation", "Microsoft PowerPoint");
     private static final AllowableValue EXPORT_OPEN_PRESENTATION = new AllowableValue("application/vnd.oasis.opendocument.presentation", "OpenDocument Presentation");
-    private static final AllowableValue EXPORT_PNG = new AllowableValue("image/png", "PNG (first slide only)");
-    private static final AllowableValue EXPORT_JPEG = new AllowableValue("image/jpeg", "JPEG (first slide only)");
-    private static final AllowableValue EXPORT_SVG = new AllowableValue("image/svg+xml", "SVG (first slide only)",
-        "Scalable Vector Graphics. Only the first slide will be exported.");
 
     // Drawings Export Types
-    private static final AllowableValue EXPORT_PNG_DRAWING = new AllowableValue("image/png", "PNG");
-    private static final AllowableValue EXPORT_JPEG_DRAWING = new AllowableValue("image/jpeg", "JPEG");
-    private static final AllowableValue EXPORT_SVG_DRAWING = new AllowableValue("image/svg+xml", "SVG");
+    private static final AllowableValue EXPORT_PNG = new AllowableValue("image/png", "PNG");
+    private static final AllowableValue EXPORT_JPEG = new AllowableValue("image/jpeg", "JPEG");
+    private static final AllowableValue EXPORT_SVG = new AllowableValue("image/svg+xml", "SVG");
 
     private static final Map<String, String> fileExtensions = new HashMap<>();
     static {
@@ -153,7 +154,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         fileExtensions.put(EXPORT_PDF.getValue(), ".pdf");
         fileExtensions.put(EXPORT_RICH_TEXT.getValue(), ".rtf");
         fileExtensions.put(EXPORT_EPUB.getValue(), ".epub");
-        fileExtensions.put(EXPORT_HTML_DOC.getValue(), ".zip");
+        fileExtensions.put(EXPORT_HTML.getValue(), ".zip");
         fileExtensions.put(EXPORT_PLAIN_TEXT.getValue(), ".txt");
         fileExtensions.put(EXPORT_MS_EXCEL.getValue(), ".xlsx");
         fileExtensions.put(EXPORT_OPEN_SPREADSHEET.getValue(), ".ods");
@@ -184,8 +185,8 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             "that the incoming FlowFile's MIME Type indicates that the file is a Google Document, this property specifies the MIME Type to export the document to.")
         .required(true)
         .allowableValues(
-            EXPORT_PDF, EXPORT_PLAIN_TEXT, EXPORT_MS_WORD,
-            EXPORT_OPEN_DOCUMENT, EXPORT_RICH_TEXT, EXPORT_HTML_DOC, EXPORT_EPUB)
+            EXPORT_PDF, EXPORT_MS_WORD, EXPORT_OPEN_DOCUMENT,
+            EXPORT_PLAIN_TEXT, EXPORT_RICH_TEXT, EXPORT_HTML, EXPORT_EPUB)
         .defaultValue(EXPORT_PDF.getValue())
         .build();
 
@@ -195,9 +196,9 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             "that the incoming FlowFile's MIME Type indicates that the file is a Google Spreadsheet, this property specifies the MIME Type to export the spreadsheet to.")
         .required(true)
         .allowableValues(
-            EXPORT_CSV, EXPORT_MS_EXCEL, EXPORT_PDF_SPREADSHEET,
-            EXPORT_TSV, EXPORT_HTML_SPREADSHEET, EXPORT_OPEN_SPREADSHEET)
-        .defaultValue(EXPORT_CSV.getValue())
+            EXPORT_PDF, EXPORT_MS_EXCEL, EXPORT_OPEN_SPREADSHEET,
+            EXPORT_CSV, EXPORT_TSV, EXPORT_HTML)
+        .defaultValue(EXPORT_PDF.getValue())
         .build();
 
     public static final PropertyDescriptor GOOGLE_PRESENTATION_EXPORT_TYPE = new PropertyDescriptor.Builder()
@@ -206,8 +207,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             "that the incoming FlowFile's MIME Type indicates that the file is a Google Presentation, this property specifies the MIME Type to export the presentation to.")
         .required(true)
         .allowableValues(
-            EXPORT_PDF, EXPORT_MS_POWERPOINT, EXPORT_PLAIN_TEXT, EXPORT_OPEN_PRESENTATION,
-            EXPORT_PNG, EXPORT_JPEG, EXPORT_SVG)
+            EXPORT_PDF, EXPORT_MS_POWERPOINT, EXPORT_OPEN_PRESENTATION, EXPORT_PLAIN_TEXT)
         .defaultValue(EXPORT_PDF.getValue())
         .build();
 
@@ -217,7 +217,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             "that the incoming FlowFile's MIME Type indicates that the file is a Google Drawing, this property specifies the MIME Type to export the drawing to.")
         .required(true)
         .allowableValues(
-            EXPORT_PDF, EXPORT_PNG_DRAWING, EXPORT_JPEG_DRAWING, EXPORT_SVG_DRAWING)
+            EXPORT_PDF, EXPORT_PNG, EXPORT_JPEG, EXPORT_SVG)
         .defaultValue(EXPORT_PDF.getValue())
         .build();
 
@@ -287,7 +287,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             final File fileMetadata = fetchFileMetadata(fileId);
             final Map<String, String> attributeMap = createAttributeMap(fileMetadata);
 
-            flowFile = fetchFile(fileId, session, context, flowFile, attributeMap);
+            flowFile = fetchFile(fileMetadata, session, context, flowFile, attributeMap);
 
             flowFile = session.putAllAttributes(flowFile, attributeMap);
 
@@ -312,20 +312,22 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             case "application/vnd.google-apps.spreadsheet" -> context.getProperty(GOOGLE_SPREADSHEET_EXPORT_TYPE).getValue();
             case "application/vnd.google-apps.presentation" -> context.getProperty(GOOGLE_PRESENTATION_EXPORT_TYPE).getValue();
             case "application/vnd.google-apps.drawing" -> context.getProperty(GOOGLE_DRAWING_EXPORT_TYPE).getValue();
+            case "application/vnd.google-apps.form" -> "application/zip";
             case "application/vnd.google-apps.script" -> "application/vnd.google-apps.script+json";
             default -> null;
         };
     }
 
-    private FlowFile fetchFile(final String fileId, final ProcessSession session, final ProcessContext context, final FlowFile flowFile, final Map<String, String> attributeMap) throws IOException {
-        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+    private FlowFile fetchFile(final File fileMetadata, final ProcessSession session, final ProcessContext context, final FlowFile flowFile, final Map<String, String> attributeMap)
+            throws IOException {
+        final String mimeType = fileMetadata.getMimeType();
         final String exportType = getExportType(mimeType, context);
 
         if (exportType == null) {
-            return downloadFile(fileId, session, flowFile);
+            return downloadFile(fileMetadata.getId(), session, flowFile);
         }
 
-        return exportFile(fileId, exportType, session, flowFile, attributeMap);
+        return exportFile(fileMetadata, exportType, session, flowFile, attributeMap);
     }
 
     private FlowFile downloadFile(final String fileId, final ProcessSession session, final FlowFile flowFile) throws IOException {
@@ -339,7 +341,8 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         }
     }
 
-    private FlowFile exportFile(final String fileId, final String exportMimeType, final ProcessSession session, final FlowFile flowFile, final Map<String, String> attributeMap) throws IOException {
+    private FlowFile exportFile(final File fileMetadata, final String exportMimeType, final ProcessSession session, final FlowFile flowFile, final Map<String, String> attributeMap)
+            throws IOException {
         attributeMap.put(CoreAttributes.MIME_TYPE.key(), exportMimeType);
 
         final String fileExtension = fileExtensions.get(exportMimeType);
@@ -347,22 +350,58 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             attributeMap.put(CoreAttributes.FILENAME.key(), flowFile.getAttribute(CoreAttributes.FILENAME.key()) + fileExtension);
         }
 
-        try (final InputStream driveFileInputStream = driveService
-            .files()
-            .export(fileId, exportMimeType)
-            .executeMediaAsInputStream()) {
+        if (fileMetadata.getSize() == null || fileMetadata.getSize() < EXPORT_SIZE_LIMIT) {
+            try (final InputStream driveFileInputStream = driveService
+                    .files()
+                    .export(fileMetadata.getId(), exportMimeType)
+                    .executeMediaAsInputStream()) {
 
+                return session.importFrom(driveFileInputStream, flowFile);
+            } catch (GoogleJsonResponseException e) {
+                if (!e.getContent().contains(EXPORT_SIZE_ERROR)) {
+                    throw e;
+                }
+                // fall back to export link
+            }
+        }
+
+        final String exportLink = getExportLink(fileMetadata, exportMimeType);
+
+        final HttpRequestFactory requestFactory = driveService.getRequestFactory();
+        final HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(exportLink));
+        final HttpResponse response = request.execute();
+
+        try (final InputStream driveFileInputStream = response.getContent()) {
             return session.importFrom(driveFileInputStream, flowFile);
         }
     }
 
+    private String getExportLink(final File fileMetadata, final String exportType) {
+        if (exportType == null) {
+            return null;
+        }
+
+        final Map<String, String> exportLinks = fileMetadata.getExportLinks();
+        if (exportLinks == null) {
+            throw new ProcessException(String.format("Export links cannot be found for file [id=%s, mimeType=%s]",
+                    fileMetadata.getId(), fileMetadata.getMimeType()));
+        }
+
+        final String exportLink = fileMetadata.getExportLinks().get(exportType);
+        if (exportLink == null) {
+            throw new ProcessException(String.format("Export link cannot be found for file [id=%s, mimeType=%s, exportType=%s, exportLinks=%s]",
+                    fileMetadata.getId(), fileMetadata.getMimeType(), exportType, exportLinks));
+        }
+
+        return exportLink;
+    }
 
     private File fetchFileMetadata(final String fileId) throws IOException {
         return driveService
                 .files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
-                .setFields("id, name, createdTime, mimeType, size")
+                .setFields("id, name, createdTime, mimeType, size, exportLinks")
                 .execute();
     }
 
