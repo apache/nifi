@@ -34,7 +34,7 @@
                 (cdkDropListDropped)="dropAvailable($event)">
                 @for (item of availableParameterContexts; track item; let i = $index) {
                     <div
-                        class="parameter-context-inheritance-draggable-item border mat-elevation-z2 m-1 font-bold"
+                        class="parameter-context-inheritance-draggable-item border m-1 font-bold"
                         cdkDrag
                         cdkDragPreviewContainer="parent"
                         [class.border-dashed]="isDisabled || !item.permissions.canRead"
@@ -74,7 +74,7 @@
                 (cdkDropListDropped)="dropSelected($event)">
                 @for (item of selectedParameterContexts; track item; let i = $index) {
                     <div
-                        class="parameter-context-inheritance-draggable-item border mat-elevation-z2 m-1 font-bold"
+                        class="parameter-context-inheritance-draggable-item border m-1 font-bold"
                         cdkDrag
                         cdkDragPreviewContainer="parent"
                         [cdkDragDisabled]="!item.permissions.canRead">

@@ -20,6 +20,6 @@
 
 @mixin generate-theme() {
     .breadcrumb-container {
-        background-color: var(--mat-app-background-color);
+        background-color: var(--mat-sys-background);
     }
 }

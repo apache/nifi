@@ -28,13 +28,7 @@
 @use 'codemirror/addon/fold/foldgutter.css';
 
 @use 'font-awesome';
-@use 'libs/shared/src/assets/themes/material';
-
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
-@include mat.elevation-classes();
-@include mat.app-background();
+@use 'libs/shared/src/assets/themes/apache-nifi';
 
 @tailwind base;
 @tailwind components;
@@ -44,17 +38,13 @@
 @include app.styles();
 
 html {
-    @include mat.typography-hierarchy(material.$m3-light-theme);
-    @include mat.all-component-themes(material.$m3-light-theme);
-    @include app.generate-material-theme(material.$m3-light-theme, material.$m3-light-theme-config);
-    @include codemirror-theme.generate-codemirror-theme(material.$m3-light-theme, material.$m3-light-theme-config);
-    @include standard-content-viewer.generate-theme(material.$m3-light-theme, material.$m3-light-theme-config);
+    @include app.generate-material-theme();
+    @include codemirror-theme.generate-codemirror-theme();
+    @include standard-content-viewer.generate-theme();
 
     .dark-theme {
-        //@include mat.typography-hierarchy($m3-dark-theme);
-        @include mat.all-component-colors(material.$m3-dark-theme);
-        @include app.generate-material-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
-        @include codemirror-theme.generate-codemirror-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
-        @include standard-content-viewer.generate-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
+        @include app.generate-material-theme();
+        @include codemirror-theme.generate-codemirror-theme();
+        @include standard-content-viewer.generate-theme();
     }
 }

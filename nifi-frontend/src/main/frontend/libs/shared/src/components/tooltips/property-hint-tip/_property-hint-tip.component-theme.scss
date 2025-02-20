@@ -18,26 +18,9 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
-        $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
-    );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-
+@mixin generate-theme() {
     .hint-pattern {
-        color: if($is-material-dark, $material-theme-neutral-palette-darker, $material-theme-neutral-palette-lighter);
-        background-color: $material-theme-primary-palette-default;
+        color: var(--mat-sys-background);
+        background-color: var(--mat-sys-primary);
     }
 }

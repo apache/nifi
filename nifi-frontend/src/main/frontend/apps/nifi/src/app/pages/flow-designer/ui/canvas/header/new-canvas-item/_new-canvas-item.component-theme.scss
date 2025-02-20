@@ -18,39 +18,23 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-    $grip: map.get(map.get(map.get($config, secondary), new-canvas-item), grip);
-    $hover: map.get(map.get(map.get($config, secondary), new-canvas-item), hover);
-
+@mixin generate-theme() {
     .new-canvas-item {
         .icon {
             @extend .secondary-contrast;
 
             &.hovering {
-                @extend .mat-elevation-z2;
-
-                background: linear-gradient($hover, $hover) !important;
+                box-shadow: var(--mat-sys-level2);
+                background: linear-gradient(
+                    var(--nf-new-canvas-item-hover),
+                    var(--nf-new-canvas-item-hover)
+                ) !important;
 
                 .component-button-grip {
                     background: repeating-linear-gradient(
                         90deg,
-                        $grip,
-                        $material-theme-secondary-palette-default 4px,
+                        var(--nf-new-canvas-item-grip),
+                        var(--mat-sys-secondary) 4px,
                         transparent 4px,
                         transparent 6px
                     );
@@ -58,7 +42,7 @@
             }
 
             &.cdk-drag-dragging {
-                color: $material-theme-secondary-palette-default;
+                color: var(--mat-sys-secondary);
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }

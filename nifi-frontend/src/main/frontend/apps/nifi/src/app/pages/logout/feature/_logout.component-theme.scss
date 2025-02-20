@@ -18,25 +18,9 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-
+@mixin generate-theme() {
     .logout-background {
-        background: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            )
-            url(../../../../../../../libs/shared/src/assets/icons/bg-error.png) left top no-repeat;
+        background: var(--mat-sys-background) url(../../../../../../../libs/shared/src/assets/icons/bg-error.png) left
+            top no-repeat;
     }
 }

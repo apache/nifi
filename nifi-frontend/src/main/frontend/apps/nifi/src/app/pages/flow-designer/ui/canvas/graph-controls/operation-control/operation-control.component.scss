@@ -18,10 +18,8 @@
 div.operation-control {
     margin-bottom: 2px;
 
-    .mat-mdc-icon-button {
-        --mdc-icon-button-state-layer-size: 34px;
-        --mdc-icon-button-icon-size: 17px;
-    }
+    --mdc-icon-button-state-layer-size: 34px;
+    --mdc-icon-button-icon-size: 17px;
 
     .operation-control-header {
         .fa {
