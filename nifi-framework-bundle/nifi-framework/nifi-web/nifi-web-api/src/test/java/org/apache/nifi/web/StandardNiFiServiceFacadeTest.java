@@ -497,6 +497,13 @@ public class StandardNiFiServiceFacadeTest {
         final RevisionManager revisionManager = new NaiveRevisionManager();
         serviceFacade.setRevisionManager(revisionManager);
 
+        final VersionedPropertyDescriptor versionedPropertyDescriptor = new VersionedPropertyDescriptor();
+        versionedPropertyDescriptor.setName(sensitiveProperty);
+        versionedPropertyDescriptor.setSensitive(true);
+
+        final Map<String, VersionedPropertyDescriptor> propertyDescriptors = new HashMap<>();
+        propertyDescriptors.put(sensitiveProperty, versionedPropertyDescriptor);
+
         final Map<String, String> properties = new HashMap<>();
         properties.put(sensitiveProperty, null);
 
@@ -504,6 +511,7 @@ public class StandardNiFiServiceFacadeTest {
         final VersionedProcessor versionedProcessor = new VersionedProcessor();
         versionedProcessor.setIdentifier("12345");
         versionedProcessor.setInstanceIdentifier(instanceId);
+        versionedProcessor.setPropertyDescriptors(propertyDescriptors);
         versionedProcessor.setProperties(properties);
 
         final PropertyDescriptor propertyDescriptor = mock(PropertyDescriptor.class);

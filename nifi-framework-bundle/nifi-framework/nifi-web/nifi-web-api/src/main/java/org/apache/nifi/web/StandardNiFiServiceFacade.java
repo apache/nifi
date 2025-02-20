@@ -6170,7 +6170,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     copiedInstance.getProperties().keySet().stream()
                             .filter(PropertyDescriptor::isSensitive)
                             .forEach(pd -> {
-                                p.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                final VersionedPropertyDescriptor vpd = p.getPropertyDescriptors().get(pd.getName());
+                                if (vpd != null && vpd.isSensitive()) {
+                                    p.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                }
                             });
                 }
             }
@@ -6193,7 +6196,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     copiedInstance.getProperties().keySet().stream()
                             .filter(PropertyDescriptor::isSensitive)
                             .forEach(pd -> {
-                                s.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                final VersionedPropertyDescriptor vpd = s.getPropertyDescriptors().get(pd.getName());
+                                if (vpd != null && vpd.isSensitive()) {
+                                    s.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                }
                             });
                 }
             }
