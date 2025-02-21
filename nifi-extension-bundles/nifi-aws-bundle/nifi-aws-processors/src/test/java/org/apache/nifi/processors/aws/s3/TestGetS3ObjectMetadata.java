@@ -23,6 +23,7 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
@@ -38,7 +39,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,8 +92,7 @@ class TestGetS3ObjectMetadata {
         when(mockMetadata.getRawMetadata()).thenReturn(rawMetadata);
         when(mockMetadata.getUserMetadata()).thenReturn(userMetadata);
 
-        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
-                .thenReturn(mockMetadata);
+        when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenReturn(mockMetadata);
 
         return combined;
     }
@@ -145,8 +145,7 @@ class TestGetS3ObjectMetadata {
         exception.setStatusCode(501);
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTES.getValue());
-        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
-                .thenThrow(exception);
+        when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenThrow(exception);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
     }
@@ -158,8 +157,7 @@ class TestGetS3ObjectMetadata {
         exception.setStatusCode(404);
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTES.getValue());
-        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
-                .thenThrow(exception);
+        when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenThrow(exception);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_NOT_FOUND, 1);
     }
@@ -168,8 +166,7 @@ class TestGetS3ObjectMetadata {
     @Test
     void testFetchMetadataToBodyExists() {
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_FLOWFILE_BODY.getValue());
-        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
-                .thenReturn(mockMetadata);
+        when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenReturn(mockMetadata);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
     }
@@ -181,8 +178,7 @@ class TestGetS3ObjectMetadata {
         exception.setStatusCode(404);
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_FLOWFILE_BODY.getValue());
-        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
-                .thenThrow(exception);
+        when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenThrow(exception);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_NOT_FOUND, 1);
     }
@@ -194,8 +190,7 @@ class TestGetS3ObjectMetadata {
         exception.setStatusCode(501);
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_FLOWFILE_BODY.getValue());
-        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
-                .thenThrow(exception);
+        when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenThrow(exception);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
     }

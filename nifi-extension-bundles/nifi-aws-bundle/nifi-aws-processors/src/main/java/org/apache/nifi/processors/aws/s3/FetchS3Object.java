@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 
 @SupportsBatching
-@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, CopyS3Object.class, GetS3ObjectMetadata.class, TagS3Object.class})
+@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, CopyS3Object.class, GetS3ObjectMetadata.class, GetS3ObjectTags.class, TagS3Object.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Get", "Fetch"})
 @CapabilityDescription("Retrieves the contents of an S3 Object and writes it to the content of a FlowFile")
@@ -229,14 +229,6 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
     }
 )
 public class FetchS3Object extends AbstractS3Processor {
-
-    public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
-            .name("Version")
-            .description("The Version of the Object to download")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
-            .build();
 
     public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
             .name("requester-pays")

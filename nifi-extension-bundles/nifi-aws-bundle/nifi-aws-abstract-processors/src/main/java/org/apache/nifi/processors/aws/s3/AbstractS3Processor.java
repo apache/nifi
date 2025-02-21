@@ -145,6 +145,13 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${filename}")
             .build();
+    public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
+            .name("Version")
+            .description("The Version of the Object to download")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
     public static final PropertyDescriptor SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
             .name("Signer Override")
             .description("The AWS S3 library uses Signature Version 4 by default but this property allows you to specify the Version 2 signer to support older S3-compatible services" +

@@ -53,7 +53,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 @Tags({"Amazon", "S3", "AWS", "Archive", "Copy"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Copies a file from one bucket and key to another in AWS S3")
-@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class})
+@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class, GetS3ObjectMetadata.class, GetS3ObjectTags.class})
 public class CopyS3Object extends AbstractS3Processor {
     public static final long MULTIPART_THRESHOLD = 5L * 1024L * 1024L * 1024L;
 
