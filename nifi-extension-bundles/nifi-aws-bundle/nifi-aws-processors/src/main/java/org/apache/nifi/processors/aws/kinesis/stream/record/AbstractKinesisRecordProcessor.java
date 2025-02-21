@@ -313,6 +313,10 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         return log;
     }
 
+    String getStreamName() {
+        return streamName;
+    }
+
     String getKinesisShardId() {
         return kinesisShardId;
     }
