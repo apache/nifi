@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
 
+import com.opencsv.CSVParser;
 import org.apache.nifi.registry.authorization.Tenant;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -28,16 +30,15 @@ import java.util.stream.Collectors;
 public final class TenantHelper {
     private TenantHelper() { }
 
-    public static <T extends Tenant> Set<Tenant> selectExistingTenants(final String names, final String ids, List<T> allTenants) {
-        String separator = ",";
+    public static <T extends Tenant> Set<Tenant> selectExistingTenants(final String names, final String ids, List<T> allTenants) throws IOException {
+        final CSVParser csvParser = new CSVParser();
+        final Set<String> nameSet = new HashSet<>(Arrays.asList(csvParser.parseLine(Optional.ofNullable(names).orElse(""))));
+        final Set<String> idSet = new HashSet<>(Arrays.asList(csvParser.parseLine(Optional.ofNullable(ids).orElse(""))));
 
-        Set<String> nameSet = new HashSet<>(Arrays.asList(Optional.ofNullable(names).orElse("").split(separator)));
-        Set<String> idSet = new HashSet<>(Arrays.asList(Optional.ofNullable(ids).orElse("").split(separator)));
+        final Set<Tenant> existingTenants = allTenants.stream()
+                .filter(tenant -> nameSet.contains(tenant.getIdentity()) || idSet.contains(tenant.getIdentifier()))
+                .collect(Collectors.toSet());
 
-        Set<Tenant> existingTentants = allTenants.stream()
-            .filter(tenant -> nameSet.contains(tenant.getIdentity()) || idSet.contains(tenant.getIdentifier()))
-            .collect(Collectors.toSet());
-
-        return existingTentants;
+        return existingTenants;
     }
 }
