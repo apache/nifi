@@ -97,10 +97,11 @@ public class TestConsumeKinesisStream {
         runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, "not-an-enum-match");
         runner.setProperty(ConsumeKinesisStream.RECORD_READER, "not-a-reader");
         runner.setProperty(ConsumeKinesisStream.RECORD_WRITER, "not-a-writer");
+        runner.setProperty(ConsumeKinesisStream.OUTPUT_STRATEGY, "not-an-enum-match");
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 14 validation failures:\n" +
+        assertEquals(assertionError.getMessage(), String.format("Processor has 15 validation failures:\n" +
                         "'%s' validated against ' ' is invalid because %s must contain at least one character that is not white space\n" +
                         "'%s' validated against 'not-a-reader' is invalid because Property references a Controller Service that does not exist\n" +
                         "'%s' validated against 'not-a-writer' is invalid because Property references a Controller Service that does not exist\n" +
@@ -117,6 +118,7 @@ public class TestConsumeKinesisStream {
                         "'%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
                         "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
                         "'%s' validated against 'not-a-boolean' is invalid because Given value not found in allowed set 'true, false'\n" +
+                        "'Output Strategy' validated against 'not-an-enum-match' is invalid because Given value not found in allowed set 'USE_VALUE, USE_WRAPPER'\n" +
                         "'%s' validated against 'not-a-reader' is invalid because Invalid Controller Service: not-a-reader is not a valid Controller Service Identifier\n" +
                         "'%s' validated against 'not-a-writer' is invalid because Invalid Controller Service: not-a-writer is not a valid Controller Service Identifier\n",
                 ConsumeKinesisStream.APPLICATION_NAME.getName(), ConsumeKinesisStream.APPLICATION_NAME.getName(),

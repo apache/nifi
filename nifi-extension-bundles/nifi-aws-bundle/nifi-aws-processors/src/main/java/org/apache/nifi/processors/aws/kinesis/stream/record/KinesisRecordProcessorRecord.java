@@ -22,6 +22,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -52,18 +53,21 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
     private RecordSetWriter writer;
     private OutputStream outputStream;
+    private final RecordConverter recordConverter;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
                                         final long checkpointIntervalMillis, final long retryWaitMillis,
                                         final int numRetries, final DateTimeFormatter dateTimeFormatter,
-                                        final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory) {
+                                        final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory,
+                                        final RecordConverter recordConverter) {
         super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
                 numRetries, dateTimeFormatter);
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
 
         schemaRetrievalVariables = Collections.singletonMap(KINESIS_RECORD_SCHEMA_KEY, streamName);
+        this.recordConverter = recordConverter;
     }
 
     @Override
@@ -88,9 +92,14 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         try (final InputStream in = new ByteArrayInputStream(data);
              final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, getLogger())
         ) {
-            org.apache.nifi.serialization.record.Record outputRecord;
+            org.apache.nifi.serialization.record.Record intermediateRecord;
             final PushBackRecordSet recordSet = new PushBackRecordSet(reader.createRecordSet());
-            while ((outputRecord = recordSet.next()) != null) {
+            while ((intermediateRecord = recordSet.next()) != null) {
+                org.apache.nifi.serialization.record.Record outputRecord =
+                        recordConverter.convert(intermediateRecord,
+                                kinesisRecord,
+                                getStreamName(),
+                                getKinesisShardId());
                 if (flowFiles.isEmpty()) {
                     flowFile = session.create();
                     flowFiles.add(flowFile);
