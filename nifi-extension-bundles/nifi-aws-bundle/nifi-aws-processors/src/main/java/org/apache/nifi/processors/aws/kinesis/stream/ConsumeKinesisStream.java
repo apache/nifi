@@ -345,7 +345,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             "leaseManagementConfig.failoverTimeMillis", FAILOVER_TIMEOUT
     );
 
-    private static final Object WORKER_LOCK = new Object();
+    private final Object workerLock = new Object();
     private static final String SCHEDULER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Scheduler.class.getSimpleName() + "-";
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -564,7 +564,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         if (scheduler == null) {
-            synchronized (WORKER_LOCK) {
+            synchronized (workerLock) {
                 if (scheduler == null) {
                     final String schedulerId = generateSchedulerId();
                     getLogger().info("Starting Kinesis Scheduler {}", schedulerId);
@@ -594,7 +594,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     @OnStopped
     public void stopConsuming(final ProcessContext context) {
         if (scheduler != null) {
-            synchronized (WORKER_LOCK) {
+            synchronized (workerLock) {
                 if (scheduler != null) {
                     // indicate whether the processor has been Stopped; the Worker can be marked as SHUT_DOWN but still be waiting
                     // for ShardConsumers/RecordProcessors to complete, etc.
