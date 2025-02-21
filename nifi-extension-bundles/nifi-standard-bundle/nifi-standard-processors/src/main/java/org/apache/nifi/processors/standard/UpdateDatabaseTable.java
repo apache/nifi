@@ -495,6 +495,9 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
         try (final Statement s = conn.createStatement()) {
+            final DatabaseMetaData databaseMetaData = conn.getMetaData();
+            final String quoteString = databaseMetaData.getIdentifierQuoteString();
+
             // Determine whether the table exists
             TableSchema tableSchema = null;
             try {
@@ -507,8 +510,6 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             boolean tableCreated = false;
             if (tableSchema == null) {
                 if (createIfNotExists) {
-                    final DatabaseMetaData databaseMetaData = conn.getMetaData();
-                    final String quoteString = databaseMetaData.getIdentifierQuoteString();
 
                     // Create a TableSchema from the record, adding all columns
                     for (RecordField recordField : schema.getFields()) {
@@ -523,22 +524,16 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                             columnName = recordFieldName;
                         }
 
-                        final String qualifiedColumnName;
-                        if (quoteColumnNames) {
-                            qualifiedColumnName = s.enquoteIdentifier(columnName, true);
-                        } else {
-                            qualifiedColumnName = columnName;
-                        }
-
                         final int dataType = DataTypeUtils.getSQLTypeValue(recordField.getDataType());
-                        columns.add(new ColumnDescription(qualifiedColumnName, dataType, required, null, recordField.isNullable()));
+                        final String quotedColumnName = enquoteIdentifier(columnName, quoteString, quoteColumnNames);
+                        columns.add(new ColumnDescription(quotedColumnName, dataType, required, null, recordField.isNullable()));
                         getLogger().debug("Adding column {} to table {}", columnName, tableName);
                     }
 
-                    final String qualifiedCatalogName = catalogName == null ? null : s.enquoteIdentifier(catalogName, quoteTableName);
-                    final String qualifiedSchemaName = schemaName == null ? null : s.enquoteIdentifier(schemaName, quoteTableName);
-                    final String qualifiedTableName = s.enquoteIdentifier(tableName, quoteTableName);
-                    tableSchema = new TableSchema(qualifiedCatalogName, qualifiedSchemaName, qualifiedTableName, columns, translateFieldNames, normalizer, primaryKeyColumnNames, quoteString);
+                    final String quotedCatalogName = enquoteIdentifier(catalogName, quoteString, quoteTableName);
+                    final String quotedSchemaName = enquoteIdentifier(schemaName, quoteString, quoteTableName);
+                    final String quotedTableName = enquoteIdentifier(tableName, quoteString, quoteTableName);
+                    tableSchema = new TableSchema(quotedCatalogName, quotedSchemaName, quotedTableName, columns, translateFieldNames, normalizer, primaryKeyColumnNames, quoteString);
 
                     final TableDefinition tableDefinition = getTableDefinition(tableSchema);
                     final StatementRequest statementRequest = new StandardStatementRequest(StatementType.CREATE, tableDefinition);
@@ -583,7 +578,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 if (!columnsToAdd.isEmpty()) {
                     final List<ColumnDefinition> columnDefinitions = columnsToAdd.stream().map(columnDescription ->
                             new StandardColumnDefinition(
-                                    columnDescription.getColumnName(),
+                                    enquoteIdentifier(columnDescription.getColumnName(), quoteString, quoteColumnNames),
                                     columnDescription.getDataType(),
                                     columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
                                     columnDescription.isRequired()
@@ -591,7 +586,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                             )
                             .map(ColumnDefinition.class::cast)
                             .toList();
-                    final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), tableName, columnDefinitions);
+                    final String qualifiedTableName = enquoteIdentifier(tableName, quoteString, quoteTableName);
+                    final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), qualifiedTableName, columnDefinitions);
                     final StatementRequest statementRequest = new StandardStatementRequest(StatementType.ALTER, tableDefinition);
                     final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
 
@@ -698,6 +694,13 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 tableSchema.getTableName(),
                 columnDefinitions
         );
+    }
+
+    private String enquoteIdentifier(final String identifier, final String quotedIdentifierString, final boolean quoteIdentifier) {
+        if (identifier != null && quoteIdentifier) {
+            return quotedIdentifierString + identifier + quotedIdentifierString;
+        }
+        return identifier;
     }
 
     private static class OutputMetadataHolder {

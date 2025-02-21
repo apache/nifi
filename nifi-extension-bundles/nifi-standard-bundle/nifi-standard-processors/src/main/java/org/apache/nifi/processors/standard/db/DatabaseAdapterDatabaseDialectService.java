@@ -90,10 +90,10 @@ class DatabaseAdapterDatabaseDialectService extends AbstractControllerService im
         final String sql;
 
         if (StatementType.ALTER == statementType) {
-            sql = databaseAdapter.getAlterTableStatement(tableDefinition.tableName(), columnDescriptions, true, true);
+            sql = databaseAdapter.getAlterTableStatement(tableDefinition.tableName(), columnDescriptions);
         } else if (StatementType.CREATE == statementType) {
             final TableSchema tableSchema = getTableSchema(tableDefinition);
-            sql = databaseAdapter.getCreateTableStatement(tableSchema, false, false);
+            sql = databaseAdapter.getCreateTableStatement(tableSchema);
         } else if (StatementType.UPSERT == statementType) {
             sql = databaseAdapter.getUpsertStatement(tableDefinition.tableName(), columnNames, primaryKeyColumnNames);
         } else if (StatementType.INSERT_IGNORE == statementType) {
