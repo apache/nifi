@@ -149,6 +149,33 @@ public class TestStandardFlowComparator {
         assertEquals(contextB.getIdentifier(), difference.getComponentB().getIdentifier());
     }
 
+    @Test
+    public void testMultipleParametersNamesChanged() {
+        final Set<FlowDifference> differences = new HashSet<>();
+
+        final Set<VersionedParameter> parametersA = new HashSet<>();
+        parametersA.add(createParameter("Param 1", "ABC", true));
+        parametersA.add(createParameter("Param 2", "XYZ", true));
+
+        final Set<VersionedParameter> parametersB = new HashSet<>();
+        parametersB.add(createParameter("New Param 1", "ABC", true));
+        parametersB.add(createParameter("New Param 2", "XYZ", true));
+
+        final VersionedParameterContext contextA = new VersionedParameterContext();
+        contextA.setIdentifier("id");
+        contextA.setInstanceIdentifier("instanceId");
+        contextA.setParameters(parametersA);
+
+        final VersionedParameterContext contextB = new VersionedParameterContext();
+        contextB.setIdentifier("id");
+        contextB.setInstanceIdentifier("instanceId");
+        contextB.setParameters(parametersB);
+
+        comparator.compare(contextA, contextB, differences);
+
+        assertEquals(4, differences.size());
+    }
+
     private VersionedParameter createParameter(final String name, final String value, final boolean sensitive) {
         return createParameter(name, value, sensitive, null);
     }
