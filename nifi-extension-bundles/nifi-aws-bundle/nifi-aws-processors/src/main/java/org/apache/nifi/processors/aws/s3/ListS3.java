@@ -105,7 +105,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"Amazon", "S3", "AWS", "list"})
-@SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class, CopyS3Object.class, GetS3ObjectMetadata.class, TagS3Object.class})
+@SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class, CopyS3Object.class, GetS3ObjectMetadata.class, GetS3ObjectTags.class, TagS3Object.class})
 @CapabilityDescription("Retrieves a listing of objects from an S3 bucket. For each object that is listed, creates a FlowFile that represents "
         + "the object so that it can be fetched in conjunction with FetchS3Object. This Processor is designed to run on Primary Node only "
         + "in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating "
