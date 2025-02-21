@@ -22,6 +22,8 @@ import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 public class GoogleUtils {
 
     public static final String GOOGLE_CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+    public static final String GOOGLE_CLOUD_PUBSUB_SCOPE = "https://www.googleapis.com/auth/pubsub";
+    public static final String GOOGLE_CLOUD_BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery";
 
     /**
      * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.

@@ -45,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_BIGQUERY_SCOPE;
+
 /**
  * Base class for creating processors that connect to GCP BiqQuery service
  */
@@ -99,6 +101,11 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    protected GoogleCredentials getGoogleCredentials(ProcessContext context) {
+        return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_BIGQUERY_SCOPE);
     }
 
     @Override
