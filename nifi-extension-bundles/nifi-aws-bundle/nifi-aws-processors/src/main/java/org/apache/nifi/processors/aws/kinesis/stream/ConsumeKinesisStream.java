@@ -47,9 +47,13 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterIdentity;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterWrapper;
 import org.apache.nifi.processors.aws.v2.AbstractAwsAsyncProcessor;
 import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -101,7 +105,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
@@ -308,6 +311,15 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             .required(true)
             .build();
 
+    public static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Output Strategy")
+            .description("The format used to output the Kinesis Record into a FlowFile Record.")
+            .required(true)
+            .defaultValue(OutputStrategy.USE_VALUE)
+            .allowableValues(OutputStrategy.class)
+            .dependsOn(RECORD_WRITER)
+            .build();
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
             .description("If a message from Kinesis cannot be parsed using the configured Record Reader" +
@@ -333,6 +345,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             NUM_RETRIES,
             RETRY_WAIT,
             REPORT_CLOUDWATCH_METRICS,
+            OUTPUT_STRATEGY,
 
             // generic AWS processor properties
             TIMEOUT,
@@ -631,8 +644,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 .keySet()
                 .stream()
                 .filter(PropertyDescriptor::isDynamic)
-                .collect(Collectors.toList());
-
+                .toList();
 
         final RetrievalConfig retrievalConfig = configsBuilder.retrievalConfig()
                 .retrievalSpecificConfig(new PollingConfig(streamName, kinesisClient));
@@ -688,11 +700,15 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private ShardRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         return () -> {
             if (isRecordReaderSet && isRecordWriterSet) {
+                final String value = context.getProperty(OUTPUT_STRATEGY).getValue();
+                final RecordConverter recordConverter = OutputStrategy.USE_WRAPPER.getValue().equals(value)
+                        ? new RecordConverterWrapper()
+                        : new RecordConverterIdentity();
                 return new KinesisRecordProcessorRecord(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
-                        getReaderFactory(context), getWriterFactory(context)
+                        getReaderFactory(context), getWriterFactory(context), recordConverter
                 );
             } else {
                 return new KinesisRecordProcessorRaw(
