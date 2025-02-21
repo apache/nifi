@@ -20,8 +20,9 @@ package org.apache.nifi.processors.aws.s3;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingResult;
+import com.amazonaws.services.s3.model.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,8 +40,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StringUtils;
 
-import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,23 +50,22 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Exists"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Check for the existence of an Object in S3 and fetch its Metadata without attempting to download it. " +
+@CapabilityDescription("Check for the existence of an Object in S3 and fetch its Tags without attempting to download it. " +
         "This processor can be used as a router for workflows that need to check on an Object in S3 before proceeding with data processing")
-@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class, GetS3ObjectTags.class})
-public class GetS3ObjectMetadata extends AbstractS3Processor {
+@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class, GetS3ObjectMetadata.class})
+public class GetS3ObjectTags extends AbstractS3Processor {
 
     static final AllowableValue TARGET_ATTRIBUTES = new AllowableValue("ATTRIBUTES", "Attributes", """
-            When selected, the metadata will be written to FlowFile attributes with the prefix "s3." following the convention used in other processors. For example:
-            the standard S3 attribute Content-Type will be written as s3.Content-Type when using the default value. User-defined metadata
-            will be included in the attributes added to the FlowFile
+            When selected, the tags will be written to FlowFile attributes with the prefix "s3.tag." following the convention used in other processors. For example:
+            the S3 tag GuardDutyMalwareScanStatusType will be written as s3.tag.GuardDutyMalwareScanStatus when using the default value
             """
     );
 
-    static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("FLOWFILE_BODY", "FlowFile Body", "Write the metadata to FlowFile content as JSON data.");
+    static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("FLOWFILE_BODY", "FlowFile Body", "Write the tags to FlowFile content as JSON data.");
 
-    static final PropertyDescriptor METADATA_TARGET = new PropertyDescriptor.Builder()
-            .name("Metadata Target")
-            .description("This determines where the metadata will be written when found.")
+    static final PropertyDescriptor TAGS_TARGET = new PropertyDescriptor.Builder()
+            .name("Tags Target")
+            .description("This determines where the tags will be written when found.")
             .addValidator(Validator.VALID)
             .required(true)
             .allowableValues(TARGET_ATTRIBUTES, TARGET_FLOWFILE_BODY)
@@ -75,9 +73,9 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .build();
 
     static final PropertyDescriptor ATTRIBUTE_INCLUDE_PATTERN = new PropertyDescriptor.Builder()
-            .name("Metadata Attribute Include Pattern")
+            .name("Tag Attribute Include Pattern")
             .description("""
-                    A regular expression pattern to use for determining which object metadata entries are included as FlowFile
+                    A regular expression pattern to use for determining which object tags are included as FlowFile
                     attributes. This pattern is only applied to the 'found' relationship and will not be used to
                     filter the error attributes in the 'failure' relationship.
                     """
@@ -85,15 +83,15 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(".*")
-            .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTES)
+            .dependsOn(TAGS_TARGET, TARGET_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder().fromPropertyDescriptor(AbstractS3Processor.VERSION_ID)
-            .description("The Version of the Object for which to retrieve Metadata")
+            .description("The Version of the Object for which to retrieve Tags")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            METADATA_TARGET,
+            TAGS_TARGET,
             ATTRIBUTE_INCLUDE_PATTERN,
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
@@ -129,7 +127,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             REL_FAILURE
     );
 
-    private static final String ATTRIBUTE_FORMAT = "s3.%s";
+    private static final String ATTRIBUTE_FORMAT = "s3.tag.%s";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -172,41 +170,31 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             attributePattern = null;
         }
 
-        final String metadataTarget = context.getProperty(METADATA_TARGET).getValue();
+        final String tagsTarget = context.getProperty(TAGS_TARGET).getValue();
 
         try {
             Relationship relationship;
 
             try {
-                final GetObjectMetadataRequest objectMetadataRequest = new GetObjectMetadataRequest(bucket, key, StringUtils.isNotBlank(version) ? version : null);
-                final ObjectMetadata objectMetadata = s3.getObjectMetadata(objectMetadataRequest);
-                final Map<String, Object> combinedMetadata = new LinkedHashMap<>(objectMetadata.getRawMetadata());
-                combinedMetadata.putAll(objectMetadata.getUserMetadata());
+                final GetObjectTaggingRequest objectTaggingRequest = new GetObjectTaggingRequest(bucket, key, StringUtils.isNotBlank(version) ? version : null);
+                final GetObjectTaggingResult objectTags = s3.getObjectTagging(objectTaggingRequest);
 
-                if (TARGET_ATTRIBUTES.getValue().equals(metadataTarget)) {
-                    final Map<String, String> newAttributes = combinedMetadata
-                            .entrySet().stream()
-                            .filter(e -> {
+                if (TARGET_ATTRIBUTES.getValue().equals(tagsTarget)) {
+                    final Map<String, String> newAttributes = objectTags
+                            .getTagSet().stream()
+                            .filter(tag -> {
                                 if (attributePattern == null) {
                                     return true;
                                 } else {
-                                    return attributePattern.matcher(e.getKey()).find();
+                                    return attributePattern.matcher(tag.getKey()).find();
                                 }
                             })
-                            .collect(Collectors.toMap(e -> ATTRIBUTE_FORMAT.formatted(e.getKey()), e -> {
-                                final Object value = e.getValue();
-                                final String attributeValue;
-                                if (value instanceof Date dateValue) {
-                                    attributeValue = Long.toString(dateValue.getTime());
-                                } else {
-                                    attributeValue = value.toString();
-                                }
-                                return attributeValue;
-                            }));
+                            .collect(Collectors.toMap(tag -> ATTRIBUTE_FORMAT.formatted(tag.getKey()), Tag::getValue));
 
                     flowFile = session.putAllAttributes(flowFile, newAttributes);
-                } else if (TARGET_FLOWFILE_BODY.getValue().equals(metadataTarget)) {
-                    flowFile = session.write(flowFile, outputStream -> MAPPER.writeValue(outputStream, combinedMetadata));
+                } else if (TARGET_FLOWFILE_BODY.getValue().equals(tagsTarget)) {
+                    flowFile = session.write(flowFile, outputStream ->
+                            MAPPER.writeValue(outputStream, objectTags.getTagSet().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue))));
                 }
 
                 relationship = REL_FOUND;
@@ -221,7 +209,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
             session.transfer(flowFile, relationship);
         } catch (final IllegalArgumentException | AmazonClientException e) {
-            getLogger().error("Failed to get S3 Object Metadata from Bucket [{}] Key [{}] Version [{}]", bucket, key, version, e);
+            getLogger().error("Failed to get S3 Object Tags from Bucket [{}] Key [{}] Version [{}]", bucket, key, version, e);
             flowFile = extractExceptionDetails(e, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
