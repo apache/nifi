@@ -38,6 +38,11 @@ public abstract class AbstractKafkaBaseIT {
 
     protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
 
+    private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
+    private static final String DYNAMIC_PROPERTY_KEY_CONSUME = "fetch.max.wait.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_CONSUME = "1000";
+
     protected static final long TIMESTAMP = System.currentTimeMillis();
 
     protected static final String CONNECTION_SERVICE_ID = Kafka3ConnectionService.class.getSimpleName();
@@ -64,6 +69,8 @@ public abstract class AbstractKafkaBaseIT {
         runner.addControllerService(CONNECTION_SERVICE_ID, connectionService);
         runner.setProperty(connectionService, Kafka3ConnectionService.BOOTSTRAP_SERVERS, kafkaContainer.getBootstrapServers());
         runner.setProperty(connectionService, Kafka3ConnectionService.MAX_POLL_RECORDS, "1000");
+        runner.setProperty(connectionService, DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
+        runner.setProperty(connectionService, DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
         runner.enableControllerService(connectionService);
         return CONNECTION_SERVICE_ID;
     }
