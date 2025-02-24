@@ -76,7 +76,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
     private final EventFileManager eventFileManager;
     private volatile boolean closed = false;
 
-    private AtomicReference<RecordWriterLease> eventWriterLeaseRef = new AtomicReference<>();
+    private final AtomicReference<RecordWriterLease> eventWriterLeaseRef = new AtomicReference<>();
 
     private final SortedMap<Long, File> minEventIdToPathMap = new TreeMap<>();  // guarded by synchronizing on object
 
@@ -561,7 +561,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         eventFileManager.obtainWriteLock(file);
         try {
-            if (!file.delete()) {
+            if (file.exists() && !file.delete()) {
                 logger.warn("Failed to remove Provenance Event file {}; this file should be cleaned up manually", file);
                 return false;
             }
@@ -617,11 +617,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         int fileCount = 0;
         for (final File eventFile : eventFilesToReindex) {
             final boolean skipToEvent;
-            if (fileCount++ == 0) {
-                skipToEvent = true;
-            } else {
-                skipToEvent = false;
-            }
+            skipToEvent = fileCount++ == 0;
 
             final Runnable reindexTask = () -> {
                 final Map<ProvenanceEventRecord, StorageSummary> storageMap = new HashMap<>(1000);
@@ -702,7 +698,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         // within the given time range. If we then reach a file whose first event comes before our minTimestamp,
         // this means that all other files that we later encounter will have a max timestamp that comes before
         // our earliest event time, so we can stop adding files at that point.
-        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.LARGEST_ID_FIRST).collect(Collectors.toList());
+        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.LARGEST_ID_FIRST).toList();
         if (eventFiles.isEmpty()) {
             return EventIterator.EMPTY;
         }
