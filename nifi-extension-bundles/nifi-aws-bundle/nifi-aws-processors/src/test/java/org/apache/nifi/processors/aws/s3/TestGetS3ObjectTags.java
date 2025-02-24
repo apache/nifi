@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.s3.api.TagsTarget;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -92,7 +93,7 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate fetch tags to attribute routes to found when the file exists")
     @Test
     void testFetchTagsToAttributeExists() {
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_ATTRIBUTES.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.ATTRIBUTES);
         runner.setProperty(GetS3ObjectTags.ATTRIBUTE_INCLUDE_PATTERN, "");
 
         final List<Tag> tags = setupObjectTags();
@@ -111,7 +112,7 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate attribute exclusion")
     @Test
     void testFetchTagsToAttributeExclusion() {
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_ATTRIBUTES.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.ATTRIBUTES);
         runner.setProperty(GetS3ObjectTags.ATTRIBUTE_INCLUDE_PATTERN, "(raw|user)");
 
         final List<Tag> tags = setupObjectTags();
@@ -136,7 +137,7 @@ class TestGetS3ObjectTags {
         final AmazonS3Exception exception = new AmazonS3Exception("test");
         exception.setStatusCode(501);
 
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_ATTRIBUTES.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.ATTRIBUTES);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
         run();
 
@@ -149,7 +150,7 @@ class TestGetS3ObjectTags {
         final AmazonS3Exception exception = new AmazonS3Exception("test");
         exception.setStatusCode(404);
 
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_ATTRIBUTES.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.ATTRIBUTES);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
         run();
 
@@ -159,7 +160,7 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate fetch tags to FlowFile body routes to found when the file exists")
     @Test
     void testFetchTagsToBodyExists() {
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_FLOWFILE_BODY.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.FLOWFILE_BODY);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenReturn(mockTags);
         run();
 
@@ -172,7 +173,7 @@ class TestGetS3ObjectTags {
         final AmazonS3Exception exception = new AmazonS3Exception("test");
         exception.setStatusCode(404);
 
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_FLOWFILE_BODY.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.FLOWFILE_BODY);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
         run();
 
@@ -185,7 +186,7 @@ class TestGetS3ObjectTags {
         final AmazonS3Exception exception = new AmazonS3Exception("test");
         exception.setStatusCode(501);
 
-        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, GetS3ObjectTags.TARGET_FLOWFILE_BODY.getValue());
+        runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.FLOWFILE_BODY);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
         run();
 

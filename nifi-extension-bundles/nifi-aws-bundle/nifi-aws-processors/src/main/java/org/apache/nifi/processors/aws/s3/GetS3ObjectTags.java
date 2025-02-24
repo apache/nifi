@@ -28,7 +28,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
@@ -38,6 +37,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.s3.api.TagsTarget;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.List;
@@ -54,22 +54,13 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
         "This processor can be used as a router for workflows that need to check on an Object in S3 before proceeding with data processing")
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class, GetS3ObjectMetadata.class})
 public class GetS3ObjectTags extends AbstractS3Processor {
-
-    static final AllowableValue TARGET_ATTRIBUTES = new AllowableValue("ATTRIBUTES", "Attributes", """
-            When selected, the tags will be written to FlowFile attributes with the prefix "s3.tag." following the convention used in other processors. For example:
-            the S3 tag GuardDutyMalwareScanStatusType will be written as s3.tag.GuardDutyMalwareScanStatus when using the default value
-            """
-    );
-
-    static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("FLOWFILE_BODY", "FlowFile Body", "Write the tags to FlowFile content as JSON data.");
-
     static final PropertyDescriptor TAGS_TARGET = new PropertyDescriptor.Builder()
             .name("Tags Target")
             .description("This determines where the tags will be written when found.")
             .addValidator(Validator.VALID)
             .required(true)
-            .allowableValues(TARGET_ATTRIBUTES, TARGET_FLOWFILE_BODY)
-            .defaultValue(TARGET_ATTRIBUTES)
+            .allowableValues(TagsTarget.class)
+            .defaultValue(TagsTarget.ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor ATTRIBUTE_INCLUDE_PATTERN = new PropertyDescriptor.Builder()
@@ -83,7 +74,7 @@ public class GetS3ObjectTags extends AbstractS3Processor {
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(".*")
-            .dependsOn(TAGS_TARGET, TARGET_ATTRIBUTES)
+            .dependsOn(TAGS_TARGET, TagsTarget.ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder().fromPropertyDescriptor(AbstractS3Processor.VERSION_ID)
@@ -170,7 +161,7 @@ public class GetS3ObjectTags extends AbstractS3Processor {
             attributePattern = null;
         }
 
-        final String tagsTarget = context.getProperty(TAGS_TARGET).getValue();
+        final TagsTarget tagsTarget = context.getProperty(TAGS_TARGET).asAllowableValue(TagsTarget.class);
 
         try {
             Relationship relationship;
@@ -179,7 +170,7 @@ public class GetS3ObjectTags extends AbstractS3Processor {
                 final GetObjectTaggingRequest objectTaggingRequest = new GetObjectTaggingRequest(bucket, key, StringUtils.isNotBlank(version) ? version : null);
                 final GetObjectTaggingResult objectTags = s3.getObjectTagging(objectTaggingRequest);
 
-                if (TARGET_ATTRIBUTES.getValue().equals(tagsTarget)) {
+                if (TagsTarget.ATTRIBUTES == tagsTarget) {
                     final Map<String, String> newAttributes = objectTags
                             .getTagSet().stream()
                             .filter(tag -> {
@@ -192,7 +183,7 @@ public class GetS3ObjectTags extends AbstractS3Processor {
                             .collect(Collectors.toMap(tag -> ATTRIBUTE_FORMAT.formatted(tag.getKey()), Tag::getValue));
 
                     flowFile = session.putAllAttributes(flowFile, newAttributes);
-                } else if (TARGET_FLOWFILE_BODY.getValue().equals(tagsTarget)) {
+                } else if (TagsTarget.FLOWFILE_BODY == tagsTarget) {
                     flowFile = session.write(flowFile, outputStream ->
                             MAPPER.writeValue(outputStream, objectTags.getTagSet().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue))));
                 }
