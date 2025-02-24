@@ -159,7 +159,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                 .list()
                 .setSupportsAllDrives(true)
                 .setIncludeItemsFromAllDrives(true)
-                .setQ("('" + folderId + "' in parents) and (mimeType != 'application/vnd.google-apps.folder') and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
+                .setQ("('" + folderId + "' in parents) and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
                 .setPageToken(null)
                 .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                 .execute()

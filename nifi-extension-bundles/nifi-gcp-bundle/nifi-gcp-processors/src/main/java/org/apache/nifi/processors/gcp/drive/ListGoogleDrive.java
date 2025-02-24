@@ -58,7 +58,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -245,53 +244,31 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append(buildQueryForDirs(driveService, folderId, recursive));
-        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.folder')");
-        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.shortcut')");
-        queryBuilder.append(" and trashed = false");
+        StringBuilder queryTemplateBuilder = new StringBuilder();
+        queryTemplateBuilder.append("('%s' in parents)");
+        queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_SHORTCUT_MIME_TYPE).append("')");
+        queryTemplateBuilder.append(" and trashed = false");
         if (minTimestamp != null && minTimestamp > 0) {
             String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
 
-            queryBuilder.append(" and (");
-            queryBuilder.append("modifiedTime >= '" + formattedMinTimestamp + "'");
-            queryBuilder.append(" or createdTime >= '" + formattedMinTimestamp + "'");
-            queryBuilder.append(")");
+            queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
+            queryTemplateBuilder.append(" or modifiedTime >= '").append(formattedMinTimestamp).append("'");
+            queryTemplateBuilder.append(" or createdTime >= '").append(formattedMinTimestamp).append( "'");
+            queryTemplateBuilder.append(")");
         }
         if (minAge != null && minAge > 0) {
             long maxTimestamp = System.currentTimeMillis() - minAge;
             String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
 
-            queryBuilder.append(" and modifiedTime < '" + formattedMaxTimestamp + "'");
-            queryBuilder.append(" and createdTime < '" + formattedMaxTimestamp + "'");
+            queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
+            queryTemplateBuilder.append(" or (modifiedTime < '").append(formattedMaxTimestamp).append("'");
+            queryTemplateBuilder.append(" and createdTime < '").append(formattedMaxTimestamp).append("')");
+            queryTemplateBuilder.append(")");
         }
 
-        String pageToken = null;
-        do {
-            FileList result = driveService.files()
-                    .list()
-                    .setSupportsAllDrives(true)
-                    .setIncludeItemsFromAllDrives(true)
-                    .setQ(queryBuilder.toString())
-                    .setPageToken(pageToken)
-                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
-                    .execute();
+        final String queryTemplate = queryTemplateBuilder.toString();
 
-            for (File file : result.getFiles()) {
-                GoogleDriveFileInfo.Builder builder = new GoogleDriveFileInfo.Builder()
-                        .id(file.getId())
-                        .fileName(file.getName())
-                        .size(file.getSize() != null ? file.getSize() : 0L)
-                        .sizeAvailable(file.getSize() != null)
-                        .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
-                        .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
-                        .mimeType(file.getMimeType());
-
-                listing.add(builder.build());
-            }
-
-            pageToken = result.getNextPageToken();
-        } while (pageToken != null);
+        queryFolder(driveService, folderId, queryTemplate, recursive, listing);
 
         return listing;
     }
@@ -301,55 +278,50 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
     }
 
-    private static String buildQueryForDirs(
-            final Drive service,
+    private void queryFolder(
+            final Drive driveService,
             final String folderId,
-            boolean recursive
+            final String queryTemplate,
+            final boolean recursive,
+            final List<GoogleDriveFileInfo> listing
     ) throws IOException {
-        StringBuilder queryBuilder = new StringBuilder("('")
-                .append(folderId)
-                .append("' in parents");
+        final List<String> subFolderIds = new ArrayList<>();
 
-        if (recursive) {
-            List<File> subDirectoryList = new LinkedList<>();
-
-            collectSubDirectories(service, folderId, subDirectoryList);
-
-            for (File subDirectory : subDirectoryList) {
-                queryBuilder.append(" or '")
-                        .append(subDirectory.getId())
-                        .append("' in parents");
-            }
-        }
-
-        queryBuilder.append(")");
-
-        return queryBuilder.toString();
-    }
-
-    private static void collectSubDirectories(
-            final Drive service,
-            final String folderId,
-            final List<File> dirList
-    ) throws IOException {
         String pageToken = null;
         do {
-            FileList directoryList = service.files()
+            final FileList result = driveService.files()
                     .list()
                     .setSupportsAllDrives(true)
                     .setIncludeItemsFromAllDrives(true)
-                    .setQ("'" + folderId + "' in parents "
-                            + "and mimeType = 'application/vnd.google-apps.folder'"
-                    )
+                    .setQ(String.format(queryTemplate, folderId))
                     .setPageToken(pageToken)
+                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                     .execute();
 
-            for (File directory : directoryList.getFiles()) {
-                dirList.add(directory);
-                collectSubDirectories(service, directory.getId(), dirList);
+            for (final File file : result.getFiles()) {
+                if (DRIVE_FOLDER_MIME_TYPE.equals(file.getMimeType())) {
+                    if (recursive) {
+                        subFolderIds.add(file.getId());
+                    }
+                } else {
+                    GoogleDriveFileInfo.Builder builder = new GoogleDriveFileInfo.Builder()
+                            .id(file.getId())
+                            .fileName(file.getName())
+                            .size(file.getSize() != null ? file.getSize() : 0L)
+                            .sizeAvailable(file.getSize() != null)
+                            .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
+                            .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
+                            .mimeType(file.getMimeType());
+
+                    listing.add(builder.build());
+                }
             }
 
-            pageToken = directoryList.getNextPageToken();
+            pageToken = result.getNextPageToken();
         } while (pageToken != null);
+
+        for (final String subFolderId : subFolderIds) {
+            queryFolder(driveService, subFolderId, queryTemplate, true, listing);
+        }
     }
 }
