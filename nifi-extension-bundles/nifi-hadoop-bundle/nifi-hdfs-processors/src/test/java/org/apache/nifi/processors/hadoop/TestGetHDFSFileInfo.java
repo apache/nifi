@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -192,7 +191,7 @@ public class TestGetHDFSFileInfo {
 
         setFileSystemBasicTree(proc.fileSystem);
 
-        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("input.dir", "/some/home/mydir");
 
         runner.setIncomingConnection(true);
