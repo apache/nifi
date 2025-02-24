@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 public interface GoogleDriveTrait {
 
     String DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+    String DRIVE_SHORTCUT_MIME_TYPE = "application/vnd.google-apps.shortcut";
     String DRIVE_URL = "https://drive.google.com/open?id=";
     String APPLICATION_NAME = "NiFi";
 

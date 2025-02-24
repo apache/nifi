@@ -83,7 +83,7 @@ public class ListGoogleDriveSimpleTest {
                 .list()
                 .setSupportsAllDrives(true)
                 .setIncludeItemsFromAllDrives(true)
-                .setQ("('null' in parents) and (mimeType != 'application/vnd.google-apps.folder') and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
+                .setQ("('null' in parents) and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
                 .setPageToken(null)
                 .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                 .execute()
