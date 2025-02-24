@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +57,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.bouncycastle.util.encoders.Hex;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -257,7 +257,7 @@ public class VerifyContentMAC extends AbstractProcessor {
     }
 
     enum Encoding {
-        HEXADECIMAL(Hex::toHexString, Hex::decode),
+        HEXADECIMAL(HexFormat.of()::formatHex, HexFormat.of()::parseHex),
         BASE64(value -> Base64.getEncoder().encodeToString(value), value -> Base64.getDecoder().decode(value)),
         UTF8(value -> new String(value, UTF_8), value -> value.getBytes(UTF_8));
 
