@@ -74,16 +74,7 @@
                     <groupId>org.eclipse.jetty</groupId>
                     <artifactId>jetty-rewrite</artifactId>
                 </exclusion>
-                <!-- Excluded for Hadoop 3.4.0 -->
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
@@ -194,23 +185,7 @@
                           <groupId>org.apache.logging.log4j</groupId>
                           <artifactId>log4j-core</artifactId>
                       </exclusion>
-                      <exclusion>
-                            <groupId>org.bouncycastle</groupId>
-                            <artifactId>bcprov-jdk15on</artifactId>
-                      </exclusion>
-                      <exclusion>
-                            <groupId>org.bouncycastle</groupId>
-                            <artifactId>bcpkix-jdk15on</artifactId>
-                      </exclusion>
                     </exclusions>
-                </dependency>
-                <dependency>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk18on</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcpkix-jdk18on</artifactId>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.ozone</groupId>
