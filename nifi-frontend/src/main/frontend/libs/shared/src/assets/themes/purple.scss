@@ -237,63 +237,63 @@
     }
 
     @include mat.theme-overrides(
-            (
-                primary: var(--md-ref-palette-primary-40),
-                on-primary: var(--md-ref-palette-primary-100),
-                primary-container: var(--md-ref-palette-neutral-90),
-                on-primary-container: var(--md-ref-palette-primary-40),
-                inverse-primary: var(--md-ref-palette-primary-40),
-                primary-fixed: var(--md-ref-palette-primary-40),
-                primary-fixed-dim: var(--md-ref-palette-primary-40),
-                on-primary-fixed: var(--md-ref-palette-primary-100),
-                on-primary-fixed-variant: var(--md-ref-palette-primary-100),
-                secondary: var(--md-ref-palette-secondary-40),
-                on-secondary: var(--md-ref-palette-secondary-100),
-                secondary-container: var(--md-ref-palette-secondary-80),
-                on-secondary-container: var(--md-ref-palette-neutral-10),
-                secondary-fixed: var(--md-ref-palette-secondary-50),
-                secondary-fixed-dim: var(--md-ref-palette-secondary-50),
-                on-secondary-fixed: var(--md-ref-palette-secondary-0),
-                on-secondary-fixed-variant: var(--md-ref-palette-secondary-0),
-                tertiary: var(--md-ref-palette-tertiary-40),
-                on-tertiary: var(--md-ref-palette-tertiary-0),
-                tertiary-container: var(--md-ref-palette-tertiary-80),
-                on-tertiary-container: var(--md-ref-palette-neutral-10),
-                tertiary-fixed: var(--md-ref-palette-tertiary-40),
-                tertiary-fixed-dim: var(--md-ref-palette-tertiary-40),
-                on-tertiary-fixed: var(--md-ref-palette-tertiary-100),
-                on-tertiary-fixed-variant: var(--md-ref-palette-tertiary-100),
-                background: var(--md-ref-palette-neutral-99),
-                on-background: var(--md-ref-palette-neutral-10),
-                surface: var(--md-ref-palette-neutral-100),
-                surface-dim: var(--md-ref-palette-neutral-90),
-                surface-bright: var(--md-ref-palette-neutral-100),
-                surface-container-lowest: var(--md-ref-palette-neutral-100),
-                surface-container-low: var(--md-ref-palette-neutral-95),
-                surface-container: var(--md-ref-palette-neutral-94),
-                surface-container-high: var(--md-ref-palette-neutral-92),
-                surface-container-highest: var(--md-ref-palette-neutral-90),
-                on-surface: var(--md-ref-palette-neutral-10),
-                shadow: var(--md-ref-palette-neutral-variant-0),
-                scrim: var(--md-ref-palette-neutral-variant-0),
-                surface-tint: var(--md-ref-palette-neutral-30),
-                inverse-surface: var(--md-ref-palette-neutral-10),
-                inverse-on-surface: var(--md-ref-palette-neutral-100),
-                outline: var(--md-ref-palette-neutral-70),
-                outline-variant: var(--md-ref-palette-neutral-variant-70),
-                neutral: var(--md-ref-palette-neutral-40),
-                neutral10: var(--md-ref-palette-neutral-20),
-                error: var(--md-ref-palette-error-40),
-                error-container: var(--md-ref-palette-error-40),
-                on-error: var(--md-ref-palette-error-100),
-                on-error-container: var(--md-ref-palette-error-100),
-                surface-variant: var(--md-ref-palette-neutral-variant-90),
-                on-surface-variant: var(--md-ref-palette-neutral-variant-30),
-                neutral-variant: var(--md-ref-palette-neutral-variant-40),
-                neutral-variant20: var(--md-ref-palette-neutral-variant-25),
-                inverse-secondary: var(--md-ref-palette-secondary-50),
-                inverse-tertiary: var(--md-ref-palette-tertiary-80)
-            )
+        (
+            primary: var(--md-ref-palette-primary-40),
+            on-primary: var(--md-ref-palette-primary-100),
+            primary-container: var(--md-ref-palette-neutral-90),
+            on-primary-container: var(--md-ref-palette-primary-40),
+            inverse-primary: var(--md-ref-palette-primary-40),
+            primary-fixed: var(--md-ref-palette-primary-40),
+            primary-fixed-dim: var(--md-ref-palette-primary-40),
+            on-primary-fixed: var(--md-ref-palette-primary-100),
+            on-primary-fixed-variant: var(--md-ref-palette-primary-100),
+            secondary: var(--md-ref-palette-secondary-40),
+            on-secondary: var(--md-ref-palette-secondary-100),
+            secondary-container: var(--md-ref-palette-secondary-80),
+            on-secondary-container: var(--md-ref-palette-neutral-10),
+            secondary-fixed: var(--md-ref-palette-secondary-50),
+            secondary-fixed-dim: var(--md-ref-palette-secondary-50),
+            on-secondary-fixed: var(--md-ref-palette-secondary-0),
+            on-secondary-fixed-variant: var(--md-ref-palette-secondary-0),
+            tertiary: var(--md-ref-palette-tertiary-40),
+            on-tertiary: var(--md-ref-palette-tertiary-0),
+            tertiary-container: var(--md-ref-palette-tertiary-80),
+            on-tertiary-container: var(--md-ref-palette-neutral-10),
+            tertiary-fixed: var(--md-ref-palette-tertiary-40),
+            tertiary-fixed-dim: var(--md-ref-palette-tertiary-40),
+            on-tertiary-fixed: var(--md-ref-palette-tertiary-100),
+            on-tertiary-fixed-variant: var(--md-ref-palette-tertiary-100),
+            background: var(--md-ref-palette-neutral-99),
+            on-background: var(--md-ref-palette-neutral-10),
+            surface: var(--md-ref-palette-neutral-100),
+            surface-dim: var(--md-ref-palette-neutral-90),
+            surface-bright: var(--md-ref-palette-neutral-100),
+            surface-container-lowest: var(--md-ref-palette-neutral-100),
+            surface-container-low: var(--md-ref-palette-neutral-95),
+            surface-container: var(--md-ref-palette-neutral-94),
+            surface-container-high: var(--md-ref-palette-neutral-92),
+            surface-container-highest: var(--md-ref-palette-neutral-90),
+            on-surface: var(--md-ref-palette-neutral-10),
+            shadow: var(--md-ref-palette-neutral-variant-0),
+            scrim: var(--md-ref-palette-neutral-variant-0),
+            surface-tint: var(--md-ref-palette-neutral-30),
+            inverse-surface: var(--md-ref-palette-neutral-10),
+            inverse-on-surface: var(--md-ref-palette-neutral-100),
+            outline: var(--md-ref-palette-neutral-70),
+            outline-variant: var(--md-ref-palette-neutral-variant-70),
+            neutral: var(--md-ref-palette-neutral-40),
+            neutral10: var(--md-ref-palette-neutral-20),
+            error: var(--md-ref-palette-error-40),
+            error-container: var(--md-ref-palette-error-40),
+            on-error: var(--md-ref-palette-error-100),
+            on-error-container: var(--md-ref-palette-error-100),
+            surface-variant: var(--md-ref-palette-neutral-variant-90),
+            on-surface-variant: var(--md-ref-palette-neutral-variant-30),
+            neutral-variant: var(--md-ref-palette-neutral-variant-40),
+            neutral-variant20: var(--md-ref-palette-neutral-variant-25),
+            inverse-secondary: var(--md-ref-palette-secondary-50),
+            inverse-tertiary: var(--md-ref-palette-tertiary-80)
+        )
     );
 }
 
@@ -435,21 +435,21 @@ $tertiary-palette: map.merge(map.get($_palettes, tertiary), $_rest);
 html {
     color-scheme: light;
     @include mat.theme(
-            (
-                color: (
-                    primary: $primary-palette,
-                    tertiary: $tertiary-palette
-                ),
-                typography: (
-                    plain-family: var(--md-ref-typeface-plain),
-                    brand-family: var(--md-ref-typeface-brand),
-                    bold-weight: var(--md-ref-typeface-weight-bold),
-                    regular-weight: var(--md-ref-typeface-weight-regular)
-                ),
-                density: (
-                    scale: -3
-                )
+        (
+            color: (
+                primary: $primary-palette,
+                tertiary: $tertiary-palette
+            ),
+            typography: (
+                plain-family: var(--md-ref-typeface-plain),
+                brand-family: var(--md-ref-typeface-brand),
+                bold-weight: var(--md-ref-typeface-weight-bold),
+                regular-weight: var(--md-ref-typeface-weight-regular)
+            ),
+            density: (
+                scale: -3
             )
+        )
     );
 }
 

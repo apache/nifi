@@ -28,7 +28,7 @@
 @use 'codemirror/addon/fold/foldgutter.css';
 
 @use 'font-awesome';
-@use 'libs/shared/src/assets/themes/apache-nifi';
+@use '../../../libs/shared/src/assets/themes/material';
 
 @tailwind base;
 @tailwind components;
