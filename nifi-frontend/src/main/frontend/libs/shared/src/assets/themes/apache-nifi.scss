@@ -17,7 +17,6 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use './angular-material' as angular-material;
 
 @use '@fontsource/inter' as inter-normal;
 @use '@fontsource/inter/400.css' as inter-400;
@@ -197,36 +196,6 @@
     --nf-prism-token-constant: #ec000c; /* The prism token constant color */
     --nf-prism-token-function: #000000; /* The prism token function color */
 
-    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
-    --mat-dialog-with-actions-content-padding: 20px 24px; /* .mat-mdc-dialog-content */
-    --mat-dialog-headline-padding: 0 24px 9px; /* .mat-mdc-dialog-title */
-    --mat-sidenav-container-width: auto; /* .mat-drawer */
-    --mat-sidenav-container-shape: 0; /* .mat-drawer */
-    --mdc-text-button-container-shape: 4px; /* .mat-mdc-button */
-    --mdc-text-button-label-text-tracking: normal; /* .mat-mdc-button */
-    --mdc-text-button-label-text-weight: 400; /* .mat-mdc-button */
-    --mdc-filled-button-container-shape: 4px; /*.mat-mdc-unelevated-button  */
-    --mdc-filled-button-label-text-tracking: normal; /* .mat-mdc-unelevated-button */
-    --mdc-filled-button-label-text-weight: 400; /* .mat-mdc-unelevated-button */
-    --mdc-outlined-button-container-shape: 4px; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-label-text-tracking: normal; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-label-text-weight: 400; /* .mat-mdc-outlined-button */
-    --mat-outlined-button-horizontal-padding: 15px; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-container-height: 32px; /*.mat-mdc-outlined-button  */
-    --mdc-secondary-navigation-tab-container-height: 36px; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-tracking: normal; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-weight: 400; /* .mat-mdc-tab-header */
-    --mat-expansion-container-shape: 4px; /* .mat-expansion-panel */
-    --mat-expansion-header-expanded-state-height: 50px; /* .mat-expansion-panel-header.mat-expanded */
-    --mat-menu-divider-top-spacing: 0; /* .mat-divider */
-    --mat-menu-divider-bottom-spacing: 0; /* .mat-divider */
-    --mdc-icon-button-state-layer-size: 36px; /* .mat-mdc-icon-button */
-    --mdc-icon-button-icon-size: 14px; /* .mat-mdc-icon-button */
-    --mdc-dialog-container-shape: 4px; /*.mat-mdc-dialog-surface*/
-
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    --mat-snack-bar-button-color: var(--md-ref-palette-secondary-80);
-
     /* color variants for theming angular material widgets */
 
     .tertiary-checkbox {
@@ -245,72 +214,275 @@
     .tertiary-spinner {
         --mdc-circular-progress-active-indicator-color: var(--md-ref-palette-tertiary-40);
     }
+
+    @include mat.theme-overrides(
+            (
+                primary: var(--md-ref-palette-primary-40),
+                on-primary: var(--md-ref-palette-primary-100),
+                primary-container: var(--md-ref-palette-neutral-90),
+                on-primary-container: var(--md-ref-palette-primary-40),
+                inverse-primary: var(--md-ref-palette-primary-40),
+                primary-fixed: var(--md-ref-palette-primary-40),
+                primary-fixed-dim: var(--md-ref-palette-primary-40),
+                on-primary-fixed: var(--md-ref-palette-primary-100),
+                on-primary-fixed-variant: var(--md-ref-palette-primary-100),
+                secondary: var(--md-ref-palette-secondary-50),
+                on-secondary: var(--md-ref-palette-secondary-0),
+                secondary-container: var(--md-ref-palette-secondary-80),
+                on-secondary-container: var(--md-ref-palette-neutral-10),
+                secondary-fixed: var(--md-ref-palette-secondary-50),
+                secondary-fixed-dim: var(--md-ref-palette-secondary-50),
+                on-secondary-fixed: var(--md-ref-palette-secondary-0),
+                on-secondary-fixed-variant: var(--md-ref-palette-secondary-0),
+                tertiary: var(--md-ref-palette-tertiary-40),
+                on-tertiary: var(--md-ref-palette-tertiary-0),
+                tertiary-container: var(--md-ref-palette-tertiary-80),
+                on-tertiary-container: var(--md-ref-palette-neutral-10),
+                tertiary-fixed: var(--md-ref-palette-tertiary-40),
+                tertiary-fixed-dim: var(--md-ref-palette-tertiary-40),
+                on-tertiary-fixed: var(--md-ref-palette-tertiary-100),
+                on-tertiary-fixed-variant: var(--md-ref-palette-tertiary-100),
+                background: var(--md-ref-palette-neutral-99),
+                on-background: var(--md-ref-palette-neutral-10),
+                surface: var(--md-ref-palette-neutral-100),
+                surface-dim: var(--md-ref-palette-neutral-90),
+                surface-bright: var(--md-ref-palette-neutral-100),
+                surface-container-lowest: var(--md-ref-palette-neutral-100),
+                surface-container-low: var(--md-ref-palette-neutral-95),
+                surface-container: var(--md-ref-palette-neutral-94),
+                surface-container-high: var(--md-ref-palette-neutral-92),
+                surface-container-highest: var(--md-ref-palette-neutral-90),
+                on-surface: var(--md-ref-palette-neutral-10),
+                shadow: var(--md-ref-palette-neutral-variant-0),
+                scrim: var(--md-ref-palette-neutral-variant-0),
+                surface-tint: var(--md-ref-palette-neutral-30),
+                inverse-surface: var(--md-ref-palette-neutral-10),
+                inverse-on-surface: var(--md-ref-palette-neutral-100),
+                outline: var(--md-ref-palette-neutral-70),
+                outline-variant: var(--md-ref-palette-neutral-variant-70),
+                neutral: var(--md-ref-palette-neutral-40),
+                neutral10: var(--md-ref-palette-neutral-20),
+                error: var(--md-ref-palette-error-40),
+                error-container: var(--md-ref-palette-error-40),
+                on-error: var(--md-ref-palette-error-100),
+                on-error-container: var(--md-ref-palette-error-0),
+                surface-variant: var(--md-ref-palette-neutral-variant-90),
+                on-surface-variant: var(--md-ref-palette-neutral-variant-30),
+                neutral-variant: var(--md-ref-palette-neutral-variant-40),
+                neutral-variant20: var(--md-ref-palette-neutral-variant-25),
+                inverse-secondary: var(--md-ref-palette-secondary-50),
+                inverse-tertiary: var(--md-ref-palette-tertiary-80)
+            )
+    );
+
+    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
+
+    @include mat.sidenav-overrides((
+        container-width: auto,
+        container-shape: 0
+    ));
+
+    @include mat.expansion-overrides((
+        container-shape: 6px,
+        header-expanded-state-height: 50px
+    ));
+
+    @include mat.menu-overrides((
+        divider-top-spacing: 0,
+        divider-bottom-spacing: 0
+    ));
+
+    @include mat.dialog-overrides((
+        content-padding: 20px 24px,
+        headline-padding: 0 24px 9px,
+        container-shape: 6px
+    ));
+
+    @include mat.icon-button-overrides((
+        state-layer-size: 36px,
+        icon-size: 14px
+    ));
+
+    @include mat.button-overrides((
+        filled-container-shape: 4px,
+        filled-label-text-tracking: normal,
+        filled-label-text-weight: 400,
+        outlined-container-shape: 4px,
+        outlined-label-text-tracking: normal,
+        outlined-label-text-weight: 400,
+        outlined-horizontal-padding: 15px,
+        outlined-container-height: 32px,
+        text-container-shape: 4px,
+        text-label-text-tracking: normal,
+        text-label-text-weight: 400
+    ));
+
+    @include mat.tabs-overrides(
+            (
+                label-text-tracking: normal,
+                label-text-weight: 400,
+                container-height: 36px
+            )
+    );
+
+    @include mat.snack-bar-overrides((
+        button-color: var(--md-ref-palette-secondary-80)
+    ));
 }
 
-@include angular-material.generate-material-theme();
+// Note: Color palettes are generated from primary: #6750a4
+$_palettes: (
+    primary: (
+        0: var(--md-ref-palette-primary-0),
+        10: var(--md-ref-palette-primary-10),
+        20: var(--md-ref-palette-primary-20),
+        25: var(--md-ref-palette-primary-25),
+        30: var(--md-ref-palette-primary-30),
+        35: var(--md-ref-palette-primary-35),
+        40: var(--md-ref-palette-primary-40),
+        50: var(--md-ref-palette-primary-50),
+        60: var(--md-ref-palette-primary-60),
+        70: var(--md-ref-palette-primary-70),
+        80: var(--md-ref-palette-primary-80),
+        90: var(--md-ref-palette-primary-90),
+        95: var(--md-ref-palette-primary-95),
+        98: var(--md-ref-palette-primary-98),
+        99: var(--md-ref-palette-primary-99),
+        100: var(--md-ref-palette-primary-100)
+    ),
+    secondary: (
+        0: var(--md-ref-palette-secondary-0),
+        10: var(--md-ref-palette-secondary-10),
+        20: var(--md-ref-palette-secondary-20),
+        25: var(--md-ref-palette-secondary-25),
+        30: var(--md-ref-palette-secondary-30),
+        35: var(--md-ref-palette-secondary-35),
+        40: var(--md-ref-palette-secondary-40),
+        50: var(--md-ref-palette-secondary-50),
+        60: var(--md-ref-palette-secondary-60),
+        70: var(--md-ref-palette-secondary-70),
+        80: var(--md-ref-palette-secondary-80),
+        90: var(--md-ref-palette-secondary-90),
+        95: var(--md-ref-palette-secondary-95),
+        98: var(--md-ref-palette-secondary-98),
+        99: var(--md-ref-palette-secondary-99),
+        100: var(--md-ref-palette-secondary-100)
+    ),
+    tertiary: (
+        0: var(--md-ref-palette-tertiary-0),
+        10: var(--md-ref-palette-tertiary-10),
+        20: var(--md-ref-palette-tertiary-20),
+        25: var(--md-ref-palette-tertiary-25),
+        30: var(--md-ref-palette-tertiary-30),
+        35: var(--md-ref-palette-tertiary-35),
+        40: var(--md-ref-palette-tertiary-40),
+        50: var(--md-ref-palette-tertiary-50),
+        60: var(--md-ref-palette-tertiary-60),
+        70: var(--md-ref-palette-tertiary-70),
+        80: var(--md-ref-palette-tertiary-80),
+        90: var(--md-ref-palette-tertiary-90),
+        95: var(--md-ref-palette-tertiary-95),
+        98: var(--md-ref-palette-tertiary-98),
+        99: var(--md-ref-palette-tertiary-99),
+        100: var(--md-ref-palette-tertiary-100)
+    ),
+    neutral: (
+        0: var(--md-ref-palette-neutral-0),
+        4: var(--md-ref-palette-neutral-4),
+        6: var(--md-ref-palette-neutral-6),
+        10: var(--md-ref-palette-neutral-10),
+        12: var(--md-ref-palette-neutral-12),
+        17: var(--md-ref-palette-neutral-17),
+        20: var(--md-ref-palette-neutral-20),
+        22: var(--md-ref-palette-neutral-22),
+        24: var(--md-ref-palette-neutral-24),
+        25: var(--md-ref-palette-neutral-25),
+        30: var(--md-ref-palette-neutral-30),
+        35: var(--md-ref-palette-neutral-35),
+        40: var(--md-ref-palette-neutral-40),
+        50: var(--md-ref-palette-neutral-50),
+        60: var(--md-ref-palette-neutral-60),
+        70: var(--md-ref-palette-neutral-70),
+        80: var(--md-ref-palette-neutral-80),
+        87: var(--md-ref-palette-neutral-87),
+        90: var(--md-ref-palette-neutral-90),
+        92: var(--md-ref-palette-neutral-92),
+        94: var(--md-ref-palette-neutral-94),
+        95: var(--md-ref-palette-neutral-95),
+        96: var(--md-ref-palette-neutral-96),
+        98: var(--md-ref-palette-neutral-98),
+        99: var(--md-ref-palette-neutral-99),
+        100: var(--md-ref-palette-neutral-100)
+    ),
+    neutral-variant: (
+        0: var(--md-ref-palette-neutral-variant-0),
+        10: var(--md-ref-palette-neutral-variant-10),
+        20: var(--md-ref-palette-neutral-variant-20),
+        25: var(--md-ref-palette-neutral-variant-25),
+        30: var(--md-ref-palette-neutral-variant-30),
+        35: var(--md-ref-palette-neutral-variant-35),
+        40: var(--md-ref-palette-neutral-variant-40),
+        50: var(--md-ref-palette-neutral-variant-50),
+        60: var(--md-ref-palette-neutral-variant-60),
+        70: var(--md-ref-palette-neutral-variant-70),
+        80: var(--md-ref-palette-neutral-variant-80),
+        90: var(--md-ref-palette-neutral-variant-90),
+        95: var(--md-ref-palette-neutral-variant-95),
+        98: var(--md-ref-palette-neutral-variant-98),
+        99: var(--md-ref-palette-neutral-variant-99),
+        100: var(--md-ref-palette-neutral-variant-100)
+    ),
+    error: (
+        0: var(--md-ref-palette-error-0),
+        10: var(--md-ref-palette-error-10),
+        20: var(--md-ref-palette-error-20),
+        25: var(--md-ref-palette-error-25),
+        30: var(--md-ref-palette-error-30),
+        35: var(--md-ref-palette-error-35),
+        40: var(--md-ref-palette-error-40),
+        50: var(--md-ref-palette-error-50),
+        60: var(--md-ref-palette-error-60),
+        70: var(--md-ref-palette-error-70),
+        80: var(--md-ref-palette-error-80),
+        90: var(--md-ref-palette-error-90),
+        95: var(--md-ref-palette-error-95),
+        98: var(--md-ref-palette-error-98),
+        99: var(--md-ref-palette-error-99),
+        100: var(--md-ref-palette-error-100)
+    )
+);
+
+$_rest: (
+    secondary: map.get($_palettes, secondary),
+    neutral: map.get($_palettes, neutral),
+    neutral-variant: map.get($_palettes, neutral-variant),
+    error: map.get($_palettes, error)
+);
+
+$primary-palette: map.merge(map.get($_palettes, primary), $_rest);
+$tertiary-palette: map.merge(map.get($_palettes, tertiary), $_rest);
+
+@include mat.app-background();
 
 /* Light Theme */
 html {
     color-scheme: light;
-
-    @include mat.theme-overrides(
-        (
-            primary: var(--md-ref-palette-primary-40),
-            on-primary: var(--md-ref-palette-primary-100),
-            primary-container: var(--md-ref-palette-neutral-90),
-            on-primary-container: var(--md-ref-palette-primary-40),
-            inverse-primary: var(--md-ref-palette-primary-40),
-            primary-fixed: var(--md-ref-palette-primary-40),
-            primary-fixed-dim: var(--md-ref-palette-primary-40),
-            on-primary-fixed: var(--md-ref-palette-primary-100),
-            on-primary-fixed-variant: var(--md-ref-palette-primary-100),
-            secondary: var(--md-ref-palette-secondary-50),
-            on-secondary: var(--md-ref-palette-secondary-0),
-            secondary-container: var(--md-ref-palette-secondary-80),
-            on-secondary-container: var(--md-ref-palette-neutral-10),
-            secondary-fixed: var(--md-ref-palette-secondary-50),
-            secondary-fixed-dim: var(--md-ref-palette-secondary-50),
-            on-secondary-fixed: var(--md-ref-palette-secondary-0),
-            on-secondary-fixed-variant: var(--md-ref-palette-secondary-0),
-            tertiary: var(--md-ref-palette-tertiary-40),
-            on-tertiary: var(--md-ref-palette-tertiary-0),
-            tertiary-container: var(--md-ref-palette-tertiary-80),
-            on-tertiary-container: var(--md-ref-palette-neutral-10),
-            tertiary-fixed: var(--md-ref-palette-tertiary-40),
-            tertiary-fixed-dim: var(--md-ref-palette-tertiary-40),
-            on-tertiary-fixed: var(--md-ref-palette-tertiary-100),
-            on-tertiary-fixed-variant: var(--md-ref-palette-tertiary-100),
-            background: var(--md-ref-palette-neutral-99),
-            on-background: var(--md-ref-palette-neutral-10),
-            surface: var(--md-ref-palette-neutral-100),
-            surface-dim: var(--md-ref-palette-neutral-90),
-            surface-bright: var(--md-ref-palette-neutral-100),
-            surface-container-lowest: var(--md-ref-palette-neutral-100),
-            surface-container-low: var(--md-ref-palette-neutral-95),
-            surface-container: var(--md-ref-palette-neutral-94),
-            surface-container-high: var(--md-ref-palette-neutral-92),
-            surface-container-highest: var(--md-ref-palette-neutral-90),
-            on-surface: var(--md-ref-palette-neutral-10),
-            shadow: var(--md-ref-palette-neutral-variant-0),
-            scrim: var(--md-ref-palette-neutral-variant-0),
-            surface-tint: var(--md-ref-palette-neutral-30),
-            inverse-surface: var(--md-ref-palette-neutral-10),
-            inverse-on-surface: var(--md-ref-palette-neutral-100),
-            outline: var(--md-ref-palette-neutral-70),
-            outline-variant: var(--md-ref-palette-neutral-variant-70),
-            neutral: var(--md-ref-palette-neutral-40),
-            neutral10: var(--md-ref-palette-neutral-20),
-            error: var(--md-ref-palette-error-40),
-            error-container: var(--md-ref-palette-error-40),
-            on-error: var(--md-ref-palette-error-100),
-            on-error-container: var(--md-ref-palette-error-0),
-            surface-variant: var(--md-ref-palette-neutral-variant-90),
-            on-surface-variant: var(--md-ref-palette-neutral-variant-30),
-            neutral-variant: var(--md-ref-palette-neutral-variant-40),
-            neutral-variant20: var(--md-ref-palette-neutral-variant-25),
-            inverse-secondary: var(--md-ref-palette-secondary-50),
-            inverse-tertiary: var(--md-ref-palette-tertiary-80)
-        )
+    @include mat.theme(
+            (
+                color: (
+                    primary: $primary-palette,
+                    tertiary: $tertiary-palette
+                ),
+                typography: (
+                    plain-family: var(--md-ref-typeface-plain),
+                    brand-family: var(--md-ref-typeface-brand),
+                    bold-weight: var(--md-ref-typeface-weight-bold),
+                    regular-weight: var(--md-ref-typeface-weight-regular)
+                ),
+                density: (
+                    scale: -3
+                )
+            )
     );
 }
 
@@ -483,36 +655,6 @@ html {
     --nf-prism-token-constant: #f07178; /* The prism token constant color */
     --nf-prism-token-function: #ffffff; /* The prism token function color */
 
-    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
-    --mat-dialog-with-actions-content-padding: 20px 24px; /* .mat-mdc-dialog-content */
-    --mat-dialog-headline-padding: 0 24px 9px; /* .mat-mdc-dialog-title */
-    --mat-sidenav-container-width: auto; /* .mat-drawer */
-    --mat-sidenav-container-shape: 0; /* .mat-drawer */
-    --mdc-text-button-container-shape: 4px; /* .mat-mdc-button */
-    --mdc-text-button-label-text-tracking: normal; /* .mat-mdc-button */
-    --mdc-text-button-label-text-weight: 400; /* .mat-mdc-button */
-    --mdc-filled-button-container-shape: 4px; /*.mat-mdc-unelevated-button  */
-    --mdc-filled-button-label-text-tracking: normal; /* .mat-mdc-unelevated-button */
-    --mdc-filled-button-label-text-weight: 400; /* .mat-mdc-unelevated-button */
-    --mdc-outlined-button-container-shape: 4px; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-label-text-tracking: normal; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-label-text-weight: 400; /* .mat-mdc-outlined-button */
-    --mat-outlined-button-horizontal-padding: 15px; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-container-height: 32px; /*.mat-mdc-outlined-button  */
-    --mdc-secondary-navigation-tab-container-height: 36px; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-tracking: normal; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-weight: 400; /* .mat-mdc-tab-header */
-    --mat-expansion-container-shape: 4px; /* .mat-expansion-panel */
-    --mat-expansion-header-expanded-state-height: 50px; /* .mat-expansion-panel-header.mat-expanded */
-    --mat-menu-divider-top-spacing: 0; /* .mat-divider */
-    --mat-menu-divider-bottom-spacing: 0; /* .mat-divider */
-    --mdc-icon-button-state-layer-size: 36px; /* .mat-mdc-icon-button */
-    --mdc-icon-button-icon-size: 14px; /* .mat-mdc-icon-button */
-    --mdc-dialog-container-shape: 4px; /*.mat-mdc-dialog-surface*/
-
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    --mat-snack-bar-button-color: #004849;
-
     /* color variants for theming angular material widgets */
 
     .tertiary-checkbox {
@@ -593,4 +735,58 @@ html {
             inverse-tertiary: var(--md-ref-palette-tertiary-70)
         )
     );
+
+    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
+
+    @include mat.sidenav-overrides((
+        container-width: auto,
+        container-shape: 0
+    ));
+
+    @include mat.expansion-overrides((
+        container-shape: 6px,
+        header-expanded-state-height: 50px
+    ));
+
+    @include mat.menu-overrides((
+        divider-top-spacing: 0,
+        divider-bottom-spacing: 0
+    ));
+
+    @include mat.dialog-overrides((
+        content-padding: 20px 24px,
+        headline-padding: 0 24px 9px,
+        container-shape: 6px
+    ));
+
+    @include mat.icon-button-overrides((
+        state-layer-size: 36px,
+        icon-size: 14px
+    ));
+
+    @include mat.button-overrides((
+        filled-container-shape: 4px,
+        filled-label-text-tracking: normal,
+        filled-label-text-weight: 400,
+        outlined-container-shape: 4px,
+        outlined-label-text-tracking: normal,
+        outlined-label-text-weight: 400,
+        outlined-horizontal-padding: 15px,
+        outlined-container-height: 32px,
+        text-container-shape: 4px,
+        text-label-text-tracking: normal,
+        text-label-text-weight: 400
+    ));
+
+    @include mat.tabs-overrides(
+            (
+                label-text-tracking: normal,
+                label-text-weight: 400,
+                container-height: 36px
+            )
+    );
+
+    @include mat.snack-bar-overrides((
+        button-color: #004849
+    ));
 }
