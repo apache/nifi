@@ -22,7 +22,12 @@
         </div>
         @if (!isDisabled) {
             <div>
-                <button title="Add" mat-icon-button type="button" (click)="newEntryClicked()">
+                <button
+                    title="Add"
+                    mat-icon-button
+                    class="primary-icon-button"
+                    type="button"
+                    (click)="newEntryClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
