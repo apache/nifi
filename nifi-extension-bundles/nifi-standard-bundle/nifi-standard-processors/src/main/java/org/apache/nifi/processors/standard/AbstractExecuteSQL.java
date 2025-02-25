@@ -565,22 +565,22 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             "Ignores the result and passes the incoming FlowFile content to the next processor."
         );
 
-        private final String value;
+        private final String displayName;
         private final String description;
 
-        ContentOutputStrategy(final String value, final String description) {
-            this.value = value;
+        ContentOutputStrategy(final String displayName, final String description) {
+            this.displayName = displayName;
             this.description = description;
         }
 
         @Override
         public String getValue() {
-            return this.value;
+            return name();
         }
 
         @Override
         public String getDisplayName() {
-            return this.value;
+            return this.displayName;
         }
 
         @Override
