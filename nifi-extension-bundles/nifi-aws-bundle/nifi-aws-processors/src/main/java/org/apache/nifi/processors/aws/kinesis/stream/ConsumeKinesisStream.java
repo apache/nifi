@@ -171,7 +171,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Stream Name")
-            .displayName("Amazon Kinesis Stream Name")
             .description("The name of Kinesis Stream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -179,14 +178,12 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor APPLICATION_NAME = new PropertyDescriptor.Builder()
             .name("Application Name")
-            .displayName("Application Name")
             .description("The Kinesis stream reader application name.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true).build();
 
     public static final PropertyDescriptor INITIAL_STREAM_POSITION = new PropertyDescriptor.Builder()
             .name("Initial Stream Position")
-            .displayName("Initial Stream Position")
             .description("Initial position to read Kinesis streams.")
             .allowableValues(LATEST, TRIM_HORIZON, AT_TIMESTAMP)
             .defaultValue(LATEST.getValue())
@@ -194,7 +191,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor STREAM_POSITION_TIMESTAMP = new PropertyDescriptor.Builder()
             .name("Stream Position Timestamp")
-            .displayName("Stream Position Timestamp")
             .description("Timestamp position in stream from which to start reading Kinesis Records. " +
                     "Required if " + INITIAL_STREAM_POSITION.getDescription() + " is " + AT_TIMESTAMP.getDisplayName() + ". " +
                     "Uses the Timestamp Format to parse value into a Date.")
@@ -204,7 +200,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
             .name("Timestamp Format")
-            .displayName("Timestamp Format")
             .description("Format to use for parsing the " + STREAM_POSITION_TIMESTAMP.getDisplayName() + " into a Date " +
                     "and converting the Kinesis Record's Approximate Arrival Timestamp into a FlowFile attribute.")
             .addValidator((subject, input, context) -> {
@@ -225,7 +220,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor FAILOVER_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Failover Timeout")
-            .displayName("Failover Timeout")
             .description("Kinesis Client Library failover timeout")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("30 secs")
@@ -233,7 +227,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor GRACEFUL_SHUTDOWN_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Graceful Shutdown Timeout")
-            .displayName("Graceful Shutdown Timeout")
             .description("Kinesis Client Library graceful shutdown timeout")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("20 secs")
@@ -241,7 +234,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
             .name("Checkpoint Interval")
-            .displayName("Checkpoint Interval")
             .description("Interval between Kinesis checkpoints")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("3 secs")
@@ -249,7 +241,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor NUM_RETRIES = new PropertyDescriptor.Builder()
             .name("Retry Count")
-            .displayName("Retry Count")
             .description("Number of times to retry a Kinesis operation (process record, checkpoint, shutdown)")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .defaultValue("10")
@@ -257,7 +248,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor RETRY_WAIT = new PropertyDescriptor.Builder()
             .name("Retry Wait")
-            .displayName("Retry Wait")
             .description("Interval between Kinesis operation retries (process record, checkpoint, shutdown)")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("1 sec")
@@ -265,7 +255,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor DYNAMODB_ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
             .name("DynamoDB Override")
-            .displayName("DynamoDB Override")
             .description("DynamoDB override to use non-AWS deployments")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -273,7 +262,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor REPORT_CLOUDWATCH_METRICS = new PropertyDescriptor.Builder()
             .name("Report Metrics to CloudWatch")
-            .displayName("Report Metrics to CloudWatch")
             .description("Whether to report Kinesis usage metrics to CloudWatch.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
@@ -282,7 +270,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .displayName("Record Reader")
             .description("The Record Reader to use for reading received messages." +
                     " The Kinesis Stream name can be referred to by Expression Language '${" +
                     AbstractKinesisRecordProcessor.KINESIS_RECORD_SCHEMA_KEY + "}' to access a schema." +
@@ -294,7 +281,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("Record Writer")
-            .displayName("Record Writer")
             .description("The Record Writer to use for serializing Records to an output FlowFile." +
                     " The Kinesis Stream name can be referred to by Expression Language '${" +
                     AbstractKinesisRecordProcessor.KINESIS_RECORD_SCHEMA_KEY + "}' to access a schema." +
