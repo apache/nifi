@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record.field;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -43,6 +44,8 @@ public class ObjectTimestampFieldConverterTest {
 
     private static final String EMPTY = "";
 
+    private static final String DATE_DEFAULT = "2000-01-01";
+
     private static final String DATE_TIME_DEFAULT = "2000-01-01 12:00:00";
 
     private static final String DATE_TIME_ZONE_OFFSET_PATTERN = "yyyy-MM-dd HH:mm:ssZZZZZ";
@@ -52,6 +55,8 @@ public class ObjectTimestampFieldConverterTest {
     private static final Optional<String> DATE_TIME_NANOSECONDS_PATTERN = Optional.of("yyyy-MM-dd HH:mm:ss.SSSSSSSSS");
 
     private static final String DATE_TIME_NANOSECONDS = "2000-01-01 12:00:00.123456789";
+
+    private static final String TIME_DEFAULT = "12:30:45";
 
     @Test
     public void testConvertFieldNull() {
@@ -64,6 +69,27 @@ public class ObjectTimestampFieldConverterTest {
         final Timestamp field = new Timestamp(System.currentTimeMillis());
         final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
         assertEquals(field, timestamp);
+    }
+
+    @Test
+    public void testConvertFieldTimestampNanoseconds() {
+        final Timestamp field = Timestamp.valueOf(DATE_TIME_NANOSECONDS);
+        final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
+        assertEquals(field, timestamp);
+    }
+
+    @Test
+    public void testConvertFieldSqlDate() {
+        final java.sql.Date field = java.sql.Date.valueOf(DATE_DEFAULT);
+        final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
+        assertEquals(field.getTime(), timestamp.getTime());
+    }
+
+    @Test
+    public void testConvertFieldSqlTime() {
+        final Time field = Time.valueOf(TIME_DEFAULT);
+        final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
+        assertEquals(field.getTime(), timestamp.getTime());
     }
 
     @Test
