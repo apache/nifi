@@ -838,8 +838,8 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
         final String streamTimestamp = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
         return new Date(
                 LocalDateTime.parse(streamTimestamp, dateTimeFormatter).atZone(ZoneId.systemDefault()) // parse date/time with system timezone
-                        .withZoneSameInstant(ZoneOffset.UTC) // convert to UTC
-                        .toInstant().toEpochMilli() // convert to epoch milliseconds for creating Date
+                    .withZoneSameInstant(ZoneOffset.UTC) // convert to UTC
+                    .toInstant().toEpochMilli() // convert to epoch milliseconds for creating Date
         );
     }
 
