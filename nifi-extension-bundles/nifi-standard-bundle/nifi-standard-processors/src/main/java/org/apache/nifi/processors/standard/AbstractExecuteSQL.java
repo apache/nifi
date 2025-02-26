@@ -474,10 +474,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         session.remove(fileToProcess);
                     } else {
                         // If we had no results then transfer the original flow file downstream to trigger processors
-                        if (ContentOutputStrategy.EMPTY == context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class)) {
-                            session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), REL_SUCCESS);
-                        } else {
+                        final ContentOutputStrategy contentOutputStrategy = context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class);
+                        if (ContentOutputStrategy.ORIGINAL == contentOutputStrategy) {
                             session.transfer(fileToProcess, REL_SUCCESS);
+                        } else {
+                            // Set Empty Results as the default behavior based on strategy or null property
+                            session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), REL_SUCCESS);
                         }
                     }
                 } else if (resultCount == 0) {
