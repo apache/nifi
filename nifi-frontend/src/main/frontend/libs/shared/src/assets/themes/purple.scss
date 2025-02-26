@@ -192,50 +192,6 @@
     --nf-prism-token-constant: #ec000c; /* The prism token constant color */
     --nf-prism-token-function: #000000; /* The prism token function color */
 
-    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
-    --mat-dialog-with-actions-content-padding: 20px 24px; /* .mat-mdc-dialog-content */
-    --mat-dialog-headline-padding: 0 24px 9px; /* .mat-mdc-dialog-title */
-    --mat-sidenav-container-width: auto; /* .mat-drawer */
-    --mat-sidenav-container-shape: 0; /* .mat-drawer */
-    --mdc-text-button-label-text-tracking: normal; /* .mat-mdc-button */
-    --mdc-text-button-label-text-weight: 400; /* .mat-mdc-button */
-    --mdc-filled-button-label-text-tracking: normal; /* .mat-mdc-unelevated-button */
-    --mdc-filled-button-label-text-weight: 400; /* .mat-mdc-unelevated-button */
-    --mdc-outlined-button-label-text-tracking: normal; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-label-text-weight: 400; /* .mat-mdc-outlined-button */
-    --mat-outlined-button-horizontal-padding: 15px; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-container-height: 32px; /*.mat-mdc-outlined-button  */
-    --mdc-secondary-navigation-tab-container-height: 36px; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-tracking: normal; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-weight: 400; /* .mat-mdc-tab-header */
-    --mat-expansion-header-expanded-state-height: 50px; /* .mat-expansion-panel-header.mat-expanded */
-    --mat-menu-divider-top-spacing: 0; /* .mat-divider */
-    --mat-menu-divider-bottom-spacing: 0; /* .mat-divider */
-    --mdc-icon-button-state-layer-size: 36px; /* .mat-mdc-icon-button */
-    --mdc-icon-button-icon-size: 14px; /* .mat-mdc-icon-button */
-
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    --mat-snack-bar-button-color: var(--md-ref-palette-secondary-80);
-
-    /* color variants for theming angular material widgets */
-
-    .tertiary-checkbox {
-        --mdc-checkbox-selected-icon-color: var(--md-ref-palette-tertiary-40);
-    }
-
-    .primary-icon-button {
-        --mdc-icon-button-icon-color: var(--md-ref-palette-primary-40);
-    }
-
-    .error-button {
-        --mdc-filled-button-container-color: var(--md-ref-palette-error-40);
-        --mdc-filled-button-label-text-color: var(--md-ref-palette-error-100);
-    }
-
-    .tertiary-spinner {
-        --mdc-circular-progress-active-indicator-color: var(--md-ref-palette-tertiary-40);
-    }
-
     @include mat.theme-overrides(
         (
             primary: var(--md-ref-palette-primary-40),
@@ -295,6 +251,45 @@
             inverse-tertiary: var(--md-ref-palette-tertiary-80)
         )
     );
+
+    @include mat.snack-bar-overrides(
+        (
+            button-color: var(--md-ref-palette-secondary-80)
+        )
+    );
+
+    .tertiary-checkbox {
+        @include mat.checkbox-overrides(
+            (
+                selected-icon-color: var(--md-ref-palette-tertiary-40)
+            )
+        );
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-overrides(
+            (
+                icon-color: var(--md-ref-palette-primary-40)
+            )
+        );
+    }
+
+    .error-button {
+        @include mat.button-overrides(
+            (
+                filled-container-color: var(--md-ref-palette-error-40),
+                filled-label-text-color: var(--md-ref-palette-error-100)
+            )
+        );
+    }
+
+    .tertiary-spinner {
+        @include mat.progress-spinner-overrides(
+            (
+                active-indicator-color: var(--md-ref-palette-tertiary-40)
+            )
+        );
+    }
 }
 
 // Note: Color palettes are generated from primary: #6750a4
@@ -626,50 +621,6 @@ html {
     --nf-prism-token-constant: #f07178; /* The prism token constant color */
     --nf-prism-token-function: #ffffff; /* The prism token function color */
 
-    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
-    --mat-dialog-with-actions-content-padding: 20px 24px; /* .mat-mdc-dialog-content */
-    --mat-dialog-headline-padding: 0 24px 9px; /* .mat-mdc-dialog-title */
-    --mat-sidenav-container-width: auto; /* .mat-drawer */
-    --mat-sidenav-container-shape: 0; /* .mat-drawer */
-    --mdc-text-button-label-text-tracking: normal; /* .mat-mdc-button */
-    --mdc-text-button-label-text-weight: 400; /* .mat-mdc-button */
-    --mdc-filled-button-label-text-tracking: normal; /* .mat-mdc-unelevated-button */
-    --mdc-filled-button-label-text-weight: 400; /* .mat-mdc-unelevated-button */
-    --mdc-outlined-button-label-text-tracking: normal; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-label-text-weight: 400; /* .mat-mdc-outlined-button */
-    --mat-outlined-button-horizontal-padding: 15px; /* .mat-mdc-outlined-button */
-    --mdc-outlined-button-container-height: 32px; /*.mat-mdc-outlined-button  */
-    --mdc-secondary-navigation-tab-container-height: 36px; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-tracking: normal; /* .mat-mdc-tab-header */
-    --mat-tab-header-label-text-weight: 400; /* .mat-mdc-tab-header */
-    --mat-expansion-header-expanded-state-height: 50px; /* .mat-expansion-panel-header.mat-expanded */
-    --mat-menu-divider-top-spacing: 0; /* .mat-divider */
-    --mat-menu-divider-bottom-spacing: 0; /* .mat-divider */
-    --mdc-icon-button-state-layer-size: 36px; /* .mat-mdc-icon-button */
-    --mdc-icon-button-icon-size: 14px; /* .mat-mdc-icon-button */
-
-    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-    --mat-snack-bar-button-color: #004849;
-
-    /* color variants for theming angular material widgets */
-
-    .tertiary-checkbox {
-        --mdc-checkbox-selected-icon-color: var(--md-ref-palette-tertiary-70);
-    }
-
-    .primary-icon-button {
-        --mdc-icon-button-icon-color: var(--md-ref-palette-primary-80);
-    }
-
-    .error-button {
-        --mdc-filled-button-container-color: var(--md-ref-palette-error-50);
-        --mdc-filled-button-label-text-color: var(--md-ref-palette-error-100);
-    }
-
-    .tertiary-spinner {
-        --mdc-circular-progress-active-indicator-color: var(--md-ref-palette-tertiary-70);
-    }
-
     color-scheme: dark;
 
     @include mat.theme-overrides(
@@ -731,4 +682,43 @@ html {
             inverse-tertiary: var(--md-ref-palette-tertiary-70)
         )
     );
+
+    @include mat.snack-bar-overrides(
+        (
+            button-color: #004849
+        )
+    );
+
+    .tertiary-checkbox {
+        @include mat.checkbox-overrides(
+            (
+                selected-icon-color: var(--md-ref-palette-tertiary-70)
+            )
+        );
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-overrides(
+            (
+                icon-color: var(--md-ref-palette-primary-80)
+            )
+        );
+    }
+
+    .error-button {
+        @include mat.button-overrides(
+            (
+                filled-container-color: var(--md-ref-palette-error-50),
+                filled-label-text-color: var(--md-ref-palette-error-100)
+            )
+        );
+    }
+
+    .tertiary-spinner {
+        @include mat.progress-spinner-overrides(
+            (
+                active-indicator-color: var(--md-ref-palette-tertiary-70)
+            )
+        );
+    }
 }

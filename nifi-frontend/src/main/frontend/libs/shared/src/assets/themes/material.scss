@@ -196,25 +196,6 @@
     --nf-prism-token-constant: #ec000c; /* The prism token constant color */
     --nf-prism-token-function: #000000; /* The prism token function color */
 
-    /* color variants for theming angular material widgets */
-
-    .tertiary-checkbox {
-        --mdc-checkbox-selected-icon-color: var(--md-ref-palette-tertiary-40);
-    }
-
-    .primary-icon-button {
-        --mdc-icon-button-icon-color: var(--md-ref-palette-primary-40);
-    }
-
-    .error-button {
-        --mdc-filled-button-container-color: var(--md-ref-palette-error-40);
-        --mdc-filled-button-label-text-color: var(--md-ref-palette-error-100);
-    }
-
-    .tertiary-spinner {
-        --mdc-circular-progress-active-indicator-color: var(--md-ref-palette-tertiary-40);
-    }
-
     @include mat.theme-overrides(
         (
             primary: var(--md-ref-palette-primary-40),
@@ -274,8 +255,6 @@
             inverse-tertiary: var(--md-ref-palette-tertiary-80)
         )
     );
-
-    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
 
     @include mat.sidenav-overrides(
         (
@@ -342,6 +321,39 @@
             button-color: var(--md-ref-palette-secondary-80)
         )
     );
+
+    .tertiary-checkbox {
+        @include mat.checkbox-overrides(
+            (
+                selected-icon-color: var(--md-ref-palette-tertiary-40)
+            )
+        );
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-overrides(
+            (
+                icon-color: var(--md-ref-palette-primary-40)
+            )
+        );
+    }
+
+    .error-button {
+        @include mat.button-overrides(
+            (
+                filled-container-color: var(--md-ref-palette-error-40),
+                filled-label-text-color: var(--md-ref-palette-error-100)
+            )
+        );
+    }
+
+    .tertiary-spinner {
+        @include mat.progress-spinner-overrides(
+            (
+                active-indicator-color: var(--md-ref-palette-tertiary-40)
+            )
+        );
+    }
 }
 
 // Note: Color palettes are generated from primary: #6750a4
@@ -669,25 +681,6 @@ html {
     --nf-prism-token-constant: #f07178; /* The prism token constant color */
     --nf-prism-token-function: #ffffff; /* The prism token function color */
 
-    /* color variants for theming angular material widgets */
-
-    .tertiary-checkbox {
-        --mdc-checkbox-selected-icon-color: var(--md-ref-palette-tertiary-70);
-    }
-
-    .primary-icon-button {
-        --mdc-icon-button-icon-color: var(--md-ref-palette-primary-80);
-    }
-
-    .error-button {
-        --mdc-filled-button-container-color: var(--md-ref-palette-error-50);
-        --mdc-filled-button-label-text-color: var(--md-ref-palette-error-100);
-    }
-
-    .tertiary-spinner {
-        --mdc-circular-progress-active-indicator-color: var(--md-ref-palette-tertiary-70);
-    }
-
     color-scheme: dark;
 
     @include mat.theme-overrides(
@@ -749,8 +742,6 @@ html {
             inverse-tertiary: var(--md-ref-palette-tertiary-70)
         )
     );
-
-    /* Material Design customization. These variables are referenced by Angular Material components to customize the look and feel of the applicaiton */
 
     @include mat.sidenav-overrides(
         (
@@ -817,4 +808,37 @@ html {
             button-color: #004849
         )
     );
+
+    .tertiary-checkbox {
+        @include mat.checkbox-overrides(
+            (
+                selected-icon-color: var(--md-ref-palette-tertiary-70)
+            )
+        );
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-overrides(
+            (
+                icon-color: var(--md-ref-palette-primary-80)
+            )
+        );
+    }
+
+    .error-button {
+        @include mat.button-overrides(
+            (
+                filled-container-color: var(--md-ref-palette-error-50),
+                filled-label-text-color: var(--md-ref-palette-error-100)
+            )
+        );
+    }
+
+    .tertiary-spinner {
+        @include mat.progress-spinner-overrides(
+            (
+                active-indicator-color: var(--md-ref-palette-tertiary-70)
+            )
+        );
+    }
 }
