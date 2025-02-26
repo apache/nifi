@@ -78,8 +78,8 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredStartRowIsEmpty() throws IOException {
-        Object[][] sheetData = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        Object[][] singleSheet = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
@@ -92,8 +92,8 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredStartRowHasEmptyCell() throws Exception {
-        Object[][] sheetData = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        Object[][] singleSheet = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
@@ -107,8 +107,8 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereInferenceRowHasMoreCellsThanFieldNames() throws Exception {
-        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
@@ -121,8 +121,8 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereTotalRowsLessThanConfiguredInferenceRows() throws Exception {
-        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
@@ -134,11 +134,11 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredInferenceRowsHasAnEmptyRow() throws IOException {
-        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
                 {4, "Four", "F"}, {5, "Five", "F"}, {}, {7, "Seven", "S"}, {8, "Eight", "E"},
                 {9, "Nine", "N"}, {10, "Ten", "T"}};
 
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
@@ -150,11 +150,11 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereTotalRowsGreaterThanConfiguredInferenceRows() throws Exception {
-        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
                 {4, "Four", "F"}, {5, "Five", "F"}, {6, "Six", "S"}, {7, "Seven", "S"}, {8, "Eight", "E"},
                 {9, "Nine", "N"}, {10, "Ten", "T"}, {11, "Eleven", "E"}};
 
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
@@ -166,8 +166,8 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredInferenceRowsAreAllBlank() throws IOException {
-        Object[][] sheetData = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
-        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
