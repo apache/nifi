@@ -17,11 +17,11 @@
 package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
+import com.google.api.services.drive.model.User;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -48,7 +48,10 @@ import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -56,23 +59,40 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.DRIVE_ATTR_PREFIX;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK_DESC;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -91,7 +111,14 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
         @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
         @WritesAttribute(attribute = SIZE_AVAILABLE, description = SIZE_AVAILABLE_DESC),
-        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC)})
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = CREATED_TIME, description = CREATED_TIME_DESC),
+        @WritesAttribute(attribute = MODIFIED_TIME, description = MODIFIED_TIME_DESC),
+        @WritesAttribute(attribute = PATH, description = PATH_DESC),
+        @WritesAttribute(attribute = OWNER, description = OWNER_DESC),
+        @WritesAttribute(attribute = LAST_MODIFYING_USER, description = LAST_MODIFYING_USER_DESC),
+        @WritesAttribute(attribute = WEB_VIEW_LINK, description = WEB_VIEW_LINK_DESC),
+        @WritesAttribute(attribute = WEB_CONTENT_LINK, description = WEB_CONTENT_LINK_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
@@ -150,6 +177,29 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
             .build();
 
+    public static final PropertyDescriptor ENRICH_FILE_METADATA = new PropertyDescriptor.Builder()
+            .name("enrich-file-metadata")
+            .displayName("Enrich File Metadata")
+            .description(String.format("Specifies which FlowFile attributes to add in the listing result that hold additional Google Drive File Metadata information. " +
+                            "Comma separated list of any of the following attribute names: %s, %s, %s, %s, %s (the 'drive.' prefix can be omitted). " +
+                            "Example: 'path, owner'",
+                    PATH, OWNER, LAST_MODIFYING_USER, WEB_VIEW_LINK, WEB_CONTENT_LINK))
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor FOLDER_SEPARATOR_IN_PATH = new PropertyDescriptor.Builder()
+            .name("folder-separator-in-path")
+            .displayName("Folder Separator in Path")
+            .description(String.format("String of one or more characters that will be used to separate the folder names in '%s' attribute value. " +
+                            "Google Drive allows special characters in folder names including '/' (slash) and '\\' (backslash). " +
+                            "As a result, there is no universal separator that functions consistently across all environments. " +
+                            "A separator should be chosen that does not appear in any of the folder names to be listed. " +
+                            "The property is mandatory when '%s' attribute has been configured in '%s' property.",
+                    PATH, PATH, ENRICH_FILE_METADATA.getDisplayName()))
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(ENRICH_FILE_METADATA)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
             FOLDER_ID,
@@ -160,12 +210,17 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET,
             RECORD_WRITER,
+            ENRICH_FILE_METADATA,
+            FOLDER_SEPARATOR_IN_PATH,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
             CONNECT_TIMEOUT,
             READ_TIMEOUT
     );
 
     private volatile Drive driveService;
+
+    private volatile RecordSchema recordSchema;
+    private volatile List<EnrichAttribute> enrichAttributes;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -174,6 +229,27 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
     @Override
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+        final List<String> enrichAttributeNames = getEnrichAttributeNames(validationContext);
+
+        enrichAttributeNames.stream()
+                .filter(n -> !GoogleDriveFlowFileAttribute.isValidName(n))
+                .forEach(n -> results.add(new ValidationResult.Builder()
+                        .subject(ENRICH_FILE_METADATA.getDisplayName())
+                        .valid(false)
+                        .explanation(String.format("'%s' is not a valid FlowFile attribute name.", n))
+                        .build())
+                );
+
+        if (enrichAttributeNames.contains(GoogleDriveFlowFileAttribute.PATH.getName())) {
+            final String folderSeparator = validationContext.getProperty(FOLDER_SEPARATOR_IN_PATH).getValue();
+            if (StringUtils.isBlank(folderSeparator)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(FOLDER_SEPARATOR_IN_PATH.getDisplayName())
+                        .valid(false)
+                        .explanation(String.format("it is mandatory when '%s' attribute has been configured in '%s' property.", PATH, ENRICH_FILE_METADATA.getDisplayName()))
+                        .build());
+            }
+        }
     }
 
     @Override
@@ -181,14 +257,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             final GoogleDriveFileInfo entity,
             final ProcessContext context
     ) {
-        final Map<String, String> attributes = new HashMap<>();
-
-        for (GoogleDriveFlowFileAttribute attribute : GoogleDriveFlowFileAttribute.values()) {
-            Optional.ofNullable(attribute.getValue(entity))
-                    .ifPresent(value -> attributes.put(attribute.getName(), value));
-        }
-
-        return attributes;
+        return entity.toStringMap();
     }
 
     @OnScheduled
@@ -197,7 +266,37 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
-        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE_METADATA_READONLY);
+        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY);
+    }
+
+    @OnScheduled
+    @Override
+    // initListedEntityTracker() needs to be overridden because the super implementation calls getRecordSchema()
+    // so recordSchema must be initialized before that
+    public void initListedEntityTracker(ProcessContext context) {
+        this.enrichAttributes = new ArrayList<>();
+
+        final List<RecordField> recordFields = new ArrayList<>();
+
+        Stream.of(
+                GoogleDriveFlowFileAttribute.ID,
+                GoogleDriveFlowFileAttribute.FILENAME,
+                GoogleDriveFlowFileAttribute.SIZE,
+                GoogleDriveFlowFileAttribute.SIZE_AVAILABLE,
+                GoogleDriveFlowFileAttribute.TIMESTAMP,
+                GoogleDriveFlowFileAttribute.CREATED_TIME,
+                GoogleDriveFlowFileAttribute.MODIFIED_TIME,
+                GoogleDriveFlowFileAttribute.MIME_TYPE
+        ).forEach(a -> recordFields.add(a.getRecordField()));
+
+        getEnrichAttributeNames(context).forEach(name -> {
+            recordFields.add(GoogleDriveFlowFileAttribute.getByName(name).getRecordField());
+            enrichAttributes.add(EnrichAttribute.getByName(name));
+        });
+
+        this.recordSchema = new SimpleRecordSchema(recordFields);
+
+        super.initListedEntityTracker(context);
     }
 
     @Override
@@ -224,7 +323,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
     @Override
     protected RecordSchema getRecordSchema() {
-        return GoogleDriveFileInfo.getRecordSchema();
+        return recordSchema;
     }
 
     @Override
@@ -243,6 +342,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final String folderSeparator = context.getProperty(FOLDER_SEPARATOR_IN_PATH).getValue();
 
         StringBuilder queryTemplateBuilder = new StringBuilder();
         queryTemplateBuilder.append("('%s' in parents)");
@@ -251,7 +351,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         if (minTimestamp != null && minTimestamp > 0) {
             String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
 
-            queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
+            queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
             queryTemplateBuilder.append(" or modifiedTime >= '").append(formattedMinTimestamp).append("'");
             queryTemplateBuilder.append(" or createdTime >= '").append(formattedMinTimestamp).append( "'");
             queryTemplateBuilder.append(")");
@@ -260,7 +360,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             long maxTimestamp = System.currentTimeMillis() - minAge;
             String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
 
-            queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
+            queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
             queryTemplateBuilder.append(" or (modifiedTime < '").append(formattedMaxTimestamp).append("'");
             queryTemplateBuilder.append(" and createdTime < '").append(formattedMaxTimestamp).append("')");
             queryTemplateBuilder.append(")");
@@ -268,7 +368,11 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         final String queryTemplate = queryTemplateBuilder.toString();
 
-        queryFolder(driveService, folderId, queryTemplate, recursive, listing);
+        final String queryFields = getQueryFields();
+
+        final String folderName = getFolderName(folderId);
+
+        queryFolder(folderId, folderName, queryTemplate, queryFields, recursive, folderSeparator, listing);
 
         return listing;
     }
@@ -278,14 +382,36 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
     }
 
+    private String getFolderName(final String folderId) throws IOException {
+        final File folder = driveService
+                .files()
+                .get(folderId)
+                .setSupportsAllDrives(true)
+                .setFields("name, driveId")
+                .execute();
+
+        if (folder.getDriveId() == null) {
+            return folder.getName();
+        } else {
+            return driveService
+                    .drives()
+                    .get(folderId)
+                    .setFields("name")
+                    .execute()
+                    .getName();
+        }
+    }
+
     private void queryFolder(
-            final Drive driveService,
             final String folderId,
+            final String folderPath,
             final String queryTemplate,
+            final String queryFields,
             final boolean recursive,
+            final String folderSeparator,
             final List<GoogleDriveFileInfo> listing
     ) throws IOException {
-        final List<String> subFolderIds = new ArrayList<>();
+        final List<File> subfolders = new ArrayList<>();
 
         String pageToken = null;
         do {
@@ -295,23 +421,20 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                     .setIncludeItemsFromAllDrives(true)
                     .setQ(String.format(queryTemplate, folderId))
                     .setPageToken(pageToken)
-                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
+                    .setFields(queryFields)
                     .execute();
 
             for (final File file : result.getFiles()) {
                 if (DRIVE_FOLDER_MIME_TYPE.equals(file.getMimeType())) {
                     if (recursive) {
-                        subFolderIds.add(file.getId());
+                        subfolders.add(file);
                     }
                 } else {
-                    GoogleDriveFileInfo.Builder builder = new GoogleDriveFileInfo.Builder()
-                            .id(file.getId())
-                            .fileName(file.getName())
-                            .size(file.getSize() != null ? file.getSize() : 0L)
-                            .sizeAvailable(file.getSize() != null)
-                            .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
-                            .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
-                            .mimeType(file.getMimeType());
+                    final GoogleDriveFileInfo.Builder builder = createGoogleDriveFileInfoBuilder(file);
+
+                    enrichAttributes.forEach(ea -> ea.map(builder, file, folderPath));
+
+                    builder.recordSchema(recordSchema);
 
                     listing.add(builder.build());
                 }
@@ -320,8 +443,74 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             pageToken = result.getNextPageToken();
         } while (pageToken != null);
 
-        for (final String subFolderId : subFolderIds) {
-            queryFolder(driveService, subFolderId, queryTemplate, true, listing);
+        for (final File subfolder : subfolders) {
+            final String subfolderPath = folderPath + folderSeparator + subfolder.getName();
+            queryFolder(subfolder.getId(), subfolderPath, queryTemplate, queryFields, true, folderSeparator, listing);
         }
+    }
+
+    private List<String> getEnrichAttributeNames(final PropertyContext context) {
+        final String enrichFileMetadata = context.getProperty(ENRICH_FILE_METADATA).getValue();
+        return StringUtils.isNotBlank(enrichFileMetadata)
+                ? Arrays.stream(enrichFileMetadata.split(",\\s*")).map(a -> a.startsWith(DRIVE_ATTR_PREFIX) ? a : DRIVE_ATTR_PREFIX + a).toList()
+                : Collections.emptyList();
+    }
+
+    private String getQueryFields() {
+        final StringBuilder fieldsBuilder = new StringBuilder("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType");
+
+        enrichAttributes.forEach(ea -> Optional.ofNullable(ea.getFieldName()).ifPresent((fn -> fieldsBuilder.append(", ").append(fn))));
+
+        fieldsBuilder.append(')');
+
+        return fieldsBuilder.toString();
+    }
+
+    enum EnrichAttribute {
+        PATH(GoogleDriveAttributes.PATH, null,
+                (builder, file, path) -> builder.path(path)),
+        OWNER(GoogleDriveAttributes.OWNER, "owners",
+                (builder, file, path) -> builder.owner(Optional.ofNullable(file.getOwners()).filter(owners -> !owners.isEmpty()).map(List::getFirst).map(User::getDisplayName).orElse(null))),
+        LAST_MODIFYING_USER(GoogleDriveAttributes.LAST_MODIFYING_USER, "lastModifyingUser",
+                (builder, file, path) -> builder.lastModifyingUser(Optional.ofNullable(file.getLastModifyingUser()).map(User::getDisplayName).orElse(null))),
+        WEB_VIEW_LINK(GoogleDriveAttributes.WEB_VIEW_LINK, "webViewLink",
+                (builder, file, path) -> builder.webViewLink(file.getWebViewLink())),
+        WEB_CONTENT_LINK(GoogleDriveAttributes.WEB_CONTENT_LINK, "webContentLink",
+                (builder, file, path) -> builder.webContentLink(file.getWebContentLink()));
+
+        private final String name;
+        private final String fieldName;
+        private final EnrichAttributeMapper mapper;
+
+        EnrichAttribute(final String name, final String fieldName, final EnrichAttributeMapper mapper) {
+            this.name = name;
+            this.fieldName = fieldName;
+            this.mapper = mapper;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        String getFieldName() {
+            return fieldName;
+        }
+
+        void map(final GoogleDriveFileInfo.Builder builder, final File file, final String path) {
+            mapper.map(builder, file, path);
+        }
+
+        static EnrichAttribute getByName(final String name) {
+            for (EnrichAttribute item : values()) {
+                if (item.getName().equals(name)) {
+                    return item;
+                }
+            }
+            throw new IllegalArgumentException("EnrichAttribute with name [" + name + "] does not exist");
+        }
+    }
+
+    interface EnrichAttributeMapper {
+        void map(final GoogleDriveFileInfo.Builder builder, final File file, final String path);
     }
 }

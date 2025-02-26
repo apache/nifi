@@ -20,12 +20,19 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public interface OutputChecker {
@@ -50,9 +57,7 @@ public interface OutputChecker {
     }
 
     default Set<String> getCheckedAttributeNames() {
-        Set<String> checkedAttributeNames = Arrays.stream(GoogleDriveFlowFileAttribute.values())
-                .map(GoogleDriveFlowFileAttribute::getName)
-                .collect(Collectors.toSet());
+        Set<String> checkedAttributeNames = Set.of(ID, FILENAME, SIZE, SIZE_AVAILABLE, TIMESTAMP, CREATED_TIME, MODIFIED_TIME, MIME_TYPE);
 
         return checkedAttributeNames;
     }

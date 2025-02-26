@@ -122,10 +122,12 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
     @Override
     public Set<String> getCheckedAttributeNames() {
-        Set<String> checkedAttributeNames = OutputChecker.super.getCheckedAttributeNames();
+        Set<String> checkedAttributeNames = new HashSet<>(OutputChecker.super.getCheckedAttributeNames());
 
         checkedAttributeNames.add(GoogleDriveAttributes.ERROR_CODE);
         checkedAttributeNames.remove(GoogleDriveAttributes.TIMESTAMP);
+        checkedAttributeNames.remove(GoogleDriveAttributes.CREATED_TIME);
+        checkedAttributeNames.remove(GoogleDriveAttributes.MODIFIED_TIME);
 
         return checkedAttributeNames;
     }

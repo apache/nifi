@@ -27,6 +27,7 @@ import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -139,6 +140,8 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                         "\"drive.size\":" + size + "," +
                         "\"drive.size.available\":" + (size != null) + "," +
                         "\"drive.timestamp\":" + modifiedTime + "," +
+                        "\"drive.created.time\":\"" + Instant.ofEpochMilli(createdTime) + "\"," +
+                        "\"drive.modified.time\":\"" + Instant.ofEpochMilli(modifiedTime) + "\"," +
                         "\"mime.type\":\"" + mimeType + "\"" +
                         "}" +
                         "]");
@@ -185,6 +188,8 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size != null ? size : 0L));
         inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, valueOf(size != null));
         inputFlowFileAttributes.put(GoogleDriveAttributes.TIMESTAMP, valueOf(expectedTimestamp));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.CREATED_TIME, Instant.ofEpochMilli(createdTime != null ? createdTime : 0L).toString());
+        inputFlowFileAttributes.put(GoogleDriveAttributes.MODIFIED_TIME, Instant.ofEpochMilli(modifiedTime != null ? modifiedTime : 0L).toString());
         inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, mimeType);
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
