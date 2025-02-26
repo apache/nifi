@@ -86,19 +86,14 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
 
         while (rowIterator.hasNext()) {
             Row row = rowIterator.next();
-
             if (index == 0) {
                 fieldNames = getFieldNames(firstRow, row);
+            } else if (row.getRowNum() == zeroBasedFirstRow) { // skip first row of all sheets
+                continue;
+            } else if (index <= NUM_ROWS_TO_DETERMINE_TYPES) {
+                inferSchema(row, fieldNames, typeMap);
             } else {
-                if (row.getRowNum() == zeroBasedFirstRow) { // skip first row across all sheets
-                    continue;
-                } else {
-                    if (index <= NUM_ROWS_TO_DETERMINE_TYPES) {
-                        inferSchema(row, fieldNames, typeMap);
-                    } else {
-                        break;
-                    }
-                }
+                break;
             }
 
             index++;
