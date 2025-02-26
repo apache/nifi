@@ -521,32 +521,6 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         results.clear();
     }
 
-    private Map<Integer, Record> getErrorInputRecords(final BulkOperation bundle, final ProcessSession session, final FlowFile input, final Map<Integer, Map<String, Object>> errors,
-                                                      final IndexOperationParameters indexOperationParameters, final int batch)
-            throws IOException, SchemaNotFoundException, MalformedRecordException {
-        try (final InputStream inStream = session.read(input);
-             final RecordReader reader = readerFactory.createRecordReader(input, inStream, getLogger())) {
-
-            // skip through the input FlowFile to the current batch of records
-            for (int r = 0; r < batch * indexOperationParameters.getBatchSize(); r++) {
-                reader.nextRecord();
-            }
-
-            final Map<Integer, Record> errorInputRecords = new HashMap<>(errors.size(), 1);
-            for (int i = 0; i < bundle.getOriginalRecords().size(); i++) {
-                final Record inputRecord = reader.nextRecord();
-                if (errors.containsKey(i)) {
-                    errorInputRecords.put(i, inputRecord);
-                }
-            }
-
-            return errorInputRecords;
-        } catch (final IOException | SchemaNotFoundException | MalformedRecordException ex) {
-            getLogger().error("Unable to read input records for errors", ex);
-            throw ex;
-        }
-    }
-
     private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessSession session, final FlowFile input,
                                            final IndexOperationParameters indexOperationParameters, final int batch)
             throws IOException, SchemaNotFoundException, MalformedRecordException {
@@ -561,21 +535,23 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         final int numSuccessful = response.getItems() == null ? 0 : response.getItems().size() - numErrors;
         final Map<String, Output> outputs = new HashMap<>();
 
-        final Map<Integer, Record> errorInputRecords;
-        if (numErrors > 0) {
-            errorInputRecords = getErrorInputRecords(bundle, session, input, errors, indexOperationParameters, batch);
-        } else {
-            errorInputRecords = Collections.emptyMap();
-        }
+        try (final InputStream inStream = session.read(input);
+             final RecordReader inputReader = readerFactory.createRecordReader(input, inStream, getLogger())) {
 
-        try {
+            // if there are errors present, skip through the input FlowFile to the current batch of records
+            if (numErrors > 0) {
+                for (int r = 0; r < batch * indexOperationParameters.getBatchSize(); r++) {
+                    inputReader.nextRecord();
+                }
+            }
+
             for (int o = 0; o < bundle.getOriginalRecords().size(); o++) {
                 final String type;
                 final Relationship relationship;
                 final Map<String, Object> error;
                 final Record outputRecord;
                 final RecordSchema recordSchema;
-                if (errors.containsKey(o)) {
+                if (numErrors > 0 && errors.containsKey(o)) {
                     relationship = REL_ERRORS;
                     error = errors.get(o);
                     if (groupBulkErrors) {
@@ -587,7 +563,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     } else {
                         type = OUTPUT_TYPE_ERROR;
                     }
-                    outputRecord = errorInputRecords.get(o);
+                    outputRecord = inputReader.nextRecord();
                     recordSchema = outputRecord.getSchema();
                 } else {
                     relationship = REL_SUCCESSFUL;
@@ -595,6 +571,10 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     type = OUTPUT_TYPE_SUCCESS;
                     outputRecord = bundle.getOriginalRecords().get(o);
                     recordSchema = bundle.getSchema();
+                    // skip the associated Input Record for this successful Record
+                    if (numErrors > 0) {
+                        inputReader.nextRecord();
+                    }
                 }
                 final Output output = getOutputByType(outputs, type, session, relationship, input, recordSchema);
                 output.write(outputRecord, error);
@@ -603,7 +583,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             for (final Output output : outputs.values()) {
                 output.transfer(session);
             }
-        } catch (final IOException | SchemaNotFoundException ex) {
+        } catch (final IOException | SchemaNotFoundException | MalformedRecordException ex) {
             getLogger().error("Unable to write error/successful records", ex);
             outputs.values().forEach(o -> {
                 try {

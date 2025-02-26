@@ -288,6 +288,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest {
         runner.addControllerService("mockReader", mockReader);
         runner.setProperty(PutElasticsearchRecord.RECORD_READER, "mockReader");
         runner.enableControllerService(mockReader);
+        runner.setAllowRecursiveReads(true);
 
         basicTest(0, 0, 1);
     }
