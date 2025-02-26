@@ -72,6 +72,8 @@
 @mixin generate-theme() {
     .listing-table {
         table {
+            background-color: inherit;
+
             th {
                 @extend .secondary-contrast;
                 background-color: var(--mat-sys-secondary) !important;

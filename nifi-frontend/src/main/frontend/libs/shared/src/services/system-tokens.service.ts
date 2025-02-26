@@ -46,7 +46,7 @@ export class SystemTokensService {
         for (let i = 0; i < this._document.styleSheets.length; i++) {
             const styleSheet = this._document.styleSheets[i] as CSSStyleSheet;
 
-            // Ensure we can access rules (avoid CORS issues)
+            // Ensure we can access rules
             if (styleSheet.cssRules) {
                 for (let j = 0; j < styleSheet.cssRules.length; j++) {
                     const rule = styleSheet.cssRules[j] as CSSRule;

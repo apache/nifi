@@ -626,45 +626,22 @@
             0px 1px 10px 0px rgba(0, 0, 0, 0.12);
     }
 
-    .cdk-drop-list {
-        color: var(--mat-sys-secondary);
-    }
-
     .cdk-drop-list-dragging {
         background-color: var(--mat-sys-secondary) !important;
     }
 
-    .cdk-drag-selected {
-        .cdk-drag {
-            background-color: var(--mat-sys-secondary);
-        }
-    }
-
     .cdk-drop-list {
-        background: var(--mat-sys-on-surface);
+        background: var(--mat-sys-surface-container-low);
     }
 
     .cdk-drag {
-        background: var(--mat-sys-background);
+        color: var(--mat-sys-on-surface);
+        background: var(--mat-sys-surface);
     }
 
     .cdk-drag-disabled {
-        color: var(--nf-neutral);
+        color: var(--nf-disabled);
         background: var(--mat-sys-background) !important;
-    }
-
-    .cdk-drag-selected {
-        .cdk-drag {
-            color: var(--mat-sys-on-primary);
-        }
-
-        span.grip {
-            color: var(--mat-sys-on-primary);
-        }
-
-        .fa {
-            color: var(--mat-sys-on-primary);
-        }
     }
 
     span.grip {
