@@ -22,9 +22,12 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -41,12 +44,13 @@ import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.time.LocalDate;
 import java.util.Map;
 
 import static java.nio.file.Files.newDirectoryStream;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -74,9 +78,9 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredStartRowIsEmpty() throws IOException {
-        Object[][] data = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        Object[][] sheetData = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -88,9 +92,9 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredStartRowHasEmptyCell() throws Exception {
-        Object[][] data = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        Object[][] sheetData = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -103,9 +107,9 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereInferenceRowHasMoreCellsThanFieldNames() throws Exception {
-        Object[][] data = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -117,9 +121,9 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereTotalRowsLessThanConfiguredInferenceRows() throws Exception {
-        Object[][] data = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -130,12 +134,12 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredInferenceRowsHasAnEmptyRow() throws IOException {
-        Object[][] data = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
                 {4, "Four", "F"}, {5, "Five", "F"}, {}, {7, "Seven", "S"}, {8, "Eight", "E"},
                 {9, "Nine", "N"}, {10, "Ten", "T"}};
 
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -146,12 +150,12 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereTotalRowsGreaterThanConfiguredInferenceRows() throws Exception {
-        Object[][] data = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+        Object[][] sheetData = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
                 {4, "Four", "F"}, {5, "Five", "F"}, {6, "Six", "S"}, {7, "Seven", "S"}, {8, "Eight", "E"},
                 {9, "Nine", "N"}, {10, "Ten", "T"}, {11, "Eleven", "E"}};
 
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -162,9 +166,9 @@ public class TestExcelHeaderSchemaStrategy {
 
     @Test
     void testWhereConfiguredInferenceRowsAreAllBlank() throws IOException {
-        Object[][] data = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
-        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        Object[][] sheetData = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(sheetData);
+        final Map<PropertyDescriptor, String> properties = Map.of();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
@@ -174,22 +178,60 @@ public class TestExcelHeaderSchemaStrategy {
         }
     }
 
-    private static ByteArrayOutputStream getSingleSheetWorkbook(Object[][] data) throws IOException {
+    @Test
+    void testAlignedDateColumnsAcrossTwoSheets() throws Exception {
+        final String dateColumnName = "Date";
+        final Object[] columnNames = {dateColumnName, "Something", "Name"};
+        final Object[][] firstSheet =
+                {columnNames, {LocalDate.of(2025, 2, 1), "test1", "Sheet1"}, {LocalDate.of(2024, 2, 12), "test2", "Sheet1"}};
+        Object[][] secondSheet =
+                {columnNames, {LocalDate.of(1976, 9, 11), "test1", "Sheet2"}, {LocalDate.of(1987, 2, 12), "test2", "Sheet2"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(firstSheet, secondSheet);
+        final Map<PropertyDescriptor, String> properties = Map.of();
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final RecordSchema schema = schemaStrategy.getSchema(null, inputStream, null);
+            final RecordField dateRecordField = schema.getField(dateColumnName).orElse(null);
+
+            assertNotNull(dateRecordField);
+            assertEquals(RecordFieldType.DATE, dateRecordField.getDataType().getFieldType(), String.format("Expected record field type to be %s but it was type %s",
+                    RecordFieldType.DATE, dateRecordField.getDataType().getFieldType()));
+        }
+    }
+
+    private static ByteArrayOutputStream createWorkbook(Object[][]... sheetData) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            final XSSFSheet sheet = workbook.createSheet("Sheet 1");
-            int rowCount = 0;
-            for (Object[] dataRow : data) {
-                Row row = sheet.createRow(rowCount++);
-                int columnCount = 0;
-                for (Object field : dataRow) {
-                    Cell cell = row.createCell(columnCount++);
-                    if (field instanceof String) {
-                        cell.setCellValue((String) field);
-                    } else if (field instanceof Number) {
-                        cell.setCellValue(((Number) field).doubleValue());
+            CreationHelper creationHelper = workbook.getCreationHelper();
+            CellStyle dayMonthYearCellStyle = workbook.createCellStyle();
+            dayMonthYearCellStyle.setDataFormat(creationHelper.createDataFormat().getFormat("dd/mm/yyyy"));
+            int sheetCount = 1;
+
+            for (Object[][] singleSheet : sheetData) {
+                final XSSFSheet sheet = workbook.createSheet("Sheet " + sheetCount);
+                int rowCount = 0;
+
+                for (Object[] singleRow : singleSheet) {
+                    Row row = sheet.createRow(rowCount++);
+                    int columnCount = 0;
+
+                    for (Object field : singleRow) {
+                        Cell cell = row.createCell(columnCount++);
+                        switch (field) {
+                            case String string -> cell.setCellValue(string);
+                            case Number number -> cell.setCellValue(number.doubleValue());
+                            case LocalDate localDate -> {
+                                cell.setCellValue(localDate);
+                                cell.setCellStyle(dayMonthYearCellStyle);
+                            }
+                            default -> throw new IllegalStateException("Unexpected value: " + field);
+                        }
                     }
                 }
+                sheetCount++;
             }
             workbook.write(outputStream);
         }
