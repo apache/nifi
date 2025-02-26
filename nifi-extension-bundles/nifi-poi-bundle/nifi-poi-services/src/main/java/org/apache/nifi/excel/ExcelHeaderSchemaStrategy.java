@@ -47,7 +47,8 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
     static final int NUM_ROWS_TO_DETERMINE_TYPES = 10; // NOTE: This number is arbitrary.
     static final AllowableValue USE_STARTING_ROW = new AllowableValue("Use Starting Row", "Use Starting Row",
             "The configured first row of the Excel file is a header line that contains the names of the columns. The schema will be derived by using the "
-                    + "column names in the header and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column");
+                    + "column names in the header of the first sheet and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column " +
+                      "while the configured header rows of subsequent sheets are skipped.");
 
     private final PropertyContext context;
     private final ComponentLog logger;
@@ -85,16 +86,18 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         int index = 0;
 
         while (rowIterator.hasNext()) {
-           Row row = rowIterator.next();
-           if (index == 0) {
-               fieldNames = getFieldNames(firstRow, row);
-           } else if (index <= NUM_ROWS_TO_DETERMINE_TYPES) {
-               inferSchema(row, fieldNames, typeMap);
-           } else {
-               break;
-           }
+            Row row = rowIterator.next();
+            if (index == 0) {
+                fieldNames = getFieldNames(firstRow, row);
+            } else if (row.getRowNum() == zeroBasedFirstRow) { // skip first row of all sheets
+                continue;
+            } else if (index <= NUM_ROWS_TO_DETERMINE_TYPES) {
+                inferSchema(row, fieldNames, typeMap);
+            } else {
+                break;
+            }
 
-           index++;
+            index++;
         }
 
         if (typeMap.isEmpty()) {
