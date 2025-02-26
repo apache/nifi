@@ -37,12 +37,11 @@ describe('SystemTokensService', () => {
 
         // Mock a CSSStyleSheet object
         mockStyleSheet = {
-            // @ts-ignore
             cssRules: [
                 { cssText: 'body { background-color: red; }' } as CSSRule,
                 { cssText: '.container { display: flex; }' } as CSSRule,
                 { cssText: ':root { --primary-color: #ff0000; }' } as CSSRule
-            ]
+            ] as unknown as CSSRuleList
         };
 
         // Mock `document.styleSheets`
@@ -88,8 +87,7 @@ describe('SystemTokensService', () => {
     });
 
     it('should handle stylesheets without cssRules gracefully', () => {
-        // @ts-ignore
-        const emptyStyleSheet: Partial<CSSStyleSheet> = { cssRules: [] };
+        const emptyStyleSheet: Partial<CSSStyleSheet> = { cssRules: [] as unknown as CSSRuleList };
         Object.defineProperty(mockDocument, 'styleSheets', { value: [emptyStyleSheet], writable: true });
 
         const cssText = service.extractAllStyles();
