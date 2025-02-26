@@ -59,7 +59,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
         @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
         @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
         @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation")})
-@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class, CopyS3Object.class, GetS3ObjectMetadata.class, DeleteS3Object.class})
+@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class, CopyS3Object.class, GetS3ObjectMetadata.class, GetS3ObjectTags.class, DeleteS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Tag"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Adds or updates a tag on an Amazon S3 Object.")
@@ -96,13 +96,8 @@ public class TagS3Object extends AbstractS3Processor {
             .defaultValue("true")
             .build();
 
-    public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
-            .name("version")
-            .displayName("Version ID")
+    static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder().fromPropertyDescriptor(AbstractS3Processor.VERSION_ID)
             .description("The Version of the Object to tag")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
             .build();
 
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
