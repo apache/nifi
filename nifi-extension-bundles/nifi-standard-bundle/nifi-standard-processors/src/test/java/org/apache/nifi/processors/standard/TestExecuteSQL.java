@@ -268,7 +268,7 @@ public class TestExecuteSQL {
         stmt.execute("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.CONTENT_OUTPUT_STRATEGY, AbstractExecuteSQL.ContentOutputStrategy.IGNORED);
+        runner.setProperty(ExecuteSQL.CONTENT_OUTPUT_STRATEGY, AbstractExecuteSQL.ContentOutputStrategy.ORIGINAL);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "TRUNCATE TABLE TEST_TRUNCATE_TABLE");
         runner.enqueue("some data");
         runner.run();

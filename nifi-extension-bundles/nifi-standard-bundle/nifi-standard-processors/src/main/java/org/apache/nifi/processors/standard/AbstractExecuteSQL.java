@@ -193,11 +193,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final PropertyDescriptor CONTENT_OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
             .name("Content Output Strategy")
             .description("""
-                    If the query didn't return any result, this property specifies if the processor should overwrite the
-                    FlowFile's content or ignore it (when the processor is triggered by an incoming FlowFile).
+                    Specifies the strategy for writing FlowFile content when processing input FlowFiles.
+                    The strategy applies when handling queries that do not produce results.
                     """)
             .allowableValues(ContentOutputStrategy.class)
-            .defaultValue(ContentOutputStrategy.EMPTY_RESULT)
+            .defaultValue(ContentOutputStrategy.EMPTY)
             .required(true)
             .build();
 
@@ -474,8 +474,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         session.remove(fileToProcess);
                     } else {
                         // If we had no results then transfer the original flow file downstream to trigger processors
-                        if (context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class) == null
-                            || context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class) == ContentOutputStrategy.EMPTY_RESULT) {
+                        if (ContentOutputStrategy.EMPTY == context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class)) {
                             session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), REL_SUCCESS);
                         } else {
                             session.transfer(fileToProcess, REL_SUCCESS);
@@ -556,13 +555,13 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     protected abstract SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess);
 
     enum ContentOutputStrategy implements DescribedValue {
-        EMPTY_RESULT(
-            "Overwrite Content",
-            "Overwrites the FlowFile content with the empty result set."
+        EMPTY(
+            "Empty",
+            "Overwrite the input FlowFile content with an empty result set"
         ),
-        IGNORED(
-            "Ignore Results",
-            "Ignores the result and passes the incoming FlowFile content to the next processor."
+        ORIGINAL(
+            "Original",
+            "Retain the input FlowFile content without changes"
         );
 
         private final String displayName;
