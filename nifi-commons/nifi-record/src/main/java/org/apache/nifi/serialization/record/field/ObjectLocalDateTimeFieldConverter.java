@@ -18,6 +18,7 @@ package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -56,7 +57,11 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
             case LocalDateTime localDateTime -> {
                 return localDateTime;
             }
+            case Timestamp timestamp -> {
+                return timestamp.toLocalDateTime();
+            }
             case Date date -> {
+                // java.sql.Date and java.sql.Time do not support the toInstant() method so using getTime() is required
                 final Instant instant = Instant.ofEpochMilli(date.getTime());
                 return ofInstant(instant);
             }
