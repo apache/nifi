@@ -51,7 +51,7 @@ html {
     @include ua-editor.generate-theme();
     @include property-hint-tip.generate-theme();
 
-    .dark-theme {
+    .darkMode {
         @include app.generate-material-theme();
         @include listing-table.generate-theme();
         @include codemirror-theme.generate-codemirror-theme();

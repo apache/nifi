@@ -29,19 +29,19 @@ export class ThemingService {
     toggleTheme(darkModeOn: boolean, theme: any) {
         if (darkModeOn) {
             if (theme === DARK_THEME) {
-                this._document.body.classList.toggle('dark-theme', true);
+                this._document.body.classList.toggle('darkMode', true);
             } else if (theme === LIGHT_THEME) {
-                this._document.body.classList.toggle('dark-theme', false);
+                this._document.body.classList.toggle('darkMode', false);
             } else {
-                this._document.body.classList.toggle('dark-theme', true);
+                this._document.body.classList.toggle('darkMode', true);
             }
         } else {
             if (theme === DARK_THEME) {
-                this._document.body.classList.toggle('dark-theme', true);
+                this._document.body.classList.toggle('darkMode', true);
             } else if (theme === LIGHT_THEME) {
-                this._document.body.classList.toggle('dark-theme', false);
+                this._document.body.classList.toggle('darkMode', false);
             } else {
-                this._document.body.classList.toggle('dark-theme', false);
+                this._document.body.classList.toggle('darkMode', false);
             }
         }
     }

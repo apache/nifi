@@ -107,7 +107,7 @@ html {
     @include text-editor.generate-theme();
     @include resizable.generate-theme();
 
-    .dark-theme {
+    .darkMode {
         @include app.generate-material-theme();
         @include codemirror-theme.generate-codemirror-theme();
         @include prism-theme.generate-prism-theme();

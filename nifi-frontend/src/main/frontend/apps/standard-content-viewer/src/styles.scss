@@ -42,7 +42,7 @@ html {
     @include codemirror-theme.generate-codemirror-theme();
     @include standard-content-viewer.generate-theme();
 
-    .dark-theme {
+    .darkMode {
         @include app.generate-material-theme();
         @include codemirror-theme.generate-codemirror-theme();
         @include standard-content-viewer.generate-theme();

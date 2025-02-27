@@ -44,7 +44,7 @@ html {
     @include listing-table.generate-theme();
     @include jolt-transform-json-ui.generate-theme();
 
-    .dark-theme {
+    .darkMode {
         @include app.generate-material-theme();
         @include codemirror-theme.generate-codemirror-theme();
         @include listing-table.generate-theme();
