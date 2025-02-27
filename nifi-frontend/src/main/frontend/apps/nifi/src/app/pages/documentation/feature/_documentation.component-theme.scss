@@ -18,15 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $material-theme-tertiary-palette-variant: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), variant)
-    );
-
-    $selected-item-color: $material-theme-tertiary-palette-variant;
-
+@mixin generate-theme() {
     .documentation {
         h2 {
             margin-bottom: 12px !important;
@@ -35,11 +27,18 @@
         .extension-links,
         .external-links {
             a:hover {
-                background-color: var(--mat-menu-item-hover-state-layer-color) !important;
+                background-color: var(
+                    --mat-menu-item-hover-state-layer-color,
+                    color-mix(
+                        in srgb,
+                        var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                        transparent
+                    )
+                ) !important;
             }
 
             a.selected {
-                background-color: $selected-item-color !important;
+                background-color: var(--mat-sys-tertiary-container) !important;
             }
         }
 

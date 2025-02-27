@@ -16,6 +16,10 @@
  */
 
 .parameter-context-inheritance {
+    .parameter-context-inheritance-draggable-item {
+        box-shadow: var(--mat-sys-level2);
+    }
+
     .cdk-drag {
         height: 38px;
         padding-left: 6px;

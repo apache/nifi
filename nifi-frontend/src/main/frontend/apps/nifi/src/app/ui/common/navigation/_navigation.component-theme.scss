@@ -18,16 +18,9 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $secondary-contrast: map.get(map.get($config, secondary), contrast);
-
+@mixin generate-theme() {
     .nifi-navigation {
-        background-color: $material-theme-secondary-palette-default;
+        background-color: var(--mat-sys-secondary);
 
         .global-menu-icon.global-menu {
             @extend .secondary-contrast;
@@ -39,12 +32,12 @@
 
         .current-user {
             @extend .secondary-contrast;
-            font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+            font-family: var(--mat-sys-body-medium-font);
         }
 
         a {
             @extend .secondary-contrast;
-            text-decoration-color: $secondary-contrast;
+            text-decoration-color: var(--mat-sys-on-secondary);
         }
 
         a:hover {

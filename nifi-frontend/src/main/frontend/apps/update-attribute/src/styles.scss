@@ -35,12 +35,6 @@
 @use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
 
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
-@include mat.elevation-classes();
-@include mat.app-background();
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -50,22 +44,19 @@
 @include listing-table.styles();
 
 html {
-    @include mat.typography-hierarchy(material.$m3-light-theme);
-    @include mat.all-component-themes(material.$m3-light-theme);
-    @include app.generate-material-theme(material.$m3-light-theme, material.$m3-light-theme-config);
-    @include listing-table.generate-theme(material.$m3-light-theme, material.$m3-light-theme-config);
-    @include codemirror-theme.generate-codemirror-theme(material.$m3-light-theme, material.$m3-light-theme-config);
-    @include rule-listing.generate-theme(material.$m3-light-theme, material.$m3-light-theme-config);
+    @include app.generate-material-theme();
+    @include listing-table.generate-theme();
+    @include codemirror-theme.generate-codemirror-theme();
+    @include rule-listing.generate-theme();
     @include ua-editor.generate-theme();
-    @include property-hint-tip.generate-theme(material.$m3-light-theme, material.$m3-light-theme-config);
+    @include property-hint-tip.generate-theme();
 
-    .dark-theme {
-        @include mat.all-component-colors(material.$m3-dark-theme);
-        @include app.generate-material-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
-        @include listing-table.generate-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
-        @include codemirror-theme.generate-codemirror-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
-        @include rule-listing.generate-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
+    .darkMode {
+        @include app.generate-material-theme();
+        @include listing-table.generate-theme();
+        @include codemirror-theme.generate-codemirror-theme();
+        @include rule-listing.generate-theme();
         @include ua-editor.generate-theme();
-        @include property-hint-tip.generate-theme(material.$m3-dark-theme, material.$m3-dark-theme-config);
+        @include property-hint-tip.generate-theme();
     }
 }

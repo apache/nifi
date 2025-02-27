@@ -18,30 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-prism-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-tertiary-palette-variant: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), variant)
-    );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-    $selected-color: $material-theme-tertiary-palette-variant;
-
+@mixin generate-prism-theme() {
     pre[class*='language-'] {
         padding-top: 0.75rem;
         padding-bottom: 0.75rem;
@@ -49,7 +26,7 @@
 
     code[class*='language-'],
     pre[class*='language-'] {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: var(--nf-prism-language-color);
         text-align: left;
         white-space: pre;
         word-spacing: normal;
@@ -72,7 +49,7 @@
     code[class*='language-']::-moz-selection,
     code[class*='language-'] ::-moz-selection {
         text-shadow: none;
-        background: if($is-material-dark, rgba($selected-color, 0.4), rgba($selected-color, 0.4));
+        background: var(--mat-sys-tertiary-container);
     }
 
     pre[class*='language-']::selection,
@@ -80,7 +57,7 @@
     code[class*='language-']::selection,
     code[class*='language-'] ::selection {
         text-shadow: none;
-        background: if($is-material-dark, rgba($selected-color, 0.4), rgba($selected-color, 0.4));
+        background: var(--mat-sys-tertiary-container);
     }
 
     @media print {
@@ -102,12 +79,8 @@
         @extend .neutral-contrast;
         cursor: default;
         line-height: normal;
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
-        border: 1px solid var(--mdc-outlined-text-field-label-text-color);
+        background-color: var(--mat-sys-background);
+        border: 1px solid;
     }
 
     /* Inline code */
@@ -121,11 +94,11 @@
     .token.prolog,
     .token.doctype,
     .token.cdata {
-        color: if($is-material-dark, #d7d7d7, #545454);
+        color: var(--nf-prism-token-comment);
     }
 
     .token.punctuation {
-        color: if($is-material-dark, #c792ea, #6800ab);
+        color: var(--nf-prism-token-punctuation);
     }
 
     .token.namespace {
@@ -138,11 +111,11 @@
     .token.number,
     .token.symbol,
     .token.deleted {
-        color: if($is-material-dark, #c792ea, #6800ab);
+        color: var(--nf-prism-token-punctuation);
     }
 
     .token.constant {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: var(--nf-prism-token-constant);
     }
 
     .token.selector,
@@ -151,24 +124,24 @@
     .token.char,
     .token.builtin,
     .token.inserted {
-        color: if($is-material-dark, #c792ea, #6800ab);
+        color: var(--nf-prism-token-punctuation);
     }
 
     .token.keyword {
-        color: if($is-material-dark, #c792ea, #6800ab);
+        color: var(--nf-prism-token-punctuation);
     }
 
     .token.atrule,
     .token.attr-value {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: var(--nf-prism-token-constant);
     }
 
     .token.function {
-        color: if($is-material-dark, #fff, #000);
+        color: var(--nf-prism-token-function);
     }
 
     .token.class-name {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: var(--nf-prism-token-constant);
     }
 
     .token.important,

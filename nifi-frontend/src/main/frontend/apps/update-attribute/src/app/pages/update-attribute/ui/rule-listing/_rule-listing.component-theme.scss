@@ -18,9 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $alternate-surface: map.get($config, alternate-surface);
-
+@mixin generate-theme() {
     .rule-listing {
         .cdk-drop-list-dragging {
             background-color: unset !important;
@@ -28,10 +26,6 @@
 
         .cdk-drop-list {
             background: unset;
-        }
-
-        .cdk-drag {
-            background: $alternate-surface;
         }
     }
 }
