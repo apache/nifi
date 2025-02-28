@@ -694,11 +694,15 @@ export class ControllerServicesEffects {
                                 }
                             });
                         }),
-                        catchError((errorResponse: HttpErrorResponse) => {
-                            this.dialog.closeAll();
-                            return of(
-                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
-                            );
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.dialog.closeAll();
+                                this.store.dispatch(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
+                            }
                         })
                     )
                 )
@@ -719,9 +723,17 @@ export class ControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ControllerServicesActions.controllerServicesBannerApiError({
+                                    error: this.errorHelper.getErrorString(errorResponse)
+                                })
+                            );
+                        } else {
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )

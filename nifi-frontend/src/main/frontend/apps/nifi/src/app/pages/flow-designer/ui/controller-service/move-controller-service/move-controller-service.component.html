@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>Move Controller Service</h2>
 <form class="controller-service-move-form" [formGroup]="moveControllerServiceForm">
+    <context-error-banner [context]="ErrorContextKey.CONTROLLER_SERVICES"></context-error-banner>
     <mat-dialog-content>
         <div class="py-4 flex gap-x-3">
             <div class="flex basis-1/2 flex-col gap-y-4 pr-4 overflow-hidden">
@@ -38,17 +39,13 @@
                                     [tooltipInputData]="option.description"
                                     [delayClose]="false">
                                     <mat-option [value]="option.value" [disabled]="option.disabled">
-                                        <div
-                                            *ngIf="option.description != undefined; else valid"
-                                            class="pointer fa fa-warning has-errors caution-color"
-                                            style="padding: 3px"></div>
-                                        <ng-template #valid>
-                                            <div nifiTooltip [delayClose]="false"></div>
-                                        </ng-template>
-
                                         {{ option.text }}
                                     </mat-option>
                                 </div>
+                                <mat-divider
+                                    *ngIf="
+                                        option.text.includes('(Parent)') && processGroupOptions.length > 1
+                                    "></mat-divider>
                             }
                         </mat-select>
                     </mat-form-field>
