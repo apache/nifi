@@ -847,4 +847,9 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     protected KinesisAsyncClientBuilder createClientBuilder(final ProcessContext context) {
         return KinesisAsyncClient.builder();
     }
+
+    @Override
+    protected int getMaxHttpConcurrentTasks(ProcessContext context) {
+        return Math.max(Runtime.getRuntime().availableProcessors(), super.getMaxHttpConcurrentTasks(context));
+    }
 }
