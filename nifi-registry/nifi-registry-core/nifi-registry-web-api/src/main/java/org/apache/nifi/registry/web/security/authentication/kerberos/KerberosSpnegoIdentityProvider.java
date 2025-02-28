@@ -26,7 +26,6 @@ import org.apache.nifi.registry.security.authentication.exception.IdentityAccess
 import org.apache.nifi.registry.security.authentication.exception.InvalidCredentialsException;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
-import org.apache.nifi.registry.security.util.CryptoUtils;
 import org.apache.nifi.registry.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,18 +145,6 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
 
         } catch (AuthenticationException e) {
             String authFailedMessage = "Kerberos credentials could not be authenticated.";
-
-            /* Kerberos uses encryption with up to AES-256, specifically AES256-CTS-HMAC-SHA1-96.
-             * That is not available in every JRE, particularly if Unlimited Strength Encryption
-             * policies are not installed in the Java home lib dir. The Kerberos lib does not
-             * differentiate between failures due to decryption and those due to bad credentials
-             * without walking the causes of the exception, so this check puts something
-             * potentially useful in the logs for those troubleshooting Kerberos authentication. */
-            if (!Boolean.FALSE.equals(CryptoUtils.isCryptoRestricted())) {
-                authFailedMessage += " This Java Runtime does not support unlimited strength encryption. " +
-                        "This could cause Kerberos authentication to fail as it can require AES-256.";
-            }
-
             logger.info(authFailedMessage);
             throw new InvalidCredentialsException(authFailedMessage, e);
         }
