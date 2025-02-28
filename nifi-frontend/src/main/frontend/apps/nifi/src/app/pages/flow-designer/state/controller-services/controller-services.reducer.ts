@@ -28,7 +28,8 @@ import {
     inlineCreateControllerServiceSuccess,
     loadControllerServices,
     loadControllerServicesSuccess,
-    resetControllerServicesState
+    resetControllerServicesState,
+    moveControllerService
 } from './controller-services.actions';
 import { produce } from 'immer';
 import { ControllerServicesState } from './index';
@@ -76,10 +77,16 @@ export const controllerServicesReducer = createReducer(
         ...state,
         saving: false
     })),
-    on(createControllerService, configureControllerService, deleteControllerService, (state) => ({
-        ...state,
-        saving: true
-    })),
+    on(
+        createControllerService,
+        configureControllerService,
+        deleteControllerService,
+        moveControllerService,
+        (state) => ({
+            ...state,
+            saving: true
+        })
+    ),
     on(createControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             draftState.controllerServices.push(response.controllerService);

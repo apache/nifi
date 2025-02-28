@@ -32,11 +32,14 @@ import { TextTip, NifiTooltipDirective, SelectOption } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { NiFiState } from 'apps/nifi/src/app/state';
-import { NgIf } from '@angular/common';
 import { ControllerServiceEntity, ControllerServiceReferencingComponent } from 'apps/nifi/src/app/state/shared';
 import { ControllerServiceReferences } from 'apps/nifi/src/app/ui/common/controller-service/controller-service-references/controller-service-references.component';
 import { MoveControllerServiceDialogRequestSuccess } from '../../../state/controller-services';
 import { moveControllerService } from '../../../state/controller-services/controller-services.actions';
+import { MatDivider } from '@angular/material/divider';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../state/error';
+import { NgIf } from '@angular/common';
 
 @Component({
     selector: 'move-controller-service',
@@ -55,6 +58,8 @@ import { moveControllerService } from '../../../state/controller-services/contro
         MatDialogActions,
         MatButton,
         MatDialogClose,
+        ContextErrorBanner,
+        MatDivider,
         NgIf
     ],
     styleUrls: ['./move-controller-service.component.scss']
@@ -112,4 +117,6 @@ export class MoveControllerService extends CloseOnEscapeDialog {
     override isDirty(): boolean {
         return this.moveControllerServiceForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }
