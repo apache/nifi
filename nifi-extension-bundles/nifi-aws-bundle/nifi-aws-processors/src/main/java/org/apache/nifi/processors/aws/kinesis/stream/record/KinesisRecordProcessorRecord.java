@@ -31,6 +31,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
@@ -92,14 +93,10 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         try (final InputStream in = new ByteArrayInputStream(data);
              final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, getLogger())
         ) {
-            org.apache.nifi.serialization.record.Record intermediateRecord;
+            Record intermediateRecord;
             final PushBackRecordSet recordSet = new PushBackRecordSet(reader.createRecordSet());
             while ((intermediateRecord = recordSet.next()) != null) {
-                org.apache.nifi.serialization.record.Record outputRecord =
-                        recordConverter.convert(intermediateRecord,
-                                kinesisRecord,
-                                getStreamName(),
-                                getKinesisShardId());
+                Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
                 if (flowFiles.isEmpty()) {
                     flowFile = session.create();
                     flowFiles.add(flowFile);
@@ -130,8 +127,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
     }
 
-    private void createWriter(final FlowFile flowFile, final ProcessSession session,
-                              final org.apache.nifi.serialization.record.Record outputRecord)
+    private void createWriter(final FlowFile flowFile, final ProcessSession session, final Record outputRecord)
             throws IOException, SchemaNotFoundException {
 
         final RecordSchema readerSchema = outputRecord.getSchema();

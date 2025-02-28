@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record.converter;
 
+import org.apache.nifi.serialization.record.Record;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 public interface RecordConverter {
 
-    org.apache.nifi.serialization.record.Record convert(
-            final org.apache.nifi.serialization.record.Record record, final KinesisClientRecord kinesisRecord,
-            final String streamName, final String shardId);
+    Record convert(final Record record, final KinesisClientRecord kinesisRecord, final String streamName, final String shardId);
 }

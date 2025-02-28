@@ -700,8 +700,8 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private ShardRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         return () -> {
             if (isRecordReaderSet && isRecordWriterSet) {
-                final String value = context.getProperty(OUTPUT_STRATEGY).getValue();
-                final RecordConverter recordConverter = OutputStrategy.USE_WRAPPER.getValue().equals(value)
+                final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
+                final RecordConverter recordConverter = OutputStrategy.USE_WRAPPER == outputStrategy
                         ? new RecordConverterWrapper()
                         : new RecordConverterIdentity();
                 return new KinesisRecordProcessorRecord(
