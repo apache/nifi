@@ -30,11 +30,21 @@ import { MatFormField } from '@angular/material/form-field';
 import { MatLabel } from '@angular/material/select';
 import { MatInput } from '@angular/material/input';
 import { MatButton } from '@angular/material/button';
+import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'general-form',
     templateUrl: './general-form.component.html',
-    imports: [AsyncPipe, ReactiveFormsModule, MatFormField, MatLabel, NifiTooltipDirective, MatInput, MatButton],
+    imports: [
+        AsyncPipe,
+        ReactiveFormsModule,
+        MatFormField,
+        MatLabel,
+        NifiTooltipDirective,
+        MatInput,
+        MatButton,
+        NifiSpinnerDirective
+    ],
     styleUrls: ['./general-form.component.scss']
 })
 export class GeneralForm {
