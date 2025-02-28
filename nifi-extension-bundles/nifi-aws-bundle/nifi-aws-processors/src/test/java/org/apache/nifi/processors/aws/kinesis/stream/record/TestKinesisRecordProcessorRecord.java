@@ -219,13 +219,13 @@ public class TestKinesisRecordProcessorRecord {
 
     private String expectRecordContentWrapper() {
         return """
-                {"metadata":{"kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"1","aws.kinesis.partition.key":"partition-1",\
+                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"1","aws.kinesis.partition.key":"partition-1",\
                 "aws.kinesis.approximate.arrival.timestamp":1609459140000},"value":{"record":"1"}}
-                {"metadata":{"kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"1","aws.kinesis.partition.key":"partition-1",\
+                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"1","aws.kinesis.partition.key":"partition-1",\
                 "aws.kinesis.approximate.arrival.timestamp":1609459140000},"value":{"record":"1b"}}
-                {"metadata":{"kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"no-date","aws.kinesis.partition.key":"partition-no-date",\
+                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"no-date","aws.kinesis.partition.key":"partition-no-date",\
                 "aws.kinesis.approximate.arrival.timestamp":null},"value":{"record":"no-date"}}
-                {"metadata":{"kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"2","aws.kinesis.partition.key":"partition-2",\
+                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"2","aws.kinesis.partition.key":"partition-2",\
                 "aws.kinesis.approximate.arrival.timestamp":1609459200000},"value":{"record":"2"}}""";
     }
 
