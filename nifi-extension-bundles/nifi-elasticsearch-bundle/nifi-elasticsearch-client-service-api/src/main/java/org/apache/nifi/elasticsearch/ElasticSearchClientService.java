@@ -35,8 +35,12 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
             .name("el-cs-http-hosts")
             .displayName("HTTP Hosts")
-            .description("A comma-separated list of HTTP hosts that host Elasticsearch query nodes. " +
-                    "Note that the Host is included in requests as a header (typically including domain and port, e.g. elasticsearch:9200).")
+            .description("""
+                    A comma-separated list of HTTP hosts that host Elasticsearch query nodes.
+                    The HTTP Hosts should be valid URIs including protocol, domain and port for each entry.
+                    For example "https://elasticsearch1:9200, https://elasticsearch2:9200".
+                    Note that the Host is included in requests as a header (typically including domain and port, e.g. elasticsearch:9200).
+                    """)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

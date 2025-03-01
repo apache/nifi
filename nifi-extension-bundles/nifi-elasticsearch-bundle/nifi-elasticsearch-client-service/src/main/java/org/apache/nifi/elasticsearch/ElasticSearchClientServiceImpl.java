@@ -254,7 +254,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             verifySniffer(context, verifyClient, tokenProvider, snifferResult);
         } catch (final MalformedURLException mue) {
             clientSetupResult.outcome(ConfigVerificationResult.Outcome.FAILED)
-                    .explanation("Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName());
+                    .explanation("""
+                            Incorrect/invalid %s.
+                            The HTTP Hosts should be valid URIs including protocol, domain and port for each entry.
+                            For example "https://elasticsearch1:9200, https://elasticsearch2:9200".
+                            """.formatted(ElasticSearchClientService.HTTP_HOSTS.getDisplayName()));
         } catch (final InitializationException ie) {
             clientSetupResult.outcome(ConfigVerificationResult.Outcome.FAILED)
                     .explanation("Incorrect/invalid " + ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName());
