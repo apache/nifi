@@ -17,7 +17,9 @@
 package org.apache.nifi.tests.system;
 
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 
+import javax.net.ssl.SSLContext;
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,9 +34,11 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -47,13 +51,15 @@ public class NiFiSystemKeyStoreProvider {
 
     private static final X500Principal DISTINGUISHED_NAME = new X500Principal(String.format("CN=%s", HOSTNAME));
 
-    private static final String PASSWORD = NiFiSystemKeyStoreProvider.class.getSimpleName();
-
     private static final int VALID_DURATION_DAYS = 1;
 
     private static final String KEY_ALGORITHM = "RSA";
 
     private static final int KEY_SIZE = 4096;
+
+    private static final int PROTECTION_PARAMETER_LENGTH = 32;
+
+    private static final String PROTECTION_PARAMETER = generateProtectionParameter();
 
     private static final String KEYSTORE_FILE = "keystore.p12";
 
@@ -65,12 +71,18 @@ public class NiFiSystemKeyStoreProvider {
 
     private static Path persistentTrustStorePath;
 
+    private static KeyStore keyStore;
+
+    private static KeyStore trustStore;
+
+    private static SSLContext sslContext;
+
     /**
      * Configure KeyStores in provided directory and reuse existing files after initial generation
      *
      * @param keyStoreDirectory Directory where KeyStore and TrustStore should be stored
      */
-    public synchronized static void configureKeyStores(final File keyStoreDirectory) {
+    public synchronized static SSLContext configureKeyStores(final File keyStoreDirectory) {
         if (persistentKeyStorePath == null) {
             createKeyStores();
         }
@@ -88,6 +100,12 @@ public class NiFiSystemKeyStoreProvider {
         } catch (final IOException e) {
             throw new UncheckedIOException("KeyStore configuration failed", e);
         }
+
+        return sslContext;
+    }
+
+    public static String getProtectionParameter() {
+        return PROTECTION_PARAMETER;
     }
 
     private static void createKeyStores() {
@@ -102,33 +120,39 @@ public class NiFiSystemKeyStoreProvider {
 
             persistentKeyStorePath = writeKeyStore(certificate, keyPair.getPrivate());
             persistentKeyStorePath.toFile().deleteOnExit();
+
+            sslContext = new StandardSslContextBuilder()
+                    .trustStore(trustStore)
+                    .keyStore(keyStore)
+                    .keyPassword(PROTECTION_PARAMETER.toCharArray())
+                    .build();
         } catch (final Exception e) {
             throw new RuntimeException("KeyStore Creation Failed", e);
         }
     }
 
     private static Path writeKeyStore(final X509Certificate certificate, final PrivateKey privateKey) throws Exception {
-        final KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
+        keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
         keyStore.load(null);
 
         final X509Certificate[] certificates = new X509Certificate[]{certificate};
-        keyStore.setKeyEntry(HOSTNAME, privateKey, PASSWORD.toCharArray(), certificates);
+        keyStore.setKeyEntry(HOSTNAME, privateKey, PROTECTION_PARAMETER.toCharArray(), certificates);
 
         final Path keyStorePath = Files.createTempFile(KEYSTORE_FILE, KEYSTORE_TYPE);
         try (final OutputStream outputStream = new FileOutputStream(keyStorePath.toFile())) {
-            keyStore.store(outputStream, PASSWORD.toCharArray());
+            keyStore.store(outputStream, PROTECTION_PARAMETER.toCharArray());
         }
         return keyStorePath;
     }
 
     private static Path writeTrustStore(final X509Certificate certificate) throws Exception {
-        final KeyStore trustStore = KeyStore.getInstance(KEYSTORE_TYPE);
+        trustStore = KeyStore.getInstance(KEYSTORE_TYPE);
         trustStore.load(null);
         trustStore.setCertificateEntry(HOSTNAME, certificate);
 
         final Path trustStorePath = Files.createTempFile(TRUSTSTORE_FILE, KEYSTORE_TYPE);
         try (final OutputStream outputStream = new FileOutputStream(trustStorePath.toFile())) {
-            trustStore.store(outputStream, PASSWORD.toCharArray());
+            trustStore.store(outputStream, PROTECTION_PARAMETER.toCharArray());
         }
         return trustStorePath;
     }
@@ -137,5 +161,12 @@ public class NiFiSystemKeyStoreProvider {
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
         keyPairGenerator.initialize(KEY_SIZE);
         return keyPairGenerator.generateKeyPair();
+    }
+
+    private static String generateProtectionParameter() {
+        final SecureRandom secureRandom = new SecureRandom();
+        final byte[] nextBytes = new byte[PROTECTION_PARAMETER_LENGTH];
+        secureRandom.nextBytes(nextBytes);
+        return HexFormat.of().formatHex(nextBytes);
     }
 }
