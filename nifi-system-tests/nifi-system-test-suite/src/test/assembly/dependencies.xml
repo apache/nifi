@@ -35,8 +35,6 @@
                 <include>*:commons-lang3</include>
                 <include>*:slf4j-api</include>
                 <include>*:nifi-api</include>
-                <include>*:nifi-property-encryptor</include>
-                <include>*:nifi-security-crypto-key</include>
             </includes>
         </dependencySet>
 
@@ -65,6 +63,7 @@
                 <include>*:log4j-over-slf4j</include>
                 <include>*:jul-to-slf4j</include>
                 <include>*:slf4j-api</include>
+                <include>*:nifi-system-test-authorizer-nar</include>
                 <include>*:nifi-system-test-extensions-nar</include>
                 <include>*:nifi-system-test-extensions-services-nar</include>
                 <include>*:nifi-system-test-extensions-services-api-nar</include>
