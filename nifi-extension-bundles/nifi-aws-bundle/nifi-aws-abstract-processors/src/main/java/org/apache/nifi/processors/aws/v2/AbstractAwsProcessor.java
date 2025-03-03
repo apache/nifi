@@ -285,7 +285,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     protected void configureSdkHttpClient(final ProcessContext context, final AwsHttpClientConfigurer httpClientConfigurer) {
         final int communicationsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        httpClientConfigurer.configureBasicSettings(Duration.ofMillis(communicationsTimeout), getMaxHttpConcurrentTasks(context));
+        httpClientConfigurer.configureBasicSettings(Duration.ofMillis(communicationsTimeout), context.getMaxConcurrentTasks());
 
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
@@ -313,10 +313,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
             httpClientConfigurer.configureProxy(proxyConfig);
         }
-    }
-
-    protected int getMaxHttpConcurrentTasks(final ProcessContext context) {
-        return context.getMaxConcurrentTasks();
     }
 
     protected Region getRegion(final ProcessContext context) {
