@@ -22,11 +22,13 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.Tuple;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class RecordConverterWrapper implements RecordConverter {
 
@@ -51,21 +53,17 @@ public class RecordConverterWrapper implements RecordConverter {
 
 
     @Override
-    public Record convert(final Record record, final KinesisClientRecord kinesisRecord, final String streamName, final String shardId) {
-        final Tuple<String, Object> metadata = toWrapperRecordMetadata(kinesisRecord, streamName, shardId);
-        return new MapRecord(convertToWriteSchema(record.getSchema()), Map.of(metadata.getKey(), metadata.getValue(), VALUE, record));
-    }
-
-    private Tuple<String, Object> toWrapperRecordMetadata(final KinesisClientRecord consumerRecord, final String streamName, final String shardId) {
+    public Record convert(final Record valueRecord, final KinesisClientRecord kinesisRecord, final String streamName, final String shardId) {
         final Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put(STREAM, streamName);
         metadata.put(SHARD_ID, shardId);
-        metadata.put(SEQUENCE_NUMBER, consumerRecord.sequenceNumber());
-        metadata.put(PARTITION_KEY, consumerRecord.partitionKey());
-        final Instant approxArrivalTimestamp = consumerRecord.approximateArrivalTimestamp();
+        metadata.put(SEQUENCE_NUMBER, kinesisRecord.sequenceNumber());
+        metadata.put(PARTITION_KEY, kinesisRecord.partitionKey());
+        final Instant approxArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         metadata.put(APPROX_ARRIVAL_TIMESTAMP, approxArrivalTimestamp == null ? null : approxArrivalTimestamp.toEpochMilli());
-        final Record record = new MapRecord(SCHEMA_METADATA, metadata);
-        return new Tuple<>(METADATA, record);
+        final Record metadataRecord = new MapRecord(SCHEMA_METADATA, metadata);
+
+        return new MapRecord(convertToWriteSchema(valueRecord.getSchema()), Map.of(METADATA, metadataRecord, VALUE, valueRecord));
     }
 
     private RecordSchema convertToWriteSchema(final RecordSchema readerSchema) {
