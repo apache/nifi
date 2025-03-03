@@ -219,14 +219,14 @@ public class TestKinesisRecordProcessorRecord {
 
     private String expectRecordContentWrapper() {
         return """
-                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"1","aws.kinesis.partition.key":"partition-1",\
-                "aws.kinesis.approximate.arrival.timestamp":1609459140000},"value":{"record":"1"}}
-                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"1","aws.kinesis.partition.key":"partition-1",\
-                "aws.kinesis.approximate.arrival.timestamp":1609459140000},"value":{"record":"1b"}}
-                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"no-date","aws.kinesis.partition.key":"partition-no-date",\
-                "aws.kinesis.approximate.arrival.timestamp":null},"value":{"record":"no-date"}}
-                {"metadata":{"aws.kinesis.stream":"kinesis-test","aws.kinesis.shard.id":"another-shard","aws.kinesis.sequence.number":"2","aws.kinesis.partition.key":"partition-2",\
-                "aws.kinesis.approximate.arrival.timestamp":1609459200000},"value":{"record":"2"}}""";
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","partitionKey":"partition-1",\
+                "approximateArrival":1609459140000},"value":{"record":"1"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","partitionKey":"partition-1",\
+                "approximateArrival":1609459140000},"value":{"record":"1b"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"no-date","partitionKey":"partition-no-date",\
+                "approximateArrival":null},"value":{"record":"no-date"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"2","partitionKey":"partition-2",\
+                "approximateArrival":1609459200000},"value":{"record":"2"}}""";
     }
 
     @Test

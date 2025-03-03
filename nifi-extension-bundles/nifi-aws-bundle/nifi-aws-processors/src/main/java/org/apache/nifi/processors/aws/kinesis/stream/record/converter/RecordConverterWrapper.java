@@ -35,11 +35,11 @@ public class RecordConverterWrapper implements RecordConverter {
     private static final String VALUE = "value";
     private static final String METADATA = "metadata";
 
-    private static final String STREAM = "aws.kinesis.stream";
-    private static final String SHARD_ID = "aws.kinesis.shard.id";
-    private static final String SEQUENCE_NUMBER = "aws.kinesis.sequence.number";
-    private static final String PARTITION_KEY = "aws.kinesis.partition.key";
-    private static final String APPROX_ARRIVAL_TIMESTAMP = "aws.kinesis.approximate.arrival.timestamp";
+    private static final String STREAM = "stream";
+    private static final String SHARD_ID = "shardId";
+    private static final String SEQUENCE_NUMBER = "sequenceNumber";
+    private static final String PARTITION_KEY = "partitionKey";
+    private static final String APPROX_ARRIVAL_TIMESTAMP = "approximateArrival";
 
     private static final RecordField FIELD_STREAM = new RecordField(STREAM, RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_SHARD_ID = new RecordField(SHARD_ID, RecordFieldType.STRING.getDataType());
