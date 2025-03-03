@@ -56,6 +56,10 @@ import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.http.Protocol;
+import software.amazon.awssdk.http.nio.netty.Http2Configuration;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClientBuilder;
@@ -83,6 +87,7 @@ import software.amazon.kinesis.retrieval.polling.PollingConfig;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -849,7 +854,21 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     }
 
     @Override
-    protected int getMaxHttpConcurrentTasks(ProcessContext context) {
-        return Math.max(Runtime.getRuntime().availableProcessors(), super.getMaxHttpConcurrentTasks(context));
+    protected void customizeAsyncHttpClientBuilderConfiguration(
+            final ProcessContext context,
+            final NettyNioAsyncHttpClient.Builder builder,
+            final Class<? extends AwsClientBuilder> customizationTargetClass) {
+        if (customizationTargetClass == KinesisAsyncClientBuilder.class) {
+            // suggested values from KinesisClientUtil
+            final int initialWindowSizeBytes = 512 * 1024; // 512 KB
+            final long healthCheckPingPeriodMillis = 60 * 1000;
+            builder
+                    .maxConcurrency(Runtime.getRuntime().availableProcessors())
+                    .http2Configuration(Http2Configuration.builder()
+                            .initialWindowSize(initialWindowSizeBytes)
+                            .healthCheckPingPeriod(Duration.ofMillis(healthCheckPingPeriodMillis))
+                            .build())
+                    .protocol(Protocol.HTTP2);
+        }
     }
 }
