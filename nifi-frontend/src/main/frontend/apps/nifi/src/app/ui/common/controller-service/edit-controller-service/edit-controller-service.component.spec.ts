@@ -26,6 +26,8 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
 import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
+import { Client } from '../../../../service/client.service';
+import { Revision } from '@nifi/shared';
 
 describe('EditControllerService', () => {
     let component: EditControllerService;
@@ -546,6 +548,11 @@ describe('EditControllerService', () => {
         }
     };
 
+    const mockRevision: Revision = {
+        clientId: 'client-id',
+        version: 1
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [EditControllerService, MockComponent(ContextErrorBanner), NoopAnimationsModule],
@@ -557,7 +564,19 @@ describe('EditControllerService', () => {
                         isDisconnectionAcknowledged: jest.fn()
                     }
                 },
-                { provide: MatDialogRef, useValue: null }
+                { provide: MatDialogRef, useValue: null },
+                {
+                    provide: Client,
+                    useValue: {
+                        getRevision: () => mockRevision
+                    }
+                },
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: () => true
+                    }
+                }
             ]
         });
         fixture = TestBed.createComponent(EditControllerService);
@@ -567,5 +586,31 @@ describe('EditControllerService', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should dispatch edit action on form submission', () => {
+        const mockFormData = {
+            name: 'service-name',
+            bulletinLevel: 'DEBUG',
+            comments: 'service-comments',
+            properties: []
+        };
+
+        jest.spyOn(component.editControllerService, 'next');
+        component.editControllerServiceForm.setValue(mockFormData);
+        component.submitForm();
+
+        expect(component.editControllerService.next).toHaveBeenCalledWith({
+            payload: {
+                revision: mockRevision,
+                disconnectedNodeAcknowledged: true,
+                component: {
+                    id: data.id,
+                    name: mockFormData.name,
+                    bulletinLevel: mockFormData.bulletinLevel,
+                    comments: mockFormData.comments
+                }
+            }
+        });
     });
 });

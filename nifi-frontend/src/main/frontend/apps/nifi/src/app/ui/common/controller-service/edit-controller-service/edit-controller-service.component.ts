@@ -172,6 +172,7 @@ export class EditControllerService extends TabbedDialog {
             component: {
                 id: this.request.controllerService.id,
                 name: this.editControllerServiceForm.get('name')?.value,
+                bulletinLevel: this.editControllerServiceForm.get('bulletinLevel')?.value,
                 comments: this.editControllerServiceForm.get('comments')?.value
             }
         };
