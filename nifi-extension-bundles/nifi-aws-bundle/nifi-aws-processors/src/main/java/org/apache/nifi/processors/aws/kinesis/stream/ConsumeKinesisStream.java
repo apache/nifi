@@ -858,7 +858,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             final ProcessContext context,
             final NettyNioAsyncHttpClient.Builder builder,
             final Class<? extends AwsClientBuilder> customizationTargetClass) {
-        if (customizationTargetClass == KinesisAsyncClientBuilder.class) {
+        if (KinesisAsyncClientBuilder.class.isAssignableFrom(customizationTargetClass)) {
             // suggested values from KinesisClientUtil
             final int initialWindowSizeBytes = 512 * 1024; // 512 KB
             final long healthCheckPingPeriodMillis = 60 * 1000;
