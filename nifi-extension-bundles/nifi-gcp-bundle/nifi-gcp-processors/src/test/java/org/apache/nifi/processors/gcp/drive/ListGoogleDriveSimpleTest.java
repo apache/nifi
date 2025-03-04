@@ -64,6 +64,7 @@ public class ListGoogleDriveSimpleTest {
         };
 
         testSubject.onScheduled(mockProcessContext);
+        testSubject.initListedEntityTracker(mockProcessContext);
     }
 
     @Test

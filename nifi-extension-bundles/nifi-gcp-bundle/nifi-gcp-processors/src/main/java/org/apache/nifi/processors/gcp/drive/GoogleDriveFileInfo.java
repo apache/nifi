@@ -16,41 +16,18 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 
 import org.apache.nifi.processor.util.list.ListableEntity;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class GoogleDriveFileInfo implements ListableEntity {
-    private  static final RecordSchema SCHEMA;
-
-    static {
-        final List<RecordField> recordFields = new ArrayList<>();
-
-        recordFields.add(new RecordField(ID, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
-        recordFields.add(new RecordField(SIZE_AVAILABLE, RecordFieldType.BOOLEAN.getDataType(), false));
-        recordFields.add(new RecordField(TIMESTAMP, RecordFieldType.LONG.getDataType(), false));
-        recordFields.add(new RecordField(MIME_TYPE, RecordFieldType.STRING.getDataType()));
-
-        SCHEMA = new SimpleRecordSchema(recordFields);
-    }
 
     private final String id;
     private final String fileName;
@@ -59,6 +36,14 @@ public class GoogleDriveFileInfo implements ListableEntity {
     private final long createdTime;
     private final long modifiedTime;
     private final String mimeType;
+
+    private final String path;
+    private final String owner;
+    private final String lastModifyingUser;
+    private final String webViewLink;
+    private final String webContentLink;
+
+    private final RecordSchema recordSchema;
 
     public String getId() {
         return id;
@@ -84,22 +69,49 @@ public class GoogleDriveFileInfo implements ListableEntity {
         return mimeType;
     }
 
-    @Override
-    public Record toRecord() {
-        final Map<String, Object> values = new HashMap<>();
-
-        values.put(ID, getId());
-        values.put(FILENAME, getName());
-        values.put(SIZE, getSize());
-        values.put(SIZE_AVAILABLE, isSizeAvailable());
-        values.put(TIMESTAMP, getTimestamp());
-        values.put(MIME_TYPE, getMimeType());
-
-        return new MapRecord(SCHEMA, values);
+    public String getPath() {
+        return path;
     }
 
-    public static RecordSchema getRecordSchema() {
-        return SCHEMA;
+    public String getLastModifyingUser() {
+        return lastModifyingUser;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public String getWebViewLink() {
+        return webViewLink;
+    }
+
+    public String getWebContentLink() {
+        return webContentLink;
+    }
+
+    @Override
+    public Record toRecord() {
+        return new MapRecord(recordSchema, toObjectMap());
+    }
+
+    private Map<String, Object> toObjectMap() {
+        final Map<String, Object> attributes = new HashMap<>();
+
+        for (GoogleDriveFlowFileAttribute attribute : GoogleDriveFlowFileAttribute.values()) {
+            Optional.ofNullable(attribute.getValue(this))
+                    .ifPresent(value -> attributes.put(attribute.getName(), value));
+        }
+
+        return attributes;
+    }
+
+    public Map<String, String> toStringMap() {
+        return toObjectMap().entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().toString()
+                ));
     }
 
     public static final class Builder {
@@ -110,6 +122,12 @@ public class GoogleDriveFileInfo implements ListableEntity {
         private long createdTime;
         private long modifiedTime;
         private String mimeType;
+        private String path;
+        private String owner;
+        private String lastModifyingUser;
+        private String webViewLink;
+        private String webContentLink;
+        private RecordSchema recordSchema;
 
         public Builder id(String id) {
             this.id = id;
@@ -143,6 +161,36 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
         public Builder mimeType(String mimeType) {
             this.mimeType = mimeType;
+            return this;
+        }
+
+        public Builder path(String path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder owner(String owner) {
+            this.owner = owner;
+            return this;
+        }
+
+        public Builder lastModifyingUser(String lastModifyingUser) {
+            this.lastModifyingUser = lastModifyingUser;
+            return this;
+        }
+
+        public Builder webViewLink(String webViewLink) {
+            this.webViewLink = webViewLink;
+            return this;
+        }
+
+        public Builder webContentLink(String webContentLink) {
+            this.webContentLink = webContentLink;
+            return this;
+        }
+
+        public Builder recordSchema(RecordSchema recordSchema) {
+            this.recordSchema = recordSchema;
             return this;
         }
 
@@ -190,6 +238,12 @@ public class GoogleDriveFileInfo implements ListableEntity {
         this.createdTime = builder.createdTime;
         this.modifiedTime = builder.modifiedTime;
         this.mimeType = builder.mimeType;
+        this.path = builder.path;
+        this.owner = builder.owner;
+        this.lastModifyingUser = builder.lastModifyingUser;
+        this.webViewLink = builder.webViewLink;
+        this.webContentLink = builder.webContentLink;
+        this.recordSchema = builder.recordSchema;
     }
 
     @Override

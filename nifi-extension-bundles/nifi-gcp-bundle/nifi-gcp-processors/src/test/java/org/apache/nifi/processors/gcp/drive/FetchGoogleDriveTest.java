@@ -104,7 +104,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
         when(mockDriverService.files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
-                .setFields("id, name, createdTime, mimeType, size, exportLinks")
+                .setFields("id, name, createdTime, modifiedTime, mimeType, size, exportLinks")
                 .execute()).thenReturn(createFile());
     }
 
@@ -118,7 +118,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
         when(mockDriverService.files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
-                .setFields("id, name, createdTime, mimeType, size, exportLinks")
+                .setFields("id, name, createdTime, modifiedTime, mimeType, size, exportLinks")
                 .execute()).thenReturn(createFile());
     }
 

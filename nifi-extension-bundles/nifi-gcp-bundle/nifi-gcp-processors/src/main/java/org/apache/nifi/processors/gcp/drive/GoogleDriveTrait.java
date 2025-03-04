@@ -21,14 +21,13 @@ import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -39,6 +38,7 @@ import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public interface GoogleDriveTrait {
@@ -96,8 +96,8 @@ public interface GoogleDriveTrait {
             public void initialize(HttpRequest request) throws IOException {
                 super.initialize(request);
 
-                final int connectTimeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-                final int readTimeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+                final int connectTimeout = context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+                final int readTimeout = context.getProperty(READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
                 request.setConnectTimeout(connectTimeout);
                 request.setReadTimeout(readTimeout);
@@ -114,14 +114,14 @@ public interface GoogleDriveTrait {
         return gcpCredentialsService.getGoogleCredentials();
     }
 
-    default Map<String, String> createAttributeMap(File file) {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(GoogleDriveAttributes.ID, file.getId());
-        attributes.put(GoogleDriveAttributes.FILENAME, file.getName());
-        attributes.put(GoogleDriveAttributes.MIME_TYPE, file.getMimeType());
-        attributes.put(GoogleDriveAttributes.TIMESTAMP, String.valueOf(file.getCreatedTime()));
-        attributes.put(GoogleDriveAttributes.SIZE, String.valueOf(file.getSize() != null ? file.getSize() : 0L));
-        attributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, String.valueOf(file.getSize() != null));
-        return attributes;
+    default GoogleDriveFileInfo.Builder createGoogleDriveFileInfoBuilder(final File file) {
+        return new GoogleDriveFileInfo.Builder()
+                .id(file.getId())
+                .fileName(file.getName())
+                .size(file.getSize() != null ? file.getSize() : 0L)
+                .sizeAvailable(file.getSize() != null)
+                .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
+                .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
+                .mimeType(file.getMimeType());
     }
 }

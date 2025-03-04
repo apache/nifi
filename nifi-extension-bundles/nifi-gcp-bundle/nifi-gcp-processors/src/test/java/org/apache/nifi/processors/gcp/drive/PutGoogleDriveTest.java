@@ -194,7 +194,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
         when(mockDriverService.files()
                 .create(any(File.class), any(InputStreamContent.class))
                 .setSupportsAllDrives(true)
-                .setFields("id, name, createdTime, mimeType, size")
+                .setFields("id, name, createdTime, modifiedTime, mimeType, size")
                 .execute())
                 .thenReturn(uploadedFile);
     }
@@ -203,7 +203,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
         when(mockDriverService.files()
                 .update(eq(uploadedFile.getId()), any(File.class), any(InputStreamContent.class))
                 .setSupportsAllDrives(true)
-                .setFields("id, name, createdTime, mimeType, size")
+                .setFields("id, name, createdTime, modifiedTime, mimeType, size")
                 .execute())
                 .thenReturn(uploadedFile);
     }
