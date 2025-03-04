@@ -24,6 +24,9 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -587,24 +590,35 @@ public class TestDataTypeUtils {
         assertEquals(RecordFieldType.DECIMAL.getDecimalDataType(3, 1), DataTypeUtils.inferDataType(BigDecimal.valueOf(12.3D), null));
     }
 
-    @Test
-    public void testIsBigDecimalTypeCompatible() {
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible((byte) 13));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible((short) 13));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12L));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigInteger.valueOf(12L)));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123F));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123D));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigDecimal.valueOf(12.123D)));
-        assertTrue(DataTypeUtils.isDecimalTypeCompatible("123"));
+    @ParameterizedTest
+    @MethodSource("decimalTypeCompatibleData")
+    public void testIsBigDecimalTypeCompatible(Object value, boolean compatible) {
+        if (compatible) {
+            assertTrue(DataTypeUtils.isDecimalTypeCompatible(value));
+        } else {
+            assertFalse(DataTypeUtils.isDecimalTypeCompatible(value));
+        }
+    }
 
-        assertFalse(DataTypeUtils.isDecimalTypeCompatible(null));
-        assertFalse(DataTypeUtils.isDecimalTypeCompatible("test"));
-        assertFalse(DataTypeUtils.isDecimalTypeCompatible(new ArrayList<>()));
-        // Decimal handling does not support NaN and Infinity as the underlying BigDecimal is unable to parse
-        assertFalse(DataTypeUtils.isDecimalTypeCompatible("NaN"));
-        assertFalse(DataTypeUtils.isDecimalTypeCompatible("Infinity"));
+    private static Stream<Arguments> decimalTypeCompatibleData() {
+        return Stream.of(
+                Arguments.argumentSet("byte", (byte) 13, true),
+                Arguments.argumentSet("short", (short) 13, true),
+                Arguments.argumentSet("int", 12, true),
+                Arguments.argumentSet("long", 12L, true),
+                Arguments.argumentSet("BigInteger", BigInteger.valueOf(12L), true),
+                Arguments.argumentSet("float", 12.123F, true),
+                Arguments.argumentSet("double", 12.123D, true),
+                Arguments.argumentSet("BigDecimal", BigDecimal.valueOf(12.123D), true),
+                Arguments.argumentSet("integer String", "123", true),
+                Arguments.argumentSet("double as byte array", "12.00".getBytes(StandardCharsets.UTF_8), true),
+                Arguments.argumentSet("null", null, false),
+                Arguments.argumentSet("non number String", "test", false),
+                Arguments.argumentSet("ArrayList", new ArrayList<>(), false),
+                // Decimal handling does not support NaN and Infinity as the underlying BigDecimal is unable to parse
+                Arguments.argumentSet("Nan", "NaN", false),
+                Arguments.argumentSet("Infinity", "Infinity", false)
+        );
     }
 
     @Test
