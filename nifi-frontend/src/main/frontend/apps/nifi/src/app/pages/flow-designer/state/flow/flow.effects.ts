@@ -4148,8 +4148,7 @@ export class FlowEffects {
             map((action) => action.request),
             tap(() => {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
-                    ...SMALL_DIALOG,
-                    minWidth: 365,
+                    ...MEDIUM_DIALOG,
                     disableClose: true,
                     autoFocus: false
                 });
@@ -4324,8 +4323,7 @@ export class FlowEffects {
             map((action) => action.request),
             tap(() => {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
-                    ...SMALL_DIALOG,
-                    minWidth: 365,
+                    ...MEDIUM_DIALOG,
                     disableClose: true,
                     autoFocus: false
                 });

@@ -26,17 +26,19 @@
                 <i class="fa fa-exclamation-triangle error-color fa-2x"></i>
             }
             @if (messages.length === 1) {
-                <div>{{ messages[0] }}</div>
+                <div class="error-banner-message">{{ messages[0] }}</div>
             } @else {
                 <ul>
                     @for (message of messages; track message) {
-                        <li>{{ message }}</li>
+                        <li class="error-banner-message">{{ message }}</li>
                     }
                 </ul>
             }
         </div>
-        <div class="flex flex-1 mt-auto justify-end w-full">
-            <button mat-flat-button class="error-button" (click)="dismissClicked()">Dismiss</button>
-        </div>
+        @if (allowDismiss) {
+            <div class="flex flex-1 mt-auto justify-end w-full">
+                <button mat-flat-button class="error-button" (click)="dismissClicked()">Dismiss</button>
+            </div>
+        }
     </div>
 }
