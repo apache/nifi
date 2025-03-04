@@ -94,6 +94,11 @@ public class Kafka3ConnectionServiceBaseIT {
 
     public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0";  // December 2024
 
+    private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
+    private static final String DYNAMIC_PROPERTY_KEY_CONSUME = "fetch.max.wait.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_CONSUME = "1000";
+
     private static final String GROUP_ID = Kafka3ConnectionService.class.getSimpleName();
 
     private static final String TOPIC = Kafka3ConnectionServiceBaseIT.class.getSimpleName();
@@ -203,6 +208,8 @@ public class Kafka3ConnectionServiceBaseIT {
         final Map<String, String> properties = new LinkedHashMap<>();
         properties.put(Kafka3ConnectionService.BOOTSTRAP_SERVERS.getName(), kafkaContainer.getBootstrapServers());
         properties.put(Kafka3ConnectionService.CLIENT_TIMEOUT.getName(), CLIENT_TIMEOUT);
+        properties.put(DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
+        properties.put(DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
         return properties;
     }
 
