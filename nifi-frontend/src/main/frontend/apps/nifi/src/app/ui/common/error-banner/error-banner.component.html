@@ -35,8 +35,10 @@
                 </ul>
             }
         </div>
-        <div class="flex flex-1 mt-auto justify-end w-full">
-            <button mat-flat-button class="error-button" (click)="dismissClicked()">Dismiss</button>
-        </div>
+        @if (allowDismiss) {
+            <div class="flex flex-1 mt-auto justify-end w-full">
+                <button mat-flat-button class="error-button" (click)="dismissClicked()">Dismiss</button>
+            </div>
+        }
     </div>
 }

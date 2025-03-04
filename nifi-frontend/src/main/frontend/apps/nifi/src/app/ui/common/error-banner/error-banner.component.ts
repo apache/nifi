@@ -29,6 +29,7 @@ export class ErrorBanner {
     @Input() messages: string[] | null = null;
     @Input() showErrorIcon = true;
     @Input() showBorder = true;
+    @Input() allowDismiss = true;
 
     @Output() dismiss: EventEmitter<void> = new EventEmitter<void>();
 

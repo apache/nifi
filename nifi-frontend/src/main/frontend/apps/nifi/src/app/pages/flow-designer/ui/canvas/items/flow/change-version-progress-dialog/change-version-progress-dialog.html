@@ -16,6 +16,14 @@
   -->
 
 <h2 mat-dialog-title>Change Flow Version</h2>
+@if (flowUpdateRequest$ | async; as versionChangeRequest) {
+    @if (versionChangeRequest.request.complete && versionChangeRequest.request.failureReason) {
+        <error-banner
+            [messages]="[versionChangeRequest.request.failureReason]"
+            [showErrorIcon]="true"
+            [allowDismiss]="false"></error-banner>
+    }
+}
 <div class="change-version-progress">
     <mat-dialog-content>
         <div class="flex flex-col gap-y-4">
