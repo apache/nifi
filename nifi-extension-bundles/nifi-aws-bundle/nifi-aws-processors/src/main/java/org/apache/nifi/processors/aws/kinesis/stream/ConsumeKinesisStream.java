@@ -151,6 +151,10 @@ import java.util.stream.Collectors;
 @SeeAlso(PutKinesisStream.class)
 public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsyncClient, KinesisAsyncClientBuilder> {
 
+    private static final int INITIAL_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KB - suggested by KinesisClientUtil
+    private static final Duration HEALTH_CHECK_PING_PERIOD_MILLIS = Duration.ofMinutes(1); // suggested by KinesisClientUtil
+    private static final Protocol PROTOCOL = Protocol.HTTP2; // suggested by KinesisClientUtil
+
     private static final String CHECKPOINT_CONFIG = "checkpointConfig";
     private static final String COORDINATOR_CONFIG = "coordinatorConfig";
     private static final String LEASE_MANAGEMENT_CONFIG = "leaseManagementConfig";
@@ -859,16 +863,13 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             final NettyNioAsyncHttpClient.Builder builder,
             final Class<? extends AwsClientBuilder> customizationTargetClass) {
         if (KinesisAsyncClientBuilder.class.isAssignableFrom(customizationTargetClass)) {
-            // suggested values from KinesisClientUtil
-            final int initialWindowSizeBytes = 512 * 1024; // 512 KB
-            final long healthCheckPingPeriodMillis = 60 * 1000;
             builder
                     .maxConcurrency(Runtime.getRuntime().availableProcessors())
                     .http2Configuration(Http2Configuration.builder()
-                            .initialWindowSize(initialWindowSizeBytes)
-                            .healthCheckPingPeriod(Duration.ofMillis(healthCheckPingPeriodMillis))
+                            .initialWindowSize(INITIAL_WINDOW_SIZE_BYTES)
+                            .healthCheckPingPeriod(HEALTH_CHECK_PING_PERIOD_MILLIS)
                             .build())
-                    .protocol(Protocol.HTTP2);
+                    .protocol(PROTOCOL);
         }
     }
 }
