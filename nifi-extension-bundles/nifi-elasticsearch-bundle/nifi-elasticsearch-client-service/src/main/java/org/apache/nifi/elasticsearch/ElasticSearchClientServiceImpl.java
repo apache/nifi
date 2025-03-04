@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -597,10 +596,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         try {
             if (code >= 200 && code < 300) {
-                final InputStream inputStream = response.getEntity().getContent();
-                final byte[] result = IOUtils.toByteArray(inputStream);
-                inputStream.close();
-                return mapper.readValue(new String(result, responseCharset), Map.class);
+                final String body = this.readContentAsString(response.getEntity(), this.responseCharset);
+                return mapper.readValue(body, Map.class);
             } else {
                 final String errorMessage = String.format("ElasticSearch reported an error while trying to run the query: %s",
                         response.getStatusLine().getReasonPhrase());
@@ -710,7 +707,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final Response response = performRequest("POST", "/_bulk", requestParameters, entity);
             watch.stop();
 
-            final String rawResponse = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+            final String rawResponse = this.readContentAsUtf8String(response.getEntity());
             parseResponseWarningHeaders(response);
 
             if (getLogger().isDebugEnabled()) {
@@ -751,7 +748,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Response for bulk delete: {}", IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8));
+                getLogger().debug("Response for bulk delete: {}", this.readContentAsUtf8String(response.getEntity()));
             }
 
             parseResponseWarningHeaders(response);
@@ -853,7 +850,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             endpoint.append("/").append(id);
 
             final Response response = performRequest("GET", endpoint.toString(), requestParameters, null);
-            final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+
+            final String body = this.readContentAsUtf8String(response.getEntity());
             parseResponseWarningHeaders(response);
 
             return (Map<String, Object>) mapper.readValue(body, Map.class).getOrDefault("_source", Collections.emptyMap());
@@ -909,7 +907,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             appendIndex(endpoint, index);
             endpoint.append("/_pit");
             final Response response = performRequest("POST", endpoint.toString(), params, null);
-            final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+
+            final String body = this.readContentAsUtf8String(response.getEntity());
             parseResponseWarningHeaders(response);
 
             if (getLogger().isDebugEnabled()) {
@@ -932,7 +931,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Response for deleting Point in Time: {}", IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8));
+                getLogger().debug("Response for deleting Point in Time: {}", this.readContentAsUtf8String(response.getEntity()));
             }
 
             parseResponseWarningHeaders(response);
@@ -958,7 +957,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Response for deleting Scroll: {}", IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8));
+                getLogger().debug("Response for deleting Scroll: {}", this.readContentAsUtf8String(response.getEntity()));
             }
 
             parseResponseWarningHeaders(response);
@@ -1069,5 +1068,15 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
 
         return client.performRequest(request);
+    }
+
+    private String readContentAsUtf8String(HttpEntity entity) throws IOException {
+        return this.readContentAsString(entity, StandardCharsets.UTF_8);
+    }
+
+    private String readContentAsString(HttpEntity entity, Charset charset) throws IOException {
+        try (InputStream responseStream = entity.getContent()) {
+            return new String(responseStream.readAllBytes(), charset);
+        }
     }
 }
