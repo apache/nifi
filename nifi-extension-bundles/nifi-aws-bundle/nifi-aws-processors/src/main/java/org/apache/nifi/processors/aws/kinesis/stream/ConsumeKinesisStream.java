@@ -333,6 +333,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             APPLICATION_NAME,
             RECORD_READER,
             RECORD_WRITER,
+            OUTPUT_STRATEGY,
             REGION,
             ENDPOINT_OVERRIDE,
             DYNAMODB_ENDPOINT_OVERRIDE,
@@ -345,7 +346,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             NUM_RETRIES,
             RETRY_WAIT,
             REPORT_CLOUDWATCH_METRICS,
-            OUTPUT_STRATEGY,
 
             // generic AWS processor properties
             TIMEOUT,
