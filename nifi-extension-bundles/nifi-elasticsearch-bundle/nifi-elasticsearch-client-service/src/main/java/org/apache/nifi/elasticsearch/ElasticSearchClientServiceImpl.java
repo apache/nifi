@@ -597,7 +597,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         try {
             if (code >= 200 && code < 300) {
-                String body = this.readContentAsString(response.getEntity(), this.responseCharset);
+                final String body = this.readContentAsString(response.getEntity(), this.responseCharset);
                 return mapper.readValue(body, Map.class);
             } else {
                 final String errorMessage = String.format("ElasticSearch reported an error while trying to run the query: %s",
@@ -1071,13 +1071,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return client.performRequest(request);
     }
 
-    private String readContentAsUtf8String(HttpEntity entity) throws UnsupportedOperationException, IOException {
+    private String readContentAsUtf8String(HttpEntity entity) throws IOException {
         return this.readContentAsString(entity, StandardCharsets.UTF_8);
     }
 
-    private String readContentAsString(HttpEntity entity, Charset charset) throws UnsupportedOperationException, IOException {
+    private String readContentAsString(HttpEntity entity, Charset charset) throws IOException {
         try (InputStream responseStream = entity.getContent()) {
-            return IOUtils.toString(responseStream, charset);
+            return new String(responseStream.readAllBytes(), charset);
         }
     }
 }
