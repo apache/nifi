@@ -1282,6 +1282,10 @@ public class DataTypeUtils {
                 }
 
             }
+            case byte[] byteArray -> {
+                final String byteString = new String(byteArray, StandardCharsets.UTF_8);
+                return new BigDecimal(byteString);
+            }
             default -> {
             }
         }

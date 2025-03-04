@@ -439,7 +439,7 @@ public class TestConvertRecord {
 
     @Test
     public void testJSONWithDefinedFieldTypeBytesAndLogicalTypeDecimal() throws Exception {
-        String schema = """
+        final String schema = """
                 {
                   "type": "record",
                   "name": "ExampleRecord",
@@ -453,10 +453,36 @@ public class TestConvertRecord {
                         "scale": 4
                       },
                       "default": "0.0000"
+                    }, {
+                      "name": "default_field",
+                      "type": {
+                        "type": "bytes",
+                        "logicalType": "decimal",
+                        "precision": 10,
+                        "scale": 4
+                      },
+                      "default": "0.0001"
                     }
                   ]
                 }
                 """;
+
+        final String inputContent = """
+                [
+                  {
+                    "big_decimal_field": 14000.5833
+                  }
+                ]
+                """;
+
+        final String expectedContent = """
+                [
+                  {
+                    "big_decimal_field": 14000.5833,
+                    "default_field": 0.0001
+                  }
+                ]
+                """.replaceAll("\\s", "");
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService(READER_ID, jsonReader);
@@ -473,10 +499,13 @@ public class TestConvertRecord {
 
         runner.setProperty(ConvertRecord.RECORD_READER, READER_ID);
         runner.setProperty(ConvertRecord.RECORD_WRITER, WRITER_ID);
-        runner.enqueue("{\"big_decimal_field\" : 140000.5833}");
+        runner.enqueue(inputContent);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
+        flowFile.assertContentEquals(expectedContent);
     }
 }
