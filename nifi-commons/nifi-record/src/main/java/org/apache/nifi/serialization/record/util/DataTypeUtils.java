@@ -1282,6 +1282,10 @@ public class DataTypeUtils {
                 }
 
             }
+            case byte[] byteArray -> {
+                final String byteString = new String(byteArray, StandardCharsets.UTF_8);
+                return new BigDecimal(byteString);
+            }
             default -> {
             }
         }
@@ -1318,6 +1322,7 @@ public class DataTypeUtils {
             case null -> false;
             case Number ignored -> true;
             case String s -> stringPredicate.test(s);
+            case byte[] bytes -> stringPredicate.test(new String(bytes, StandardCharsets.UTF_8));
             default -> false;
         };
 
