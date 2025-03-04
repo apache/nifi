@@ -62,11 +62,11 @@ public abstract class AbstractAwsAsyncProcessor<
     }
 
     @Override
-    protected <B extends AwsClientBuilder> void configureHttpClient(final B clientBuilder, final ProcessContext context) {
-        ((AwsAsyncClientBuilder) clientBuilder).httpClient(createSdkAsyncHttpClient(context));
+    protected <B extends AwsClientBuilder<?, ?>> void configureHttpClient(final B clientBuilder, final ProcessContext context) {
+        ((AwsAsyncClientBuilder<?, ?>) clientBuilder).httpClient(createSdkAsyncHttpClient(clientBuilder, context));
     }
 
-    private SdkAsyncHttpClient createSdkAsyncHttpClient(final ProcessContext context) {
+    private <B extends AwsClientBuilder<?, ?>> SdkAsyncHttpClient createSdkAsyncHttpClient(final B clientBuilder, final ProcessContext context) {
         final NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder();
 
         final AwsHttpClientConfigurer configurer = new AwsHttpClientConfigurer() {
@@ -98,8 +98,23 @@ public abstract class AbstractAwsAsyncProcessor<
         };
 
         this.configureSdkHttpClient(context, configurer);
+        this.customizeAsyncHttpClientBuilderConfiguration(context, builder, clientBuilder.getClass());
 
         return builder.build();
+    }
+
+    /**
+     * Customize the {@link NettyNioAsyncHttpClient.Builder} for the given {@link AwsClientBuilder} class.
+     *
+     * @param context the process context
+     * @param builder the {@link NettyNioAsyncHttpClient.Builder} to customize
+     * @param customizationTargetClass for which the HTTP client builder is being customized
+     */
+    protected void customizeAsyncHttpClientBuilderConfiguration(
+            final ProcessContext context,
+            final NettyNioAsyncHttpClient.Builder builder,
+            final Class<? extends AwsClientBuilder> customizationTargetClass) {
+        // no-op
     }
 
 }

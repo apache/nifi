@@ -157,7 +157,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
      * @param clientBuilder The client builder
      * @param context The process context
      */
-    protected abstract <B extends AwsClientBuilder> void configureHttpClient(B clientBuilder, ProcessContext context);
+    protected abstract <B extends AwsClientBuilder<?, ?>> void configureHttpClient(B clientBuilder, ProcessContext context);
 
     /*
      * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)

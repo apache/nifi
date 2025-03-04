@@ -67,8 +67,8 @@ public abstract class AbstractAwsSyncProcessor<
     }
 
     @Override
-    protected <B extends AwsClientBuilder> void configureHttpClient(final B clientBuilder, final ProcessContext context) {
-        ((AwsSyncClientBuilder) clientBuilder).httpClient(createSdkHttpClient(context));
+    protected <B extends AwsClientBuilder<?, ?>> void configureHttpClient(final B clientBuilder, final ProcessContext context) {
+        ((AwsSyncClientBuilder<?, ?>) clientBuilder).httpClient(createSdkHttpClient(context));
     }
 
     private SdkHttpClient createSdkHttpClient(final ProcessContext context) {
