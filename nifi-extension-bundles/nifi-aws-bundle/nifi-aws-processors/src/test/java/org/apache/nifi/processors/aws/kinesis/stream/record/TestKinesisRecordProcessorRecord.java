@@ -21,6 +21,8 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterIdentity;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterWrapper;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
@@ -101,7 +103,7 @@ public class TestKinesisRecordProcessorRecord {
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
-                reader, writer);
+                reader, writer, new RecordConverterIdentity());
     }
 
     @AfterEach
@@ -133,17 +135,28 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessRecordsNoCheckpoint() {
-        processMultipleRecordsAssertProvenance(false);
+        processMultipleRecordsAssertProvenance(false, false);
     }
 
     @Test
     public void testProcessRecordsWithEndpointOverride() {
-        processMultipleRecordsAssertProvenance(true);
+        processMultipleRecordsAssertProvenance(true, false);
     }
 
-    private void processMultipleRecordsAssertProvenance(final boolean endpointOverridden) {
-        final Date firstDate = Date.from(Instant.now().minus(1, ChronoUnit.MINUTES));
-        final Date secondDate = new Date();
+    @Test
+    public void testProcessWrappedRecordsNoCheckpoint() {
+        processMultipleRecordsAssertProvenance(false, true);
+    }
+
+    @Test
+    public void testProcessWrappedRecordsWithEndpointOverride() {
+        processMultipleRecordsAssertProvenance(true, true);
+    }
+
+    private void processMultipleRecordsAssertProvenance(final boolean endpointOverridden, final boolean useWrapper) {
+        final Instant referenceInstant = Instant.parse("2021-01-01T00:00:00.000Z");
+        final Date firstDate = Date.from(referenceInstant.minus(1, ChronoUnit.MINUTES));
+        final Date secondDate = Date.from(referenceInstant);
 
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
                 .records(Arrays.asList(
@@ -170,11 +183,9 @@ public class TestKinesisRecordProcessorRecord {
                 .build();
 
         final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
-        if (endpointOverridden) {
-            fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
-                    "endpoint-prefix", "https://another-endpoint.com:8443", 10_000L, 1L, 2, DATE_TIME_FORMATTER,
-                    reader, writer);
-        }
+        fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
+                "endpoint-prefix", transitUriPrefix, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
+                reader, writer, useWrapper ? new RecordConverterWrapper() : new RecordConverterIdentity());
 
         // skip checkpoint
         fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
@@ -190,14 +201,32 @@ public class TestKinesisRecordProcessorRecord {
 
         final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
         // 4 records in single output file, attributes equating to that of the last record
-        assertFlowFile(flowFiles.get(0), secondDate, "partition-2", "2", "another-shard", "{\"record\":\"1\"}\n" +
-                "{\"record\":\"1b\"}\n" +
-                "{\"record\":\"no-date\"}\n" +
-                "{\"record\":\"2\"}", 4);
+        final String expectedContent = useWrapper ? expectRecordContentWrapper() : expectRecordContentIdentity();
+        assertFlowFile(flowFiles.getFirst(), secondDate, "partition-2", "2", "another-shard", expectedContent, 4);
         session.assertTransferCount(ConsumeKinesisStream.REL_PARSE_FAILURE, 0);
 
         session.assertCommitted();
         session.assertNotRolledBack();
+    }
+
+    private String expectRecordContentIdentity() {
+        return """
+                {"record":"1"}
+                {"record":"1b"}
+                {"record":"no-date"}
+                {"record":"2"}""";
+    }
+
+    private String expectRecordContentWrapper() {
+        return """
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","partitionKey":"partition-1",\
+                "approximateArrival":1609459140000},"value":{"record":"1"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","partitionKey":"partition-1",\
+                "approximateArrival":1609459140000},"value":{"record":"1b"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"no-date","partitionKey":"partition-no-date",\
+                "approximateArrival":null},"value":{"record":"no-date"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"2","partitionKey":"partition-2",\
+                "approximateArrival":1609459200000},"value":{"record":"2"}}""";
     }
 
     @Test
@@ -235,7 +264,7 @@ public class TestKinesisRecordProcessorRecord {
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
         // 2 successful records in single output file, attributes equating to that of the last successful record
-        assertFlowFile(flowFiles.get(0), null, "partition-3", "3", "test-shard", "{\"record\":\"1\"}\n" +
+        assertFlowFile(flowFiles.getFirst(), null, "partition-3", "3", "test-shard", "{\"record\":\"1\"}\n" +
                 "{\"record\":\"3\"}", 2);
 
         // check no poison-pill output (as the raw data could not be retrieved)
@@ -288,14 +317,14 @@ public class TestKinesisRecordProcessorRecord {
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
         // 2 successful records in single output file, attributes equating to that of the last successful record
-        assertFlowFile(flowFiles.get(0), null, "partition-3", "3", "test-shard", "{\"record\":\"1\"}\n" +
+        assertFlowFile(flowFiles.getFirst(), null, "partition-3", "3", "test-shard", "{\"record\":\"1\"}\n" +
                 "{\"record\":\"3\"}", 2);
 
         // check poison-pill output (as the raw data could not be retrieved)
         session.assertTransferCount(ConsumeKinesisStream.REL_PARSE_FAILURE, 1);
         final List<MockFlowFile> failureFlowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_PARSE_FAILURE);
-        assertFlowFile(failureFlowFiles.get(0), null, "unparsable-partition", "unparsable-sequence", "test-shard", "invalid-json", 0);
-        failureFlowFiles.get(0).assertAttributeExists("record.error.message");
+        assertFlowFile(failureFlowFiles.getFirst(), null, "unparsable-partition", "unparsable-sequence", "test-shard", "invalid-json", 0);
+        failureFlowFiles.getFirst().assertAttributeExists("record.error.message");
 
         // check the invalid json record was *not* retried a 2nd time
         assertNull(verify(kinesisRecord, times(1)).partitionKey());
