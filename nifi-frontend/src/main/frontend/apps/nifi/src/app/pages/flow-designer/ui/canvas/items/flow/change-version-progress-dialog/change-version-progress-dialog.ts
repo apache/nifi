@@ -22,10 +22,11 @@ import { FlowUpdateRequestEntity } from '../../../../../state/flow';
 import { Observable, of } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
 import { MatProgressBar } from '@angular/material/progress-bar';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'change-version-progress-dialog',
-    imports: [MatDialogTitle, MatDialogModule, MatButton, AsyncPipe, MatProgressBar],
+    imports: [MatDialogTitle, MatDialogModule, MatButton, AsyncPipe, MatProgressBar, ErrorBanner],
     templateUrl: './change-version-progress-dialog.html',
     styleUrl: './change-version-progress-dialog.scss'
 })
