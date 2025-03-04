@@ -14,5 +14,6 @@
 # limitations under the License.
 org.apache.nifi.processors.box.ListBoxFile
 org.apache.nifi.processors.box.FetchBoxFile
+org.apache.nifi.processors.box.FetchBoxFileRepresentation
 org.apache.nifi.processors.box.PutBoxFile
 org.apache.nifi.processors.box.ConsumeBoxEvents
