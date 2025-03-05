@@ -542,6 +542,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         return flowFileQueue.size();
     }
 
+    @Override
     public void clearQueue() {
         // TODO: Add #clear to MockFlowFileQueue or just point to new instance?
         while (!flowFileQueue.isEmpty()) {
