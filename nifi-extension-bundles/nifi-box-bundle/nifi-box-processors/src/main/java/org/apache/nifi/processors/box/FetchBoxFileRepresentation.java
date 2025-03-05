@@ -23,8 +23,6 @@ import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFile.Info;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -45,7 +43,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,9 +54,6 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome;
 @Tags({"box", "cloud", "storage", "file", "representation", "content", "download"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Fetches a Box file representation using a representation hint and writes it to the FlowFile content.")
-@ReadsAttributes({
-        @ReadsAttribute(attribute = "box.id", description = "The ID of the Box file to retrieve.")
-})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the Box file."),
         @WritesAttribute(attribute = "box.file.name", description = "The name of the Box file."),
@@ -73,6 +67,8 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome;
 })
 @SeeAlso({FetchBoxFile.class, ListBoxFile.class})
 public class FetchBoxFileRepresentation extends AbstractProcessor implements VerifiableProcessor {
+
+    private static final String BOX_FILE_URI = "https://api.box.com/2.0/files/%s/content?representation=%s";
 
     static final PropertyDescriptor FILE_ID = new Builder()
             .name("File ID")
@@ -173,8 +169,7 @@ public class FetchBoxFileRepresentation extends AbstractProcessor implements Ver
                     "box.file.representation.type", representationType
             ));
 
-            session.getProvenanceReporter().fetch(flowFile,
-                    "https://api.box.com/2.0/files/" + fileId + "/content?representation=" + representationType);
+            session.getProvenanceReporter().fetch(flowFile, BOX_FILE_URI.formatted(fileId, representationType));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final BoxAPIResponseException e) {
             flowFile = session.putAttribute(flowFile, "box.error.message", e.getMessage());
@@ -184,7 +179,7 @@ public class FetchBoxFileRepresentation extends AbstractProcessor implements Ver
                 logger.warn("Box file with ID {} was not found or representation {} is not available", fileId, representationType);
                 session.transfer(flowFile, REL_FILE_NOT_FOUND);
             } else {
-                logger.error("Failed to retrieve Box file representation for file {}: {}", fileId, e.getMessage(), e);
+                logger.error("Failed to retrieve Box file representation for file [{}]", fileId, e);
                 session.transfer(flowFile, REL_FAILURE);
             }
         } catch (final BoxAPIException e) {
@@ -196,7 +191,7 @@ public class FetchBoxFileRepresentation extends AbstractProcessor implements Ver
                 logger.warn("Representation {} is not available for file {}: {}", representationType, fileId, e.getMessage());
                 session.transfer(flowFile, REL_REPRESENTATION_NOT_FOUND);
             } else {
-                logger.error("BoxAPIException while retrieving file {}: {}", fileId, e.getMessage(), e);
+                logger.error("BoxAPIException while retrieving file [{}]", fileId, e);
                 session.transfer(flowFile, REL_FAILURE);
             }
         }
@@ -204,10 +199,10 @@ public class FetchBoxFileRepresentation extends AbstractProcessor implements Ver
 
     /**
      * Get BoxFile object for the given fileId. Required for testing purposes to mock BoxFile.
+     *
      * @param fileId fileId
      * @return BoxFile object
      */
-    @VisibleForTesting
     protected BoxFile getBoxFile(final String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
     }

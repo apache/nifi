@@ -45,7 +45,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class FetchBoxFileRepresentationTest extends AbstractBoxFileTest{
+class FetchBoxFileRepresentationTest extends AbstractBoxFileTest {
     private static final String TEST_FILE_ID = "238490238429";
     private static final String TEST_REPRESENTATION_TYPE = "pdf";
     private static final String TEST_FILE_NAME = "testfile.txt";
