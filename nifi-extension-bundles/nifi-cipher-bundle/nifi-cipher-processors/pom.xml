@@ -25,7 +25,6 @@
     <artifactId>nifi-cipher-processors</artifactId>
 
     <dependencies>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>

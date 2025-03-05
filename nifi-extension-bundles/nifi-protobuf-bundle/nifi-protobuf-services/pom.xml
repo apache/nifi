@@ -26,8 +26,8 @@
     <artifactId>nifi-protobuf-services</artifactId>
 
     <properties>
-        <protobuf.version>3.25.5</protobuf.version>
-        <wire.version>5.2.1</wire.version>
+        <protobuf.version>3.25.6</protobuf.version>
+        <wire.version>5.3.0</wire.version>
     </properties>
 
     <dependencies>
