@@ -1,0 +1,30 @@
+[
+  {
+    "id": 485,
+    "name": {
+      "last": "Doe",
+      "first": "John",
+      "undefinedKeyInObject": "whatever"
+    },
+    "status": "ACTIVE",
+    "undefinedKey" : "whatever",
+    "jobs": [
+      {
+        "jobId": "1",
+        "jobName": "someJob",
+        "undefinedKeyInObject": "whatever"
+      }
+    ],
+    "undefinedObjectArray" : [
+      {
+        "elementId" : "1",
+        "elementName" : "someName"
+      }
+    ],
+    "undefinedObject" : {
+      "elementId" : "2",
+      "elementName" : "someName"
+    },
+    "undefinedScalarArray" : [1, 2, 3]
+  }
+]
