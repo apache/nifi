@@ -28,6 +28,8 @@ import static org.mockito.Mockito.when;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.nifi.processor.Relationship;
@@ -50,6 +52,7 @@ public class AbstractGoogleDriveTest {
     public static final String SUBFOLDER_ID = "subFolderId";
     public static final long TEST_SIZE = 42;
     public static final long CREATED_TIME = 1659707000;
+    public static final long MODIFIED_TIME = 1659708000;
     public static final String TEXT_TYPE = "text/plain";
 
     protected TestRunner testRunner;
@@ -74,8 +77,11 @@ public class AbstractGoogleDriveTest {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(relationship).get(0);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
-        flowFile.assertAttributeEquals(GoogleDriveAttributes.TIMESTAMP, String.valueOf(new DateTime(CREATED_TIME)));
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.TIMESTAMP, String.valueOf(MODIFIED_TIME));
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.CREATED_TIME, Instant.ofEpochMilli(CREATED_TIME).toString());
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.MODIFIED_TIME, Instant.ofEpochMilli(MODIFIED_TIME).toString());
         flowFile.assertAttributeEquals(GoogleDriveAttributes.SIZE, Long.toString(TEST_SIZE));
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.SIZE_AVAILABLE, Boolean.toString(true));
         flowFile.assertAttributeEquals(GoogleDriveAttributes.MIME_TYPE, TEXT_TYPE);
     }
 
@@ -101,6 +107,7 @@ public class AbstractGoogleDriveTest {
         file.setName(name);
         file.setParents(singletonList(parentId));
         file.setCreatedTime(new DateTime(CREATED_TIME));
+        file.setModifiedTime(new DateTime(MODIFIED_TIME));
         file.setSize(TEST_SIZE);
         file.setMimeType(mimeType);
         return file;
