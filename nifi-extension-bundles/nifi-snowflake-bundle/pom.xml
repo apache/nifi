@@ -27,20 +27,139 @@
         <module>nifi-snowflake-processors-nar</module>
         <module>nifi-snowflake-services-api</module>
         <module>nifi-snowflake-services-api-nar</module>
+        <module>nifi-snowflake-snowpipe-streaming</module>
+        <module>nifi-snowflake-snowpipe-streaming-nar</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Set gRPC version for transitive dependencies from Google Cloud -->
             <dependency>
-                <groupId>net.snowflake</groupId>
-                <artifactId>snowflake-ingest-sdk</artifactId>
-                <version>2.3.0</version>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>1.71.0</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-bom</artifactId>
+                <version>4.30.0</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-storage</artifactId>
+                <version>2.49.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.4.0-jre</version>
+            </dependency>
+            <!-- Set Iceberg version for transitive dependency from snowflake-ingest-sdk -->
+            <dependency>
+                <groupId>org.apache.iceberg</groupId>
+                <artifactId>iceberg-bom</artifactId>
+                <version>1.8.1</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>net.snowflake</groupId>
-                <artifactId>snowflake-jdbc</artifactId>
+                <artifactId>snowflake-ingest-sdk</artifactId>
+                <version>3.1.2-beta.unshaded</version>
+                <exclusions>
+                    <!-- Exclude conscrypt-openjdk-uber from Google client libraries -->
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <!-- Exclude grpc-netty-shaded in favor of grpc-netty -->
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
+                    </exclusion>
+                    <!-- Servlet API for IncidentUtil metrics -->
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>javax.servlet-api</artifactId>
+                    </exclusion>
+                    <!-- JSoup not used -->
+                    <exclusion>
+                        <groupId>org.jsoup</groupId>
+                        <artifactId>jsoup</artifactId>
+                    </exclusion>
+                    <!-- Exclude unnecessary backport library -->
+                    <exclusion>
+                        <groupId>org.threeten</groupId>
+                        <artifactId>threetenbp</artifactId>
+                    </exclusion>
+                    <!-- Exclude unnecessary annotations -->
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                    <!-- gRPC XDS is an optional feature for Google Cloud Storage not used -->
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-xds</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>net.snowflake</groupId>
+                <artifactId>snowflake-jdbc-thin</artifactId>
                 <!-- please check snowflake-ingest-sdk compatibility before upgrade -->
                 <version>3.23.1</version>
+                <exclusions>
+                    <!-- Exclude banned commons-logging -->
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                    <!-- Exclude conscrypt-openjdk-uber from Google client libraries -->
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <!-- Exclude grpc-netty-shaded in favor of grpc-netty -->
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
+                    </exclusion>
+                    <!-- Servlet API for IncidentUtil metrics -->
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>javax.servlet-api</artifactId>
+                    </exclusion>
+                    <!-- JSoup not used -->
+                    <exclusion>
+                        <groupId>org.jsoup</groupId>
+                        <artifactId>jsoup</artifactId>
+                    </exclusion>
+                    <!-- Exclude unnecessary backport library -->
+                    <exclusion>
+                        <groupId>org.threeten</groupId>
+                        <artifactId>threetenbp</artifactId>
+                    </exclusion>
+                    <!-- Exclude unnecessary annotations -->
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                    <!-- gRPC XDS is an optional feature for Google Cloud Storage not used -->
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-xds</artifactId>
+                    </exclusion>
+                    <!-- Excluded in favor of explicit version -->
+                    <exclusion>
+                        <groupId>com.nimbusds</groupId>
+                        <artifactId>oauth2-oidc-sdk</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
