@@ -34,7 +34,7 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
-        <org.apache.sshd.version>2.14.0</org.apache.sshd.version>
+        <org.apache.sshd.version>2.15.0</org.apache.sshd.version>
         <tika.version>3.1.0</tika.version>
     </properties>
     <dependencyManagement>
@@ -226,7 +226,7 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.5</version>
+                <version>1.5.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
