@@ -31,5 +31,6 @@ limitations under the License.
         <module>minifi-resources</module>
         <module>minifi-server</module>
         <module>minifi-properties-loader</module>
+        <module>minifi-nar-unloader</module>
     </modules>
 </project>
