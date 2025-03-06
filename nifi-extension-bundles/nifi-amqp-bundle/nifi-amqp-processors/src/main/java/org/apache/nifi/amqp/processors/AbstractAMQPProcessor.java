@@ -144,7 +144,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .required(false)
             .defaultValue("67108864")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BROKERS,
