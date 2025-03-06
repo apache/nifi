@@ -127,6 +127,7 @@ public class ListSFTP extends ListFileTransfer {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        config.removeProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE.getName());
     }
 
     @Override
