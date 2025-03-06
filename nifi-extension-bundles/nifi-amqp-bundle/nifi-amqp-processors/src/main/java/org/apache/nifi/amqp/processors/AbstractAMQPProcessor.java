@@ -139,12 +139,12 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     public static final PropertyDescriptor MAX_INBOUND_MESSAGE_BODY_SIZE = new PropertyDescriptor.Builder()
-            .name("MaxInboundMessageBodySize")
-            .description("Maximum body size of inbound (received) messages in bytes.")
-            .required(false)
-            .defaultValue("67108864")
+            .name("Max Inbound Message Body Size")
+            .description("Maximum body size of inbound (received) messages.")
+            .required(true)
+            .defaultValue("64 MB")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
             .build();
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BROKERS,
@@ -311,7 +311,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         final ConnectionFactory cf = new ConnectionFactory();
         cf.setUsername(context.getProperty(USER).evaluateAttributeExpressions().getValue());
         cf.setPassword(context.getProperty(PASSWORD).getValue());
-        cf.setMaxInboundMessageBodySize(Integer.parseInt(context.getProperty(MAX_INBOUND_MESSAGE_BODY_SIZE).evaluateAttributeExpressions().getValue()));
+        cf.setMaxInboundMessageBodySize(context.getProperty(MAX_INBOUND_MESSAGE_BODY_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue());
         
         final String vHost = context.getProperty(V_HOST).evaluateAttributeExpressions().getValue();
         if (vHost != null) {
