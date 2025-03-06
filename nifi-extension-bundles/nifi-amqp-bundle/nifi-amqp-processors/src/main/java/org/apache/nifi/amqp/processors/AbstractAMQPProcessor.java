@@ -43,8 +43,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.ssl.SSLContextProvider;
-
 
 /**
  * Base processor that uses RabbitMQ client API
