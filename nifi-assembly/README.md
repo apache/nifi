@@ -63,7 +63,7 @@ If you have questions, you can reach out to our mailing list: dev@nifi.apache.or
 
 - Apache NiFi Slack Workspace: https://apachenifi.slack.com/
 
-  New users can join the workspace using the following [invite link](https://s.apache.org/nifi-community-slack).
+  New users can join the workspace using the following [invite link](https://join.slack.com/t/apachenifi/shared_invite/zt-11njbtkdx-ZRU8FKYSWoEHRJetidy0zA).
 
 - IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
 
