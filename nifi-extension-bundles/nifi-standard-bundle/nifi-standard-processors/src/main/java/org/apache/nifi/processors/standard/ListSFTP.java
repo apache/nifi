@@ -178,7 +178,7 @@ public class ListSFTP extends ListFileTransfer {
         final Long maxAge = context.getProperty(ListFile.MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         return (attributes) -> {
-            if(attributes.isDirectory()) {
+            if (attributes.isDirectory()) {
                 return true;
             }
 
