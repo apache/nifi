@@ -95,7 +95,6 @@ public class ListSFTP extends ListFileTransfer {
             SFTPTransfer.FILE_FILTER_REGEX,
             SFTPTransfer.PATH_FILTER_REGEX,
             SFTPTransfer.IGNORE_DOTTED_FILES,
-            SFTPTransfer.REMOTE_POLL_BATCH_SIZE,
             SFTPTransfer.STRICT_HOST_KEY_CHECKING,
             SFTPTransfer.HOST_KEY_FILE,
             SFTPTransfer.CONNECTION_TIMEOUT,
@@ -179,7 +178,7 @@ public class ListSFTP extends ListFileTransfer {
         final Long maxAge = context.getProperty(ListFile.MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         return (attributes) -> {
-            if (attributes.isDirectory()) {
+            if(attributes.isDirectory()) {
                 return true;
             }
 
