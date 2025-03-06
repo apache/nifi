@@ -49,7 +49,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>${caffeine.version}</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.db</groupId>
@@ -64,7 +63,7 @@
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
@@ -94,7 +93,6 @@
         <dependency>
             <groupId>com.squareup.okio</groupId>
             <artifactId>okio-jvm</artifactId>
-            <version>${okio.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
