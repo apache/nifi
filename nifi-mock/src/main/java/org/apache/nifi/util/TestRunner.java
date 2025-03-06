@@ -536,6 +536,11 @@ public interface TestRunner {
     QueueSize getQueueSize();
 
     /**
+     * Allow for clearing the queue from all remaining flow files.
+     */
+    void clearQueue();
+
+    /**
      * @param name of counter
      * @return the current value of the counter with the specified name, or null
      *         if no counter exists with the specified name

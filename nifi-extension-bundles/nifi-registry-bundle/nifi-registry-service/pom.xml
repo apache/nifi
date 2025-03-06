@@ -57,7 +57,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>1.5.5</version>
+            <version>1.5.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
