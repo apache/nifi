@@ -45,6 +45,11 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
     private static final String TEST_USER_ID_3 = "user3";
     private static final String TEST_GROUP_ID_1 = "group1";
     private static final String TEST_GROUP_ID_2 = "group2";
+    private static final String TEST_USER_EMAIL_1 = "user1@example.com";
+    private static final String TEST_USER_EMAIL_2 = "user2@example.com";
+    private static final String TEST_USER_EMAIL_3 = "user3@example.com";
+    private static final String TEST_GROUP_EMAIL_1 = "group1@example.com";
+    private static final String TEST_GROUP_EMAIL_2 = "group2@example.com";
 
     @Mock
     BoxFile mockBoxFile;
@@ -118,6 +123,10 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.ids", TEST_GROUP_ID_1);
         flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.ids", TEST_USER_ID_3);
         flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.ids", TEST_GROUP_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.emails", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.emails", TEST_GROUP_EMAIL_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.emails", TEST_USER_EMAIL_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.emails", TEST_GROUP_EMAIL_2);
     }
 
     @Test
@@ -139,6 +148,10 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.ids", TEST_GROUP_ID_1);
         flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.ids", TEST_USER_ID_3);
         flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.ids", TEST_GROUP_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.emails", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.emails", TEST_GROUP_EMAIL_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.emails", TEST_USER_EMAIL_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.emails", TEST_GROUP_EMAIL_2);
     }
 
     @Test
@@ -192,11 +205,33 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         when(mockBoxFile.getAllFileCollaborations()).thenReturn(mockCollabIterable);
     }
 
-    private void setupCollaborator(BoxCollaboration.Info collabInfo, BoxCollaborator.Info collaboratorInfo,
-                                   BoxCollaborator.CollaboratorType type, String id, BoxCollaboration.Status status) {
+    private void setupCollaborator(final BoxCollaboration.Info collabInfo,
+                                   final BoxCollaborator.Info collaboratorInfo,
+                                   final BoxCollaborator.CollaboratorType type,
+                                   final String id,
+                                   final BoxCollaboration.Status status) {
         when(collabInfo.getAccessibleBy()).thenReturn(collaboratorInfo);
         when(collaboratorInfo.getType()).thenReturn(type);
         when(collaboratorInfo.getID()).thenReturn(id);
         when(collabInfo.getStatus()).thenReturn(status);
+
+        final Map<String, String> userEmails = Map.of(
+                TEST_USER_ID_1, TEST_USER_EMAIL_1,
+                TEST_USER_ID_2, TEST_USER_EMAIL_2,
+                TEST_USER_ID_3, TEST_USER_EMAIL_3
+        );
+
+        Map<String, String> groupEmails = Map.of(
+                TEST_GROUP_ID_1, TEST_GROUP_EMAIL_1,
+                TEST_GROUP_ID_2, TEST_GROUP_EMAIL_2
+        );
+        String email = null;
+        if (type.equals(BoxCollaborator.CollaboratorType.USER)) {
+            email = userEmails.getOrDefault(id, null);
+        } else if (type.equals(BoxCollaborator.CollaboratorType.GROUP)) {
+            email = groupEmails.getOrDefault(id, null);
+        }
+
+        when(collaboratorInfo.getLogin()).thenReturn(email);
     }
 }

@@ -23,7 +23,6 @@ import com.box.sdk.BoxCollaboration;
 import com.box.sdk.BoxCollaborator;
 import com.box.sdk.BoxFile;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -40,13 +39,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
@@ -59,15 +58,12 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
 @Tags({"box", "storage", "collaboration", "permissions", "sharing"})
 @CapabilityDescription("Retrieves all collaborators on a Box file and adds the collaboration information to the FlowFile's attributes.")
 @SeeAlso({FetchBoxFile.class, ListBoxFile.class})
-@ReadsAttribute(attribute = ID, description = ID_DESC)
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
-        @WritesAttribute(attribute = "box.collaborations.accepted.users.ids", description = "Comma-separated list of accepted user collaborator IDs"),
-        @WritesAttribute(attribute = "box.collaborations.accepted.groups.ids", description = "Comma-separated list of accepted group collaborator IDs"),
-        @WritesAttribute(attribute = "box.collaborations.pending.users.ids", description = "Comma-separated list of pending user collaborator IDs"),
-        @WritesAttribute(attribute = "box.collaborations.pending.groups.ids", description = "Comma-separated list of pending group collaborator IDs"),
-        @WritesAttribute(attribute = "box.collaborations.rejected.users.ids", description = "Comma-separated list of rejected user collaborator IDs"),
-        @WritesAttribute(attribute = "box.collaborations.rejected.groups.ids", description = "Comma-separated list of rejected group collaborator IDs"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.users.ids", description = "Comma-separated list of user collaborator IDs by status"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.groups.ids", description = "Comma-separated list of group collaborator IDs by status"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.users.emails", description = "Comma-separated list of user collaborator emails by status"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.groups.emails", description = "Comma-separated list of group collaborator emails by status"),
         @WritesAttribute(attribute = "box.collaborations.count", description = "Total number of collaborations on the file"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
@@ -163,7 +159,6 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
      * @param fileId the ID of the file
      * @return BoxFile instance
      */
-    @VisibleForTesting
     protected BoxFile getBoxFile(final String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
     }
@@ -172,30 +167,35 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
                                          final ProcessSession session,
                                          final FlowFile flowFile) {
         final BoxFile boxFile = getBoxFile(fileId);
-
         final Iterable<BoxCollaboration.Info> collaborations = boxFile.getAllFileCollaborations();
 
-        final Map<String, List<String>> collabMap = new HashMap<>();
-        collabMap.put("accepted.users", new ArrayList<>());
-        collabMap.put("accepted.groups", new ArrayList<>());
-        collabMap.put("pending.users", new ArrayList<>());
-        collabMap.put("pending.groups", new ArrayList<>());
-        collabMap.put("rejected.users", new ArrayList<>());
-        collabMap.put("rejected.groups", new ArrayList<>());
+        final List<String> statusTypes = List.of(
+                "accepted.users", "accepted.groups",
+                "pending.users", "pending.groups",
+                "rejected.users", "rejected.groups"
+        );
+
+        final Map<String, List<String>> collabIdMap = statusTypes.stream()
+                .collect(Collectors.toMap(key -> key, key -> new ArrayList<>()));
+
+        final Map<String, List<String>> collabEmailMap = statusTypes.stream()
+                .collect(Collectors.toMap(key -> key, key -> new ArrayList<>()));
 
         int count = 0;
         for (final BoxCollaboration.Info collabInfo : collaborations) {
             count++;
 
-            // Determine if collaborator is a user or group
             boolean isUser = collabInfo.getAccessibleBy().getType().equals(BoxCollaborator.CollaboratorType.USER);
             final String collabId = collabInfo.getAccessibleBy().getID();
             final String status = collabInfo.getStatus().toString().toLowerCase();
             final String type = isUser ? "users" : "groups";
-            final String key = "%s.%s".formatted(status, type);
+            final String key = status + "." + type;
 
-            if (collabMap.containsKey(key)) {
-                collabMap.get(key).add(collabId);
+            collabIdMap.get(key).add(collabId);
+
+            final String email = collabInfo.getAccessibleBy().getLogin();
+            if (email != null) {
+                collabEmailMap.get(key).add(email);
             }
         }
 
@@ -203,11 +203,11 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
         attributes.put(ID, fileId);
         attributes.put("box.collaborations.count", String.valueOf(count));
 
-        collabMap.forEach((key, value) -> {
-            if (!value.isEmpty()) {
-                addAttributeIfNotEmpty(attributes, "box.collaborations." + key + ".ids", value);
-            }
-        });
+        collabIdMap.forEach((key, value) ->
+                addAttributeIfNotEmpty(attributes, "box.collaborations." + key + ".ids", value));
+
+        collabEmailMap.forEach((key, value) ->
+                addAttributeIfNotEmpty(attributes, "box.collaborations." + key + ".emails", value));
 
         return session.putAllAttributes(flowFile, attributes);
     }
