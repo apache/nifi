@@ -171,7 +171,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
               HEADER_FORMAT,
               HEADER_KEY_PREFIX,
               HEADER_SEPARATOR,
-              REMOVE_CURLY_BRACES
+              REMOVE_CURLY_BRACES,
+              MAX_INBOUND_MESSAGE_BODY_SIZE
           ), getCommonPropertyDescriptors().stream()
     ).toList();
 
