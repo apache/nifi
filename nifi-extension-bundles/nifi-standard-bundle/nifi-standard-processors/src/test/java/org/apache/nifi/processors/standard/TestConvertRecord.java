@@ -50,6 +50,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -411,21 +412,21 @@ public class TestConvertRecord {
 
     @Test
     public void testJSONDroppingUnknownFields() throws InitializationException, IOException {
+        final String personJobSchema =
+                Files.readString(Paths.get("src/test/resources/TestConvertRecord/schema/personJob.avsc"));
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService(READER_ID, jsonReader);
-
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, PERSON_SCHEMA);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, personJobSchema);
         runner.enableControllerService(jsonReader);
-
         final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
         runner.addControllerService(WRITER_ID, jsonWriter);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, PERSON_SCHEMA);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, personJobSchema);
         runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
         runner.enableControllerService(jsonWriter);
 
-        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/person_dropfield.json"));
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/personJob_dropfield.json"));
 
         runner.setProperty(ConvertRecord.RECORD_READER, READER_ID);
         runner.setProperty(ConvertRecord.RECORD_WRITER, WRITER_ID);
@@ -434,7 +435,10 @@ public class TestConvertRecord {
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
-        assertFalse(flowFile.getContent().contains("fieldThatShouldBeRemoved"));
+        final List<String> undefinedTopLevelKeys = List.of("undefinedKey", "undefinedObjectArray", "undefinedObject", "undefinedScalarArray");
+
+        undefinedTopLevelKeys.forEach(undefinedTopLevelKey -> assertFalse(flowFile.getContent().contains(undefinedTopLevelKey)));
+        assertFalse(flowFile.getContent().contains("undefinedKeyInObject"));
     }
 
     @Test

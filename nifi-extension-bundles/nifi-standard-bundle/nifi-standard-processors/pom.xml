@@ -631,6 +631,7 @@
                         <exclude>src/test/resources/TestConvertRecord/input/person_dropfield.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/schema/personJob.avsc</exclude>
                         <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
                         <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
