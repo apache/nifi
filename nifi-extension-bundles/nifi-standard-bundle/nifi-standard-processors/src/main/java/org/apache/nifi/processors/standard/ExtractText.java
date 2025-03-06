@@ -424,41 +424,42 @@ public class ExtractText extends AbstractProcessor {
                 // group count doesn't include the 0
                 if (useNamedGroups && matcher.groupCount() == namedGroups.length) {
                     for (final String namedGroup : namedGroups) {
-                        final StringBuilder builder = new StringBuilder(baseKey).append(".").append(namedGroup);
-                        if (j > 0) {
-                            builder.append(".").append(j);
-                        }
-                        final String key = builder.toString();
+                        final String key = (j == 0) ? baseKey + "." + namedGroup : baseKey + "." + namedGroup + "." + j;
                         String value = matcher.group(namedGroup);
+
                         if (value != null && !value.isEmpty()) {
                             if (value.length() > maxCaptureGroupLength) {
                                 value = value.substring(0, maxCaptureGroupLength);
                             }
-                            regexResults.put(key, value);
+                            // Prevent duplicate attributes
+                            regexResults.putIfAbsent(key, value);
                         }
                     }
                     if (startGroupIdx == 0 && j == 0) {
-                        regexResults.put(baseKey, matcher.group(0));
+                        regexResults.putIfAbsent(baseKey, matcher.group(0));
                     }
                     j++;
                 } else {
-                    int start = j == 0 ? startGroupIdx : 1;
+                    int start = (j == 0) ? startGroupIdx : 1;
                     for (int i = start; i <= matcher.groupCount(); i++) {
-                        final String key = baseKey + "." + (i + j);
+                        final String key = (j == 0) ? baseKey : baseKey + "." + (i + j);
                         String value = matcher.group(i);
+
                         if (value != null && !value.isEmpty()) {
                             if (value.length() > maxCaptureGroupLength) {
                                 value = value.substring(0, maxCaptureGroupLength);
                             }
-                            regexResults.put(key, value);
+                            // Prevent duplicate attributes
+                            regexResults.putIfAbsent(key, value);
                             if (i == 1 && j == 0) {
-                                regexResults.put(baseKey, value);
+                                regexResults.putIfAbsent(baseKey, value);
                             }
                         }
                     }
                     j += matcher.groupCount();
                 }
 
+                // Stop after first match if repeating groups are disabled
                 if (!context.getProperty(ENABLE_REPEATING_CAPTURE_GROUP).asBoolean()) {
                     break;
                 }
