@@ -21,7 +21,6 @@ import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,7 +37,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +60,6 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
 @Tags({"box", "storage", "metadata", "fetch"})
 @CapabilityDescription("Fetches metadata for files from Box and adds it to the FlowFile's attributes.")
 @SeeAlso({ListBoxFile.class, FetchBoxFile.class, PutBoxFile.class})
-@ReadsAttribute(attribute = ID, description = ID_DESC)
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
@@ -176,7 +173,6 @@ public class FetchBoxFileInfo extends AbstractProcessor {
      * @param fileId the ID of the file
      * @return BoxFile instance
      */
-    @VisibleForTesting
     protected BoxFile getBoxFile(final String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
     }
