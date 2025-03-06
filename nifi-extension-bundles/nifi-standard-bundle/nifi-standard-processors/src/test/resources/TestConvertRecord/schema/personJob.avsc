@@ -1,0 +1,52 @@
+{
+	"name": "personWithJobRecord",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "int" },
+		{ "name": "name", "type": {
+			"type": "record",
+			"name": "nameRecord",
+			"fields": [
+					{ "name": "last", "type": "string" },
+					{ "name": "first", "type": "string" }
+				]
+			}
+		},
+		{
+            "name": "status",
+            "type": ["null", {
+                    "type": "enum",
+                    "name": "statusEnum",
+                    "symbols": [
+                        "ACTIVE",
+                        "INACTIVE"
+                    ]
+                }],
+            "default": null
+        },
+		{
+			"name" : "jobs",
+			"type" : [
+				"null",
+				{
+					"type" : "array",
+					"items": {
+						"type": "record",
+						"name": "jobType",
+						"fields": [
+							{
+								"name": "jobId",
+								"type": ["null", "string"]
+							},
+							{
+								"name": "jobName",
+								"type": ["null", "string"]
+							}
+						]
+					}
+				}
+			]
+		}
+	]
+}
