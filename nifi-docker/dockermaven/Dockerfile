@@ -84,7 +84,6 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && apt-get update \
     && apt-get install -y jq xmlstarlet procps \
     && apt-get install -y python3 \
-    && apt-get install -y python3-pip \
     && apt-get install -y python3-venv \
     && apt-get -y autoremove \
     && apt-get clean autoclean \
@@ -103,6 +102,8 @@ VOLUME ${NIFI_LOG_DIR} \
        ${NIFI_HOME}/state
 
 USER nifi
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clear nifi-env.sh in favour of configuring all environment variables in the Dockerfile
 RUN echo "#!/bin/sh\n" > "${NIFI_HOME}/bin/nifi-env.sh"
