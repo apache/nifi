@@ -53,6 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
+@SupportsBatching
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
 @CapabilityDescription("Elasticsearch get processor that uses the official Elastic REST client libraries " +
         "to fetch a single document from Elasticsearch by _id. " +
