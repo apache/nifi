@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -138,7 +139,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
-    public static final PropertyDescriptor MAX_INBOUND_MESSAGE_BODY_SIZE = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor MAX_INBOUND_MESSAGE_BODY_SIZE = new PropertyDescriptor.Builder()
             .name("Max Inbound Message Body Size")
             .description("Maximum body size of inbound (received) messages.")
             .required(true)
@@ -146,6 +147,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
             .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BROKERS,
             HOST, PORT,
@@ -154,8 +156,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             PASSWORD,
             AMQP_VERSION,
             SSL_CONTEXT_SERVICE,
-            USE_CERT_AUTHENTICATION,
-            MAX_INBOUND_MESSAGE_BODY_SIZE);
+            USE_CERT_AUTHENTICATION);
 
     protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -312,7 +313,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         cf.setUsername(context.getProperty(USER).evaluateAttributeExpressions().getValue());
         cf.setPassword(context.getProperty(PASSWORD).getValue());
         cf.setMaxInboundMessageBodySize(context.getProperty(MAX_INBOUND_MESSAGE_BODY_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue());
-        
+
         final String vHost = context.getProperty(V_HOST).evaluateAttributeExpressions().getValue();
         if (vHost != null) {
             cf.setVirtualHost(vHost);
