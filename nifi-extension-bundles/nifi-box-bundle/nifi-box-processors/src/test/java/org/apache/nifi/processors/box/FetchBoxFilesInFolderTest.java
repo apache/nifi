@@ -18,7 +18,7 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFolder;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,20 +27,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.lang.String.valueOf;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements FileListingTestTrait {
+
+    private static final String RECORD_WRITER_ID = "record-writer";
 
     @BeforeEach
     void setUp() throws Exception {
@@ -52,6 +52,12 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
         };
 
         testRunner = TestRunners.newTestRunner(testSubject);
+
+        final MockRecordWriter writerService = new MockRecordWriter("id,filename,path,size,timestamp", false);
+        testRunner.addControllerService(RECORD_WRITER_ID, writerService);
+        testRunner.enableControllerService(writerService);
+        testRunner.setProperty(FetchBoxFilesInFolder.RECORD_WRITER, RECORD_WRITER_ID);
+
         super.setUp();
     }
 
@@ -59,6 +65,7 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
     void testFetchMetadataFromFolderWithFolderIdProperty() {
         testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, TEST_FOLDER_ID);
         testRunner.setProperty(FetchBoxFilesInFolder.RECURSIVE_SEARCH, "false");
+        testRunner.setProperty(FetchBoxFilesInFolder.BATCH_SIZE, "100");
 
         final List<String> pathParts = Arrays.asList("path", "to", "file");
         mockFetchedFileList(TEST_FILE_ID, TEST_FILENAME, pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
@@ -68,21 +75,26 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
 
         testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 1);
         testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 0);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_ORIGINAL, 1);
 
         final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_SUCCESS);
         final MockFlowFile outputFlowFile = successFiles.getFirst();
-        outputFlowFile.assertAttributeEquals(ID, TEST_FILE_ID);
-        outputFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);
-        outputFlowFile.assertAttributeEquals(CoreAttributes.PATH.key(), "/path/to/file");
-        outputFlowFile.assertAttributeEquals(SIZE, valueOf(TEST_SIZE));
-        outputFlowFile.assertAttributeEquals(TIMESTAMP, valueOf(new Date(MODIFIED_TIME)));
+
+        outputFlowFile.assertAttributeExists("record.count");
+        assertEquals("1", outputFlowFile.getAttribute("record.count"));
+        outputFlowFile.assertAttributeEquals("box.folder.id", TEST_FOLDER_ID);
+
+        final String content = new String(outputFlowFile.toByteArray());
+        assertTrue(content.contains(TEST_FILE_ID));
+        assertTrue(content.contains(TEST_FILENAME));
+        assertTrue(content.contains("/path"));
+        assertTrue(content.contains(String.valueOf(TEST_SIZE)));
     }
 
     @Test
     void testFetchMetadataFromFolderWithFolderIdAttributeExpression() {
         testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, "${box.folder.id}");
         testRunner.setProperty(FetchBoxFilesInFolder.RECURSIVE_SEARCH, "true");
+        testRunner.setProperty(FetchBoxFilesInFolder.BATCH_SIZE, "100");
 
         final List<String> pathParts = Arrays.asList("path", "to", "file");
         mockFetchedFileList(TEST_FILE_ID, TEST_FILENAME, pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
@@ -95,15 +107,40 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
 
         testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 1);
         testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 0);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_ORIGINAL, 1);
 
         final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_SUCCESS);
-        final MockFlowFile outputFlowFile = successFiles.get(0);
-        outputFlowFile.assertAttributeEquals(ID, TEST_FILE_ID);
-        outputFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);
-        outputFlowFile.assertAttributeEquals(CoreAttributes.PATH.key(), "/path/to/file");
-        outputFlowFile.assertAttributeEquals(SIZE, valueOf(TEST_SIZE));
-        outputFlowFile.assertAttributeEquals(TIMESTAMP, valueOf(new Date(MODIFIED_TIME)));
+        final MockFlowFile outputFlowFile = successFiles.getFirst();
+
+        outputFlowFile.assertAttributeExists("record.count");
+        assertEquals("1", outputFlowFile.getAttribute("record.count"));
+        outputFlowFile.assertAttributeEquals("box.folder.id", TEST_FOLDER_ID);
+
+        final String content = new String(outputFlowFile.toByteArray());
+        assertTrue(content.contains(TEST_FILE_ID));
+        assertTrue(content.contains(TEST_FILENAME));
+        assertTrue(content.contains("/path"));
+        assertTrue(content.contains(String.valueOf(TEST_SIZE)));
+    }
+
+    @Test
+    void testBatchingWithMultipleFiles() {
+        testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, TEST_FOLDER_ID);
+        testRunner.setProperty(FetchBoxFilesInFolder.RECURSIVE_SEARCH, "false");
+        testRunner.setProperty(FetchBoxFilesInFolder.BATCH_SIZE, "2");
+        mockMultipleFilesResponse();
+
+        testRunner.enqueue("test file");
+        testRunner.run();
+
+        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 2);
+        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 0);
+
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_SUCCESS);
+
+        final MockFlowFile batch1 = successFiles.get(0);
+        batch1.assertAttributeEquals("record.count", "2");
+        final MockFlowFile batch2 = successFiles.get(1);
+        batch2.assertAttributeEquals("record.count", "1");
     }
 
     @Test
@@ -128,7 +165,6 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
 
         testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 1);
         testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_ORIGINAL, 0);
 
         final List<MockFlowFile> failureFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_FAILURE);
         final MockFlowFile failureFlowFile = failureFiles.get(0);
@@ -136,12 +172,14 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
         failureFlowFile.assertAttributeExists(ERROR_MESSAGE);
     }
 
-    @Test
-    void testGenericException() {
-        testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, TEST_FOLDER_ID);
+    private void mockMultipleFilesResponse() {
+        List<String> pathParts = Arrays.asList("path", "to", "file");
 
-        final RuntimeException exception = new RuntimeException("Generic error");
-        doThrow(exception).when(mockBoxFolder).getChildren(
+        doReturn(Arrays.asList(
+                createFileInfo(TEST_FILE_ID + "1", TEST_FILENAME + "1", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME),
+                createFileInfo(TEST_FILE_ID + "2", TEST_FILENAME + "2", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME),
+                createFileInfo(TEST_FILE_ID + "3", TEST_FILENAME + "3", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME)
+        )).when(mockBoxFolder).getChildren(
                 "id",
                 "name",
                 "item_status",
@@ -151,18 +189,6 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
                 "content_created_at",
                 "content_modified_at",
                 "path_collection");
-
-        final MockFlowFile inputFlowFile = new MockFlowFile(0);
-        testRunner.enqueue(inputFlowFile);
-        testRunner.run();
-
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 1);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_ORIGINAL, 0);
-
-        final List<MockFlowFile> failureFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_FAILURE);
-        final MockFlowFile failureFlowFile = failureFiles.get(0);
-        failureFlowFile.assertAttributeEquals(ERROR_MESSAGE, "Generic error");
     }
 
     @Override

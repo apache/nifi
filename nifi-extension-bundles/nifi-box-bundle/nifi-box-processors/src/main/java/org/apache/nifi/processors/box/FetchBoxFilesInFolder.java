@@ -32,15 +32,30 @@ import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,33 +66,22 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "fetch", "folder", "files"})
-@CapabilityDescription("Fetches file metadata for each file in a Box Folder. Takes a flowFile with a folder ID attribute and outputs a flowFile for each file in the folder.")
+@CapabilityDescription("Fetches file metadata for each file in a Box Folder. Takes a flowFile with a folder ID attribute and outputs flowFiles with JSON content containing all file metadata.")
 @SeeAlso({ListBoxFile.class, FetchBoxFile.class, PutBoxFile.class})
 @WritesAttributes({
-        @WritesAttribute(attribute = ID, description = ID_DESC),
-        @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
-        @WritesAttribute(attribute = "path", description = PATH_DESC),
-        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
-        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = "box.folder.id", description = "The ID of the folder from which files were fetched"),
+        @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME Type specified by the Record Writer"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
 public class FetchBoxFilesInFolder extends AbstractProcessor {
 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
-            .name("box-folder-id")
-            .displayName("Folder ID")
+            .name("Folder ID")
             .description("The ID of the folder from which to fetch files.")
             .required(true)
             .defaultValue("${box.folder.id}")
@@ -86,8 +90,7 @@ public class FetchBoxFilesInFolder extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
-            .name("recursive-search")
-            .displayName("Search Recursively")
+            .name("Search Recursively")
             .description("When 'true', will include files from sub-folders." +
                     " Otherwise, will return only files that are within the folder defined by the 'Folder ID' property.")
             .required(true)
@@ -96,17 +99,32 @@ public class FetchBoxFilesInFolder extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
-            .name("min-age")
-            .displayName("Minimum File Age")
+            .name("Minimum File Age")
             .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("0 sec")
             .build();
 
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("Record Writer")
+            .description("Specifies the Controller Service to use for writing the metadata records. Must be set.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Batch Size")
+            .description("Specifies the maximum number of records to include in a single FlowFile. If the number of files in the Box folder " +
+                    "exceeds this value, multiple FlowFiles will be created each containing up to this number of records.")
+            .required(true)
+            .defaultValue("1000")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile will be routed here for each successfully fetched file metadata.")
+            .description("A FlowFile containing the file metadata records will be routed to this relationship upon successful processing.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -114,23 +132,27 @@ public class FetchBoxFilesInFolder extends AbstractProcessor {
             .description("A FlowFile will be routed here if there is an error fetching file metadata from the folder.")
             .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
-            .description("The original FlowFile will be routed here after all files have been fetched.")
-            .build();
-
     public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
-            REL_FAILURE,
-            REL_ORIGINAL
+            REL_FAILURE
     );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FOLDER_ID,
             RECURSIVE_SEARCH,
-            MIN_AGE
+            MIN_AGE,
+            RECORD_WRITER,
+            BATCH_SIZE
     );
+
+    private static final RecordSchema RECORD_SCHEMA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("filename", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("path", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("size", RecordFieldType.LONG.getDataType(), false),
+            new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType(), false)
+    ));
 
     private volatile BoxAPIConnection boxAPIConnection;
 
@@ -161,6 +183,8 @@ public class FetchBoxFilesInFolder extends AbstractProcessor {
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         try {
             final long startNanos = System.nanoTime();
@@ -169,35 +193,71 @@ public class FetchBoxFilesInFolder extends AbstractProcessor {
 
             listFolder(fileInfos, folderId, recursive, createdAtMax);
 
-            for (final BoxFile.Info fileInfo : fileInfos) {
-                FlowFile outputFlowFile = session.create(flowFile);
+            if (fileInfos.isEmpty()) {
+                flowFile = session.putAttribute(flowFile, "box.folder.id", folderId);
+                session.transfer(flowFile, REL_SUCCESS);
+                session.remove(flowFile);
+                return;
+            }
+
+            final int totalFiles = fileInfos.size();
+            for (int i = 0; i < totalFiles; i += batchSize) {
+                int end = Math.min(i + batchSize, totalFiles);
+                final List<BoxFile.Info> batch = fileInfos.subList(i, end);
+                FlowFile batchFlowFile = session.create(flowFile);
+
+                final Map<String, String> batchAttributes = new HashMap<>();
+                batchAttributes.put("box.folder.id", folderId);
+                batchFlowFile = session.putAllAttributes(batchFlowFile, batchAttributes);
+
                 try {
-                    final Map<String, String> attributes = BoxFileUtils.createAttributeMap(fileInfo);
-                    outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
+                    final WriteResult writeResult;
+                    final String mimeType;
+
+                    try (final OutputStream out = session.write(batchFlowFile);
+                         final RecordSetWriter writer = writerFactory.createWriter(getLogger(), RECORD_SCHEMA, out, batchFlowFile)) {
+
+                        writer.beginRecordSet();
+
+                        for (final BoxFile.Info fileInfo : batch) {
+                            final Map<String, Object> values = Map.of(
+                                    "id", fileInfo.getID(),
+                                    "filename", fileInfo.getName(),
+                                    "path", BoxFileUtils.getParentPath(fileInfo),
+                                    "size", fileInfo.getSize(),
+                                    "timestamp", new Timestamp(fileInfo.getModifiedAt().getTime())
+                            );
+
+                            final Record record = new MapRecord(RECORD_SCHEMA, values);
+                            writer.write(record);
+                        }
+
+                        writeResult = writer.finishRecordSet();
+                        mimeType = writer.getMimeType();
+                    }
+
+                    final Map<String, String> recordAttributes = new HashMap<>(writeResult.getAttributes());
+                    recordAttributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                    recordAttributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
+                    batchFlowFile = session.putAllAttributes(batchFlowFile, recordAttributes);
 
                     final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                    final String boxUrlOfFile = BoxFileUtils.BOX_URL + fileInfo.getID();
-                    session.getProvenanceReporter().receive(outputFlowFile, boxUrlOfFile, transferMillis);
+                    session.getProvenanceReporter().receive(batchFlowFile, BoxFileUtils.BOX_URL + folderId, transferMillis);
 
-                    session.transfer(outputFlowFile, REL_SUCCESS);
-                } catch (final Exception e) {
-                    getLogger().error("Failed fetching metadata for file with id [{}] from folder [{}]", fileInfo.getID(), folderId, e);
-                    outputFlowFile = session.putAttribute(outputFlowFile, ERROR_MESSAGE, e.getMessage());
-                    outputFlowFile = session.penalize(outputFlowFile);
-                    session.transfer(outputFlowFile, REL_FAILURE);
+                    session.transfer(batchFlowFile, REL_SUCCESS);
+                } catch (final SchemaNotFoundException | IOException e) {
+                    getLogger().error("Failed writing records for files from folder [{}]", folderId, e);
+                    batchFlowFile = session.putAttribute(batchFlowFile, ERROR_MESSAGE, e.getMessage());
+                    batchFlowFile = session.penalize(batchFlowFile);
+                    session.transfer(batchFlowFile, REL_FAILURE);
                 }
             }
 
-            session.transfer(flowFile, REL_ORIGINAL);
+            session.remove(flowFile);
 
         } catch (final BoxAPIResponseException e) {
             getLogger().error("Couldn't fetch files from folder with id [{}]", folderId, e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
-        } catch (final Exception e) {
-            getLogger().error("Failed fetching files from folder with id [{}]", folderId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
