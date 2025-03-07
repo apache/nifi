@@ -20,7 +20,6 @@ package org.apache.nifi.minifi.commons.service;
 import static java.util.Map.entry;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -34,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
@@ -112,7 +112,7 @@ public class StandardFlowPropertyEncryptorTest {
 
     @BeforeEach
     public void setup() {
-        when(mockPropertyEncryptor.encrypt(anyString())).thenReturn(randomAlphabetic(5));
+        when(mockPropertyEncryptor.encrypt(anyString())).thenReturn(RandomStringUtils.secure().nextAlphabetic(5));
         testEncryptor = new StandardFlowPropertyEncryptor(mockPropertyEncryptor, mockRunTimeManifest);
     }
 
