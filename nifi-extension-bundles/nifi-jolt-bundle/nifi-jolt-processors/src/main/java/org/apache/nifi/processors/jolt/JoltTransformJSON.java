@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.TransformUtils;
@@ -41,6 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.io.InputStream;
@@ -55,11 +57,23 @@ import java.util.stream.Stream;
 @Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "mime.type", description = "Always set to application/json")
-@CapabilityDescription("Applies a list of Jolt specifications to the flowfile JSON payload. A new FlowFile is created "
-        + "with transformed content and is routed to the 'success' relationship. If the JSON transform "
-        + "fails, the original FlowFile is routed to the 'failure' relationship.")
+@CapabilityDescription("Applies a list of Jolt specifications to the FlowFile JSON payload (or) to the Json Attribute. "
+        + "If the transformation is applied on FlowFile content then a new FlowFile is created with transformed content and is routed to the 'success' relationship. "
+        + "If the transformation is applied on FlowFile attribute then attribute is transformed and is routed to the 'success' relationship. "
+        + "If the JSON transform fails, the original FlowFile is routed to the 'failure' relationship.")
 @RequiresInstanceClassLoading
 public class JoltTransformJSON extends AbstractJoltTransform {
+
+    public static final PropertyDescriptor JSON_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("Json Attribute")
+            .displayName("Json Attribute")
+            .description("The Json attribute which need to be JOLT transformed. " +
+                    "If this parameter is set, the JOLT transformation is applied on this attribute else the JOLT transformation is applied on FlowFile content.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
             .name("Pretty Print")
             .displayName("Pretty Print")
@@ -90,6 +104,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             getCommonPropertyDescriptors().stream(),
             Stream.of(
+                    JSON_ATTRIBUTE,
                     PRETTY_PRINT,
                     MAX_STRING_LENGTH
             )
@@ -122,14 +137,35 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
         final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
-
         final Object inputJson;
-        try (final InputStream in = session.read(original)) {
-            inputJson = jsonUtil.jsonToObject(in);
-        } catch (final Exception e) {
-            logger.error("JSON parsing failed for {}", original, e);
-            session.transfer(original, REL_FAILURE);
-            return;
+        String jsonAttributeName = null;
+
+        if (context.getProperty(JSON_ATTRIBUTE).isSet()) {
+            // Transform Json Attribute Value
+            jsonAttributeName = context.getProperty(JSON_ATTRIBUTE).evaluateAttributeExpressions(original).getValue();
+            final String jsonAttributeValue = original.getAttribute(jsonAttributeName);
+            if (StringUtils.isBlank(jsonAttributeValue)) {
+                logger.error("'Json Attribute' value evaluated to null");
+                session.transfer(original, REL_FAILURE);
+                return;
+            } else {
+                try {
+                    inputJson = jsonUtil.jsonToObject(jsonAttributeValue);
+                } catch (final Exception e) {
+                    logger.error("JSON parsing failed on 'Json Attribute' for {}", original, e);
+                    session.transfer(original, REL_FAILURE);
+                    return;
+                }
+            }
+        } else {
+            // Transform Json FlowFile content
+            try (final InputStream in = session.read(original)) {
+                inputJson = jsonUtil.jsonToObject(in);
+            } catch (final Exception e) {
+                logger.error("JSON parsing failed on flowfile content for {}", original, e);
+                session.transfer(original, REL_FAILURE);
+                return;
+            }
         }
 
         final String jsonString;
@@ -152,13 +188,19 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             }
         }
 
-        FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(StandardCharsets.UTF_8)));
+        if (context.getProperty(JSON_ATTRIBUTE).isSet()) {
+            session.putAttribute(original, jsonAttributeName, jsonString);
+            session.transfer(original, REL_SUCCESS);
+            logger.info("Transform completed on Json Attribute for {}", original);
+        } else {
+            FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(StandardCharsets.UTF_8)));
 
-        final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
-        transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.transfer(transformed, REL_SUCCESS);
-        session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        logger.info("Transform completed for {}", original);
+            final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
+            transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
+            session.transfer(transformed, REL_SUCCESS);
+            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            logger.info("Transform completed on FlowFile content for {}", original);
+        }
     }
 
     @OnScheduled

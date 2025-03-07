@@ -464,6 +464,67 @@ class TestJoltTransformJSON {
         runner.assertNotValid();
     }
 
+    @Test
+    void testJsonAttributeNotInitialised() throws IOException {
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, "./src/test/resources/specs/shiftrSpec.json");
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
+        runner.setProperty(JoltTransformJSON.JSON_ATTRIBUTE, "jsonAttr");
+        runner.enqueue(JSON_INPUT);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
+    }
+
+    @Test
+    void testInvalidJsonAttribute() throws IOException {
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, "./src/test/resources/specs/shiftrSpec.json");
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
+        runner.setProperty(JoltTransformJSON.JSON_ATTRIBUTE, "jsonAttr");
+        final Map<String, String> attributes = Collections.singletonMap("jsonAttr",
+                "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":}}}");
+        runner.enqueue(JSON_INPUT, attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
+    }
+
+    @Test
+    void testValidJsonAttributeEL() throws IOException {
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, "./src/test/resources/specs/shiftrSpec.json");
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
+        runner.setProperty(JoltTransformJSON.JSON_ATTRIBUTE, "${dynamicJsonAttr}");
+        final Map<String, String> attributes = Map.of("dynamicJsonAttr", "jsonAttr",
+                "jsonAttr", "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":3}}}");
+        runner.enqueue(JSON_INPUT, attributes);
+        runner.run();
+
+        assertTransformedJsonAttributeEquals("shiftrOutput.json");
+    }
+
+    @Test
+    void testValidJsonAttributeWithoutEL() throws IOException {
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, "./src/test/resources/specs/chainrSpec.json");
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
+        runner.setProperty(JoltTransformJSON.JSON_ATTRIBUTE, "jsonAttr");
+        final Map<String, String> attributes = Collections.singletonMap("jsonAttr",
+                "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":3}}}");
+        runner.enqueue(JSON_INPUT, attributes);
+        runner.run();
+
+        assertTransformedJsonAttributeEquals("chainrOutput.json");
+    }
+
+    private void assertTransformedJsonAttributeEquals(final String expectedOutputContent) throws IOException {
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
+        transformed.assertAttributeExists("jsonAttr");
+
+        final Object transformedJson = JsonUtils.jsonToObject(transformed.getAttribute("jsonAttr"));
+
+        final String compareOutputPath = "src/test/resources/TestJoltTransformJson/%s".formatted(expectedOutputContent);
+        final Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get(compareOutputPath)));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
     private void assertTransformedEquals(final String expectedOutputFilename) throws IOException {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
 
