@@ -20,8 +20,6 @@ import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxEvent;
 import com.box.sdk.EventListener;
 import com.box.sdk.EventStream;
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -50,14 +48,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -223,20 +216,11 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
         final List<BoxEvent> boxEvents = new ArrayList<>();
         final int recordCount = events.drainTo(boxEvents);
 
-        try (final OutputStream out = session.write(flowFile)) {
-            final Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
-            writer.write("[");
-            final Iterator<BoxEvent> iterator = boxEvents.iterator();
-            while (iterator.hasNext()) {
-                BoxEvent event = iterator.next();
-                JsonObject jsonEvent = toRecord(event);
-                jsonEvent.writeTo(writer);
-                if (iterator.hasNext()) {
-                    writer.write(",");
-                }
+        try (final OutputStream out = session.write(flowFile);
+             final BoxEventJsonArrayWriter writer = BoxEventJsonArrayWriter.create(out)) {
+            for (BoxEvent event : boxEvents) {
+                writer.write(event);
             }
-            writer.write("]");
-            writer.flush();
         } catch (Exception e) {
             getLogger().error("Failed to write events to FlowFile; will re-queue events and try again", e);
             boxEvents.forEach(events::offer);
@@ -249,23 +233,4 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
         session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(flowFile, REL_SUCCESS);
     }
-
-    private JsonObject toRecord(BoxEvent event) {
-        JsonObject json = Json.object();
-
-        json.add("accessibleBy", event.getAccessibleBy() == null ? Json.NULL : Json.parse(event.getAccessibleBy().getJson()));
-        json.add("actionBy", event.getActionBy() == null ? Json.NULL : Json.parse(event.getActionBy().getJson()));
-        json.add("additionalDetails", Objects.requireNonNullElse(event.getAdditionalDetails(), Json.NULL));
-        json.add("createdAt", event.getCreatedAt() == null ? Json.NULL : Json.value(event.getCreatedAt().toString()));
-        json.add("createdBy", event.getCreatedBy() == null ? Json.NULL : Json.parse(event.getCreatedBy().getJson()));
-        json.add("eventType", event.getEventType() == null ? Json.NULL : Json.value(event.getEventType().name()));
-        json.add("id", Objects.requireNonNullElse(Json.value(event.getID()), Json.NULL));
-        json.add("ipAddress", Objects.requireNonNullElse(Json.value(event.getIPAddress()), Json.NULL));
-        json.add("sessionID", Objects.requireNonNullElse(Json.value(event.getSessionID()), Json.NULL));
-        json.add("source", Objects.requireNonNullElse(event.getSourceJSON(), Json.NULL));
-        json.add("typeName", Objects.requireNonNullElse(Json.value(event.getTypeName()), Json.NULL));
-
-        return json;
-    }
-
 }
