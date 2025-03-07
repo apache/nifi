@@ -95,7 +95,6 @@ public class ListSFTP extends ListFileTransfer {
             SFTPTransfer.FILE_FILTER_REGEX,
             SFTPTransfer.PATH_FILTER_REGEX,
             SFTPTransfer.IGNORE_DOTTED_FILES,
-            SFTPTransfer.REMOTE_POLL_BATCH_SIZE,
             SFTPTransfer.STRICT_HOST_KEY_CHECKING,
             SFTPTransfer.HOST_KEY_FILE,
             SFTPTransfer.CONNECTION_TIMEOUT,
@@ -128,6 +127,7 @@ public class ListSFTP extends ListFileTransfer {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        config.removeProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE.getName());
     }
 
     @Override
