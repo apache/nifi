@@ -56,7 +56,7 @@ import static org.apache.nifi.processors.box.BoxGroupAttributes.GROUP_USER_LOGIN
 @SideEffectFree
 @InputRequirement(INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata"})
-@CapabilityDescription("Retrieves members for a Box Groups and writes their details in FlowFile attributes.")
+@CapabilityDescription("Retrieves members for a Box Group and writes their details in FlowFile attributes.")
 @ReadsAttributes({
         @ReadsAttribute(attribute = BoxGroupAttributes.GROUP_ID, description = "The ID of the Group to retrieve members for."),
 })
@@ -84,17 +84,17 @@ public class GetBoxGroupMembers extends AbstractProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile will be routed here for successfully retrieved Group members.")
+            .description("The FlowFile will be routed here after successfully retrieving Group members.")
             .build();
 
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile will be routed here for every Group which member retrieval was attempted but failed.")
+            .description("The FlowFile will be routed here when Group memberships retrieval was attempted but failed.")
             .build();
 
     static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("not.found")
-            .description("A FlowFile will be routed here for every Group which was not found.")
+            .description("The FlowFile will be routed here when the Group was not found.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
