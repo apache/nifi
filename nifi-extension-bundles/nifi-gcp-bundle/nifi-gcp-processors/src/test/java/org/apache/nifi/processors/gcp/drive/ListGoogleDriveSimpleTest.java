@@ -20,6 +20,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.User;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.EqualsWrapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,20 +73,41 @@ public class ListGoogleDriveSimpleTest {
         Long minTimestamp = 0L;
         listingModeAsString = "EXECUTION";
 
+        String folderId = "folder_id";
+        String folderName = "folder_name";
+
         String id = "id_1";
         String filename = "file_name_1";
         long size = 125L;
         long createdTime = 123456L;
         long modifiedTime = 234567L;
         String mimeType = "mime_type_1";
+        String owner = "user1";
+        String lastModifyingUser = "user2";
+        String webViewLink = "http://web.view";
+        String webContentLink = "http://web.content";
+
+        when(mockProcessContext.getProperty(ListGoogleDrive.FOLDER_ID)
+                .evaluateAttributeExpressions()
+                .getValue()
+        ).thenReturn(folderId);
+
+        when(mockDriverService.files()
+                .get(folderId)
+                .setSupportsAllDrives(true)
+                .setFields("name, driveId")
+                .execute()
+        ).thenReturn(new File()
+                .setName(folderName)
+        );
 
         when(mockDriverService.files()
                 .list()
                 .setSupportsAllDrives(true)
                 .setIncludeItemsFromAllDrives(true)
-                .setQ("('null' in parents) and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
+                .setQ("('" + folderId + "' in parents) and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
                 .setPageToken(null)
-                .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
+                .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType, owners, lastModifyingUser, webViewLink, webContentLink)")
                 .execute()
                 .getFiles()
         ).thenReturn(singletonList(
@@ -95,7 +117,11 @@ public class ListGoogleDriveSimpleTest {
                         size,
                         new DateTime(createdTime),
                         new DateTime(modifiedTime),
-                        mimeType
+                        mimeType,
+                        owner,
+                        lastModifyingUser,
+                        webViewLink,
+                        webContentLink
                 )
         ));
 
@@ -104,9 +130,15 @@ public class ListGoogleDriveSimpleTest {
                         .id(id)
                         .fileName(filename)
                         .size(size)
+                        .sizeAvailable(true)
                         .createdTime(createdTime)
                         .modifiedTime(modifiedTime)
                         .mimeType(mimeType)
+                        .path(folderName)
+                        .owner(owner)
+                        .lastModifyingUser(lastModifyingUser)
+                        .webViewLink(webViewLink)
+                        .webContentLink(webContentLink)
                         .build()
         );
 
@@ -119,10 +151,16 @@ public class ListGoogleDriveSimpleTest {
                 GoogleDriveFileInfo::getIdentifier,
                 GoogleDriveFileInfo::getName,
                 GoogleDriveFileInfo::getSize,
+                GoogleDriveFileInfo::isSizeAvailable,
                 GoogleDriveFileInfo::getTimestamp,
                 GoogleDriveFileInfo::getCreatedTime,
                 GoogleDriveFileInfo::getModifiedTime,
-                GoogleDriveFileInfo::getMimeType
+                GoogleDriveFileInfo::getMimeType,
+                GoogleDriveFileInfo::getPath,
+                GoogleDriveFileInfo::getOwner,
+                GoogleDriveFileInfo::getLastModifyingUser,
+                GoogleDriveFileInfo::getWebViewLink,
+                GoogleDriveFileInfo::getWebContentLink
         );
 
         List<EqualsWrapper<GoogleDriveFileInfo>> expectedWrapper = wrapList(expected, propertyProviders);
@@ -137,8 +175,11 @@ public class ListGoogleDriveSimpleTest {
             Long size,
             DateTime createdTime,
             DateTime modifiedTime,
-            String mimeType
-    ) {
+            String mimeType,
+            String owner,
+            String lastModifyingUser,
+            String webViewLink,
+            String webContentLink) {
         File file = new File();
 
         file
@@ -147,7 +188,11 @@ public class ListGoogleDriveSimpleTest {
                 .setMimeType(mimeType)
                 .setCreatedTime(createdTime)
                 .setModifiedTime(modifiedTime)
-                .setSize(size);
+                .setSize(size)
+                .setOwners(List.of(new User().setDisplayName(owner)))
+                .setLastModifyingUser(new User().setDisplayName(lastModifyingUser))
+                .setWebViewLink(webViewLink)
+                .setWebContentLink(webContentLink);
 
         return file;
     }

@@ -24,6 +24,7 @@ import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FOLDER_ID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +33,7 @@ import org.junit.jupiter.api.Test;
 /**
  * See Javadoc {@link AbstractGoogleDriveIT} for instructions how to run this test.
  */
-public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> implements OutputChecker {
+public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> {
 
     public static final String TEST_FILENAME = "testFileName";
 
@@ -147,7 +148,10 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         flowFile.assertAttributeExists(GoogleDriveAttributes.ID);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
         flowFile.assertAttributeExists(GoogleDriveAttributes.TIMESTAMP);
+        flowFile.assertAttributeExists(GoogleDriveAttributes.CREATED_TIME);
+        flowFile.assertAttributeExists(GoogleDriveAttributes.MODIFIED_TIME);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.SIZE, String.valueOf(DEFAULT_FILE_CONTENT.length()));
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.SIZE_AVAILABLE, "true");
         flowFile.assertAttributeEquals(GoogleDriveAttributes.MIME_TYPE, "text/plain");
     }
 }

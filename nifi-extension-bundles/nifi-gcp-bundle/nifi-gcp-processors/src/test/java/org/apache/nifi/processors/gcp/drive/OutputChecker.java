@@ -20,7 +20,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,13 +48,7 @@ public interface OutputChecker {
         assertEquals(expectedAttributes, actualAttributes);
     }
 
-    default Set<String> getCheckedAttributeNames() {
-        Set<String> checkedAttributeNames = Arrays.stream(GoogleDriveFlowFileAttribute.values())
-                .map(GoogleDriveFlowFileAttribute::getName)
-                .collect(Collectors.toSet());
-
-        return checkedAttributeNames;
-    }
+    Set<String> getCheckedAttributeNames();
 
     default void checkContent(Relationship relationship, List<String> expectedContent) {
         getTestRunner().assertTransferCount(relationship, expectedContent.size());
