@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-github-bundle</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.3.0</version>
     </parent>
 
     <artifactId>nifi-github-nar</artifactId>
@@ -29,12 +29,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-github-extensions</artifactId>
-            <version>2.3.0-SNAPSHOT</version>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-shared-nar</artifactId>
-            <version>2.3.0-SNAPSHOT</version>
+            <version>2.3.0</version>
             <type>nar</type>
         </dependency>
     </dependencies>
