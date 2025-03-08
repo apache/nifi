@@ -133,7 +133,7 @@
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <jetty.version>12.0.16</jetty.version>
+        <jetty.version>12.0.17</jetty.version>
         <jackson.bom.version>2.18.3</jackson.bom.version>
         <avro.version>1.11.4</avro.version>
         <jaxb.runtime.version>4.0.5</jaxb.runtime.version>
