@@ -823,9 +823,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public boolean documentExists(final String index, final String type, final String id, final ElasticsearchRequestOptions elasticsearchRequestOptions) {
         boolean exists = true;
         try {
-            final ElasticsearchRequestOptions existsRequestOptions = elasticsearchRequestOptions == null ? new ElasticsearchRequestOptions() : elasticsearchRequestOptions;
-            existsRequestOptions.getRequestParameters().putIfAbsent("_source", "false");
-            get(index, type, id, existsRequestOptions);
+            final Map<String, String> existsParameters = elasticsearchRequestOptions == null ? new HashMap<>() : new HashMap<>(elasticsearchRequestOptions.getRequestParameters());
+            existsParameters.putIfAbsent("_source", "false");
+            get(index, type, id, new ElasticsearchRequestOptions(existsParameters, elasticsearchRequestOptions == null ? Collections.emptyMap() : elasticsearchRequestOptions.getRequestHeaders()));
         } catch (final ElasticsearchException ee) {
             if (ee.isNotFound()) {
                 exists = false;

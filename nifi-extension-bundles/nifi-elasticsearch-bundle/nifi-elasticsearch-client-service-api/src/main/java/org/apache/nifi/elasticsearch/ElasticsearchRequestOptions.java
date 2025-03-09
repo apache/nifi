@@ -17,7 +17,7 @@
 
 package org.apache.nifi.elasticsearch;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 public class ElasticsearchRequestOptions {
@@ -25,12 +25,12 @@ public class ElasticsearchRequestOptions {
     private final Map<String, String> requestHeaders;
 
     public ElasticsearchRequestOptions(final Map<String, String> requestParameters, final Map<String, String> requestHeaders) {
-        this.requestParameters = requestParameters == null ? new HashMap<>() : requestParameters;
-        this.requestHeaders = requestHeaders == null ? new HashMap<>() : requestHeaders;
+        this.requestParameters = requestParameters == null ? Collections.emptyMap() : Collections.unmodifiableMap(requestParameters);
+        this.requestHeaders = requestHeaders == null ? Collections.emptyMap() : Collections.unmodifiableMap(requestHeaders);
     }
 
     public ElasticsearchRequestOptions() {
-        this(new HashMap<>(), new HashMap<>());
+        this(null, null);
     }
 
     public Map<String, String> getRequestParameters() {
