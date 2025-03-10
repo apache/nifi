@@ -652,7 +652,9 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
         final LeaseManagementConfig leaseManagementConfig = configsBuilder.leaseManagementConfig()
                 .failoverTimeMillis(getFailoverTimeMillis(context))
                 .streamName(streamName);
-        final CoordinatorConfig coordinatorConfig = configsBuilder.coordinatorConfig().workerStateChangeListener(workerState::set);
+        final CoordinatorConfig coordinatorConfig = configsBuilder.coordinatorConfig()
+                .workerStateChangeListener(workerState::set)
+                .clientVersionConfig(CoordinatorConfig.ClientVersionConfig.CLIENT_VERSION_CONFIG_COMPATIBLE_WITH_2X);
 
         final List<PropertyDescriptor> dynamicProperties = context.getProperties()
                 .keySet()
