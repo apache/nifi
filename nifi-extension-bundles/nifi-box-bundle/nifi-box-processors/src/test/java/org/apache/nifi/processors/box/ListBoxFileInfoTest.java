@@ -38,13 +38,13 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
-public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements FileListingTestTrait {
+public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileListingTestTrait {
 
     private static final String RECORD_WRITER_ID = "record-writer";
 
     @BeforeEach
     void setUp() throws Exception {
-        final FetchBoxFilesInFolder testSubject = new FetchBoxFilesInFolder() {
+        final ListBoxFileInfo testSubject = new ListBoxFileInfo() {
             @Override
             BoxFolder getFolder(final String folderId) {
                 return mockBoxFolder;
@@ -56,15 +56,15 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
         final MockRecordWriter writerService = new MockRecordWriter("id,filename,path,size,timestamp", false);
         testRunner.addControllerService(RECORD_WRITER_ID, writerService);
         testRunner.enableControllerService(writerService);
-        testRunner.setProperty(FetchBoxFilesInFolder.RECORD_WRITER, RECORD_WRITER_ID);
+        testRunner.setProperty(ListBoxFileInfo.RECORD_WRITER, RECORD_WRITER_ID);
 
         super.setUp();
     }
 
     @Test
     void testFetchMetadataFromFolderWithFolderIdProperty() {
-        testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, TEST_FOLDER_ID);
-        testRunner.setProperty(FetchBoxFilesInFolder.RECURSIVE_SEARCH, "false");
+        testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
+        testRunner.setProperty(ListBoxFileInfo.RECURSIVE_SEARCH, "false");
 
         final List<String> pathParts = Arrays.asList("path", "to", "file");
         mockFetchedFileList(TEST_FILE_ID, TEST_FILENAME, pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
@@ -72,10 +72,10 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
         testRunner.enqueue("test file");
         testRunner.run();
 
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 0);
 
-        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_SUCCESS);
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_SUCCESS);
         final MockFlowFile outputFlowFile = successFiles.getFirst();
 
         outputFlowFile.assertAttributeExists("record.count");
@@ -91,8 +91,8 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
 
     @Test
     void testFetchMetadataFromFolderWithFolderIdAttributeExpression() {
-        testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, "${box.folder.id}");
-        testRunner.setProperty(FetchBoxFilesInFolder.RECURSIVE_SEARCH, "true");
+        testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, "${box.folder.id}");
+        testRunner.setProperty(ListBoxFileInfo.RECURSIVE_SEARCH, "true");
 
         final List<String> pathParts = Arrays.asList("path", "to", "file");
         mockFetchedFileList(TEST_FILE_ID, TEST_FILENAME, pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
@@ -103,10 +103,10 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
         testRunner.enqueue("test file", attributeMap);
         testRunner.run();
 
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 0);
 
-        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_SUCCESS);
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_SUCCESS);
         final MockFlowFile outputFlowFile = successFiles.getFirst();
 
         outputFlowFile.assertAttributeExists("record.count");
@@ -122,17 +122,17 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
 
     @Test
     void testProcessingMultipleFiles() {
-        testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, TEST_FOLDER_ID);
-        testRunner.setProperty(FetchBoxFilesInFolder.RECURSIVE_SEARCH, "false");
+        testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
+        testRunner.setProperty(ListBoxFileInfo.RECURSIVE_SEARCH, "false");
         mockMultipleFilesResponse();
 
         testRunner.enqueue("test file");
         testRunner.run();
 
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 0);
 
-        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_SUCCESS);
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_SUCCESS);
         final MockFlowFile outputFlowFile = successFiles.getFirst();
         outputFlowFile.assertAttributeEquals("record.count", "3");
         outputFlowFile.assertAttributeEquals("box.folder.id", TEST_FOLDER_ID);
@@ -144,7 +144,7 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
 
     @Test
     void testBoxAPIResponseException() {
-        testRunner.setProperty(FetchBoxFilesInFolder.FOLDER_ID, TEST_FOLDER_ID);
+        testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
 
         final BoxAPIResponseException apiException = new BoxAPIResponseException("API Error", 404, "Not Found", null);
         doThrow(apiException).when(mockBoxFolder).getChildren(
@@ -162,10 +162,10 @@ public class FetchBoxFilesInFolderTest extends AbstractBoxFileTest implements Fi
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_FAILURE, 1);
-        testRunner.assertTransferCount(FetchBoxFilesInFolder.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 1);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 0);
 
-        final List<MockFlowFile> failureFiles = testRunner.getFlowFilesForRelationship(FetchBoxFilesInFolder.REL_FAILURE);
+        final List<MockFlowFile> failureFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_FAILURE);
         final MockFlowFile failureFlowFile = failureFiles.getFirst();
         failureFlowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
         failureFlowFile.assertAttributeExists(ERROR_MESSAGE);

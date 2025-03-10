@@ -78,7 +78,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
-public class FetchBoxFilesInFolder extends AbstractProcessor {
+public class ListBoxFileInfo extends AbstractProcessor {
 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("Folder ID")
