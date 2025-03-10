@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -104,6 +106,9 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
     @Test
     void testGetCollaborationsFromFlowFileAttribute() {
         testRunner.setProperty(GetBoxFileCollaborators.FILE_ID, "${box.id}");
+        testRunner.setProperty(GetBoxFileCollaborators.ROLES, "editor");
+        testRunner.setProperty(GetBoxFileCollaborators.STATUSES, "accepted,pending");
+
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(BoxFileAttributes.ID, TEST_FILE_ID);
@@ -119,19 +124,20 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         final MockFlowFile flowFilesFirst = flowFiles.getFirst();
 
         flowFilesFirst.assertAttributeEquals("box.collaborations.count", "5");
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.ids", TEST_GROUP_ID_1);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.ids", TEST_USER_ID_3);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.ids", TEST_GROUP_ID_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.emails", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.emails", TEST_GROUP_EMAIL_1);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.emails", TEST_USER_EMAIL_3);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.emails", TEST_GROUP_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.ids", TEST_GROUP_ID_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.editor.users.ids", TEST_USER_ID_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.editor.groups.ids", TEST_GROUP_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.logins", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.emails", TEST_GROUP_EMAIL_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.editor.users.logins", TEST_USER_EMAIL_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.editor.groups.emails", TEST_GROUP_EMAIL_2);
     }
 
     @Test
     void testGetCollaborationsFromProperty() {
         testRunner.setProperty(GetBoxFileCollaborators.FILE_ID, TEST_FILE_ID);
+        // Use default values for ROLES (editor) and STATUSES (accepted)
 
         setupMockCollaborations();
 
@@ -144,14 +150,16 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         final MockFlowFile flowFilesFirst = flowFiles.getFirst();
 
         flowFilesFirst.assertAttributeEquals("box.collaborations.count", "5");
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.ids", TEST_GROUP_ID_1);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.ids", TEST_USER_ID_3);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.ids", TEST_GROUP_ID_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.emails", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.emails", TEST_GROUP_EMAIL_1);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.emails", TEST_USER_EMAIL_3);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.emails", TEST_GROUP_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.ids", TEST_GROUP_ID_1);
+        // For pending status items, they shouldn't appear since we're only checking accepted status
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.users.ids");
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.groups.ids");
+
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.logins", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.emails", TEST_GROUP_EMAIL_1);
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.users.logins");
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.groups.emails");
     }
 
     @Test
@@ -170,6 +178,31 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         final MockFlowFile flowFilesFirst = flowFiles.getFirst();
         flowFilesFirst.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
         flowFilesFirst.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
+    }
+
+    @Test
+    void testGetCollaborationsWithMultipleRoles() {
+        testRunner.setProperty(GetBoxFileCollaborators.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(GetBoxFileCollaborators.ROLES, "editor,viewer");
+        testRunner.setProperty(GetBoxFileCollaborators.STATUSES, "accepted");
+
+        setupMockCollaborationsWithMultipleRoles();
+
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
+        testRunner.enqueue(inputFlowFile);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(GetBoxFileCollaborators.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(GetBoxFileCollaborators.REL_SUCCESS);
+        final MockFlowFile flowFilesFirst = flowFiles.getFirst();
+
+        flowFilesFirst.assertAttributeEquals("box.collaborations.count", "5");
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.ids", TEST_GROUP_ID_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.viewer.users.ids", TEST_USER_ID_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.logins", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.emails", TEST_GROUP_EMAIL_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.viewer.users.logins", TEST_USER_EMAIL_3);
     }
 
     @Test
@@ -205,15 +238,76 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         when(mockBoxFile.getAllFileCollaborations()).thenReturn(mockCollabIterable);
     }
 
+    private void setupMockCollaborationsWithMultipleRoles() {
+        BoxCollaboration.Role editorRole = mock(BoxCollaboration.Role.class);
+        lenient().when(editorRole.toString()).thenReturn("editor");
+        BoxCollaboration.Role viewerRole = mock(BoxCollaboration.Role.class);
+        lenient().when(viewerRole.toString()).thenReturn("viewer");
+        BoxCollaboration.Status acceptedStatus = BoxCollaboration.Status.ACCEPTED;
+        BoxCollaboration.Status pendingStatus = BoxCollaboration.Status.PENDING;
+        // Editor role collaborators
+        lenient().when(mockCollabInfo1.getAccessibleBy()).thenReturn(mockUserInfo1);
+        lenient().when(mockUserInfo1.getType()).thenReturn(BoxCollaborator.CollaboratorType.USER);
+        lenient().when(mockUserInfo1.getID()).thenReturn(TEST_USER_ID_1);
+        lenient().when(mockCollabInfo1.getStatus()).thenReturn(acceptedStatus);
+        lenient().when(mockCollabInfo1.getRole()).thenReturn(editorRole);
+        lenient().when(mockUserInfo1.getLogin()).thenReturn(TEST_USER_EMAIL_1);
+        // Editor role collaborator
+        lenient().when(mockCollabInfo2.getAccessibleBy()).thenReturn(mockUserInfo2);
+        lenient().when(mockUserInfo2.getType()).thenReturn(BoxCollaborator.CollaboratorType.USER);
+        lenient().when(mockUserInfo2.getID()).thenReturn(TEST_USER_ID_2);
+        lenient().when(mockCollabInfo2.getStatus()).thenReturn(acceptedStatus);
+        lenient().when(mockCollabInfo2.getRole()).thenReturn(editorRole);
+        lenient().when(mockUserInfo2.getLogin()).thenReturn(TEST_USER_EMAIL_2);
+        // Editor role collaborator
+        lenient().when(mockCollabInfo3.getAccessibleBy()).thenReturn(mockGroupInfo1);
+        lenient().when(mockGroupInfo1.getType()).thenReturn(BoxCollaborator.CollaboratorType.GROUP);
+        lenient().when(mockGroupInfo1.getID()).thenReturn(TEST_GROUP_ID_1);
+        lenient().when(mockCollabInfo3.getStatus()).thenReturn(acceptedStatus);
+        lenient().when(mockCollabInfo3.getRole()).thenReturn(editorRole);
+        lenient().when(mockGroupInfo1.getLogin()).thenReturn(TEST_GROUP_EMAIL_1);
+        // Viewer role collaborator
+        lenient().when(mockCollabInfo4.getAccessibleBy()).thenReturn(mockUserInfo3);
+        lenient().when(mockUserInfo3.getType()).thenReturn(BoxCollaborator.CollaboratorType.USER);
+        lenient().when(mockUserInfo3.getID()).thenReturn(TEST_USER_ID_3);
+        lenient().when(mockCollabInfo4.getStatus()).thenReturn(acceptedStatus);
+        lenient().when(mockCollabInfo4.getRole()).thenReturn(viewerRole);
+        lenient().when(mockUserInfo3.getLogin()).thenReturn(TEST_USER_EMAIL_3);
+        // Pending collaborators - should be filtered out by status filter
+        lenient().when(mockCollabInfo5.getAccessibleBy()).thenReturn(mockGroupInfo2);
+        lenient().when(mockGroupInfo2.getType()).thenReturn(BoxCollaborator.CollaboratorType.GROUP);
+        lenient().when(mockGroupInfo2.getID()).thenReturn(TEST_GROUP_ID_2);
+        lenient().when(mockCollabInfo5.getStatus()).thenReturn(pendingStatus);
+        lenient().when(mockCollabInfo5.getRole()).thenReturn(editorRole);
+        lenient().when(mockGroupInfo2.getLogin()).thenReturn(TEST_GROUP_EMAIL_2);
+        lenient().when(mockCollabIterable.iterator()).thenReturn(
+                List.of(mockCollabInfo1, mockCollabInfo2, mockCollabInfo3, mockCollabInfo4, mockCollabInfo5).iterator()
+        );
+
+        lenient().when(mockBoxFile.getAllFileCollaborations()).thenReturn(mockCollabIterable);
+    }
+
     private void setupCollaborator(final BoxCollaboration.Info collabInfo,
                                    final BoxCollaborator.Info collaboratorInfo,
                                    final BoxCollaborator.CollaboratorType type,
                                    final String id,
                                    final BoxCollaboration.Status status) {
-        when(collabInfo.getAccessibleBy()).thenReturn(collaboratorInfo);
-        when(collaboratorInfo.getType()).thenReturn(type);
-        when(collaboratorInfo.getID()).thenReturn(id);
-        when(collabInfo.getStatus()).thenReturn(status);
+        setupCollaborator(collabInfo, collaboratorInfo, type, id, status, BoxCollaboration.Role.EDITOR);
+    }
+
+    private void setupCollaborator(final BoxCollaboration.Info collabInfo,
+                                   final BoxCollaborator.Info collaboratorInfo,
+                                   final BoxCollaborator.CollaboratorType type,
+                                   final String id,
+                                   final BoxCollaboration.Status status,
+                                   final BoxCollaboration.Role role) {
+        BoxCollaboration.Role editorRole = mock(BoxCollaboration.Role.class);
+        lenient().when(editorRole.toString()).thenReturn("editor");
+        lenient().when(collabInfo.getAccessibleBy()).thenReturn(collaboratorInfo);
+        lenient().when(collaboratorInfo.getType()).thenReturn(type);
+        lenient().when(collaboratorInfo.getID()).thenReturn(id);
+        lenient().when(collabInfo.getStatus()).thenReturn(status);
+        lenient().when(collabInfo.getRole()).thenReturn(editorRole);
 
         final Map<String, String> userEmails = Map.of(
                 TEST_USER_ID_1, TEST_USER_EMAIL_1,
@@ -232,6 +326,6 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
             email = groupEmails.getOrDefault(id, null);
         }
 
-        when(collaboratorInfo.getLogin()).thenReturn(email);
+        lenient().when(collaboratorInfo.getLogin()).thenReturn(email);
     }
 }
