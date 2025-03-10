@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,11 +34,11 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestIdentifyMimeType {
 
@@ -138,7 +139,7 @@ class TestIdentifyMimeType {
     @MethodSource("replaceWithConfigBodyData")
     void testReplaceWithConfigBody(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
+        runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_BODY);
         runner.enqueue(file.toPath());
 
         runner.run();
@@ -213,7 +214,7 @@ class TestIdentifyMimeType {
     @MethodSource("replaceWithConfigFileData")
     void testReplaceWithConfigFile(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
+        runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_FILE);
         runner.enqueue(file.toPath());
 
         runner.run();
@@ -287,7 +288,7 @@ class TestIdentifyMimeType {
     @MethodSource("mergeWithConfigBodyData")
     void testMergeWithConfigBody(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
+        runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_BODY);
         runner.enqueue(file.toPath());
 
         runner.run();
@@ -325,7 +326,7 @@ class TestIdentifyMimeType {
     @MethodSource("mergeWithConfigFileData")
     void testMergeWithConfigFile(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
+        runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_FILE);
         runner.enqueue(file.toPath());
 
         runner.run();
@@ -361,23 +362,26 @@ class TestIdentifyMimeType {
     }
 
     @Test
-    void testOnlyOneCustomMimeConfigSpecified() {
+    void testNoReplaceCustomMimeConfigurationSpecified() {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
-        String configBody = "foo";
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, configBody);
-
-        runner.setThreadCount(1);
-        assertThrows(AssertionError.class, () -> runner.run());
+        runner.assertNotValid();
     }
 
     @Test
-    void testNoCustomMimeConfigSpecified() {
+    void testInvalidCustomConfigurationReplace() {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
+        runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, "gibberish");
 
-        runner.setThreadCount(1);
-        assertThrows(AssertionError.class, () -> runner.run());
+        runner.assertNotValid();
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Set<String> expectedPropertiesRemoved = Set.of("config-file", "config-body");
+
+        assertEquals(expectedPropertiesRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private static Map<String, String> getCommonExpectedMimeTypes() {
