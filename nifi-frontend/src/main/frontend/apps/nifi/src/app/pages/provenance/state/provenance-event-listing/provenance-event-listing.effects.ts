@@ -99,7 +99,7 @@ export class ProvenanceEventListingEffects {
                     disableClose: true
                 });
 
-                dialogReference.componentInstance.close.pipe(take(1)).subscribe(() => {
+                dialogReference.componentInstance.exit.pipe(take(1)).subscribe(() => {
                     this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
                 });
 
