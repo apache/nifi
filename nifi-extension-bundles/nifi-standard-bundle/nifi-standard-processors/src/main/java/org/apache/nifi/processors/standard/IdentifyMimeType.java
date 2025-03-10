@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -29,8 +30,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -54,8 +55,6 @@ import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.apache.tika.mime.MimeTypesFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -111,31 +110,19 @@ public class IdentifyMimeType extends AbstractProcessor {
             .defaultValue(PRESET.getValue())
             .build();
 
-    public static final PropertyDescriptor MIME_CONFIG_FILE = new PropertyDescriptor.Builder()
-            .displayName("Config File")
-            .name("config-file")
-            .required(false)
-            .description("Path to MIME type config file. Only one of Config File or Config Body may be used.")
-            .addValidator(new StandardValidators.FileExistsValidator(true))
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(CONFIG_STRATEGY, REPLACE, MERGE)
-            .build();
-
-    public static final PropertyDescriptor MIME_CONFIG_BODY = new PropertyDescriptor.Builder()
-            .displayName("Config Body")
-            .name("config-body")
-            .required(false)
-            .description("Body of MIME type config file. Only one of Config File or Config Body may be used.")
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+    public static final PropertyDescriptor CUSTOM_MIME_CONFIGURATION = new PropertyDescriptor.Builder()
+            .name("Custom Configuration")
+            .description("A URL or file path to a custom Tika Mime type configuration or the actual content of a custom Tika Mime type configuration.")
+            .required(true)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(CONFIG_STRATEGY, REPLACE, MERGE)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         USE_FILENAME_IN_DETECTION,
         CONFIG_STRATEGY,
-        MIME_CONFIG_BODY,
-        MIME_CONFIG_FILE
+        CUSTOM_MIME_CONFIGURATION
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -147,6 +134,8 @@ public class IdentifyMimeType extends AbstractProcessor {
         REL_SUCCESS
     );
 
+    private static final String CUSTOM_MIME_TYPES_FILENAME = "custom-mimetypes.xml";
+    private static final String DEFAULT_MIME_TYPES_PATH = "org/apache/tika/mime/tika-mimetypes.xml";
     private final TikaConfig config;
     private Detector detector;
     private EncodingDetector encodingDetector;
@@ -158,11 +147,23 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        final String configFileProperty = "config-file";
+        final String configBodyProperty = "config-body";
+
         if (!config.hasProperty(CONFIG_STRATEGY)) {
-            if (config.isPropertySet(MIME_CONFIG_FILE) || config.isPropertySet(MIME_CONFIG_BODY)) {
+            if (config.isPropertySet(configFileProperty) || config.isPropertySet(configBodyProperty)) {
                 config.setProperty(CONFIG_STRATEGY, REPLACE.getValue());
             }
         }
+
+        if (config.isPropertySet(configFileProperty)) {
+            config.setProperty(CUSTOM_MIME_CONFIGURATION.getName(), config.getRawPropertyValue(configFileProperty).orElse(""));
+        } else if (config.isPropertySet(configBodyProperty)) {
+            config.setProperty(CUSTOM_MIME_CONFIGURATION.getName(), config.getRawPropertyValue(configBodyProperty).orElse(""));
+        }
+
+        config.removeProperty(configFileProperty);
+        config.removeProperty(configBodyProperty);
     }
 
     @OnScheduled
@@ -173,31 +174,23 @@ public class IdentifyMimeType extends AbstractProcessor {
             this.detector = config.getDetector();
             this.mimeTypes = config.getMimeRepository();
         } else {
-            setCustomMimeTypes(configStrategy, context);
+            try (final InputStream customInputStream = context.getProperty(CUSTOM_MIME_CONFIGURATION).asResource().read()) {
+                if (configStrategy.equals(REPLACE.getValue())) {
+                    this.detector = MimeTypesFactory.create(customInputStream);
+                } else {
+                    try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream(CUSTOM_MIME_TYPES_FILENAME);
+                         final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream(DEFAULT_MIME_TYPES_PATH)) {
+                        this.detector = MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
+                    }
+                }
+                this.mimeTypes = (MimeTypes) this.detector;
+            } catch (Exception e) {
+                context.yield();
+                throw new ProcessException("Failed to load configuration", e);
+            }
         }
 
         this.encodingDetector = config.getEncodingDetector();
-    }
-
-    private void setCustomMimeTypes(String configStrategy, ProcessContext context) {
-        String configBody = context.getProperty(MIME_CONFIG_BODY).getValue();
-        String configFile = context.getProperty(MIME_CONFIG_FILE).evaluateAttributeExpressions().getValue();
-
-        try (final InputStream customInputStream = configBody != null ? new ByteArrayInputStream(configBody.getBytes()) : new FileInputStream(configFile)) {
-            if (configStrategy.equals(REPLACE.getValue())) {
-                this.detector = MimeTypesFactory.create(customInputStream);
-            } else {
-                try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream("custom-mimetypes.xml");
-                     final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream("org/apache/tika/mime/tika-mimetypes.xml")) {
-                    this.detector = MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
-                }
-            }
-            this.mimeTypes = (MimeTypes) this.detector;
-        } catch (Exception e) {
-            context.yield();
-            String configSource = configBody != null ? "body" : "file";
-            throw new ProcessException("Failed to load config " + configSource, e);
-        }
     }
 
     @Override
@@ -277,29 +270,30 @@ public class IdentifyMimeType extends AbstractProcessor {
             return null;
         }
     }
-
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Set<ValidationResult> results = new HashSet<>();
-        String body = validationContext.getProperty(MIME_CONFIG_BODY).getValue();
-        String file = validationContext.getProperty(MIME_CONFIG_FILE).getValue();
-        if (!validationContext.getProperty(CONFIG_STRATEGY).getValue().equals(PRESET.getValue())) {
-            if (body != null && file != null) {
+        String configStrategy = validationContext.getProperty(CONFIG_STRATEGY).getValue();
+
+        if (!configStrategy.equals(PRESET.getValue())) {
+            try (final InputStream customInputStream = validationContext.getProperty(CUSTOM_MIME_CONFIGURATION).asResource().read()) {
+                if (configStrategy.equals(REPLACE.getValue())) {
+                    MimeTypesFactory.create(customInputStream);
+                } else {
+                    try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream(CUSTOM_MIME_TYPES_FILENAME);
+                         final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream(DEFAULT_MIME_TYPES_PATH)) {
+                            MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
+                    }
+                }
+            } catch (Exception e) {
                 results.add(new ValidationResult.Builder()
-                        .subject(MIME_CONFIG_FILE.getDisplayName())
-                        .input(file)
+                        .subject(CUSTOM_MIME_CONFIGURATION.getDisplayName())
+                        .input(validationContext.getProperty(CUSTOM_MIME_CONFIGURATION).getValue())
                         .valid(false)
-                        .explanation("Either [Config Body] or [Config File] can be specified, but not both properties.")
-                        .build());
-            } else if (body == null && file == null) {
-                results.add(new ValidationResult.Builder()
-                        .subject(MIME_CONFIG_FILE.getDisplayName())
-                        .valid(false)
-                        .explanation("Either [Config Body] or [Config File] must be specified")
+                        .explanation("Invalid configuration " + ExceptionUtils.getRootCauseMessage(e))
                         .build());
             }
         }
         return results;
     }
-
 }
