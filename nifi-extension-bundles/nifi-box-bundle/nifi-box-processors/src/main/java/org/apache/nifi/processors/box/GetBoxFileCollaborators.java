@@ -61,10 +61,20 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
 @SeeAlso({FetchBoxFile.class, ListBoxFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
-        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.users.ids", description = "Comma-separated list of user collaborator IDs by status and role"),
-        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.users.logins", description = "Comma-separated list of user collaborator logins by status and role"),
-        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.groups.ids", description = "Comma-separated list of group collaborator IDs by status and role"),
-        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.groups.emails", description = "Comma-separated list of group collaborator emails by status and role"),
+        // Always present (backward compatibility attributes)
+        @WritesAttribute(attribute = "box.collaborations.<status>.users.ids", description = "Comma-separated list of user collaborator IDs by status"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.groups.ids", description = "Comma-separated list of group collaborator IDs by status"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.users.emails", description = "Comma-separated list of user collaborator emails by status"),
+        @WritesAttribute(attribute = "box.collaborations.<status>.groups.emails", description = "Comma-separated list of group collaborator emails by status"),
+        // New attributes (only present when both Roles and Statuses properties are set)
+        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.users.ids", description = "Comma-separated list of user collaborator IDs by status and role. " +
+                "Only present when both Roles and Statuses properties are set."),
+        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.users.logins", description = "Comma-separated list of user collaborator logins by status and role. " +
+                "Only present when both Roles and Statuses properties are set."),
+        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.groups.ids", description = "Comma-separated list of group collaborator IDs by status and role. " +
+                "Only present when both Roles and Statuses properties are set."),
+        @WritesAttribute(attribute = "box.collaborations.<status>.<role>.groups.emails", description = "Comma-separated list of group collaborator emails by status and role. " +
+                "Only present when both Roles and Statuses properties are set."),
         @WritesAttribute(attribute = "box.collaborations.count", description = "Total number of collaborations on the file"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
@@ -83,18 +93,17 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
     public static final PropertyDescriptor ROLES = new PropertyDescriptor.Builder()
             .name("Roles")
             .description("A comma-separated list of collaboration roles to retrieve. Available roles: editor, viewer, previewer, " +
-                    "uploader, previewer uploader, viewer uploader, co-owner, owner")
-            .required(true)
-            .defaultValue("editor")
+                    "uploader, previewer uploader, viewer uploader, co-owner, owner. If not specified, no filtering by role will be applied.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor STATUSES = new PropertyDescriptor.Builder()
             .name("Statuses")
-            .description("A comma-separated list of collaboration statuses to retrieve. Available statuses: accepted, pending, rejected")
-            .required(true)
-            .defaultValue("accepted")
+            .description("A comma-separated list of collaboration statuses to retrieve. Available statuses: accepted, pending, rejected. " +
+                    "If not specified, no filtering by status will be applied.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -153,8 +162,17 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final String roles = context.getProperty(ROLES).evaluateAttributeExpressions(flowFile).getValue();
-        final String statuses = context.getProperty(STATUSES).evaluateAttributeExpressions(flowFile).getValue();
+
+        // Get optional properties
+        String roles = null;
+        if (context.getProperty(ROLES).isSet()) {
+            roles = context.getProperty(ROLES).evaluateAttributeExpressions(flowFile).getValue();
+        }
+
+        String statuses = null;
+        if (context.getProperty(STATUSES).isSet()) {
+            statuses = context.getProperty(STATUSES).evaluateAttributeExpressions(flowFile).getValue();
+        }
 
         try {
             flowFile = fetchCollaborations(fileId, roles, statuses, session, flowFile);
@@ -193,61 +211,119 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
                                          final String statusFilter,
                                          final ProcessSession session,
                                          final FlowFile flowFile) {
+
         final BoxFile boxFile = getBoxFile(fileId);
         final Iterable<BoxCollaboration.Info> collaborations = boxFile.getAllFileCollaborations();
 
-        // Parse role and status filters
-        final Set<String> allowedRoles = Arrays.stream(roleFilter.toLowerCase().split(","))
-                .map(String::trim)
-                .collect(Collectors.toSet());
+        final Set<String> allowedRoles = parseFilter(roleFilter);
+        final Set<String> allowedStatuses = parseFilter(statusFilter);
 
-        final Set<String> allowedStatuses = Arrays.stream(statusFilter.toLowerCase().split(","))
-                .map(String::trim)
-                .collect(Collectors.toSet());
-
-        // Map to store values for each combination of status, role, entity type and attribute type
-        final Map<String, List<String>> collabAttributeMap = new HashMap<>();
-
-        int count = 0;
-        for (final BoxCollaboration.Info collabInfo : collaborations) {
-            count++;
-
-            final String status = collabInfo.getStatus().toString().toLowerCase();
-            final String role = collabInfo.getRole().toString().toLowerCase();
-
-            // Skip if not in the allowed roles or statuses
-            if (!allowedRoles.contains(role) || !allowedStatuses.contains(status)) {
-                continue;
-            }
-
-            final boolean isUser = collabInfo.getAccessibleBy().getType().equals(BoxCollaborator.CollaboratorType.USER);
-            final String entityType = isUser ? "users" : "groups";
-            final String collabId = collabInfo.getAccessibleBy().getID();
-            final String login = collabInfo.getAccessibleBy().getLogin();
-
-            // Build keys for the various attributes
-            final String idKey = String.format("%s.%s.%s.ids", status, role, entityType);
-            final String loginKey = isUser
-                    ? String.format("%s.%s.users.logins", status, role)
-                    : String.format("%s.%s.groups.emails", status, role);
-
-            // Initialize lists if they don't exist
-            collabAttributeMap.computeIfAbsent(idKey, k -> new ArrayList<>()).add(collabId);
-
-            if (login != null) {
-                collabAttributeMap.computeIfAbsent(loginKey, k -> new ArrayList<>()).add(login);
-            }
-        }
+        final Map<String, List<String>> attributeValues = new HashMap<>();
+        int count = processCollaborations(collaborations, allowedRoles, allowedStatuses, attributeValues);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ID, fileId);
         attributes.put("box.collaborations.count", String.valueOf(count));
 
-        // Add all collected attributes to the flowfile
-        collabAttributeMap.forEach((key, values) ->
+        // Add all collected attributes with prefix
+        attributeValues.forEach((key, values) ->
                 addAttributeIfNotEmpty(attributes, "box.collaborations." + key, values));
 
         return session.putAllAttributes(flowFile, attributes);
+    }
+
+    /**
+     * Parses a comma-separated string filter into a set of trimmed, lowercase values.
+     *
+     * @param filter the comma-separated filter string
+     * @return a Set of filter values, or null if the input was null
+     */
+    private Set<String> parseFilter(final String filter) {
+        if (filter == null) {
+            return null;
+        }
+        return Arrays.stream(filter.toLowerCase().split(","))
+                .map(String::trim)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Processes a list of collaborations, applying role and status filters,
+     * and populates the attributeValues map with collaboration attributes.
+     *
+     * @param collaborations  the collaborations to process
+     * @param allowedRoles    the set of allowed roles, or null for no filtering
+     * @param allowedStatuses the set of allowed statuses, or null for no filtering
+     * @param attributeValues the map to populate with collaboration attributes
+     * @return the total count of collaborations processed (before filtering)
+     */
+    private int processCollaborations(final Iterable<BoxCollaboration.Info> collaborations,
+                                      final Set<String> allowedRoles,
+                                      final Set<String> allowedStatuses,
+                                      final Map<String, List<String>> attributeValues) {
+        int count = 0;
+
+        for (final BoxCollaboration.Info collab : collaborations) {
+            count++;
+
+            final String status = collab.getStatus().toString().toLowerCase();
+            final String role = collab.getRole().toString().toLowerCase();
+
+            // Skip if not in allowed roles or statuses
+            if ((allowedRoles != null && !allowedRoles.contains(role))
+                    || (allowedStatuses != null && !allowedStatuses.contains(status))) {
+                continue;
+            }
+
+            // Process this collaboration's attributes
+            processCollaboration(collab, status, role, allowedRoles != null && allowedStatuses != null, attributeValues);
+        }
+
+        return count;
+    }
+
+    /**
+     * Processes a single collaboration and adds its attributes to the attributeValues map.
+     *
+     * @param collab          the collaboration to process
+     * @param status          the lowercase status of the collaboration
+     * @param role            the lowercase role of the collaboration
+     * @param useNewFormat    whether to include new format attributes (with role)
+     * @param attributeValues the map to populate with collaboration attributes
+     */
+    private void processCollaboration(final BoxCollaboration.Info collab,
+                                      final String status,
+                                      final String role,
+                                      final boolean useNewFormat,
+                                      final Map<String, List<String>> attributeValues) {
+        final boolean isUser = collab.getAccessibleBy().getType().equals(BoxCollaborator.CollaboratorType.USER);
+        final String entityType = isUser ? "users" : "groups";
+        final String collabId = collab.getAccessibleBy().getID();
+        final String login = collab.getAccessibleBy().getLogin();
+
+        // Add backward compatibility attributes
+        addToMap(attributeValues, status + "." + entityType + ".ids", collabId);
+
+        if (login != null) {
+            final String loginKey = isUser ? status + ".users.emails" : status + ".groups.emails";
+            addToMap(attributeValues, loginKey, login);
+        }
+
+        // Add new format attributes if filters were provided
+        if (useNewFormat) {
+            addToMap(attributeValues, status + "." + role + "." + entityType + ".ids", collabId);
+
+            if (login != null) {
+                final String loginKey = isUser
+                        ? status + "." + role + ".users.logins" :
+                        status + "." + role + ".groups.emails";
+                addToMap(attributeValues, loginKey, login);
+            }
+        }
+    }
+
+    private void addToMap(final Map<String, List<String>> map, final String key, final String value) {
+        map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
     }
 
     private void addAttributeIfNotEmpty(final Map<String, String> attributes,

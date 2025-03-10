@@ -137,7 +137,8 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
     @Test
     void testGetCollaborationsFromProperty() {
         testRunner.setProperty(GetBoxFileCollaborators.FILE_ID, TEST_FILE_ID);
-        // Use default values for ROLES (editor) and STATUSES (accepted)
+        testRunner.setProperty(GetBoxFileCollaborators.ROLES, "editor");
+        testRunner.setProperty(GetBoxFileCollaborators.STATUSES, "accepted");
 
         setupMockCollaborations();
 
@@ -150,16 +151,49 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
         final MockFlowFile flowFilesFirst = flowFiles.getFirst();
 
         flowFilesFirst.assertAttributeEquals("box.collaborations.count", "5");
+        // New format attributes
         flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
         flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.ids", TEST_GROUP_ID_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.logins", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.emails", TEST_GROUP_EMAIL_1);
         // For pending status items, they shouldn't appear since we're only checking accepted status
         flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.users.ids");
         flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.groups.ids");
-
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.users.logins", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
-        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.editor.groups.emails", TEST_GROUP_EMAIL_1);
         flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.users.logins");
         flowFilesFirst.assertAttributeNotExists("box.collaborations.pending.editor.groups.emails");
+    }
+
+    @Test
+    void testGetCollaborationsBackwardCompatibility() {
+        testRunner.setProperty(GetBoxFileCollaborators.FILE_ID, TEST_FILE_ID);
+        // Don't set ROLES or STATUSES properties to test backward compatibility mode
+
+        setupMockCollaborations();
+
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
+        testRunner.enqueue(inputFlowFile);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(GetBoxFileCollaborators.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(GetBoxFileCollaborators.REL_SUCCESS);
+        final MockFlowFile flowFilesFirst = flowFiles.getFirst();
+
+        flowFilesFirst.assertAttributeEquals("box.collaborations.count", "5");
+        // Backward compatibility attributes should exist
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.ids", TEST_USER_ID_1 + "," + TEST_USER_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.ids", TEST_GROUP_ID_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.ids", TEST_USER_ID_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.ids", TEST_GROUP_ID_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.users.emails", TEST_USER_EMAIL_1 + "," + TEST_USER_EMAIL_2);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.accepted.groups.emails", TEST_GROUP_EMAIL_1);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.users.emails", TEST_USER_EMAIL_3);
+        flowFilesFirst.assertAttributeEquals("box.collaborations.pending.groups.emails", TEST_GROUP_EMAIL_2);
+
+        // New format attributes should not exist
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.accepted.editor.users.ids");
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.accepted.editor.groups.ids");
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.accepted.editor.users.logins");
+        flowFilesFirst.assertAttributeNotExists("box.collaborations.accepted.editor.groups.emails");
     }
 
     @Test
