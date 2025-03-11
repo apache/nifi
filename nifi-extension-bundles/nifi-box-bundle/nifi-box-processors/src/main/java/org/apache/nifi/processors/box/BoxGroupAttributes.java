@@ -14,24 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.processors.box;
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { CancelDialogRequest } from '../../../state/shared';
+final class BoxGroupAttributes {
 
-@Component({
-    selector: 'cancel-dialog',
-    imports: [MatDialogModule, MatButtonModule],
-    templateUrl: './cancel-dialog.component.html',
-    styleUrls: ['./cancel-dialog.component.scss']
-})
-export class CancelDialog {
-    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
+    static final String GROUP_ID = "box.group.id";
+    static final String GROUP_USER_IDS = "box.group.user.ids";
+    static final String GROUP_USER_LOGINS = "box.group.user.logins";
 
-    constructor(@Inject(MAT_DIALOG_DATA) public request: CancelDialogRequest) {}
+    static final String ERROR_MESSAGE = "error.message";
+    static final String ERROR_CODE = "error.code";
 
-    cancelClicked(): void {
-        this.exit.next();
+    private BoxGroupAttributes() {
     }
 }

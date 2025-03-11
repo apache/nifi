@@ -136,7 +136,7 @@
                     [width]="editorWidth"
                     [readonly]="isDisabled"
                     (ok)="saveActionAttribute(editorItem, $event)"
-                    (close)="closeAttributeEditor()"></ua-editor>
+                    (exit)="closeAttributeEditor()"></ua-editor>
             </ng-template>
             <ng-template
                 cdkConnectedOverlay
@@ -154,7 +154,7 @@
                     [width]="editorWidth"
                     [readonly]="isDisabled"
                     (ok)="saveActionValue(editorItem, $event)"
-                    (close)="closeValueEditor()"></ua-editor>
+                    (exit)="closeValueEditor()"></ua-editor>
             </ng-template>
         </div>
     }

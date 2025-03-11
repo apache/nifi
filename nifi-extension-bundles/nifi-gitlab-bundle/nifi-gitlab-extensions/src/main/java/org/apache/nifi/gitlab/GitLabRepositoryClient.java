@@ -27,7 +27,6 @@ import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.gitlab4j.api.CommitsApi;
-import org.gitlab4j.api.Constants;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.ProjectApi;
@@ -40,6 +39,7 @@ import org.gitlab4j.api.models.Project;
 import org.gitlab4j.api.models.ProjectAccess;
 import org.gitlab4j.api.models.RepositoryFile;
 import org.gitlab4j.api.models.TreeItem;
+import org.gitlab4j.models.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

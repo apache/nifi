@@ -25,7 +25,8 @@
 
     .canvas-background {
         background-color: var(--mat-sys-background);
-        background-image: linear-gradient(to right, var(--nf-canvas-background) 1px, transparent 1px),
+        background-image:
+            linear-gradient(to right, var(--nf-canvas-background) 1px, transparent 1px),
             linear-gradient(to bottom, var(--nf-canvas-background) 1px, transparent 1px);
     }
 

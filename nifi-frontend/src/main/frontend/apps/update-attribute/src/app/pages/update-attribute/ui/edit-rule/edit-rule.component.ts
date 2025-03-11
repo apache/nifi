@@ -101,7 +101,7 @@ export class EditRule implements AfterViewInit {
     @Output() addRule: EventEmitter<NewRule> = new EventEmitter<NewRule>();
     @Output() editRule: EventEmitter<Rule> = new EventEmitter<Rule>();
     @Output() dirty: EventEmitter<boolean> = new EventEmitter<boolean>();
-    @Output() close: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     editRuleForm: FormGroup;
     isEditable: boolean = true;
@@ -238,7 +238,7 @@ export class EditRule implements AfterViewInit {
         });
 
         this.dirty.next(false);
-        this.close.next();
+        this.exit.next();
     }
 
     saveClicked(): void {

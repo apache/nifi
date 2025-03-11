@@ -35,7 +35,6 @@ describe('CopyDirective', () => {
     let component: TestComponent;
     let fixture: ComponentFixture<TestComponent>;
     let directiveDebugEl: any;
-    let windowSpy;
 
     beforeEach(() => {
         TestBed.configureTestingModule({

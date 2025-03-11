@@ -60,7 +60,7 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter } from '@
 export class EditParameterDialog extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editParameter: EventEmitter<EditParameterResponse> = new EventEmitter<EditParameterResponse>();
-    @Output() close: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     name: FormControl;
     sensitive: FormControl;
@@ -180,7 +180,7 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
     }
 
     cancelClicked(): void {
-        this.close.next();
+        this.exit.next();
     }
 
     private valueChanged(enteredValue: string | null): boolean {

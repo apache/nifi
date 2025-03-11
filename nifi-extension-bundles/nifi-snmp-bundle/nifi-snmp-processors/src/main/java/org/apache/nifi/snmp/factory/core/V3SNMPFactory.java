@@ -54,7 +54,7 @@ public class V3SNMPFactory extends SNMPManagerFactory implements SNMPContext {
                             .map(SNMPUtils::getPriv).orElse(null);
                     OctetString privacyPassphrase = Optional.ofNullable(configuration.getPrivacyPassphrase())
                             .map(OctetString::new).orElse(null);
-                    snmpManager.getUSM().addUser(securityName, new UsmUser(securityName, authProtocol, authPassphrase,
+                    snmpManager.getUSM().addUser(new UsmUser(securityName, authProtocol, authPassphrase,
                             privacyProtocol, privacyPassphrase));
                 });
 
