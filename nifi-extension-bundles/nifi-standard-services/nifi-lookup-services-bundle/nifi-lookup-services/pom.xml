@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-lookup-services-bundle</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.3.0</version>
     </parent>
     <artifactId>nifi-lookup-services</artifactId>
     <packaging>jar</packaging>
@@ -97,7 +97,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-database-utils</artifactId>
-            <version>2.3.0-SNAPSHOT</version>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -110,7 +110,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>2.3.0-SNAPSHOT</version>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -134,7 +134,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-record-utils</artifactId>
-            <version>2.3.0-SNAPSHOT</version>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
