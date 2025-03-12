@@ -96,7 +96,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             .description("A query in JSON syntax, not Lucene syntax. Ex: {\"query\":{\"match\":{\"somefield\":\"somevalue\"}}}. " +
                     "If the query is empty, a default JSON Object will be used, which will result in a \"match_all\" query in Elasticsearch.")
             .build();
-    
+
     static final PropertyDescriptor RESTART_ON_FINISH = new PropertyDescriptor.Builder()
             .name("restart-on-finish")
             .displayName("Restart On Finish?")
@@ -144,15 +144,15 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
         super.onScheduled(context);
         this.restartOnFinish = context.getProperty(RESTART_ON_FINISH).asBoolean();
     }
-    
+
     @Override
     PaginatedJsonQueryParameters buildJsonQueryParameters(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         final StateMap stateMap = context.getStateManager().getState(getStateScope());
-        
+
         final boolean finished = stateMap.get(STATE_FINISHED) == null ? false : Boolean.parseBoolean(stateMap.get(STATE_FINISHED));
-        
+
         if (finished && !this.restartOnFinish) {
-        	return null;
+            return null;
         }
 
         final PaginatedJsonQueryParameters paginatedQueryJsonParameters = super.buildJsonQueryParameters(input, context, session);
@@ -175,13 +175,13 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
         additionalState(newStateMap, paginatedJsonQueryParameters);
 
         getLogger().debug("Updating state for next execution");
-        
+
         if (!paginatedJsonQueryParameters.isFinished()) {
             if (paginationType == PaginationType.SCROLL) {
                 newStateMap.put(STATE_SCROLL_ID, response.getScrollId());
             } else {
                 newStateMap.put(STATE_SEARCH_AFTER, response.getSearchAfter());
-    
+
                 if (paginationType == PaginationType.POINT_IN_TIME) {
                     newStateMap.put(STATE_PIT_ID, response.getPitId());
                 }
@@ -193,7 +193,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
         newStateMap.put(STATE_HIT_COUNT, Integer.toString(paginatedJsonQueryParameters.getHitCount()));
         newStateMap.put(STATE_PAGE_COUNT, Integer.toString(paginatedJsonQueryParameters.getPageCount()));
         newStateMap.put(STATE_FINISHED, Boolean.toString(paginatedJsonQueryParameters.isFinished()));
-        
+
         updateProcessorState(context, newStateMap);
     }
 

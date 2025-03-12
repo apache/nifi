@@ -279,7 +279,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     void updateQueryParameters(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final SearchResponse response) {
         paginatedJsonQueryParameters.incrementPageCount();
         paginatedJsonQueryParameters.setFinished(response.getHits().isEmpty());
-        
+
         if (this.paginationType.hasExpiry()) {
             final String keepAliveDuration = "PT" + paginatedJsonQueryParameters.getKeepAlive();
             paginatedJsonQueryParameters.setPageExpirationTimestamp(

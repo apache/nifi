@@ -73,59 +73,59 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         }
 
         if (paginationType == PaginationType.SEARCH_AFTER) {
-        	Thread.sleep(2000); // Slightly longer than PAGINATION_KEEP_ALIVE of 1 sec
-        	
-	        runner.clearTransferState();
-	        
-	        // does not expire
-	        runOnce(runner);
-	        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-	        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
-	        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
-	        assertState(runner, paginationType, 20, 2, false);
-	        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
-	            // trackingRangeValue should be retained after previous query expiry
-	            assertTrue(getService(runner).getQuery().contains("\"five\""));
-	        }
-	        runner.clearTransferState();
-	        
+            Thread.sleep(2000); // Slightly longer than PAGINATION_KEEP_ALIVE of 1 sec
+
+            runner.clearTransferState();
+
+            // does not expire
+            runOnce(runner);
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
+            assertState(runner, paginationType, 20, 2, false);
+            if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+                // trackingRangeValue should be retained after previous query expiry
+                assertTrue(getService(runner).getQuery().contains("\"five\""));
+            }
+            runner.clearTransferState();
+
         } else {
-        	// wait for expiration
-        	final Instant expiration = Instant.ofEpochMilli(Long.parseLong(runner.getStateManager().getState(getStateScope()).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP)));
-        	while (expiration.isAfter(Instant.now())) {
-        		Thread.sleep(10);
-        	}
+            // wait for expiration
+            final Instant expiration = Instant.ofEpochMilli(Long.parseLong(runner.getStateManager().getState(getStateScope()).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP)));
+            while (expiration.isAfter(Instant.now())) {
+                Thread.sleep(10);
+            }
 
             if ("true".equalsIgnoreCase(System.getenv("CI"))) {
                 // allow extra time if running in CI Pipeline to prevent intermittent timing-issue failures
                 Thread.sleep(1000);
             }
 
-	        service.resetPageCount();
-	        runner.clearTransferState();
-	
-	        // first page again (new query after first query expired)
-	        runOnce(runner);
-	        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-	        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
-	        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "1");
-	        assertState(runner, paginationType, 10, 1, false);
-	        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
-	            // trackingRangeValue should be retained after previous query expiry
-	            assertTrue(getService(runner).getQuery().contains("\"five\""));
-	        }
-	        runner.clearTransferState();
-	
-	        // second page
-	        runOnce(runner);
-	        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-	        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
-	        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
-	        assertState(runner, paginationType, 20, 2, false);
-	        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
-	            assertTrue(getService(runner).getQuery().contains("\"five\""));
-	        }
-	        runner.clearTransferState();
+            service.resetPageCount();
+            runner.clearTransferState();
+
+            // first page again (new query after first query expired)
+            runOnce(runner);
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "1");
+            assertState(runner, paginationType, 10, 1, false);
+            if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+                // trackingRangeValue should be retained after previous query expiry
+                assertTrue(getService(runner).getQuery().contains("\"five\""));
+            }
+            runner.clearTransferState();
+
+            // second page
+            runOnce(runner);
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
+            assertState(runner, paginationType, 20, 2, false);
+            if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+                assertTrue(getService(runner).getQuery().contains("\"five\""));
+            }
+            runner.clearTransferState();
         }
     }
 
@@ -178,7 +178,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         setQuery(runner, matchAllWithSortByMsgWithSizeQuery);
 
         runOnce(runner);
-        
+
         AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getLast().assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getLast().assertAttributeEquals("page.number", "1");
@@ -198,14 +198,14 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 2, 0, 0);
         assertState(runner, paginationType, 20, 3, true);
         assertFalse(runner.isYieldCalled());
-        
+
         runOnce(runner);
 
         AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 2, 0, 0);
         assertState(runner, paginationType, 20, 3, true);
         assertTrue(runner.isYieldCalled());
     }
-    
+
     private void assertState(final TestRunner runner, final PaginationType paginationType, final int hitCount, final int pageCount, final boolean finished) throws IOException {
         final MockStateManager stateManager = runner.getStateManager();
 
@@ -224,32 +224,32 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
             stateManager.assertStateNotSet(SearchElasticsearch.STATE_SEARCH_AFTER, getStateScope());
             stateManager.assertStateNotSet(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP, getStateScope());
         } else {
-        	if (paginationType == PaginationType.SEARCH_AFTER) {
-        		stateManager.assertStateNotSet(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP, getStateScope());
-	        } else {
-	        	final String pageExpirationTimestamp = stateManager.getState(getStateScope()).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP);
-	        	assertTrue(Long.parseLong(pageExpirationTimestamp) > Instant.now().toEpochMilli());
-	        }
-	
-	        switch (paginationType) {
-	            case SCROLL:
-	                stateManager.assertStateEquals(SearchElasticsearch.STATE_SCROLL_ID, "scrollId-" + pageCount, getStateScope());
-	                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, getStateScope());
-	                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SEARCH_AFTER, getStateScope());
-	                break;
-	            case POINT_IN_TIME:
-	                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, getStateScope());
-	                stateManager.assertStateEquals(SearchElasticsearch.STATE_PIT_ID, "pitId-" + pageCount, getStateScope());
-	                stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", getStateScope());
-	                break;
-	            case SEARCH_AFTER:
-	                stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, getStateScope());
-	                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, getStateScope());
-	                stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", getStateScope());
-	                break;
-	            default:
-	                fail("Unknown paginationType: " + paginationType);
-	        }
+            if (paginationType == PaginationType.SEARCH_AFTER) {
+                stateManager.assertStateNotSet(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP, getStateScope());
+            } else {
+                final String pageExpirationTimestamp = stateManager.getState(getStateScope()).get(SearchElasticsearch.STATE_PAGE_EXPIRATION_TIMESTAMP);
+                assertTrue(Long.parseLong(pageExpirationTimestamp) > Instant.now().toEpochMilli());
+            }
+
+            switch (paginationType) {
+                case SCROLL:
+                    stateManager.assertStateEquals(SearchElasticsearch.STATE_SCROLL_ID, "scrollId-" + pageCount, getStateScope());
+                    stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, getStateScope());
+                    stateManager.assertStateNotSet(SearchElasticsearch.STATE_SEARCH_AFTER, getStateScope());
+                    break;
+                case POINT_IN_TIME:
+                    stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, getStateScope());
+                    stateManager.assertStateEquals(SearchElasticsearch.STATE_PIT_ID, "pitId-" + pageCount, getStateScope());
+                    stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", getStateScope());
+                    break;
+                case SEARCH_AFTER:
+                    stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, getStateScope());
+                    stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, getStateScope());
+                    stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-" + pageCount + "\"]", getStateScope());
+                    break;
+                default:
+                    fail("Unknown paginationType: " + paginationType);
+            }
         }
     }
 }

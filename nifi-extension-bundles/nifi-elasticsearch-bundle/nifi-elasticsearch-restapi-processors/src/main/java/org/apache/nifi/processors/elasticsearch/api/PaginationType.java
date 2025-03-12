@@ -49,7 +49,7 @@ public enum PaginationType implements DescribedValue {
     public String getDescription() {
         return description;
     }
-    
+
     public boolean hasExpiry() {
         return this.hasExpiry;
     }
