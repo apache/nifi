@@ -48,16 +48,22 @@ public class TestFormatUtils {
         return Stream.of(/*GMT-*/
             Arguments.of("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00"),
             Arguments.of("yyyy-MM-dd", "2020-01-01", NEW_YORK_TIME_ZONE_ID, "2020-01-01T05:00:00"),
+            Arguments.of("yyyy-MM", "2020-01", NEW_YORK_TIME_ZONE_ID, "2020-01-01T05:00:00"),
+            Arguments.of("yyyy", "2020", NEW_YORK_TIME_ZONE_ID, "2020-01-01T05:00:00"),
             Arguments.of("HH:mm:ss", "03:00:00", NEW_YORK_TIME_ZONE_ID, "1970-01-01T08:00:00"),
             Arguments.of("yyyy-MMM-dd", "2020-may-01", NEW_YORK_TIME_ZONE_ID, "2020-05-01T04:00:00"),
             /*GMT+*/
             Arguments.of("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00"),
             Arguments.of("yyyy-MM-dd", "2020-01-01", KIEV_TIME_ZONE_ID, "2019-12-31T22:00:00"),
+            Arguments.of("yyyy-MM", "2020-01", KIEV_TIME_ZONE_ID, "2019-12-31T22:00:00"),
+            Arguments.of("yyyy", "2020", KIEV_TIME_ZONE_ID, "2019-12-31T22:00:00"),
             Arguments.of("HH:mm:ss", "03:00:00", KIEV_TIME_ZONE_ID, "1970-01-01T00:00:00"),
             Arguments.of("yyyy-MMM-dd", "2020-may-01", KIEV_TIME_ZONE_ID, "2020-04-30T21:00:00"),
             /*UTC*/
             Arguments.of("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", ZoneOffset.UTC.getId(), "2020-01-01T02:00:00"),
             Arguments.of("yyyy-MM-dd", "2020-01-01", ZoneOffset.UTC.getId(), "2020-01-01T00:00:00"),
+            Arguments.of("yyyy-MM", "2020-01", ZoneOffset.UTC.getId(), "2020-01-01T00:00:00"),
+            Arguments.of("yyyy", "2020", ZoneOffset.UTC.getId(), "2020-01-01T00:00:00"),
             Arguments.of("HH:mm:ss", "03:00:00", ZoneOffset.UTC.getId(), "1970-01-01T03:00:00"),
             Arguments.of("yyyy-MMM-dd", "2020-may-01", ZoneOffset.UTC.getId(), "2020-05-01T00:00:00"));
     }
