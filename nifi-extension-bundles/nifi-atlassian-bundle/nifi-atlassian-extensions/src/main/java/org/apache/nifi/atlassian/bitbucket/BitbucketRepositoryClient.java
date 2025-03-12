@@ -89,52 +89,42 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         repoPath = builder.repoPath;
 
         final BitbucketAuthenticationType authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication type is required");
-        String permission = null;
 
         switch (authenticationType) {
-        case ACCESS_TOKEN -> {
-            Objects.requireNonNull(builder.accessToken, "Access Token is required");
-            authToken = new AccessToken(builder.accessToken);
-            try {
-                // we try to list the branches of the repo to confirm read access
-                getBranches();
-                // we don't have a good endpoint to confirm write access, so we assume that if
-                // we can read, we can write
-                permission = "admin";
-            } catch (FlowRegistryException e) {
-                permission = "none";
+            case ACCESS_TOKEN -> {
+                Objects.requireNonNull(builder.accessToken, "Access Token is required");
+                authToken = new AccessToken(builder.accessToken);
+            }
+            case BASIC_AUTH -> {
+                Objects.requireNonNull(builder.username, "Username is required");
+                Objects.requireNonNull(builder.appPassword, "App Password is required");
+                authToken = new BasicAuthToken(builder.username, builder.appPassword);
+            }
+            case OAUTH2 -> {
+                Objects.requireNonNull(builder.oauthService, "OAuth 2.0 Token Provider is required");
+                authToken = new OAuthToken(builder.oauthService);
             }
         }
-        case BASIC_AUTH -> {
-            Objects.requireNonNull(builder.username, "Username is required");
-            Objects.requireNonNull(builder.appPassword, "App Password is required");
-            authToken = new BasicAuthToken(builder.username, builder.appPassword);
-            permission = checkRepoPermissions();
-        }
-        case OAUTH2 -> {
-            Objects.requireNonNull(builder.oauthService, "OAuth 2.0 Token Provider is required");
-            authToken = new OAuthToken(builder.oauthService);
-            permission = checkRepoPermissions();
-        }
-        }
+
+        final String permission = checkRepoPermissions(authenticationType);
 
         switch (permission) {
-        case "admin", "write" -> {
-            canRead = true;
-            canWrite = true;
-        }
-        case "read" -> {
-            canRead = true;
-            canWrite = false;
-        }
-        case "none" -> {
-            canRead = false;
-            canWrite = false;
-        }
-        default -> {
-            canRead = false;
-            canWrite = false;
-        }
+            case "admin", "write" -> {
+                canRead = true;
+                canWrite = true;
+            }
+            case "read" -> {
+                canRead = true;
+                canWrite = false;
+            }
+            case "none" -> {
+                canRead = false;
+                canWrite = false;
+            }
+            default -> {
+                canRead = false;
+                canWrite = false;
+            }
         }
 
         LOGGER.info("Created {} for clientId = [{}], repository [{}]", getClass().getSimpleName(), clientId, repoName);
@@ -402,38 +392,53 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
     }
 
-    private String checkRepoPermissions() throws FlowRegistryException {
-        LOGGER.debug("Retrieving information about current user");
+    private String checkRepoPermissions(BitbucketAuthenticationType authenticationType) throws FlowRegistryException {
+        switch (authenticationType) {
+            case OAUTH2:
+                LOGGER.debug("Retrieving information about current user");
 
-        // 'https://api.bitbucket.org/2.0/user/permissions/repositories?q=repository.name="{repoName}"
-        URI uri = this.webClient.getHttpUriBuilder()
-                .scheme("https")
-                .host(apiUrl)
-                .addPathSegment(apiVersion)
-                .addPathSegment("user")
-                .addPathSegment("permissions")
-                .addPathSegment("repositories")
-                .addQueryParameter("q", "repository.name=\"" + repoName + "\"")
-                .build();
-        HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
+                // 'https://api.bitbucket.org/2.0/user/permissions/repositories?q=repository.name="{repoName}"
+                URI uri = this.webClient.getHttpUriBuilder()
+                        .scheme("https")
+                        .host(apiUrl)
+                        .addPathSegment(apiVersion)
+                        .addPathSegment("user")
+                        .addPathSegment("permissions")
+                        .addPathSegment("repositories")
+                        .addQueryParameter("q", "repository.name=\"" + repoName + "\"")
+                        .build();
+                HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
 
-        if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-            throw new FlowRegistryException(String.format("Error while retrieving permission metadata for specified repo - %s", getErrorMessage(response)));
-        }
+                if (response.statusCode() != HttpURLConnection.HTTP_OK) {
+                    throw new FlowRegistryException(String.format("Error while retrieving permission metadata for specified repo - %s", getErrorMessage(response)));
+                }
 
-        JsonNode jsonResponse;
-        try {
-            jsonResponse = this.objectMapper.readTree(response.body());
-        } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
-        }
-        Iterator<JsonNode> repoPermissions = jsonResponse.get("values").elements();
+                JsonNode jsonResponse;
+                try {
+                    jsonResponse = this.objectMapper.readTree(response.body());
+                } catch (IOException e) {
+                    throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
+                }
+                Iterator<JsonNode> repoPermissions = jsonResponse.get("values").elements();
 
-        if (repoPermissions.hasNext()) {
-            return repoPermissions.next().get("permission").asText();
-        } else {
-            return "none";
-        }
+                if (repoPermissions.hasNext()) {
+                    return repoPermissions.next().get("permission").asText();
+                } else {
+                    return "none";
+                }
+            case ACCESS_TOKEN, BASIC_AUTH:
+                try {
+                    // we try to list the branches of the repo to confirm read access
+                    getBranches();
+                    // we don't have a good endpoint to confirm write access, so we assume that if
+                    // we can read, we can write
+                    return "admin";
+                } catch (FlowRegistryException e) {
+                    return "none";
+                }
+            default:
+                return "none";
+            }
     }
 
     private GitCommit toGitCommit(final JsonNode commit) {
