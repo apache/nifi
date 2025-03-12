@@ -20,6 +20,7 @@ import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
+import com.box.sdk.BoxUser;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -64,10 +65,13 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
         @WritesAttribute(attribute = ID, description = ID_DESC),
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
         @WritesAttribute(attribute = "path", description = PATH_DESC),
+        @WritesAttribute(attribute = "box.path.folder.ids", description = "A comma separated list of file path_collection IDs"),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
         @WritesAttribute(attribute = "box.created.at", description = "The creation date of the file"),
-        @WritesAttribute(attribute = "box.owner", description = "The owner of the file"),
+        @WritesAttribute(attribute = "box.owner", description = "The name of the file owner"),
+        @WritesAttribute(attribute = "box.owner.id", description = "The ID of the file owner"),
+        @WritesAttribute(attribute = "box.owner.login", description = "The login of the file owner"),
         @WritesAttribute(attribute = "box.description", description = "The description of the file"),
         @WritesAttribute(attribute = "box.etag", description = "The etag of the file"),
         @WritesAttribute(attribute = "box.sha1", description = "The SHA-1 hash of the file"),
@@ -197,10 +201,14 @@ public class FetchBoxFileInfo extends AbstractProcessor {
         addAttributeIfNotNull(attributes, "box.created.at", fileInfo.getCreatedAt());
         addAttributeIfNotNull(attributes, "box.trashed.at", fileInfo.getTrashedAt());
         addAttributeIfNotNull(attributes, "box.purged.at", fileInfo.getPurgedAt());
+        addAttributeIfNotNull(attributes, "box.path.folder.ids", BoxFileUtils.getParentIds(fileInfo));
 
         // Handle special cases
-        if (fileInfo.getOwnedBy() != null && fileInfo.getOwnedBy().getName() != null) {
-            attributes.put("box.owner", fileInfo.getOwnedBy().getName());
+        final BoxUser.Info owner = fileInfo.getOwnedBy();
+        if (owner != null) {
+            addAttributeIfNotNull(attributes, "box.owner", owner.getName());
+            addAttributeIfNotNull(attributes, "box.owner.id", owner.getID());
+            addAttributeIfNotNull(attributes, "box.owner.login", owner.getLogin());
         }
 
         if (fileInfo.getParent() != null) {
