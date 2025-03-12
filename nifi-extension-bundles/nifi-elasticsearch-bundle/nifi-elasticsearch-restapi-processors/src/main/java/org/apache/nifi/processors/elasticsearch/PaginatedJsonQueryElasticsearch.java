@@ -72,8 +72,8 @@ public class PaginatedJsonQueryElasticsearch extends AbstractPaginatedJsonQueryE
     }
 
     @Override
-    boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryJsonParameters, final ProcessContext context,
-                      final SearchResponse response) {
+    boolean isExpiredOrRestarted(final PaginatedJsonQueryParameters paginatedQueryJsonParameters, final ProcessContext context,
+                                 final SearchResponse response) {
         // queries using input FlowFiles don't expire, they run until completion
         return false;
     }

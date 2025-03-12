@@ -100,8 +100,8 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         SearchResponse response = null;
         do {
             // check any previously started query hasn't expired
-            final boolean expiredQuery = isExpired(paginatedJsonQueryParameters, context, response);
-            final boolean newQuery = StringUtils.isBlank(paginatedJsonQueryParameters.getPageExpirationTimestamp()) || expiredQuery;
+            final boolean expiredOrRestarted = this.isExpiredOrRestarted(paginatedJsonQueryParameters, context, response);
+            final boolean newQuery = paginatedJsonQueryParameters.getPageCount() == 0 || expiredOrRestarted;
 
             // execute query/scroll
             final String queryJson = updateQueryJson(newQuery, paginatedJsonQueryParameters);
@@ -158,8 +158,8 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         return paginatedJsonQueryParameters;
     }
 
-    abstract boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryParameters, final ProcessContext context,
-                               final SearchResponse response) throws IOException;
+    abstract boolean isExpiredOrRestarted(final PaginatedJsonQueryParameters paginatedQueryParameters, final ProcessContext context,
+                                          final SearchResponse response) throws IOException;
 
     abstract String getScrollId(final ProcessContext context, final SearchResponse response) throws IOException;
 
@@ -278,12 +278,14 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
     void updateQueryParameters(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final SearchResponse response) {
         paginatedJsonQueryParameters.incrementPageCount();
-
-        // mark the paginated query for expiry if there are no hits (no more pages to obtain so stop looping on this query)
-        final String keepAliveDuration = "PT" + (!response.getHits().isEmpty() ? paginatedJsonQueryParameters.getKeepAlive() : "0s");
-        paginatedJsonQueryParameters.setPageExpirationTimestamp(
-                String.valueOf(Instant.now().plus(Duration.parse(keepAliveDuration)).toEpochMilli())
-        );
+        paginatedJsonQueryParameters.setFinished(response.getHits().isEmpty());
+        
+        if (this.paginationType.hasExpiry()) {
+            final String keepAliveDuration = "PT" + paginatedJsonQueryParameters.getKeepAlive();
+            paginatedJsonQueryParameters.setPageExpirationTimestamp(
+                    String.valueOf(Instant.now().plus(Duration.parse(keepAliveDuration)).toEpochMilli())
+            );
+        }
     }
 
     void clearElasticsearchState(final ProcessContext context, final SearchResponse response) {
