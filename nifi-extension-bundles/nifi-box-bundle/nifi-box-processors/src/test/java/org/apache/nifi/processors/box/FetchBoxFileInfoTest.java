@@ -47,6 +47,8 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
     private static final String TEST_ITEM_STATUS = "active";
     private static final String TEST_SEQUENCE_ID = "1";
     private static final String TEST_OWNER_NAME = "Test User";
+    private static final String TEST_OWNER_ID = "123456";
+    private static final String TEST_OWNER_LOGIN = "Test.User@mail.org";
     private static final String TEST_SHARED_LINK_URL = "https://app.box.com/s/abcdef123456";
     private static final Date TEST_CREATED_AT = new Date(12345678L);
     private static final Date TEST_CONTENT_CREATED_AT = new Date(12345600L);
@@ -173,7 +175,10 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
         when(mockFileInfo.getPurgedAt()).thenReturn(TEST_PURGED_AT);
 
         when(mockBoxUser.getName()).thenReturn(TEST_OWNER_NAME);
+        when(mockBoxUser.getID()).thenReturn(TEST_OWNER_ID);
+        when(mockBoxUser.getLogin()).thenReturn(TEST_OWNER_LOGIN);
         when(mockFileInfo.getOwnedBy()).thenReturn(mockBoxUser);
+
         when(mockSharedLink.getURL()).thenReturn(TEST_SHARED_LINK_URL);
         when(mockFileInfo.getSharedLink()).thenReturn(mockSharedLink);
 
@@ -193,6 +198,10 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals("box.content.created.at", TEST_CONTENT_CREATED_AT.toString());
         flowFile.assertAttributeEquals("box.content.modified.at", TEST_CONTENT_MODIFIED_AT.toString());
         flowFile.assertAttributeEquals("box.owner", TEST_OWNER_NAME);
+        flowFile.assertAttributeEquals("box.owner.id", TEST_OWNER_ID);
+        flowFile.assertAttributeEquals("box.owner.login", TEST_OWNER_LOGIN);
         flowFile.assertAttributeEquals("box.shared.link", TEST_SHARED_LINK_URL);
+        flowFile.assertAttributeEquals("box.path.folder.ids", mockBoxFolderInfo.getID());
+        flowFile.assertAttributeEquals("path", "/" + mockBoxFolderInfo.getName());
     }
 }

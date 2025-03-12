@@ -16,25 +16,31 @@
  */
 package org.apache.nifi.processors.box;
 
-import static java.lang.String.valueOf;
-
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
+import static java.lang.String.valueOf;
+import static java.util.stream.Collectors.joining;
 
 public final class BoxFileUtils {
 
     public static final String BOX_URL = "https://app.box.com/file/";
 
+    public static String getParentIds(final BoxItem.Info info) {
+        return info.getPathCollection().stream()
+                .map(BoxItem.Info::getID)
+                .collect(joining(","));
+    }
     public static String getParentPath(BoxItem.Info info) {
         return "/" + info.getPathCollection().stream()
                 .filter(pathItemInfo -> !pathItemInfo.getID().equals("0"))
                 .map(BoxItem.Info::getName)
-                .collect(Collectors.joining("/"));
+                .collect(joining("/"));
     }
 
     public static String getFolderPath(BoxFolder.Info folderInfo) {
