@@ -31,20 +31,20 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import java.util.List;
 
 @Tags({ "atlassian", "bitbucket", "registry", "flow" })
-@CapabilityDescription("Flow Registry Client that uses the BitBucket REST API to version control flows in a BitBucket Repository.")
+@CapabilityDescription("Flow Registry Client that uses the Bitbucket REST API to version control flows in a Bitbucket Repository.")
 public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
-            .name("BitBucket API Instance")
-            .description("The instance of the BitBucket API")
+            .name("Bitbucket API Instance")
+            .description("The instance of the Bitbucket API")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue("api.bitbucket.org")
             .required(true)
             .build();
 
     static final PropertyDescriptor BITBUCKET_API_VERSION = new PropertyDescriptor.Builder()
-            .name("BitBucket API Version")
-            .description("The version of the BitBucket API")
+            .name("Bitbucket API Version")
+            .description("The version of the Bitbucket API")
             .defaultValue("2.0")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
@@ -66,7 +66,7 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
             .name("Authentication Type")
-            .description("The type of authentication to use for accessing BitBucket")
+            .description("The type of authentication to use for accessing Bitbucket")
             .allowableValues(BitbucketAuthenticationType.class)
             .defaultValue(BitbucketAuthenticationType.ACCESS_TOKEN)
             .required(true)
@@ -109,7 +109,7 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor WEBCLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("Web Client Service")
-            .description("The Web Client Service to use for communicating with BitBucket")
+            .description("The Web Client Service to use for communicating with Bitbucket")
             .required(true)
             .identifiesControllerService(WebClientServiceProvider.class)
             .build();

@@ -52,7 +52,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 /**
- * Implementation of {@link GitRepositoryClient} for BitBucket.
+ * Implementation of {@link GitRepositoryClient} for Bitbucket.
  */
 public class BitbucketRepositoryClient implements GitRepositoryClient {
 
@@ -72,7 +72,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private final String repoName;
     private final String repoPath;
     private WebClientServiceProvider webClient;
-    private BitBucketToken<String> authToken;
+    private BitbucketToken<String> authToken;
 
     private final boolean canRead;
     private final boolean canWrite;
@@ -180,7 +180,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try {
             jsonResponse = this.objectMapper.readTree(response.body());
         } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from BitBucket API", e);
+            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
         }
         Iterator<JsonNode> branches = jsonResponse.get("values").elements();
 
@@ -254,7 +254,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final Optional<String> lastCommit = getLatestCommit(branch, resolvedPath);
 
         if (lastCommit.isEmpty()) {
-            throw new FlowRegistryException(String.format("Could not find committed files at %s on branch %s response from BitBucket API", resolvedPath, branch));
+            throw new FlowRegistryException(String.format("Could not find committed files at %s on branch %s response from Bitbucket API", resolvedPath, branch));
         }
         return getContentFromCommit(path, lastCommit.get());
     }
@@ -352,7 +352,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final Optional<String> lastCommit = getLatestCommit(branch, resolvedPath);
 
         if (lastCommit.isEmpty()) {
-            throw new FlowRegistryException(String.format("Could not find committed files at %s on branch %s response from BitBucket API", resolvedPath, branch));
+            throw new FlowRegistryException(String.format("Could not find committed files at %s on branch %s response from Bitbucket API", resolvedPath, branch));
         }
 
         // retrieve source data
@@ -369,7 +369,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try {
             jsonResponse = this.objectMapper.readTree(response.body());
         } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from BitBucket API", e);
+            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
         }
         return jsonResponse.get("values").elements();
     }
@@ -388,7 +388,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try {
             jsonResponse = this.objectMapper.readTree(response.body());
         } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from BitBucket API", e);
+            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
         }
         return jsonResponse.get("values").elements();
     }
@@ -425,7 +425,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try {
             jsonResponse = this.objectMapper.readTree(response.body());
         } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from BitBucket API", e);
+            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
         }
         Iterator<JsonNode> repoPermissions = jsonResponse.get("values").elements();
 
@@ -449,7 +449,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try {
             jsonResponse = this.objectMapper.readTree(response.body());
         } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from BitBucket API", e);
+            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
         }
         return String.format("[%s] - %s", jsonResponse.get("type").asText(), jsonResponse.get("error").get("message").asText());
     }
@@ -468,11 +468,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
                 .addPathSegment(repoName);
     }
 
-    private interface BitBucketToken<T> {
+    private interface BitbucketToken<T> {
         T getAuthzHeaderValue();
     }
 
-    private class BasicAuthToken implements BitBucketToken<String> {
+    private class BasicAuthToken implements BitbucketToken<String> {
         private String token;
 
         public BasicAuthToken(final String username, final String appPassword) {
@@ -489,7 +489,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
     }
 
-    private class AccessToken implements BitBucketToken<String> {
+    private class AccessToken implements BitbucketToken<String> {
         private String token;
 
         public AccessToken(final String token) {
@@ -502,7 +502,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
     }
 
-    private class OAuthToken implements BitBucketToken<String> {
+    private class OAuthToken implements BitbucketToken<String> {
         private OAuth2AccessTokenProvider oauthService;
 
         public OAuthToken(final OAuth2AccessTokenProvider oauthService) {
