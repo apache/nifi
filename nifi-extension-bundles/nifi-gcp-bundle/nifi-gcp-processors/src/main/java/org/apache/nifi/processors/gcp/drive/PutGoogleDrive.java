@@ -78,6 +78,8 @@ import static java.util.stream.Collectors.joining;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
 import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
@@ -87,7 +89,11 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAM
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
@@ -103,7 +109,10 @@ import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PR
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
         @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = SIZE_AVAILABLE, description = SIZE_AVAILABLE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = CREATED_TIME, description = CREATED_TIME_DESC),
+        @WritesAttribute(attribute = MODIFIED_TIME, description = MODIFIED_TIME_DESC),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)})
 public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
@@ -165,7 +174,9 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             CONFLICT_RESOLUTION,
             CHUNKED_UPLOAD_THRESHOLD,
             CHUNKED_UPLOAD_SIZE,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS)
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
+            CONNECT_TIMEOUT,
+            READ_TIMEOUT
     );
 
     public static final Relationship REL_SUCCESS =
@@ -279,7 +290,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             }
 
             if (uploadedFile != null) {
-                final Map<String, String> attributes = createAttributeMap(uploadedFile);
+                final Map<String, String> attributes = createGoogleDriveFileInfoBuilder(uploadedFile).build().toAttributeMap();
                 final String url = DRIVE_URL + uploadedFile.getId();
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -323,12 +334,12 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             return driveService.files()
                     .create(fileMetadata, mediaContent)
                     .setSupportsAllDrives(true)
-                    .setFields("id, name, createdTime, mimeType, size");
+                    .setFields("id, name, createdTime, modifiedTime, mimeType, size");
         } else {
             return driveService.files()
                     .update(fileMetadata.getId(), new File(), mediaContent)
                     .setSupportsAllDrives(true)
-                    .setFields("id, name, createdTime, mimeType, size");
+                    .setFields("id, name, createdTime, modifiedTime, mimeType, size");
         }
     }
 

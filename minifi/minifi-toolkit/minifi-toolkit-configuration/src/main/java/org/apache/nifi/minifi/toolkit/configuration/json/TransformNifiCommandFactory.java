@@ -23,6 +23,10 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 
 import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigTransformException;
 import org.apache.nifi.minifi.toolkit.configuration.PathInputStreamFactory;
@@ -65,7 +69,7 @@ public class TransformNifiCommandFactory {
             VersionedDataflow versionedDataflow = new VersionedDataflow();
             versionedDataflow.setRootGroup(registeredFlowSnapshot.getFlowContents());
             versionedDataflow.setParameterContexts(new ArrayList<>(registeredFlowSnapshot.getParameterContexts().values()));
-            versionedDataflow.setMaxTimerDrivenThreadCount(CorePropertiesSchema.DEFAULT_MAX_CONCURRENT_THREADS);
+            setDefaultValues(versionedDataflow);
 
             persistFlowJson(versionedDataflow, targetMiNiFiJsonPath);
         } catch (ConfigTransformException e) {
@@ -101,4 +105,24 @@ public class TransformNifiCommandFactory {
                     ConfigMain.ERR_UNABLE_TO_SAVE_CONFIG, e);
         }
     }
+
+    private void setDefaultValues(VersionedDataflow versionedDataflow) {
+        versionedDataflow.setMaxTimerDrivenThreadCount(CorePropertiesSchema.DEFAULT_MAX_CONCURRENT_THREADS);
+        setDefaultValues(versionedDataflow.getRootGroup());
+    }
+
+    private void setDefaultValues(VersionedProcessGroup versionedProcessGroup) {
+        versionedProcessGroup.getRemoteProcessGroups().forEach(this::setDefaultValues);
+        versionedProcessGroup.getProcessGroups().forEach(this::setDefaultValues);
+    }
+
+    private void setDefaultValues(VersionedRemoteProcessGroup versionedRemoteProcessGroup) {
+        versionedRemoteProcessGroup.getInputPorts().forEach(this::setDefaultValues);
+    }
+
+    private void setDefaultValues(VersionedRemoteGroupPort versionedRemoteGroupPort) {
+        versionedRemoteGroupPort.setScheduledState(ScheduledState.RUNNING);
+    }
+
+
 }

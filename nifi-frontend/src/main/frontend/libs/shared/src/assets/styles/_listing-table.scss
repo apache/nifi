@@ -69,26 +69,14 @@
     }
 }
 
-@mixin generate-theme($material-theme, $config) {
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-tertiary-palette-variant: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), variant)
-    );
-
-    // Get hues from palette
-    $selected-row-color: $material-theme-tertiary-palette-variant;
-
+@mixin generate-theme() {
     .listing-table {
         table {
+            background-color: inherit;
+
             th {
                 @extend .secondary-contrast;
-                background-color: $material-theme-secondary-palette-default !important;
+                background-color: var(--mat-sys-secondary) !important;
                 user-select: none;
 
                 .mat-sort-header-arrow {
@@ -103,11 +91,18 @@
             }
 
             tr:hover {
-                background-color: var(--mat-menu-item-hover-state-layer-color) !important;
+                background-color: var(
+                    --mat-menu-item-hover-state-layer-color,
+                    color-mix(
+                        in srgb,
+                        var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                        transparent
+                    )
+                ) !important;
             }
 
             .selected {
-                background-color: $selected-row-color !important;
+                background-color: var(--mat-sys-tertiary-container) !important;
             }
         }
     }

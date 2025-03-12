@@ -20,11 +20,10 @@ import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
 import com.google.api.gax.rpc.UnavailableException;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.gcp.pubsub.PubSubAttributes;
 import org.apache.nifi.processors.gcp.pubsub.PublishGCPubSub;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -37,21 +36,22 @@ import java.util.concurrent.ExecutionException;
  * Tracking of an interaction from NiFi {@link PublishGCPubSub} processor to Google PubSub endpoint.
  */
 public class FlowFileResult {
-    private static final Logger logger = LoggerFactory.getLogger(FlowFileResult.class);
 
     private final FlowFile flowFile;
     private final Map<String, String> attributes;
     private final List<ApiFuture<String>> futures;
     private final List<String> successes;
     private final List<Throwable> failures;
+    private final ComponentLog componentLog;
 
     public FlowFileResult(final FlowFile flowFile, final List<ApiFuture<String>> futures,
-                          final List<String> successes, final List<Throwable> failures) {
+                          final List<String> successes, final List<Throwable> failures, final ComponentLog componentLog) {
         this.flowFile = flowFile;
         this.attributes = new LinkedHashMap<>();
         this.futures = futures;
         this.successes = successes;
         this.failures = failures;
+        this.componentLog = componentLog;
     }
 
     /**
@@ -62,7 +62,7 @@ public class FlowFileResult {
             try {
                 ApiFutures.allAsList(futures).get();
             } catch (InterruptedException | ExecutionException e) {
-                logger.error("Failed to reconcile PubSub send operation status", e);
+                componentLog.error("Failed to reconcile PubSub send operation status", e);
             }
         }
         if (futures.size() == successes.size()) {

@@ -38,7 +38,6 @@ import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-d
 import { MatButton } from '@angular/material/button';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
 import { MapTableEntryData } from '../../types';
 
 @Component({
@@ -54,8 +53,6 @@ import { MapTableEntryData } from '../../types';
         MatFormField,
         MatInput,
         MatLabel,
-        MatRadioButton,
-        MatRadioGroup,
         ReactiveFormsModule
     ],
     templateUrl: './new-map-table-entry-dialog.component.html',

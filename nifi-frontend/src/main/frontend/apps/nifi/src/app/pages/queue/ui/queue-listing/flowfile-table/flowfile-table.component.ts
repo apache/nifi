@@ -24,7 +24,6 @@ import { NiFiCommon, TextTip } from '@nifi/shared';
 import { RouterLink } from '@angular/router';
 import { FlowFileSummary, ListingRequest, SelectedConnection } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -34,16 +33,7 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 @Component({
     selector: 'flowfile-table',
     templateUrl: './flowfile-table.component.html',
-    imports: [
-        MatTableModule,
-        RouterLink,
-        ErrorBanner,
-        MatIconButton,
-        MatMenu,
-        MatMenuItem,
-        MatMenuTrigger,
-        ContextErrorBanner
-    ],
+    imports: [MatTableModule, RouterLink, MatIconButton, MatMenu, MatMenuItem, MatMenuTrigger, ContextErrorBanner],
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {

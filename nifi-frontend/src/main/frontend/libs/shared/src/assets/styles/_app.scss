@@ -127,47 +127,8 @@
 
     /* overriding 3rd party styles */
 
-    .mat-mdc-dialog-content {
-        --mat-dialog-with-actions-content-padding: 20px 24px;
-    }
-
     .mat-mdc-dialog-actions {
         border: none !important;
-    }
-
-    .mat-mdc-dialog-title {
-        --mat-dialog-headline-padding: 0 24px 9px;
-    }
-
-    .mat-drawer {
-        --mat-sidenav-container-width: auto;
-        --mat-sidenav-container-shape: 0;
-    }
-
-    .mat-mdc-button {
-        --mdc-text-button-container-shape: 4px;
-        --mdc-text-button-label-text-tracking: normal;
-        --mdc-text-button-label-text-weight: 400;
-    }
-
-    .mat-mdc-unelevated-button {
-        --mdc-filled-button-container-shape: 4px;
-        --mdc-filled-button-label-text-tracking: normal;
-        --mdc-filled-button-label-text-weight: 400;
-    }
-
-    .mat-mdc-outlined-button {
-        --mdc-outlined-button-container-shape: 4px;
-        --mdc-outlined-button-label-text-tracking: normal;
-        --mdc-outlined-button-label-text-weight: 400;
-        --mat-outlined-button-horizontal-padding: 15px;
-        --mdc-outlined-button-container-height: 32px;
-    }
-
-    .mat-mdc-tab-header {
-        --mdc-secondary-navigation-tab-container-height: 36px;
-        --mat-tab-header-label-text-tracking: normal;
-        --mat-tab-header-label-text-weight: 400;
     }
 
     .mat-tree {
@@ -184,10 +145,6 @@
         line-height: 24px;
     }
 
-    .mat-expansion-panel {
-        --mat-expansion-container-shape: 4px;
-    }
-
     .mat-expansion-panel-body {
         overflow-y: auto;
     }
@@ -195,7 +152,6 @@
     .mat-expansion-panel-header.mat-expanded {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
-        --mat-expansion-header-expanded-state-height: 50px;
     }
 
     .mat-content.mat-content-hide-toggle {
@@ -216,11 +172,6 @@
             display: inline-block;
             width: 14px;
             text-align: center;
-        }
-
-        .mat-divider {
-            --mat-menu-divider-top-spacing: 0;
-            --mat-menu-divider-bottom-spacing: 0;
         }
     }
 
@@ -286,9 +237,6 @@
     }
 
     .mat-mdc-icon-button {
-        --mdc-icon-button-state-layer-size: 36px;
-        --mdc-icon-button-icon-size: 14px;
-
         &.mat-mdc-button-base.mdc-icon-button {
             padding: 0;
         }
@@ -300,10 +248,6 @@
 
     .mat-mdc-paginator {
         background-color: unset !important;
-    }
-
-    .mat-mdc-dialog-surface {
-        --mdc-dialog-container-shape: 4px;
     }
 
     .mdc-dialog__content {
@@ -422,184 +366,94 @@
     }
 }
 
-@mixin generate-material-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
-        $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
-    );
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-tertiary-palette-default: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), default)
-    );
-    $material-theme-tertiary-palette-variant: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), variant)
-    );
-    $material-theme-error-palette-default: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), default)
-    );
-    $material-theme-error-palette-variant: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), variant)
-    );
-    $material-theme-neutral-palette-default: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), default)
-    );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-    $alternate-surface: map.get($config, alternate-surface);
-    $primary-contrast: map.get(map.get($config, primary), contrast);
-    $secondary-contrast: map.get(map.get($config, secondary), contrast);
-    $secondary-opacity: map.get(map.get($config, secondary), opacity);
-    $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $disabled: mat.get-theme-color($material-theme, neutral, map.get(map.get($config, neutral), disabled));
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-    $success-default: map.get(map.get($config, success), default);
-    $success-variant: map.get(map.get($config, success), variant);
-    $caution: map.get(map.get($config, caution), default);
-    $selected-row-color: $material-theme-tertiary-palette-variant;
-
-    // support dark-mode browser default inputs (time, color, ...)
-    input {
-        color-scheme: if($is-material-dark, dark, light);
-    }
-
+@mixin generate-material-theme() {
     /* semantic color classes */
 
     .primary-contrast {
-        color: $primary-contrast;
-        fill: $primary-contrast;
+        color: var(--mat-sys-on-primary);
+        fill: var(--mat-sys-on-primary);
     }
 
     .primary-color {
-        color: $material-theme-primary-palette-default;
-        fill: $material-theme-primary-palette-default;
+        color: var(--mat-sys-primary);
+        fill: var(--mat-sys-primary);
     }
 
     .secondary-contrast {
-        color: $secondary-contrast;
-        fill: $secondary-contrast;
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
     }
 
     .secondary-color {
-        color: $material-theme-secondary-palette-default;
-        fill: $material-theme-secondary-palette-default;
+        color: var(--mat-sys-secondary);
+        fill: var(--mat-sys-secondary);
     }
 
     .tertiary-color {
-        color: $material-theme-tertiary-palette-default;
-        fill: $material-theme-tertiary-palette-default;
+        color: var(--mat-sys-tertiary);
+        fill: var(--mat-sys-tertiary);
     }
 
     .error-color {
-        color: $material-theme-error-palette-default;
-        fill: $material-theme-error-palette-default;
+        color: var(--mat-sys-error);
+        fill: var(--mat-sys-error);
     }
 
     .error-color-variant {
-        color: $material-theme-error-palette-variant;
-        fill: $material-theme-error-palette-variant;
+        color: var(--nf-error-variant);
+        fill: var(--nf-error-variant);
     }
 
     .neutral-color {
-        color: $material-theme-neutral-palette-default;
-        fill: $material-theme-neutral-palette-default;
+        color: var(--nf-neutral);
+        fill: var(--nf-neutral);
     }
 
     .success-color-variant {
-        color: $success-variant;
-        fill: $success-variant;
+        color: var(--nf-success-variant);
+        fill: var(--nf-success-variant);
     }
 
     .success-color-default {
-        color: $success-default;
-        fill: $success-default;
+        color: var(--nf-success-default);
+        fill: var(--nf-success-default);
     }
 
     .caution-color {
-        color: $caution;
-        fill: $caution;
+        color: var(--nf-caution-default);
+        fill: var(--nf-caution-default);
     }
 
     .caution-color-background {
-        background-color: $caution;
+        background-color: var(--nf-caution-default);
     }
 
     .neutral-contrast {
-        color: $neutral-contrast;
-        fill: $neutral-contrast;
+        color: var(--mat-sys-on-surface);
+        fill: var(--mat-sys-on-surface);
     }
 
     .disabled {
-        color: $disabled;
-        fill: $disabled;
-    }
-
-    .border-color {
-        color: $border-color;
-        fill: $border-color;
-    }
-
-    /* color variants for theming angular material widgets */
-
-    .tertiary-checkbox {
-        @include mat.checkbox-color($material-theme, $color-variant: tertiary);
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-color($material-theme, $color-variant: primary);
-    }
-
-    .error-button {
-        @include mat.button-color($material-theme, $color-variant: error);
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-color($material-theme, $color-variant: tertiary);
+        color: var(--nf-disabled);
+        fill: var(--nf-disabled);
     }
 
     /* other classes and styles */
 
     .tooltip {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: var(--mat-sys-background);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-        color: $neutral-contrast;
+        color: var(--mat-sys-on-surface);
     }
 
     .property-editor {
-        background-color: var(--mat-menu-container-color);
         border-radius: 4px;
+        box-shadow: var(--mat-sys-level4);
     }
 
     a {
-        color: $material-theme-primary-palette-default;
-        text-decoration-color: $material-theme-primary-palette-default;
+        color: var(--mat-sys-primary);
+        text-decoration-color: var(--mat-sys-primary);
     }
 
     .has-errors,
@@ -608,18 +462,18 @@
     .running,
     .transmitting,
     .text-shadow {
-        text-shadow: if($is-material-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+        text-shadow: var(--nf-text-shadow);
     }
 
     .zero {
-        opacity: $secondary-opacity !important;
+        opacity: var(--nf-zero-opactiy) !important;
     }
 
     /* overriding 3rd party styles */
 
     *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']):not([class^='CodeMirror-cursor']) {
         // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $border-color;
+        border-color: var(--mat-sys-outline);
     }
 
     // This will override the above rule in cases where the tailwind style is explicitly set (even on the 'exception' elements)
@@ -628,26 +482,27 @@
     .border,
     .border-l,
     .border-r {
-        border-color: $border-color;
+        border-color: var(--mat-sys-outline);
     }
 
     * {
-        // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-        --mat-snack-bar-button-color: $material-theme-tertiary-palette-variant;
-
         // markdown styles
-
         markdown {
             table {
-                background-color: $alternate-surface;
-
                 th {
                     @extend .neutral-contrast;
                 }
 
                 tbody {
                     tr:hover {
-                        background-color: var(--mat-menu-item-hover-state-layer-color) !important;
+                        background-color: var(
+                            --mat-menu-item-hover-state-layer-color,
+                            color-mix(
+                                in srgb,
+                                var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                                transparent
+                            )
+                        ) !important;
                     }
                 }
             }
@@ -655,10 +510,10 @@
     }
 
     .mat-typography.text-base {
-        font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
-        line-height: mat.get-theme-typography($material-theme, body-medium, line-height);
-        font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
-        font-weight: mat.get-theme-typography($material-theme, body-medium, font-weight);
+        font-family: var(--mat-sys-body-medium-font);
+        line-height: var(--mat-sys-body-medium-line-height);
+        font-size: var(--mat-sys-body-medium-size);
+        font-weight: var(--mat-sys-body-medium-weight);
         letter-spacing: normal;
 
         h2 {
@@ -687,13 +542,13 @@
         }
 
         .mdc-text-field--outlined .mdc-floating-label {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
         }
 
         .mat-mdc-select {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
         }
@@ -706,27 +561,27 @@
         }
 
         .mat-mdc-card-subtitle {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: 20px;
             font-weight: 400;
         }
 
         .mat-mdc-option {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
         }
 
         .mat-mdc-form-field {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
         }
 
         .mat-tree-node,
         .mat-nested-tree-node {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
         }
@@ -736,25 +591,25 @@
         }
 
         .mat-expansion-panel-header {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
             font-weight: 700;
         }
 
         .mat-expansion-panel-content {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: 20px;
         }
 
         .mat-mdc-menu-content,
         .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
-            --mat-menu-item-label-text-weight: mat.get-theme-typography($material-theme, body-medium, font-weight);
+            --mat-menu-item-label-text-weight: var(--mat-sys-body-medium-weight);
         }
 
         .mdc-list-item__primary-text {
-            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
             line-height: normal;
         }
@@ -764,97 +619,37 @@
         }
     }
 
-    .mat-expansion-panel {
-        background-color: $alternate-surface;
-    }
-
     .mat-datepicker-content {
-        background-color: $alternate-surface;
         box-shadow:
             0px 2px 4px -1px rgba(0, 0, 0, 0.2),
             0px 4px 5px 0px rgba(0, 0, 0, 0.14),
             0px 1px 10px 0px rgba(0, 0, 0, 0.12);
     }
 
-    .mat-mdc-dialog-surface {
-        background-color: $alternate-surface;
-    }
-
-    .mat-mdc-table {
-        background-color: $alternate-surface;
-    }
-
-    .mat-drawer-backdrop.mat-drawer-shown {
-        background-color: if($is-material-dark, rgba(189, 189, 189, 0.6), rgba(0, 0, 0, 0.6));
-    }
-
-    .mat-mdc-card {
-        background-color: $alternate-surface;
-    }
-
-    .mat-drawer {
-        background-color: $alternate-surface;
-    }
-
-    .cdk-drop-list {
-        color: $material-theme-secondary-palette-default;
-    }
-
     .cdk-drop-list-dragging {
-        background-color: $material-theme-secondary-palette-default !important;
-    }
-
-    .cdk-drag-selected {
-        .cdk-drag {
-            background-color: $material-theme-secondary-palette-default;
-        }
+        background-color: var(--mat-sys-secondary) !important;
     }
 
     .cdk-drop-list {
-        background: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-default,
-            $material-theme-neutral-palette-lighter
-        );
+        background: var(--mat-sys-surface-container-low);
     }
 
     .cdk-drag {
-        background: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        color: var(--mat-sys-on-surface);
+        background: var(--mat-sys-surface);
     }
 
     .cdk-drag-disabled {
-        color: $material-theme-neutral-palette-default;
-        background: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        ) !important;
-    }
-
-    .cdk-drag-selected {
-        .cdk-drag {
-            color: $primary-contrast;
-        }
-
-        span.grip {
-            color: $primary-contrast;
-        }
-
-        .fa {
-            color: $primary-contrast;
-        }
+        color: var(--nf-disabled);
+        background: var(--mat-sys-background) !important;
     }
 
     span.grip {
-        color: $neutral-contrast;
+        color: var(--mat-sys-on-surface);
     }
 
     ngx-skeleton-loader .skeleton-loader {
-        background: $border-color;
+        background: var(--mat-sys-outline);
     }
 
     .markdown-clipboard-toolbar {

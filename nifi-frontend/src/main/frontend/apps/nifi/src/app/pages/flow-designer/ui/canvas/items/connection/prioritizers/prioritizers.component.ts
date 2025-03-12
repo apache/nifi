@@ -20,9 +20,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
-import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
-import { RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { DocumentedType } from '../../../../../../../state/shared';
 import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import {
@@ -43,10 +41,6 @@ import {
         MatTableModule,
         DragDropModule,
         NgTemplateOutlet,
-        CdkOverlayOrigin,
-        CdkConnectedOverlay,
-        RouterLink,
-        AsyncPipe,
         NifiTooltipDirective,
         CdkDropList,
         CdkDrag

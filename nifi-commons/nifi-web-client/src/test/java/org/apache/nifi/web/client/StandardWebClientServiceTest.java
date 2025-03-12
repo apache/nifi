@@ -39,6 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.X509TrustManager;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -247,6 +248,21 @@ public class StandardWebClientServiceTest {
     @Test
     void testGetServiceUnavailable() throws InterruptedException, IOException {
         runRequestMethod(service.get(), StandardHttpRequestMethod.GET, HttpResponseStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    void testHead() throws InterruptedException, IOException {
+        runRequestMethod(service.head(), StandardHttpRequestMethod.HEAD, HttpResponseStatus.OK);
+    }
+
+    @Test
+    void testHeadNoContent() throws InterruptedException, IOException {
+        runRequestMethod(service.head(), StandardHttpRequestMethod.HEAD, HttpResponseStatus.NO_CONTENT);
+    }
+
+    @Test
+    void testHeadNotFound() throws InterruptedException, IOException {
+        runRequestMethod(service.head(), StandardHttpRequestMethod.HEAD, HttpResponseStatus.NOT_FOUND);
     }
 
     @Test

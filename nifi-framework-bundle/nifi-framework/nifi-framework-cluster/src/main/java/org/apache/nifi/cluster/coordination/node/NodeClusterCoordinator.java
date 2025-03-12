@@ -595,20 +595,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         logger.info("{} requested disconnection from cluster due to {}", nodeId, explanation == null ? disconnectionCode : explanation);
         updateNodeStatus(new NodeConnectionStatus(nodeId, disconnectionCode, explanation), false);
 
-        final Severity severity;
-        switch (disconnectionCode) {
-            case STARTUP_FAILURE:
-            case MISMATCHED_FLOWS:
-            case UNKNOWN:
-                severity = Severity.ERROR;
-                break;
-            case LACK_OF_HEARTBEAT:
-                severity = Severity.WARNING;
-                break;
-            default:
-                severity = Severity.INFO;
-                break;
-        }
+        final Severity severity = switch (disconnectionCode) {
+            case STARTUP_FAILURE, MISMATCHED_FLOWS, UNKNOWN -> Severity.ERROR;
+            case LACK_OF_HEARTBEAT -> Severity.WARNING;
+            default -> Severity.INFO;
+        };
 
         reportEvent(nodeId, severity, "Node disconnected from cluster due to " + explanation);
     }
@@ -1117,17 +1108,17 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public ProtocolMessage handle(final ProtocolMessage protocolMessage, final Set<String> nodeIdentities) throws ProtocolException {
-        switch (protocolMessage.getType()) {
-            case CONNECTION_REQUEST:
-                return handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
-            case NODE_STATUS_CHANGE:
+        return switch (protocolMessage.getType()) {
+            case CONNECTION_REQUEST ->
+                    handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
+            case NODE_STATUS_CHANGE -> {
                 handleNodeStatusChange((NodeStatusChangeMessage) protocolMessage);
-                return null;
-            case NODE_CONNECTION_STATUS_REQUEST:
-                return handleNodeConnectionStatusRequest();
-            default:
-                throw new ProtocolException("Cannot handle Protocol Message " + protocolMessage + " because it is not of the correct type");
-        }
+                yield null;
+            }
+            case NODE_CONNECTION_STATUS_REQUEST -> handleNodeConnectionStatusRequest();
+            default ->
+                    throw new ProtocolException("Cannot handle Protocol Message " + protocolMessage + " because it is not of the correct type");
+        };
     }
 
     private NodeConnectionStatusResponseMessage handleNodeConnectionStatusRequest() {

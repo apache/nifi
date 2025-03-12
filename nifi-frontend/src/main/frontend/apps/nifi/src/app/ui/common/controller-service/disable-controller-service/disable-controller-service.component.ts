@@ -28,9 +28,7 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
-import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
 import { ControllerServiceState, SetEnableRequest, SetEnableStep } from '../../../../state/contoller-service-state';
 import { Store } from '@ngrx/store';
@@ -56,10 +54,8 @@ import {
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
-        ControllerServiceApi,
         ControllerServiceReferences,
         AsyncPipe,
-        NifiSpinnerDirective,
         NifiTooltipDirective,
         NgTemplateOutlet
     ],

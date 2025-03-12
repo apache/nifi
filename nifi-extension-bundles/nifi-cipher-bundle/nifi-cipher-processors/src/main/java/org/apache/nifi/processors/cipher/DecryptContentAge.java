@@ -44,7 +44,6 @@ import org.apache.nifi.processors.cipher.age.AgeKeyIndicator;
 import org.apache.nifi.processors.cipher.age.AgeKeyReader;
 import org.apache.nifi.processors.cipher.age.AgeKeyValidator;
 import org.apache.nifi.processors.cipher.age.AgePrivateKeyReader;
-import org.apache.nifi.processors.cipher.age.AgeProviderResolver;
 import org.apache.nifi.processors.cipher.age.KeySource;
 import org.apache.nifi.processors.cipher.io.ChannelStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -55,7 +54,6 @@ import java.io.PushbackInputStream;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.Provider;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -127,8 +125,6 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
     );
 
     private static final AgeKeyReader<RecipientStanzaReader> PRIVATE_KEY_READER = new AgePrivateKeyReader();
-
-    private static final Provider CIPHER_PROVIDER = AgeProviderResolver.getCipherProvider();
 
     /** 64 Kilobyte buffer plus 16 bytes for authentication tag aligns with age-encryption payload chunk sizing */
     private static final int BUFFER_CAPACITY = 65552;
@@ -279,9 +275,9 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
 
         private DecryptingChannelFactory getDecryptingChannelFactory(final byte[] versionIndicator) {
             if (Arrays.equals(BINARY_VERSION_INDICATOR, versionIndicator)) {
-                return new StandardDecryptingChannelFactory(CIPHER_PROVIDER);
+                return new StandardDecryptingChannelFactory();
             } else {
-                return new ArmoredDecryptingChannelFactory(CIPHER_PROVIDER);
+                return new ArmoredDecryptingChannelFactory();
             }
         }
     }

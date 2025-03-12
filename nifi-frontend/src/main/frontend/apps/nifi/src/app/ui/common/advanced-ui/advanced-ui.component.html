@@ -21,7 +21,11 @@
     </header>
     <div class="flex flex-1">
         @if (frameSource) {
-            <iframe class="flex-1" [src]="frameSource"></iframe>
+            <iframe
+                #iframeRef
+                class="flex-1"
+                [src]="frameSource"
+                (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
         } @else {
             <div>Unable to open Advanced configuration UI.</div>
         }

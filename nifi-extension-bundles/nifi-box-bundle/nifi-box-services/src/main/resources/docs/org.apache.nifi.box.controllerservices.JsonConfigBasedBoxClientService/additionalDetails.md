@@ -28,7 +28,7 @@ The App should have the following configuration:
 * Should have a 'Client ID' and 'Client Secret'.
 * 'App Access Level' should be 'App + Enterprise Access'.
 * 'Application Scopes' should have 'Write all files and folders in Box' enabled.
-* 'Advanced Features' should have 'Generate user access tokens' and 'Make API calls using the as-user header' enabled.
+* If 'App Actor' is 'Impersonated User', 'Advanced Features' should have 'Generate user access tokens' and 'Make API calls using the as-user header' enabled.
 * Under 'Add and Manage Public Keys' generate a Public/Private Keypair and download the configuration JSON file (under
   App Settings). The full path of this file should be set in the 'Box Config File' property.  
   Note that you can only download the configuration JSON with the keypair details only once, when you generate the

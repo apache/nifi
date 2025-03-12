@@ -16,6 +16,7 @@
  */
 
 export * from './nifi-common.service';
+export * from './system-tokens.service';
 export * from './storage.service';
 export * from './session-storage.service';
 export * from './theming.service';

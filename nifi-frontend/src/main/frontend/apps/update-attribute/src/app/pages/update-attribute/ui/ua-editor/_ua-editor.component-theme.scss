@@ -24,7 +24,6 @@
 
         .editor {
             &.blank {
-                border-color: var(--mdc-outlined-text-field-disabled-label-text-color);
                 cursor: not-allowed !important;
             }
         }

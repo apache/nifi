@@ -31,11 +31,20 @@ import com.slack.api.bolt.response.Response;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.model.User;
 import com.slack.api.model.event.AppMentionEvent;
+import com.slack.api.model.event.FileChangeEvent;
+import com.slack.api.model.event.FileCreatedEvent;
+import com.slack.api.model.event.FileDeletedEvent;
+import com.slack.api.model.event.FilePublicEvent;
 import com.slack.api.model.event.FileSharedEvent;
+import com.slack.api.model.event.FileUnsharedEvent;
 import com.slack.api.model.event.MemberJoinedChannelEvent;
+import com.slack.api.model.event.MessageChangedEvent;
 import com.slack.api.model.event.MessageChannelJoinEvent;
+import com.slack.api.model.event.MessageDeletedEvent;
 import com.slack.api.model.event.MessageEvent;
 import com.slack.api.model.event.MessageFileShareEvent;
+import com.slack.api.model.event.ReactionAddedEvent;
+import com.slack.api.model.event.ReactionRemovedEvent;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -74,7 +83,8 @@ import java.util.regex.Pattern;
 @DefaultSettings(yieldDuration = "250 millis")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
-    @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format")
+    @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format"),
+    @WritesAttribute(attribute = "slack.event.type", description = "Set to the type of Slack event that occurred")
 })
 @SeeAlso({ConsumeSlack.class})
 @Tags({"slack", "real-time", "event", "message", "command", "listen", "receive", "social media", "team", "text", "unstructured"})
@@ -182,9 +192,21 @@ public class ListenSlack extends AbstractProcessor {
 
         // Register the event types that make sense
         if (context.getProperty(EVENT_TYPE).getValue().equals(RECEIVE_MESSAGE_EVENTS.getValue())) {
+            // Handle basic message events
             slackApp.event(MessageEvent.class, this::handleEvent);
+            slackApp.event(MessageChangedEvent.class, this::handleEvent);
+            slackApp.event(MessageDeletedEvent.class, this::handleEvent);
             slackApp.event(MessageFileShareEvent.class, this::handleEvent);
+            // Handle file events
             slackApp.event(FileSharedEvent.class, this::handleEvent);
+            slackApp.event(FileChangeEvent.class, this::handleEvent);
+            slackApp.event(FileCreatedEvent.class, this::handleEvent);
+            slackApp.event(FileDeletedEvent.class, this::handleEvent);
+            slackApp.event(FilePublicEvent.class, this::handleEvent);
+            slackApp.event(FileUnsharedEvent.class, this::handleEvent);
+            // Handle message reaction events
+            slackApp.event(ReactionAddedEvent.class, this::handleEvent);
+            slackApp.event(ReactionRemovedEvent.class, this::handleEvent);
         } else if (context.getProperty(EVENT_TYPE).getValue().equals(RECEIVE_MENTION_EVENTS.getValue())) {
             slackApp.event(AppMentionEvent.class, this::handleEvent);
             // When there's an AppMention, we'll also get a MessageEvent. We need to handle this event, or we'll get warnings in the logs
@@ -249,6 +271,7 @@ public class ListenSlack extends AbstractProcessor {
         }
 
         final Object messageEvent = eventWrapper.getEvent();
+        final String eventType = messageEvent.getClass().getSimpleName();
 
         FlowFile flowFile = session.create();
         try (final OutputStream out = session.write(flowFile);
@@ -281,6 +304,7 @@ public class ListenSlack extends AbstractProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
+        flowFile = session.putAttribute(flowFile, "slack.event.type", eventType);
         session.getProvenanceReporter().receive(flowFile, socketModeApp.getClient().getWssUri().toString());
         session.transfer(flowFile, REL_SUCCESS);
 

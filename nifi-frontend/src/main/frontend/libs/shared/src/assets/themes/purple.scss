@@ -25,286 +25,700 @@
     }
 }
 
-$primary: (
-    0: #000000,
-    10: #311b92,
-    20: #4527a0,
-    25: #512da8,
-    30: #5e35b1,
-    35: #673ab7,
-    40: #7e57c2,
-    50: #9575cd,
-    60: #b39ddb,
-    70: #d1c4e9,
-    80: #ede7f6,
-    90: #ede7f6,
-    95: #ede7f6,
-    98: #ede7f6,
-    99: #ede7f6,
-    100: #ffffff
-);
+:root {
+    --md-ref-palette-error-0: #000000; /* Error 0 */
+    --md-ref-palette-error-10: #000000; /* Error 10 */
+    --md-ref-palette-error-20: #000000; /* Error 20 */
+    --md-ref-palette-error-25: #a8372a; /* Error 25 */
+    --md-ref-palette-error-30: #ba554a; /* Error 30 */
+    --md-ref-palette-error-35: #ba554a; /* Error 35 */
+    --md-ref-palette-error-40: #ba554a; /* Error 40 */
+    --md-ref-palette-error-50: #eb7071; /* Error 50 */
+    --md-ref-palette-error-60: #eb7071; /* Error 60 */
+    --md-ref-palette-error-70: #eb7071; /* Error 70 */
+    --md-ref-palette-error-80: #eb7071; /* Error 80 */
+    --md-ref-palette-error-90: #f49999; /* Error 90 */
+    --md-ref-palette-error-95: #f49999; /* Error 95 */
+    --md-ref-palette-error-98: #ffccd2; /* Error 98 */
+    --md-ref-palette-error-99: #ffccd2; /* Error 99 */
+    --md-ref-palette-error-100: #ffffff; /* Error 100 */
+    --md-ref-palette-tertiary-0: #000000; /* Tertiary 0 */
+    --md-ref-palette-tertiary-10: #004d40; /* Tertiary 10 */
+    --md-ref-palette-tertiary-20: #00695c; /* Tertiary 20 */
+    --md-ref-palette-tertiary-25: #00796b; /* Tertiary 25 */
+    --md-ref-palette-tertiary-30: #00897b; /* Tertiary 30 */
+    --md-ref-palette-tertiary-35: #009688; /* Tertiary 35 */
+    --md-ref-palette-tertiary-40: #26a69a; /* Tertiary 40 */
+    --md-ref-palette-tertiary-50: #4db6ac; /* Tertiary 50 */
+    --md-ref-palette-tertiary-60: #80cbc4; /* Tertiary 60 */
+    --md-ref-palette-tertiary-70: #b2dfdb; /* Tertiary 70 */
+    --md-ref-palette-tertiary-80: #e0f2f1; /* Tertiary 80 */
+    --md-ref-palette-tertiary-90: #e0f2f1; /* Tertiary 90 */
+    --md-ref-palette-tertiary-95: #e0f2f1; /* Tertiary 95 */
+    --md-ref-palette-tertiary-98: #e0f2f1; /* Tertiary 98 */
+    --md-ref-palette-tertiary-99: #e0f2f1; /* Tertiary 99 */
+    --md-ref-palette-tertiary-100: #ffffff; /* Tertiary 100 */
+    --md-ref-palette-secondary-0: #000000; /* Secondary 0 */
+    --md-ref-palette-secondary-10: #311b92; /* Secondary 10 */
+    --md-ref-palette-secondary-20: #4527a0; /* Secondary 20 */
+    --md-ref-palette-secondary-25: #512da8; /* Secondary 25 */
+    --md-ref-palette-secondary-30: #5e35b1; /* Secondary 30 */
+    --md-ref-palette-secondary-35: #673ab7; /* Secondary 35 */
+    --md-ref-palette-secondary-40: #7e57c2; /* Secondary 40 */
+    --md-ref-palette-secondary-50: #9575cd; /* Secondary 50 */
+    --md-ref-palette-secondary-60: #b39ddb; /* Secondary 60 */
+    --md-ref-palette-secondary-70: #d1c4e9; /* Secondary 70 */
+    --md-ref-palette-secondary-80: #ede7f6; /* Secondary 80 */
+    --md-ref-palette-secondary-90: #ede7f6; /* Secondary 90 */
+    --md-ref-palette-secondary-95: #ede7f6; /* Secondary 95 */
+    --md-ref-palette-secondary-98: #ede7f6; /* Secondary 98 */
+    --md-ref-palette-secondary-99: #ede7f6; /* Secondary 99 */
+    --md-ref-palette-secondary-100: #ffffff; /* Secondary 100 */
+    --md-ref-palette-primary-0: #000000; /* Primary 0 */
+    --md-ref-palette-primary-10: #311b92; /* Primary 10 */
+    --md-ref-palette-primary-20: #4527a0; /* Primary 20 */
+    --md-ref-palette-primary-25: #512da8; /* Primary 25 */
+    --md-ref-palette-primary-30: #5e35b1; /* Primary 30 */
+    --md-ref-palette-primary-35: #673ab7; /* Primary 35 */
+    --md-ref-palette-primary-40: #7e57c2; /* Primary 40 */
+    --md-ref-palette-primary-50: #9575cd; /* Primary 50 */
+    --md-ref-palette-primary-60: #b39ddb; /* Primary 60 */
+    --md-ref-palette-primary-70: #d1c4e9; /* Primary 70 */
+    --md-ref-palette-primary-80: #ede7f6; /* Primary 80 */
+    --md-ref-palette-primary-90: #ede7f6; /* Primary 90 */
+    --md-ref-palette-primary-95: #ede7f6; /* Primary 95 */
+    --md-ref-palette-primary-98: #ede7f6; /* Primary 98 */
+    --md-ref-palette-primary-99: #ede7f6; /* Primary 99 */
+    --md-ref-palette-primary-100: #ffffff; /* Primary 100 */
+    --md-ref-palette-neutral-variant-0: #000000; /* Neutral Variant 0 */
+    --md-ref-palette-neutral-variant-10: #303030; /* Neutral Variant 10 */
+    --md-ref-palette-neutral-variant-20: #444444; /* Neutral Variant 20 */
+    --md-ref-palette-neutral-variant-25: #666666; /* Neutral Variant 25 */
+    --md-ref-palette-neutral-variant-30: #666666; /* Neutral Variant 30 */
+    --md-ref-palette-neutral-variant-35: #666666; /* Neutral Variant 35 */
+    --md-ref-palette-neutral-variant-40: #acacac; /* Neutral Variant 40 */
+    --md-ref-palette-neutral-variant-50: #d8d8d8; /* Neutral Variant 50 */
+    --md-ref-palette-neutral-variant-60: #d8d8d8; /* Neutral Variant 60 */
+    --md-ref-palette-neutral-variant-70: #d8d8d8; /* Neutral Variant 70 */
+    --md-ref-palette-neutral-variant-80: #d8d8d8; /* Neutral Variant 80 */
+    --md-ref-palette-neutral-variant-90: #e3e3e3; /* Neutral Variant 90 */
+    --md-ref-palette-neutral-variant-95: #f4f4f4; /* Neutral Variant 95 */
+    --md-ref-palette-neutral-variant-98: #fafafa; /* Neutral Variant 98 */
+    --md-ref-palette-neutral-variant-99: #fafafa; /* Neutral Variant 99 */
+    --md-ref-palette-neutral-variant-100: #ffffff; /* Neutral Variant 100 */
+    --md-ref-palette-neutral-0: #0000001f; /* Neutral 0 */
+    --md-ref-palette-neutral-4: #121212; /* Neutral 4 */
+    --md-ref-palette-neutral-6: #121212; /* Neutral 6 */
+    --md-ref-palette-neutral-10: #303030; /* Neutral 10 */
+    --md-ref-palette-neutral-12: #303030; /* Neutral 12 */
+    --md-ref-palette-neutral-17: #303030; /* Neutral 17 */
+    --md-ref-palette-neutral-20: #444444; /* Neutral 20 */
+    --md-ref-palette-neutral-22: #444444; /* Neutral 22 */
+    --md-ref-palette-neutral-24: #444444; /* Neutral 24 */
+    --md-ref-palette-neutral-25: #666666; /* Neutral 25 */
+    --md-ref-palette-neutral-30: #666666; /* Neutral 30 */
+    --md-ref-palette-neutral-35: #666666; /* Neutral 35 */
+    --md-ref-palette-neutral-40: #acacac; /* Neutral 40 */
+    --md-ref-palette-neutral-50: #acacac; /* Neutral 50 */
+    --md-ref-palette-neutral-60: #acacac; /* Neutral 60 */
+    --md-ref-palette-neutral-70: #d8d8d8; /* Neutral 70 */
+    --md-ref-palette-neutral-80: #d8d8d8; /* Neutral 80 */
+    --md-ref-palette-neutral-87: #d8d8d8; /* Neutral 87 */
+    --md-ref-palette-neutral-90: #e3e3e3; /* Neutral 90 */
+    --md-ref-palette-neutral-92: #f4f4f4; /* Neutral 92 */
+    --md-ref-palette-neutral-94: #f4f4f4; /* Neutral 94 */
+    --md-ref-palette-neutral-95: #fafafa; /* Neutral 95 */
+    --md-ref-palette-neutral-96: #fafafa; /* Neutral 96 */
+    --md-ref-palette-neutral-98: #fafafa; /* Neutral 98 */
+    --md-ref-palette-neutral-99: #fafafa; /* Neutral 99 */
+    --md-ref-palette-neutral-100: #ffffff; /* Neutral 100 */
+    --md-ref-typeface-plain: Comic Sans MS; /* Plain typeface */
+    --md-ref-typeface-brand: Comic Sans MS; /* Brand typeface */
+    --md-ref-typeface-weight-bold: 700; /* Bold weight */
+    --md-ref-typeface-weight-medium: 500; /* Medium weight */
+    --md-ref-typeface-weight-regular: 400; /* Regular weight */
 
-$secondary: (
-    0: #000000,
-    10: #311b92,
-    20: #4527a0,
-    25: #512da8,
-    30: #5e35b1,
-    35: #673ab7,
-    40: #7e57c2,
-    50: #9575cd,
-    60: #b39ddb,
-    70: #d1c4e9,
-    80: #ede7f6,
-    90: #ede7f6,
-    95: #ede7f6,
-    98: #ede7f6,
-    99: #ede7f6,
-    100: #ffffff
-);
+    /* Nifi Light mode. Use these variables when applying colors to elements */
+    --nf-success-default: #31975b; /* The success color  */
+    --nf-success-variant: #1390ca; /* The success variant color  */
+    --nf-success-contrast: #ffffff; /* The success contrast color */
+    --nf-caution-default: #cf9338; /* The caution color  */
+    --nf-caution-contrast: #ffffff; /* The caution contrast color */
+    --nf-neutral: #666666; /* The neutral color  */
+    --nf-disabled: #d8d8d8; /* The color to use for disabled */
+    --nf-error-variant: #eb7071; /* The stopped run status color  */
+    --nf-new-canvas-item-grip: #000000; /* The new canvas item grip color */
+    --nf-new-canvas-item-hover: #000000; /* The new canvas item hover color */
+    --nf-resizable-triangle: rgba(18, 18, 18, 0.2); /* The color of the resize handle */
+    --nf-banner: #12121214; /* The banner row color */
+    --nf-odd: #12121206; /* The odd background color */
+    --nf-even: #fafafa; /* The even background color */
+    --nf-text-shadow: 0 0 4px rgba(255, 255, 255, 1); /* The text shadow color */
+    --nf-zero-opactiy: 0.6; /* The zero opacity color */
+    --nf-connection-drop-shadow: white; /* The connection drop shadow color */
+    --nf-canvas-background: #e5ebed; /* The canvas background color */
+    --nf-canvas-border-stroke-width: 1; /* The canvas border stroke width */
+    --nf-codemirror-gutters: #efefef; /* The codemirror gutters color */
+    --nf-codemirror-linenumber: #b4b4b4; /* The codemirror line number color */
+    --nf-codemirror-selection: rgba(128, 203, 196, 0.8); /* The codemirror selection color */
+    --nf-codemirror-header: #0000ff; /* The codemirror header color */
+    --nf-codemirror-quote: #009400; /* The codemirror quote color */
+    --nf-codemirror-negative: #de3535; /* The codemirror negative color */
+    --nf-codemirror-positive: #219a21; /* The codemirror positive color */
+    --nf-codemirror-bracket: #93937c; /* The codemirror bracket color */
+    --nf-codemirror-keyword: #6800ab; /* The codemirror keyword color */
+    --nf-codemirror-error-background-color: #ff8094; /* The codemirror error background color */
+    --nf-codemirror-error-color: rgba(0, 0, 0, 0); /* The codemirror error text color */
+    --nf-codemirror-link: #0000ce; /* The codemirror link color */
+    --nf-codemirror-invalidchar: #ff0000; /* The codemirror invalid character color */
+    --nf-codemirror-operator: #0083b9; /* The codemirror operator color */
+    --nf-codemirror-variable: #000; /* The codemirror variable color */
+    --nf-codemirror-variable-2: #0054a6; /* The codemirror variable 2 color */
+    --nf-codemirror-variable-3: #ad0007; /* The codemirror variable 3 color */
+    --nf-codemirror-builtin: #3400ad; /* The codemirror builtin color */
+    --nf-codemirror-atom: #bd2b00; /* The codemirror atom color */
+    --nf-codemirror-number: #c20021; /* The codemirror number color */
+    --nf-codemirror-def: #0553f8; /* The codemirror definition color */
+    --nf-codemirror-string: #ec000c; /* The codemirror string color */
+    --nf-codemirror-string2: #ec000c; /* The codemirror string 2 color */
+    --nf-codemirror-comment: #545454; /* The codemirror comment color */
+    --nf-codemirror-tag: #f8052e; /* The codemirror tag color */
+    --nf-codemirror-nonmatchingbracket: #a62020; /* The codemirror non matching bracket color */
+    --nf-codemirror-matchingtag: rgba(255, 150, 0, 0.3); /* The codemirror matching tag color */
+    --nf-codemirror-activeline-background: rgba(0, 0, 0, 0.5); /* The codemirror active line background color */
+    --nf-prism-language-color: #ec000c; /* The prism language color */
+    --nf-prism-token-comment: #545454; /* The prism token comment color */
+    --nf-prism-token-punctuation: #6800ab; /* The prism token punctuation color */
+    --nf-prism-token-constant: #ec000c; /* The prism token constant color */
+    --nf-prism-token-function: #000000; /* The prism token function color */
 
-$tertiary: (
-    0: #000000,
-    10: #004d40,
-    20: #00695c,
-    25: #00796b,
-    30: #00897b,
-    35: #009688,
-    40: #26a69a,
-    50: #4db6ac,
-    60: #80cbc4,
-    70: #b2dfdb,
-    80: #e0f2f1,
-    90: #e0f2f1,
-    95: #e0f2f1,
-    98: #e0f2f1,
-    99: #e0f2f1,
-    100: #ffffff
-);
-
-$error: (
-    0: #000000,
-    10: #000000,
-    20: #000000,
-    25: #a8372a,
-    30: #ba554a,
-    35: #ba554a,
-    40: #ba554a,
-    50: #eb7071,
-    60: #eb7071,
-    70: #eb7071,
-    80: #eb7071,
-    90: #f49999,
-    95: #f49999,
-    98: #ffccd2,
-    99: #ffccd2,
-    100: #ffffff
-);
-
-$neutral: (
-    0: #000000,
-    4: #121212,
-    6: #303030,
-    10: #303030,
-    12: #303030,
-    17: #303030,
-    20: #444444,
-    22: #444444,
-    24: #444444,
-    25: #666666,
-    30: #666666,
-    35: #666666,
-    40: #82878d,
-    50: #82878d,
-    60: #82878d,
-    70: #d8d8d8,
-    80: #d8d8d8,
-    87: #d8d8d8,
-    90: #e3e3e3,
-    92: #e3e3e3,
-    94: #f4f4f4,
-    95: #f4f4f4,
-    96: #f4f4f4,
-    98: #fafafa,
-    99: #fafafa,
-    100: #ffffff
-);
-
-$neutral-variant: (
-    0: #000000,
-    10: #666666,
-    20: #666666,
-    25: #666666,
-    30: #666666,
-    35: #666666,
-    40: #acacac,
-    50: #d8d8d8,
-    60: #d8d8d8,
-    70: #d8d8d8,
-    80: #d8d8d8,
-    90: #e3e3e3,
-    95: #f4f4f4,
-    98: #fafafa,
-    99: #fafafa,
-    100: #ffffff
-);
-
-$m3-material-primary-light-palette: (
-    primary: $primary,
-    secondary: $secondary,
-    tertiary: $tertiary,
-    neutral: $neutral,
-    neutral-variant: $neutral-variant,
-    error: $error
-);
-
-$m3-material-primary-dark-palette: (
-    primary: $primary,
-    secondary: $secondary,
-    tertiary: $tertiary,
-    neutral: $neutral,
-    neutral-variant: $neutral-variant,
-    error: $error
-);
-
-// Define a dark theme
-$_dark-theme-rest: (
-    secondary: map.get($m3-material-primary-dark-palette, secondary),
-    neutral: map.get($m3-material-primary-dark-palette, neutral),
-    neutral-variant: map.get($m3-material-primary-dark-palette, neutral-variant),
-    error: map.get($m3-material-primary-dark-palette, error)
-);
-$_dark-theme-primary: map.merge(map.get($m3-material-primary-dark-palette, primary), $_dark-theme-rest);
-$_dark-theme-tertiary: map.merge(map.get($m3-material-primary-dark-palette, tertiary), $_dark-theme-rest);
-
-$m3-dark-theme: mat.define-theme(
-    (
-        color: (
-            theme-type: dark,
-            primary: $_dark-theme-primary,
-            tertiary: $_dark-theme-tertiary
-        ),
-        typography: (
-            plain-family: Comic Sans MS,
-            brand-family: Comic Sans MS,
-            bold-weight: 700,
-            regular-weight: 400
-        ),
-        density: (
-            scale: -3
+    @include mat.theme-overrides(
+        (
+            primary: var(--md-ref-palette-primary-40),
+            on-primary: var(--md-ref-palette-primary-100),
+            primary-container: var(--md-ref-palette-neutral-90),
+            on-primary-container: var(--md-ref-palette-primary-40),
+            inverse-primary: var(--md-ref-palette-primary-40),
+            primary-fixed: var(--md-ref-palette-primary-40),
+            primary-fixed-dim: var(--md-ref-palette-primary-40),
+            on-primary-fixed: var(--md-ref-palette-primary-100),
+            on-primary-fixed-variant: var(--md-ref-palette-primary-100),
+            secondary: var(--md-ref-palette-secondary-40),
+            on-secondary: var(--md-ref-palette-secondary-100),
+            secondary-container: var(--md-ref-palette-secondary-80),
+            on-secondary-container: var(--md-ref-palette-neutral-10),
+            secondary-fixed: var(--md-ref-palette-secondary-50),
+            secondary-fixed-dim: var(--md-ref-palette-secondary-50),
+            on-secondary-fixed: var(--md-ref-palette-secondary-0),
+            on-secondary-fixed-variant: var(--md-ref-palette-secondary-0),
+            tertiary: var(--md-ref-palette-tertiary-40),
+            on-tertiary: var(--md-ref-palette-tertiary-0),
+            tertiary-container: var(--md-ref-palette-tertiary-80),
+            on-tertiary-container: var(--md-ref-palette-neutral-10),
+            tertiary-fixed: var(--md-ref-palette-tertiary-40),
+            tertiary-fixed-dim: var(--md-ref-palette-tertiary-40),
+            on-tertiary-fixed: var(--md-ref-palette-tertiary-100),
+            on-tertiary-fixed-variant: var(--md-ref-palette-tertiary-100),
+            background: var(--md-ref-palette-neutral-99),
+            on-background: var(--md-ref-palette-neutral-10),
+            surface: var(--md-ref-palette-neutral-100),
+            surface-dim: var(--md-ref-palette-neutral-90),
+            surface-bright: var(--md-ref-palette-neutral-100),
+            surface-container-lowest: var(--md-ref-palette-neutral-100),
+            surface-container-low: var(--md-ref-palette-neutral-95),
+            surface-container: var(--md-ref-palette-neutral-94),
+            surface-container-high: var(--md-ref-palette-neutral-92),
+            surface-container-highest: var(--md-ref-palette-neutral-90),
+            on-surface: var(--md-ref-palette-neutral-10),
+            shadow: var(--md-ref-palette-neutral-variant-0),
+            scrim: var(--md-ref-palette-neutral-variant-0),
+            surface-tint: var(--md-ref-palette-neutral-30),
+            inverse-surface: var(--md-ref-palette-neutral-10),
+            inverse-on-surface: var(--md-ref-palette-neutral-100),
+            outline: var(--md-ref-palette-neutral-70),
+            outline-variant: var(--md-ref-palette-neutral-variant-70),
+            neutral: var(--md-ref-palette-neutral-40),
+            neutral10: var(--md-ref-palette-neutral-20),
+            error: var(--md-ref-palette-error-40),
+            error-container: var(--md-ref-palette-error-40),
+            on-error: var(--md-ref-palette-error-100),
+            on-error-container: var(--md-ref-palette-error-100),
+            surface-variant: var(--md-ref-palette-neutral-variant-90),
+            on-surface-variant: var(--md-ref-palette-neutral-variant-30),
+            neutral-variant: var(--md-ref-palette-neutral-variant-40),
+            neutral-variant20: var(--md-ref-palette-neutral-variant-25),
+            inverse-secondary: var(--md-ref-palette-secondary-50),
+            inverse-tertiary: var(--md-ref-palette-tertiary-80)
         )
-    )
-);
+    );
 
-// Define a light theme
-$_light-theme-rest: (
-    secondary: map.get($m3-material-primary-light-palette, secondary),
-    neutral: map.get($m3-material-primary-light-palette, neutral),
-    neutral-variant: map.get($m3-material-primary-light-palette, neutral-variant),
-    error: map.get($m3-material-primary-light-palette, error)
-);
-$_light-theme-primary: map.merge(map.get($m3-material-primary-light-palette, primary), $_light-theme-rest);
-$_light-theme-tertiary: map.merge(map.get($m3-material-primary-light-palette, tertiary), $_light-theme-rest);
-
-$m3-light-theme: mat.define-theme(
-    (
-        color: (
-            theme-type: light,
-            primary: $_light-theme-primary,
-            tertiary: $_light-theme-tertiary
-        ),
-        typography: (
-            plain-family: Comic Sans MS,
-            brand-family: Comic Sans MS,
-            bold-weight: 700,
-            regular-weight: 400
-        ),
-        density: (
-            scale: -3
+    @include mat.snack-bar-overrides(
+        (
+            button-color: var(--md-ref-palette-secondary-80)
         )
-    )
-);
+    );
 
-$m3-light-theme-config: (
+    .tertiary-checkbox {
+        @include mat.checkbox-overrides(
+            (
+                selected-icon-color: var(--md-ref-palette-tertiary-40)
+            )
+        );
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-overrides(
+            (
+                icon-color: var(--md-ref-palette-primary-40)
+            )
+        );
+    }
+
+    .error-button {
+        @include mat.button-overrides(
+            (
+                filled-container-color: var(--md-ref-palette-error-40),
+                filled-label-text-color: var(--md-ref-palette-error-100)
+            )
+        );
+    }
+
+    .tertiary-spinner {
+        @include mat.progress-spinner-overrides(
+            (
+                active-indicator-color: var(--md-ref-palette-tertiary-40)
+            )
+        );
+    }
+}
+
+// Note: Color palettes are generated from primary: #6750a4
+$_palettes: (
     primary: (
-        default: 40,
-        contrast: #ffffff
+        0: var(--md-ref-palette-primary-0),
+        10: var(--md-ref-palette-primary-10),
+        20: var(--md-ref-palette-primary-20),
+        25: var(--md-ref-palette-primary-25),
+        30: var(--md-ref-palette-primary-30),
+        35: var(--md-ref-palette-primary-35),
+        40: var(--md-ref-palette-primary-40),
+        50: var(--md-ref-palette-primary-50),
+        60: var(--md-ref-palette-primary-60),
+        70: var(--md-ref-palette-primary-70),
+        80: var(--md-ref-palette-primary-80),
+        90: var(--md-ref-palette-primary-90),
+        95: var(--md-ref-palette-primary-95),
+        98: var(--md-ref-palette-primary-98),
+        99: var(--md-ref-palette-primary-99),
+        100: var(--md-ref-palette-primary-100)
     ),
     secondary: (
-        default: 50,
-        contrast: #ffffff,
-        opacity: 0.6,
-        new-canvas-item: (
-            grip: #ffffff,
-            hover: #000000
-        )
+        0: var(--md-ref-palette-secondary-0),
+        10: var(--md-ref-palette-secondary-10),
+        20: var(--md-ref-palette-secondary-20),
+        25: var(--md-ref-palette-secondary-25),
+        30: var(--md-ref-palette-secondary-30),
+        35: var(--md-ref-palette-secondary-35),
+        40: var(--md-ref-palette-secondary-40),
+        50: var(--md-ref-palette-secondary-50),
+        60: var(--md-ref-palette-secondary-60),
+        70: var(--md-ref-palette-secondary-70),
+        80: var(--md-ref-palette-secondary-80),
+        90: var(--md-ref-palette-secondary-90),
+        95: var(--md-ref-palette-secondary-95),
+        98: var(--md-ref-palette-secondary-98),
+        99: var(--md-ref-palette-secondary-99),
+        100: var(--md-ref-palette-secondary-100)
     ),
     tertiary: (
-        default: 40,
-        variant: 90
-    ),
-    success: (
-        default: #31975b,
-        variant: #1390ca
-    ),
-    alternate-surface: #ffffff,
-    caution: (
-        default: #cf9338,
-        contrast: #ffffff
+        0: var(--md-ref-palette-tertiary-0),
+        10: var(--md-ref-palette-tertiary-10),
+        20: var(--md-ref-palette-tertiary-20),
+        25: var(--md-ref-palette-tertiary-25),
+        30: var(--md-ref-palette-tertiary-30),
+        35: var(--md-ref-palette-tertiary-35),
+        40: var(--md-ref-palette-tertiary-40),
+        50: var(--md-ref-palette-tertiary-50),
+        60: var(--md-ref-palette-tertiary-60),
+        70: var(--md-ref-palette-tertiary-70),
+        80: var(--md-ref-palette-tertiary-80),
+        90: var(--md-ref-palette-tertiary-90),
+        95: var(--md-ref-palette-tertiary-95),
+        98: var(--md-ref-palette-tertiary-98),
+        99: var(--md-ref-palette-tertiary-99),
+        100: var(--md-ref-palette-tertiary-100)
     ),
     neutral: (
-        darker: 4,
-        default: 35,
-        lighter: 99,
-        disabled: 80,
-        contrast: #000000
+        0: var(--md-ref-palette-neutral-0),
+        4: var(--md-ref-palette-neutral-4),
+        6: var(--md-ref-palette-neutral-6),
+        10: var(--md-ref-palette-neutral-10),
+        12: var(--md-ref-palette-neutral-12),
+        17: var(--md-ref-palette-neutral-17),
+        20: var(--md-ref-palette-neutral-20),
+        22: var(--md-ref-palette-neutral-22),
+        24: var(--md-ref-palette-neutral-24),
+        25: var(--md-ref-palette-neutral-25),
+        30: var(--md-ref-palette-neutral-30),
+        35: var(--md-ref-palette-neutral-35),
+        40: var(--md-ref-palette-neutral-40),
+        50: var(--md-ref-palette-neutral-50),
+        60: var(--md-ref-palette-neutral-60),
+        70: var(--md-ref-palette-neutral-70),
+        80: var(--md-ref-palette-neutral-80),
+        87: var(--md-ref-palette-neutral-87),
+        90: var(--md-ref-palette-neutral-90),
+        92: var(--md-ref-palette-neutral-92),
+        94: var(--md-ref-palette-neutral-94),
+        95: var(--md-ref-palette-neutral-95),
+        96: var(--md-ref-palette-neutral-96),
+        98: var(--md-ref-palette-neutral-98),
+        99: var(--md-ref-palette-neutral-99),
+        100: var(--md-ref-palette-neutral-100)
     ),
-    neutral-variant: 50,
+    neutral-variant: (
+        0: var(--md-ref-palette-neutral-variant-0),
+        10: var(--md-ref-palette-neutral-variant-10),
+        20: var(--md-ref-palette-neutral-variant-20),
+        25: var(--md-ref-palette-neutral-variant-25),
+        30: var(--md-ref-palette-neutral-variant-30),
+        35: var(--md-ref-palette-neutral-variant-35),
+        40: var(--md-ref-palette-neutral-variant-40),
+        50: var(--md-ref-palette-neutral-variant-50),
+        60: var(--md-ref-palette-neutral-variant-60),
+        70: var(--md-ref-palette-neutral-variant-70),
+        80: var(--md-ref-palette-neutral-variant-80),
+        90: var(--md-ref-palette-neutral-variant-90),
+        95: var(--md-ref-palette-neutral-variant-95),
+        98: var(--md-ref-palette-neutral-variant-98),
+        99: var(--md-ref-palette-neutral-variant-99),
+        100: var(--md-ref-palette-neutral-variant-100)
+    ),
     error: (
-        variant: 50,
-        default: 40,
-        contrast: #ffffff
+        0: var(--md-ref-palette-error-0),
+        10: var(--md-ref-palette-error-10),
+        20: var(--md-ref-palette-error-20),
+        25: var(--md-ref-palette-error-25),
+        30: var(--md-ref-palette-error-30),
+        35: var(--md-ref-palette-error-35),
+        40: var(--md-ref-palette-error-40),
+        50: var(--md-ref-palette-error-50),
+        60: var(--md-ref-palette-error-60),
+        70: var(--md-ref-palette-error-70),
+        80: var(--md-ref-palette-error-80),
+        90: var(--md-ref-palette-error-90),
+        95: var(--md-ref-palette-error-95),
+        98: var(--md-ref-palette-error-98),
+        99: var(--md-ref-palette-error-99),
+        100: var(--md-ref-palette-error-100)
     )
 );
 
-$m3-dark-theme-config: (
-    primary: (
-        default: 40,
-        contrast: #000000
-    ),
-    secondary: (
-        default: 40,
-        contrast: #ffffff,
-        opacity: 0.5,
-        new-canvas-item: (
-            grip: #000000,
-            hover: #000000
-        )
-    ),
-    tertiary: (
-        variant: 10,
-        default: 70
-    ),
-    success: (
-        default: #31975b,
-        variant: #1390ca
-    ),
-    alternate-surface: #444444,
-    caution: (
-        default: #cf9338,
-        contrast: #ffffff
-    ),
-    neutral: (
-        darker: 10,
-        default: 40,
-        lighter: 96,
-        disabled: 90,
-        contrast: #ffffff
-    ),
-    neutral-variant: 35,
-    error: (
-        variant: 90,
-        default: 50,
-        contrast: #ffffff
-    )
+$_rest: (
+    secondary: map.get($_palettes, secondary),
+    neutral: map.get($_palettes, neutral),
+    neutral-variant: map.get($_palettes, neutral-variant),
+    error: map.get($_palettes, error)
 );
+
+$primary-palette: map.merge(map.get($_palettes, primary), $_rest);
+$tertiary-palette: map.merge(map.get($_palettes, tertiary), $_rest);
+
+@include mat.app-background();
+
+/* Light Theme */
+html {
+    color-scheme: light;
+    @include mat.theme(
+        (
+            color: (
+                primary: $primary-palette,
+                tertiary: $tertiary-palette
+            ),
+            typography: (
+                plain-family: var(--md-ref-typeface-plain),
+                brand-family: var(--md-ref-typeface-brand),
+                bold-weight: var(--md-ref-typeface-weight-bold),
+                regular-weight: var(--md-ref-typeface-weight-regular)
+            ),
+            density: (
+                scale: -3
+            )
+        )
+    );
+}
+
+/* Light Theme */
+html {
+    color-scheme: light;
+}
+
+/* Dark Theme */
+.darkMode {
+    --md-ref-palette-error-0: #000000; /* Error 0 */
+    --md-ref-palette-error-10: #000000; /* Error 10 */
+    --md-ref-palette-error-20: #000000; /* Error 20 */
+    --md-ref-palette-error-25: #a8372a; /* Error 25 */
+    --md-ref-palette-error-30: #ba554a; /* Error 30 */
+    --md-ref-palette-error-35: #ba554a; /* Error 35 */
+    --md-ref-palette-error-40: #ba554a; /* Error 40 */
+    --md-ref-palette-error-50: #eb7071; /* Error 50 */
+    --md-ref-palette-error-60: #eb7071; /* Error 60 */
+    --md-ref-palette-error-70: #eb7071; /* Error 70 */
+    --md-ref-palette-error-80: #eb7071; /* Error 80 */
+    --md-ref-palette-error-90: #f49999; /* Error 90 */
+    --md-ref-palette-error-95: #f49999; /* Error 95 */
+    --md-ref-palette-error-98: #ffccd2; /* Error 98 */
+    --md-ref-palette-error-99: #ffccd2; /* Error 99 */
+    --md-ref-palette-error-100: #ffffff; /* Error 100 */
+    --md-ref-palette-tertiary-0: #000000; /* Tertiary 0 */
+    --md-ref-palette-tertiary-10: #004d40; /* Tertiary 10 */
+    --md-ref-palette-tertiary-20: #00695c; /* Tertiary 20 */
+    --md-ref-palette-tertiary-25: #00796b; /* Tertiary 25 */
+    --md-ref-palette-tertiary-30: #00897b; /* Tertiary 30 */
+    --md-ref-palette-tertiary-35: #009688; /* Tertiary 35 */
+    --md-ref-palette-tertiary-40: #26a69a; /* Tertiary 40 */
+    --md-ref-palette-tertiary-50: #4db6ac; /* Tertiary 50 */
+    --md-ref-palette-tertiary-60: #80cbc4; /* Tertiary 60 */
+    --md-ref-palette-tertiary-70: #b2dfdb; /* Tertiary 70 */
+    --md-ref-palette-tertiary-80: #e0f2f1; /* Tertiary 80 */
+    --md-ref-palette-tertiary-90: #e0f2f1; /* Tertiary 90 */
+    --md-ref-palette-tertiary-95: #e0f2f1; /* Tertiary 95 */
+    --md-ref-palette-tertiary-98: #e0f2f1; /* Tertiary 98 */
+    --md-ref-palette-tertiary-99: #e0f2f1; /* Tertiary 99 */
+    --md-ref-palette-tertiary-100: #ffffff; /* Tertiary 100 */
+    --md-ref-palette-secondary-0: #000000; /* Secondary 0 */
+    --md-ref-palette-secondary-10: #311b92; /* Secondary 10 */
+    --md-ref-palette-secondary-20: #4527a0; /* Secondary 20 */
+    --md-ref-palette-secondary-25: #512da8; /* Secondary 25 */
+    --md-ref-palette-secondary-30: #5e35b1; /* Secondary 30 */
+    --md-ref-palette-secondary-35: #673ab7; /* Secondary 35 */
+    --md-ref-palette-secondary-40: #7e57c2; /* Secondary 40 */
+    --md-ref-palette-secondary-50: #9575cd; /* Secondary 50 */
+    --md-ref-palette-secondary-60: #b39ddb; /* Secondary 60 */
+    --md-ref-palette-secondary-70: #d1c4e9; /* Secondary 70 */
+    --md-ref-palette-secondary-80: #ede7f6; /* Secondary 80 */
+    --md-ref-palette-secondary-90: #ede7f6; /* Secondary 90 */
+    --md-ref-palette-secondary-95: #ede7f6; /* Secondary 95 */
+    --md-ref-palette-secondary-98: #ede7f6; /* Secondary 98 */
+    --md-ref-palette-secondary-99: #ede7f6; /* Secondary 99 */
+    --md-ref-palette-secondary-100: #ffffff; /* Secondary 100 */
+    --md-ref-palette-primary-0: #000000; /* Primary 0 */
+    --md-ref-palette-primary-10: #311b92; /* Primary 10 */
+    --md-ref-palette-primary-20: #4527a0; /* Primary 20 */
+    --md-ref-palette-primary-25: #512da8; /* Primary 25 */
+    --md-ref-palette-primary-30: #5e35b1; /* Primary 30 */
+    --md-ref-palette-primary-35: #673ab7; /* Primary 35 */
+    --md-ref-palette-primary-40: #7e57c2; /* Primary 40 */
+    --md-ref-palette-primary-50: #9575cd; /* Primary 50 */
+    --md-ref-palette-primary-60: #b39ddb; /* Primary 60 */
+    --md-ref-palette-primary-70: #d1c4e9; /* Primary 70 */
+    --md-ref-palette-primary-80: #ede7f6; /* Primary 80 */
+    --md-ref-palette-primary-90: #ede7f6; /* Primary 90 */
+    --md-ref-palette-primary-95: #ede7f6; /* Primary 95 */
+    --md-ref-palette-primary-98: #ede7f6; /* Primary 98 */
+    --md-ref-palette-primary-99: #ede7f6; /* Primary 99 */
+    --md-ref-palette-primary-100: #ffffff; /* Primary 100 */
+    --md-ref-palette-neutral-variant-0: #000000; /* Neutral Variant 0 */
+    --md-ref-palette-neutral-variant-10: #303030; /* Neutral Variant 10 */
+    --md-ref-palette-neutral-variant-20: #444444; /* Neutral Variant 20 */
+    --md-ref-palette-neutral-variant-25: #666666; /* Neutral Variant 25 */
+    --md-ref-palette-neutral-variant-30: #666666; /* Neutral Variant 30 */
+    --md-ref-palette-neutral-variant-35: #666666; /* Neutral Variant 35 */
+    --md-ref-palette-neutral-variant-40: #666666; /* Neutral Variant 40 */
+    --md-ref-palette-neutral-variant-50: #666666; /* Neutral Variant 50 */
+    --md-ref-palette-neutral-variant-60: #666666; /* Neutral Variant 60 */
+    --md-ref-palette-neutral-variant-70: #acacac; /* Neutral Variant 70 */
+    --md-ref-palette-neutral-variant-80: #d8d8d8; /* Neutral Variant 80 */
+    --md-ref-palette-neutral-variant-90: #e3e3e3; /* Neutral Variant 90 */
+    --md-ref-palette-neutral-variant-95: #f4f4f4; /* Neutral Variant 95 */
+    --md-ref-palette-neutral-variant-98: #fafafa; /* Neutral Variant 98 */
+    --md-ref-palette-neutral-variant-99: #fafafa; /* Neutral Variant 99 */
+    --md-ref-palette-neutral-variant-100: #ffffff; /* Neutral Variant 100 */
+    --md-ref-palette-neutral-0: #0000001f; /* Neutral 0 */
+    --md-ref-palette-neutral-4: #303030; /* Neutral 4 */
+    --md-ref-palette-neutral-6: #303030; /* Neutral 6 */
+    --md-ref-palette-neutral-10: #303030; /* Neutral 10 */
+    --md-ref-palette-neutral-12: #444444; /* Neutral 12 */
+    --md-ref-palette-neutral-17: #444444; /* Neutral 17 */
+    --md-ref-palette-neutral-20: #444444; /* Neutral 20 */
+    --md-ref-palette-neutral-22: #444444; /* Neutral 22 */
+    --md-ref-palette-neutral-24: #444444; /* Neutral 24 */
+    --md-ref-palette-neutral-25: #666666; /* Neutral 25 */
+    --md-ref-palette-neutral-30: #666666; /* Neutral 30 */
+    --md-ref-palette-neutral-35: #666666; /* Neutral 35 */
+    --md-ref-palette-neutral-40: #acacac; /* Neutral 40 */
+    --md-ref-palette-neutral-50: #acacac; /* Neutral 50 */
+    --md-ref-palette-neutral-60: #acacac; /* Neutral 60 */
+    --md-ref-palette-neutral-70: #cccccc; /* Neutral 70 */
+    --md-ref-palette-neutral-80: #d8d8d8; /* Neutral 80 */
+    --md-ref-palette-neutral-87: #d8d8d8; /* Neutral 87 */
+    --md-ref-palette-neutral-90: #e3e3e3; /* Neutral 90 */
+    --md-ref-palette-neutral-92: #e3e3e3; /* Neutral 92 */
+    --md-ref-palette-neutral-94: #e3e3e3; /* Neutral 94 */
+    --md-ref-palette-neutral-95: #f4f4f4; /* Neutral 95 */
+    --md-ref-palette-neutral-96: #f4f4f4; /* Neutral 96 */
+    --md-ref-palette-neutral-98: #fafafa; /* Neutral 98 */
+    --md-ref-palette-neutral-99: #fafafa; /* Neutral 99 */
+    --md-ref-palette-neutral-100: #ffffff; /* Neutral 100 */
+    --md-ref-typeface-plain: Comic Sans MS; /* Plain typeface */
+    --md-ref-typeface-brand: Comic Sans MS; /* Brand typeface */
+    --md-ref-typeface-weight-bold: 700; /* Bold weight */
+    --md-ref-typeface-weight-medium: 500; /* Medium weight */
+    --md-ref-typeface-weight-regular: 400; /* Regular weight */
+
+    /* Nifi Dark mode. Use these variables when applying colors to elements */
+    --nf-success-default: #31975b; /* The success color  */
+    --nf-success-variant: #1390ca; /* The success variant color  */
+    --nf-success-contrast: #ffffff; /* The success contrast color */
+    --nf-caution-default: #cf9338; /* The caution color  */
+    --nf-caution-contrast: #ffffff; /* The caution contrast color */
+    --nf-neutral: #acacac; /* The neutral color  */
+    --nf-disabled: #cccccc; /* The color to use for disabled */
+    --nf-error-variant: #f49999; /* The stopped run status color  */
+    --nf-new-canvas-item-grip: #000000; /* The new canvas item grip color  */
+    --nf-new-canvas-item-hover: #ffffff; /* The new canvas item hover color  */
+    --nf-resizable-triangle: rgba(18, 18, 18, 0.2); /* The color of the resize handle */
+    --nf-banner: #f4f4f414; /* The banner row color */
+    --nf-odd: #f4f4f406; /* The odd background color */
+    --nf-even: #303030; /* The even background color */
+    --nf-text-shadow: 0 0 4px rgba(0, 0, 0, 1); /* The text shadow color */
+    --nf-zero-opactiy: 0.5; /* The zero opacity color */
+    --nf-connection-drop-shadow: black; /* The connection drop shadow color */
+    --nf-canvas-background: #0d1411; /* The canvas background color */
+    --nf-canvas-border-stroke-width: 2; /* The canvas border stroke width */
+    --nf-codemirror-gutters: #3b3b3b; /* The codemirror gutters color */
+    --nf-codemirror-linenumber: #bbbbbb; /* The codemirror line number color */
+    --nf-codemirror-selection: rgba(128, 203, 196, 0.2); /* The codemirror selection color */
+    --nf-codemirror-header: #b8b8ff; /* The codemirror header color */
+    --nf-codemirror-quote: #6bfd6b; /* The codemirror quote color */
+    --nf-codemirror-negative: #fc9797; /* The codemirror negative color */
+    --nf-codemirror-positive: #8cfd8c; /* The codemirror positive color */
+    --nf-codemirror-bracket: #93937c; /* The codemirror bracket color */
+    --nf-codemirror-keyword: #c792ea; /* The codemirror keyword color */
+    --nf-codemirror-error-background-color: #ff002a; /* The codemirror error background color */
+    --nf-codemirror-error-color: rgba(255, 255, 255, 1); /* The codemirror error text color */
+    --nf-codemirror-link: #8e8ef6; /* The codemirror link color */
+    --nf-codemirror-invalidchar: #ff9c9c; /* The codemirror invalid character color */
+    --nf-codemirror-operator: #89ddff; /* The codemirror operator color */
+    --nf-codemirror-variable: #fff; /* The codemirror variable color */
+    --nf-codemirror-variable-2: #72b6fc; /* The codemirror variable 2 color */
+    --nf-codemirror-variable-3: #f07178; /* The codemirror variable 3 color */
+    --nf-codemirror-builtin: #a280f3; /* The codemirror builtin color */
+    --nf-codemirror-atom: #f78c6c; /* The codemirror atom color */
+    --nf-codemirror-number: #fd758c; /* The codemirror number color */
+    --nf-codemirror-def: #82aaff; /* The codemirror definition color */
+    --nf-codemirror-string: #f07178; /* The codemirror string color */
+    --nf-codemirror-string2: #f07178; /* The codemirror string 2 color */
+    --nf-codemirror-comment: #d7d7d7; /* The codemirror comment color */
+    --nf-codemirror-tag: #fc768d; /* The codemirror tag color */
+    --nf-codemirror-nonmatchingbracket: #a62020; /* The codemirror non matching bracket color */
+    --nf-codemirror-matchingtag: rgba(255, 150, 0, 0.97); /* The codemirror matching tag color */
+    --nf-codemirror-activeline-background: rgba(255, 255, 255, 0.5); /* The codemirror active line background color */
+    --nf-prism-language-color: #f07178; /* The prism language color */
+    --nf-prism-token-comment: #545454; /* The prism token comment color */
+    --nf-prism-token-punctuation: #c792ea; /* The prism token punctuation color */
+    --nf-prism-token-constant: #f07178; /* The prism token constant color */
+    --nf-prism-token-function: #ffffff; /* The prism token function color */
+
+    color-scheme: dark;
+
+    @include mat.theme-overrides(
+        (
+            primary: var(--md-ref-palette-primary-80),
+            on-primary: var(--md-ref-palette-primary-0),
+            primary-container: var(--md-ref-palette-neutral-30),
+            on-primary-container: var(--md-ref-palette-primary-80),
+            inverse-primary: var(--md-ref-palette-primary-80),
+            primary-fixed: var(--md-ref-palette-primary-80),
+            primary-fixed-dim: var(--md-ref-palette-primary-80),
+            on-primary-fixed: var(--md-ref-palette-primary-0),
+            on-primary-fixed-variant: var(--md-ref-palette-primary-0),
+            secondary: var(--md-ref-palette-secondary-40),
+            on-secondary: var(--md-ref-palette-secondary-0),
+            secondary-container: var(--md-ref-palette-secondary-40),
+            on-secondary-container: var(--md-ref-palette-secondary-0),
+            secondary-fixed: var(--md-ref-palette-secondary-40),
+            secondary-fixed-dim: var(--md-ref-palette-secondary-40),
+            on-secondary-fixed: var(--md-ref-palette-secondary-0),
+            on-secondary-fixed-variant: var(--md-ref-palette-secondary-0),
+            tertiary: var(--md-ref-palette-tertiary-60),
+            on-tertiary: var(--md-ref-palette-tertiary-0),
+            tertiary-container: var(--md-ref-palette-tertiary-10),
+            on-tertiary-container: var(--md-ref-palette-neutral-90),
+            tertiary-fixed: var(--md-ref-palette-tertiary-60),
+            tertiary-fixed-dim: var(--md-ref-palette-tertiary-60),
+            on-tertiary-fixed: var(--md-ref-palette-tertiary-0),
+            on-tertiary-fixed-variant: var(--md-ref-palette-tertiary-0),
+            background: var(--md-ref-palette-neutral-4),
+            on-background: var(--md-ref-palette-neutral-90),
+            surface: var(--md-ref-palette-neutral-12),
+            surface-dim: var(--md-ref-palette-neutral-4),
+            surface-bright: var(--md-ref-palette-neutral-12),
+            surface-container-lowest: var(--md-ref-palette-neutral-variant-0),
+            surface-container-low: var(--md-ref-palette-neutral-4),
+            surface-container: var(--md-ref-palette-neutral-12),
+            surface-container-high: var(--md-ref-palette-neutral-12),
+            surface-container-highest: var(--md-ref-palette-neutral-30),
+            on-surface: var(--md-ref-palette-neutral-90),
+            shadow: var(--md-ref-palette-neutral-variant-0),
+            scrim: var(--md-ref-palette-neutral-variant-0),
+            surface-tint: var(--md-ref-palette-neutral-30),
+            inverse-surface: var(--md-ref-palette-neutral-90),
+            inverse-on-surface: var(--md-ref-palette-neutral-variant-0),
+            outline: var(--md-ref-palette-neutral-30),
+            outline-variant: var(--md-ref-palette-neutral-30),
+            neutral: var(--md-ref-palette-neutral-60),
+            neutral10: var(--md-ref-palette-neutral-90),
+            error: var(--md-ref-palette-error-50),
+            error-container: var(--md-ref-palette-error-50),
+            on-error: var(--md-ref-palette-error-100),
+            on-error-container: var(--md-ref-palette-error-100),
+            surface-variant: var(--md-ref-palette-neutral-variant-40),
+            on-surface-variant: var(--md-ref-palette-neutral-variant-90),
+            neutral-variant: var(--md-ref-palette-neutral-variant-70),
+            neutral-variant20: var(--md-ref-palette-neutral-variant-80),
+            inverse-secondary: var(--md-ref-palette-secondary-40),
+            inverse-tertiary: var(--md-ref-palette-tertiary-70)
+        )
+    );
+
+    @include mat.snack-bar-overrides(
+        (
+            button-color: #004849
+        )
+    );
+
+    .tertiary-checkbox {
+        @include mat.checkbox-overrides(
+            (
+                selected-icon-color: var(--md-ref-palette-tertiary-70)
+            )
+        );
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-overrides(
+            (
+                icon-color: var(--md-ref-palette-primary-80)
+            )
+        );
+    }
+
+    .error-button {
+        @include mat.button-overrides(
+            (
+                filled-container-color: var(--md-ref-palette-error-50),
+                filled-label-text-color: var(--md-ref-palette-error-100)
+            )
+        );
+    }
+
+    .tertiary-spinner {
+        @include mat.progress-spinner-overrides(
+            (
+                active-indicator-color: var(--md-ref-palette-tertiary-70)
+            )
+        );
+    }
+}

@@ -22,7 +22,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpParams } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Navigation } from '../navigation/navigation.component';
-import { isDefinedAndNotNull, selectRouteData } from '@nifi/shared';
+import { isDefinedAndNotNull, selectRouteData, SystemTokensService } from '@nifi/shared';
 import { AdvancedUiParams } from '../../../state/shared';
 import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/cluster-summary.selectors';
 
@@ -39,7 +39,8 @@ export class AdvancedUi {
 
     constructor(
         private store: Store<NiFiState>,
-        private domSanitizer: DomSanitizer
+        private domSanitizer: DomSanitizer,
+        protected systemTokensService: SystemTokensService
     ) {
         this.store
             .select(selectRouteData)

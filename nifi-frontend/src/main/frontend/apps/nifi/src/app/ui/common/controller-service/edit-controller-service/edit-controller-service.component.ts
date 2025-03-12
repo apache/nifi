@@ -42,7 +42,6 @@ import { ControllerServiceApi } from '../controller-service-api/controller-servi
 import { Observable, of } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
-import { ErrorBanner } from '../../error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
 import { PropertyVerification } from '../../property-verification/property-verification.component';
@@ -72,7 +71,6 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
         ControllerServiceReferences,
         AsyncPipe,
         NifiSpinnerDirective,
-        ErrorBanner,
         NifiTooltipDirective,
         PropertyVerification,
         ContextErrorBanner,
@@ -174,6 +172,7 @@ export class EditControllerService extends TabbedDialog {
             component: {
                 id: this.request.controllerService.id,
                 name: this.editControllerServiceForm.get('name')?.value,
+                bulletinLevel: this.editControllerServiceForm.get('bulletinLevel')?.value,
                 comments: this.editControllerServiceForm.get('comments')?.value
             }
         };

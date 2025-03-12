@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import jakarta.servlet.ServletContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder;
@@ -38,6 +39,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -54,9 +56,13 @@ public class TestApplicationResource {
     private static final String ACTUAL_RESOURCE = "actualResource";
     private static final String EXPECTED_URI = BASE_URI + ":" + PORT + ALLOWED_PATH + FORWARD_SLASH + ACTUAL_RESOURCE;
     private static final String MULTIPLE_ALLOWED_PATHS = String.join(",", ALLOWED_PATH, "another/path", "a/third/path");
+    private static final String ALLOWED_CONTEXT_PATHS = "allowedContextPaths";
 
     @Mock
     private HttpServletRequest request;
+
+    @Mock
+    private ServletContext servletContext;
 
     private MockApplicationResource resource;
 
@@ -68,6 +74,8 @@ public class TestApplicationResource {
         when(request.getScheme()).thenReturn(SCHEME);
         when(request.getServerName()).thenReturn(HOST);
         when(request.getServerPort()).thenReturn(PORT);
+
+        when(request.getServletContext()).thenReturn(servletContext);
 
         resource = new MockApplicationResource();
         resource.setHttpServletRequest(request);
@@ -156,6 +164,7 @@ public class TestApplicationResource {
 
     private void setNiFiProperties(Map<String, String> props) {
         resource.properties = new NiFiProperties(props);
+        when(servletContext.getInitParameter(eq(ALLOWED_CONTEXT_PATHS))).thenReturn(resource.properties.getAllowedContextPaths());
     }
 
     private static class MockApplicationResource extends ApplicationResource {

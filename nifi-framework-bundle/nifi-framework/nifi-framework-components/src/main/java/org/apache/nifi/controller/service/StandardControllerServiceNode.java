@@ -555,18 +555,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public boolean isValidationNecessary() {
-        switch (getState()) {
-            case DISABLED:
-            case DISABLING:
-                return true;
-            case ENABLING:
+        return switch (getState()) {
+            case DISABLED, DISABLING -> true;
+            case ENABLING ->
                 // If enabling and currently not valid, then we must trigger validation to occur. This allows the #enable method
                 // to continue running in the background and complete enabling when the service becomes valid.
-                return getValidationStatus() != ValidationStatus.VALID;
-            case ENABLED:
-            default:
-                return false;
-        }
+                    getValidationStatus() != ValidationStatus.VALID;
+            default -> false;
+        };
     }
 
     @Override

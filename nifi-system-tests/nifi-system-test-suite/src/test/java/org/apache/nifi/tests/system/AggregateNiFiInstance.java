@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.tests.system;
 
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 public class AggregateNiFiInstance implements NiFiInstance {
@@ -110,6 +112,12 @@ public class AggregateNiFiInstance implements NiFiInstance {
         }
 
         return instances.get(nodeIndex - 1);
+    }
+
+    @Override
+    public Optional<SSLContext> getSslContext() {
+        final NiFiInstance firstInstance = instances.getFirst();
+        return firstInstance.getSslContext();
     }
 
     @Override

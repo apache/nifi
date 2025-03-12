@@ -20,9 +20,11 @@
 .text-editor {
     @include mat.button-density(-1);
 
-    min-height: 220px;
-    min-width: 245px;
-    max-height: 100vh;
-    max-width: 100vw;
-    cursor: move;
+    & {
+        min-height: 220px;
+        min-width: 245px;
+        max-height: 100vh;
+        max-width: 100vw;
+        cursor: move;
+    }
 }

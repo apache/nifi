@@ -17,11 +17,11 @@
 package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
+import com.google.api.services.drive.model.User;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -51,27 +51,43 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK_DESC;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -89,7 +105,15 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
         @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
-        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC)})
+        @WritesAttribute(attribute = SIZE_AVAILABLE, description = SIZE_AVAILABLE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = CREATED_TIME, description = CREATED_TIME_DESC),
+        @WritesAttribute(attribute = MODIFIED_TIME, description = MODIFIED_TIME_DESC),
+        @WritesAttribute(attribute = PATH, description = PATH_DESC),
+        @WritesAttribute(attribute = OWNER, description = OWNER_DESC),
+        @WritesAttribute(attribute = LAST_MODIFYING_USER, description = LAST_MODIFYING_USER_DESC),
+        @WritesAttribute(attribute = WEB_VIEW_LINK, description = WEB_VIEW_LINK_DESC),
+        @WritesAttribute(attribute = WEB_CONTENT_LINK, description = WEB_CONTENT_LINK_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
@@ -158,7 +182,9 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET,
             RECORD_WRITER,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS)
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
+            CONNECT_TIMEOUT,
+            READ_TIMEOUT
     );
 
     private volatile Drive driveService;
@@ -177,14 +203,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             final GoogleDriveFileInfo entity,
             final ProcessContext context
     ) {
-        final Map<String, String> attributes = new HashMap<>();
-
-        for (GoogleDriveFlowFileAttribute attribute : GoogleDriveFlowFileAttribute.values()) {
-            Optional.ofNullable(attribute.getValue(entity))
-                    .ifPresent(value -> attributes.put(attribute.getName(), value));
-        }
-
-        return attributes;
+        return entity.toAttributeMap();
     }
 
     @OnScheduled
@@ -193,7 +212,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
-        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE_METADATA_READONLY);
+        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY);
     }
 
     @Override
@@ -240,52 +259,33 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append(buildQueryForDirs(driveService, folderId, recursive));
-        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.folder')");
-        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.shortcut')");
-        queryBuilder.append(" and trashed = false");
+        StringBuilder queryTemplateBuilder = new StringBuilder();
+        queryTemplateBuilder.append("('%s' in parents)");
+        queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_SHORTCUT_MIME_TYPE).append("')");
+        queryTemplateBuilder.append(" and trashed = false");
         if (minTimestamp != null && minTimestamp > 0) {
             String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
 
-            queryBuilder.append(" and (");
-            queryBuilder.append("modifiedTime >= '" + formattedMinTimestamp + "'");
-            queryBuilder.append(" or createdTime >= '" + formattedMinTimestamp + "'");
-            queryBuilder.append(")");
+            queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
+            queryTemplateBuilder.append(" or modifiedTime >= '").append(formattedMinTimestamp).append("'");
+            queryTemplateBuilder.append(" or createdTime >= '").append(formattedMinTimestamp).append( "'");
+            queryTemplateBuilder.append(")");
         }
         if (minAge != null && minAge > 0) {
             long maxTimestamp = System.currentTimeMillis() - minAge;
             String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
 
-            queryBuilder.append(" and modifiedTime < '" + formattedMaxTimestamp + "'");
-            queryBuilder.append(" and createdTime < '" + formattedMaxTimestamp + "'");
+            queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
+            queryTemplateBuilder.append(" or (modifiedTime < '").append(formattedMaxTimestamp).append("'");
+            queryTemplateBuilder.append(" and createdTime < '").append(formattedMaxTimestamp).append("')");
+            queryTemplateBuilder.append(")");
         }
 
-        String pageToken = null;
-        do {
-            FileList result = driveService.files()
-                    .list()
-                    .setSupportsAllDrives(true)
-                    .setIncludeItemsFromAllDrives(true)
-                    .setQ(queryBuilder.toString())
-                    .setPageToken(pageToken)
-                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
-                    .execute();
+        final String queryTemplate = queryTemplateBuilder.toString();
 
-            for (File file : result.getFiles()) {
-                GoogleDriveFileInfo.Builder builder = new GoogleDriveFileInfo.Builder()
-                        .id(file.getId())
-                        .fileName(file.getName())
-                        .size(file.getSize())
-                        .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
-                        .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
-                        .mimeType(file.getMimeType());
+        final String folderPath = urlEncode(getFolderName(folderId));
 
-                listing.add(builder.build());
-            }
-
-            pageToken = result.getNextPageToken();
-        } while (pageToken != null);
+        queryFolder(folderId, folderPath, queryTemplate, recursive, listing);
 
         return listing;
     }
@@ -295,55 +295,73 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
     }
 
-    private static String buildQueryForDirs(
-            final Drive service,
-            final String folderId,
-            boolean recursive
-    ) throws IOException {
-        StringBuilder queryBuilder = new StringBuilder("('")
-                .append(folderId)
-                .append("' in parents");
+    private String getFolderName(final String folderId) throws IOException {
+        final File folder = driveService
+                .files()
+                .get(folderId)
+                .setSupportsAllDrives(true)
+                .setFields("name, driveId")
+                .execute();
 
-        if (recursive) {
-            List<File> subDirectoryList = new LinkedList<>();
-
-            collectSubDirectories(service, folderId, subDirectoryList);
-
-            for (File subDirectory : subDirectoryList) {
-                queryBuilder.append(" or '")
-                        .append(subDirectory.getId())
-                        .append("' in parents");
-            }
+        if (folder.getDriveId() == null) {
+            return folder.getName();
+        } else {
+            return driveService
+                    .drives()
+                    .get(folderId)
+                    .setFields("name")
+                    .execute()
+                    .getName();
         }
-
-        queryBuilder.append(")");
-
-        return queryBuilder.toString();
     }
 
-    private static void collectSubDirectories(
-            final Drive service,
+    private void queryFolder(
             final String folderId,
-            final List<File> dirList
+            final String folderPath,
+            final String queryTemplate,
+            final boolean recursive,
+            final List<GoogleDriveFileInfo> listing
     ) throws IOException {
+        final List<File> subfolders = new ArrayList<>();
+
         String pageToken = null;
         do {
-            FileList directoryList = service.files()
+            final FileList result = driveService.files()
                     .list()
                     .setSupportsAllDrives(true)
                     .setIncludeItemsFromAllDrives(true)
-                    .setQ("'" + folderId + "' in parents "
-                            + "and mimeType = 'application/vnd.google-apps.folder'"
-                    )
+                    .setQ(String.format(queryTemplate, folderId))
                     .setPageToken(pageToken)
+                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType, owners, lastModifyingUser, webViewLink, webContentLink)")
                     .execute();
 
-            for (File directory : directoryList.getFiles()) {
-                dirList.add(directory);
-                collectSubDirectories(service, directory.getId(), dirList);
+            for (final File file : result.getFiles()) {
+                if (DRIVE_FOLDER_MIME_TYPE.equals(file.getMimeType())) {
+                    if (recursive) {
+                        subfolders.add(file);
+                    }
+                } else {
+                    final GoogleDriveFileInfo.Builder builder = createGoogleDriveFileInfoBuilder(file)
+                            .path(folderPath)
+                            .owner(Optional.ofNullable(file.getOwners()).filter(owners -> !owners.isEmpty()).map(List::getFirst).map(User::getDisplayName).orElse(null))
+                            .lastModifyingUser(Optional.ofNullable(file.getLastModifyingUser()).map(User::getDisplayName).orElse(null))
+                            .webViewLink(file.getWebViewLink())
+                            .webContentLink(file.getWebContentLink());
+
+                    listing.add(builder.build());
+                }
             }
 
-            pageToken = directoryList.getNextPageToken();
+            pageToken = result.getNextPageToken();
         } while (pageToken != null);
+
+        for (final File subfolder : subfolders) {
+            final String subfolderPath = folderPath + "/" + urlEncode(subfolder.getName());
+            queryFolder(subfolder.getId(), subfolderPath, queryTemplate, true, listing);
+        }
+    }
+
+    private String urlEncode(final String str) {
+        return URLEncoder.encode(str, StandardCharsets.UTF_8);
     }
 }

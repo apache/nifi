@@ -19,6 +19,7 @@ import inspect
 import logging
 import os
 import pkgutil
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -60,9 +61,11 @@ class ExtensionManager:
     processor_class_by_name = {}
     module_files_by_extension_type = {}
     dependency_directories = {}
+    astral_uv_installed = False
 
     def __init__(self, gateway):
         self.gateway = gateway
+        self.astral_uv_installed = self.__is_astral_uv_installed()
 
 
     def get_processor_details(self, classname, version):
@@ -301,6 +304,11 @@ class ExtensionManager:
         if len(dependency_references) > 0:
             python_cmd = os.getenv("PYTHON_CMD")
             args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir] + dependency_references
+
+            if self.astral_uv_installed:
+                uv_command = shutil.which("uv")
+                args = [uv_command, 'pip', 'install', '--no-cache', '--target', target_dir] + dependency_references
+
             logger.info(f"Installing dependencies {dependency_references} for {class_name} to {target_dir} using command {args}")
             result = subprocess.run(args)
 
@@ -315,6 +323,10 @@ class ExtensionManager:
         with open(completion_marker_file, "w") as file:
             file.write("True")
 
+
+    def __is_astral_uv_installed(self):
+        uv_command = shutil.which("uv")
+        return uv_command is not None
 
     def __load_extension_module(self, file, local_dependencies):
         # If there are any local dependencies (i.e., other python files in the same directory), load those modules first

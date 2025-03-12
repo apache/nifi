@@ -153,7 +153,7 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DBCP_SERVICE,
             SQL_PRE_QUERY,
-            SQL_SELECT_QUERY,
+            SQL_QUERY,
             SQL_POST_QUERY,
             QUERY_TIMEOUT,
             RECORD_WRITER_FACTORY,

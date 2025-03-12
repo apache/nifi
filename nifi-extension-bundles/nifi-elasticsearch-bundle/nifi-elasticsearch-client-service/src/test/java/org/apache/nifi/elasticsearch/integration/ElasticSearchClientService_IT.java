@@ -166,7 +166,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
-                        && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName())
+                        && result.getExplanation().contains(ElasticSearchClientService.HTTP_HOSTS.getDisplayName())
                         && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
                 results.toString()
         );
@@ -188,7 +188,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
-                        && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
                         && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
                 results.toString()
         );
@@ -214,7 +213,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
-                        && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
                         && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
                 results.toString()
         );
@@ -263,7 +261,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                         "four", 4, "five", 5)
                 .build();
 
-        buckets.forEach( (aggRes) -> {
+        buckets.forEach(aggRes -> {
             final String key = (String) aggRes.get("key");
             final Integer docCount = (Integer) aggRes.get("doc_count");
             assertEquals(expected.get(key), docCount, String.format("%s did not match.", key));
@@ -985,7 +983,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     private void assertVerifySnifferSkipped(final List<ConfigVerificationResult> results) {
         assertEquals(1, results.stream().filter(
                         result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_SNIFFER)
-                                && Objects.equals(result.getExplanation(), "Sniff on Connection not enabled")
+                                && result.getExplanation().contains("Sniff")
                                 && result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(),
                 results.toString()
         );

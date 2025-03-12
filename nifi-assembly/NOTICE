@@ -69,6 +69,13 @@ This includes derived works from Dropwizard Metrics available under Apache Softw
     nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JvmMetrics.java
     nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JmxJvmMetrics.java
 
+This product includes derived works from Google Guava (ASLv2 licensed)
+  Copyright 2011 The Guava Authors
+  The derived work is adapted from the class com.google.common.hash.Hashing:
+    https://github.com/google/guava/blob/master/guava/src/com/google/common/hash/Hashing.java
+  The derived work can be found in:
+    org.apache.nifi.controller.queue.clustered.partition.CorrelationAttributePartitioner
+
 ===========================================
 Apache Software License v2
 ===========================================

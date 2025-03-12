@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -41,7 +40,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.apache.nifi.registry.util.FileUtils;
-import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -180,12 +178,6 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertNotNull(createdBundleVersion.getVersionMetadata());
 
         return createdBundleVersion;
-    }
-
-    private String calculateSha256Hex(final String narFile) throws IOException {
-        try (final InputStream bundleInputStream = new FileInputStream(narFile)) {
-            return Hex.toHexString(DigestUtils.sha256(bundleInputStream));
-        }
     }
 
     private static Bucket createBucket(BucketClient bucketClient, int num) throws IOException, NiFiRegistryException {

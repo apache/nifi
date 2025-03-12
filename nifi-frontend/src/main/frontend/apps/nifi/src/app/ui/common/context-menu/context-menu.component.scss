@@ -16,6 +16,7 @@
  */
 
 div.context-menu {
+    box-shadow: var(--mat-sys-level3);
     user-select: none;
     display: flex;
     flex-direction: column;

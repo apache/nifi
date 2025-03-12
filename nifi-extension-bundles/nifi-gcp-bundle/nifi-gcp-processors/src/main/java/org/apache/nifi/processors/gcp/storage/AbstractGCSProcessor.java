@@ -17,12 +17,10 @@
 package org.apache.nifi.processors.gcp.storage;
 
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.api.gax.rpc.FixedHeaderProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -154,8 +152,6 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
         if (storageApiUrl != null && !storageApiUrl.isEmpty()) {
             storageOptionsBuilder.setHost(storageApiUrl);
-            // https://codelabs.developers.google.com/cloudnet-psc#12
-            storageOptionsBuilder.setHeaderProvider(FixedHeaderProvider.create(ImmutableMap.of("Host", "www.googleapis.com")));
         }
 
         return  storageOptionsBuilder.setTransportOptions(getTransportOptions(context)).build();

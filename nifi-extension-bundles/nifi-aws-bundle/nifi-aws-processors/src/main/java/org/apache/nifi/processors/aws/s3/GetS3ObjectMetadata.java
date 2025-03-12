@@ -20,13 +20,13 @@ package org.apache.nifi.processors.aws.s3;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
@@ -36,6 +36,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.s3.api.MetadataTarget;
+import org.apache.nifi.util.StringUtils;
 
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -49,27 +51,17 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Exists"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Check for the existence of a file in S3 without attempting to download it. This processor can be " +
-        "used as a router for work flows that need to check on a file in S3 before proceeding with data processing")
-@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class})
+@CapabilityDescription("Check for the existence of an Object in S3 and fetch its Metadata without attempting to download it. " +
+        "This processor can be used as a router for workflows that need to check on an Object in S3 before proceeding with data processing")
+@SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class, GetS3ObjectTags.class})
 public class GetS3ObjectMetadata extends AbstractS3Processor {
-
-    static final AllowableValue TARGET_ATTRIBUTES = new AllowableValue("ATTRIBUTES", "Attributes", """
-            When selected, the metadata will be written to FlowFile attributes with the prefix "s3." following the convention used in other processors. For example:
-            the standard S3 attribute Content-Type will be written as s3.Content-Type when using the default value. User-defined metadata
-            will be included in the attributes added to the FlowFile
-            """
-    );
-
-    static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("FLOWFILE_BODY", "FlowFile Body", "Write the metadata to FlowFile content as JSON data.");
-
     static final PropertyDescriptor METADATA_TARGET = new PropertyDescriptor.Builder()
             .name("Metadata Target")
             .description("This determines where the metadata will be written when found.")
             .addValidator(Validator.VALID)
             .required(true)
-            .allowableValues(TARGET_ATTRIBUTES, TARGET_FLOWFILE_BODY)
-            .defaultValue(TARGET_ATTRIBUTES)
+            .allowableValues(MetadataTarget.class)
+            .defaultValue(MetadataTarget.ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor ATTRIBUTE_INCLUDE_PATTERN = new PropertyDescriptor.Builder()
@@ -83,7 +75,11 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(".*")
-            .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTES)
+            .dependsOn(METADATA_TARGET, MetadataTarget.ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder().fromPropertyDescriptor(AbstractS3Processor.VERSION_ID)
+            .description("The Version of the Object for which to retrieve Metadata")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -91,6 +87,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             ATTRIBUTE_INCLUDE_PATTERN,
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
+            VERSION_ID,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             S3_REGION,
             TIMEOUT,
@@ -106,12 +103,12 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             PROXY_CONFIGURATION_SERVICE
     );
 
-    static Relationship REL_FOUND = new Relationship.Builder()
+    static final Relationship REL_FOUND = new Relationship.Builder()
             .name("found")
             .description("An object was found in the bucket at the supplied key")
             .build();
 
-    static Relationship REL_NOT_FOUND = new Relationship.Builder()
+    static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("not found")
             .description("No object was found in the bucket the supplied key")
             .build();
@@ -155,6 +152,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
+        final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
         final Pattern attributePattern;
 
         final PropertyValue attributeIncludePatternProperty = context.getProperty(ATTRIBUTE_INCLUDE_PATTERN).evaluateAttributeExpressions(flowFile);
@@ -164,17 +162,18 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             attributePattern = null;
         }
 
-        final String metadataTarget = context.getProperty(METADATA_TARGET).getValue();
+        final MetadataTarget metadataTarget = context.getProperty(METADATA_TARGET).asAllowableValue(MetadataTarget.class);
 
         try {
             Relationship relationship;
 
             try {
-                final ObjectMetadata objectMetadata = s3.getObjectMetadata(bucket, key);
+                final GetObjectMetadataRequest objectMetadataRequest = new GetObjectMetadataRequest(bucket, key, StringUtils.isNotBlank(version) ? version : null);
+                final ObjectMetadata objectMetadata = s3.getObjectMetadata(objectMetadataRequest);
                 final Map<String, Object> combinedMetadata = new LinkedHashMap<>(objectMetadata.getRawMetadata());
                 combinedMetadata.putAll(objectMetadata.getUserMetadata());
 
-                if (TARGET_ATTRIBUTES.getValue().equals(metadataTarget)) {
+                if (MetadataTarget.ATTRIBUTES == metadataTarget) {
                     final Map<String, String> newAttributes = combinedMetadata
                             .entrySet().stream()
                             .filter(e -> {
@@ -196,7 +195,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                             }));
 
                     flowFile = session.putAllAttributes(flowFile, newAttributes);
-                } else if (TARGET_FLOWFILE_BODY.getValue().equals(metadataTarget)) {
+                } else if (MetadataTarget.FLOWFILE_BODY == metadataTarget) {
                     flowFile = session.write(flowFile, outputStream -> MAPPER.writeValue(outputStream, combinedMetadata));
                 }
 
@@ -212,7 +211,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
             session.transfer(flowFile, relationship);
         } catch (final IllegalArgumentException | AmazonClientException e) {
-            getLogger().error("Failed to get S3 Object Metadata from Bucket [{}] Key [{}]", bucket, key, e);
+            getLogger().error("Failed to get S3 Object Metadata from Bucket [{}] Key [{}] Version [{}]", bucket, key, version, e);
             flowFile = extractExceptionDetails(e, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

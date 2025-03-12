@@ -18,6 +18,7 @@ package org.apache.nifi.flow.encryptor.command;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -37,8 +38,8 @@ public class SetSensitivePropertiesAlgorithmTest {
     }
 
     @Test
-    public void testMainPopulatedKeyAndAlgorithm() throws IOException, URISyntaxException {
-        final Path propertiesPath = FlowEncryptorCommandTest.getPopulatedNiFiProperties();
+    public void testMainPopulatedKeyAndAlgorithm(@TempDir final Path tempDir) throws IOException, URISyntaxException {
+        final Path propertiesPath = FlowEncryptorCommandTest.getPopulatedNiFiProperties(tempDir);
         System.setProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
         SetSensitivePropertiesAlgorithm.main(new String[]{REQUESTED_ALGORITHM});

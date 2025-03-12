@@ -1618,7 +1618,7 @@ public class NiFiClientUtil {
 
     public RemoteProcessGroupEntity createRPG(final String parentGroupId, final int httpPort, final SiteToSiteTransportProtocol transportProtocol) throws NiFiClientException, IOException {
         final RemoteProcessGroupDTO component = new RemoteProcessGroupDTO();
-        component.setTargetUri("http://localhost:" + httpPort);
+        component.setTargetUri("https://localhost:%d".formatted(httpPort));
         component.setName(component.getTargetUri());
         component.setTransportProtocol(transportProtocol.name());
 

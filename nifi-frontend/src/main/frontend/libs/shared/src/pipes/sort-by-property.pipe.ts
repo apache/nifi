@@ -23,8 +23,7 @@ export interface SortableBy {
 
 @Pipe({
     name: 'sortObjectByProperty',
-    pure: true, // Set to true to ensure the pipe is only recalculated when inputs change
-    standalone: false
+    pure: true // Set to true to ensure the pipe is only recalculated when inputs change
 })
 export class SortObjectByPropertyPipe implements PipeTransform {
     transform(items: SortableBy[], property: string = 'name'): any[] {

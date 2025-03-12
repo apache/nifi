@@ -66,7 +66,7 @@ class StandardServerProvider implements ServerProvider {
         final Server server = new Server(threadPool);
         addConnectors(server, properties, sslContext);
 
-        final Handler standardHandler = getStandardHandler(properties);
+        final Handler standardHandler = getStandardHandler();
         server.setHandler(standardHandler);
 
         final RewriteHandler defaultRewriteHandler = new RewriteHandler();
@@ -123,18 +123,12 @@ class StandardServerProvider implements ServerProvider {
         }
     }
 
-    private Handler getStandardHandler(final NiFiProperties properties) {
+    private Handler getStandardHandler() {
         // Standard Handler supporting an ordered sequence of Handlers invoked until completion
         final Handler.Collection standardHandler = new Handler.Sequence();
 
         // Set Handler for standard response headers
         standardHandler.addHandler(new HeaderWriterHandler());
-
-        // Validate Host Header when running with HTTPS enabled
-        if (properties.isHTTPSConfigured()) {
-            final HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(properties);
-            standardHandler.addHandler(hostHeaderHandler);
-        }
 
         return standardHandler;
     }

@@ -18,6 +18,19 @@ package org.apache.nifi.processors.gcp.drive;
 
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -27,11 +40,15 @@ import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+
+import com.google.api.services.drive.model.User;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
@@ -51,10 +68,20 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     private Drive mockDriverService;
 
     private final String folderId = "folderId";
+    private final String folderName = "folderName";
 
     @BeforeEach
     void setUp() throws Exception {
         mockDriverService = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+
+        when(mockDriverService.files()
+                .get(folderId)
+                .setSupportsAllDrives(true)
+                .setFields("name, driveId")
+                .execute()
+        ).thenReturn(new File()
+                .setName(folderName)
+        );
 
         testSubject = new ListGoogleDrive() {
             @Override
@@ -90,9 +117,14 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         Long createdTime = 123456L;
         Long modifiedTime = null;
         String mimeType = "mime_type_1";
+        String owner = "user1";
+        String lastModifyingUser = "user2";
+        String webViewLink = "http://web.view";
+        String webContentLink = "http://web.content";
 
-        testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, createdTime);
+        testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, createdTime);
     }
+
     @Test
     void testOutputAsAttributesWhereTimestampIsModifiedTime() throws Exception {
         String id = "id_1";
@@ -101,8 +133,28 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         Long createdTime = 123456L;
         Long modifiedTime = 123456L + 1L;
         String mimeType = "mime_type_1";
+        String owner = "user1";
+        String lastModifyingUser = "user2";
+        String webViewLink = "http://web.view";
+        String webContentLink = "http://web.content";
 
-        testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, modifiedTime);
+        testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, modifiedTime);
+    }
+
+    @Test
+    void testOutputAsAttributesWhereSizeIsNotAvailable() throws Exception {
+        String id = "id_1";
+        String filename = "file_name_1";
+        Long size = null;
+        Long createdTime = 123456L;
+        Long modifiedTime = 123456L + 1L;
+        String mimeType = "mime_type_1";
+        String owner = "user1";
+        String lastModifyingUser = "user2";
+        String webViewLink = "http://web.view";
+        String webContentLink = "http://web.content";
+
+        testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, modifiedTime);
     }
 
     @Test
@@ -113,10 +165,14 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         Long createdTime = 123456L;
         Long modifiedTime = 123456L + 1L;
         String mimeType = "mime_type_1";
+        String owner = "user1";
+        String lastModifyingUser = "user2";
+        String webViewLink = "http://web.view";
+        String webContentLink = "http://web.content";
 
         addJsonRecordWriterFactory();
 
-        mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType);
+        mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink);
 
         List<String> expectedContents = singletonList(
                 "[" +
@@ -124,8 +180,16 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                         "\"drive.id\":\"" + id + "\"," +
                         "\"filename\":\"" + filename + "\"," +
                         "\"drive.size\":" + size + "," +
+                        "\"drive.size.available\":" + (size != null) + "," +
                         "\"drive.timestamp\":" + modifiedTime + "," +
-                        "\"mime.type\":\"" + mimeType + "\"" +
+                        "\"drive.created.time\":\"" + Instant.ofEpochMilli(createdTime) + "\"," +
+                        "\"drive.modified.time\":\"" + Instant.ofEpochMilli(modifiedTime) + "\"," +
+                        "\"mime.type\":\"" + mimeType + "\"," +
+                        "\"drive.path\":\"" + folderName + "\"," +
+                        "\"drive.owner\":\"" + owner + "\"," +
+                        "\"drive.last.modifying.user\":\"" + lastModifyingUser + "\"," +
+                        "\"drive.web.view.link\":\"" + webViewLink + "\"," +
+                        "\"drive.web.content.link\":\"" + webContentLink + "\"" +
                         "}" +
                         "]");
 
@@ -140,14 +204,15 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         testRunner.setProperty(ListGoogleDrive.RECORD_WRITER, "record_writer");
     }
 
-    private void mockFetchedGoogleDriveFileList(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType) throws IOException {
+    private void mockFetchedGoogleDriveFileList(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType,
+                                                String owner, String lastModifyingUser, String webViewLink, String webContentLink) throws IOException {
         when(mockDriverService.files()
                 .list()
                 .setSupportsAllDrives(true)
                 .setIncludeItemsFromAllDrives(true)
-                .setQ("('" + folderId + "' in parents) and (mimeType != 'application/vnd.google-apps.folder') and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
+                .setQ("('" + folderId + "' in parents) and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
                 .setPageToken(null)
-                .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
+                .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType, owners, lastModifyingUser, webViewLink, webContentLink)")
                 .execute()
                 .getFiles()
         ).thenReturn(singletonList(
@@ -157,20 +222,34 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                         size,
                         Optional.ofNullable(createdTime).map(DateTime::new).orElse(null),
                         Optional.ofNullable(modifiedTime).map(DateTime::new).orElse(null),
-                        mimeType
+                        mimeType,
+                        owner,
+                        lastModifyingUser,
+                        webViewLink,
+                        webContentLink
                 )
         ));
     }
 
-    private void testOutputAsAttributes(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType, Long expectedTimestamp) throws IOException {
-        mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType);
+    private void testOutputAsAttributes(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType,
+                                        String owner, String lastModifyingUser, String webViewLink, String webContentLink,
+                                        Long expectedTimestamp) throws IOException {
+        mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put(GoogleDriveAttributes.ID, id);
         inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, filename);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size != null ? size : 0L));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, valueOf(size != null));
         inputFlowFileAttributes.put(GoogleDriveAttributes.TIMESTAMP, valueOf(expectedTimestamp));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.CREATED_TIME, Instant.ofEpochMilli(createdTime != null ? createdTime : 0L).toString());
+        inputFlowFileAttributes.put(GoogleDriveAttributes.MODIFIED_TIME, Instant.ofEpochMilli(modifiedTime != null ? modifiedTime : 0L).toString());
         inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, mimeType);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.PATH, folderName);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.OWNER, owner);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.LAST_MODIFYING_USER, lastModifyingUser);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.WEB_VIEW_LINK, webViewLink);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.WEB_CONTENT_LINK, webContentLink);
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
 
@@ -185,7 +264,11 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
             Long size,
             DateTime createdTime,
             DateTime modifiedTime,
-            String mimeType
+            String mimeType,
+            String owner,
+            String lastModifyingUser,
+            String webViewLink,
+            String webContentLink
     ) {
         File file = new File();
 
@@ -195,7 +278,11 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                 .setMimeType(mimeType)
                 .setCreatedTime(createdTime)
                 .setModifiedTime(modifiedTime)
-                .setSize(size);
+                .setSize(size)
+                .setOwners(List.of(new User().setDisplayName(owner)))
+                .setLastModifyingUser(new User().setDisplayName(lastModifyingUser))
+                .setWebViewLink(webViewLink)
+                .setWebContentLink(webContentLink);
 
         return file;
     }
@@ -203,5 +290,10 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     @Override
     public TestRunner getTestRunner() {
         return testRunner;
+    }
+
+    @Override
+    public Set<String> getCheckedAttributeNames() {
+        return Set.of(ID, FILENAME, SIZE, SIZE_AVAILABLE, TIMESTAMP, CREATED_TIME, MODIFIED_TIME, MIME_TYPE, PATH, OWNER, LAST_MODIFYING_USER, WEB_VIEW_LINK, WEB_CONTENT_LINK);
     }
 }

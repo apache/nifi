@@ -89,11 +89,16 @@ public class StandardFlowDifference implements FlowDifference {
 
     @Override
     public int hashCode() {
-        return 31 + 17 * (componentA == null ? 0 : Objects.hashCode(componentA.getIdentifier())) +
-            17 * (componentB == null ? 0 : Objects.hashCode(componentB.getIdentifier())) +
-            15 * (componentA == null ? 0 : Objects.hash(componentA.getInstanceIdentifier())) +
-            15 * (componentB == null ? 0 : Objects.hash(componentB.getInstanceIdentifier())) +
-            Objects.hash(description, type, valueA, valueB);
+        return Objects.hash(
+                type,
+                componentA == null ? null : componentA.getIdentifier(),
+                componentA == null ? null : componentA.getInstanceIdentifier(),
+                componentB == null ? null : componentB.getIdentifier(),
+                componentB == null ? null : componentB.getInstanceIdentifier(),
+                fieldName.orElse(null),
+                valueA,
+                valueB,
+                description);
     }
 
     @Override
@@ -128,6 +133,7 @@ public class StandardFlowDifference implements FlowDifference {
 
         return Objects.equals(componentAId, otherComponentAId) && Objects.equals(componentBId, otherComponentBId)
             && Objects.equals(description, other.description) && Objects.equals(type, other.type)
-            && Objects.equals(valueA, other.valueA) && Objects.equals(valueB, other.valueB);
+            && Objects.equals(valueA, other.valueA) && Objects.equals(valueB, other.valueB)
+            && fieldName.orElse("").equals(other.fieldName.orElse(""));
     }
 }

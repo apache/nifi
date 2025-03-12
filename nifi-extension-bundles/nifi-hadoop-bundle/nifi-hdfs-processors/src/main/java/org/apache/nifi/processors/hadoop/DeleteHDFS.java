@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -43,6 +41,8 @@ import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHa
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -150,7 +150,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             FlowFile flowFile = finalFlowFile;
             try {
                 // Check if the user has supplied a file or directory pattern
-                List<Path> pathList = Lists.newArrayList();
+                List<Path> pathList = new ArrayList<>();
                 if (GLOB_MATCHER.reset(fileOrDirectoryName).find()) {
                     FileStatus[] fileStatuses = fileSystem.globStatus(new Path(fileOrDirectoryName));
                     if (fileStatuses != null) {
@@ -166,7 +166,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                 for (Path path : pathList) {
                     if (fileSystem.exists(path)) {
                         try {
-                            Map<String, String> attributes = Maps.newHashMapWithExpectedSize(2);
+                            Map<String, String> attributes = new HashMap<>(2);
                             attributes.put(getAttributePrefix() + ".filename", path.getName());
                             attributes.put(getAttributePrefix() + ".path", path.getParent().toString());
                             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -192,7 +192,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                                 // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
                                 getLogger().warn("Failed to delete file or directory", ioe);
 
-                                Map<String, String> attributes = Maps.newHashMapWithExpectedSize(1);
+                                Map<String, String> attributes = new HashMap<>(1);
                                 // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
                                 attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
 

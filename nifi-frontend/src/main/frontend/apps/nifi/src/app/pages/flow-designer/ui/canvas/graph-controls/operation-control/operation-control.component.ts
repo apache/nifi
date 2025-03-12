@@ -233,14 +233,6 @@ export class OperationControl {
         this.canvasActionsService.getActionFunction('copy')(selection);
     }
 
-    canPaste(): boolean {
-        return this.canvasActionsService.getConditionFunction('paste')(d3.select(null));
-    }
-
-    paste(): void {
-        return this.canvasActionsService.getActionFunction('paste')(d3.select(null));
-    }
-
     canGroup(selection: d3.Selection<any, any, any, any>): boolean {
         return this.canvasActionsService.getConditionFunction('group')(selection);
     }

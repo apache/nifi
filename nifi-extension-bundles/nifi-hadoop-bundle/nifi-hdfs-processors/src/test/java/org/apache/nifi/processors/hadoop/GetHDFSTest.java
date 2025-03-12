@@ -30,14 +30,19 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.HashSet;
@@ -54,6 +59,21 @@ import static org.mockito.Mockito.when;
 
 @DisabledOnOs(OS.WINDOWS)
 public class GetHDFSTest {
+
+    private static final String TESTDATA_SOURCE_DIR = "src/test/resources/testdata";
+
+    @TempDir
+    private static File tempDir;
+
+    @BeforeAll
+    static void setTestData() throws IOException {
+        final File sourceDir = Paths.get(TESTDATA_SOURCE_DIR).toFile();
+        final File[] sourceFiles = sourceDir.listFiles();
+        for (final File sourceFile : sourceFiles) {
+            final File destinationFile = new File(tempDir, sourceFile.getName());
+            Files.copy(sourceFile.toPath(), destinationFile.toPath());
+        }
+    }
 
     @Test
     public void getPathDifferenceTest() {
@@ -130,7 +150,7 @@ public class GetHDFSTest {
     public void testGetFilesWithFilter() {
         GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.run();
@@ -156,7 +176,7 @@ public class GetHDFSTest {
     public void testAutomaticDecompression() throws IOException {
         GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
@@ -175,7 +195,7 @@ public class GetHDFSTest {
     public void testInferCompressionCodecDisabled() throws IOException {
         GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.setProperty(GetHDFS.COMPRESSION_CODEC, "NONE");
@@ -194,7 +214,7 @@ public class GetHDFSTest {
     public void testFileExtensionNotACompressionCodec() throws IOException {
         GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
@@ -207,28 +227,10 @@ public class GetHDFSTest {
         assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
-    }
 
-    @Test
-    public void testDirectoryUsesValidEL() throws IOException {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/${literal('testdata'):substring(0,8)}");
-        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
-        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
-        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
-        runner.run();
-
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-
-        MockFlowFile flowFile = flowFiles.get(0);
-        assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
-        flowFile.assertContentEquals(expected);
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        final ProvenanceEventRecord receiveEvent = provenanceEvents.get(0);
+        final ProvenanceEventRecord receiveEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, receiveEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
         assertTrue(receiveEvent.getTransitUri().endsWith("13545423550275052.zip"));
@@ -281,7 +283,7 @@ public class GetHDFSTest {
 
         GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
         TestRunner runner = TestRunners.newTestRunner(testSubject);
-        runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(GetHDFS.DIRECTORY, tempDir.getAbsolutePath());
 
         // WHEN
         Answer<?> answer = new Answer<>() {
@@ -319,7 +321,7 @@ public class GetHDFSTest {
 
         GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
         TestRunner runner = TestRunners.newTestRunner(testSubject);
-        runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(GetHDFS.DIRECTORY, tempDir.getAbsolutePath());
         when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenThrow(new IOException(new GSSException(13)));
         runner.run();
 

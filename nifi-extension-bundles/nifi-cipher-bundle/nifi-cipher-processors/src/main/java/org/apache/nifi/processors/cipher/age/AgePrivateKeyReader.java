@@ -21,7 +21,6 @@ import com.exceptionfactory.jagged.x25519.X25519RecipientStanzaReaderFactory;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.Provider;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -30,8 +29,6 @@ import java.util.Set;
  * X25519 Private Key implementation age Key Reader
  */
 public class AgePrivateKeyReader extends AbstractAgeKeyReader<RecipientStanzaReader> {
-    private static final Provider KEY_PROVIDER = AgeProviderResolver.getKeyProvider().orElse(null);
-
     public AgePrivateKeyReader() {
         super(AgeKeyIndicator.PRIVATE_KEY);
     }
@@ -59,14 +56,6 @@ public class AgePrivateKeyReader extends AbstractAgeKeyReader<RecipientStanzaRea
     }
 
     private RecipientStanzaReader getRecipientStanzaReader(final String encodedPrivateKey) throws GeneralSecurityException {
-        final RecipientStanzaReader recipientStanzaReader;
-
-        if (KEY_PROVIDER == null) {
-            recipientStanzaReader = X25519RecipientStanzaReaderFactory.newRecipientStanzaReader(encodedPrivateKey);
-        } else {
-            recipientStanzaReader = X25519RecipientStanzaReaderFactory.newRecipientStanzaReader(encodedPrivateKey, KEY_PROVIDER);
-        }
-
-        return recipientStanzaReader;
+        return X25519RecipientStanzaReaderFactory.newRecipientStanzaReader(encodedPrivateKey);
     }
 }

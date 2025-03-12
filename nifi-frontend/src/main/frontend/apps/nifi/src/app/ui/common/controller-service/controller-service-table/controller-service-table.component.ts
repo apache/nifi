@@ -25,7 +25,6 @@ import { BulletinsTipInput, ControllerServiceEntity, ValidationErrorsTipInput } 
 import { NifiTooltipDirective, TextTip, NiFiCommon } from '@nifi/shared';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
-import { RouterLink } from '@angular/router';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../state/current-user';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -40,7 +39,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
         MatSortModule,
         NgClass,
         NifiTooltipDirective,
-        RouterLink,
         MatMenu,
         MatMenuItem,
         MatMenuTrigger

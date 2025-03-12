@@ -14,14 +14,14 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-snmp-bundle</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-snmp-processors</artifactId>
     <packaging>jar</packaging>
 
     <properties>
-        <snmp4j.version>3.8.2</snmp4j.version>
-        <snmp4j-agent.version>3.8.1</snmp4j-agent.version>
+        <snmp4j.version>3.9.0</snmp4j.version>
+        <snmp4j-agent.version>3.8.2</snmp4j-agent.version>
     </properties>
 
     <dependencies>
@@ -49,7 +49,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-json-utils</artifactId>
-            <version>2.3.0-SNAPSHOT</version>
+            <version>2.4.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

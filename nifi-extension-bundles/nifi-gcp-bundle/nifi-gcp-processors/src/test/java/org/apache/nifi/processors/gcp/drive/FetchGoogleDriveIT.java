@@ -18,6 +18,12 @@ package org.apache.nifi.processors.gcp.drive;
 
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 
 import com.google.api.services.drive.model.File;
 import java.util.HashMap;
@@ -48,6 +54,7 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         inputFlowFileAttributes.put(GoogleDriveAttributes.ID, file.getId());
         inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, file.getName());
         inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(DEFAULT_FILE_CONTENT.length()));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, "true");
         inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, "text/plain");
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
@@ -121,11 +128,6 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
     @Override
     public Set<String> getCheckedAttributeNames() {
-        Set<String> checkedAttributeNames = OutputChecker.super.getCheckedAttributeNames();
-
-        checkedAttributeNames.add(GoogleDriveAttributes.ERROR_CODE);
-        checkedAttributeNames.remove(GoogleDriveAttributes.TIMESTAMP);
-
-        return checkedAttributeNames;
+        return Set.of(ID, FILENAME, SIZE, SIZE_AVAILABLE, MIME_TYPE, ERROR_CODE);
     }
 }

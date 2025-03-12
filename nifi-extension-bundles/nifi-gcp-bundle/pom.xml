@@ -18,14 +18,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-shared-bom</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.4.0-SNAPSHOT</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
     <artifactId>nifi-gcp-bundle</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <google.libraries.version>26.53.0</google.libraries.version>
+        <google.libraries.version>26.56.0</google.libraries.version>
     </properties>
 
     <dependencyManagement>

@@ -24,10 +24,8 @@ import { NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { CurrentUser } from '../../../../../state/current-user';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { MatPaginatorModule } from '@angular/material/paginator';
-import { SummaryTableFilterModule } from '../../../../summary/ui/common/summary-table-filter/summary-table-filter.module';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { ValidationErrorsTipInput } from '../../../../../state/shared';
-import { RouterLink } from '@angular/router';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
@@ -40,9 +38,7 @@ export type SupportedColumns = 'name' | 'type' | 'bundle';
         MatPaginatorModule,
         MatSortModule,
         MatTableModule,
-        SummaryTableFilterModule,
         NifiTooltipDirective,
-        RouterLink,
         MatIconButton,
         MatMenu,
         MatMenuItem,

@@ -20,6 +20,10 @@
 .banner-container {
     @include mat.button-density(-1);
 
+    .error-banner-message {
+        word-break: break-word;
+    }
+
     ul {
         list-style-type: disc;
         list-style-position: inside;

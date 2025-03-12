@@ -536,6 +536,11 @@ public interface TestRunner {
     QueueSize getQueueSize();
 
     /**
+     * Allow for clearing the queue from all remaining flow files.
+     */
+    void clearQueue();
+
+    /**
      * @param name of counter
      * @return the current value of the counter with the specified name, or null
      *         if no counter exists with the specified name
@@ -891,12 +896,20 @@ public interface TestRunner {
     void setValidateExpressionUsage(boolean validate);
 
     /**
-     * Specifies whether or not the TestRunner will allow ProcessSession.commit() to be called.
+     * Specifies whether the TestRunner will allow ProcessSession.commit() to be called.
      * By default, the value is <code>false</code>, meaning that any call to ProcessSession.commit() will throw
      * an Exception. See JavaDocs for {@link ProcessSession#commit()} for more information
-     * @param allow whethr or not to allow asynchronous session commits (i.e., calls to ProcessSession.commit())
+     * @param allow whether to allow asynchronous session commits (i.e., calls to ProcessSession.commit())
      */
     void setAllowSynchronousSessionCommits(boolean allow);
+
+    /**
+     * Specifies whether the TestRunner will allow ProcessSession.read() multiple times for the same FlowFile while an InputStream is already open.
+     * By default, the value is <code>false</code>, meaning that any call to ProcessSession.read() for a FlowFile already being read will throw
+     * an Exception. See JavaDocs for {@link ProcessSession#read(FlowFile)} for more information
+     * @param allow whether to allow recursive reads of a FlowFile (i.e., calls to ProcessSession.read())
+     */
+    void setAllowRecursiveReads(boolean allow);
 
     /**
      * Removes the {@link PropertyDescriptor} from the {@link ProcessContext},

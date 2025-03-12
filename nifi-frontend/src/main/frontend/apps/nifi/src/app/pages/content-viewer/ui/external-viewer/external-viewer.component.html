@@ -16,5 +16,10 @@
   -->
 
 @if (frameSource) {
-    <iframe class="h-full w-full" [src]="frameSource" *recreateView="frameSource"></iframe>
+    <iframe
+        #iframeRef
+        class="h-full w-full"
+        [src]="frameSource"
+        *recreateView="frameSource"
+        (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
 }

@@ -49,6 +49,7 @@ import java.net.URL;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -62,6 +63,7 @@ public class TestDataTransferResource {
     @BeforeAll
     public static void setup() throws Exception {
         final URL resource = TestDataTransferResource.class.getResource("/site-to-site/nifi.properties");
+        assertNotNull(resource);
         final String propertiesFile = resource.toURI().getPath();
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, propertiesFile);
     }
@@ -72,6 +74,8 @@ public class TestDataTransferResource {
         doReturn(new StringBuffer("http://nifi.example.com:8080")
                 .append("/nifi-api/data-transfer/output-ports/port-id/transactions/tx-id/flow-files"))
                 .when(req).getRequestURL();
+        final ServletContext servletContext = mock(ServletContext.class);
+        when(req.getServletContext()).thenReturn(servletContext);
         return req;
     }
 
@@ -174,6 +178,8 @@ public class TestDataTransferResource {
                 .getDeclaredField("httpServletRequest");
         httpServletRequestField.setAccessible(true);
         httpServletRequestField.set(resource, request);
+        final ServletContext servletContext = mock(ServletContext.class);
+        when(request.getServletContext()).thenReturn(servletContext);
 
         final InputStream inputStream = null;
 
@@ -209,6 +215,8 @@ public class TestDataTransferResource {
                 .getDeclaredField("httpServletRequest");
         httpServletRequestField.setAccessible(true);
         httpServletRequestField.set(resource, request);
+        final ServletContext servletContext = mock(ServletContext.class);
+        when(request.getServletContext()).thenReturn(servletContext);
 
         final InputStream inputStream = null;
 

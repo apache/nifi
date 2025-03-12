@@ -114,21 +114,6 @@ public interface DatabaseAdapter {
         return "AS " + tableName;
     }
 
-    /**
-     * Table Quote String usage limited to statement generation methods within DatabaseAdapter
-     *
-     * @return Table Quote String
-     */
-    default String getTableQuoteString() {
-        // ANSI standard is a double quote
-        return "\"";
-    }
-
-    default String getColumnQuoteString() {
-        // ANSI standard is a double quote
-        return "\"";
-    }
-
     default boolean supportsCreateTableIfNotExists() {
         return false;
     }
@@ -136,11 +121,9 @@ public interface DatabaseAdapter {
     /**
      * Generates a CREATE TABLE statement using the specified table schema
      * @param tableSchema The table schema including column information
-     * @param quoteTableName Whether to quote the table name in the generated DDL
-     * @param quoteColumnNames Whether to quote column names in the generated DDL
      * @return A String containing DDL to create the specified table
      */
-    default String getCreateTableStatement(TableSchema tableSchema, boolean quoteTableName, boolean quoteColumnNames) {
+    default String getCreateTableStatement(TableSchema tableSchema) {
         StringBuilder createTableStatement = new StringBuilder();
 
         List<ColumnDescription> columns = tableSchema.getColumnsAsList();
@@ -148,9 +131,7 @@ public interface DatabaseAdapter {
         Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
         for (ColumnDescription column : columns) {
             StringBuilder sb = new StringBuilder()
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
                     .append(getSQLForDataType(column.getDataType()))
                     .append(column.isNullable() ? "" : " NOT NULL")
@@ -159,7 +140,7 @@ public interface DatabaseAdapter {
         }
 
         createTableStatement.append("CREATE TABLE IF NOT EXISTS ")
-                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
+                .append(generateTableName(tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
                 .append(" (")
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
@@ -167,24 +148,20 @@ public interface DatabaseAdapter {
         return createTableStatement.toString();
     }
 
-    default String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    default String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd) {
         StringBuilder createTableStatement = new StringBuilder();
 
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
         for (ColumnDescription column : columnsToAdd) {
             StringBuilder sb = new StringBuilder()
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
-                    .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
                     .append(getSQLForDataType(column.getDataType()));
             columnsAndDatatypes.add(sb.toString());
         }
 
         createTableStatement.append("ALTER TABLE ")
-                .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
-                .append(quoteTableName ? getTableQuoteString() : "")
                 .append(" ADD COLUMNS (")
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
@@ -208,39 +185,19 @@ public interface DatabaseAdapter {
         return JDBCType.valueOf(sqlType).getName();
     }
 
-    default String generateTableName(final boolean quoteTableName, final String catalog, final String schemaName, final String tableName, final TableSchema tableSchema) {
+    default String generateTableName(final String catalog, final String schemaName, final String tableName, final TableSchema tableSchema) {
         final StringBuilder tableNameBuilder = new StringBuilder();
         if (catalog != null) {
-            if (quoteTableName) {
-                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
-                        .append(catalog)
-                        .append(tableSchema.getQuotedIdentifierString());
-            } else {
-                tableNameBuilder.append(catalog);
-            }
-
+            tableNameBuilder.append(catalog);
             tableNameBuilder.append(".");
         }
 
         if (schemaName != null) {
-            if (quoteTableName) {
-                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
-                        .append(schemaName)
-                        .append(tableSchema.getQuotedIdentifierString());
-            } else {
-                tableNameBuilder.append(schemaName);
-            }
-
+            tableNameBuilder.append(schemaName);
             tableNameBuilder.append(".");
         }
 
-        if (quoteTableName) {
-            tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            tableNameBuilder.append(tableName);
-        }
+        tableNameBuilder.append(tableName);
 
         return tableNameBuilder.toString();
     }
