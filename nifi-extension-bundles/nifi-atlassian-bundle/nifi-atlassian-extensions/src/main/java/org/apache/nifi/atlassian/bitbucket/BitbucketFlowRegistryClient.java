@@ -32,7 +32,7 @@ import java.util.List;
 
 @Tags({ "atlassian", "bitbucket", "registry", "flow" })
 @CapabilityDescription("Flow Registry Client that uses the BitBucket REST API to version control flows in a BitBucket Repository.")
-public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
+public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
             .name("BitBucket API Instance")
@@ -67,8 +67,8 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
     static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
             .name("Authentication Type")
             .description("The type of authentication to use for accessing BitBucket")
-            .allowableValues(BitBucketAuthenticationType.class)
-            .defaultValue(BitBucketAuthenticationType.ACCESS_TOKEN)
+            .allowableValues(BitbucketAuthenticationType.class)
+            .defaultValue(BitbucketAuthenticationType.ACCESS_TOKEN)
             .required(true)
             .build();
 
@@ -78,7 +78,7 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .sensitive(true)
-            .dependsOn(AUTHENTICATION_TYPE, BitBucketAuthenticationType.ACCESS_TOKEN)
+            .dependsOn(AUTHENTICATION_TYPE, BitbucketAuthenticationType.ACCESS_TOKEN)
             .build();
 
     static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -87,7 +87,7 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .sensitive(false)
-            .dependsOn(AUTHENTICATION_TYPE, BitBucketAuthenticationType.BASIC_AUTH)
+            .dependsOn(AUTHENTICATION_TYPE, BitbucketAuthenticationType.BASIC_AUTH)
             .build();
 
     static final PropertyDescriptor APP_PASSWORD = new PropertyDescriptor.Builder()
@@ -96,7 +96,7 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .sensitive(true)
-            .dependsOn(AUTHENTICATION_TYPE, BitBucketAuthenticationType.BASIC_AUTH)
+            .dependsOn(AUTHENTICATION_TYPE, BitbucketAuthenticationType.BASIC_AUTH)
             .build();
 
     static final PropertyDescriptor OAUTH_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
@@ -104,7 +104,7 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .description("Service providing OAuth2 Access Tokens for authentication")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
-            .dependsOn(AUTHENTICATION_TYPE, BitBucketAuthenticationType.OAUTH2)
+            .dependsOn(AUTHENTICATION_TYPE, BitbucketAuthenticationType.OAUTH2)
             .build();
 
     static final PropertyDescriptor WEBCLIENT_SERVICE = new PropertyDescriptor.Builder()
@@ -136,14 +136,14 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     @Override
     protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException {
-        return BitBucketRepositoryClient.builder()
+        return BitbucketRepositoryClient.builder()
                 .clientId(getIdentifier())
                 .apiUrl(context.getProperty(BITBUCKET_API_URL).getValue())
                 .apiVersion(context.getProperty(BITBUCKET_API_VERSION).getValue())
                 .workspace(context.getProperty(WORKSPACE_NAME).getValue())
                 .repoName(context.getProperty(REPOSITORY_NAME).getValue())
                 .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
-                .authenticationType(context.getProperty(AUTHENTICATION_TYPE).asAllowableValue(BitBucketAuthenticationType.class))
+                .authenticationType(context.getProperty(AUTHENTICATION_TYPE).asAllowableValue(BitbucketAuthenticationType.class))
                 .accessToken(context.getProperty(ACCESS_TOKEN).evaluateAttributeExpressions().getValue())
                 .username(context.getProperty(USERNAME).evaluateAttributeExpressions().getValue())
                 .appPassword(context.getProperty(APP_PASSWORD).evaluateAttributeExpressions().getValue())
@@ -159,7 +159,7 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     @Override
     protected String getStorageLocation(GitRepositoryClient repositoryClient) {
-        final BitBucketRepositoryClient gitLabRepositoryClient = (BitBucketRepositoryClient) repositoryClient;
+        final BitbucketRepositoryClient gitLabRepositoryClient = (BitbucketRepositoryClient) repositoryClient;
         return STORAGE_LOCATION_FORMAT.formatted(gitLabRepositoryClient.getWorkspace(), gitLabRepositoryClient.getRepoName());
     }
 }

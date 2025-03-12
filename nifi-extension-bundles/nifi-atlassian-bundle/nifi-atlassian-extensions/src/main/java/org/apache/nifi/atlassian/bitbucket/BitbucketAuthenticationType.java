@@ -19,7 +19,7 @@ package org.apache.nifi.atlassian.bitbucket;
 
 import org.apache.nifi.components.DescribedValue;
 
-public enum BitBucketAuthenticationType implements DescribedValue {
+public enum BitbucketAuthenticationType implements DescribedValue {
     BASIC_AUTH("Basic Auth", "Username and App Password"),
     ACCESS_TOKEN("Access Token", "Repository, Project or Workspace Token"),
     OAUTH2("OAuth 2.0", "OAuth 2.0 with an OAuth Consumer");
@@ -27,7 +27,7 @@ public enum BitBucketAuthenticationType implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    BitBucketAuthenticationType(final String displayName, final String description) {
+    BitbucketAuthenticationType(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

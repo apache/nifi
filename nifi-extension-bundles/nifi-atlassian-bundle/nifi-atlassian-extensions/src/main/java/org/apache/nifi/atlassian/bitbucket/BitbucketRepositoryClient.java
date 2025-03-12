@@ -54,9 +54,9 @@ import java.util.Set;
 /**
  * Implementation of {@link GitRepositoryClient} for BitBucket.
  */
-public class BitBucketRepositoryClient implements GitRepositoryClient {
+public class BitbucketRepositoryClient implements GitRepositoryClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitBucketRepositoryClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketRepositoryClient.class);
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -77,7 +77,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
     private final boolean canRead;
     private final boolean canWrite;
 
-    private BitBucketRepositoryClient(final Builder builder) throws FlowRegistryException {
+    private BitbucketRepositoryClient(final Builder builder) throws FlowRegistryException {
         webClient = Objects.requireNonNull(builder.webClient, "Web Client is required");
         workspace = Objects.requireNonNull(builder.workspace, "Workspace is required");
         repoName = Objects.requireNonNull(builder.repoName, "Repository Name is required");
@@ -85,28 +85,38 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
         apiUrl = Objects.requireNonNull(builder.apiUrl, "API Instance is required");
         apiVersion = Objects.requireNonNull(builder.apiVersion, "API Version is required");
 
-        final BitBucketAuthenticationType authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication type is required");
+        clientId = Objects.requireNonNull(builder.clientId, "Client ID is required");
+        repoPath = builder.repoPath;
+
+        final BitbucketAuthenticationType authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication type is required");
+        String permission = null;
 
         switch (authenticationType) {
         case ACCESS_TOKEN -> {
             Objects.requireNonNull(builder.accessToken, "Access Token is required");
             authToken = new AccessToken(builder.accessToken);
+            try {
+                // we try to list the branches of the repo to confirm read access
+                getBranches();
+                // we don't have a good endpoint to confirm write access, so we assume that if
+                // we can read, we can write
+                permission = "admin";
+            } catch (FlowRegistryException e) {
+                permission = "none";
+            }
         }
         case BASIC_AUTH -> {
             Objects.requireNonNull(builder.username, "Username is required");
-            Objects.requireNonNull(builder.appPassword, "App Password URL is required");
+            Objects.requireNonNull(builder.appPassword, "App Password is required");
             authToken = new BasicAuthToken(builder.username, builder.appPassword);
+            permission = checkRepoPermissions();
         }
         case OAUTH2 -> {
             Objects.requireNonNull(builder.oauthService, "OAuth 2.0 Token Provider is required");
             authToken = new OAuthToken(builder.oauthService);
+            permission = checkRepoPermissions();
         }
         }
-
-        clientId = Objects.requireNonNull(builder.clientId, "Client ID is required");
-        repoPath = builder.repoPath;
-
-        final String permission = checkRepoPermissions();
 
         switch (permission) {
         case "admin", "write" -> {
@@ -513,7 +523,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
         private String clientId;
         private String apiUrl;
         private String apiVersion;
-        private BitBucketAuthenticationType authenticationType;
+        private BitbucketAuthenticationType authenticationType;
         private String accessToken;
         private String username;
         private String appPassword;
@@ -538,7 +548,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
             return this;
         }
 
-        public Builder authenticationType(final BitBucketAuthenticationType authenticationType) {
+        public Builder authenticationType(final BitbucketAuthenticationType authenticationType) {
             this.authenticationType = authenticationType;
             return this;
         }
@@ -583,8 +593,8 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
             return this;
         }
 
-        public BitBucketRepositoryClient build() throws FlowRegistryException {
-            return new BitBucketRepositoryClient(this);
+        public BitbucketRepositoryClient build() throws FlowRegistryException {
+            return new BitbucketRepositoryClient(this);
         }
     }
 }
