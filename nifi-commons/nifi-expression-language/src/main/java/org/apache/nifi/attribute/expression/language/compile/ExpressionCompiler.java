@@ -79,6 +79,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIn
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MapToEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MatchesEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
@@ -211,6 +212,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN_OR_EQUAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MAP_TO;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATCHES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS;
@@ -742,6 +744,11 @@ public class ExpressionCompiler {
                         toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
                         toStringEvaluator(argEvaluators.get(1), "padding string")), "padRight");
                 }
+            }
+            case MAP_TO: {
+                verifyArgCount(argEvaluators, 1, "mapTo");
+                return addToken(new MapToEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to map to")), "mapTo");
             }
             case APPEND: {
                 verifyArgCount(argEvaluators, 1, "append");
