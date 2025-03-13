@@ -74,9 +74,9 @@
         table {
             background-color: inherit;
 
-            th {
+            th.mat-mdc-header-cell {
                 @extend .secondary-contrast;
-                background-color: var(--mat-sys-secondary) !important;
+                background-color: var(--mat-sys-secondary);
                 user-select: none;
 
                 .mat-sort-header-arrow {
@@ -98,11 +98,11 @@
                         var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
                         transparent
                     )
-                ) !important;
+                );
             }
 
             .selected {
-                background-color: var(--mat-sys-tertiary-container) !important;
+                background-color: var(--mat-sys-tertiary-container);
             }
         }
     }
