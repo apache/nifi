@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.TransformUtils;
@@ -41,6 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.io.InputStream;
@@ -55,11 +57,31 @@ import java.util.stream.Stream;
 @Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "mime.type", description = "Always set to application/json")
-@CapabilityDescription("Applies a list of Jolt specifications to the flowfile JSON payload. A new FlowFile is created "
-        + "with transformed content and is routed to the 'success' relationship. If the JSON transform "
-        + "fails, the original FlowFile is routed to the 'failure' relationship.")
+@CapabilityDescription("Applies a list of JOLT specifications to either the FlowFile JSON content or a specified FlowFile JSON attribute. "
+        + "When 'Json Source' is set to FLOW_FILE, the FlowFile content is transformed and the modified FlowFile is routed to the 'success' relationship. "
+        + "When 'Json Source' is set to ATTRIBUTE, the specified attribute's value is transformed and updated in place, with the FlowFile routed to the 'success' relationship. "
+        + "If the JSON transform fails, the original FlowFile is routed to the 'failure' relationship.")
 @RequiresInstanceClassLoading
 public class JoltTransformJSON extends AbstractJoltTransform {
+
+    public static final PropertyDescriptor JSON_SOURCE = new PropertyDescriptor.Builder()
+            .name("Json Source")
+            .description("Specifies whether the JOLT transformation is applied to FlowFile JSON content or to specified FlowFile JSON attribute.")
+            .required(true)
+            .allowableValues(SourceStrategy.class)
+            .defaultValue(SourceStrategy.FLOW_FILE)
+            .build();
+
+    public static final PropertyDescriptor JSON_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("Json Source Attribute")
+            .description("The FlowFile attribute containing JSON to be transformed. "
+                    + "This property is required only when 'Json Source' is set to ATTRIBUTE.")
+            .dependsOn(JSON_SOURCE, SourceStrategy.ATTRIBUTE)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
             .name("Pretty Print")
             .displayName("Pretty Print")
@@ -80,16 +102,18 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("The FlowFile with transformed content will be routed to this relationship")
+            .description("The FlowFile with successfully transformed content or updated attribute will be routed to this relationship")
             .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON), it will be routed to this relationship")
+            .description("If the JSON transformation fails (e.g., due to invalid JSON in the content or attribute), the original FlowFile is routed to this relationship.")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             getCommonPropertyDescriptors().stream(),
             Stream.of(
+                    JSON_SOURCE,
+                    JSON_SOURCE_ATTRIBUTE,
                     PRETTY_PRINT,
                     MAX_STRING_LENGTH
             )
@@ -122,14 +146,34 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
         final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
-
         final Object inputJson;
-        try (final InputStream in = session.read(original)) {
-            inputJson = jsonUtil.jsonToObject(in);
-        } catch (final Exception e) {
-            logger.error("JSON parsing failed for {}", original, e);
-            session.transfer(original, REL_FAILURE);
-            return;
+        final boolean isSourceFlowFileContent  = SourceStrategy.FLOW_FILE == context.getProperty(JSON_SOURCE).asAllowableValue(SourceStrategy.class);
+        String jsonSourceAttributeName = null;
+
+        if (isSourceFlowFileContent) {
+            try (final InputStream in = session.read(original)) {
+                inputJson = jsonUtil.jsonToObject(in);
+            } catch (final Exception e) {
+                logger.error("JSON parsing failed on FlowFile content for {}", original, e);
+                session.transfer(original, REL_FAILURE);
+                return;
+            }
+        } else {
+            jsonSourceAttributeName = context.getProperty(JSON_SOURCE_ATTRIBUTE).evaluateAttributeExpressions(original).getValue();
+            final String jsonSourceAttributeValue = original.getAttribute(jsonSourceAttributeName);
+            if (StringUtils.isBlank(jsonSourceAttributeValue)) {
+                logger.error("FlowFile attribute value was blank");
+                session.transfer(original, REL_FAILURE);
+                return;
+            } else {
+                try {
+                    inputJson = jsonUtil.jsonToObject(jsonSourceAttributeValue);
+                } catch (final Exception e) {
+                    logger.error("JSON parsing failed on FlowFile attribute for {}", original, e);
+                    session.transfer(original, REL_FAILURE);
+                    return;
+                }
+            }
         }
 
         final String jsonString;
@@ -152,13 +196,18 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             }
         }
 
-        FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(StandardCharsets.UTF_8)));
-
-        final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
-        transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.transfer(transformed, REL_SUCCESS);
-        session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        logger.info("Transform completed for {}", original);
+        if (isSourceFlowFileContent) {
+            FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(StandardCharsets.UTF_8)));
+            final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
+            transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
+            session.transfer(transformed, REL_SUCCESS);
+            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            logger.info("Transform completed on FlowFile content for {}", original);
+        } else {
+            session.putAttribute(original, jsonSourceAttributeName, jsonString);
+            session.transfer(original, REL_SUCCESS);
+            logger.info("Transform completed on FlowFile attribute for {}", original);
+        }
     }
 
     @OnScheduled
