@@ -161,7 +161,6 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-        
         testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 1);
         testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 0);
         testRunner.assertTransferCount(ListBoxFileInfo.REL_NOT_FOUND, 0);
