@@ -123,9 +123,15 @@ public class ListBoxFileInfo extends AbstractProcessor {
             .description("A FlowFile will be routed here if there is an error fetching file metadata from the folder.")
             .build();
 
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
+            .name("not.found")
+            .description("FlowFiles for which the specified Box folder was not found will be routed to this relationship.")
+            .build();
+
     public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
-            REL_FAILURE
+            REL_FAILURE,
+            REL_NOT_FOUND
     );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -233,11 +239,16 @@ public class ListBoxFileInfo extends AbstractProcessor {
             }
 
         } catch (final BoxAPIResponseException e) {
-            getLogger().error("Couldn't fetch files from folder with id [{}]", folderId, e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+            if (e.getResponseCode() == 404) {
+                getLogger().warn("Box folder with ID {} was not found.", folderId);
+                session.transfer(flowFile, REL_NOT_FOUND);
+            } else {
+                getLogger().error("Couldn't fetch files from folder with id [{}]", folderId, e);
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+            }
         }
     }
 

@@ -146,6 +146,36 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
     void testBoxAPIResponseException() {
         testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
 
+        final BoxAPIResponseException apiException = new BoxAPIResponseException("API Error", 500, "Internal Server Error", null);
+        doThrow(apiException).when(mockBoxFolder).getChildren(
+                "id",
+                "name",
+                "item_status",
+                "size",
+                "created_at",
+                "modified_at",
+                "content_created_at",
+                "content_modified_at",
+                "path_collection");
+
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
+        testRunner.enqueue(inputFlowFile);
+        testRunner.run();
+        
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 1);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_NOT_FOUND, 0);
+
+        final List<MockFlowFile> failureFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_FAILURE);
+        final MockFlowFile failureFlowFile = failureFiles.getFirst();
+        failureFlowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "500");
+        failureFlowFile.assertAttributeExists(ERROR_MESSAGE);
+    }
+
+    @Test
+    void testBoxAPIResponseExceptionNotFound() {
+        testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
+
         final BoxAPIResponseException apiException = new BoxAPIResponseException("API Error", 404, "Not Found", null);
         doThrow(apiException).when(mockBoxFolder).getChildren(
                 "id",
@@ -162,13 +192,14 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 1);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_FAILURE, 0);
         testRunner.assertTransferCount(ListBoxFileInfo.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(ListBoxFileInfo.REL_NOT_FOUND, 1);
 
-        final List<MockFlowFile> failureFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_FAILURE);
-        final MockFlowFile failureFlowFile = failureFiles.getFirst();
-        failureFlowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        failureFlowFile.assertAttributeExists(ERROR_MESSAGE);
+        final List<MockFlowFile> notFoundFiles = testRunner.getFlowFilesForRelationship(ListBoxFileInfo.REL_NOT_FOUND);
+        final MockFlowFile notFoundFlowFile = notFoundFiles.getFirst();
+        notFoundFlowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+        notFoundFlowFile.assertAttributeExists(ERROR_MESSAGE);
     }
 
     private void mockMultipleFilesResponse() {
