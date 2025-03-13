@@ -2354,20 +2354,20 @@ public class TestQuery {
     }
 
     @Test
-    public void testMapTo() {
+    public void testReplaceByPattern() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("str_attr", "myValue2");
 
-        verifyEquals("${str_attr:mapTo('')}", attributes, "myValue2");
-        verifyEquals("${str_attr:mapTo(${doesnotexist})}", attributes, "myValue2");
+        verifyEquals("${str_attr:replaceByPattern('')}", attributes, "myValue2");
+        verifyEquals("${str_attr:replaceByPattern(${doesnotexist})}", attributes, "myValue2");
 
-        verifyEquals("${str_attr:mapTo('.*:foo')}", attributes, "foo");
-        verifyEquals("${str_attr:mapTo('myValue2:test,.*:foo')}", attributes, "test");
-        verifyEquals("${str_attr:mapTo('myValue[3-4]:test,.*:foo')}", attributes, "foo");
-        verifyEquals("${str_attr:mapTo('myValue[3-4]:test,abc:foo')}", attributes, "myValue2");
-        verifyEquals("${str_attr:mapTo('myValue[3-4]:test, abc:foo, myValue[1-4]:xyz')}", attributes, "xyz");
+        verifyEquals("${str_attr:replaceByPattern('.*:foo')}", attributes, "foo");
+        verifyEquals("${str_attr:replaceByPattern('myValue2:test,.*:foo')}", attributes, "test");
+        verifyEquals("${str_attr:replaceByPattern('myValue[3-4]:test,.*:foo')}", attributes, "foo");
+        verifyEquals("${str_attr:replaceByPattern('myValue[3-4]:test,abc:foo')}", attributes, "myValue2");
+        verifyEquals("${str_attr:replaceByPattern('myValue[3-4]:test, abc:foo, myValue[1-4]:xyz')}", attributes, "xyz");
 
-        verifyEquals("${str_attr:mapTo(${literal('myValue[3-4]:test'):append(','):append(' .*:foo')})}", attributes, "foo");
+        verifyEquals("${str_attr:replaceByPattern(${literal('myValue[3-4]:test'):append(','):append(' .*:foo')})}", attributes, "foo");
     }
 
     @Test

@@ -79,7 +79,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIn
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.MapToEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MatchesEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
@@ -99,6 +98,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Prepen
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RepeatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceByPatternEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceFirstEvaluator;
@@ -212,7 +212,6 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN_OR_EQUAL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MAP_TO;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATCHES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS;
@@ -234,6 +233,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPEAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_BY_PATTERN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_FIRST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_NULL;
@@ -745,10 +745,10 @@ public class ExpressionCompiler {
                         toStringEvaluator(argEvaluators.get(1), "padding string")), "padRight");
                 }
             }
-            case MAP_TO: {
-                verifyArgCount(argEvaluators, 1, "mapTo");
-                return addToken(new MapToEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to map to")), "mapTo");
+            case REPLACE_BY_PATTERN: {
+                verifyArgCount(argEvaluators, 1, "replaceByPattern");
+                return addToken(new ReplaceByPatternEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to replace")), "replaceByPattern");
             }
             case APPEND: {
                 verifyArgCount(argEvaluators, 1, "append");

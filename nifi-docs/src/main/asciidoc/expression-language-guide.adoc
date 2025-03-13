@@ -1211,10 +1211,10 @@ then the following Expressions will result in the following values:
 
 
 [.function]
-=== mapTo
+=== replaceByPattern
 
 *Description*:
-[.description]#Returns a string based on the provided mapping rule in order to map the subject to another string. If
+[.description]#Returns a string based on the provided mapping rule in order to replace the subject by another string. If
 the subject is not covered by the mapping rule, then the subject is returned.#
 
 
@@ -1233,12 +1233,12 @@ expression and V is the string to return in case K matches the subject. Examples
 If we have an attribute named "str" with the value "abc",
 then the following Expressions will result in the following values:
 
-.MapTo Examples
+.ReplaceByPattern Examples
 |================================================================
 | Expression | Value
-| `${str:mapTo('abc:xyz,foo:poo')}` | `xyz`
-| `${str:mapTo('foo:poo')}` | `abc`
-| `${str:mapTo('a.c:xyz,.*:foo')}` | `xyz`
+| `${str:replaceByPattern('abc:xyz,foo:poo')}` | `xyz`
+| `${str:replaceByPattern('foo:poo')}` | `abc`
+| `${str:replaceByPattern('a.c:xyz,.*:foo')}` | `xyz`
 |================================================================
 
 

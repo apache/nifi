@@ -29,14 +29,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class MapToEvaluator extends StringEvaluator {
+public class ReplaceByPatternEvaluator extends StringEvaluator {
 
     private final Evaluator<String> subject;
     private final Evaluator<String> search;
 
     private Map<String, Pattern> compiledPatterns = null;
 
-    public MapToEvaluator(final Evaluator<String> subject, final Evaluator<String> search) {
+    public ReplaceByPatternEvaluator(final Evaluator<String> subject, final Evaluator<String> search) {
         this.subject = subject;
         this.search = search;
 
