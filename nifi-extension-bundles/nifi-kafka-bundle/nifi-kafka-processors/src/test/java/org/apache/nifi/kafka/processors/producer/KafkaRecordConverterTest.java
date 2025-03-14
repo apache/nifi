@@ -1,6 +1,7 @@
 package org.apache.nifi.kafka.processors.producer;
 
-import org.apache.nifi.kafka.processors.producer.convert.*;
+import org.apache.nifi.kafka.processors.producer.convert.DelimitedStreamKafkaRecordConverter;
+import org.apache.nifi.kafka.processors.producer.convert.FlowFileStreamKafkaRecordConverter;
 import org.apache.nifi.kafka.processors.producer.header.HeadersFactory;
 import org.apache.nifi.kafka.processors.producer.key.KeyFactory;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
@@ -9,11 +10,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Collections;
+import java.util.ArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 class KafkaRecordConverterTest {
 
@@ -55,7 +62,6 @@ class KafkaRecordConverterTest {
         byte[] stringBytes = sb.toString().getBytes();
         int copyLength = Math.min(stringBytes.length, LARGE_SAMPLE_INPUT.length);
         System.arraycopy(stringBytes, 0, LARGE_SAMPLE_INPUT, 0, copyLength);
-
     }
 
     private void verifyRecordCount(Iterator<KafkaRecord> records, int expectedCount) {
