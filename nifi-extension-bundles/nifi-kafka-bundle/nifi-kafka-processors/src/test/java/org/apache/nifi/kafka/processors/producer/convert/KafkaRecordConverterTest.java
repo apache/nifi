@@ -1,7 +1,5 @@
-package org.apache.nifi.kafka.processors.producer;
+package org.apache.nifi.kafka.processors.producer.convert;
 
-import org.apache.nifi.kafka.processors.producer.convert.DelimitedStreamKafkaRecordConverter;
-import org.apache.nifi.kafka.processors.producer.convert.FlowFileStreamKafkaRecordConverter;
 import org.apache.nifi.kafka.processors.producer.header.HeadersFactory;
 import org.apache.nifi.kafka.processors.producer.key.KeyFactory;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
