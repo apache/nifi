@@ -22,6 +22,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyNameProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyNameProvider;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -32,9 +33,12 @@ public class DynamicPropertyValidator implements Validator {
 
     private final Set<String> clientPropertyNames;
 
-    public DynamicPropertyValidator(final Class<?> kafkaClientClass) {
-        final KafkaPropertyNameProvider provider = new StandardKafkaPropertyNameProvider(kafkaClientClass);
-        clientPropertyNames = provider.getPropertyNames();
+    public DynamicPropertyValidator(final Class<?>... kafkaClientClasses) {
+        clientPropertyNames = new HashSet<>();
+        for (Class<?> kafkaClientClass : kafkaClientClasses) {
+            final KafkaPropertyNameProvider provider = new StandardKafkaPropertyNameProvider(kafkaClientClass);
+            clientPropertyNames.addAll(provider.getPropertyNames());
+        }
     }
 
     @Override
