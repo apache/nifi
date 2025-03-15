@@ -51,6 +51,11 @@ class TestJoltTransformJSON {
     final static Path JSON_INPUT = Paths.get("src/test/resources/TestJoltTransformJson/input.json");
     final static Diffy DIFFY = new Diffy();
     final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
+    final static String SHIFTR_SPEC_PATH = "src/test/resources/specs/shiftrSpec.json";
+    final static String SHIFTR_JSON_OUTPUT = "shiftrOutput.json";
+    final static String CHAINR_JSON_OUTPUT = "chainrOutput.json";
+    private static final String JSON_SOURCE_ATTR_NAME = "jsonSourceAttr";
+
     static String chainrSpecContents;
     private Processor processor;
     private TestRunner runner;
@@ -199,36 +204,35 @@ class TestJoltTransformJSON {
 
     @ParameterizedTest(name = "{index} {1}")
     @MethodSource("getChainrArguments")
-    /*NOTE: Even though description is not used in the actual test, it needs to be declared in order to use it in the ParameterizedTest name argument*/
+        /*NOTE: Even though description is not used in the actual test, it needs to be declared in order to use it in the ParameterizedTest name argument*/
     void testTransformInputWithChainr(Path specPath, String ignoredDescription) throws IOException {
         final String spec = Files.readString(specPath);
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
         runner.run();
 
-        assertTransformedEquals("chainrOutput.json");
+        assertTransformedEquals(CHAINR_JSON_OUTPUT);
     }
 
     @Test
     void testTransformInputWithShiftr() throws IOException {
-        final String spec = Files.readString(Paths.get("src/test/resources/specs/shiftrSpec.json"));
+        final String spec = Files.readString(Paths.get(SHIFTR_SPEC_PATH));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
         runner.enqueue(JSON_INPUT);
         runner.run();
 
-        assertTransformedEquals("shiftrOutput.json");
+        assertTransformedEquals(SHIFTR_JSON_OUTPUT);
     }
 
     @Test
     void testTransformInputWithShiftrFromFile() throws IOException {
-        final String spec = "./src/test/resources/specs/shiftrSpec.json";
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, SHIFTR_SPEC_PATH);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
         runner.enqueue(JSON_INPUT);
         runner.run();
 
-        assertTransformedEquals("shiftrOutput.json");
+        assertTransformedEquals(SHIFTR_JSON_OUTPUT);
     }
 
     @Test
@@ -243,7 +247,7 @@ class TestJoltTransformJSON {
         runner.enqueue(JSON_INPUT, attributes);
         runner.run();
 
-        assertTransformedEquals("shiftrOutput.json");
+        assertTransformedEquals(SHIFTR_JSON_OUTPUT);
     }
 
     String addAccentedChars(String input) {
@@ -252,13 +256,13 @@ class TestJoltTransformJSON {
 
     @Test
     void testTransformInputWithShiftrAccentedChars() throws IOException {
-        final String spec = addAccentedChars(Files.readString(Paths.get("src/test/resources/specs/shiftrSpec.json")));
+        final String spec = addAccentedChars(Files.readString(Paths.get(SHIFTR_SPEC_PATH)));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.SHIFTR);
         runner.enqueue(addAccentedChars(Files.readString(JSON_INPUT)));
         runner.run();
 
-        assertTransformedEquals("shiftrOutput.json");
+        assertTransformedEquals(SHIFTR_JSON_OUTPUT);
     }
 
     @Test
@@ -382,7 +386,7 @@ class TestJoltTransformJSON {
         runner.enqueue(JSON_INPUT);
         runner.run();
 
-        assertTransformedEquals("chainrOutput.json");
+        assertTransformedEquals(CHAINR_JSON_OUTPUT);
     }
 
     @Test
@@ -401,7 +405,7 @@ class TestJoltTransformJSON {
         runner.enqueue(JSON_INPUT, customSpecs);
         runner.run();
 
-        assertTransformedEquals("chainrOutput.json");
+        assertTransformedEquals(CHAINR_JSON_OUTPUT);
     }
 
     @Test
@@ -414,7 +418,7 @@ class TestJoltTransformJSON {
         runner.enqueue(JSON_INPUT);
         runner.run();
 
-        assertTransformedEquals("chainrOutput.json");
+        assertTransformedEquals(CHAINR_JSON_OUTPUT);
     }
 
     @Test
@@ -426,7 +430,7 @@ class TestJoltTransformJSON {
         runner.enqueue(JSON_INPUT);
         runner.run();
 
-        assertTransformedEquals("chainrOutput.json");
+        assertTransformedEquals(CHAINR_JSON_OUTPUT);
     }
 
     @Test
@@ -462,6 +466,53 @@ class TestJoltTransformJSON {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
         runner.assertNotValid();
+    }
+
+    private static Stream<Arguments> provideJsonSourceAttributeArguments() {
+        String INVALID_INPUT_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":}}}";
+        String EXPECTED_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":3}}}";
+
+        return Stream.of(
+                Arguments.of(JSON_SOURCE_ATTR_NAME, null, SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, false, null),
+                Arguments.of(JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, INVALID_INPUT_JSON), SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, false, null),
+                Arguments.of("${dynamicJsonAttr}", Map.of("dynamicJsonAttr", JSON_SOURCE_ATTR_NAME, JSON_SOURCE_ATTR_NAME, EXPECTED_JSON), SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, true, SHIFTR_JSON_OUTPUT),
+                Arguments.of(JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, EXPECTED_JSON), CHAINR_SPEC_PATH, JoltTransformStrategy.CHAINR, true, CHAINR_JSON_OUTPUT)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideJsonSourceAttributeArguments")
+    void testJsonSourceAttribute(String jsonSourceAttribute,
+                                 Map<String, String> flowFileAttributes,
+                                 String joltSpec,
+                                 JoltTransformStrategy joltStrategy,
+                                 boolean expectSuccess,
+                                 String expectedOutputFile) throws IOException {
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, joltSpec);
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, joltStrategy);
+        runner.setProperty(JoltTransformJSON.JSON_SOURCE, SourceStrategy.ATTRIBUTE);
+        runner.setProperty(JoltTransformJSON.JSON_SOURCE_ATTRIBUTE, jsonSourceAttribute);
+        runner.enqueue(JSON_INPUT, flowFileAttributes != null ? flowFileAttributes : Collections.emptyMap());
+        runner.run();
+
+        if (expectSuccess) {
+            assertTransformedJsonAttributeEquals(expectedOutputFile);
+        } else {
+            runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
+        }
+    }
+
+    private void assertTransformedJsonAttributeEquals(final String expectedOutputContent) throws IOException {
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
+        transformed.assertAttributeExists(JSON_SOURCE_ATTR_NAME);
+
+        final Object transformedJson = JsonUtils.jsonToObject(transformed.getAttribute(JSON_SOURCE_ATTR_NAME));
+
+        final String compareOutputPath = "src/test/resources/TestJoltTransformJson/%s".formatted(expectedOutputContent);
+        final Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get(compareOutputPath)));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
     }
 
     private void assertTransformedEquals(final String expectedOutputFilename) throws IOException {
