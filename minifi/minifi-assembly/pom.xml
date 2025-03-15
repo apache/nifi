@@ -297,6 +297,12 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mqtt-nar</artifactId>
+            <version>${project.version}</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-framework</artifactId>
             <version>2.4.0-SNAPSHOT</version>
             <scope>compile</scope>
