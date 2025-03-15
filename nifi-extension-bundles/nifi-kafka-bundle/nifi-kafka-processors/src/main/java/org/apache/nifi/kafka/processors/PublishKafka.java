@@ -70,7 +70,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
-import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -580,7 +579,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         @Override
         public void process(final InputStream in) {
-            try (final InputStream is = new BufferedInputStream(in)) {
+            try (final InputStream is = in) {
                 final Iterator<KafkaRecord> records = kafkaConverter.convert(attributes, is, inputLength);
                 producerService.send(records, publishContext);
             } catch (final Exception e) {
