@@ -142,7 +142,9 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
-        this.restartOnFinish = context.getProperty(RESTART_ON_FINISH).asBoolean();
+        if (context.getProperty(RESTART_ON_FINISH).asBoolean() != null) {
+            this.restartOnFinish = context.getProperty(RESTART_ON_FINISH).asBoolean();
+        }
     }
 
     @Override
