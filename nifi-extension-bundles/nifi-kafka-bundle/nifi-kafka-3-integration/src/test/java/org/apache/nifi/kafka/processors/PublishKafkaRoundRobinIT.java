@@ -28,7 +28,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class PublishKafkaRoundRobinIT extends AbstractPublishKafkaIT {
         int totalRecords = 0;
         final Map<Integer, Integer> recordsPerPartition = new HashMap<>();
         try (final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(getKafkaConsumerProperties())) {
-            consumer.subscribe(Collections.singletonList(getClass().getName()));
+            consumer.subscribe(List.of(getClass().getName()));
 
             while (totalRecords < 10) {
                 final ConsumerRecords<String, String> records = consumer.poll(DURATION_POLL);
