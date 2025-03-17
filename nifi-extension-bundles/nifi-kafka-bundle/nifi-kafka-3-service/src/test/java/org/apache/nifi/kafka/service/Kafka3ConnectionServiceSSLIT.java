@@ -20,9 +20,14 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.TestRunner;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT {
 
@@ -62,5 +67,24 @@ public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT 
         properties.put(KafkaClientProperty.SSL_TRUSTSTORE_TYPE.getProperty(), keyStoreType);
         properties.put(KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD.getProperty(), KEY_STORE_PASSWORD);
         return properties;
+    }
+
+    private String addSSLContextService(final TestRunner runner) throws InitializationException {
+        final String identifier = SSLContextService.class.getSimpleName();
+        final SSLContextService service = mock(SSLContextService.class);
+        when(service.getIdentifier()).thenReturn(identifier);
+        runner.addControllerService(identifier, service);
+
+        when(service.isKeyStoreConfigured()).thenReturn(true);
+        when(service.getKeyStoreFile()).thenReturn(keyStorePath.toString());
+        when(service.getKeyStoreType()).thenReturn(keyStoreType);
+        when(service.getKeyStorePassword()).thenReturn(KEY_STORE_PASSWORD);
+        when(service.isTrustStoreConfigured()).thenReturn(true);
+        when(service.getTrustStoreFile()).thenReturn(trustStorePath.toString());
+        when(service.getTrustStoreType()).thenReturn(keyStoreType);
+        when(service.getTrustStorePassword()).thenReturn(KEY_STORE_PASSWORD);
+
+        runner.enableControllerService(service);
+        return identifier;
     }
 }

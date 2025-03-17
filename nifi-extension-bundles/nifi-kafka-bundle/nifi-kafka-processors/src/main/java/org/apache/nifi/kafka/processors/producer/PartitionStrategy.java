@@ -21,11 +21,11 @@ import org.apache.nifi.components.DescribedValue;
 public enum PartitionStrategy implements DescribedValue {
 
     ROUND_ROBIN_PARTITIONING(
-            "org.apache.nifi.processors.kafka.pubsub.Partitioners.RoundRobinPartitioner",
+            "org.apache.kafka.clients.producer.RoundRobinPartitioner",
             "RoundRobinPartitioner",
             "Messages will be assigned partitions in a round-robin fashion, sending the first message to Partition 1, "
                     + "the next Partition to Partition 2, and so on, wrapping as necessary."),
-    RANDOM_PARTITIONING(
+    DEFAULT_PARTITIONER(
             "org.apache.kafka.clients.producer.internals.DefaultPartitioner",
             "DefaultPartitioner",
             "The default partitioning strategy will choose the sticky partition that changes when the batch is full "

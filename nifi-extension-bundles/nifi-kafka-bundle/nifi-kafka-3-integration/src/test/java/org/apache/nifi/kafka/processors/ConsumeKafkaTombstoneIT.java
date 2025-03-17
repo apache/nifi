@@ -86,8 +86,7 @@ class ConsumeKafkaTombstoneIT extends AbstractConsumeKafkaIT {
                 new RecordHeader("bbb", "value".getBytes(StandardCharsets.UTF_8)),
                 new RecordHeader("ccc", "value".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, "key-record", null, headers);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
 

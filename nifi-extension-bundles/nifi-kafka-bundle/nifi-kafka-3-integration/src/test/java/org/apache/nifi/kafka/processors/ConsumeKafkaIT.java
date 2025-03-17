@@ -89,8 +89,7 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
                 new RecordHeader("bbb", "value".getBytes(StandardCharsets.UTF_8)),
                 new RecordHeader("ccc", "value".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, null, RECORD_VALUE, headers);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
 
@@ -130,8 +129,7 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
         runner.run(1, false, true);
 
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
 
@@ -154,8 +152,7 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         runner.run(1, false, true);
 
         produceOne(topic, 0, null, RECORD_VALUE, null);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
 

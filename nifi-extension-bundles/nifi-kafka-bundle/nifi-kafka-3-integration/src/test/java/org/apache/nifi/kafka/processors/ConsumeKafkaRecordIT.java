@@ -51,6 +51,13 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
     private static final int TEST_RECORD_COUNT = 3;
 
     private static final int FIRST_PARTITION = 0;
+    private static final String VALID_RECORD_1_TEXT = """
+            { "id": 1, "name": "A" }
+            """;
+    private static final String VALID_RECORD_2_TEXT = """
+            { "id": 2, "name": "B" }
+            """;
+    private static final String INVALID_RECORD_TEXT = "non-json";
 
     private TestRunner runner;
 
@@ -79,6 +86,45 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
     }
 
     @Test
+    void testInvalidRecordInMiddle() throws ExecutionException, InterruptedException {
+        testSingleInvalidRecord("testInvalidRecordInMiddle", VALID_RECORD_1_TEXT, INVALID_RECORD_TEXT, VALID_RECORD_2_TEXT);
+    }
+
+    @Test
+    void testInvalidRecordAtEnd() throws ExecutionException, InterruptedException {
+        testSingleInvalidRecord("testInvalidRecordAtEnd", VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT, INVALID_RECORD_TEXT);
+    }
+
+    @Test
+    void testInvalidRecordAtStart() throws ExecutionException, InterruptedException {
+        testSingleInvalidRecord("testInvalidRecordAtStart", INVALID_RECORD_TEXT, VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT);
+    }
+
+    private void testSingleInvalidRecord(final String topicName, final String... recordTexts) throws ExecutionException, InterruptedException {
+        runner.setProperty(ConsumeKafka.TOPICS, topicName);
+        runner.setProperty(ConsumeKafka.GROUP_ID, topicName);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.RECORD.getValue());
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, AutoOffsetReset.EARLIEST.getValue());
+
+        for (final String text : recordTexts) {
+            produceOne(topicName, 0, null, text, List.of());
+        }
+
+        runner.run(1, false, true);
+
+        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
+            Thread.sleep(10L);
+            runner.run(1, false, false);
+        }
+
+        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
+        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 1);
+
+        assertEquals(String.valueOf(recordTexts.length - 1), runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst().getAttribute("record.count"));
+        runner.getFlowFilesForRelationship(ConsumeKafka.PARSE_FAILURE).getFirst().assertContentEquals(INVALID_RECORD_TEXT);
+    }
+
+    @Test
     void testProcessingStrategyFlowFileOneRecord() throws InterruptedException, ExecutionException, IOException {
         final String topic = UUID.randomUUID().toString();
         final String groupId = topic.substring(0, topic.indexOf("-"));
@@ -100,11 +146,9 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
                 new RecordHeader("bbb", "value".getBytes(StandardCharsets.UTF_8)),
                 new RecordHeader("ccc", "value".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, null, flowFileString, headers);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while (System.currentTimeMillis() < pollUntil) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
-
         runner.run(1, true, false);
 
         final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS);

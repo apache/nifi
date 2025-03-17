@@ -24,7 +24,6 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.provenance.ProvenanceReporter;
 
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -37,7 +36,7 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
     private final KeyEncoding keyEncoding;
     private final boolean commitOffsets;
     private final OffsetTracker offsetTracker;
-    private final Runnable onSuccess;
+    private final String brokerUri;
 
     public FlowFileStreamKafkaMessageConverter(
             final Charset headerEncoding,
@@ -45,13 +44,13 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
-            final Runnable onSuccess) {
+            final String brokerUri) {
         this.headerEncoding = headerEncoding;
         this.headerNamePattern = headerNamePattern;
         this.keyEncoding = keyEncoding;
         this.commitOffsets = commitOffsets;
         this.offsetTracker = offsetTracker;
-        this.onSuccess = onSuccess;
+        this.brokerUri = brokerUri;
     }
 
     @Override
@@ -72,16 +71,11 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
                     consumerRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            final ProvenanceReporter provenanceReporter = session.getProvenanceReporter();
-            final String transitUri = String.format(TRANSIT_URI_FORMAT, consumerRecord.getTopic(), consumerRecord.getPartition());
-            provenanceReporter.receive(flowFile, transitUri);
-
+            session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + consumerRecord.getTopic());
             session.adjustCounter("Records Received from " + consumerRecord.getTopic(), consumerRecord.getBundledCount(), false);
 
             session.transfer(flowFile, ConsumeKafka.SUCCESS);
             offsetTracker.update(consumerRecord);
         }
-
-        onSuccess.run();
     }
 }

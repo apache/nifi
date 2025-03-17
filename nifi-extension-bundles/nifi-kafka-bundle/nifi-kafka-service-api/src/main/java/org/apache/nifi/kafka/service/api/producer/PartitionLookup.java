@@ -14,14 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.service.consumer;
+package org.apache.nifi.kafka.service.api.producer;
 
-/**
- * Kafka Consumer Exception indicating problems interacting with consumer objects
- */
-public class ConsumerException extends RuntimeException {
+public interface PartitionLookup {
 
-    public ConsumerException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
+    int lookupPartitionCount(String topic);
+
 }
