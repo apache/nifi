@@ -74,6 +74,7 @@
                     <verbose>true</verbose>
                     <showWeaveInfo>true</showWeaveInfo>
                     <Xlint>ignore</Xlint>
+                    <argumentFileName>../builddef.lst</argumentFileName>
                     <sources>
                         <source>
                             <basedir>${project.basedir}/src/main/java</basedir>
