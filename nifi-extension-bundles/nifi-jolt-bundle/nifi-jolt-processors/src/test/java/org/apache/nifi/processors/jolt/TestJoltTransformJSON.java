@@ -473,10 +473,14 @@ class TestJoltTransformJSON {
         String EXPECTED_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":3}}}";
 
         return Stream.of(
-                Arguments.of(JSON_SOURCE_ATTR_NAME, null, SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, false, null),
-                Arguments.of(JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, INVALID_INPUT_JSON), SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, false, null),
-                Arguments.of("${dynamicJsonAttr}", Map.of("dynamicJsonAttr", JSON_SOURCE_ATTR_NAME, JSON_SOURCE_ATTR_NAME, EXPECTED_JSON), SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, true, SHIFTR_JSON_OUTPUT),
-                Arguments.of(JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, EXPECTED_JSON), CHAINR_SPEC_PATH, JoltTransformStrategy.CHAINR, true, CHAINR_JSON_OUTPUT)
+                Arguments.of(JSON_SOURCE_ATTR_NAME, null, SHIFTR_SPEC_PATH,
+                        JoltTransformStrategy.SHIFTR, false, null),
+                Arguments.of(JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, INVALID_INPUT_JSON), SHIFTR_SPEC_PATH,
+                        JoltTransformStrategy.SHIFTR, false, null),
+                Arguments.of("${dynamicJsonAttr}", Map.of("dynamicJsonAttr", JSON_SOURCE_ATTR_NAME, JSON_SOURCE_ATTR_NAME, EXPECTED_JSON), SHIFTR_SPEC_PATH,
+                        JoltTransformStrategy.SHIFTR, true, SHIFTR_JSON_OUTPUT),
+                Arguments.of(JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, EXPECTED_JSON), CHAINR_SPEC_PATH,
+                        JoltTransformStrategy.CHAINR, true, CHAINR_JSON_OUTPUT)
         );
     }
 
