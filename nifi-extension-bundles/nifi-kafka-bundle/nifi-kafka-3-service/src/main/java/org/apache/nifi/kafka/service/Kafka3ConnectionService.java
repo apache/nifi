@@ -46,7 +46,7 @@ import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
-import org.apache.nifi.kafka.service.consumer.pool.Subscription;
+import org.apache.nifi.kafka.service.consumer.Subscription;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
 import org.apache.nifi.kafka.shared.property.IsolationLevel;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -116,6 +116,9 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SaslMechanism.getAvailableSaslMechanisms())
             .defaultValue(SaslMechanism.GSSAPI.getValue())
+            .dependsOn(SECURITY_PROTOCOL,
+                    SecurityProtocol.SASL_PLAINTEXT.name(),
+                    SecurityProtocol.SASL_SSL.name())
             .build();
 
     public static final PropertyDescriptor SASL_USERNAME = new PropertyDescriptor.Builder()
@@ -249,6 +252,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     private volatile ServiceConfiguration serviceConfiguration;
     private volatile Properties producerProperties;
     private volatile Properties consumerProperties;
+    private volatile String uri;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext configurationContext) {
@@ -256,8 +260,25 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         serviceConfiguration = getServiceConfiguration(configurationContext);
         producerProperties = getProducerProperties(configurationContext, clientProperties);
         consumerProperties = getConsumerProperties(configurationContext, clientProperties);
+        uri = createBrokerUri(configurationContext);
     }
 
+    private String createBrokerUri(final ConfigurationContext context) {
+        final String bootstrapServers = context.getProperty(BOOTSTRAP_SERVERS).getValue();
+        final String[] bootstrapServersArray = bootstrapServers.split(",");
+        String firstBootstrapServer = bootstrapServersArray[0].trim();
+        if (firstBootstrapServer.contains("://")) {
+            firstBootstrapServer = firstBootstrapServer.substring(firstBootstrapServer.indexOf("://") + 3);
+        }
+
+        final SecurityProtocol securityProtocol = context.getProperty(SECURITY_PROTOCOL).asAllowableValue(SecurityProtocol.class);
+        final String protocol = switch (securityProtocol) {
+        case SSL, SASL_SSL -> "kafkas";
+        case SASL_PLAINTEXT, PLAINTEXT -> "kafka";
+        };
+
+        return String.format("%s://%s", protocol, firstBootstrapServer);
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -289,16 +310,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
 
-        final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
-        if (topicPatternFound.isPresent()) {
-            final Pattern topicPattern = topicPatternFound.get();
-            consumer.subscribe(topicPattern);
-        } else {
-            final Collection<String> topics = subscription.getTopics();
-            consumer.subscribe(topics);
-        }
-
-        return new Kafka3ConsumerService(getLogger(), consumer, subscription, pollingContext.getMaxUncommittedTime());
+        final Kafka3ConsumerService consumerService = new Kafka3ConsumerService(getLogger(), consumer, subscription);
+        return consumerService;
     }
 
     private Subscription createSubscription(final PollingContext pollingContext) {
@@ -331,6 +344,11 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         }
 
         return new Kafka3ProducerService(properties, serviceConfiguration, producerConfiguration);
+    }
+
+    @Override
+    public String getBrokerUri() {
+        return uri;
     }
 
     @Override

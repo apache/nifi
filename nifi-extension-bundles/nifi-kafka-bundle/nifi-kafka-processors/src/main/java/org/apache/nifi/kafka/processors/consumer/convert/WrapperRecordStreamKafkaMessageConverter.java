@@ -31,7 +31,6 @@ import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -69,8 +68,8 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
     private final KeyEncoding keyEncoding;
     private final boolean commitOffsets;
     private final OffsetTracker offsetTracker;
-    private final Runnable onSuccess;
     private final ComponentLog logger;
+    private final String brokerUri;
 
     public WrapperRecordStreamKafkaMessageConverter(
             final RecordReaderFactory readerFactory,
@@ -82,8 +81,8 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
-            final Runnable onSuccess,
-            final ComponentLog logger) {
+            final ComponentLog logger,
+            final String brokerUri) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.keyReaderFactory = keyReaderFactory;
@@ -93,23 +92,19 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
         this.keyEncoding = keyEncoding;
         this.commitOffsets = commitOffsets;
         this.offsetTracker = offsetTracker;
-        this.onSuccess = onSuccess;
         this.logger = logger;
+        this.brokerUri = brokerUri;
     }
 
     @Override
     public void toFlowFiles(final ProcessSession session, final Iterator<ByteRecord> consumerRecords) {
         try {
-            final Map<RecordSchema, RecordGroup> recordGroups = new HashMap<>();
+            final Map<RecordGroupCriteria, RecordGroup> recordGroups = new HashMap<>();
 
-            String topic = null;
-            int partition = 0;
             while (consumerRecords.hasNext()) {
                 final ByteRecord consumerRecord = consumerRecords.next();
-                if (topic == null) {
-                    partition = consumerRecord.getPartition();
-                    topic = consumerRecord.getTopic();
-                }
+                final String topic = consumerRecord.getTopic();
+                final int partition = consumerRecord.getPartition();
 
                 final byte[] value = consumerRecord.getValue();
                 final Map<String, String> attributes = KafkaUtils.toAttributes(
@@ -131,9 +126,10 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
                         final RecordSchema recordSchema = record == null ? EMPTY_SCHEMA : record.getSchema();
                         final RecordSchema fullSchema = WrapperRecord.toWrapperSchema(recordKey.getKey(), recordSchema);
                         final RecordSchema writeSchema = writerFactory.getSchema(attributes, fullSchema);
+                        final RecordGroupCriteria recordGroupCriteria = new RecordGroupCriteria(writeSchema, topic, partition);
 
                         // Get/Register the Record Group that is associated with the schema for this Kafka Record
-                        RecordGroup recordGroup = recordGroups.get(writeSchema);
+                        RecordGroup recordGroup = recordGroups.get(recordGroupCriteria);
                         if (recordGroup == null) {
                             FlowFile flowFile = session.create();
                             final Map<String, String> groupAttributes = Map.of(
@@ -154,7 +150,7 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
                             }
 
                             recordGroup = new RecordGroup(flowFile, writer, topic, partition);
-                            recordGroups.put(writeSchema, recordGroup);
+                            recordGroups.put(recordGroupCriteria, recordGroup);
                         }
 
                         // Create the Record object and write it to the Record Writer.
@@ -195,17 +191,17 @@ public class WrapperRecordStreamKafkaMessageConverter implements KafkaMessageCon
 
                 FlowFile flowFile = recordGroup.flowFile();
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                final ProvenanceReporter provenanceReporter = session.getProvenanceReporter();
-                final String transitUri = String.format(TRANSIT_URI_FORMAT, topic, partition);
-                provenanceReporter.receive(flowFile, transitUri);
-                session.adjustCounter("Records Received from " + topic, recordCount, false);
+
+                session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + recordGroup.topic);
+                session.adjustCounter("Records Received from " + recordGroup.topic, recordCount, false);
                 session.transfer(flowFile, ConsumeKafka.SUCCESS);
             }
-
-            onSuccess.run();
         } catch (final SchemaNotFoundException | IOException e) {
             throw new ProcessException("FlowFile Record conversion failed", e);
         }
+    }
+
+    private record RecordGroupCriteria(RecordSchema schema, String topic, int partition) {
     }
 
     private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, String topic, int partition) {

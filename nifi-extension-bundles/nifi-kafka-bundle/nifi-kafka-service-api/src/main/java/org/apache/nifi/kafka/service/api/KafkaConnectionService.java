@@ -27,4 +27,6 @@ public interface KafkaConnectionService extends ControllerService {
     KafkaConsumerService getConsumerService(PollingContext pollingContext);
 
     KafkaProducerService getProducerService(ProducerConfiguration producerConfiguration);
+
+    String getBrokerUri();
 }

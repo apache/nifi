@@ -37,7 +37,6 @@ import org.apache.nifi.kafka.service.api.record.KafkaRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -55,6 +54,7 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 import javax.security.auth.x500.X500Principal;
+
 import java.io.File;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -84,15 +84,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0";  // December 2024
+    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0"; // December 2024
 
     private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
     private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
@@ -235,7 +233,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testProduceOneNoTransaction() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
@@ -246,7 +244,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testProduceOneWithTransaction() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(true, "transaction-", null, null, null);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(true, "transaction-", null, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
@@ -257,7 +255,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testProduceConsumeRecord() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
 
         final long timestamp = System.currentTimeMillis();
@@ -267,7 +265,7 @@ public class Kafka3ConnectionServiceBaseIT {
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
 
-        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST);
         final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
         final Iterator<ByteRecord> consumerRecords = poll(consumerService);
 
@@ -324,7 +322,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testGetProducerService() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final List<PartitionState> partitionStates = producerService.getPartitionStates(TOPIC);
         assertPartitionStatesFound(partitionStates);
@@ -332,7 +330,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testGetConsumerService() {
-        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST);
         final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
         final List<PartitionState> partitionStates = consumerService.getPartitionStates();
         assertPartitionStatesFound(partitionStates);
@@ -349,7 +347,7 @@ public class Kafka3ConnectionServiceBaseIT {
         Iterator<ByteRecord> consumerRecords = Collections.emptyIterator();
 
         for (int i = 0; i < POLLING_ATTEMPTS; i++) {
-            final Iterable<ByteRecord> records = consumerService.poll();
+            final Iterable<ByteRecord> records = consumerService.poll(Duration.ofSeconds(1));
             assertNotNull(records);
             consumerRecords = records.iterator();
             if (consumerRecords.hasNext()) {
@@ -358,25 +356,6 @@ public class Kafka3ConnectionServiceBaseIT {
         }
 
         return consumerRecords;
-    }
-
-    protected String addSSLContextService(final TestRunner runner) throws InitializationException {
-        final String identifier = SSLContextService.class.getSimpleName();
-        final SSLContextService service = mock(SSLContextService.class);
-        when(service.getIdentifier()).thenReturn(identifier);
-        runner.addControllerService(identifier, service);
-
-        when(service.isKeyStoreConfigured()).thenReturn(true);
-        when(service.getKeyStoreFile()).thenReturn(keyStorePath.toString());
-        when(service.getKeyStoreType()).thenReturn(keyStoreType);
-        when(service.getKeyStorePassword()).thenReturn(KEY_STORE_PASSWORD);
-        when(service.isTrustStoreConfigured()).thenReturn(true);
-        when(service.getTrustStoreFile()).thenReturn(trustStorePath.toString());
-        when(service.getTrustStoreType()).thenReturn(keyStoreType);
-        when(service.getTrustStorePassword()).thenReturn(KEY_STORE_PASSWORD);
-
-        runner.enableControllerService(service);
-        return identifier;
     }
 
     protected String getJaasConfigKafkaContainer(String userName, String password) {
