@@ -265,7 +265,7 @@ public class Kafka3ConnectionServiceBaseIT {
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
 
-        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST);
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Set.of(TOPIC), AutoOffsetReset.EARLIEST);
         final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
         final Iterator<ByteRecord> consumerRecords = poll(consumerService);
 
@@ -330,7 +330,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testGetConsumerService() {
-        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST);
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Set.of(TOPIC), AutoOffsetReset.EARLIEST);
         final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
         final List<PartitionState> partitionStates = consumerService.getPartitionStates();
         assertPartitionStatesFound(partitionStates);
