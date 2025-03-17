@@ -109,7 +109,6 @@ class KafkaRecordConverterTest {
 
         byte[] stringBytes = sb.toString().getBytes();
 
-        // Clear LARGE_SAMPLE_INPUT to avoid leftover NULLs
         Arrays.fill(LARGE_SAMPLE_INPUT, (byte) ' ');  // Fill with spaces instead of NULL
 
         int copyLength = Math.min(stringBytes.length, LARGE_SAMPLE_INPUT.length);
@@ -146,14 +145,11 @@ class KafkaRecordConverterTest {
 
     @Test
     void testRecordWrapperStreamKafkaRecordConverter() throws Exception {
-        // Create instance of RecordWrapperStreamKafkaRecordConverter with correct arguments
         RecordWrapperStreamKafkaRecordConverter recordWrapperStreamKafkaRecordConverter = new RecordWrapperStreamKafkaRecordConverter(new MockFlowFile(0), RecordMetadataStrategy.FROM_PROPERTIES,
                 jsonTreeReader, jsonRecordSetWriter, jsonRecordSetWriter, Integer.MAX_VALUE, mock(ComponentLog.class));
 
-        // Create input stream
         InputStream inputStream = new ByteArrayInputStream(LARGE_SAMPLE_INPUT);
 
-        // Validate record count
         verifyRecordCount(recordWrapperStreamKafkaRecordConverter.convert(SAMPLE_ATTRIBUTES, inputStream, LARGE_SAMPLE_INPUT.length), EXPECTED_RECORD_COUNT);
     }
 }
