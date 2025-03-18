@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors;
 
+import org.apache.avro.file.CodecFactory;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -33,10 +34,7 @@ import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.processors.consumer.bundle.ByteRecordBundler;
-import org.apache.nifi.kafka.processors.consumer.convert.FlowFileStreamKafkaMessageConverter;
-import org.apache.nifi.kafka.processors.consumer.convert.KafkaMessageConverter;
-import org.apache.nifi.kafka.processors.consumer.convert.RecordStreamKafkaMessageConverter;
-import org.apache.nifi.kafka.processors.consumer.convert.WrapperRecordStreamKafkaMessageConverter;
+import org.apache.nifi.kafka.processors.consumer.convert.*;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
@@ -47,6 +45,7 @@ import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
+import org.apache.nifi.schemaregistry.services.SchemaReferenceReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -55,6 +54,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.StringUtils;
@@ -218,6 +218,22 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
             .build();
 
+    static final PropertyDescriptor SCHEMA_REFERENCE = new PropertyDescriptor.Builder()
+            .name("Schema Registry Reference Reader")
+            .description("The Reader that looks up the first magic bytes representing the schema of an Avro encoded record in e.g. Confluence Schema Registry")
+            .required(true)
+            .identifiesControllerService(SchemaReferenceReader.class)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.AVRO_FILE)
+            .build();
+
+    static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
+            .name("Schema Registry")
+            .description("The Schema Registry that can supply the Record Schema for the Records, e.g. Confluence Schema Registry")
+            .required(true)
+            .identifiesControllerService(SchemaRegistry.class)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.AVRO_FILE)
+            .build();
+
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
             .name("Key Attribute Encoding")
             .description("Encoding for value of configured FlowFile attribute containing Kafka Record Key.")
@@ -244,6 +260,43 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .required(true)
             .dependsOn(KEY_FORMAT, KeyFormat.RECORD)
             .build();
+// @TODO: SchemaRegistry Property
+
+    public static enum CodecType {
+        BZIP2,
+        DEFLATE,
+        NONE,
+        SNAPPY,
+        LZO
+    }
+
+    static final PropertyDescriptor AVRO_CODEC = new PropertyDescriptor.Builder()
+            .name("avro-codec")
+            .displayName("Avro Codec")
+            .description("The Record Writer to use in order to serialize the data before sending to Kafka")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(CodecType.values())
+            .defaultValue(CodecType.NONE.name())
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.AVRO_FILE)
+            .build();
+
+
+    public static CodecFactory getCodecFactory(String property) {
+        CodecType type = CodecType.valueOf(property);
+        switch (type) {
+            case BZIP2:
+                return CodecFactory.bzip2Codec();
+            case DEFLATE:
+                return CodecFactory.deflateCodec(CodecFactory.DEFAULT_DEFLATE_LEVEL);
+            case LZO:
+                return CodecFactory.xzCodec(CodecFactory.DEFAULT_XZ_LEVEL);
+            case SNAPPY:
+                return CodecFactory.snappyCodec();
+            case NONE:
+            default:
+                return CodecFactory.nullCodec();
+        }
+    }
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Message Demarcator")
@@ -290,6 +343,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             RECORD_READER,
             RECORD_WRITER,
             OUTPUT_STRATEGY,
+            SCHEMA_REFERENCE,
+            SCHEMA_REGISTRY,
+            AVRO_CODEC,
             KEY_ATTRIBUTE_ENCODING,
             KEY_FORMAT,
             KEY_RECORD_READER,
@@ -433,6 +489,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         switch (processingStrategy) {
             case RECORD -> processInputRecords(context, session, consumerService, pollingContext, consumerRecords);
+            case AVRO_FILE -> processInputAvroFile(context, session, consumerService, pollingContext, consumerRecords);
             case FLOW_FILE -> processInputFlowFile(session, consumerService, pollingContext, consumerRecords);
             case DEMARCATOR -> {
                 final Iterator<ByteRecord> demarcatedRecords = transformDemarcator(context, consumerRecords);
@@ -478,7 +535,24 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         converter.toFlowFiles(session, consumerRecords);
     }
 
-    private void processInputFlowFile(final ProcessSession session, final KafkaConsumerService consumerService, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
+    private void processInputAvroFile(final ProcessContext context, final ProcessSession session, final KafkaConsumerService consumerService, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
+        final OffsetTracker offsetTracker = new OffsetTracker();
+        final SchemaReferenceReader schemaReferenceReader = context.getProperty(SCHEMA_REFERENCE).asControllerService(SchemaReferenceReader.class);
+        final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
+        final CodecFactory avroCodec = getCodecFactory(context.getProperty(AVRO_CODEC).getValue());
+
+        final Runnable onSuccess = commitOffsets
+                ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
+                : session::commitAsync;
+        final KafkaMessageConverter converter = new AvroFileStreamKafkaMessageConverter(
+                headerEncoding, headerNamePattern, keyEncoding, schemaRegistry, schemaReferenceReader, avroCodec, commitOffsets, offsetTracker, onSuccess);
+        getLogger().info("Processing x input records into one Avro per Partition");
+        converter.toFlowFiles(session, consumerRecords);
+
+
+    }
+
+        private void processInputFlowFile(final ProcessSession session, final KafkaConsumerService consumerService, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
         final OffsetTracker offsetTracker = new OffsetTracker();
         final Runnable onSuccess = commitOffsets
                 ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
