@@ -339,7 +339,10 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, producerConfiguration.getCompressionCodec());
         }
         final String partitionClass = producerConfiguration.getPartitionClass();
-        if (partitionClass != null && partitionClass.startsWith("org.apache.kafka")) {
+        if (partitionClass != null && partitionClass.startsWith("org.apache.kafka")
+        // Default Partitioner is removed in Kafka 4.0, and partitioner class should be
+        // null by default - see KIP-794
+                && !partitionClass.equals("org.apache.kafka.clients.producer.internals.DefaultPartitioner")) {
             properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
         }
 
