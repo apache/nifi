@@ -111,7 +111,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor CUSTOM_MIME_CONFIGURATION = new PropertyDescriptor.Builder()
-            .name("Custom Configuration")
+            .name("Custom MIME Configuration")
             .description("A URL or file path to a custom Tika Mime type configuration or the actual content of a custom Tika Mime type configuration.")
             .required(true)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
