@@ -53,6 +53,7 @@ import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
+import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -246,12 +247,14 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     private volatile Properties clientProperties;
     private volatile ServiceConfiguration serviceConfiguration;
+    private volatile Properties producerProperties;
     private volatile Properties consumerProperties;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext configurationContext) {
         clientProperties = getClientProperties(configurationContext);
         serviceConfiguration = getServiceConfiguration(configurationContext);
+        producerProperties = getProducerProperties(configurationContext, clientProperties);
         consumerProperties = getConsumerProperties(configurationContext, clientProperties);
     }
 
@@ -259,6 +262,17 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
+                .name(propertyDescriptorName)
+                .addValidator(new DynamicPropertyValidator(ProducerConfig.class, ConsumerConfig.class))
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .build();
     }
 
     @Override
@@ -299,24 +313,24 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     @Override
     public KafkaProducerService getProducerService(final ProducerConfiguration producerConfiguration) {
-        final Properties propertiesProducer = new Properties();
-        propertiesProducer.putAll(clientProperties);
+        final Properties properties = new Properties();
+        properties.putAll(producerProperties);
         if (producerConfiguration.getTransactionsEnabled()) {
-            propertiesProducer.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
+            properties.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,
                     new TransactionIdSupplier(producerConfiguration.getTransactionIdPrefix()).get());
         }
         if (producerConfiguration.getDeliveryGuarantee() != null) {
-            propertiesProducer.put(ProducerConfig.ACKS_CONFIG, producerConfiguration.getDeliveryGuarantee());
+            properties.put(ProducerConfig.ACKS_CONFIG, producerConfiguration.getDeliveryGuarantee());
         }
         if (producerConfiguration.getCompressionCodec() != null) {
-            propertiesProducer.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, producerConfiguration.getCompressionCodec());
+            properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, producerConfiguration.getCompressionCodec());
         }
         final String partitionClass = producerConfiguration.getPartitionClass();
         if (partitionClass != null && partitionClass.startsWith("org.apache.kafka")) {
-            propertiesProducer.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
+            properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
         }
 
-        return new Kafka3ProducerService(propertiesProducer, serviceConfiguration, producerConfiguration);
+        return new Kafka3ProducerService(properties, serviceConfiguration, producerConfiguration);
     }
 
     @Override
@@ -352,9 +366,27 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         return results;
     }
 
+    private Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+        final Properties properties = new Properties();
+        properties.putAll(defaultProperties);
+
+        final KafkaPropertyProvider propertyProvider = new StandardKafkaPropertyProvider(ProducerConfig.class);
+        final Map<String, Object> propertiesProvider = propertyProvider.getProperties(propertyContext);
+        propertiesProvider.forEach((key, value) -> properties.setProperty(key, value.toString()));
+
+        final long timePeriod = propertyContext.getProperty(METADATA_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, timePeriod);
+
+        return properties;
+    }
+
     private Properties getConsumerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
         final Properties properties = new Properties();
         properties.putAll(defaultProperties);
+
+        final KafkaPropertyProvider propertyProvider = new StandardKafkaPropertyProvider(ConsumerConfig.class);
+        final Map<String, Object> propertiesProvider = propertyProvider.getProperties(propertyContext);
+        propertiesProvider.forEach((key, value) -> properties.setProperty(key, value.toString()));
 
         final IsolationLevel isolationLevel = propertyContext.getProperty(TRANSACTION_ISOLATION_LEVEL).asAllowableValue(IsolationLevel.class);
         properties.put(TRANSACTION_ISOLATION_LEVEL.getName(), isolationLevel.getValue());
@@ -364,10 +396,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     private Properties getClientProperties(final PropertyContext propertyContext) {
         final Properties properties = new Properties();
-
-        final KafkaPropertyProvider propertyProvider = new StandardKafkaPropertyProvider(ConsumerConfig.class);
-        final Map<String, Object> propertiesProvider = propertyProvider.getProperties(propertyContext);
-        propertiesProvider.forEach((key, value) -> properties.setProperty(key, value.toString()));
 
         final String configuredBootstrapServers = propertyContext.getProperty(BOOTSTRAP_SERVERS).getValue();
         properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, configuredBootstrapServers);
@@ -379,9 +407,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         final int requestTimeoutMs = getRequestTimeoutMs(propertyContext);
         properties.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeoutMs);
-
-        final long timePeriod = propertyContext.getProperty(METADATA_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
-        properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, timePeriod);
 
         return properties;
     }

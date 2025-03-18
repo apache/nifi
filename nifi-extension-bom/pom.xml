@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-bom</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.4.0-SNAPSHOT</version>
         <relativePath>../nifi-bom</relativePath>
     </parent>
     <artifactId>nifi-extension-bom</artifactId>
@@ -238,7 +238,7 @@
             <dependency>
                 <groupId>org.eclipse.jdt</groupId>
                 <artifactId>ecj</artifactId>
-                <version>3.38.0</version>
+                <version>3.40.0</version>
                 <scope>provided</scope>
             </dependency>
             <!-- Jetty EE10 Glassfish JSTL and deps -->
@@ -298,7 +298,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>2.3.0-SNAPSHOT</version>
+                <version>2.4.0-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

@@ -81,7 +81,7 @@ export class ComboEditor {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<any> = new EventEmitter<any>();
-    @Output() close: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly TextTip = TextTip;
 
@@ -290,6 +290,6 @@ export class ComboEditor {
     }
 
     cancelClicked(): void {
-        this.close.next();
+        this.exit.next();
     }
 }

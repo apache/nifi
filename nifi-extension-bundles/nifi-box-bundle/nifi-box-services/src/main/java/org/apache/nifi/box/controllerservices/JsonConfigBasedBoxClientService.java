@@ -57,12 +57,23 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCES
 @CapabilityDescription("Provides Box client objects through which Box API calls can be used.")
 @Tags({"box", "client", "provider"})
 public class JsonConfigBasedBoxClientService extends AbstractControllerService implements BoxClientService, VerifiableControllerService {
+
+    public static final PropertyDescriptor APP_ACTOR = new PropertyDescriptor.Builder()
+        .name("App Actor")
+        .description("Specifies on behalf of whom Box API calls will be made.")
+        .required(true)
+        .allowableValues(BoxAppActor.class)
+        .defaultValue(BoxAppActor.IMPERSONATED_USER)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .build();
+
     public static final PropertyDescriptor ACCOUNT_ID = new PropertyDescriptor.Builder()
         .name("box-account-id")
         .displayName("Account ID")
-        .description("The ID of the Box account who owns the accessed resource. Same as 'User Id' under 'App Info' in the App 'General Settings'.")
+        .description("The ID of the Box account which the app will act on behalf of.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .dependsOn(APP_ACTOR, BoxAppActor.IMPERSONATED_USER)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
@@ -88,6 +99,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+        APP_ACTOR,
         ACCOUNT_ID,
         APP_CONFIG_FILE,
         APP_CONFIG_JSON,
@@ -168,8 +180,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     }
 
     private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
-
-        final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         final BoxConfig boxConfig;
@@ -200,7 +210,15 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
             }
         }
 
-        api.asUser(accountId);
+        final BoxAppActor appActor = context.getProperty(APP_ACTOR).asAllowableValue(BoxAppActor.class);
+        switch (appActor) {
+            case SERVICE_ACCOUNT -> api.asSelf();
+            case IMPERSONATED_USER -> {
+                final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
+                api.asUser(accountId);
+            }
+            default -> throw new IllegalArgumentException("Unrecognized App actor:" + appActor);
+        }
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
             api.setProxy(proxyConfiguration.createProxy());

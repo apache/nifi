@@ -48,14 +48,22 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterIdentity;
+import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterWrapper;
 import org.apache.nifi.processors.aws.v2.AbstractAwsAsyncProcessor;
 import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.http.Protocol;
+import software.amazon.awssdk.http.nio.netty.Http2Configuration;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClientBuilder;
@@ -83,6 +91,7 @@ import software.amazon.kinesis.retrieval.polling.PollingConfig;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -102,7 +111,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
@@ -145,6 +153,10 @@ import java.util.stream.Collectors;
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
 public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsyncClient, KinesisAsyncClientBuilder> {
+
+    private static final int INITIAL_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KB - suggested by KinesisClientUtil
+    private static final Duration HEALTH_CHECK_PING_PERIOD_MILLIS = Duration.ofMinutes(1); // suggested by KinesisClientUtil
+    private static final Protocol PROTOCOL = Protocol.HTTP2; // suggested by KinesisClientUtil
 
     private static final String CHECKPOINT_CONFIG = "checkpointConfig";
     private static final String COORDINATOR_CONFIG = "coordinatorConfig";
@@ -295,6 +307,15 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             .required(true)
             .build();
 
+    public static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Output Strategy")
+            .description("The format used to output the Kinesis Record into a FlowFile Record.")
+            .required(true)
+            .defaultValue(OutputStrategy.USE_VALUE)
+            .allowableValues(OutputStrategy.class)
+            .dependsOn(RECORD_WRITER)
+            .build();
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
             .description("If a message from Kinesis cannot be parsed using the configured Record Reader" +
@@ -308,6 +329,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             APPLICATION_NAME,
             RECORD_READER,
             RECORD_WRITER,
+            OUTPUT_STRATEGY,
             REGION,
             ENDPOINT_OVERRIDE,
             DYNAMODB_ENDPOINT_OVERRIDE,
@@ -636,8 +658,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 .keySet()
                 .stream()
                 .filter(PropertyDescriptor::isDynamic)
-                .collect(Collectors.toList());
-
+                .toList();
 
         final RetrievalConfig retrievalConfig = configsBuilder.retrievalConfig()
                 .retrievalSpecificConfig(new PollingConfig(streamName, kinesisClient));
@@ -693,11 +714,15 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private ShardRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         return () -> {
             if (isRecordReaderSet && isRecordWriterSet) {
+                final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
+                final RecordConverter recordConverter = OutputStrategy.USE_WRAPPER == outputStrategy
+                        ? new RecordConverterWrapper()
+                        : new RecordConverterIdentity();
                 return new KinesisRecordProcessorRecord(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
-                        getReaderFactory(context), getWriterFactory(context)
+                        getReaderFactory(context), getWriterFactory(context), recordConverter
                 );
             } else {
                 return new KinesisRecordProcessorRaw(
@@ -846,5 +871,21 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     @Override
     protected KinesisAsyncClientBuilder createClientBuilder(final ProcessContext context) {
         return KinesisAsyncClient.builder();
+    }
+
+    @Override
+    protected void customizeAsyncHttpClientBuilderConfiguration(
+            final ProcessContext context,
+            final NettyNioAsyncHttpClient.Builder builder,
+            final Class<? extends AwsClientBuilder> customizationTargetClass) {
+        if (KinesisAsyncClientBuilder.class.isAssignableFrom(customizationTargetClass)) {
+            builder
+                    .maxConcurrency(Runtime.getRuntime().availableProcessors())
+                    .http2Configuration(Http2Configuration.builder()
+                            .initialWindowSize(INITIAL_WINDOW_SIZE_BYTES)
+                            .healthCheckPingPeriod(HEALTH_CHECK_PING_PERIOD_MILLIS)
+                            .build())
+                    .protocol(PROTOCOL);
+        }
     }
 }

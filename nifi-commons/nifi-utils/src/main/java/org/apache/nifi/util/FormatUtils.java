@@ -24,6 +24,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Year;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -242,11 +244,13 @@ public class FormatUtils {
             throw new IllegalArgumentException("Text cannot be null");
         }
 
-        TemporalAccessor parsed = formatter.parseBest(text, Instant::from, LocalDateTime::from, LocalDate::from, LocalTime::from);
+        TemporalAccessor parsed = formatter.parseBest(text, Instant::from, LocalDateTime::from, LocalDate::from, YearMonth::from, Year::from, LocalTime::from);
         return switch (parsed) {
             case Instant instant -> instant;
             case LocalDateTime localDateTime -> toInstantInSystemDefaultTimeZone(localDateTime);
             case LocalDate localDate -> toInstantInSystemDefaultTimeZone(localDate.atTime(0, 0));
+            case YearMonth yearMonth -> toInstantInSystemDefaultTimeZone(yearMonth.atDay(1).atTime(0, 0));
+            case Year year -> toInstantInSystemDefaultTimeZone(year.atDay(1).atTime(0, 0));
             case null, default -> toInstantInSystemDefaultTimeZone(((LocalTime) parsed).atDate(EPOCH_INITIAL_DATE));
         };
     }

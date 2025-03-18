@@ -185,7 +185,7 @@
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"
-                        (close)="closeEditor()"></combo-editor>
+                        (exit)="closeEditor()"></combo-editor>
                 } @else {
                     <nf-editor
                         [item]="editorItem"
@@ -193,7 +193,7 @@
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"
-                        (close)="closeEditor()"></nf-editor>
+                        (exit)="closeEditor()"></nf-editor>
                 }
             </ng-template>
         </div>

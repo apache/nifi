@@ -64,7 +64,7 @@ export class UaEditor implements OnDestroy {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string> = new EventEmitter<string>();
-    @Output() close: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     isRequired: boolean = true;
 
@@ -146,7 +146,7 @@ export class UaEditor implements OnDestroy {
     }
 
     cancelClicked(): void {
-        this.close.next();
+        this.exit.next();
     }
 
     ngOnDestroy(): void {
