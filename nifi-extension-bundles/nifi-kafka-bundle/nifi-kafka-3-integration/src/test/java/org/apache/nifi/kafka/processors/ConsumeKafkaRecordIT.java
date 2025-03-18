@@ -32,6 +32,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -85,29 +89,23 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
         runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 0);
     }
 
-    @Test
-    void testInvalidRecordInMiddle() throws ExecutionException, InterruptedException {
-        testSingleInvalidRecord("testInvalidRecordInMiddle", VALID_RECORD_1_TEXT, INVALID_RECORD_TEXT, VALID_RECORD_2_TEXT);
+    static Stream<Arguments> invalidRecordScenarios() {
+        return Stream.of(
+                Arguments.of("testInvalidRecordAtStart", new String[]{INVALID_RECORD_TEXT, VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT}),
+                Arguments.of("testInvalidRecordInMiddle", new String[]{VALID_RECORD_1_TEXT, INVALID_RECORD_TEXT, VALID_RECORD_2_TEXT}),
+                Arguments.of("testInvalidRecordAtEnd", new String[]{VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT, INVALID_RECORD_TEXT}));
     }
 
-    @Test
-    void testInvalidRecordAtEnd() throws ExecutionException, InterruptedException {
-        testSingleInvalidRecord("testInvalidRecordAtEnd", VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT, INVALID_RECORD_TEXT);
-    }
-
-    @Test
-    void testInvalidRecordAtStart() throws ExecutionException, InterruptedException {
-        testSingleInvalidRecord("testInvalidRecordAtStart", INVALID_RECORD_TEXT, VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT);
-    }
-
-    private void testSingleInvalidRecord(final String topicName, final String... recordTexts) throws ExecutionException, InterruptedException {
-        runner.setProperty(ConsumeKafka.TOPICS, topicName);
-        runner.setProperty(ConsumeKafka.GROUP_ID, topicName);
+    @ParameterizedTest
+    @MethodSource("invalidRecordScenarios")
+    void testInvalidRecord(String testName, String[] recordTexts) throws Exception {
+        runner.setProperty(ConsumeKafka.TOPICS, testName);
+        runner.setProperty(ConsumeKafka.GROUP_ID, testName);
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.RECORD.getValue());
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, AutoOffsetReset.EARLIEST.getValue());
 
-        for (final String text : recordTexts) {
-            produceOne(topicName, 0, null, text, List.of());
+        for (String text : recordTexts) {
+            produceOne(testName, 0, null, text, List.of());
         }
 
         runner.run(1, false, true);
