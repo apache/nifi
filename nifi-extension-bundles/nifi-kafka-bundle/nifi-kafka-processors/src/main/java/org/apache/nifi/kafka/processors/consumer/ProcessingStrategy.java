@@ -24,6 +24,8 @@ import org.apache.nifi.components.DescribedValue;
 public enum ProcessingStrategy implements DescribedValue {
     FLOW_FILE("Write one FlowFile for each Kafka Record consumed"),
 
+    AVRO_FILE("Write one Avro DataFile for each batch of Avro Records with Schema Reference read from Kafka (grouped by Schema)"),
+
     DEMARCATOR("Write one FlowFile for each batch of Kafka Records consumed (optionally grouped by Kafka key)"),
 
     RECORD("Write one FlowFile containing multiple Kafka Records consumed and processed with Record Reader and Record Writer");
