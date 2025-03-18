@@ -67,9 +67,9 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <complianceLevel>${maven.compiler.source}</complianceLevel>
+                    <source>${maven.compiler.release}</source>
+                    <target>${maven.compiler.release}</target>
+                    <complianceLevel>${maven.compiler.release}</complianceLevel>
                     <encoding>UTF-8</encoding>
                     <verbose>true</verbose>
                     <showWeaveInfo>true</showWeaveInfo>
