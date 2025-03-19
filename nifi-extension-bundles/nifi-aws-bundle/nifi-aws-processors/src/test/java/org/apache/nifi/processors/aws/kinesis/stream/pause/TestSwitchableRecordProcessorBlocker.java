@@ -16,48 +16,37 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
-import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
-import org.apache.nifi.util.MockProcessContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
 import java.util.function.Supplier;
 
-public class TestPauseImpl {
-
-    private static final ConsumeKinesisStream consumeKinesisStream = new ConsumeKinesisStream();
+public class TestSwitchableRecordProcessorBlocker {
 
     @Test
     public void testResumeAfterPause() {
         final TestPauseInspector pauseInspector = new TestPauseInspector();
-        final MockProcessContext mockProcessContext = new MockProcessContext(consumeKinesisStream);
-        mockProcessContext.setUnavailableRelationships(Set.of(ConsumeKinesisStream.REL_SUCCESS));
 
-        final PauseImpl consumeHalter = PauseImpl.create(pauseInspector);
+        final SwitchableRecordProcessorBlocker recordProcessorBlocker = SwitchableRecordProcessorBlocker.create(pauseInspector);
 
-        consumeHalter.onTrigger(mockProcessContext);
-        final Thread thread = new Thread(createPauseRunnable(consumeHalter));
+        recordProcessorBlocker.block();
+        final Thread thread = new Thread(createPauseRunnable(recordProcessorBlocker));
         thread.start();
 
         pauseInspector.awaitAwaited();
         Assertions.assertTrue(thread.isAlive());
 
-        mockProcessContext.setUnavailableRelationships(Set.of());
-        consumeHalter.onTrigger(mockProcessContext);
-
+        recordProcessorBlocker.unblock();
         pauseInspector.awaitFinished();
     }
 
     @Test
     public void testNoPause() {
         final TestPauseInspector pauseInspector = new TestPauseInspector();
-        final MockProcessContext mockProcessContext = new MockProcessContext(consumeKinesisStream);
-        mockProcessContext.setUnavailableRelationships(Set.of());
 
-        final PauseImpl consumeHalter = PauseImpl.create(pauseInspector);
+        final SwitchableRecordProcessorBlocker consumeHalter = SwitchableRecordProcessorBlocker.create(pauseInspector);
 
-        consumeHalter.onTrigger(mockProcessContext);
+        consumeHalter.unblock();
         final Thread thread = new Thread(createPauseRunnable(consumeHalter));
         thread.start();
 
@@ -67,11 +56,9 @@ public class TestPauseImpl {
     @Test
     public void testPause() {
         final TestPauseInspector pauseInspector = new TestPauseInspector();
-        final MockProcessContext mockProcessContext = new MockProcessContext(consumeKinesisStream);
-        mockProcessContext.setUnavailableRelationships(Set.of(ConsumeKinesisStream.REL_SUCCESS));
 
-        final PauseImpl consumeHalter = PauseImpl.create(pauseInspector);
-        consumeHalter.onTrigger(mockProcessContext);
+        final SwitchableRecordProcessorBlocker consumeHalter = SwitchableRecordProcessorBlocker.create(pauseInspector);
+        consumeHalter.block();
         final Thread thread = new Thread(createPauseRunnable(consumeHalter));
         thread.start();
 
@@ -80,10 +67,10 @@ public class TestPauseImpl {
         thread.interrupt();
     }
 
-    private static Runnable createPauseRunnable(final PauseImpl consumeHalter) {
+    private static Runnable createPauseRunnable(final SwitchableRecordProcessorBlocker consumeHalter) {
         return () -> {
             try {
-                consumeHalter.consumePause();
+                consumeHalter.await();
             } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             }

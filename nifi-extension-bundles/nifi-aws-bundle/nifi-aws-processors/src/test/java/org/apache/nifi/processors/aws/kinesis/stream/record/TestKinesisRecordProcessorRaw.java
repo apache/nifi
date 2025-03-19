@@ -18,7 +18,7 @@ package org.apache.nifi.processors.aws.kinesis.stream.record;
 
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
-import org.apache.nifi.processors.aws.kinesis.stream.pause.PauseImpl;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.SwitchableRecordProcessorBlocker;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
@@ -79,7 +79,7 @@ public class TestKinesisRecordProcessorRaw {
     public void setUp() {
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
-                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, PauseImpl.createNonHalting());
+                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, SwitchableRecordProcessorBlocker.createNonBlocking());
     }
 
     @AfterEach
@@ -150,7 +150,7 @@ public class TestKinesisRecordProcessorRaw {
         final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
         if (endpointOverridden) {
             fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
-                    "endpoint-prefix", "https://another-endpoint.com:8443", 10_000L, 1L, 2, DATE_TIME_FORMATTER, PauseImpl.createNonHalting());
+                    "endpoint-prefix", "https://another-endpoint.com:8443", 10_000L, 1L, 2, DATE_TIME_FORMATTER, SwitchableRecordProcessorBlocker.createNonBlocking());
         }
 
         // skip checkpoint

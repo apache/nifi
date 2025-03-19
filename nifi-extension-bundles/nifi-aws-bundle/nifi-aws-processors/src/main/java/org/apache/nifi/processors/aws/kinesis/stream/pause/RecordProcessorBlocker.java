@@ -16,6 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
-public interface PauseConsumer {
-    void consumePause() throws InterruptedException;
+public interface RecordProcessorBlocker {
+    void await() throws InterruptedException;
 }

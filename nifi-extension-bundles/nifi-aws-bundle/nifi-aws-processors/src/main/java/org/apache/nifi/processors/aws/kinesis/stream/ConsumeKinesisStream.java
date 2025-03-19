@@ -50,7 +50,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
-import org.apache.nifi.processors.aws.kinesis.stream.pause.PauseImpl;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.SwitchableRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
@@ -395,7 +395,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private volatile boolean isRecordWriterSet;
 
     private volatile Scheduler scheduler;
-    private final PauseImpl pause = PauseImpl.create();
+    private final SwitchableRecordProcessorBlocker recordProcessorBlocker = SwitchableRecordProcessorBlocker.create();
     final AtomicReference<WorkerStateChangeListener.WorkerState> workerState = new AtomicReference<>(null);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -594,8 +594,12 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        if (context.getAvailableRelationships().contains(REL_SUCCESS) || stopped.get()) {
+            recordProcessorBlocker.unblock();
+        } else if (!stopped.get()) {
+            recordProcessorBlocker.block();
+        }
         if (scheduler == null) {
-            pause.init(context);
             synchronized (workerLock) {
                 if (scheduler == null) {
                     final String schedulerId = generateSchedulerId();
@@ -607,7 +611,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 }
             }
         } else {
-            pause.onTrigger(context);
             // after a Scheduler is registered successfully, nothing has to be done at onTrigger
             // new sessions are created when new messages are consumed by the Scheduler
             // and if the WorkerState is unexpectedly SHUT_DOWN, then we don't want to immediately re-enter onTrigger
@@ -728,13 +731,13 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
-                        getReaderFactory(context), getWriterFactory(context), recordConverter, pause
+                        getReaderFactory(context), getWriterFactory(context), recordConverter, recordProcessorBlocker
                 );
             } else {
                 return new KinesisRecordProcessorRaw(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
-                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context), pause
+                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context), recordProcessorBlocker
                 );
             }
         };
@@ -784,7 +787,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             if (!scheduler.hasGracefulShutdownStarted()) {
                 getLogger().info("Requesting Kinesis Worker shutdown");
                 final Future<Boolean> shutdown = scheduler.startGracefulShutdown();
-                pause.unpause();
+                recordProcessorBlocker.unblock();
                 // allow 2 seconds longer than the graceful period for shutdown before cancelling the task
                 if (Boolean.FALSE.equals(shutdown.get(getGracefulShutdownMillis(context) + 2_000L, TimeUnit.MILLISECONDS))) {
                     getLogger().warn("Kinesis Worker shutdown did not complete in time, cancelling");

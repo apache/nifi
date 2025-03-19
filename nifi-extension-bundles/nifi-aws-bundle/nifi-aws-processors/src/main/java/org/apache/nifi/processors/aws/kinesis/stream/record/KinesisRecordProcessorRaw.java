@@ -20,7 +20,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processors.aws.kinesis.stream.pause.PauseImpl;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.SwitchableRecordProcessorBlocker;
 import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
@@ -34,7 +34,7 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
     public KinesisRecordProcessorRaw(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                      final String endpointPrefix, final String kinesisEndpoint,
                                      final long checkpointIntervalMillis, final long retryWaitMillis,
-                                     final int numRetries, final DateTimeFormatter dateTimeFormatter, PauseImpl consumeHalter) {
+                                     final int numRetries, final DateTimeFormatter dateTimeFormatter, SwitchableRecordProcessorBlocker consumeHalter) {
         super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
                 numRetries, dateTimeFormatter, consumeHalter);
     }
