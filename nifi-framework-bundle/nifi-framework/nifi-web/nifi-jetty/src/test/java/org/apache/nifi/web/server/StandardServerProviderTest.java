@@ -22,6 +22,7 @@ import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.handler.HeaderWriterHandler;
+import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Connector;
@@ -47,6 +48,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -83,6 +85,10 @@ class StandardServerProviderTest {
     private static final String PUBLIC_UNKNOWN_HOST = "nifi.staged.apache.org";
 
     private static final String ALLOW_RESTRICTED_HEADERS_PROPERTY = "jdk.httpclient.allowRestrictedHeaders";
+
+    private static final String FRONTEND_PATH = "/nifi";
+
+    private static final String FRONTEND_PATH_TRAILING_SLASH = "/nifi/";
 
     private static SSLContext sslContext;
 
@@ -195,10 +201,35 @@ class StandardServerProviderTest {
         ) {
             final URI localhostUri = UriComponentsBuilder.fromUri(serverUri).host(LOCALHOST_NAME).build().toUri();
 
+            assertFrontendRedirectRequestsCompleted(httpClient, localhostUri);
             assertRedirectRequestsCompleted(httpClient, localhostUri);
             assertBadRequestsCompleted(httpClient, localhostUri);
             assertMisdirectedRequestsCompleted(httpClient, localhostUri);
         }
+    }
+
+    void assertFrontendRedirectRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
+        final HttpRequest localhostRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_2)
+                .build();
+        final HttpResponse<Void> localhostResponse = assertResponseStatusCode(httpClient, localhostRequest, HttpStatus.MOVED_TEMPORARILY_302);
+        final Optional<String> localhostLocationFound = localhostResponse.headers().firstValue(HttpHeader.LOCATION.lowerCaseName());
+        assertTrue(localhostLocationFound.isPresent());
+
+        final String localhostLocation = localhostLocationFound.get();
+        assertEquals(FRONTEND_PATH_TRAILING_SLASH, localhostLocation);
+
+        final URI frontendPathUri = UriComponentsBuilder.fromUri(localhostUri).path(FRONTEND_PATH).build().toUri();
+
+        final HttpRequest frontendPathRequest = HttpRequest.newBuilder(frontendPathUri)
+                .version(HttpClient.Version.HTTP_2)
+                .build();
+        final HttpResponse<Void> frontendPathResponse = assertResponseStatusCode(httpClient, frontendPathRequest, HttpStatus.MOVED_TEMPORARILY_302);
+        final Optional<String> frontendPathLocationFound = frontendPathResponse.headers().firstValue(HttpHeader.LOCATION.lowerCaseName());
+        assertTrue(frontendPathLocationFound.isPresent());
+
+        final String frontendPathLocation = frontendPathLocationFound.get();
+        assertEquals(FRONTEND_PATH_TRAILING_SLASH, frontendPathLocation);
     }
 
     void assertRedirectRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
@@ -236,9 +267,10 @@ class StandardServerProviderTest {
         assertResponseStatusCode(httpClient, localhostPortRequest, HttpStatus.MISDIRECTED_REQUEST_421);
     }
 
-    void assertResponseStatusCode(final HttpClient httpClient, final HttpRequest request, final int statusCodeExpected) throws IOException, InterruptedException {
+    HttpResponse<Void> assertResponseStatusCode(final HttpClient httpClient, final HttpRequest request, final int statusCodeExpected) throws IOException, InterruptedException {
         final HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
         assertEquals(statusCodeExpected, response.statusCode());
+        return response;
     }
 
     void assertHttpConnectorFound(final Server server) {
