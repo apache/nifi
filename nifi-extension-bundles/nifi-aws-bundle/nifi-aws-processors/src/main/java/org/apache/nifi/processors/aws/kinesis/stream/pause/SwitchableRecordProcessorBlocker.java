@@ -20,11 +20,11 @@ import java.util.concurrent.CountDownLatch;
 
 public class SwitchableRecordProcessorBlocker implements RecordProcessorBlocker {
 
-    private final PauseInspector pauseInspector;
+    private final SwitchableRecordProcessorBlockerInspector switchableRecordProcessorBlockerInspector;
     private CountDownLatch isPaused = new CountDownLatch(0);
 
     public static SwitchableRecordProcessorBlocker createNonBlocking() {
-        return new SwitchableRecordProcessorBlocker(new NoopPauseInspector()) {
+        return new SwitchableRecordProcessorBlocker(new NoopSwitchableRecordProcessorBlockerInspector()) {
             @Override
             public synchronized void block() {
                 // don't block
@@ -32,24 +32,24 @@ public class SwitchableRecordProcessorBlocker implements RecordProcessorBlocker 
         };
     }
 
-    static SwitchableRecordProcessorBlocker create(final PauseInspector pauseInspector) {
-        return new SwitchableRecordProcessorBlocker(pauseInspector);
+    static SwitchableRecordProcessorBlocker create(final SwitchableRecordProcessorBlockerInspector switchableRecordProcessorBlockerInspector) {
+        return new SwitchableRecordProcessorBlocker(switchableRecordProcessorBlockerInspector);
     }
 
     public static SwitchableRecordProcessorBlocker create() {
-        return new SwitchableRecordProcessorBlocker(new NoopPauseInspector());
+        return new SwitchableRecordProcessorBlocker(new NoopSwitchableRecordProcessorBlockerInspector());
     }
 
-    private SwitchableRecordProcessorBlocker(final PauseInspector pauseInspector) {
-        this.pauseInspector = pauseInspector;
+    private SwitchableRecordProcessorBlocker(final SwitchableRecordProcessorBlockerInspector switchableRecordProcessorBlockerInspector) {
+        this.switchableRecordProcessorBlockerInspector = switchableRecordProcessorBlockerInspector;
     }
 
     public void await() throws InterruptedException {
         try {
-            pauseInspector.onPauseAwaited();
+            switchableRecordProcessorBlockerInspector.onPauseAwaited();
             isPaused.await();
         } finally {
-            pauseInspector.onPauseFinished();
+            switchableRecordProcessorBlockerInspector.onPauseFinished();
         }
     }
 
@@ -63,5 +63,5 @@ public class SwitchableRecordProcessorBlocker implements RecordProcessorBlocker 
         isPaused.countDown();
     }
 
-    private static class NoopPauseInspector implements PauseInspector { }
+    private static class NoopSwitchableRecordProcessorBlockerInspector implements SwitchableRecordProcessorBlockerInspector { }
 }

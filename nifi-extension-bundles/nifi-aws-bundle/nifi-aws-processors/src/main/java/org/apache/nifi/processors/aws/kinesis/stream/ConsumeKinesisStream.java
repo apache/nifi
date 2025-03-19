@@ -594,9 +594,9 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        if (context.getAvailableRelationships().contains(REL_SUCCESS) || stopped.get()) {
+        if (context.getAvailableRelationships().contains(REL_SUCCESS)) {
             recordProcessorBlocker.unblock();
-        } else if (!stopped.get()) {
+        } else {
             recordProcessorBlocker.block();
         }
         if (scheduler == null) {

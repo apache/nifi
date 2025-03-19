@@ -16,26 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-
-public class PauseConditionRelationUnavailability implements PauseCondition {
-    private final AtomicBoolean isPaused = new AtomicBoolean(false);
-    private final Relationship relationship;
-
-    public PauseConditionRelationUnavailability(final Relationship relationship) {
-        this.relationship = relationship;
-    }
-
-    @Override
-    public boolean shouldPause() {
-        return isPaused.get();
-    }
-
-    @Override
-    public void onTrigger(ProcessContext context) {
-        this.isPaused.set(!context.getAvailableRelationships().contains(relationship));
-    }
+interface SwitchableRecordProcessorBlockerInspector {
+    default void onPauseAwaited() { }
+    default void onPauseFinished() { }
 }
