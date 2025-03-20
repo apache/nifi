@@ -19,7 +19,7 @@ import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
@@ -65,7 +65,6 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public data: Data,
-        private formBuilder: FormBuilder,
         private store: Store
     ) {
         super();
@@ -118,7 +117,6 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
         event.preventDefault();
         event.stopPropagation();
 
-        // const files: FileList | null = event.dataTransfer ? event.dataTransfer.files : null;
         const { files } = event.dataTransfer!;
 
         if (files && !this.isFileInvalid(Array.from(files))) {
@@ -132,8 +130,6 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
         if (!files || !files.length) {
             return;
         }
-        // if ((event.target as HTMLInputElement).files && (event.target as HTMLInputElement).files.length) {
-        // const files = (event.target as HTMLInputElement).files;
         // get the file
         this.fileToUpload = files![0];
 
@@ -142,8 +138,6 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
 
         // trim off the file extension
         this.fileName = fileName.replace(/\..*/, '');
-        // }
-        // const files: FileList = event.target?.files || [];
     }
 
     isFileInvalid(items: any) {
