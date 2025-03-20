@@ -23,7 +23,9 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flowanalysis.AbstractFlowAnalysisRule;
+import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -39,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.mockito.ArgumentMatchers.any;
 
@@ -62,6 +65,7 @@ public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalys
 
     @BeforeEach
     public void setup() {
+        properties.clear();
         rule = initializeRule();
         Mockito.lenient().when(flowAnalysisRuleContext.getProperty(any())).thenAnswer(invocation -> {
             return properties.get(invocation.getArgument(0));
@@ -71,6 +75,9 @@ public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalys
         });
         Mockito.lenient().when(validationContext.getProperty(any())).thenAnswer(invocation -> {
             return properties.get(invocation.getArgument(0));
+        });
+        Mockito.lenient().when(flowAnalysisRuleContext.getProperties()).thenAnswer(invocation -> {
+            return properties;
         });
     }
 
@@ -86,5 +93,23 @@ public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalys
     protected void testAnalyzeProcessGroup(String flowDefinition, List<String> expected) throws Exception {
         final Collection<GroupAnalysisResult> actual = rule.analyzeProcessGroup(getProcessGroup(flowDefinition), flowAnalysisRuleContext);
         assertIterableEquals(expected, actual.stream().map(r -> r.getComponent().get().getInstanceIdentifier()).sorted().toList());
+    }
+
+
+    protected void testAnalyzeProcessors(String flowDefinition, List<ComponentAnalysisResult> expected) throws Exception {
+        VersionedProcessGroup rootPG = getProcessGroup(flowDefinition);
+        for (VersionedProcessor processor : rootPG.getProcessors()) {
+            final Collection<ComponentAnalysisResult> actual = rule.analyzeComponent(processor, flowAnalysisRuleContext);
+            final int expectedSize = (expected == null) ? 0 : expected.size();
+            final int actualSize = (actual == null) ? 0 : actual.size();
+            assertEquals(expectedSize, actualSize);
+            if (actualSize > 0) {
+                final ComponentAnalysisResult[] actualArray = actual.toArray(new ComponentAnalysisResult[actualSize]);
+
+                for (int i = 0; i < expectedSize; i++) {
+                    assertEquals(expected.get(i).getIssueId(), actualArray[i].getIssueId());
+                }
+            }
+        }
     }
 }
