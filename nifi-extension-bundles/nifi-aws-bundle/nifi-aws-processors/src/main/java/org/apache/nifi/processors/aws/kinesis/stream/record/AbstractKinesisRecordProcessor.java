@@ -22,6 +22,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.RecordProcessorBlocker;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import software.amazon.awssdk.services.kinesis.model.Record;
@@ -69,6 +70,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
     private final long retryWaitMillis;
     private final int numRetries;
     private final DateTimeFormatter dateTimeFormatter;
+    private final RecordProcessorBlocker recordProcessorBlocker;
 
     private String kinesisShardId;
     private long nextCheckpointTimeInMillis;
@@ -78,7 +80,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
     AbstractKinesisRecordProcessor(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                    final String endpointPrefix, final String kinesisEndpoint,
                                    final long checkpointIntervalMillis, final long retryWaitMillis,
-                                   final int numRetries, final DateTimeFormatter dateTimeFormatter) {
+                                   final int numRetries, final DateTimeFormatter dateTimeFormatter, final RecordProcessorBlocker recordProcessorBlocker) {
         this.sessionFactory = sessionFactory;
         this.log = log;
         this.streamName = streamName;
@@ -86,6 +88,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         this.retryWaitMillis = retryWaitMillis;
         this.numRetries = numRetries;
         this.dateTimeFormatter = dateTimeFormatter;
+        this.recordProcessorBlocker = recordProcessorBlocker;
 
         this.transitUriPrefix = StringUtils.isBlank(kinesisEndpoint) ? String.format("http://%s.amazonaws.com", endpointPrefix) : kinesisEndpoint;
     }
@@ -108,6 +111,12 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
     @Override
     public void processRecords(final ProcessRecordsInput processRecordsInput) {
+        try {
+            recordProcessorBlocker.await();
+        } catch (final InterruptedException ie) {
+            getLogger().debug("Interrupted while waiting for recordProcessorBlocker to unblock, resuming record processing", ie);
+        }
+
         if (log.isDebugEnabled()) {
             log.debug("Processing {} records from {}; cache entry: {}; cache exit: {}; millis behind latest: {}",
                     processRecordsInput.records().size(), kinesisShardId,
