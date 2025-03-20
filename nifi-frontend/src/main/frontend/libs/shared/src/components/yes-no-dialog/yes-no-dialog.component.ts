@@ -23,7 +23,6 @@ import { YesNoDialogRequest } from '../../types';
 
 @Component({
     selector: 'yes-no-dialog',
-    standalone: true,
     imports: [MatDialogModule, MatButtonModule],
     templateUrl: './yes-no-dialog.component.html',
     styleUrls: ['./yes-no-dialog.component.scss']

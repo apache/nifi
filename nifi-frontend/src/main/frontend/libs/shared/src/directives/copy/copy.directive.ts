@@ -36,26 +36,33 @@ export class CopyDirective {
         private zone: NgZone
     ) {}
 
+    isClipboardAvailable(): boolean {
+        // system clipboard interaction requires the browser to be in a secured context.
+        return window.isSecureContext && Object.hasOwn(window, 'ClipboardItem');
+    }
+
     @HostListener('mouseenter')
     onMouseEnter() {
-        this.copyButton = this.renderer.createElement('i');
-        if (this.copyButton) {
-            const cb: HTMLElement = this.copyButton;
-            cb.classList.add('copy-button', 'fa', 'fa-copy', 'ml-2', 'primary-color');
+        if (this.isClipboardAvailable()) {
+            this.copyButton = this.renderer.createElement('i');
+            if (this.copyButton) {
+                const cb: HTMLElement = this.copyButton;
+                cb.classList.add('copy-button', 'fa', 'fa-copy', 'ml-2', 'primary-color');
 
-            // run outside the angular zone to prevent unnecessary change detection cycles
-            this.subscription = this.zone.runOutsideAngular(() => {
-                return fromEvent(cb, 'click')
-                    .pipe(
-                        switchMap(() => navigator.clipboard.writeText(this.copy)),
-                        take(1)
-                    )
-                    .subscribe(() => {
-                        cb.classList.remove('copy-button', 'fa-copy');
-                        cb.classList.add('copied', 'fa-check', 'success-color-default');
-                    });
-            });
-            this.renderer.appendChild(this.elementRef.nativeElement, this.copyButton);
+                // run outside the angular zone to prevent unnecessary change detection cycles
+                this.subscription = this.zone.runOutsideAngular(() => {
+                    return fromEvent(cb, 'click')
+                        .pipe(
+                            switchMap(() => navigator.clipboard.writeText(this.copy)),
+                            take(1)
+                        )
+                        .subscribe(() => {
+                            cb.classList.remove('copy-button', 'fa-copy');
+                            cb.classList.add('copied', 'fa-check', 'success-color-default');
+                        });
+                });
+                this.renderer.appendChild(this.elementRef.nativeElement, this.copyButton);
+            }
         }
     }
 

@@ -33,7 +33,6 @@ import { selectFlowAnalysisRuleDefinitionState } from '../../state/flow-analysis
 
 @Component({
     selector: 'flow-analysis-rule-definition',
-    standalone: true,
     imports: [NgxSkeletonLoaderModule, ConfigurableExtensionDefinitionComponent],
     templateUrl: './flow-analysis-rule-definition.component.html',
     styleUrl: './flow-analysis-rule-definition.component.scss'

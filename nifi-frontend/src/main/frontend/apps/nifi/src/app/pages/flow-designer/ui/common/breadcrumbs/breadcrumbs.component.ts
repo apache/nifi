@@ -24,7 +24,6 @@ import { Title } from '@angular/platform-browser';
 
 @Component({
     selector: 'breadcrumbs',
-    standalone: true,
     templateUrl: './breadcrumbs.component.html',
     imports: [RouterLink],
     styleUrls: ['./breadcrumbs.component.scss']

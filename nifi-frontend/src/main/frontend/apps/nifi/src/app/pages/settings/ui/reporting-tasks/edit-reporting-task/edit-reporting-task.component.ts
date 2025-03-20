@@ -40,9 +40,7 @@ import {
     ReportingTaskEntity,
     UpdateReportingTaskRequest
 } from '../../../state/reporting-tasks';
-import { ControllerServiceApi } from '../../../../../ui/common/controller-service/controller-service-api/controller-service-api.component';
 import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective } from '@nifi/shared';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import {
     ConfigVerificationResult,
@@ -57,7 +55,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-reporting-task',
-    standalone: true,
     templateUrl: './edit-reporting-task.component.html',
     imports: [
         ReactiveFormsModule,
@@ -69,11 +66,9 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         MatOptionModule,
         MatSelectModule,
         PropertyTable,
-        ControllerServiceApi,
         AsyncPipe,
         NifiSpinnerDirective,
         NifiTooltipDirective,
-        ErrorBanner,
         PropertyVerification,
         ContextErrorBanner,
         CopyDirective

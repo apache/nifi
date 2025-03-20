@@ -22,7 +22,6 @@ import { Relationship } from '../../../state/processor-definition';
 
 @Component({
     selector: 'relationships-definition',
-    standalone: true,
     imports: [MatTableModule],
     templateUrl: './relationships-definition.component.html',
     styleUrl: './relationships-definition.component.scss'

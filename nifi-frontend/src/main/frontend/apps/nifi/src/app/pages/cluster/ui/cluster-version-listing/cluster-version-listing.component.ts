@@ -27,14 +27,12 @@ import { NiFiState } from '../../../../state';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
 import { NodeSnapshot } from '../../../../state/system-diagnostics';
 import { clearVersionsNodeSelection, selectVersionNode } from '../../state/cluster-listing/cluster-listing.actions';
-import { ClusterSystemTable } from '../cluster-system-listing/cluster-system-table/cluster-system-table.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ClusterVersionTable } from './cluster-version-table/cluster-version-table.component';
 
 @Component({
     selector: 'cluster-version-listing',
-    standalone: true,
-    imports: [ClusterSystemTable, NgxSkeletonLoaderModule, ClusterVersionTable],
+    imports: [NgxSkeletonLoaderModule, ClusterVersionTable],
     templateUrl: './cluster-version-listing.component.html',
     styleUrl: './cluster-version-listing.component.scss'
 })

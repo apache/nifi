@@ -411,6 +411,8 @@ public class PutMongoIT extends MongoWriteTestBase {
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
 
+        assertEquals(runner.getProvenanceEvents().get(0).getTransitUri(), MONGO_CONTAINER.getConnectionString());
+
         // verify 1 doc inserted into the collection
         assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());

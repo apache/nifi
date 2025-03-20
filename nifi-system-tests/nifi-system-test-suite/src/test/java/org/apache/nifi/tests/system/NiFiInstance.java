@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.tests.system;
 
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 public interface NiFiInstance {
@@ -71,6 +73,13 @@ public interface NiFiInstance {
      * @throws UnsupportedOperationException if the NiFi instance is not clustered
      */
     NiFiInstance getNodeInstance(int nodeIndex);
+
+    /**
+     * Get SSLContext from configured properties
+     *
+     * @return SSLContext or empty when not configured
+     */
+    Optional<SSLContext> getSslContext();
 
     /**
      * Returns the NiFiProperties for the node

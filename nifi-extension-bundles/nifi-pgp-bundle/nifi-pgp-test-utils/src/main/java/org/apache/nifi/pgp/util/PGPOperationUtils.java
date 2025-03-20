@@ -21,9 +21,12 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPOnePassSignature;
 import org.bouncycastle.openpgp.PGPPrivateKey;
+import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureGenerator;
+import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
 import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 
 import java.io.ByteArrayOutputStream;
@@ -101,7 +104,9 @@ public class PGPOperationUtils {
 
     private static PGPSignatureGenerator getSignatureGenerator(final PGPPrivateKey privateKey) throws PGPException {
         final PGPContentSignerBuilder contentSignerBuilder = new JcaPGPContentSignerBuilder(privateKey.getPublicKeyPacket().getAlgorithm(), HashAlgorithmTags.SHA512);
-        final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
+        final KeyFingerPrintCalculator keyFingerprintCalculator = new JcaKeyFingerprintCalculator();
+        final PGPPublicKey pgpPublicKey = new PGPPublicKey(privateKey.getPublicKeyPacket(), keyFingerprintCalculator);
+        final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(contentSignerBuilder, pgpPublicKey);
         signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
         return signatureGenerator;
     }

@@ -63,13 +63,8 @@
 @use 'codemirror/addon/fold/foldgutter.css';
 @use 'codemirror/addon/hint/show-hint.css';
 
-@import 'font-awesome';
-@import 'libs/shared/src/assets/themes/material';
-
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
-@include mat.core();
+@use 'font-awesome';
+@use 'libs/shared/src/assets/themes/material';
 
 @tailwind base;
 @tailwind components;
@@ -80,72 +75,69 @@
 @include listing-table.styles();
 
 html {
-    @include mat.typography-hierarchy($m3-light-theme);
-    @include mat.all-component-themes($m3-light-theme);
-    @include app.generate-material-theme($m3-light-theme, $m3-light-theme-config);
-    @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
-    @include prism-theme.generate-prism-theme($m3-light-theme, $m3-light-theme-config);
-    @include app-component.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include listing-table.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include documentation.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include canvas.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include app.generate-material-theme();
+    @include codemirror-theme.generate-codemirror-theme();
+    @include prism-theme.generate-prism-theme();
+    @include app-component.generate-theme();
+    @include listing-table.generate-theme();
+    @include documentation.generate-theme();
+    @include canvas.generate-theme();
     @include footer.generate-theme();
-    @include extension-creation.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include birdseye-control.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include navigation-control.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include operation-control.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include flow-status.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include edit-processor.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include violation-details-dialog.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include new-canvas-item.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include search.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include login.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include logout.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include provenance-event-table.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include provenance.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include lineage.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include context-menu.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include navigation.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include extension-creation.generate-theme();
+    @include birdseye-control.generate-theme();
+    @include navigation-control.generate-theme();
+    @include operation-control.generate-theme();
+    @include flow-status.generate-theme();
+    @include edit-processor.generate-theme();
+    @include violation-details-dialog.generate-theme();
+    @include new-canvas-item.generate-theme();
+    @include search.generate-theme();
+    @include login.generate-theme();
+    @include logout.generate-theme();
+    @include provenance-event-table.generate-theme();
+    @include provenance.generate-theme();
+    @include lineage.generate-theme();
+    @include context-menu.generate-theme();
+    @include navigation.generate-theme();
     @include nf-editor.generate-theme();
-    @include status-history.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include property-hint-tip.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include processor-status-table.generate-theme($m3-light-theme, $m3-light-theme-config);
-    @include change-color-dialog.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include status-history.generate-theme();
+    @include property-hint-tip.generate-theme();
+    @include processor-status-table.generate-theme();
+    @include change-color-dialog.generate-theme();
     @include text-editor.generate-theme();
-    @include resizable.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include resizable.generate-theme();
 
-    .dark-theme {
-        @include mat.all-component-colors($m3-dark-theme);
-        @include app.generate-material-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include prism-theme.generate-prism-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include app-component.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include listing-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include documentation.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include canvas.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+    .darkMode {
+        @include app.generate-material-theme();
+        @include codemirror-theme.generate-codemirror-theme();
+        @include prism-theme.generate-prism-theme();
+        @include app-component.generate-theme();
+        @include listing-table.generate-theme();
+        @include documentation.generate-theme();
+        @include canvas.generate-theme();
         @include footer.generate-theme();
-        @include extension-creation.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include birdseye-control.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include navigation-control.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include operation-control.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include flow-status.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include edit-processor.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include violation-details-dialog.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include new-canvas-item.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include search.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include login.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include logout.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include provenance-event-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include provenance.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include lineage.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include context-menu.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include navigation.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include extension-creation.generate-theme();
+        @include birdseye-control.generate-theme();
+        @include navigation-control.generate-theme();
+        @include operation-control.generate-theme();
+        @include flow-status.generate-theme();
+        @include edit-processor.generate-theme();
+        @include violation-details-dialog.generate-theme();
+        @include new-canvas-item.generate-theme();
+        @include search.generate-theme();
+        @include login.generate-theme();
+        @include logout.generate-theme();
+        @include provenance-event-table.generate-theme();
+        @include provenance.generate-theme();
+        @include lineage.generate-theme();
+        @include context-menu.generate-theme();
+        @include navigation.generate-theme();
         @include nf-editor.generate-theme();
-        @include status-history.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include property-hint-tip.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include processor-status-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include change-color-dialog.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include status-history.generate-theme();
+        @include property-hint-tip.generate-theme();
+        @include processor-status-table.generate-theme();
+        @include change-color-dialog.generate-theme();
         @include text-editor.generate-theme();
-        @include resizable.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include resizable.generate-theme();
     }
 }

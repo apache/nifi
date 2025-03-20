@@ -213,23 +213,13 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     private FlowFilePartitioner getPartitionerForLoadBalancingStrategy(LoadBalanceStrategy strategy, String partitioningAttribute) {
-        FlowFilePartitioner partitioner;
-        switch (strategy) {
-            case DO_NOT_LOAD_BALANCE:
-                partitioner = new LocalPartitionPartitioner();
-                break;
-            case PARTITION_BY_ATTRIBUTE:
-                partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
-                break;
-            case ROUND_ROBIN:
-                partitioner = new RoundRobinPartitioner();
-                break;
-            case SINGLE_NODE:
-                partitioner = new FirstNodePartitioner();
-                break;
-            default:
-                throw new IllegalArgumentException();
-        }
+        FlowFilePartitioner partitioner = switch (strategy) {
+            case DO_NOT_LOAD_BALANCE -> new LocalPartitionPartitioner();
+            case PARTITION_BY_ATTRIBUTE -> new CorrelationAttributePartitioner(partitioningAttribute);
+            case ROUND_ROBIN -> new RoundRobinPartitioner();
+            case SINGLE_NODE -> new FirstNodePartitioner();
+            default -> throw new IllegalArgumentException();
+        };
         return partitioner;
     }
 

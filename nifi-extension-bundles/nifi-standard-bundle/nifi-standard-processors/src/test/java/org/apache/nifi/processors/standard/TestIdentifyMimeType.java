@@ -21,61 +21,76 @@ import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TestIdentifyMimeType {
+class TestIdentifyMimeType {
 
     private static final String CONFIG_FILE = "src/test/resources/TestIdentifyMimeType/.customConfig.xml";
     private static final String CONFIG_BODY =
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-            "<mime-info>\n" +
-            "  <mime-type type=\"custom/abcd\">\n" +
-            "    <magic priority=\"50\">\n" +
-            "      <match value=\"abcd\" type=\"string\" offset=\"0\"/>\n" +
-            "    </magic>\n" +
-            "    <glob pattern=\"*.abcd\" />\n" +
-            "  </mime-type>\n" +
-            "  <mime-type type=\"image/png\">\n" +
-            "    <acronym>PNG</acronym>\n" +
-            "    <_comment>Portable Network Graphics</_comment>\n" +
-            "    <magic priority=\"50\">\n" +
-            "      <match value=\"\\x89PNG\\x0d\\x0a\\x1a\\x0a\" type=\"string\" offset=\"0\"/>\n" +
-            "    </magic>\n" +
-            "    <glob pattern=\"*.customPng\"/>\n" +
-            "  </mime-type>\n" +
-            "</mime-info>";
+            """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <mime-info>
+                      <mime-type type="custom/abcd">
+                        <magic priority="50">
+                          <match value="abcd" type="string" offset="0"/>
+                        </magic>
+                        <glob pattern="*.abcd" />
+                      </mime-type>
+                      <mime-type type="image/png">
+                        <acronym>PNG</acronym>
+                        <_comment>Portable Network Graphics</_comment>
+                        <magic priority="50">
+                          <match value="\\x89PNG\\x0d\\x0a\\x1a\\x0a" type="string" offset="0"/>
+                        </magic>
+                        <glob pattern="*.customPng"/>
+                      </mime-type>
+                    </mime-info>""";
 
-    @Test
-    public void testFiles() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+    private TestRunner runner;
 
-        final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith("."));
-        int fileCount = 0;
-        for (final File file : files) {
-            if (file.isDirectory()) {
-                continue;
-            }
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(new IdentifyMimeType());
+    }
 
-            runner.enqueue(file.toPath());
-            fileCount++;
-        }
+    @ParameterizedTest
+    @MethodSource("testFilesData")
+    void testFiles(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions, Map<String, String> expectedCharsets) throws IOException {
+        runner.enqueue(file.toPath());
+        runner.run();
 
-        runner.setThreadCount(1);
-        runner.run(fileCount);
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
+        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+        final String expected = expectedMimeTypes.get(filename);
+        final String extension = flowFile.getAttribute("mime.extension");
+        final String expectedExtension = expectedExtensions.get(filename);
+        final String charset = flowFile.getAttribute("mime.charset");
+        final String expectedCharset = expectedCharsets.get(filename);
 
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+        assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type \"" + expected + "\", but it was \"" + mimeType + "\"");
+        assertEquals(expectedExtension, extension, "Expected " + file + " to have extension \"" + expectedExtension + "\", but it was \"" + extension + "\"");
+        assertEquals(expectedCharset, charset, "Expected " + file + " to have charset \"" + expectedCharset + "\", but it was \"" + charset + "\"");
+    }
 
+    private static Stream<Arguments> testFilesData() {
         final Map<String, String> expectedMimeTypes = getCommonExpectedMimeTypes();
         expectedMimeTypes.put("bgBannerFoot.png", "image/png");
         expectedMimeTypes.put("blueBtnBg.jpg", "image/jpeg");
@@ -94,64 +109,54 @@ public class TestIdentifyMimeType {
         expectedCharsets.put("grid.gif", null);
         expectedCharsets.put("2.custom", "ISO-8859-1");
 
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
-        for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
-            final String expected = expectedMimeTypes.get(filename);
+        return Arrays.stream(getTestFiles())
+                .map(testFile -> Arguments.argumentSet(testFile.getName(), testFile, expectedMimeTypes, expectedExtensions, expectedCharsets));
+    }
 
-            final String extension = file.getAttribute("mime.extension");
-            final String expectedExtension = expectedExtensions.get(filename);
+    static File[] getTestFiles() {
+        final File dir = new File("src/test/resources/TestIdentifyMimeType");
+        final File[] testFiles = dir.listFiles(file -> !file.isDirectory() && !file.getName().startsWith("."));
+        assertNotNull(testFiles);
 
-            final String charset = file.getAttribute("mime.charset");
-            final String expectedCharset = expectedCharsets.get(filename);
-
-            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type \"" + expected + "\", but it was \"" + mimeType + "\"");
-            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension \"" + expectedExtension + "\", but it was \"" + extension + "\"");
-            assertEquals(expectedCharset, charset, "Expected " + file + " to have charset \"" + expectedCharset + "\", but it was \"" + charset + "\"");
-        }
+        return testFiles;
     }
 
     @Test
-    public void testIgnoreFileName() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+    void testIgnoreFileName() throws Exception {
         runner.setProperty(IdentifyMimeType.USE_FILENAME_IN_DETECTION, "false");
-
         runner.enqueue(Paths.get("src/test/resources/TestIdentifyMimeType/fake.csv"));
+
         runner.run();
 
         runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("mime.extension", ".txt");
         flowFile.assertAttributeEquals("mime.type", "text/plain");
     }
 
-    @Test
-    public void testReplaceWithConfigBody() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-
-
-        final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith("."));
-        int fileCount = 0;
-        for (final File file : files) {
-            if (file.isDirectory()) {
-                continue;
-            }
-
-            runner.enqueue(file.toPath());
-            fileCount++;
-        }
-
+    @ParameterizedTest
+    @MethodSource("replaceWithConfigBodyData")
+    void testReplaceWithConfigBody(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
+        runner.enqueue(file.toPath());
 
-        runner.setThreadCount(1);
-        runner.run(fileCount);
+        runner.run();
 
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
+        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+        final String expected = expectedMimeTypes.get(filename);
 
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+        final String extension = flowFile.getAttribute("mime.extension");
+        final String expectedExtension = expectedExtensions.get(filename);
 
+        assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+        assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+    }
+
+    private static Stream<Arguments> replaceWithConfigBodyData() {
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/octet-stream");
         expectedMimeTypes.put("1.mdb", "application/octet-stream");
@@ -200,46 +205,32 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("2.custom", ".abcd");
         expectedExtensions.put("charset-utf-8.txt", "");
 
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
-        for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
-            final String expected = expectedMimeTypes.get(filename);
-
-            final String extension = file.getAttribute("mime.extension");
-            final String expectedExtension = expectedExtensions.get(filename);
-
-            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
-            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
-        }
+        return Arrays.stream(getTestFiles())
+                .map(testFile -> Arguments.argumentSet(testFile.getName(), testFile, expectedMimeTypes, expectedExtensions));
     }
 
-    @Test
-    public void testReplaceWithConfigFile() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-
-
-        final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith("."));
-        int fileCount = 0;
-        for (final File file : files) {
-            if (file.isDirectory()) {
-                continue;
-            }
-
-            runner.enqueue(file.toPath());
-            fileCount++;
-        }
-
+    @ParameterizedTest
+    @MethodSource("replaceWithConfigFileData")
+    void testReplaceWithConfigFile(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
+        runner.enqueue(file.toPath());
 
-        runner.setThreadCount(1);
-        runner.run(fileCount);
+        runner.run();
 
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
+        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+        final String expected = expectedMimeTypes.get(filename);
+        final String extension = flowFile.getAttribute("mime.extension");
+        final String expectedExtension = expectedExtensions.get(filename);
 
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+        assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+        assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+    }
 
+    private static Stream<Arguments> replaceWithConfigFileData() {
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/octet-stream");
         expectedMimeTypes.put("1.mdb", "application/octet-stream");
@@ -288,40 +279,32 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("2.custom", "");
         expectedExtensions.put("charset-utf-8.txt", "");
 
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
-        for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
-            final String expected = expectedMimeTypes.get(filename);
-
-            final String extension = file.getAttribute("mime.extension");
-            final String expectedExtension = expectedExtensions.get(filename);
-
-            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
-            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
-        }
+        return Arrays.stream(getTestFiles())
+                .map(testFile -> Arguments.argumentSet(testFile.getName(), testFile, expectedMimeTypes, expectedExtensions));
     }
 
-    @Test
-    public void testMergeWithConfigBody() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-
-        final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
-        int fileCount = 0;
-        for (final File file : files) {
-            runner.enqueue(file.toPath());
-            fileCount++;
-        }
-
+    @ParameterizedTest
+    @MethodSource("mergeWithConfigBodyData")
+    void testMergeWithConfigBody(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
+        runner.enqueue(file.toPath());
 
-        runner.setThreadCount(1);
-        runner.run(fileCount);
+        runner.run();
 
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
+        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+        final String expected = expectedMimeTypes.get(filename);
+        final String extension = flowFile.getAttribute("mime.extension");
+        final String expectedExtension = expectedExtensions.get(filename);
 
+        assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+        assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+    }
+
+    private static Stream<Arguments> mergeWithConfigBodyData() {
         final Map<String, String> expectedMimeTypes = getCommonExpectedMimeTypes();
         expectedMimeTypes.put("bgBannerFoot.png", "image/png");
         expectedMimeTypes.put("blueBtnBg.jpg", "image/jpeg");
@@ -334,40 +317,33 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("grid.gif", ".gif");
         expectedExtensions.put("2.custom", ".abcd");
 
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
-        for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
-            final String expected = expectedMimeTypes.get(filename);
-
-            final String extension = file.getAttribute("mime.extension");
-            final String expectedExtension = expectedExtensions.get(filename);
-
-            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
-            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
-        }
+        return Arrays.stream(getTestFiles())
+                .map(testFile -> Arguments.argumentSet(testFile.getName(), testFile, expectedMimeTypes, expectedExtensions));
     }
 
-    @Test
-    public void testMergeWithConfigFile() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-
-        final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles((ldir, name) -> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
-        int fileCount = 0;
-        for (final File file : files) {
-            runner.enqueue(file.toPath());
-            fileCount++;
-        }
-
+    @ParameterizedTest
+    @MethodSource("mergeWithConfigFileData")
+    void testMergeWithConfigFile(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
+        runner.enqueue(file.toPath());
 
-        runner.setThreadCount(1);
-        runner.run(fileCount);
+        runner.run();
 
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
+        final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+        final String expected = expectedMimeTypes.get(filename);
 
+        final String extension = flowFile.getAttribute("mime.extension");
+        final String expectedExtension = expectedExtensions.get(filename);
+
+        assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+        assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+    }
+
+    private static Stream<Arguments> mergeWithConfigFileData() {
         final Map<String, String> expectedMimeTypes = getCommonExpectedMimeTypes();
         expectedMimeTypes.put("bgBannerFoot.png", "my/png");
         expectedMimeTypes.put("blueBtnBg.jpg", "my/jpeg");
@@ -380,24 +356,12 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("grid.gif", ".mygif");
         expectedExtensions.put("2.custom", ".txt");
 
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
-        for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
-            final String expected = expectedMimeTypes.get(filename);
-
-            final String extension = file.getAttribute("mime.extension");
-            final String expectedExtension = expectedExtensions.get(filename);
-
-            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
-            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
-        }
+        return Arrays.stream(getTestFiles())
+                .map(testFile -> Arguments.argumentSet(testFile.getName(), testFile, expectedMimeTypes, expectedExtensions));
     }
 
     @Test
-    public void testOnlyOneCustomMimeConfigSpecified() {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-
+    void testOnlyOneCustomMimeConfigSpecified() {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
@@ -405,24 +369,18 @@ public class TestIdentifyMimeType {
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, configBody);
 
         runner.setThreadCount(1);
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test
-    public void testNoCustomMimeConfigSpecified() {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-
+    void testNoCustomMimeConfigSpecified() {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
 
         runner.setThreadCount(1);
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
-    private Map<String, String> getCommonExpectedMimeTypes() {
+    private static Map<String, String> getCommonExpectedMimeTypes() {
         Map<String, String> expectedMimeTypes = new HashMap<>();
 
         expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
@@ -447,7 +405,7 @@ public class TestIdentifyMimeType {
         return expectedMimeTypes;
     }
 
-    private Map<String, String> getCommonExpectedExtensions() {
+    private static Map<String, String> getCommonExpectedExtensions() {
         Map<String, String> expectedExtensions = new HashMap<>();
 
         expectedExtensions.put("1.7z", ".7z");

@@ -42,7 +42,7 @@ public class RedisConfig {
     private int poolMinIdle = 0;
     private boolean blockWhenExhausted = true;
     private Duration maxWaitTime = Duration.ofSeconds(10);
-    private Duration minEvictableIdleTime = Duration.ofSeconds(60);
+    private Duration minEvictableIdleDuration = Duration.ofSeconds(60);
     private Duration timeBetweenEvictionRuns = Duration.ofSeconds(30);
     private int numTestsPerEvictionRun = -1;
     private boolean testOnCreate = true;
@@ -167,12 +167,12 @@ public class RedisConfig {
         this.maxWaitTime = maxWaitTime;
     }
 
-    public Duration getMinEvictableIdleTime() {
-        return minEvictableIdleTime;
+    public Duration getMinEvictableIdleDuration() {
+        return minEvictableIdleDuration;
     }
 
-    public void setMinEvictableIdleTime(Duration minEvictableIdleTime) {
-        this.minEvictableIdleTime = minEvictableIdleTime;
+    public void setMinEvictableIdleDuration(Duration minEvictableIdleDuration) {
+        this.minEvictableIdleDuration = minEvictableIdleDuration;
     }
 
     public Duration getTimeBetweenEvictionRuns() {

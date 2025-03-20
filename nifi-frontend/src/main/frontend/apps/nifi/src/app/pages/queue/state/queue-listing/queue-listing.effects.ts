@@ -98,7 +98,7 @@ export class QueueListingEffects {
                     disableClose: true
                 });
 
-                dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
+                dialogReference.componentInstance.exit.pipe(take(1)).subscribe(() => {
                     this.store.dispatch(QueueListingActions.stopPollingQueueListingRequest());
                 });
 

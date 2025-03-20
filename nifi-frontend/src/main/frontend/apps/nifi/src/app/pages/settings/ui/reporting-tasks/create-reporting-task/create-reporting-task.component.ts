@@ -29,7 +29,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-reporting-task',
-    standalone: true,
     imports: [ExtensionCreation, AsyncPipe],
     templateUrl: './create-reporting-task.component.html',
     styleUrls: ['./create-reporting-task.component.scss']

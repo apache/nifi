@@ -23,7 +23,6 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +32,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -45,6 +45,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -76,6 +77,8 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
+        description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso(classNames = {"org.apache.nifi.processors.script.ExecuteScript"})
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
@@ -340,10 +343,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init SQL variables from DBCP services
      */
-    private void onInitSQL(Map<String, Object> SQL) throws SQLException {
+    private void onInitSQL(Map<String, Object> SQL, Map<String, String> attributes) throws SQLException {
         for (Map.Entry<String, Object> e : SQL.entrySet()) {
             DBCPService s = (DBCPService) e.getValue();
-            OSql sql = new OSql(s.getConnection(Collections.emptyMap()));
+            OSql sql = new OSql(s.getConnection(attributes));
             //try to set autocommit to false
             try {
                 if (sql.getConnection().getAutoCommit()) {
@@ -431,6 +434,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             Map bindings = script.getBinding().getVariables();
 
             bindings.clear();
+            Map<String, String> attributes = new HashMap<>();
 
             // Find the user-added properties and bind them for the script
             for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
@@ -454,11 +458,12 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
                             bindings.put(property.getKey().getName(), context.getProperty(property.getKey()));
+                            attributes.put(property.getKey().getName(), context.getProperty(property.getKey()).evaluateAttributeExpressions().getValue());
                         }
                     }
                 }
             }
-            onInitSQL(SQL);
+            onInitSQL(SQL, attributes);
 
             bindings.put("session", session);
             bindings.put("context", context);

@@ -164,7 +164,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             throw new IllegalStateException("Must login before executing actions");
         }
 
-        return Subject.doAs(subject, action);
+        return Subject.callAs(subject, action::run);
     }
 
     /**
@@ -183,7 +183,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             throw new IllegalStateException("Must login before executing actions");
         }
 
-        return Subject.doAs(subject, action);
+        return Subject.callAs(subject, action::run);
     }
 
     /**

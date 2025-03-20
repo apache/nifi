@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.collect.Maps;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -88,7 +88,7 @@ public class TestDeleteHDFS {
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
-        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("hdfs.file", filePath.toString());
         runner.enqueue("foo", attributes);
         runner.run();
@@ -103,7 +103,7 @@ public class TestDeleteHDFS {
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
-        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("hdfs.file", filePath.toString());
         runner.enqueue("foo", attributes);
         runner.run();
@@ -117,7 +117,7 @@ public class TestDeleteHDFS {
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
-        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("hdfs.file", filePath.toString());
         runner.enqueue("foo", attributes);
         runner.run();
@@ -134,7 +134,7 @@ public class TestDeleteHDFS {
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
-        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("hdfs.file", filePath.toString());
         runner.enqueue("foo", attributes);
         runner.run();
@@ -286,7 +286,7 @@ public class TestDeleteHDFS {
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(true);
-        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> attributes = new HashMap<>();
         runner.enqueue("foo", attributes);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
         runner.assertValid();

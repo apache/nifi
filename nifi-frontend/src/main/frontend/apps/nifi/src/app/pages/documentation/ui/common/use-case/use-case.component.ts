@@ -19,14 +19,12 @@ import { Component, Input, viewChild } from '@angular/core';
 import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
 import { InputRequirement, UseCase } from '../../../state/processor-definition';
 import { MatIconButton } from '@angular/material/button';
-import { PropertyDefinitionComponent } from '../property-definition/property-definition.component';
 import { InputRequirementComponent } from '../input-requirement/input-requirement.component';
 
 @Component({
     selector: 'use-case',
-    standalone: true,
     templateUrl: './use-case.component.html',
-    imports: [MatAccordion, MatExpansionModule, MatIconButton, PropertyDefinitionComponent, InputRequirementComponent],
+    imports: [MatAccordion, MatExpansionModule, MatIconButton, InputRequirementComponent],
     styleUrl: './use-case.component.scss'
 })
 export class UseCaseComponent {

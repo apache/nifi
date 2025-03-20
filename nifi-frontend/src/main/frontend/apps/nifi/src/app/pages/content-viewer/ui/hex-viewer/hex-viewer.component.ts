@@ -27,7 +27,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'hex-viewer',
-    standalone: true,
     templateUrl: './hex-viewer.component.html',
     imports: [],
     styleUrls: ['./hex-viewer.component.scss']

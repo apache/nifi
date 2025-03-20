@@ -42,10 +42,14 @@ import {
 } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import * as ClusterStatusActions from '../../state/component-cluster-status/component-cluster-status.actions';
 import { NodeSearchResult } from '../../../../state/cluster-summary';
+import { AsyncPipe } from '@angular/common';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
+import { ConnectionStatusTable } from './connection-status-table/connection-status-table.component';
 
 @Component({
     selector: 'connection-status-listing',
     templateUrl: './connection-status-listing.component.html',
+    imports: [AsyncPipe, NgxSkeletonLoaderComponent, ConnectionStatusTable],
     styleUrls: ['./connection-status-listing.component.scss']
 })
 export class ConnectionStatusListing {

@@ -28,7 +28,6 @@ import { NgTemplateOutlet } from '@angular/common';
 
 @Component({
     selector: 'overview',
-    standalone: true,
     imports: [MatCardModule, NgTemplateOutlet],
     templateUrl: './overview.component.html',
     styleUrls: ['./overview.component.scss']

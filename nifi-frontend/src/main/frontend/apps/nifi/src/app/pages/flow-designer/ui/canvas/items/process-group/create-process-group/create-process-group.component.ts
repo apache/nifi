@@ -38,8 +38,8 @@ import {
     CloseOnEscapeDialog,
     NiFiCommon,
     NifiTooltipDirective,
-    PipesModule,
     SelectOption,
+    SortObjectByPropertyPipe,
     TextTip
 } from '@nifi/shared';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
@@ -47,7 +47,6 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
 
 @Component({
     selector: 'create-process-group',
-    standalone: true,
     imports: [
         AsyncPipe,
         MatButtonModule,
@@ -61,7 +60,7 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
         NifiTooltipDirective,
         MatIconModule,
         ContextErrorBanner,
-        PipesModule
+        SortObjectByPropertyPipe
     ],
     templateUrl: './create-process-group.component.html',
     styleUrls: ['./create-process-group.component.scss']

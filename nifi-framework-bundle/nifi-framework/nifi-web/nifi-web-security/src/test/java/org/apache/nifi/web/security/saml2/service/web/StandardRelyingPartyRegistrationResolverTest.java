@@ -27,8 +27,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 
-import java.util.Collections;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -57,6 +55,8 @@ class StandardRelyingPartyRegistrationResolverTest {
 
     private static final String REGISTRATION_ID = Saml2RegistrationProperty.REGISTRATION_ID.getProperty();
 
+    private static final String ALLOWED_CONTEXT_PATHS = "allowedContextPaths";
+
     @Mock
     RelyingPartyRegistrationRepository repository;
 
@@ -73,7 +73,7 @@ class StandardRelyingPartyRegistrationResolverTest {
 
     @Test
     void testResolveNotFound() {
-        final StandardRelyingPartyRegistrationResolver resolver = new StandardRelyingPartyRegistrationResolver(repository, Collections.emptyList());
+        final StandardRelyingPartyRegistrationResolver resolver = new StandardRelyingPartyRegistrationResolver(repository);
 
         final RelyingPartyRegistration registration = resolver.resolve(request, REGISTRATION_ID);
 
@@ -82,7 +82,7 @@ class StandardRelyingPartyRegistrationResolverTest {
 
     @Test
     void testResolveFound() {
-        final StandardRelyingPartyRegistrationResolver resolver = new StandardRelyingPartyRegistrationResolver(repository, Collections.emptyList());
+        final StandardRelyingPartyRegistrationResolver resolver = new StandardRelyingPartyRegistrationResolver(repository);
 
         final RelyingPartyRegistration registration = getRegistrationBuilder().build();
         when(repository.findByRegistrationId(eq(REGISTRATION_ID))).thenReturn(registration);
@@ -95,7 +95,9 @@ class StandardRelyingPartyRegistrationResolverTest {
 
     @Test
     void testResolveSingleLogoutForwardedPathFound() {
-        final StandardRelyingPartyRegistrationResolver resolver = new StandardRelyingPartyRegistrationResolver(repository, Collections.singletonList(FORWARDED_PATH));
+        request.getServletContext().setInitParameter(ALLOWED_CONTEXT_PATHS, FORWARDED_PATH);
+
+        final StandardRelyingPartyRegistrationResolver resolver = new StandardRelyingPartyRegistrationResolver(repository);
 
         final RelyingPartyRegistration registration = getSingleLogoutRegistration();
         when(repository.findByRegistrationId(eq(REGISTRATION_ID))).thenReturn(registration);
@@ -114,9 +116,9 @@ class StandardRelyingPartyRegistrationResolverTest {
         return RelyingPartyRegistration.withRegistrationId(REGISTRATION_ID)
                 .entityId(REGISTRATION_ID)
                 .assertionConsumerServiceLocation(SERVICE_LOCATION)
-                .assertingPartyDetails(assertingPartyDetails -> {
-                    assertingPartyDetails.entityId(REGISTRATION_ID);
-                    assertingPartyDetails.singleSignOnServiceLocation(SERVICE_LOCATION);
+                .assertingPartyMetadata(assertingPartyMetadata -> {
+                    assertingPartyMetadata.entityId(REGISTRATION_ID);
+                    assertingPartyMetadata.singleSignOnServiceLocation(SERVICE_LOCATION);
                 });
     }
 

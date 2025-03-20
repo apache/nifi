@@ -55,12 +55,12 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
         try {
             CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables);
             if (!csvFormat.getSkipHeaderRecord()) {
-                csvFormat = csvFormat.builder().setHeader().setSkipHeaderRecord(true).build();
+                csvFormat = csvFormat.builder().setHeader().setSkipHeaderRecord(true).get();
             }
 
             try (final InputStream bomInputStream = BOMInputStream.builder().setInputStream(contentStream).get();
                  final Reader reader = new InputStreamReader(bomInputStream);
-                final CSVParser csvParser = new CSVParser(reader, csvFormat)) {
+                final CSVParser csvParser = CSVParser.builder().setReader(reader).setFormat(csvFormat).get()) {
 
                 final List<RecordField> fields = new ArrayList<>();
                 for (final String columnName : csvParser.getHeaderMap().keySet()) {

@@ -47,7 +47,7 @@ import { FlowConfigurationEffects } from './state/flow-configuration/flow-config
 import { ComponentStateEffects } from './state/component-state/component-state.effects';
 import { ErrorEffects } from './state/error/error.effects';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { CopyButtonComponent, PipesModule } from '@nifi/shared';
+import { CopyButtonComponent } from '@nifi/shared';
 import { DocumentationEffects } from './state/documentation/documentation.effects';
 import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.effects';
 import { PropertyVerificationEffects } from './state/property-verification/property-verification.effects';
@@ -109,8 +109,7 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
         MatProgressSpinnerModule,
         MatNativeDateModule,
         MatDialogModule,
-        MatSnackBarModule,
-        PipesModule
+        MatSnackBarModule
     ],
     providers: [
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),

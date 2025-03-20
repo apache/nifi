@@ -24,7 +24,6 @@ import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'remote-process-group-cluster-table',
-    standalone: true,
     imports: [MatTableModule, MatSortModule, NgClass],
     templateUrl: './remote-process-group-cluster-table.component.html',
     styleUrl: './remote-process-group-cluster-table.component.scss'

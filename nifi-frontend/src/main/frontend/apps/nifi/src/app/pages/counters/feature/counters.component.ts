@@ -23,7 +23,8 @@ import { resetCounterState } from '../state/counter-listing/counter-listing.acti
 @Component({
     selector: 'counters',
     templateUrl: './counters.component.html',
-    styleUrls: ['./counters.component.scss']
+    styleUrls: ['./counters.component.scss'],
+    standalone: false
 })
 export class Counters implements OnDestroy {
     constructor(private store: Store<NiFiState>) {}

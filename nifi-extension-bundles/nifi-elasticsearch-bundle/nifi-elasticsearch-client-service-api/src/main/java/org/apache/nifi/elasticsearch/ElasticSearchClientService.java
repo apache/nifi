@@ -22,6 +22,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
@@ -34,8 +35,12 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
             .name("el-cs-http-hosts")
             .displayName("HTTP Hosts")
-            .description("A comma-separated list of HTTP hosts that host Elasticsearch query nodes. " +
-                    "Note that the Host is included in requests as a header (typically including domain and port, e.g. elasticsearch:9200).")
+            .description("""
+                    A comma-separated list of HTTP hosts that host Elasticsearch query nodes.
+                    The HTTP Hosts should be valid URIs including protocol, domain and port for each entry.
+                    For example "https://elasticsearch1:9200, https://elasticsearch2:9200".
+                    Note that the Host is included in requests as a header (typically including domain and port, e.g. elasticsearch:9200).
+                    """)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -50,6 +55,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .identifiesControllerService(SSLContextProvider.class)
             .addValidator(Validator.VALID)
             .build();
+
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP);
 
     PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
@@ -62,12 +68,41 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("el-cs-oauth2-token-provider")
+            .displayName("OAuth2 Access Token Provider")
+            .description("The OAuth2 Access Token Provider used to provide JWTs for Bearer Token Authorization with Elasticsearch.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
+            .required(true)
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .addValidator(Validator.VALID)
+            .build();
+
+    PropertyDescriptor JWT_SHARED_SECRET = new PropertyDescriptor.Builder()
+            .name("jwt-shared-secret")
+            .displayName("JWT Shared Secret")
+            .description("JWT realm Shared Secret.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
+            .required(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor RUN_AS_USER = new PropertyDescriptor.Builder()
+            .name("el-cs-run-as-user")
+            .displayName("Run As User")
+            .description("The username to impersonate within Elasticsearch.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("el-cs-username")
             .displayName("Username")
             .description("The username to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
-            .required(false)
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -77,7 +112,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Password")
             .description("The password to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
-            .required(false)
+            .required(true)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -88,7 +123,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("API Key ID")
             .description("Unique identifier of the API key.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
-            .required(false)
+            .required(true)
             .sensitive(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -98,7 +133,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("API Key")
             .description("Encoded API key.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
-            .required(false)
+            .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -220,7 +255,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .name("el-cs-sniff-failure")
             .displayName("Sniff on Failure")
             .description("Enable sniffing on failure, meaning that after each failure the Elasticsearch nodes list gets updated " +
-                    "straightaway rather than at the following ordinary sniffing round")
+                    "straight away rather than at the following ordinary sniffing round")
             .dependsOn(SNIFF_CLUSTER_NODES, "true")
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -370,7 +405,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     /**
      * Perform a search using the JSON DSL.
      *
-     * @param query A JSON string reprensenting the query.
+     * @param query A JSON string representing the query.
      * @param index The index to target. Optional.
      * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
      * @param requestParameters A collection of URL request parameters. Optional.

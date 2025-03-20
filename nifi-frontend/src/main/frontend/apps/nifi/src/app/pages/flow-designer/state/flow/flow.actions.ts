@@ -110,9 +110,9 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
-import { FetchComponentVersionsRequest } from '../../../../state/shared';
+import { FetchComponentVersionsRequest, RegistryClientEntity } from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
-import { CopyRequest, CopyResponseContext, CopyResponseEntity } from '../../../../state/copy';
+import { CopyResponseContext, CopyResponseEntity } from '../../../../state/copy';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -159,6 +159,11 @@ export const loadChildProcessGroupSuccess = createAction(
 export const startProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Process Group Polling`);
 
 export const stopProcessGroupPolling = createAction(`${CANVAS_PREFIX} Stop Process Group Polling`);
+
+export const setRegistryClients = createAction(
+    `${CANVAS_PREFIX} Set Registry Clients`,
+    props<{ request: RegistryClientEntity[] }>()
+);
 
 export const loadConnectionsForComponent = createAction(
     `${CANVAS_PREFIX} Load Connections For Component`,
@@ -498,8 +503,6 @@ export const moveComponents = createAction(
     `${CANVAS_PREFIX} Move Components`,
     props<{ request: MoveComponentsRequest }>()
 );
-
-export const copy = createAction(`${CANVAS_PREFIX} Copy`, props<{ request: CopyRequest }>());
 
 export const copySuccess = createAction(`${CANVAS_PREFIX} Copy Success`, props<{ response: CopyResponseContext }>());
 

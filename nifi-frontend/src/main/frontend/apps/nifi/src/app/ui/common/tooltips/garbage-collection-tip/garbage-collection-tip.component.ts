@@ -21,7 +21,6 @@ import { GarbageCollection } from '../../../../state/system-diagnostics';
 
 @Component({
     selector: 'garbage-collection-tip',
-    standalone: true,
     imports: [],
     templateUrl: './garbage-collection-tip.component.html',
     styleUrl: './garbage-collection-tip.component.scss'

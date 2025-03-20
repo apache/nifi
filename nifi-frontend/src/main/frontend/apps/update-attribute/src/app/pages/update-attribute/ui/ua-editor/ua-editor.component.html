@@ -15,12 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div
-    class="ua-editor mat-elevation-z8 p-4 h-full"
-    [style.width.px]="width"
-    cdkDrag
-    resizable
-    (resized)="resized($event)">
+<div class="ua-editor p-4 h-full" [style.width.px]="width" cdkDrag resizable (resized)="resized($event)">
     <form class="h-full" [formGroup]="uaEditorForm" cdkTrapFocus [cdkTrapFocusAutoCapture]="!readonly">
         <div class="flex flex-col gap-y-2 relative h-full">
             <div class="flex justify-end">

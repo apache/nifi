@@ -20,9 +20,11 @@
 .property-editor {
     @include mat.button-density(-1);
 
-    min-height: 240px;
-    min-width: 245px;
-    max-height: 100vh;
-    max-width: 100vw;
-    cursor: move;
+    & {
+        min-height: 240px;
+        min-width: 245px;
+        max-height: 100vh;
+        max-width: 100vw;
+        cursor: move;
+    }
 }

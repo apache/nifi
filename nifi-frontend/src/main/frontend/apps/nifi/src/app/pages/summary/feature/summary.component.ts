@@ -33,7 +33,8 @@ interface TabLink {
 @Component({
     selector: 'summary',
     templateUrl: './summary.component.html',
-    styleUrls: ['./summary.component.scss']
+    styleUrls: ['./summary.component.scss'],
+    standalone: false
 })
 export class Summary implements OnInit, OnDestroy {
     tabLinks: TabLink[] = [

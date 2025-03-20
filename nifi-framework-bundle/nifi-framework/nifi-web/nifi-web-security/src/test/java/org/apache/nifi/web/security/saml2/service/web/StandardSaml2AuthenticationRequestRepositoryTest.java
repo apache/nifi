@@ -128,9 +128,9 @@ class StandardSaml2AuthenticationRequestRepositoryTest {
     private AbstractSaml2AuthenticationRequest getRequest() {
         final RelyingPartyRegistration registration = RelyingPartyRegistration.withRegistrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty())
                 .entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty())
-                .assertingPartyDetails(assertingPartyDetails -> {
-                    assertingPartyDetails.entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
-                    assertingPartyDetails.singleSignOnServiceLocation(LOCATION);
+                .assertingPartyMetadata(assertingPartyMetadata -> {
+                    assertingPartyMetadata.entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
+                    assertingPartyMetadata.singleSignOnServiceLocation(LOCATION);
                 })
                 .build();
         return Saml2PostAuthenticationRequest.withRelyingPartyRegistration(registration).samlRequest(SAML_REQUEST).build();

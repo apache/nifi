@@ -25,7 +25,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-controller-service',
-    standalone: true,
     imports: [ExtensionCreation, AsyncPipe],
     templateUrl: './create-controller-service.component.html',
     styleUrls: ['./create-controller-service.component.scss']

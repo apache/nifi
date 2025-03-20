@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -117,7 +118,7 @@ public class TestExecuteSQL {
     @Test
     public void testIncomingConnectionWithNoFlowFile() {
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM persons");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM persons");
         runner.run();
         runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
         runner.assertTransferCount(ExecuteSQL.REL_FAILURE, 0);
@@ -203,12 +204,77 @@ public class TestExecuteSQL {
         stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(false);
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "2");
         runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+    }
+
+    @Test
+    public void testDropTableWithOverwrite() throws SQLException, IOException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_DROP_TABLE");
+        } catch (final SQLException ignored) {
+        }
+
+        stmt.execute("create table TEST_DROP_TABLE (id integer not null, val1 integer, val2 integer)");
+
+        stmt.execute("insert into TEST_DROP_TABLE (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_DROP_TABLE (id, val1, val2) VALUES (1, 1, 1)");
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "DROP TABLE TEST_DROP_TABLE");
+        runner.enqueue("some data");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
+
+        final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
+        final InputStream in = new ByteArrayInputStream(flowfiles.getFirst().toByteArray());
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            assertFalse(dataFileReader.hasNext());
+        }
+    }
+
+    @Test
+    public void testDropTableNoOverwrite() throws SQLException, IOException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_TRUNCATE_TABLE");
+        } catch (final SQLException ignored) {
+        }
+
+        stmt.execute("create table TEST_TRUNCATE_TABLE (id integer not null, val1 integer, val2 integer)");
+
+        stmt.execute("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (1, 1, 1)");
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(ExecuteSQL.CONTENT_OUTPUT_STRATEGY, AbstractExecuteSQL.ContentOutputStrategy.ORIGINAL);
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "TRUNCATE TABLE TEST_TRUNCATE_TABLE");
+        runner.enqueue("some data");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
+        runner.assertContents(ExecuteSQL.REL_SUCCESS, List.of("some data"));
     }
 
     @Test
@@ -233,7 +299,7 @@ public class TestExecuteSQL {
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.COMPRESSION_FORMAT, AvroUtil.CodecType.BZIP2.name());
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
@@ -269,7 +335,7 @@ public class TestExecuteSQL {
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "5");
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
@@ -311,7 +377,6 @@ public class TestExecuteSQL {
             stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
         }
 
-
         Map<String, String> attrMap = new HashMap<>();
         String testAttrName = "attr1";
         String testAttrValue = "value1";
@@ -342,8 +407,6 @@ public class TestExecuteSQL {
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
         lastFlowFile.assertAttributeEquals(testAttrName, testAttrValue);
         lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFlowFile.getAttribute(CoreAttributes.UUID.key()));
-
-
     }
 
     @Test
@@ -371,7 +434,7 @@ public class TestExecuteSQL {
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "5");
         runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "0");
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
@@ -410,7 +473,7 @@ public class TestExecuteSQL {
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(false);
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
@@ -435,7 +498,7 @@ public class TestExecuteSQL {
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.enqueue("Hello".getBytes());
         runner.run();
 
@@ -481,7 +544,7 @@ public class TestExecuteSQL {
         stmt.execute("insert into host2 values(1,'host2')");
         stmt.execute("select a.host as hostA,b.host as hostB from host1 a join host2 b on b.id=a.id");
         runner.setIncomingConnection(false);
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "select a.host as hostA,b.host as hostB from host1 a join host2 b on b.id=a.id");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "select a.host as hostA,b.host as hostB from host1 a join host2 b on b.id=a.id");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
@@ -507,7 +570,7 @@ public class TestExecuteSQL {
 
         runner.setIncomingConnection(false);
         // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
         runner.run();
 
         //No incoming flow file containing a query, and an exception causes no outbound flowfile.
@@ -584,7 +647,7 @@ public class TestExecuteSQL {
         }
 
         if (setQueryProperty) {
-            runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
+            runner.setProperty(ExecuteSQL.SQL_QUERY, query);
         }
 
         runner.run();
@@ -639,7 +702,7 @@ public class TestExecuteSQL {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.enqueue("test".getBytes());
         runner.run();
 
@@ -684,7 +747,7 @@ public class TestExecuteSQL {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.setProperty(ExecuteSQL.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
         runner.enqueue("test".getBytes());
         runner.run();
@@ -730,7 +793,7 @@ public class TestExecuteSQL {
         runner.setIncomingConnection(true);
         // Simulate failure by not provide parameter
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.enqueue("test".getBytes());
         runner.run();
 
@@ -756,7 +819,7 @@ public class TestExecuteSQL {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "select * from TEST_NULL_INT");
+        runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         // Simulate failure by not provide parameter
         runner.setProperty(ExecuteSQL.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
         runner.enqueue("test".getBytes());

@@ -53,7 +53,8 @@ import { selectAbout } from '../../../../state/about/about.selectors';
 
 @Component({
     templateUrl: './manage-remote-ports.component.html',
-    styleUrls: ['./manage-remote-ports.component.scss']
+    styleUrls: ['./manage-remote-ports.component.scss'],
+    standalone: false
 })
 export class ManageRemotePorts implements OnDestroy {
     initialSortColumn: 'name' | 'type' | 'tasks' | 'count' | 'size' | 'duration' | 'compression' | 'actions' = 'name';

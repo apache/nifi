@@ -23,7 +23,8 @@ import { loadExtensionTypesForSettings } from '../../../state/extension-types/ex
 @Component({
     selector: 'settings',
     templateUrl: './settings.component.html',
-    styleUrls: ['./settings.component.scss']
+    styleUrls: ['./settings.component.scss'],
+    standalone: false
 })
 export class Settings implements OnInit {
     tabLinks: any[] = [

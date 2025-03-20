@@ -44,6 +44,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,6 +53,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -331,11 +333,15 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected NiFiClient createClient(final int port) {
-        final NiFiClientConfig clientConfig = new NiFiClientConfig.Builder()
-                .baseUrl("http://localhost:" + port)
-                .connectTimeout(30000)
-                .readTimeout(30000)
-                .build();
+        final NiFiClientConfig.Builder clientConfigBuilder = new NiFiClientConfig.Builder()
+                .baseUrl("https://localhost:" + port)
+                .connectTimeout(15000)
+                .readTimeout(30000);
+
+        final NiFiInstance nifiInstance = nifiRef.get();
+        final Optional<SSLContext> sslContextFound = nifiInstance.getSslContext();
+        sslContextFound.ifPresent(clientConfigBuilder::sslContext);
+        final NiFiClientConfig clientConfig = clientConfigBuilder.build();
 
         return new JerseyNiFiClient.Builder()
                 .config(clientConfig)

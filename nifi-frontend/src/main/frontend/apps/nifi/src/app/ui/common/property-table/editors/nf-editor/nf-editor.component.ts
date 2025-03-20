@@ -33,7 +33,6 @@ import { NfPr } from './modes/nfpr';
 
 @Component({
     selector: 'nf-editor',
-    standalone: true,
     templateUrl: './nf-editor.component.html',
     imports: [
         CdkDrag,
@@ -86,7 +85,7 @@ export class NfEditor implements OnDestroy {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     itemSet = false;
     getParametersSet = false;
@@ -246,7 +245,7 @@ export class NfEditor implements OnDestroy {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.exit.next();
     }
 
     ngOnDestroy(): void {

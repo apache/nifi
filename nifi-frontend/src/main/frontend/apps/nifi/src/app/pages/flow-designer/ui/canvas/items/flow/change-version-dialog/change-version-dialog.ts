@@ -16,7 +16,6 @@
  */
 
 import { Component, EventEmitter, Inject, Output } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
 import { MatButton } from '@angular/material/button';
 import { MatCell, MatCellDef, MatColumnDef, MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -30,8 +29,7 @@ import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'change-version-dialog',
-    standalone: true,
-    imports: [AsyncPipe, MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule],
+    imports: [MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule],
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'
 })

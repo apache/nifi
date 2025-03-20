@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
@@ -422,7 +421,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                 .keySet()
                 .stream()
                 .filter(PropertyDescriptor::isDynamic)
-                .collect(Collectors.toList());
+                .toList();
 
         Properties properties = dataSource.getDataSourceProperties();
         dynamicProperties.forEach((descriptor) -> {

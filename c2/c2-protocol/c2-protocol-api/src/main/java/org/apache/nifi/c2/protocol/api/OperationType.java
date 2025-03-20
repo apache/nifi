@@ -21,6 +21,7 @@ import static org.apache.nifi.c2.protocol.api.OperandType.ASSET;
 import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
 import static org.apache.nifi.c2.protocol.api.OperandType.CONNECTION;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
+import static org.apache.nifi.c2.protocol.api.OperandType.FLOW;
 import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
 import static org.apache.nifi.c2.protocol.api.OperandType.PROPERTIES;
 import static org.apache.nifi.c2.protocol.api.OperandType.RESOURCE;
@@ -40,8 +41,8 @@ public enum OperationType {
     DESCRIBE(MANIFEST),
     UPDATE(CONFIGURATION, ASSET, PROPERTIES),
     RESTART,
-    START,
-    STOP,
+    START(FLOW),
+    STOP(FLOW),
     PAUSE,
     REPLICATE,
     SUBSCRIBE,

@@ -169,7 +169,7 @@
                                 [ruleUpdate]="(getRuleUpdates(rule.id) | async)!"
                                 (editRule)="editRule($event)"
                                 (dirty)="setDirty(rule.id, $event)"
-                                (cancel)="expansionPanel.close()"></edit-rule>
+                                (exit)="expansionPanel.close()"></edit-rule>
                         </mat-expansion-panel>
                     }
                     @if (newRule) {
@@ -189,7 +189,7 @@
                                 [editable]="isEditable"
                                 (afterInit)="newRuleExpanded()"
                                 (addRule)="createRule($event)"
-                                (cancel)="cancelNewRule()"></edit-rule>
+                                (exit)="cancelNewRule()"></edit-rule>
                         </mat-expansion-panel>
                     }
                 </mat-accordion>

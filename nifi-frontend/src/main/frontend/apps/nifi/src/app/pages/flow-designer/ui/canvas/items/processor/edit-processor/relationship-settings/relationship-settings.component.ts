@@ -36,7 +36,6 @@ export interface RelationshipConfiguration {
 
 @Component({
     selector: 'relationship-settings',
-    standalone: true,
     templateUrl: './relationship-settings.component.html',
     imports: [
         MatSliderModule,

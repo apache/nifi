@@ -18,27 +18,14 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-error-palette-default: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), default)
-    );
-
-    $neutral-contrast: map.get(map.get($config, neutral), contrast);
-
+@mixin generate-theme() {
     .pill.enforce {
-        background-color: $material-theme-error-palette-default;
-        color: $neutral-contrast;
+        background-color: var(--mat-sys-error);
+        color: var(--mat-sys-on-error);
     }
 
     .pill.warn {
-        background-color: $material-theme-secondary-palette-default;
-        color: $neutral-contrast;
+        background-color: var(--mat-sys-secondary);
+        color: var(--mat-sys-on-secondary);
     }
 }

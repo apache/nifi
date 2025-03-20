@@ -57,8 +57,8 @@ public class RestartWithDifferentPortIT extends NiFiSystemIT {
         final NiFiInstance secondNode = getNiFiInstance().getNodeInstance(2);
         secondNode.stop();
 
-        // Change the value of the nifi.web.http.port property from 5672 to 5673
-        secondNode.setProperty("nifi.web.http.port", "5673");
+        // Change the value of the nifi.web.https.port property from 5672 to 5673
+        secondNode.setProperty("nifi.web.https.port", "5673");
 
         // Restart the second node
         secondNode.start();

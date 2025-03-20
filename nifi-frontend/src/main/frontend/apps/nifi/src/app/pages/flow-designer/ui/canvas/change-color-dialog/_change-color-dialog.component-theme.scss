@@ -18,47 +18,22 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-    $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-
+@mixin generate-theme() {
     .preview {
         .processor {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            background-color: var(--mat-sys-background);
         }
 
         .odd {
-            background-color: rgba(
-                if($is-material-dark, $material-theme-neutral-palette-lighter, $material-theme-neutral-palette-darker),
-                0.025
-            );
+            background-color: var(--nf-odd);
         }
 
         .even {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            background-color: var(--nf-even);
         }
 
         .row-border {
-            border-top: 1px solid $border-color;
+            border-top: 1px solid var(--mat-sys-outline);
         }
     }
 }

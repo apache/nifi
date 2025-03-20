@@ -24,7 +24,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'image-viewer',
-    standalone: true,
     templateUrl: './image-viewer.component.html',
     imports: [],
     styleUrls: ['./image-viewer.component.scss']

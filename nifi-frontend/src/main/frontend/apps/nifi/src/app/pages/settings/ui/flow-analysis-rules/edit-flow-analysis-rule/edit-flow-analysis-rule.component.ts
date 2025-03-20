@@ -35,8 +35,6 @@ import {
     FlowAnalysisRuleEntity,
     UpdateFlowAnalysisRuleRequest
 } from '../../../state/flow-analysis-rules';
-import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis-rule-table.component';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import {
     ConfigVerificationResult,
@@ -50,7 +48,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-flow-analysis-rule',
-    standalone: true,
     templateUrl: './edit-flow-analysis-rule.component.html',
     imports: [
         ReactiveFormsModule,
@@ -64,8 +61,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         AsyncPipe,
         NifiSpinnerDirective,
         NifiTooltipDirective,
-        FlowAnalysisRuleTable,
-        ErrorBanner,
         PropertyVerification,
         ContextErrorBanner,
         CopyDirective

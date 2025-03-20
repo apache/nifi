@@ -22,7 +22,6 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
 
 @Component({
     selector: 'controller-service-api-tip',
-    standalone: true,
     templateUrl: './controller-service-api-tip.component.html',
     imports: [ControllerServiceApi],
     styleUrls: ['./controller-service-api-tip.component.scss']

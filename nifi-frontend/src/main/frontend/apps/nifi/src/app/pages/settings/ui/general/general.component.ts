@@ -20,10 +20,14 @@ import { GeneralState } from '../../state/general';
 import { Store } from '@ngrx/store';
 import { loadControllerConfig, resetGeneralState } from '../../state/general/general.actions';
 import { selectGeneral } from '../../state/general/general.selectors';
+import { AsyncPipe } from '@angular/common';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
+import { GeneralForm } from './general-form/general-form.component';
 
 @Component({
     selector: 'general',
     templateUrl: './general.component.html',
+    imports: [AsyncPipe, NgxSkeletonLoaderComponent, GeneralForm],
     styleUrls: ['./general.component.scss']
 })
 export class General implements OnInit, OnDestroy {

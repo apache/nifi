@@ -21,7 +21,6 @@ import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'error-banner',
-    standalone: true,
     imports: [MatButtonModule, NgClass],
     templateUrl: './error-banner.component.html',
     styleUrls: ['./error-banner.component.scss']
@@ -30,6 +29,7 @@ export class ErrorBanner {
     @Input() messages: string[] | null = null;
     @Input() showErrorIcon = true;
     @Input() showBorder = true;
+    @Input() allowDismiss = true;
 
     @Output() dismiss: EventEmitter<void> = new EventEmitter<void>();
 

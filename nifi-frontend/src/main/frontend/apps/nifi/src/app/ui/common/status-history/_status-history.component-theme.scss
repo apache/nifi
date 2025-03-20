@@ -18,19 +18,17 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-
+@mixin generate-theme() {
     #status-history-chart-container,
     #status-history-chart-control-container {
         .axis path,
         .axis line {
-            stroke: $border-color;
+            stroke: var(--mat-sys-outline);
         }
 
         .brush {
             .selection {
-                stroke: $border-color;
+                stroke: var(--mat-sys-outline);
             }
         }
     }

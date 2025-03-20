@@ -22,7 +22,6 @@ import com.exceptionfactory.jagged.framework.armor.ArmoredEncryptingChannelFacto
 import com.exceptionfactory.jagged.framework.stream.StandardEncryptingChannelFactory;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.VerifiableProcessor;
-import org.apache.nifi.processors.cipher.age.AgeProviderResolver;
 import org.apache.nifi.processors.cipher.age.AgePublicKeyReader;
 import org.apache.nifi.processors.cipher.age.FileEncoding;
 import org.apache.nifi.processors.cipher.age.KeySource;
@@ -44,7 +43,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.Provider;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -216,11 +214,9 @@ class DecryptContentAgeTest {
     }
 
     private EncryptingChannelFactory getEncryptingChannelFactory(final FileEncoding fileEncoding) {
-        final Provider provider = AgeProviderResolver.getCipherProvider();
-
         return switch (fileEncoding) {
-            case ASCII -> new ArmoredEncryptingChannelFactory(provider);
-            case BINARY -> new StandardEncryptingChannelFactory(provider);
+            case ASCII -> new ArmoredEncryptingChannelFactory();
+            case BINARY -> new StandardEncryptingChannelFactory();
         };
     }
 

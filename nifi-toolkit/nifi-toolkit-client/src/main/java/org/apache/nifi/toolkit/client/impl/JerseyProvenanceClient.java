@@ -30,6 +30,7 @@ import org.apache.nifi.web.api.entity.ReplayLastEventRequestEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Objects;
 
 public class JerseyProvenanceClient extends AbstractJerseyClient implements ProvenanceClient {
@@ -147,6 +148,44 @@ public class JerseyProvenanceClient extends AbstractJerseyClient implements Prov
         return executeAction("Error getting latest events for Processor " + processorId, () -> {
             final WebTarget target = provenanceEventsTarget.path("/latest/").path(processorId);
             return getRequestBuilder(target).get(LatestProvenanceEventsEntity.class);
+        });
+    }
+
+    @Override
+    public InputStream getInputFlowFileContent(final String provenanceEventId, final String nodeId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(provenanceEventId)) {
+            throw new IllegalArgumentException("Provenance Event ID must be specified");
+        }
+
+        return executeAction("Error retrieving Input FlowFile Content from provenance event", () -> {
+            WebTarget target = provenanceEventsTarget
+                    .path("/{id}/content/input")
+                    .resolveTemplate("id", provenanceEventId);
+
+            if (nodeId != null) {
+                target = target.queryParam("clusterNodeId", nodeId);
+            }
+
+            return getRequestBuilder(target).get(InputStream.class);
+        });
+    }
+
+    @Override
+    public InputStream getOutputFlowFileContent(String provenanceEventId, final String nodeId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(provenanceEventId)) {
+            throw new IllegalArgumentException("Provenance Event ID must be specified");
+        }
+
+        return executeAction("Error retrieving Output FlowFile Content from provenance event", () -> {
+            WebTarget target = provenanceEventsTarget
+                    .path("/{id}/content/output")
+                    .resolveTemplate("id", provenanceEventId);
+
+            if (nodeId != null) {
+                target = target.queryParam("clusterNodeId", nodeId);
+            }
+
+            return getRequestBuilder(target).get(InputStream.class);
         });
     }
 }

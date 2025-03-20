@@ -42,26 +42,17 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import * as d3 from 'd3';
-import {
-    isDefinedAndNotNull,
-    CloseOnEscapeDialog,
-    NiFiCommon,
-    NifiTooltipDirective,
-    Resizable,
-    TextTip
-} from '@nifi/shared';
+import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '../error-banner/error-banner.component';
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'status-history',
     templateUrl: './status-history.component.html',
-    standalone: true,
     imports: [
         MatDialogModule,
         AsyncPipe,
@@ -72,10 +63,8 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
         MatSelectModule,
         NifiTooltipDirective,
         MatCheckboxModule,
-        Resizable,
         StatusHistoryChart,
         NgStyle,
-        ErrorBanner,
         ContextErrorBanner
     ],
     styleUrls: ['./status-history.component.scss']

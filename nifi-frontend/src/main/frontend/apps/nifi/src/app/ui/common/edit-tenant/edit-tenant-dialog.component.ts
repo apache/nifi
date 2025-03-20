@@ -45,7 +45,6 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
 
 @Component({
     selector: 'edit-tenant-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButtonModule,
@@ -66,7 +65,7 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
 export class EditTenantDialog extends CloseOnEscapeDialog {
     @Input() saving$!: Observable<boolean>;
     @Output() editTenant: EventEmitter<EditTenantResponse> = new EventEmitter<EditTenantResponse>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     readonly USER: string = 'user';
     readonly USER_GROUP: string = 'userGroup';
@@ -200,7 +199,7 @@ export class EditTenantDialog extends CloseOnEscapeDialog {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.exit.next();
     }
 
     okClicked(): void {

@@ -23,3 +23,4 @@ prop_replace 'nifi.registry.security.user.oidc.client.secret'                   
 prop_replace 'nifi.registry.security.user.oidc.preferred.jwsalgorithm'           "${NIFI_REGISTRY_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM}"
 prop_replace 'nifi.registry.security.user.oidc.additional.scopes'                "${NIFI_REGISTRY_SECURITY_USER_OIDC_ADDITIONAL_SCOPES}"
 prop_replace 'nifi.registry.security.user.oidc.claim.identifying.user'           "${NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER}"
+prop_replace 'nifi.registry.security.user.oidc.claim.groups'                     "${NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_GROUPS}"

@@ -50,7 +50,6 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
 
 @Component({
     selector: 'edit-parameter-context',
-    standalone: true,
     templateUrl: './edit-parameter-context.component.html',
     imports: [
         ReactiveFormsModule,

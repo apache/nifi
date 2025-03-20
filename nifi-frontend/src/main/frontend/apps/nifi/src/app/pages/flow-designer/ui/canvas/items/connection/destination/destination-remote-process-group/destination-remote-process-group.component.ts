@@ -25,7 +25,6 @@ import { NifiTooltipDirective, TextTip, SelectOption } from '@nifi/shared';
 
 @Component({
     selector: 'destination-remote-process-group',
-    standalone: true,
     templateUrl: './destination-remote-process-group.component.html',
     styleUrls: ['./destination-remote-process-group.component.scss'],
     imports: [

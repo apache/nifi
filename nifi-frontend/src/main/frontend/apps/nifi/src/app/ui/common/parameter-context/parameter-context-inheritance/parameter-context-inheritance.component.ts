@@ -30,12 +30,16 @@ import {
     moveItemInArray,
     transferArrayItem
 } from '@angular/cdk/drag-drop';
-import { NiFiCommon, NifiTooltipDirective, ParameterContextReferenceEntity, PipesModule, TextTip } from '@nifi/shared';
-import { SortObjectByPropertyPipe } from '../../../../../../../../libs/shared/src/pipes/sort-by-property.pipe';
+import {
+    NiFiCommon,
+    NifiTooltipDirective,
+    ParameterContextReferenceEntity,
+    TextTip,
+    SortObjectByPropertyPipe
+} from '@nifi/shared';
 
 @Component({
     selector: 'parameter-context-inheritance',
-    standalone: true,
     templateUrl: './parameter-context-inheritance.component.html',
     imports: [
         MatButtonModule,
@@ -45,8 +49,7 @@ import { SortObjectByPropertyPipe } from '../../../../../../../../libs/shared/sr
         NgTemplateOutlet,
         NifiTooltipDirective,
         CdkDropList,
-        CdkDrag,
-        PipesModule
+        CdkDrag
     ],
     providers: [
         {

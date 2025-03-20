@@ -28,7 +28,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -38,17 +38,22 @@ public abstract class AbstractKafkaBaseIT {
 
     protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
 
+    private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
+    private static final String DYNAMIC_PROPERTY_KEY_CONSUME = "fetch.max.wait.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_CONSUME = "1000";
+
     protected static final long TIMESTAMP = System.currentTimeMillis();
 
     protected static final String CONNECTION_SERVICE_ID = Kafka3ConnectionService.class.getSimpleName();
 
     protected static final Duration DURATION_POLL = Duration.ofSeconds(3);
 
-    protected static final KafkaContainer kafkaContainer;
+    protected static final ConfluentKafkaContainer kafkaContainer;
 
     // NIFI-11259 - single testcontainers Kafka instance needed for all module integration tests
     static {
-        kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
         kafkaContainer.start();
     }
 
@@ -64,6 +69,8 @@ public abstract class AbstractKafkaBaseIT {
         runner.addControllerService(CONNECTION_SERVICE_ID, connectionService);
         runner.setProperty(connectionService, Kafka3ConnectionService.BOOTSTRAP_SERVERS, kafkaContainer.getBootstrapServers());
         runner.setProperty(connectionService, Kafka3ConnectionService.MAX_POLL_RECORDS, "1000");
+        runner.setProperty(connectionService, DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
+        runner.setProperty(connectionService, DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
         runner.enableControllerService(connectionService);
         return CONNECTION_SERVICE_ID;
     }

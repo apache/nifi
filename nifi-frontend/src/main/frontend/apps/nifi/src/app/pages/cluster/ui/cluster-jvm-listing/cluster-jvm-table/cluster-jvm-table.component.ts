@@ -31,7 +31,6 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
     selector: 'cluster-jvm-table',
-    standalone: true,
     imports: [ClusterTableFilter, MatTableModule, MatSortModule, NifiTooltipDirective],
     templateUrl: './cluster-jvm-table.component.html',
     styleUrl: './cluster-jvm-table.component.scss'

@@ -17,6 +17,7 @@
 package org.apache.nifi.pgp.util;
 
 import org.bouncycastle.bcpg.HashAlgorithmTags;
+import org.bouncycastle.bcpg.PublicKeyPacket;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
@@ -112,7 +113,7 @@ public class PGPSecretKeyGenerator {
     }
 
     private static PGPKeyPair getPgpKeyPair(final KeyPair keyPair, final int algorithm) throws PGPException {
-        return new JcaPGPKeyPair(algorithm, keyPair, new Date());
+        return new JcaPGPKeyPair(PublicKeyPacket.VERSION_4, algorithm, keyPair, new Date());
     }
 
     private static PBESecretKeyEncryptor getSecretKeyEncryptor(final char[] password, final PGPDigestCalculator digestCalculator) {

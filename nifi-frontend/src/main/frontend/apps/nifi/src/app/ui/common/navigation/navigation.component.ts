@@ -16,7 +16,7 @@
  */
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { AsyncPipe, NgOptimizedImage } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
@@ -49,11 +49,9 @@ import { selectBackNavigation } from '../../../state/navigation/navigation.selec
 
 @Component({
     selector: 'navigation',
-    standalone: true,
     providers: [Storage],
     imports: [
         NgOptimizedImage,
-        AsyncPipe,
         MatDividerModule,
         MatMenuModule,
         RouterLink,

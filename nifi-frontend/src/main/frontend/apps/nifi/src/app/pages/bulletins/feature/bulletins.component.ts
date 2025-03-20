@@ -20,6 +20,7 @@ import { Component } from '@angular/core';
 @Component({
     selector: 'bulletins',
     templateUrl: './bulletins.component.html',
-    styleUrls: ['./bulletins.component.scss']
+    styleUrls: ['./bulletins.component.scss'],
+    standalone: false
 })
 export class Bulletins {}

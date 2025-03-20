@@ -68,7 +68,7 @@ public class RedisDistributedMapCacheClientService extends SimpleRedisDistribute
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
 
-            final byte[] v = redisConnection.get(k);
+            final byte[] v = redisConnection.stringCommands().get(k);
             if (v == null) {
                 return null;
             }
@@ -97,7 +97,7 @@ public class RedisDistributedMapCacheClientService extends SimpleRedisDistribute
 
             // start a watch on the key and retrieve the current value
             redisConnection.watch(k);
-            final byte[] currValue = redisConnection.get(k);
+            final byte[] currValue = redisConnection.stringCommands().get(k);
 
             // start a transaction
             redisConnection.multi();
@@ -106,12 +106,12 @@ public class RedisDistributedMapCacheClientService extends SimpleRedisDistribute
             if (Arrays.equals(prevVal, currValue)) {
                 // if we use set(k, newVal) then the results list will always have size == 0 b/c when convertPipelineAndTxResults is set to true,
                 // status responses like "OK" are skipped over, so by using getSet we can rely on the results list to know if the transaction succeeded
-                redisConnection.getSet(k, newVal);
+                redisConnection.stringCommands().getSet(k, newVal);
 
                 // set the TTL if specified
                 final long ttl = getTtl();
                 if (ttl != -1L) {
-                    redisConnection.expire(k, ttl);
+                    redisConnection.keyCommands().expire(k, ttl);
                 }
             }
 

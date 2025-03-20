@@ -20,6 +20,7 @@ package org.apache.nifi.processors.elasticsearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -53,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
+@SupportsBatching
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
 @CapabilityDescription("Elasticsearch get processor that uses the official Elastic REST client libraries " +
         "to fetch a single document from Elasticsearch by _id. " +

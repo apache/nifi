@@ -22,7 +22,12 @@
         </div>
         @if (!isDisabled) {
             <div>
-                <button title="Add" mat-icon-button type="button" (click)="newEntryClicked()">
+                <button
+                    title="Add"
+                    mat-icon-button
+                    class="primary-icon-button"
+                    type="button"
+                    (click)="newEntryClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -132,7 +137,7 @@
                     [width]="editorWidth"
                     [readonly]="isDisabled"
                     (ok)="saveValue(editorItem, $event)"
-                    (cancel)="closeEditor()"></text-editor>
+                    (exit)="closeEditor()"></text-editor>
             </ng-template>
         </div>
     </div>

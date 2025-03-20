@@ -50,7 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -92,7 +92,12 @@ public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
+    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0";  // December 2024
+
+    private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
+    private static final String DYNAMIC_PROPERTY_KEY_CONSUME = "fetch.max.wait.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_CONSUME = "1000";
 
     private static final String GROUP_ID = Kafka3ConnectionService.class.getSimpleName();
 
@@ -134,7 +139,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     protected TestRunner runner;
 
-    private KafkaContainer kafkaContainer;
+    private ConfluentKafkaContainer kafkaContainer;
 
     private Kafka3ConnectionService service;
 
@@ -161,7 +166,7 @@ public class Kafka3ConnectionServiceBaseIT {
             trustStore.store(outputStream, KEY_STORE_PASSWORD.toCharArray());
         }
 
-        kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
         initializeContainer();
         kafkaContainer.start();
     }
@@ -203,6 +208,8 @@ public class Kafka3ConnectionServiceBaseIT {
         final Map<String, String> properties = new LinkedHashMap<>();
         properties.put(Kafka3ConnectionService.BOOTSTRAP_SERVERS.getName(), kafkaContainer.getBootstrapServers());
         properties.put(Kafka3ConnectionService.CLIENT_TIMEOUT.getName(), CLIENT_TIMEOUT);
+        properties.put(DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
+        properties.put(DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
         return properties;
     }
 

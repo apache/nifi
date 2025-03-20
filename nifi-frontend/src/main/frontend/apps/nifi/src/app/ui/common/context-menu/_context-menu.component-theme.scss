@@ -18,24 +18,29 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-
+@mixin generate-theme() {
     div.context-menu {
         .context-menu-item {
             .context-menu-item-text {
-                font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
-                line-height: mat.get-theme-typography($material-theme, body-medium, line-height);
-                max-width: #{mat.get-theme-typography($material-theme, body-medium, font-size) * 20};
+                font-size: var(--mat-sys-body-medium-size);
+                line-height: var(--mat-sys-body-medium-line-height);
+                max-width: calc(var(--mat-sys-body-medium-size) * 20);
             }
 
             &:hover {
-                background-color: var(--mat-menu-item-hover-state-layer-color);
+                background-color: var(
+                    --mat-menu-item-hover-state-layer-color,
+                    color-mix(
+                        in srgb,
+                        var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                        transparent
+                    )
+                );
             }
         }
 
         .context-menu-item:active {
-            background-color: $border-color;
+            background-color: var(--mat-sys-outline);
         }
 
         &.show-focused {

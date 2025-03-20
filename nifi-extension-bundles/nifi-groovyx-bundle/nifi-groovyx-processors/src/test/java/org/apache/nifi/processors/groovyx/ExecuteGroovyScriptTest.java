@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -543,6 +544,17 @@ public class ExecuteGroovyScriptTest {
         assertEquals("onUnscheduled invoked successfully\n", outContent.toString());
     }
 
+    @Test
+    public void test_attribute_passed_to_SQL() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_attributes_passed_to_SQL.groovy");
+        runner.setProperty("database.name", "testDB");
+        runner.setProperty("SQL.mydb", "dbcp");
+        runner.assertValid();
+
+        runner.run();
+        assertEquals("testDB", ((DBCPServiceSimpleImpl) dbcp).getDatabaseName());
+    }
+
 
     private HashMap<String, String> map(String key, String value) {
         HashMap<String, String> attrs = new HashMap<>();
@@ -551,6 +563,8 @@ public class ExecuteGroovyScriptTest {
     }
 
     private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+
+        private String dbName;
 
         @Override
         public String getIdentifier() {
@@ -565,6 +579,21 @@ public class ExecuteGroovyScriptTest {
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public Connection getConnection(Map<String, String> attributes) throws ProcessException {
+            dbName = attributes.get("database.name");
+            try {
+                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+            } catch (final Exception e) {
+                throw new ProcessException("getConnection failed: " + e);
+            }
+        }
+
+        public String getDatabaseName() {
+            return dbName;
         }
     }
 }

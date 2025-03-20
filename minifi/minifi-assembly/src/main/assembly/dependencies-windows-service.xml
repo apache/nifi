@@ -50,11 +50,15 @@
                 <include>org.apache.nifi:nifi-server-api</include>
                 <include>org.apache.nifi:nifi-stateless-api</include>
                 <include>org.apache.nifi:*:nar</include>
+                <include>org.apache.nifi:nifi-framework-nar-loading-utils</include>
+                <include>org.apache.nifi:nifi-framework-nar-utils</include>
                 <!-- Apache NiFi MiNiFi -->
                 <include>org.apache.nifi.minifi:minifi-commons-utils</include>
                 <include>org.apache.nifi.minifi:minifi-framework-api</include>
                 <include>org.apache.nifi.minifi:minifi-runtime</include>
+                <include>org.apache.nifi.minifi:minifi-nar-unloader</include>
                 <include>org.apache.nifi.minifi:*:nar</include>
+                <include>org.apache.nifi:nifi-mqtt:nar</include>
                 <!-- Unfortunately minifi-runtime depends on jackson databind and annotations
                 so for now this pollutes the root classloader. -->
                 <include>com.fasterxml.jackson.core:jackson-databind</include>

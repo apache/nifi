@@ -28,7 +28,7 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.event.eventTime }
+                                        context: { $implicit: request.event.eventTime, title: request.event.eventTime }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -52,7 +52,7 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.event.eventType }
+                                        context: { $implicit: request.event.eventType, title: request.event.eventType }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -60,7 +60,10 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatCopyableValue;
-                                        context: { $implicit: request.event.flowFileUuid }
+                                        context: {
+                                            $implicit: request.event.flowFileUuid,
+                                            title: request.event.flowFileUuid
+                                        }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -79,7 +82,10 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatCopyableValue;
-                                        context: { $implicit: request.event.componentId }
+                                        context: {
+                                            $implicit: request.event.componentId,
+                                            title: request.event.componentId
+                                        }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -98,7 +104,10 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.event.componentType }
+                                        context: {
+                                            $implicit: request.event.componentType,
+                                            title: request.event.componentType
+                                        }
                                     "></ng-container>
                             </div>
                             <div class="flex flex-col">
@@ -106,7 +115,7 @@
                                 <ng-container
                                     *ngTemplateOutlet="
                                         formatValue;
-                                        context: { $implicit: request.event.details }
+                                        context: { $implicit: request.event.details, title: request.event.details }
                                     "></ng-container>
                             </div>
                             <ng-container *ngIf="request.event.eventType === 'RECEIVE'">
@@ -115,7 +124,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatCopyableValue;
-                                            context: { $implicit: request.event.sourceSystemFlowFileId }
+                                            context: {
+                                                $implicit: request.event.sourceSystemFlowFileId,
+                                                title: request.event.sourceSystemFlowFileId
+                                            }
                                         "></ng-container>
                                 </div>
                                 <div class="flex flex-col">
@@ -123,7 +135,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.event.transitUri }
+                                            context: {
+                                                $implicit: request.event.transitUri,
+                                                title: request.event.transitUri
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -133,7 +148,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.event.transitUri }
+                                            context: {
+                                                $implicit: request.event.transitUri,
+                                                title: request.event.transitUri
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -143,7 +161,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.event.alternateIdentifierUri }
+                                            context: {
+                                                $implicit: request.event.alternateIdentifierUri,
+                                                title: request.event.alternateIdentifierUri
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -153,7 +174,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.event.relationship }
+                                            context: {
+                                                $implicit: request.event.relationship,
+                                                title: request.event.relationship
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -163,7 +187,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.event.transitUri }
+                                            context: {
+                                                $implicit: request.event.transitUri,
+                                                title: request.event.transitUri
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -173,7 +200,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatValue;
-                                            context: { $implicit: request.event.clusterNodeAddress }
+                                            context: {
+                                                $implicit: request.event.clusterNodeAddress,
+                                                title: request.event.clusterNodeAddress
+                                            }
                                         "></ng-container>
                                 </div>
                             </ng-container>
@@ -243,13 +273,16 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatValue;
-                                                context: { $implicit: attribute.value }
+                                                context: { $implicit: attribute.value, title: attribute.value }
                                             "></ng-container>
                                         <ng-container *ngIf="attributeValueChanged(attribute)">
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     formatValue;
-                                                    context: { $implicit: attribute.previousValue }
+                                                    context: {
+                                                        $implicit: attribute.previousValue,
+                                                        title: attribute.previousValue
+                                                    }
                                                 "></ng-container>
                                         </ng-container>
                                     </div>
@@ -273,7 +306,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatContentValue;
-                                                context: { $implicit: request.event.inputContentClaimContainer }
+                                                context: {
+                                                    $implicit: request.event.inputContentClaimContainer,
+                                                    title: request.event.inputContentClaimContainer
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -281,7 +317,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatContentValue;
-                                                context: { $implicit: request.event.inputContentClaimSection }
+                                                context: {
+                                                    $implicit: request.event.inputContentClaimSection,
+                                                    title: request.event.inputContentClaimContainer
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -289,7 +328,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatCopyableContentValue;
-                                                context: { $implicit: request.event.inputContentClaimIdentifier }
+                                                context: {
+                                                    $implicit: request.event.inputContentClaimIdentifier,
+                                                    title: request.event.inputContentClaimIdentifier
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -297,7 +339,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatContentValue;
-                                                context: { $implicit: request.event.inputContentClaimOffset }
+                                                context: {
+                                                    $implicit: request.event.inputContentClaimOffset,
+                                                    title: request.event.inputContentClaimOffset
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -335,7 +380,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatContentValue;
-                                                context: { $implicit: request.event.outputContentClaimContainer }
+                                                context: {
+                                                    $implicit: request.event.outputContentClaimContainer,
+                                                    title: request.event.outputContentClaimContainer
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -343,7 +391,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatContentValue;
-                                                context: { $implicit: request.event.outputContentClaimSection }
+                                                context: {
+                                                    $implicit: request.event.outputContentClaimSection,
+                                                    title: request.event.outputContentClaimSection
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -351,7 +402,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatCopyableContentValue;
-                                                context: { $implicit: request.event.outputContentClaimIdentifier }
+                                                context: {
+                                                    $implicit: request.event.outputContentClaimIdentifier,
+                                                    title: request.event.outputContentClaimIdentifier
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -359,7 +413,10 @@
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatContentValue;
-                                                context: { $implicit: request.event.outputContentClaimOffset }
+                                                context: {
+                                                    $implicit: request.event.outputContentClaimOffset,
+                                                    title: request.event.outputContentClaimOffset
+                                                }
                                             "></ng-container>
                                     </div>
                                     <div>
@@ -400,7 +457,10 @@
                                     <ng-container
                                         *ngTemplateOutlet="
                                             formatCopyableContentValue;
-                                            context: { $implicit: request.event.sourceConnectionIdentifier }
+                                            context: {
+                                                $implicit: request.event.sourceConnectionIdentifier,
+                                                title: request.event.sourceConnectionIdentifier
+                                            }
                                         "></ng-container>
                                 </div>
                                 <div>
@@ -425,15 +485,11 @@
                 <div class="unset neutral-color">Empty string set</div>
             </ng-container>
             <ng-template #nonEmptyValue>
-                <div
-                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                    *ngIf="title == null; else valueWithTitle">
+                <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
-                    <div
-                        class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                        [title]="title">
+                    <div class="tertiary-color font-medium truncate" [title]="title">
                         {{ value }}
                     </div>
                 </ng-template>
@@ -449,17 +505,11 @@
                 <div class="unset neutral-color">Empty string set</div>
             </ng-container>
             <ng-template #nonEmptyValue>
-                <div
-                    [copy]="value"
-                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                    *ngIf="title == null; else valueWithTitle">
+                <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
-                    <div
-                        [copy]="value"
-                        class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                        [title]="title">
+                    <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">
                         {{ value }}
                     </div>
                 </ng-template>
@@ -471,15 +521,11 @@
     </ng-template>
     <ng-template #formatContentValue let-value let-title="title">
         <ng-container *ngIf="value != null; else nullValue">
-            <div
-                class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                *ngIf="title == null; else valueWithTitle">
+            <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
                 {{ value }}
             </div>
             <ng-template #valueWithTitle>
-                <div
-                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                    [title]="title">
+                <div class="tertiary-color font-medium truncate" [title]="title">
                     {{ value }}
                 </div>
             </ng-template>
@@ -490,17 +536,11 @@
     </ng-template>
     <ng-template #formatCopyableContentValue let-value let-title="title">
         <ng-container *ngIf="value != null; else nullValue">
-            <div
-                [copy]="value"
-                class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                *ngIf="title == null; else valueWithTitle">
+            <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
                 {{ value }}
             </div>
             <ng-template #valueWithTitle>
-                <div
-                    [copy]="value"
-                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
-                    [title]="title">
+                <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">
                     {{ value }}
                 </div>
             </ng-template>

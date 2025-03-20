@@ -18,9 +18,11 @@
 import { Component } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { SummaryTableFilterColumn } from '../../common/summary-table-filter/summary-table-filter.component';
+import {
+    SummaryTableFilter,
+    SummaryTableFilterColumn
+} from '../../common/summary-table-filter/summary-table-filter.component';
 import { RouterLink } from '@angular/router';
-import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { NgClass } from '@angular/common';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -35,10 +37,9 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
     selector: 'processor-status-table',
     templateUrl: './processor-status-table.component.html',
     styleUrls: ['./processor-status-table.component.scss'],
-    standalone: true,
     imports: [
         RouterLink,
-        SummaryTableFilterModule,
+        SummaryTableFilter,
         MatTableModule,
         MatSortModule,
         NgClass,

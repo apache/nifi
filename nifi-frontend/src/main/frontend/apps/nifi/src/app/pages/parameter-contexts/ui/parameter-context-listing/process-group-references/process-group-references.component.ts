@@ -19,26 +19,15 @@ import { Component, Input } from '@angular/core';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
-import { NifiTooltipDirective } from '@nifi/shared';
 import { BoundProcessGroup } from '../../../../../state/shared';
 
 @Component({
     selector: 'process-group-references',
-    standalone: true,
     templateUrl: './process-group-references.component.html',
-    imports: [
-        MatTreeModule,
-        MatIconModule,
-        MatButtonModule,
-        NgTemplateOutlet,
-        NgClass,
-        NifiTooltipDirective,
-        RouterLink,
-        MatDialogModule
-    ],
+    imports: [MatTreeModule, MatIconModule, MatButtonModule, NgTemplateOutlet, RouterLink, MatDialogModule],
     styleUrls: ['./process-group-references.component.scss']
 })
 export class ProcessGroupReferences {

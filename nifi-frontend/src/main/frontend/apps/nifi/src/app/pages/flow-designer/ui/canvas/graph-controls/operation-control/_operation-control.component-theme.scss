@@ -18,32 +18,24 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-
+@mixin generate-theme() {
     div.operation-control {
         box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: var(--mat-sys-background);
 
         .operation-control-header {
             &:hover {
                 background: linear-gradient(
                     -90deg,
-                    var(--mat-menu-item-hover-state-layer-color) 34px,
+                    var(
+                            --mat-menu-item-hover-state-layer-color,
+                            color-mix(
+                                in srgb,
+                                var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                                transparent
+                            )
+                        )
+                        34px,
                     transparent 35px
                 );
             }

@@ -23,7 +23,6 @@ import { Store } from '@ngrx/store';
 import { updateComponent } from '../../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../../service/client.service';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,11 +36,9 @@ import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 @Component({
     selector: 'edit-port',
-    standalone: true,
     templateUrl: './edit-port.component.html',
     imports: [
         ReactiveFormsModule,
-        ErrorBanner,
         MatDialogModule,
         MatInputModule,
         MatCheckboxModule,

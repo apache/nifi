@@ -16,7 +16,6 @@
  */
 
 import { Component } from '@angular/core';
-import { ClusterSystemTable } from '../cluster-system-listing/cluster-system-table/cluster-system-table.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ClusterJvmTable } from './cluster-jvm-table/cluster-jvm-table.component';
 import {
@@ -33,8 +32,7 @@ import { clearJvmNodeSelection, selectJvmNode } from '../../state/cluster-listin
 
 @Component({
     selector: 'cluster-jvm-listing',
-    standalone: true,
-    imports: [ClusterSystemTable, NgxSkeletonLoaderModule, ClusterJvmTable],
+    imports: [NgxSkeletonLoaderModule, ClusterJvmTable],
     templateUrl: './cluster-jvm-listing.component.html',
     styleUrl: './cluster-jvm-listing.component.scss'
 })

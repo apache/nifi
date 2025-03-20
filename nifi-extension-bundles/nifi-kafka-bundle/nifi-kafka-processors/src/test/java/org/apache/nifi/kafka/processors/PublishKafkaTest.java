@@ -47,6 +47,11 @@ class PublishKafkaTest {
 
     private static final int FIRST_PARTITION = 0;
 
+    private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
+    private static final String DYNAMIC_PROPERTY_KEY_CONSUME = "fetch.max.wait.ms";
+    private static final String DYNAMIC_PROPERTY_VALUE_CONSUME = "1000";
+
     private static final String SERVICE_ID = KafkaConnectionService.class.getSimpleName();
 
     @Mock
@@ -108,6 +113,15 @@ class PublishKafkaTest {
         final ConfigVerificationResult firstResult = results.iterator().next();
         assertEquals(ConfigVerificationResult.Outcome.FAILED, firstResult.getOutcome());
         assertNotNull(firstResult.getExplanation());
+    }
+
+    @Test
+    public void testDynamicProperties() throws InitializationException {
+        when(kafkaConnectionService.getIdentifier()).thenReturn(SERVICE_ID);
+        runner.addControllerService(SERVICE_ID, kafkaConnectionService);
+        runner.setProperty(kafkaConnectionService, DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
+        runner.setProperty(kafkaConnectionService, DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
+        runner.enableControllerService(kafkaConnectionService);
     }
 
     private void setConnectionService() throws InitializationException {

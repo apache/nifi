@@ -23,7 +23,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { selectSaving } from '../../../state/manage-remote-ports/manage-remote-ports.selectors';
 import { EditRemotePortDialogRequest } from '../../../state/flow';
@@ -38,11 +37,9 @@ import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
-    standalone: true,
     templateUrl: './edit-remote-port.component.html',
     imports: [
         ReactiveFormsModule,
-        ErrorBanner,
         MatDialogModule,
         MatInputModule,
         MatCheckboxModule,

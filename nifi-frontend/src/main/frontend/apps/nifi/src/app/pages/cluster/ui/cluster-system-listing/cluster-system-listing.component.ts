@@ -28,13 +28,11 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { selectSystemNodeSnapshots } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
 import { ClusterSystemTable } from './cluster-system-table/cluster-system-table.component';
 import { clearSystemNodeSelection, selectSystemNode } from '../../state/cluster-listing/cluster-listing.actions';
-import { ClusterNodeTable } from '../cluster-node-listing/cluster-node-table/cluster-node-table.component';
 import { NodeSnapshot } from '../../../../state/system-diagnostics';
 
 @Component({
     selector: 'cluster-system-listing',
-    standalone: true,
-    imports: [NgxSkeletonLoaderModule, ClusterSystemTable, ClusterNodeTable],
+    imports: [NgxSkeletonLoaderModule, ClusterSystemTable],
     templateUrl: './cluster-system-listing.component.html',
     styleUrl: './cluster-system-listing.component.scss'
 })

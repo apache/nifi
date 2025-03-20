@@ -40,7 +40,8 @@ import { DocumentVisibility } from './state/document-visibility';
 @Component({
     selector: 'nifi',
     templateUrl: './app.component.html',
-    styleUrls: ['./app.component.scss']
+    styleUrls: ['./app.component.scss'],
+    standalone: false
 })
 export class AppComponent implements OnDestroy {
     title = 'nifi';
@@ -106,7 +107,7 @@ export class AppComponent implements OnDestroy {
         // Initially check if dark mode is enabled on system
         const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // If dark mode is enabled then directly switch to the dark-theme
+        // If dark mode is enabled then directly switch to the dark theme
         this.themingService.toggleTheme(darkModeOn, theme);
 
         if (window.matchMedia) {

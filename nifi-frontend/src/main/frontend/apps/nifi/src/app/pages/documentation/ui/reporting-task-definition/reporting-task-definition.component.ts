@@ -33,7 +33,6 @@ import { selectReportingTaskDefinitionState } from '../../state/reporting-task-d
 
 @Component({
     selector: 'reporting-task-definition',
-    standalone: true,
     imports: [NgxSkeletonLoaderModule, ConfigurableExtensionDefinitionComponent],
     templateUrl: './reporting-task-definition.component.html',
     styleUrl: './reporting-task-definition.component.scss'

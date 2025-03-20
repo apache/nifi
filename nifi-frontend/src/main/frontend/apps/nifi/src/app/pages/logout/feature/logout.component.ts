@@ -16,10 +16,12 @@
  */
 
 import { Component } from '@angular/core';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
 
 @Component({
     selector: 'logout',
     templateUrl: './logout.component.html',
+    imports: [PageContent],
     styleUrls: ['./logout.component.scss']
 })
 export class Logout {}

@@ -25,7 +25,6 @@ import { MatTableModule } from '@angular/material/table';
 
 @Component({
     selector: 'repository-storage-table',
-    standalone: true,
     imports: [ClusterTableFilter, MatTableModule, MatSortModule],
     templateUrl: './repository-storage-table.component.html',
     styleUrl: './repository-storage-table.component.scss'

@@ -33,10 +33,9 @@ import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../.
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { TextTip, NifiTooltipDirective, NiFiCommon, CopyDirective } from '@nifi/shared';
+import { TextTip, NiFiCommon, CopyDirective } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../state/error';
@@ -44,7 +43,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'edit-registry-client',
-    standalone: true,
     templateUrl: './edit-registry-client.component.html',
     imports: [
         ReactiveFormsModule,
@@ -55,10 +53,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         AsyncPipe,
         NifiSpinnerDirective,
         MatSelectModule,
-        NifiTooltipDirective,
         MatTabsModule,
         PropertyTable,
-        ErrorBanner,
         ContextErrorBanner,
         CopyDirective
     ],

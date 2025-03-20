@@ -20,14 +20,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-protobuf-bundle</artifactId>
-        <version>2.2.0-SNAPSHOT</version>
+        <version>2.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-protobuf-services</artifactId>
 
     <properties>
-        <protobuf.version>3.25.5</protobuf.version>
-        <wire.version>5.1.0</wire.version>
+        <protobuf.version>3.25.6</protobuf.version>
+        <wire.version>5.3.1</wire.version>
     </properties>
 
     <dependencies>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>2.2.0-SNAPSHOT</version>
+            <version>2.4.0-SNAPSHOT</version>
         </dependency>
 
 
@@ -74,13 +74,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>2.2.0-SNAPSHOT</version>
+            <version>2.4.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>2.2.0-SNAPSHOT</version>
+            <version>2.4.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

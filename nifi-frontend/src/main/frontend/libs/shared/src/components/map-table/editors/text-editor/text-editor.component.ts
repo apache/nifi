@@ -29,7 +29,6 @@ import { MapTableItem } from '../../../../types';
 
 @Component({
     selector: 'text-editor',
-    standalone: true,
     imports: [
         CommonModule,
         CdkDrag,
@@ -55,7 +54,7 @@ export class TextEditor {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     textEditorForm: FormGroup;
     editor!: Editor;
@@ -74,7 +73,7 @@ export class TextEditor {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.exit.next();
     }
 
     okClicked(): void {

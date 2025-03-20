@@ -22,7 +22,6 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NodeStatusSnapshot } from '../../../../state';
 
 @Component({
-    standalone: true,
     imports: [MatTableModule, MatSortModule],
     template: ''
 })

@@ -80,65 +80,13 @@
                                     </div>
                                 }
                             }
-                            @case ('Connect' || 'Disconnect') {
-                                @if (getConnectActionDetails(action); as details) {
-                                    <div>
-                                        <div>Source Id</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.sourceId }
-                                            "></ng-container>
-                                    </div>
-                                    <div>
-                                        <div>Source Name</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.sourceName }
-                                            "></ng-container>
-                                    </div>
-                                    <div>
-                                        <div>Source Type</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.sourceType }
-                                            "></ng-container>
-                                    </div>
-                                    <div>
-                                        <div>Relationship(s)</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.relationship }
-                                            "></ng-container>
-                                    </div>
-                                    <div>
-                                        <div>Destination Id</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.destinationId }
-                                            "></ng-container>
-                                    </div>
-                                    <div>
-                                        <div>Destination Name</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.destinationName }
-                                            "></ng-container>
-                                    </div>
-                                    <div>
-                                        <div>Destination Type</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: details.destinationType }
-                                            "></ng-container>
-                                    </div>
-                                }
+                            @case ('Connect') {
+                                <ng-container *ngTemplateOutlet="connectOrDisconnect; context: { $implicit: action }">
+                                </ng-container>
+                            }
+                            @case ('Disconnect') {
+                                <ng-container *ngTemplateOutlet="connectOrDisconnect; context: { $implicit: action }">
+                                </ng-container>
                             }
                             @case ('Move') {
                                 @if (getMoveActionDetails(action); as details) {
@@ -208,6 +156,58 @@
                     }
                 } @else {
                     <div class="unset neutral-color">No value set</div>
+                }
+            </ng-template>
+
+            <ng-template #connectOrDisconnect let-action>
+                @if (getConnectActionDetails(action); as details) {
+                    <div>
+                        <div>Source Id</div>
+                        <ng-container
+                            *ngTemplateOutlet="formatValue; context: { $implicit: details.sourceId }"></ng-container>
+                    </div>
+                    <div>
+                        <div>Source Name</div>
+                        <ng-container
+                            *ngTemplateOutlet="formatValue; context: { $implicit: details.sourceName }"></ng-container>
+                    </div>
+                    <div>
+                        <div>Source Type</div>
+                        <ng-container
+                            *ngTemplateOutlet="formatValue; context: { $implicit: details.sourceType }"></ng-container>
+                    </div>
+                    <div>
+                        <div>Relationship(s)</div>
+                        <ng-container
+                            *ngTemplateOutlet="
+                                formatValue;
+                                context: { $implicit: details.relationship }
+                            "></ng-container>
+                    </div>
+                    <div>
+                        <div>Destination Id</div>
+                        <ng-container
+                            *ngTemplateOutlet="
+                                formatValue;
+                                context: { $implicit: details.destinationId }
+                            "></ng-container>
+                    </div>
+                    <div>
+                        <div>Destination Name</div>
+                        <ng-container
+                            *ngTemplateOutlet="
+                                formatValue;
+                                context: { $implicit: details.destinationName }
+                            "></ng-container>
+                    </div>
+                    <div>
+                        <div>Destination Type</div>
+                        <ng-container
+                            *ngTemplateOutlet="
+                                formatValue;
+                                context: { $implicit: details.destinationType }
+                            "></ng-container>
+                    </div>
                 }
             </ng-template>
         </mat-dialog-content>

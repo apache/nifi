@@ -26,7 +26,8 @@
                     {
                         "suffixes": [""]
                     }
-                ]
+                ],
+                "@angular-eslint/prefer-standalone": "off"
             }
         },
         {

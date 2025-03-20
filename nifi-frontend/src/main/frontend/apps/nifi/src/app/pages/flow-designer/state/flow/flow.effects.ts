@@ -20,6 +20,14 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as FlowActions from './flow.actions';
+import {
+    disableComponent,
+    enableComponent,
+    setRegistryClients,
+    startComponent,
+    startPollingProcessorUntilStopped,
+    stopComponent
+} from './flow.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import * as CopyActions from '../../../../state/copy/copy.actions';
@@ -82,9 +90,9 @@ import {
     selectMaxZIndex,
     selectOutputPort,
     selectParentProcessGroupId,
+    selectPollingProcessor,
     selectProcessGroup,
     selectProcessor,
-    selectPollingProcessor,
     selectRefreshRpgDetails,
     selectRemoteProcessGroup,
     selectSaving,
@@ -119,7 +127,17 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
 import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
 import { ControllerServiceService } from '../../service/controller-service.service';
-import { YesNoDialog } from '@nifi/shared';
+import {
+    ComponentType,
+    isDefinedAndNotNull,
+    LARGE_DIALOG,
+    MEDIUM_DIALOG,
+    NiFiCommon,
+    SMALL_DIALOG,
+    Storage,
+    XL_DIALOG,
+    YesNoDialog
+} from '@nifi/shared';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { RegistryService } from '../../service/registry.service';
@@ -151,31 +169,13 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
-import {
-    ComponentType,
-    isDefinedAndNotNull,
-    LARGE_DIALOG,
-    MEDIUM_DIALOG,
-    SMALL_DIALOG,
-    XL_DIALOG,
-    NiFiCommon,
-    Storage
-} from '@nifi/shared';
 import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import { ErrorContextKey } from '../../../../state/error';
-import {
-    disableComponent,
-    enableComponent,
-    startComponent,
-    startPollingProcessorUntilStopped,
-    stopComponent
-} from './flow.actions';
 import { CopyPasteService } from '../../service/copy-paste.service';
 import { selectCopiedContent } from '../../../../state/copy/copy.selectors';
-import { CopyRequestContext, CopyResponseContext } from '../../../../state/copy';
 import * as ParameterActions from '../parameter/parameter.actions';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
 
@@ -258,9 +258,10 @@ export class FlowEffects {
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
-                    this.flowService.getControllerBulletins()
+                    this.flowService.getControllerBulletins(),
+                    this.registryService.getRegistryClients()
                 ]).pipe(
-                    map(([flow, flowStatus, controllerBulletins]) => {
+                    map(([flow, flowStatus, controllerBulletins, registryClientsResponse]) => {
                         this.store.dispatch(resetPollingFlowAnalysis());
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
@@ -268,7 +269,8 @@ export class FlowEffects {
                                 flow: flow,
                                 flowStatus: flowStatus,
                                 controllerBulletins: controllerBulletins,
-                                connectedStateChanged
+                                connectedStateChanged,
+                                registryClients: registryClientsResponse.registries
                             }
                         });
                     }),
@@ -363,7 +365,7 @@ export class FlowEffects {
                                     request,
                                     registryClients: response.registries
                                 };
-
+                                this.store.dispatch(setRegistryClients({ request: response.registries }));
                                 return FlowActions.openImportFromRegistryDialog({ request: dialogRequest });
                             }),
                             catchError((errorResponse: HttpErrorResponse) =>
@@ -2492,45 +2494,6 @@ export class FlowEffects {
         )
     );
 
-    copy$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowActions.copy),
-            map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            switchMap(([request, processGroupId]) => {
-                const copyRequest: CopyRequestContext = {
-                    ...request,
-                    processGroupId
-                };
-                return from(this.copyPasteService.copy(copyRequest)).pipe(
-                    switchMap((response) => {
-                        const copyBlob = new Blob([JSON.stringify(response, null, 2)], { type: 'text/plain' });
-                        const clipboardItem: ClipboardItem = new ClipboardItem({
-                            'text/plain': copyBlob
-                        });
-                        return from(navigator.clipboard.write([clipboardItem])).pipe(
-                            switchMap(() => {
-                                return of(
-                                    FlowActions.copySuccess({
-                                        response: {
-                                            copyResponse: response,
-                                            processGroupId,
-                                            pasteCount: 0
-                                        } as CopyResponseContext
-                                    })
-                                );
-                            }),
-                            catchError(() => {
-                                return of(FlowActions.flowSnackbarError({ error: 'Copy failed' }));
-                            })
-                        );
-                    }),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
-                );
-            })
-        )
-    );
-
     copySuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.copySuccess),
@@ -3791,7 +3754,7 @@ export class FlowEffects {
                             revision: versionInfo.processGroupRevision,
                             registryClients: registryClients.registries
                         };
-
+                        this.store.dispatch(setRegistryClients({ request: registryClients.registries }));
                         return FlowActions.openSaveVersionDialog({ request: dialogRequest });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
@@ -4185,8 +4148,7 @@ export class FlowEffects {
             map((action) => action.request),
             tap(() => {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
-                    ...SMALL_DIALOG,
-                    minWidth: 365,
+                    ...MEDIUM_DIALOG,
                     disableClose: true,
                     autoFocus: false
                 });
@@ -4361,8 +4323,7 @@ export class FlowEffects {
             map((action) => action.request),
             tap(() => {
                 const dialogRef = this.dialog.open(ChangeVersionProgressDialog, {
-                    ...SMALL_DIALOG,
-                    minWidth: 365,
+                    ...MEDIUM_DIALOG,
                     disableClose: true,
                     autoFocus: false
                 });
@@ -4575,7 +4536,10 @@ export class FlowEffects {
 
                     dialogRef.componentInstance.changeColor.pipe(take(1)).subscribe((requests) => {
                         requests.forEach((request) => {
-                            const style = { ...request.style } || {};
+                            let style: any = {};
+                            if (request.style) {
+                                style = { ...request.style };
+                            }
                             if (request.type === ComponentType.Processor) {
                                 if (request.color) {
                                     style['background-color'] = request.color;

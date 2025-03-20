@@ -21,7 +21,8 @@ import { Storage, ThemingService } from '@nifi/shared';
 @Component({
     selector: 'app',
     templateUrl: './app.component.html',
-    styleUrls: ['./app.component.scss']
+    styleUrls: ['./app.component.scss'],
+    standalone: false
 })
 export class AppComponent {
     title = 'update-attribute';
@@ -35,7 +36,7 @@ export class AppComponent {
         // Initially check if dark mode is enabled on system
         const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // If dark mode is enabled then directly switch to the dark-theme
+        // If dark mode is enabled then directly switch to the dark theme
         this.themingService.toggleTheme(darkModeOn, theme);
 
         if (window.matchMedia) {

@@ -303,7 +303,7 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public RelyingPartyRegistrationResolver relyingPartyRegistrationResolver() {
-        return new StandardRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository(), properties.getAllowedContextPathsAsList());
+        return new StandardRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository());
     }
 
     /**

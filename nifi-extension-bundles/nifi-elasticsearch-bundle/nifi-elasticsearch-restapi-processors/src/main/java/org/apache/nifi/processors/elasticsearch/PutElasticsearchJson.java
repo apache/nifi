@@ -110,14 +110,14 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .name("put-es-json-scripted-upsert")
             .displayName("Scripted Upsert")
             .description("Whether to add the scripted_upsert flag to the Upsert Operation. " +
-                    "Forces Elasticsearch to execute the Script whether or not the document exists, defaults to false. " +
+                    "If true, forces Elasticsearch to execute the Script whether or not the document exists, defaults to false. " +
                     "If the Upsert Document provided (from FlowFile content) will be empty, but sure to set the " +
                     CLIENT_SERVICE.getDisplayName() + " controller service's " + ElasticSearchClientService.SUPPRESS_NULLS.getDisplayName() +
                     " to " + ElasticSearchClientService.NEVER_SUPPRESS.getDisplayName() + " or no \"upsert\" doc will be, " +
                     "included in the request to Elasticsearch and the operation will not create a new document for the script " +
                     "to execute against, resulting in a \"not_found\" error")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
 

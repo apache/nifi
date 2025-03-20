@@ -31,7 +31,6 @@ import { CanvasActionsService } from '../../../../service/canvas-actions.service
 
 @Component({
     selector: 'operation-control',
-    standalone: true,
     templateUrl: './operation-control.component.html',
     imports: [MatButtonModule, ComponentContext],
     styleUrls: ['./operation-control.component.scss']
@@ -232,14 +231,6 @@ export class OperationControl {
 
     copy(selection: d3.Selection<any, any, any, any>): void {
         this.canvasActionsService.getActionFunction('copy')(selection);
-    }
-
-    canPaste(): boolean {
-        return this.canvasActionsService.getConditionFunction('paste')(d3.select(null));
-    }
-
-    paste(): void {
-        return this.canvasActionsService.getActionFunction('paste')(d3.select(null));
     }
 
     canGroup(selection: d3.Selection<any, any, any, any>): boolean {

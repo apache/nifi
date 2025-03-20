@@ -23,7 +23,6 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
 
 @Component({
     selector: 'property-tip',
-    standalone: true,
     templateUrl: './property-tip.component.html',
     imports: [ControllerServiceApi],
     styleUrls: ['./property-tip.component.scss']

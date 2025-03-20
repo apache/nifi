@@ -18,10 +18,9 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+@mixin generate-theme() {
     .resizable-triangle {
-        border-right-color: $border-color;
-        border-bottom-color: $border-color;
+        border-right-color: var(--mat-sys-outline);
+        border-bottom-color: var(--mat-sys-outline);
     }
 }

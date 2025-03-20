@@ -39,10 +39,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { ParameterContextEntity } from '../../../../state/shared';
+import { AsyncPipe } from '@angular/common';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
+import { MatIconButton } from '@angular/material/button';
+import { ParameterContextTable } from './parameter-context-table/parameter-context-table.component';
 
 @Component({
     selector: 'parameter-context-listing',
     templateUrl: './parameter-context-listing.component.html',
+    imports: [AsyncPipe, NgxSkeletonLoaderComponent, MatIconButton, ParameterContextTable],
     styleUrls: ['./parameter-context-listing.component.scss']
 })
 export class ParameterContextListing implements OnInit {

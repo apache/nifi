@@ -18,10 +18,10 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
+@mixin generate-theme() {
     .extension-creation-dialog {
         .selected-type-description {
-            height: #{mat.get-theme-typography($material-theme, body-medium, line-height) * 3};
+            height: calc(var(--mat-sys-body-medium-line-height) * 3);
         }
     }
 }

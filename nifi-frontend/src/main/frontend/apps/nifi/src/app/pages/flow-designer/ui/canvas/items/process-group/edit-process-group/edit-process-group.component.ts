@@ -37,12 +37,11 @@ import { openNewParameterContextDialog } from '../../../../../state/parameter/pa
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
-import { NifiTooltipDirective, PipesModule, SelectOption, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, SelectOption, SortObjectByPropertyPipe, TextTip } from '@nifi/shared';
 import { selectCurrentUser } from '../../../../../../../state/current-user/current-user.selectors';
 
 @Component({
     selector: 'edit-process-group',
-    standalone: true,
     templateUrl: './edit-process-group.component.html',
     imports: [
         ReactiveFormsModule,
@@ -58,7 +57,7 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
         NifiTooltipDirective,
         FormsModule,
         ContextErrorBanner,
-        PipesModule
+        SortObjectByPropertyPipe
     ],
     styleUrls: ['./edit-process-group.component.scss']
 })

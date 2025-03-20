@@ -16,10 +16,12 @@
  */
 
 import { Component } from '@angular/core';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
 
 @Component({
     selector: 'route-not-found',
     templateUrl: './route-not-found.component.html',
+    imports: [PageContent],
     styleUrl: './route-not-found.component.scss'
 })
 export class RouteNotFound {}

@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ITApacheCSVRecordReader {
 
-    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').build();
+    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').get();
 
     private List<RecordField> getDefaultFields() {
         return createStringFields(new String[]{"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -76,7 +76,7 @@ public class ITApacheCSVRecordReader {
 
     @Test
     public void testExceptionThrownOnParseProblem() {
-        CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setQuoteMode(QuoteMode.ALL).setTrim(true).setDelimiter(',').build();
+        CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setQuoteMode(QuoteMode.ALL).setTrim(true).setDelimiter(',').get();
         final int NUM_LINES = 25;
         StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
         for (int i = 0; i < NUM_LINES; i++) {

@@ -116,7 +116,12 @@ public interface RecordSchema {
      * @param schemas the list of schemas to check whether the current schema is contained within
      * @return true if the current schema is present within the list of schemas (object reference equality), false otherwise
      */
-    default boolean sameAsAny(List<RecordSchema> schemas) {
-        return schemas.stream().anyMatch(schema -> schema == this); // reference equality check used on purpose
+    default boolean sameAsAny(final List<RecordSchema> schemas) {
+        for (final RecordSchema schema : schemas) {
+            if (schema == this) {
+                return true;
+            }
+        }
+        return false;
     }
 }

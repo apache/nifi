@@ -4005,40 +4005,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Authorizable authorizable;
         try {
-            switch (type) {
-                case PROCESSOR:
-                    authorizable = authorizableLookup.getProcessor(sourceId).getAuthorizable();
-                    break;
-                case REPORTING_TASK:
-                    authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
-                    break;
-                case FLOW_ANALYSIS_RULE:
-                    authorizable = authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
-                    break;
-                case PARAMETER_PROVIDER:
-                    authorizable = authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
-                    break;
-                case CONTROLLER_SERVICE:
-                    authorizable = authorizableLookup.getControllerService(sourceId).getAuthorizable();
-                    break;
-                case FLOW_CONTROLLER:
-                    authorizable = controllerFacade;
-                    break;
-                case INPUT_PORT:
-                    authorizable = authorizableLookup.getInputPort(sourceId);
-                    break;
-                case OUTPUT_PORT:
-                    authorizable = authorizableLookup.getOutputPort(sourceId);
-                    break;
-                case REMOTE_PROCESS_GROUP:
-                    authorizable = authorizableLookup.getRemoteProcessGroup(sourceId);
-                    break;
-                case PROCESS_GROUP:
-                    authorizable = authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
-                    break;
-                default:
-                    throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this bulletin.").build());
-            }
+            authorizable = switch (type) {
+                case PROCESSOR -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
+                case REPORTING_TASK -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                case FLOW_ANALYSIS_RULE -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
+                case PARAMETER_PROVIDER -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
+                case CONTROLLER_SERVICE -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
+                case FLOW_CONTROLLER -> controllerFacade;
+                case INPUT_PORT -> authorizableLookup.getInputPort(sourceId);
+                case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
+                case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
+                case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                default ->
+                        throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this bulletin.").build());
+            };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
             return false;
@@ -6190,7 +6170,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     copiedInstance.getProperties().keySet().stream()
                             .filter(PropertyDescriptor::isSensitive)
                             .forEach(pd -> {
-                                p.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                final VersionedPropertyDescriptor vpd = p.getPropertyDescriptors().get(pd.getName());
+                                if (vpd != null && vpd.isSensitive()) {
+                                    p.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                }
                             });
                 }
             }
@@ -6213,7 +6196,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     copiedInstance.getProperties().keySet().stream()
                             .filter(PropertyDescriptor::isSensitive)
                             .forEach(pd -> {
-                                s.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                final VersionedPropertyDescriptor vpd = s.getPropertyDescriptors().get(pd.getName());
+                                if (vpd != null && vpd.isSensitive()) {
+                                    s.getProperties().put(pd.getName(), copiedInstance.getRawPropertyValue(pd));
+                                }
                             });
                 }
             }

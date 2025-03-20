@@ -22,7 +22,6 @@ import { ConfigVerificationResult, Outcome } from '../../../state/property-verif
 
 @Component({
     selector: 'property-verification',
-    standalone: true,
     imports: [CommonModule, MatIconButton],
     templateUrl: './property-verification.component.html',
     styleUrl: './property-verification.component.scss'

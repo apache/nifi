@@ -757,11 +757,17 @@ public class ParameterContextResource extends AbstractParameterResource {
                 if (parameterOptional.isPresent()) {
                     final String currentParameterValue = parameterOptional.get().getValue();
                     if (currentParameterValue != null) {
-                        final ComponentAuthorizable currentControllerService = lookup.getControllerService(currentParameterValue);
-                        if (currentControllerService != null) {
-                            final Authorizable currentControllerServiceAuthorizable = currentControllerService.getAuthorizable();
-                            currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                            currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                        try {
+                            final ComponentAuthorizable currentControllerService = lookup.getControllerService(currentParameterValue);
+                            if (currentControllerService != null) {
+                                final Authorizable currentControllerServiceAuthorizable = currentControllerService.getAuthorizable();
+                                currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                            }
+                        } catch (ResourceNotFoundException e) {
+                            // the currently referenced controller service no longer exists, we can just
+                            // skip the authorization check, and move on to setting the new parameter value
+                            logger.debug("Current Controller Service with ID {} not found, skipping authorization check", currentParameterValue);
                         }
                     }
                 }

@@ -25,16 +25,14 @@ import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { DocumentedType } from '../../../../../state/shared';
 import { CreateRegistryClientDialogRequest, CreateRegistryClientRequest } from '../../../state/registry-clients';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 
 @Component({
     selector: 'create-registry-client',
-    standalone: true,
     templateUrl: './create-registry-client.component.html',
     imports: [
         ReactiveFormsModule,
@@ -43,9 +41,7 @@ import { ExtensionCreation } from '../../../../../ui/common/extension-creation/e
         MatCheckboxModule,
         MatButtonModule,
         AsyncPipe,
-        NifiSpinnerDirective,
         MatSelectModule,
-        NifiTooltipDirective,
         ExtensionCreation
     ],
     styleUrls: ['./create-registry-client.component.scss']

@@ -20,10 +20,12 @@ package org.apache.nifi.tests.system;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 
 public class NiFiInstanceCache {
@@ -213,6 +215,11 @@ public class NiFiInstanceCache {
         @Override
         public int getNumberOfNodes(final boolean includeOnlyAutoStartInstances) {
             return rawInstance.getNumberOfNodes(includeOnlyAutoStartInstances);
+        }
+
+        @Override
+        public Optional<SSLContext> getSslContext() {
+            return rawInstance.getSslContext();
         }
 
         @Override

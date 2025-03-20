@@ -18,64 +18,16 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
-        $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
-    );
-    $material-theme-secondary-palette-default: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), default)
-    );
-    $material-theme-tertiary-palette-default: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), default)
-    );
-    $material-theme-error-palette-default: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), default)
-    );
-    $material-theme-neutral-palette-default: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), default)
-    );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-    $primary-contrast: map.get(map.get($config, primary), contrast);
-    $caution-contrast: map.get(map.get($config, caution), contrast);
-    $error-contrast: map.get(map.get($config, error), contrast);
-    $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-    $success-lighter: map.get(map.get($config, success), lighter);
-    $success-default: map.get(map.get($config, success), default);
-    $caution: map.get(map.get($config, caution), default);
-
+@mixin generate-theme() {
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
-    $connection-drop-shadow-color: if($is-material-dark, black, white);
+    $connection-drop-shadow-color: var(--nf-connection-drop-shadow);
 
     .canvas-background {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
-        background-image: linear-gradient(to right, if($is-material-dark, #0d1411, #e5ebed) 1px, transparent 1px),
-            linear-gradient(to bottom, if($is-material-dark, #0d1411, #e5ebed) 1px, transparent 1px);
+        background-color: var(--mat-sys-background);
+        background-image:
+            linear-gradient(to right, var(--nf-canvas-background) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--nf-canvas-background) 1px, transparent 1px);
     }
 
     /* svg styles */
@@ -86,7 +38,7 @@
       */
 
         g.component {
-            font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+            font-family: var(--mat-sys-body-medium-font);
         }
 
         .transparent {
@@ -94,127 +46,103 @@
         }
 
         g.component rect.body {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         rect.banner {
-            fill: rgba(
-                if($is-material-dark, $material-theme-neutral-palette-lighter, $material-theme-neutral-palette-darker),
-                0.08
-            );
+            fill: var(--nf-banner);
         }
 
         rect.odd {
-            fill: rgba(
-                if($is-material-dark, $material-theme-neutral-palette-lighter, $material-theme-neutral-palette-darker),
-                0.025
-            );
+            fill: var(--nf-odd);
         }
 
         rect.even {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--nf-even);
         }
 
         rect.row-border {
-            fill: $border-color;
+            fill: var(--mat-sys-outline);
         }
 
         g.component rect.body.unauthorized {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         g.component rect.border,
         g.connections rect.border {
-            stroke: $border-color;
-            stroke-width: if(
-                $is-material-dark,
-                2,
-                1
+            stroke: var(--mat-sys-outline);
+            stroke-width: var(
+                --nf-canvas-border-stroke-width
             ); // Dark mode gets a wider stroke to provide contrast between the canvas and components
         }
 
         g.component rect.border.unauthorized {
-            stroke: $material-theme-error-palette-default !important;
+            stroke: var(--mat-sys-error) !important;
         }
 
         g.component rect.border.ghost {
-            stroke: $material-theme-neutral-palette-default !important;
+            stroke: var(--nf-neutral) !important;
         }
 
         g.component rect.processor-icon-container.unauthorized {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         g.component.selected rect.border {
-            stroke: $material-theme-primary-palette-default !important;
+            stroke: var(--mat-sys-primary) !important;
         }
 
         text.stats-label {
             @extend .neutral-contrast;
-            font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+            font-family: var(--mat-sys-body-medium-font);
         }
 
         text.stats-value {
-            fill: $material-theme-tertiary-palette-default;
+            fill: var(--mat-sys-tertiary);
         }
 
         text.stats-info {
-            fill: $material-theme-primary-palette-default;
+            fill: var(--mat-sys-primary);
         }
 
         text.bulletin-icon {
             &.info,
             &.debug,
             &.trace {
-                fill: $primary-contrast;
+                fill: var(--mat-sys-on-primary);
             }
         }
 
         text.bulletin-icon {
             &.error {
-                fill: $error-contrast;
+                fill: var(--mat-sys-on-error);
             }
         }
 
         text.bulletin-icon {
             &.warning {
-                fill: $caution-contrast;
+                fill: var(--nf-caution-contrast);
             }
         }
 
         rect.bulletin-background {
             &.error {
-                fill: $material-theme-error-palette-default;
+                fill: var(--mat-sys-error);
             }
             &.warning {
-                fill: $caution;
+                fill: var(--nf-caution-default);
             }
             &.info,
             &.debug,
             &.trace {
-                fill: $success-default;
+                fill: var(--nf-success-default);
             }
         }
 
         text.component-comments {
-            fill: $material-theme-primary-palette-default;
-            stroke: $border-color;
+            fill: var(--mat-sys-primary);
+            stroke: var(--mat-sys-outline);
         }
 
         /*
@@ -228,12 +156,12 @@
         rect.component-selection,
         rect.drag-selection,
         rect.label-drag {
-            stroke: $material-theme-primary-palette-default;
+            stroke: var(--mat-sys-primary);
             fill: transparent;
         }
 
         text.add-connect {
-            fill: $material-theme-primary-palette-default;
+            fill: var(--mat-sys-primary);
         }
 
         /*
@@ -244,103 +172,71 @@
         }
 
         rect.processor-read-write-stats {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         rect.processor-stats-border {
-            fill: $border-color;
+            fill: var(--mat-sys-outline);
         }
 
         text.processor-name {
-            fill: $neutral-contrast;
+            fill: var(--mat-sys-on-surface);
         }
 
         text.processor-type {
-            fill: $material-theme-primary-palette-default;
+            fill: var(--mat-sys-primary);
         }
 
         circle.is-primary-background {
-            stroke: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-lighter,
-                $material-theme-neutral-palette-darker
-            );
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            stroke: var(--mat-sys-on-background);
+            fill: var(--mat-sys-background);
         }
 
         text.is-primary {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-lighter,
-                $material-theme-neutral-palette-darker
-            );
+            fill: var(--mat-sys-on-background);
         }
 
         text.processor-bundle {
-            fill: $material-theme-neutral-palette-default;
+            fill: var(--nf-neutral);
         }
 
         rect.processor-icon-container {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         circle.restricted-background {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         text.restricted {
-            fill: $material-theme-error-palette-default;
+            fill: var(--mat-sys-error);
         }
 
         /*
           Connection
       */
         #connection-full-drop-shadow feFlood {
-            flood-color: $material-theme-error-palette-default;
+            flood-color: var(--mat-sys-error);
         }
 
         g.connection {
-            font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+            font-family: var(--mat-sys-body-medium-font);
         }
 
         g.connection rect.body {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         g.connection rect.body.unauthorized {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         g.connection rect.border.unauthorized {
-            stroke: $material-theme-error-palette-default;
+            stroke: var(--mat-sys-error);
         }
 
         g.connection rect.border.full {
-            stroke: $material-theme-tertiary-palette-default;
+            stroke: var(--mat-sys-tertiary);
         }
 
         g.connection.selected rect.border {
@@ -357,23 +253,16 @@
 
         g.connection path.connection-path {
             fill: none;
-            stroke: $neutral-contrast;
-            filter: drop-shadow(
-                0 3px 6px
-                    if(
-                        $is-material-dark,
-                        $material-theme-neutral-palette-darker,
-                        $material-theme-neutral-palette-lighter
-                    )
-            );
+            stroke: var(--mat-sys-on-surface);
+            filter: drop-shadow(0 3px 6px var(--mat-sys-background));
         }
 
         g.connection path.connection-path.full {
-            stroke: $material-theme-error-palette-default;
+            stroke: var(--mat-sys-error);
         }
 
         g.connection path.connection-path.unauthorized {
-            stroke: $material-theme-error-palette-default;
+            stroke: var(--mat-sys-error);
         }
 
         g.connection rect.backpressure-tick {
@@ -382,16 +271,12 @@
 
         g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
         g.connection rect.backpressure-tick.object-prediction.prediction-down {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         g.connection rect.backpressure-tick.data-size-prediction,
         g.connection rect.backpressure-tick.object-prediction {
-            fill: $border-color;
+            fill: var(--mat-sys-outline);
         }
 
         g.connection rect.backpressure-tick.data-size-prediction.not-configured,
@@ -402,12 +287,12 @@
         }
 
         g.connection rect.backpressure-tick.not-configured {
-            fill: $material-theme-neutral-palette-default;
+            fill: var(--nf-neutral);
         }
 
         g.connection rect.backpressure-object,
         g.connection rect.backpressure-data-size {
-            fill: $border-color;
+            fill: var(--mat-sys-outline);
         }
 
         g.connection rect.backpressure-object.not-configured,
@@ -416,7 +301,7 @@
         }
 
         g.connection rect.backpressure-percent {
-            fill: $success-lighter;
+            fill: var(--nf-success-default);
         }
 
         g.connection rect.backpressure-percent.warning {
@@ -424,14 +309,14 @@
         }
 
         g.connection rect.backpressure-percent.error {
-            fill: $material-theme-error-palette-default;
+            fill: var(--mat-sys-error);
         }
 
         /* ghost connection */
 
         g.connection.ghost path.connection-path,
         g.connection.ghost rect.connection-label {
-            stroke: $material-theme-neutral-palette-default;
+            stroke: var(--nf-neutral);
         }
 
         g.connection path.connection-selection-path {
@@ -461,14 +346,14 @@
         /* labels */
 
         g.label path.resizable-triangle {
-            fill: rgba($material-theme-neutral-palette-darker, 0.2);
-            stroke: rgba($material-theme-neutral-palette-darker, 0.2);
+            fill: var(--nf-resizable-triangle);
+            stroke: var(--nf-resizable-triangle);
         }
 
         /* funnels */
 
         text.funnel-icon {
-            fill: $material-theme-tertiary-palette-default;
+            fill: var(--mat-sys-tertiary);
         }
 
         /* ports */
@@ -478,26 +363,22 @@
         }
 
         text.port-icon {
-            fill: $material-theme-tertiary-palette-default;
+            fill: var(--mat-sys-tertiary);
         }
 
         /* process groups */
 
         rect.process-group-stats-in-out {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         rect.process-group-stats-border {
-            fill: $border-color;
+            fill: var(--mat-sys-outline);
         }
 
         rect.process-group-banner,
         rect.remote-process-group-banner {
-            fill: $material-theme-secondary-palette-default;
+            fill: var(--mat-sys-secondary);
         }
 
         text.version-control,
@@ -509,12 +390,12 @@
         text.stopped,
         text.process-group-running,
         text.process-group-stopped {
-            text-shadow: if($is-material-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+            text-shadow: var(--nf-text-shadow);
         }
 
         text.process-group-contents-count {
-            fill: $material-theme-tertiary-palette-default;
-            font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+            fill: var(--mat-sys-tertiary);
+            font-family: var(--mat-sys-body-medium-font);
         }
 
         g.process-group.drop rect.border {
@@ -524,27 +405,23 @@
         /* remote process group */
 
         rect.remote-process-group-stats-border {
-            fill: $border-color;
+            fill: var(--mat-sys-outline);
         }
 
         rect.remote-process-group-received-stats {
-            fill: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
+            fill: var(--mat-sys-background);
         }
 
         text.remote-process-group-uri {
-            fill: $material-theme-primary-palette-default;
+            fill: var(--mat-sys-primary);
         }
 
         text.remote-process-group-transmission-secure {
-            fill: $material-theme-primary-palette-default;
+            fill: var(--mat-sys-primary);
         }
 
         text.remote-process-group-last-refresh {
-            fill: $material-theme-primary-palette-default;
+            fill: var(--mat-sys-primary);
         }
     }
 }

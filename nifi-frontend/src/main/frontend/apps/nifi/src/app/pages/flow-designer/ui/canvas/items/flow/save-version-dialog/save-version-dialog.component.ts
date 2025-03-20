@@ -24,7 +24,6 @@ import {
     MatDialogTitle
 } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButton } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
@@ -40,11 +39,9 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 
 @Component({
     selector: 'save-version-dialog',
-    standalone: true,
     imports: [
         MatDialogTitle,
         ReactiveFormsModule,
-        ErrorBanner,
         MatDialogContent,
         MatDialogActions,
         MatButton,
@@ -91,9 +88,12 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
         this.forceCommit = !!dialogRequest.forceCommit;
 
         if (dialogRequest.registryClients) {
-            const sortedRegistries = dialogRequest.registryClients.slice().sort((a, b) => {
-                return this.nifiCommon.compareString(a.component.name, b.component.name);
-            });
+            const sortedRegistries = dialogRequest.registryClients
+                .slice()
+                .filter((registry) => registry.permissions.canRead)
+                .sort((a, b) => {
+                    return this.nifiCommon.compareString(a.component.name, b.component.name);
+                });
 
             sortedRegistries.forEach((registryClient: RegistryClientEntity) => {
                 if (registryClient.permissions.canRead) {
@@ -106,8 +106,9 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
                 this.clientBranchingSupportMap.set(registryClient.id, registryClient.component.supportsBranching);
             });
 
+            const initialRegistry = this.registryClientOptions.length > 0 ? this.registryClientOptions[0].value : null;
             this.saveVersionForm = formBuilder.group({
-                registry: new FormControl(this.registryClientOptions[0].value, Validators.required),
+                registry: new FormControl(initialRegistry, Validators.required),
                 branch: new FormControl(null),
                 bucket: new FormControl(null, Validators.required),
                 flowName: new FormControl(null, Validators.required),

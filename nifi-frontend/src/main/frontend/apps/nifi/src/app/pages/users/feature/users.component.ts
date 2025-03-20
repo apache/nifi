@@ -23,7 +23,8 @@ import { resetUsersState } from '../state/user-listing/user-listing.actions';
 @Component({
     selector: 'users',
     templateUrl: './users.component.html',
-    styleUrls: ['./users.component.scss']
+    styleUrls: ['./users.component.scss'],
+    standalone: false
 })
 export class Users implements OnDestroy {
     constructor(private store: Store<NiFiState>) {}

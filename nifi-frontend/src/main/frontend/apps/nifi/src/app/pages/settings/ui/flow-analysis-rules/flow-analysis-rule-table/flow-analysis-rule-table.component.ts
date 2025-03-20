@@ -18,7 +18,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
-import { RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -33,7 +32,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flow-analysis-rule-table',
-    standalone: true,
     templateUrl: './flow-analysis-rule-table.component.html',
     imports: [
         MatButtonModule,
@@ -42,7 +40,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
         MatSortModule,
         NgClass,
         NifiTooltipDirective,
-        RouterLink,
         MatMenu,
         MatMenuItem,
         MatMenuTrigger

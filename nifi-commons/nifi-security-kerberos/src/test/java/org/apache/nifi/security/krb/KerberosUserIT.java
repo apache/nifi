@@ -29,8 +29,6 @@ import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
 import java.io.File;
 import java.nio.file.Path;
-import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
@@ -169,10 +167,7 @@ public class KerberosUserIT {
         }
         assertTrue(performedRelogin);
 
-        Subject subject = user1.doAs((PrivilegedAction<Subject>) () -> {
-            AccessControlContext context = AccessController.getContext();
-            return Subject.getSubject(context);
-        });
+        Subject subject = user1.doAs((PrivilegedAction<Subject>) Subject::current);
 
         // verify only a single KerberosTicket exists in the Subject after relogin
         Set<KerberosTicket> kerberosTickets = subject.getPrivateCredentials(KerberosTicket.class);

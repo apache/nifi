@@ -158,7 +158,9 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
 
         } else {
             LOGGER.debug("Creating DefaultCredentialsProvider");
-            return DefaultCredentialsProvider.create();
+            // always create a new Connection Pool to avoid STS auth issues after an existing Credentials Provider has been closed
+            // see https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/troubleshooting.html#faq-connection-pool-shutdown-exception
+            return DefaultCredentialsProvider.builder().build();
         }
     }
 

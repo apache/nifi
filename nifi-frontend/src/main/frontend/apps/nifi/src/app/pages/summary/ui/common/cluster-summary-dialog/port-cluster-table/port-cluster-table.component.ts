@@ -24,7 +24,6 @@ import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'port-cluster-table',
-    standalone: true,
     imports: [MatSortModule, MatTableModule, NgClass],
     templateUrl: './port-cluster-table.component.html',
     styleUrl: './port-cluster-table.component.scss'

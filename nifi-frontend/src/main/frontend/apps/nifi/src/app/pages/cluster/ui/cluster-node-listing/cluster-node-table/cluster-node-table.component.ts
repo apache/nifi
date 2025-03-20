@@ -32,7 +32,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'cluster-node-table',
-    standalone: true,
     imports: [
         MatCell,
         MatHeaderCell,

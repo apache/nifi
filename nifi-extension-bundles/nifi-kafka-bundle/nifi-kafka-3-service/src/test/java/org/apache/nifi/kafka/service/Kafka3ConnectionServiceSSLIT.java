@@ -28,7 +28,7 @@ public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT 
 
     protected Map<String, String> getKafkaContainerConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getKafkaContainerConfigProperties());
-        properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:SSL,PLAINTEXT:SSL");
+        properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:SSL,PLAINTEXT:SSL,CONTROLLER:SSL");
         properties.put("KAFKA_SSL_KEYSTORE_LOCATION", keyStorePath.toString());
         properties.put("KAFKA_SSL_KEYSTORE_TYPE", keyStoreType);
         properties.put("KAFKA_SSL_KEYSTORE_PASSWORD", KEY_STORE_PASSWORD);

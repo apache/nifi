@@ -78,7 +78,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
         driveService = new Drive.Builder(
                 httpTransport,
                 JSON_FACTORY,
-                testSubject.getHttpCredentialsAdapter(
+                testSubject.createHttpRequestInitializer(
                         testRunner.getProcessContext(),
                         DriveScopes.all()
                 )

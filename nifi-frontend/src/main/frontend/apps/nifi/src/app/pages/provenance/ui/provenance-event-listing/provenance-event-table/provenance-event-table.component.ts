@@ -29,7 +29,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AsyncPipe } from '@angular/common';
 import { debounceTime, Observable, tap } from 'rxjs';
 import { ProvenanceEventSummary } from '../../../../../state/shared';
-import { RouterLink } from '@angular/router';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { Lineage, LineageRequest } from '../../../state/lineage';
@@ -37,7 +36,6 @@ import { LineageComponent } from './lineage/lineage.component';
 import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 import { MatSliderModule } from '@angular/material/slider';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -46,7 +44,6 @@ import { ErrorContextKey } from '../../../../../state/error';
 
 @Component({
     selector: 'provenance-event-table',
-    standalone: true,
     templateUrl: './provenance-event-table.component.html',
     imports: [
         MatTableModule,
@@ -56,13 +53,11 @@ import { ErrorContextKey } from '../../../../../state/error';
         MatOptionModule,
         MatSelectModule,
         ReactiveFormsModule,
-        RouterLink,
         NgxSkeletonLoaderModule,
         AsyncPipe,
         MatPaginatorModule,
         LineageComponent,
         MatSliderModule,
-        ErrorBanner,
         MatButtonModule,
         MatMenu,
         MatMenuItem,

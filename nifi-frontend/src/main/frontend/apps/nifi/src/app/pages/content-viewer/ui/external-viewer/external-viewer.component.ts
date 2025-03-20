@@ -19,7 +19,7 @@ import { Component, OnDestroy, SecurityContext } from '@angular/core';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { selectRef } from '../../state/content/content.selectors';
-import { isDefinedAndNotNull } from '@nifi/shared';
+import { isDefinedAndNotNull, SystemTokensService } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpParams } from '@angular/common/http';
@@ -30,7 +30,6 @@ import { RecreateViewDirective } from '../recreate-view.directive';
 
 @Component({
     selector: 'external-viewer',
-    standalone: true,
     templateUrl: './external-viewer.component.html',
     imports: [RecreateViewDirective],
     styleUrls: ['./external-viewer.component.scss']
@@ -43,7 +42,8 @@ export class ExternalViewer implements OnDestroy {
 
     constructor(
         private store: Store<NiFiState>,
-        private domSanitizer: DomSanitizer
+        private domSanitizer: DomSanitizer,
+        protected systemTokensService: SystemTokensService
     ) {
         this.store
             .select(selectRef)

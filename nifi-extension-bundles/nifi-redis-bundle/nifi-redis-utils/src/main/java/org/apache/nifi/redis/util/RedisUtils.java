@@ -341,7 +341,7 @@ public class RedisUtils {
         redisConfig.setPoolMinIdle(context.getProperty(RedisUtils.POOL_MIN_IDLE).asInteger());
         redisConfig.setBlockWhenExhausted(context.getProperty(RedisUtils.POOL_BLOCK_WHEN_EXHAUSTED).asBoolean());
         redisConfig.setMaxWaitTime(Duration.ofMillis(context.getProperty(RedisUtils.POOL_MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
-        redisConfig.setMinEvictableIdleTime(Duration.ofMillis(context.getProperty(RedisUtils.POOL_MIN_EVICTABLE_IDLE_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
+        redisConfig.setMinEvictableIdleDuration(Duration.ofMillis(context.getProperty(RedisUtils.POOL_MIN_EVICTABLE_IDLE_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
         redisConfig.setTimeBetweenEvictionRuns(Duration.ofMillis(context.getProperty(RedisUtils.POOL_TIME_BETWEEN_EVICTION_RUNS).asTimePeriod(TimeUnit.MILLISECONDS)));
         redisConfig.setNumTestsPerEvictionRun(context.getProperty(RedisUtils.POOL_NUM_TESTS_PER_EVICTION_RUN).asInteger());
         redisConfig.setTestOnCreate(context.getProperty(RedisUtils.POOL_TEST_ON_CREATE).asBoolean());
@@ -463,7 +463,7 @@ public class RedisUtils {
         poolConfig.setMinIdle(redisConfig.getPoolMinIdle());
         poolConfig.setBlockWhenExhausted(redisConfig.getBlockWhenExhausted());
         poolConfig.setMaxWait(redisConfig.getMaxWaitTime());
-        poolConfig.setMinEvictableIdleTime(redisConfig.getMinEvictableIdleTime());
+        poolConfig.setMinEvictableIdleDuration(redisConfig.getMinEvictableIdleDuration());
         poolConfig.setTimeBetweenEvictionRuns(redisConfig.getTimeBetweenEvictionRuns());
         poolConfig.setNumTestsPerEvictionRun(redisConfig.getNumTestsPerEvictionRun());
         poolConfig.setTestOnCreate(redisConfig.getTestOnCreate());

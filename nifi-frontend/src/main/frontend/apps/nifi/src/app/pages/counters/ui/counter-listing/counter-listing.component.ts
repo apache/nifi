@@ -22,10 +22,15 @@ import { loadCounters, promptCounterReset } from '../../state/counter-listing/co
 import { selectCounterListingState } from '../../state/counter-listing/counter-listing.selectors';
 import { initialState } from '../../state/counter-listing/counter-listing.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { AsyncPipe } from '@angular/common';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
+import { MatIconButton } from '@angular/material/button';
+import { CounterTable } from './counter-table/counter-table.component';
 
 @Component({
     selector: 'counter-listing',
     templateUrl: './counter-listing.component.html',
+    imports: [CounterTable, AsyncPipe, NgxSkeletonLoaderComponent, MatIconButton],
     styleUrls: ['./counter-listing.component.scss']
 })
 export class CounterListing implements OnInit {

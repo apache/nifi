@@ -28,8 +28,8 @@ import {
 import { MatTableModule } from '@angular/material/table';
 import { AllowableValue, DocumentedType } from '../../../../../state/shared';
 import { Observable } from 'rxjs';
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
-import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
+import { AsyncPipe } from '@angular/common';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { NiFiState } from '../../../../../state';
 import { Store } from '@ngrx/store';
 import { selectServiceImplementations } from '../../../../../state/extension-types/extension-types.selectors';
@@ -37,17 +37,7 @@ import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'property-definition',
-    standalone: true,
-    imports: [
-        NgxSkeletonLoaderModule,
-        MatTableModule,
-        NifiTooltipDirective,
-        AsyncPipe,
-        MatAccordion,
-        MatExpansionModule,
-        NgTemplateOutlet,
-        RouterLink
-    ],
+    imports: [NgxSkeletonLoaderModule, MatTableModule, NifiTooltipDirective, AsyncPipe, MatExpansionModule, RouterLink],
     templateUrl: './property-definition.component.html',
     styleUrl: './property-definition.component.scss'
 })

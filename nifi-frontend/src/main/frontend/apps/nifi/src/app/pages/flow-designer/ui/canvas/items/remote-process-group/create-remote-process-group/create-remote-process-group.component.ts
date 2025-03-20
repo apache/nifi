@@ -22,7 +22,6 @@ import { CanvasState } from '../../../../../state';
 import { createRemoteProcessGroup } from '../../../../../state/flow/flow.actions';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -38,10 +37,8 @@ import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
-    standalone: true,
     imports: [
         AsyncPipe,
-        ErrorBanner,
         MatButtonModule,
         MatDialogModule,
         MatFormFieldModule,

@@ -20,15 +20,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -58,7 +56,7 @@ import org.apache.nifi.reporting.InitializationException;
 )
 public class SimpleCsvFileLookupService extends AbstractCSVLookupService implements StringLookupService {
 
-    private static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(Stream.of(KEY).collect(Collectors.toSet()));
+    private static final Set<String> REQUIRED_KEYS = Set.of(KEY);
 
     public static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
         new PropertyDescriptor.Builder()
@@ -86,7 +84,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
                 final Map<String, String> properties = new HashMap<>();
                 try (final InputStream is = new FileInputStream(csvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
-                        final Iterable<CSVRecord> records = csvFormat.builder().setHeader().setSkipHeaderRecord(true).build().parse(reader);
+                        final Iterable<CSVRecord> records = csvFormat.builder().setHeader().setSkipHeaderRecord(true).get().parse(reader);
                         for (final CSVRecord record : records) {
                             final String key = record.get(lookupKeyColumn);
                             final String value = record.get(lookupValueColumn);
