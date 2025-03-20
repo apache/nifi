@@ -17,22 +17,78 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ImportNewFlowVersionDialogComponent } from './import-new-flow-version-dialog.component';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { Subject } from 'rxjs';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 
 describe('ImportNewFlowVersionDialogComponent', () => {
     let component: ImportNewFlowVersionDialogComponent;
     let fixture: ComponentFixture<ImportNewFlowVersionDialogComponent>;
+    let store: MockStore;
+    const mockDroplet = {
+        bucketIdentifier: '1234',
+        bucketName: 'testBucket',
+        createdTimestamp: 123456789,
+        description: 'testDescription',
+        identifier: '1234',
+        link: { href: 'testHref', params: { rel: 'testRel' } },
+        modifiedTimestamp: 123456789,
+        name: 'testName',
+        permissions: { canRead: true, canWrite: true },
+        revision: { version: 1 },
+        type: 'FLOW',
+        versionCount: 2
+    };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ImportNewFlowVersionDialogComponent]
+            imports: [
+                ImportNewFlowVersionDialogComponent,
+                CommonModule,
+                MatDialogModule,
+                FormsModule,
+                ReactiveFormsModule,
+                MatFormFieldModule,
+                MatSelectModule,
+                MatInputModule,
+                MatButtonModule
+            ],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockDroplet } },
+                {
+                    provide: MatDialogRef,
+                    useValue: {
+                        close: () => null,
+                        keydownEvents: () => new Subject<KeyboardEvent>()
+                    }
+                },
+                provideMockStore({})
+            ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(ImportNewFlowVersionDialogComponent);
+        store = TestBed.inject(MockStore);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should import a new flow version to the correct bucket', () => {
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const file = new File([''], 'testFile');
+        component.fileToUpload = file;
+        component.name = 'testName';
+        component.description = 'testDescription';
+        component.importNewFlowVersion();
+        expect(dispatchSpy).toHaveBeenCalled();
     });
 });

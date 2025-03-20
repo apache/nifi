@@ -41,7 +41,6 @@ export class BucketsEffects {
     loadBuckets$ = createEffect(() =>
         this.actions$.pipe(
             ofType(BucketsActions.loadBuckets),
-            tap(() => console.log('loadBuckets')),
             switchMap(() => {
                 return from(
                     this.bucketsService.getBuckets().pipe(
