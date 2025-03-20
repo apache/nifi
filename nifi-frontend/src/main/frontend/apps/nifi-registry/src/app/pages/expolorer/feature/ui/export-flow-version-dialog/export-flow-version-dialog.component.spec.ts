@@ -17,22 +17,64 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ExportFlowVersionDialogComponent } from './export-flow-version-dialog.component';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { DebugElement } from '@angular/core';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { Subject } from 'rxjs';
+import { By } from '@angular/platform-browser';
+import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 
 describe('ExportFlowVersionDialogComponent', () => {
     let component: ExportFlowVersionDialogComponent;
     let fixture: ComponentFixture<ExportFlowVersionDialogComponent>;
+    let debug: DebugElement;
+    let store: MockStore;
+    const mockData = {
+        bucketIdentifier: '1234',
+        bucketName: 'testBucket',
+        createdTimestamp: 123456789,
+        description: 'testDescription',
+        identifier: '1234',
+        link: { href: 'testHref', params: { rel: 'testRel' } },
+        modifiedTimestamp: 123456789,
+        name: 'testName',
+        permissions: { canRead: true, canWrite: true },
+        revision: { version: 1 },
+        type: 'FLOW',
+        versionCount: 2
+    };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ExportFlowVersionDialogComponent]
+            imports: [ExportFlowVersionDialogComponent],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockData } },
+                {
+                    provide: MatDialogRef,
+                    useValue: {
+                        close: () => null,
+                        keydownEvents: () => new Subject<KeyboardEvent>()
+                    }
+                },
+                provideMockStore({})
+            ]
         }).compileComponents();
 
+        store = TestBed.inject(MockStore);
         fixture = TestBed.createComponent(ExportFlowVersionDialogComponent);
         component = fixture.componentInstance;
+        debug = fixture.debugElement;
         fixture.detectChanges();
     });
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should export flow', () => {
+        const exportFlowSpy = jest.spyOn(store, 'dispatch');
+        const exportBtn = debug.query(By.css('[data-test-id=export-btn]')).nativeElement;
+        exportBtn.click();
+        expect(exportFlowSpy).toHaveBeenCalledWith(exportFlowVersion({ request: { droplet: mockData, version: 2 } }));
     });
 });

@@ -17,6 +17,15 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ExplorerComponent } from './explorer.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
+import { MatMenuModule } from '@angular/material/menu';
+import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-table-filter.component';
+import { MatButtonModule } from '@angular/material/button';
+import { DeleteDropletDialogComponent } from './ui/delete-droplet-dialog/delete-droplet-dialog.component';
+import { RouterModule } from '@angular/router';
 
 describe('ExplorerComponent', () => {
     let component: ExplorerComponent;
@@ -24,7 +33,19 @@ describe('ExplorerComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ExplorerComponent]
+            imports: [
+                CommonModule,
+                MatTableModule,
+                MatSortModule,
+                MatMenuModule,
+                DropletTableFilterComponent,
+                MatButtonModule,
+                NgOptimizedImage,
+                MatButtonModule,
+                RouterModule.forRoot([])
+            ],
+            declarations: [ExplorerComponent],
+            providers: [provideMockStore({})]
         }).compileComponents();
 
         fixture = TestBed.createComponent(ExplorerComponent);
