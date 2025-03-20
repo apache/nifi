@@ -56,22 +56,19 @@
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let item">
                 <div class="flex items-center justify-end gap-x-2">
-                    <!-- @if (canRemove()) { -->
                         <button
+                            data-test-id="exportMenuBtn"
                             mat-icon-button
                             type="button"
                             [matMenuTriggerFor]="actionMenu"
                             class="h-16 w-16 flex items-center justify-center icon global-menu">
                             <i class="fa fa-ellipsis-v"></i>
                         </button>
-                    <!-- } -->
                     <mat-menu #actionMenu="matMenu" xPosition="before">
-                        <!-- @if (canRemove()) { -->
-                            <button mat-menu-item (click)="exportVersion(item.version)">
+                            <button mat-menu-item (click)="exportVersion(item.version)" data-test-id="exportBtn">
                                 <i class="fa fa-download primary-color mr-2"></i>
                                 Export flow version
                             </button>
-                        <!-- } -->
                     </mat-menu>
                 </div>
             </td>

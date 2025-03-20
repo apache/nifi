@@ -36,6 +36,11 @@ export interface Revision {
     version: number;
 }
 
+export interface Permissions {
+    canRead: boolean;
+    canWrite: boolean;
+}
+
 export interface Droplets {
     bucketIdentifier: string;
     bucketName: string;
