@@ -27,6 +27,7 @@ import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.transport.tcp.TcpTransport;
 import org.apache.activemq.transport.tcp.TcpTransportFactory;
 import org.apache.activemq.wireformat.WireFormat;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
@@ -38,6 +39,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -635,6 +637,56 @@ public class ConsumeJMSIT {
             assertEquals(0, parseFailedFlowFiles.size());
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
+
+    @Test
+    public void validateConnectionClosedOnPrimaryOnlyNodeChange() throws Exception {
+        BrokerService broker = new BrokerService();
+        try {
+            broker.setPersistent(false);
+            broker.setBrokerName("broker");
+            broker.start();
+
+            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm:localhost");
+            final String destinationName = "validateConnectionClosing";
+            TestRunner consumer = createNonSharedDurableConsumer(cf, destinationName);
+            consumer.setIsConfiguredForClustering(true);
+            consumer.setConnected(true);
+            consumer.setClustered(true);
+            consumer.setPrimaryNode(true);
+
+            final ProcessContext processContext = spy(consumer.getProcessContext());
+            when(processContext.getExecutionNode()).thenReturn(ExecutionNode.PRIMARY);
+
+            final ConsumeJMS processor = (ConsumeJMS) consumer.getProcessor();
+            processor.onSchedule(processContext);
+            processor.setup(processContext);
+            processor.updateScheduledTrue();
+
+            // running ConsumeJMS.  There is nothing to consume yet, but it sets up the durable consumer
+            consumer.run(1, false, false);
+            List<MockFlowFile> flowFiles = consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            assertEquals(0, flowFiles.size());
+
+            String message = "Hello World";
+            publishAMessage(cf, destinationName, message);
+
+            consumer.run(1, false, false);
+            flowFiles = consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            assertEquals(1, flowFiles.size());
+            assertEquals(1, broker.getCurrentConnections());
+
+            final MockFlowFile successFF = flowFiles.getFirst();
+            successFF.assertContentEquals(message.getBytes());
+
+            processor.onPrimaryNodeChange(PrimaryNodeState.PRIMARY_NODE_REVOKED);
+
+            assertEquals(0, broker.getCurrentConnections());
+        } finally {
+            if (broker != null) {
+                broker.stop();
+            }
         }
     }
 

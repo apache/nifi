@@ -19,6 +19,8 @@ package org.apache.nifi.jms.processors;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -38,6 +40,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -54,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -171,6 +175,8 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
 
     private volatile IJMSConnectionFactoryProvider connectionFactoryProvider;
     private volatile BlockingQueue<T> workerPool;
+    private volatile boolean runOnPrimary;
+    private final AtomicBoolean shutdownWorkers = new AtomicBoolean(false);
     private final AtomicInteger clientIdCounter = new AtomicInteger(1);
 
     protected static String getClientId(ProcessContext context) {
@@ -196,6 +202,16 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         return new ConnectionFactoryConfigValidator(validationContext).validateConnectionFactoryConfig();
+    }
+
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
+        if (isScheduled() && runOnPrimary && newState.equals(PrimaryNodeState.PRIMARY_NODE_REVOKED)) {
+            shutdownWorkers.set(true);
+            close();
+        } else {
+            shutdownWorkers.set(false);
+        }
     }
 
     @Override
@@ -239,13 +255,17 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                 worker.jmsTemplate.setDeliveryMode(Message.DEFAULT_DELIVERY_MODE);
                 worker.jmsTemplate.setTimeToLive(Message.DEFAULT_TIME_TO_LIVE);
                 worker.jmsTemplate.setPriority(Message.DEFAULT_PRIORITY);
-                workerPool.offer(worker);
+                if (!shutdownWorkers.get()) {
+                    workerPool.offer(worker);
+                } else {
+                    worker.shutdown();
+                }
             }
         }
     }
 
     @OnScheduled
-    public void setupConnectionFactoryProvider(final ProcessContext context) {
+    public void setup(final ProcessContext context) {
         if (context.getProperty(CF_SERVICE).isSet()) {
             connectionFactoryProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
         } else if (context.getProperty(JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME).isSet()) {
@@ -255,18 +275,16 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         } else {
             throw new ProcessException("No Connection Factory configured.");
         }
+
+        workerPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
+        runOnPrimary = context.getExecutionNode().equals(ExecutionNode.PRIMARY);
+        shutdownWorkers.set(false);
     }
 
     @OnUnscheduled
     public void shutdownConnectionFactoryProvider(final ProcessContext context) {
         connectionFactoryProvider = null;
     }
-
-    @OnScheduled
-    public void setupWorkerPool(final ProcessContext context) {
-        workerPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
-    }
-
 
     @OnStopped
     public void close() {
