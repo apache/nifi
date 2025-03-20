@@ -25,7 +25,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-flat-button (click)="deleteDroplet(droplet)" mat-dialog-close class="pl-2">
+    <button mat-flat-button (click)="deleteDroplet(droplet)" mat-dialog-close class="pl-2" data-test-id="delete-btn">
         Delete
     </button>
 </mat-dialog-actions>
