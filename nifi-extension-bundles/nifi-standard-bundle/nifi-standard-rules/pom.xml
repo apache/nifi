@@ -23,7 +23,13 @@
     <artifactId>nifi-standard-rules</artifactId>
     <packaging>jar</packaging>
 
-    <dependencies />
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
     
     <build>
         <plugins>
