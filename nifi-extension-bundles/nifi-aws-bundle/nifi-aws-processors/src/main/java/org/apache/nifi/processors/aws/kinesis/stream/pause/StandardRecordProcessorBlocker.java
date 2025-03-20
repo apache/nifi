@@ -16,7 +16,29 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
-interface SwitchableRecordProcessorBlockerInspector {
-    default void onPauseAwaited() { }
-    default void onPauseFinished() { }
+import java.util.concurrent.CountDownLatch;
+
+public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
+
+    private CountDownLatch blocker = new CountDownLatch(0);
+
+    public static StandardRecordProcessorBlocker create() {
+        return new StandardRecordProcessorBlocker();
+    }
+
+    protected StandardRecordProcessorBlocker() { }
+
+    public void await() throws InterruptedException {
+        blocker.await();
+    }
+
+    public synchronized void block() {
+        blocker = blocker.getCount() > 0
+                ? blocker
+                : new CountDownLatch(1);
+    }
+
+    public synchronized void unblock() {
+        blocker.countDown();
+    }
 }

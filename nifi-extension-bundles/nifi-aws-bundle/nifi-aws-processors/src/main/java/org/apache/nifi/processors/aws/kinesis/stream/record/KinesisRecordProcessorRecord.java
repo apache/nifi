@@ -22,7 +22,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
-import org.apache.nifi.processors.aws.kinesis.stream.pause.SwitchableRecordProcessorBlocker;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.RecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -62,9 +62,9 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                                         final long checkpointIntervalMillis, final long retryWaitMillis,
                                         final int numRetries, final DateTimeFormatter dateTimeFormatter,
                                         final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory,
-                                        final RecordConverter recordConverter, SwitchableRecordProcessorBlocker consumeHalter) {
+                                        final RecordConverter recordConverter, final RecordProcessorBlocker recordProcessorBlocker) {
         super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
-                numRetries, dateTimeFormatter, consumeHalter);
+                numRetries, dateTimeFormatter, recordProcessorBlocker);
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
 

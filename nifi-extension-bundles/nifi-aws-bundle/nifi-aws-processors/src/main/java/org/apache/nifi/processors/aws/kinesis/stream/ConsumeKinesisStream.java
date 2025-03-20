@@ -50,7 +50,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
-import org.apache.nifi.processors.aws.kinesis.stream.pause.SwitchableRecordProcessorBlocker;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.StandardRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
@@ -395,7 +395,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private volatile boolean isRecordWriterSet;
 
     private volatile Scheduler scheduler;
-    private final SwitchableRecordProcessorBlocker recordProcessorBlocker = SwitchableRecordProcessorBlocker.create();
+    private final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
     final AtomicReference<WorkerStateChangeListener.WorkerState> workerState = new AtomicReference<>(null);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 

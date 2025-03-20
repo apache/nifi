@@ -16,77 +16,80 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Supplier;
 
-public class TestSwitchableRecordProcessorBlocker {
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class TestStandardRecordProcessorBlocker {
 
     @Test
-    public void testResumeAfterPause() {
-        final TestSwitchableRecordProcessorBlockerInspector blockerInspector = new TestSwitchableRecordProcessorBlockerInspector();
+    public void testBlockAndUnblock() {
+        final TestThreadInspector blockerInspector = new TestThreadInspector();
 
-        final SwitchableRecordProcessorBlocker recordProcessorBlocker = SwitchableRecordProcessorBlocker.create(blockerInspector);
+        final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
 
         recordProcessorBlocker.block();
-        final Thread thread = new Thread(createPauseRunnable(recordProcessorBlocker));
+        final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
         thread.start();
 
         blockerInspector.awaitAwaited();
-        Assertions.assertTrue(thread.isAlive());
+        assertTrue(thread.isAlive());
 
         recordProcessorBlocker.unblock();
         blockerInspector.awaitFinished();
     }
 
     @Test
-    public void testNoPause() {
-        final TestSwitchableRecordProcessorBlockerInspector blockerInspector = new TestSwitchableRecordProcessorBlockerInspector();
+    public void testNoBlock() {
+        final TestThreadInspector blockerInspector = new TestThreadInspector();
 
-        final SwitchableRecordProcessorBlocker consumeHalter = SwitchableRecordProcessorBlocker.create(blockerInspector);
+        final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
 
-        consumeHalter.unblock();
-        final Thread thread = new Thread(createPauseRunnable(consumeHalter));
+        recordProcessorBlocker.unblock();
+        final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
         thread.start();
 
         blockerInspector.awaitFinished();
     }
 
     @Test
-    public void testPause() {
-        final TestSwitchableRecordProcessorBlockerInspector blockerInspector = new TestSwitchableRecordProcessorBlockerInspector();
+    public void testBlock() {
+        final TestThreadInspector blockerInspector = new TestThreadInspector();
 
-        final SwitchableRecordProcessorBlocker consumeHalter = SwitchableRecordProcessorBlocker.create(blockerInspector);
-        consumeHalter.block();
-        final Thread thread = new Thread(createPauseRunnable(consumeHalter));
+        final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
+        recordProcessorBlocker.block();
+        final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
         thread.start();
 
         blockerInspector.awaitAwaited();
-        Assertions.assertTrue(thread.isAlive());
-        thread.interrupt();
+        assertTrue(thread.isAlive());
+
+        recordProcessorBlocker.unblock();
     }
 
-    private static Runnable createPauseRunnable(final SwitchableRecordProcessorBlocker consumeHalter) {
+    private static Runnable createRunnableWithInspector(final StandardRecordProcessorBlocker recordProcessorBlocker, TestThreadInspector blockerInspector) {
         return () -> {
             try {
-                consumeHalter.await();
+                blockerInspector.onPauseAwaited();
+                recordProcessorBlocker.await();
             } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
+            } finally {
+                blockerInspector.onPauseFinished();
             }
         };
     }
 
-    private static class TestSwitchableRecordProcessorBlockerInspector implements SwitchableRecordProcessorBlockerInspector {
+    private static class TestThreadInspector {
         private boolean onPauseAwaited = false;
         private boolean onPauseFinished = false;
 
-        @Override
         public void onPauseAwaited() {
             onPauseAwaited = true;
         }
 
-        @Override
         public void onPauseFinished() {
             onPauseFinished = true;
         }

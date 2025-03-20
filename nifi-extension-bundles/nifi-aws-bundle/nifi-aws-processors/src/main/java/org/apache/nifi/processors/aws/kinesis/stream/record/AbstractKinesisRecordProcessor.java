@@ -80,7 +80,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
     AbstractKinesisRecordProcessor(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                    final String endpointPrefix, final String kinesisEndpoint,
                                    final long checkpointIntervalMillis, final long retryWaitMillis,
-                                   final int numRetries, final DateTimeFormatter dateTimeFormatter, RecordProcessorBlocker recordProcessorBlocker) {
+                                   final int numRetries, final DateTimeFormatter dateTimeFormatter, final RecordProcessorBlocker recordProcessorBlocker) {
         this.sessionFactory = sessionFactory;
         this.log = log;
         this.streamName = streamName;
