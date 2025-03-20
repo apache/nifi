@@ -477,9 +477,7 @@ class TestJoltTransformJSON {
                         SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, false, null),
                 Arguments.argumentSet("testInvalidJsonAttribute", JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, INVALID_INPUT_JSON),
                         SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, false, null),
-                Arguments.argumentSet("testValidJsonAttributeEL", "${dynamicJsonAttr}", Map.of("dynamicJsonAttr", JSON_SOURCE_ATTR_NAME, JSON_SOURCE_ATTR_NAME, EXPECTED_JSON),
-                        SHIFTR_SPEC_PATH, JoltTransformStrategy.SHIFTR, true, SHIFTR_JSON_OUTPUT),
-                Arguments.argumentSet("testValidJsonAttributeWithoutEL", JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, EXPECTED_JSON),
+                Arguments.argumentSet("testValidJsonAttribute", JSON_SOURCE_ATTR_NAME, Map.of(JSON_SOURCE_ATTR_NAME, EXPECTED_JSON),
                         CHAINR_SPEC_PATH, JoltTransformStrategy.CHAINR, true, CHAINR_JSON_OUTPUT)
         );
     }

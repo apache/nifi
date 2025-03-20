@@ -57,28 +57,25 @@ import java.util.stream.Stream;
 @Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "mime.type", description = "Always set to application/json")
-@CapabilityDescription("Applies a list of JOLT specifications to either the FlowFile JSON content or a specified FlowFile JSON attribute. "
-        + "When 'Json Source' is set to FLOW_FILE, the FlowFile content is transformed and the modified FlowFile is routed to the 'success' relationship. "
-        + "When 'Json Source' is set to ATTRIBUTE, the specified attribute's value is transformed and updated in place, with the FlowFile routed to the 'success' relationship. "
+@CapabilityDescription("Applies a list of Jolt specifications to either the FlowFile JSON content or a specified FlowFile JSON attribute. "
         + "If the JSON transform fails, the original FlowFile is routed to the 'failure' relationship.")
 @RequiresInstanceClassLoading
 public class JoltTransformJSON extends AbstractJoltTransform {
 
     public static final PropertyDescriptor JSON_SOURCE = new PropertyDescriptor.Builder()
-            .name("Json Source")
-            .description("Specifies whether the JOLT transformation is applied to FlowFile JSON content or to specified FlowFile JSON attribute.")
+            .name("JSON Source")
+            .description("Specifies whether the Jolt transformation is applied to FlowFile JSON content or to specified FlowFile JSON attribute.")
             .required(true)
             .allowableValues(SourceStrategy.class)
             .defaultValue(SourceStrategy.FLOW_FILE)
             .build();
 
     public static final PropertyDescriptor JSON_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("Json Source Attribute")
-            .description("The FlowFile attribute containing JSON to be transformed. "
-                    + "This property is required only when 'Json Source' is set to ATTRIBUTE.")
+            .name("JSON Source Attribute")
+            .description("The FlowFile attribute containing JSON to be transformed.")
             .dependsOn(JSON_SOURCE, SourceStrategy.ATTRIBUTE)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
@@ -147,10 +144,10 @@ public class JoltTransformJSON extends AbstractJoltTransform {
         final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
         final Object inputJson;
-        final boolean isSourceFlowFileContent  = SourceStrategy.FLOW_FILE == context.getProperty(JSON_SOURCE).asAllowableValue(SourceStrategy.class);
+        final boolean sourceStrategyFlowFile = SourceStrategy.FLOW_FILE == context.getProperty(JSON_SOURCE).asAllowableValue(SourceStrategy.class);
         String jsonSourceAttributeName = null;
 
-        if (isSourceFlowFileContent) {
+        if (sourceStrategyFlowFile) {
             try (final InputStream in = session.read(original)) {
                 inputJson = jsonUtil.jsonToObject(in);
             } catch (final Exception e) {
@@ -159,10 +156,10 @@ public class JoltTransformJSON extends AbstractJoltTransform {
                 return;
             }
         } else {
-            jsonSourceAttributeName = context.getProperty(JSON_SOURCE_ATTRIBUTE).evaluateAttributeExpressions(original).getValue();
+            jsonSourceAttributeName = context.getProperty(JSON_SOURCE_ATTRIBUTE).getValue();
             final String jsonSourceAttributeValue = original.getAttribute(jsonSourceAttributeName);
             if (StringUtils.isBlank(jsonSourceAttributeValue)) {
-                logger.error("FlowFile attribute value was blank");
+                logger.error("FlowFile attribute [{}] value is blank", jsonSourceAttributeName);
                 session.transfer(original, REL_FAILURE);
                 return;
             } else {
@@ -196,7 +193,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             }
         }
 
-        if (isSourceFlowFileContent) {
+        if (sourceStrategyFlowFile) {
             FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(StandardCharsets.UTF_8)));
             final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
             transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
