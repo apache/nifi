@@ -41,9 +41,13 @@ public class RecordHeader {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RecordHeader that = (RecordHeader) o;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final RecordHeader that = (RecordHeader) o;
         return Objects.equals(key, that.key) && Arrays.equals(value, that.value);
     }
 

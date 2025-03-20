@@ -22,18 +22,20 @@ public class ProducerConfiguration {
     private final String deliveryGuarantee;
     private final String compressionCodec;
     private final String partitionClass;
-
+    private final int maxRequestSize;
 
     public ProducerConfiguration(final boolean transactionsEnabled,
                                  final String transactionIdPrefix,
                                  final String deliveryGuarantee,
                                  final String compressionCodec,
-                                 final String partitionClass) {
+                                 final String partitionClass,
+                                 final int maxRequestSize) {
         this.transactionsEnabled = transactionsEnabled;
         this.transactionIdPrefix = transactionIdPrefix;
         this.deliveryGuarantee = deliveryGuarantee;
         this.compressionCodec = compressionCodec;
         this.partitionClass = partitionClass;
+        this.maxRequestSize = maxRequestSize;
     }
 
     public boolean getTransactionsEnabled() {
@@ -54,5 +56,9 @@ public class ProducerConfiguration {
 
     public String getPartitionClass() {
         return partitionClass;
+    }
+
+    public int getMaxRequestSize() {
+        return maxRequestSize;
     }
 }

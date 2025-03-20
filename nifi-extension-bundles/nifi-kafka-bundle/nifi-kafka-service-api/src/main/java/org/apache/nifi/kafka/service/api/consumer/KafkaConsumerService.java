@@ -20,6 +20,7 @@ import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -48,7 +49,7 @@ public interface KafkaConsumerService extends Closeable {
      *
      * @return Stream of Records or empty when none returned
      */
-    Iterable<ByteRecord> poll();
+    Iterable<ByteRecord> poll(Duration maxWaitDuration);
 
     /**
      * Get Partition State information for subscription

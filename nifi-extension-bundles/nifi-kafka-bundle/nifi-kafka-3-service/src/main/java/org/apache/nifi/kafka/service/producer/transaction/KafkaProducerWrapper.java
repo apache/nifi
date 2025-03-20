@@ -20,15 +20,20 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.service.api.producer.KafkaRecordPartitioner;
 import org.apache.nifi.kafka.service.api.producer.PublishContext;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
 import org.apache.nifi.kafka.service.producer.ProducerCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**
@@ -36,8 +41,10 @@ import java.util.stream.Collectors;
  */
 public abstract class KafkaProducerWrapper {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final long MAX_PARTITION_CACHE_MILLIS = Duration.ofMinutes(5).toMillis();
 
     protected final Producer<byte[], byte[]> producer;
+    private final ConcurrentMap<String, CachedInteger> partitionCountCache = new ConcurrentHashMap<>();
 
     public KafkaProducerWrapper(final Producer<byte[], byte[]> producer) {
         this.producer = producer;
@@ -64,14 +71,46 @@ public abstract class KafkaProducerWrapper {
 
     private ProducerRecord<byte[], byte[]> toProducerRecord(final KafkaRecord kafkaRecord, final PublishContext publishContext) {
         final String topic = Optional.ofNullable(kafkaRecord.getTopic()).orElse(publishContext.getTopic());
-        final Integer partition = Optional.ofNullable(kafkaRecord.getPartition()).orElse(publishContext.getPartition());
-        final Integer moddedPartition = partition == null ? null : Math.abs(partition) % (producer.partitionsFor(topic).size());
-        return new ProducerRecord<>(topic, moddedPartition, kafkaRecord.getTimestamp(), kafkaRecord.getKey(), kafkaRecord.getValue(), toKafkaHeadersNative(kafkaRecord));
+        final Integer partition = getPartition(kafkaRecord, publishContext.getFlowFile(), topic, publishContext.getPartitioner());
+        return new ProducerRecord<>(topic, partition, kafkaRecord.getTimestamp(), kafkaRecord.getKey(), kafkaRecord.getValue(), toKafkaHeadersNative(kafkaRecord));
+    }
+
+    private Integer getPartition(final KafkaRecord kafkaRecord, final FlowFile flowFile, final String topic, final KafkaRecordPartitioner partitioner) {
+        final Integer explicitPartition = kafkaRecord.getPartition();
+        if (explicitPartition != null) {
+            return explicitPartition;
+        }
+
+        if (partitioner == null) {
+            return null;
+        }
+
+        final long partitionerValue = partitioner.partition(topic, flowFile);
+        final int numPartitions = getPartitionCount(topic);
+        return (int) (Math.abs(partitionerValue) % numPartitions);
+    }
+
+    private int getPartitionCount(final String topicName) {
+        final CachedInteger cachedValue = partitionCountCache.get(topicName);
+        if (cachedValue == null || System.currentTimeMillis() - cachedValue.timestamp() > MAX_PARTITION_CACHE_MILLIS) {
+            final int partitionCount = fetchPartitionCount(topicName);
+            partitionCountCache.put(topicName, new CachedInteger(partitionCount, System.currentTimeMillis()));
+            return partitionCount;
+        }
+
+        return cachedValue.value();
+    }
+
+    private int fetchPartitionCount(final String topicName) {
+        return producer.partitionsFor(topicName).size();
     }
 
     private List<Header> toKafkaHeadersNative(final KafkaRecord kafkaRecord) {
         return kafkaRecord.getHeaders().stream()
                 .map(h -> new RecordHeader(h.key(), h.value()))
                 .collect(Collectors.toList());
+    }
+
+    private record CachedInteger(int value, long timestamp) {
     }
 }
