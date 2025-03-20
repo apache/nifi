@@ -109,8 +109,6 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
         if (!files || !files.length) {
             return;
         }
-        // if ((event.target as HTMLInputElement).files && (event.target as HTMLInputElement).files.length) {
-        // const files = (event.target as HTMLInputElement).files;
         // get the file
         this.fileToUpload = files![0];
 
@@ -119,8 +117,6 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
 
         // trim off the file extension
         this.fileName = fileName.replace(/\..*/, '');
-        // }
-        // const files: FileList = event.target?.files || [];
     }
 
     isFileInvalid(items: any) {
