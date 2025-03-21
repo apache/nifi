@@ -20,8 +20,8 @@ import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.Metadata;
+import com.eclipsesource.json.JsonValue;
 import org.apache.nifi.json.JsonRecordSetWriter;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
@@ -36,6 +36,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,18 +69,29 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         };
 
         testRunner = TestRunners.newTestRunner(testSubject);
+
+        final RecordSetWriterFactory recordSetWriter = new JsonRecordSetWriter();
+        testRunner.addControllerService("record_writer", recordSetWriter);
+        testRunner.enableControllerService(recordSetWriter);
+        testRunner.setProperty(ListBoxFileMetadataTemplates.RECORD_WRITER, "record_writer");
         super.setUp();
     }
 
     @Test
-    void testSuccessfulMetadataRetrieval() throws InitializationException {
-        // Set up a JSON record writer
-        addJsonRecordWriterFactory();
-
-        // Set up mock metadata
+    void testSuccessfulMetadataRetrieval() {
         final List<Metadata> metadataList = new ArrayList<>();
         metadataList.add(mockMetadata1);
         metadataList.add(mockMetadata2);
+        JsonValue mockJsonValue1 = mock(JsonValue.class);
+        JsonValue mockJsonValue2 = mock(JsonValue.class);
+        JsonValue mockJsonValue3 = mock(JsonValue.class);
+        JsonValue mockJsonValue4 = mock(JsonValue.class);
+
+        // When asString() is called on these mocks, return appropriate values
+        when(mockJsonValue1.asString()).thenReturn("document.pdf");
+        when(mockJsonValue2.asString()).thenReturn("pdf");
+        when(mockJsonValue3.asString()).thenReturn("Test Document");
+        when(mockJsonValue4.asString()).thenReturn("John Doe");
 
         // Template 1 setup (fileMetadata)
         when(mockMetadata1.getID()).thenReturn(TEMPLATE_1_ID);
@@ -87,8 +99,8 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         when(mockMetadata1.getScope()).thenReturn(TEMPLATE_1_SCOPE);
         List<String> template1Fields = List.of("fileName", "fileExtension");
         when(mockMetadata1.getPropertyPaths()).thenReturn(template1Fields);
-        when(mockMetadata1.getValue("fileName")).thenReturn(null);
-        when(mockMetadata1.getValue("fileExtension")).thenReturn(null);
+        when(mockMetadata1.getValue("fileName")).thenReturn(mockJsonValue1);
+        when(mockMetadata1.getValue("fileExtension")).thenReturn(mockJsonValue2);
 
         // Template 2 setup (properties)
         when(mockMetadata2.getID()).thenReturn(TEMPLATE_2_ID);
@@ -96,92 +108,68 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         when(mockMetadata2.getScope()).thenReturn(TEMPLATE_2_SCOPE);
         List<String> template2Fields = List.of("Test Number", "Title", "Author", "Date");
         when(mockMetadata2.getPropertyPaths()).thenReturn(template2Fields);
-        when(mockMetadata2.getValue("Test Number")).thenReturn(null);
-        when(mockMetadata2.getValue("Title")).thenReturn(null);
-        when(mockMetadata2.getValue("Author")).thenReturn(null);
-        when(mockMetadata2.getValue("Date")).thenReturn(null);
-
-        // Make the iterable return our metadata list
+        when(mockMetadata2.getValue("Test Number")).thenReturn(null); // Test null handling
+        when(mockMetadata2.getValue("Title")).thenReturn(mockJsonValue3);
+        when(mockMetadata2.getValue("Author")).thenReturn(mockJsonValue4);
+        when(mockMetadata2.getValue("Date")).thenReturn(null); // Test null handling
         doReturn(metadataList).when(mockBoxFile).getAllMetadata();
 
-        // Run the processor
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);
         testRunner.enqueue(new byte[0]);
         testRunner.run();
-
-        // Verify the results
         testRunner.assertAllFlowFilesTransferred(ListBoxFileMetadataTemplates.REL_SUCCESS, 1);
 
-        // Check record count
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("box.file.id", TEST_FILE_ID);
-        flowFile.assertAttributeExists("record.count");
+        flowFile.assertAttributeEquals("record.count", "2");
+        flowFile.assertAttributeEquals("box.metadata.templates.names", "fileMetadata,properties");
+        flowFile.assertAttributeEquals("box.metadata.templates.count", "2");
+        flowFile.assertAttributeEquals("box.metadata.templates.scopes", "enterprise,global");
+
+        String content = new String(flowFile.toByteArray());
+        testRunner.getLogger().info("FlowFile content: {}", content);
     }
 
     @Test
-    void testNoMetadata() throws InitializationException {
-        // Set up a JSON record writer
-        addJsonRecordWriterFactory();
-
-        // Return empty list for getAllMetadata
+    void testNoMetadata() {
         when(mockBoxFile.getAllMetadata()).thenReturn(new ArrayList<>());
-
-        // Run the processor
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);
         testRunner.enqueue(new byte[0]);
         testRunner.run();
 
-        // Verify the results - should still be success but with no records
         testRunner.assertAllFlowFilesTransferred(ListBoxFileMetadataTemplates.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("box.file.id", TEST_FILE_ID);
+        flowFile.assertAttributeEquals("box.metadata.templates.count", "0");
     }
 
     @Test
-    void testFileNotFound() throws InitializationException {
-        // Set up a JSON record writer
-        addJsonRecordWriterFactory();
-
-        // Simulate 404 error
+    void testFileNotFound() {
         BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
         doThrow(mockException).when(mockBoxFile).getAllMetadata();
 
-        // Run the processor
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);
         testRunner.enqueue(new byte[0]);
         testRunner.run();
 
-        // Verify not found relationship and attributes
         testRunner.assertAllFlowFilesTransferred(ListBoxFileMetadataTemplates.REL_NOT_FOUND, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_NOT_FOUND).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
     @Test
-    void testBoxApiException() throws InitializationException {
-        // Set up a JSON record writer
-        addJsonRecordWriterFactory();
-
-        // Simulate general API error
+    void testBoxApiException() {
         BoxAPIException mockException = new BoxAPIException("General API Error", 500, "Unexpected Error");
         doThrow(mockException).when(mockBoxFile).getAllMetadata();
 
-        // Run the processor
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);
         testRunner.enqueue(new byte[0]);
         testRunner.run();
 
-        // Verify failure relationship and attributes
         testRunner.assertAllFlowFilesTransferred(ListBoxFileMetadataTemplates.REL_FAILURE, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "General API Error\nUnexpected Error");
     }
 
-    private void addJsonRecordWriterFactory() throws InitializationException {
-        final RecordSetWriterFactory recordSetWriter = new JsonRecordSetWriter();
-        testRunner.addControllerService("record_writer", recordSetWriter);
-        testRunner.enableControllerService(recordSetWriter);
-        testRunner.setProperty(ListBoxFileMetadataTemplates.RECORD_WRITER, "record_writer");
-    }
 }

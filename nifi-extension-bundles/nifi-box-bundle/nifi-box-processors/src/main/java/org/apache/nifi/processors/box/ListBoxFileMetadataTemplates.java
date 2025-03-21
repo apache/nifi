@@ -54,6 +54,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,6 +74,9 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
         @WritesAttribute(attribute = "box.file.id", description = "The ID of the file from which metadata was fetched"),
         @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type specified by the Record Writer"),
+        @WritesAttribute(attribute = "box.metadata.templates.names", description = "Comma-separated list of template names"),
+        @WritesAttribute(attribute = "box.metadata.templates.count", description = "Number of metadata templates found"),
+        @WritesAttribute(attribute = "box.metadata.templates.scopes", description = "Comma-separated list of template scopes"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
@@ -160,13 +164,18 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
         try {
             final BoxFile boxFile = getBoxFile(fileId);
 
-            // Get all metadata instances on the file
             final List<Record> metadataRecords = new ArrayList<>();
             final Iterable<Metadata> metadataList = boxFile.getAllMetadata();
             final Iterator<Metadata> iterator = metadataList.iterator();
 
+            final Set<String> templateNames = new LinkedHashSet<>();
+            final Set<String> templateScopes = new LinkedHashSet<>();
+
             if (!iterator.hasNext()) {
-                flowFile = session.putAttribute(flowFile, "box.file.id", fileId);
+                Map<String, String> emptyAttributes = new HashMap<>();
+                emptyAttributes.put("box.file.id", fileId);
+                emptyAttributes.put("box.metadata.templates.count", "0");
+                flowFile = session.putAllAttributes(flowFile, emptyAttributes);
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
             }
@@ -175,31 +184,33 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
                 final Metadata metadata = iterator.next();
                 final Map<String, Object> metadataValues = new HashMap<>();
 
-                String templateName = metadata.getTemplateName();
                 String scope = metadata.getScope();
-
-                if (scope.contains("_")) {
-                    scope = scope.substring(0, scope.indexOf('_'));
+                final int underscoreIndex = scope.indexOf('_');
+                if (underscoreIndex > 0) {
+                    scope = scope.substring(0, underscoreIndex);
                 }
+
+                templateNames.add(metadata.getTemplateName());
+                templateScopes.add(scope);
 
                 final Map<String, Object> fields = new HashMap<>();
                 for (String fieldName : metadata.getPropertyPaths()) {
                     if (metadata.getValue(fieldName) != null) {
-                        fields.put(fieldName, metadata.getValue(fieldName).toString());
+                        String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
+                        String fieldValue = metadata.getValue(fieldName).asString();
+                        fields.put(cleanFieldName, fieldValue);
                     }
                 }
 
-                // Create a record for this metadata template
                 metadataValues.put("id", metadata.getID());
-                metadataValues.put("template", templateName);
+                metadataValues.put("template", metadata.getTemplateName());
                 metadataValues.put("scope", scope);
                 metadataValues.put("metadata", fields);
 
                 final Record record = new MapRecord(METADATA_RECORD_SCHEMA, metadataValues);
                 metadataRecords.add(record);
             }
-
-            // Write records to the flow file
+            
             flowFile = session.putAttribute(flowFile, "box.file.id", fileId);
 
             try {
@@ -222,6 +233,9 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
                 final Map<String, String> recordAttributes = new HashMap<>(writeResult.getAttributes());
                 recordAttributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                 recordAttributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
+                recordAttributes.put("box.metadata.templates.names", String.join(",", templateNames));
+                recordAttributes.put("box.metadata.templates.count", String.valueOf(metadataRecords.size()));
+                recordAttributes.put("box.metadata.templates.scopes", String.join(",", templateScopes));
                 flowFile = session.putAllAttributes(flowFile, recordAttributes);
 
                 session.getProvenanceReporter().receive(flowFile, BoxFileUtils.BOX_URL + fileId);
