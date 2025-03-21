@@ -204,8 +204,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     }
 
     @Override
-    boolean isExpiredOrRestarted(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessContext context,
-                                 final SearchResponse response) throws IOException {
+    void resetQueryParamsIfRequired(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessContext context) throws IOException {
         final boolean expiredQuery = this.paginationType.hasExpiry() && StringUtils.isNotEmpty(paginatedJsonQueryParameters.getPageExpirationTimestamp())
                 && Instant.ofEpochMilli(Long.parseLong(paginatedJsonQueryParameters.getPageExpirationTimestamp())).isBefore(Instant.now());
         final boolean restaredQuery = paginatedJsonQueryParameters.isFinished() && this.restartOnFinish;
@@ -225,7 +224,6 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             paginatedJsonQueryParameters.setSearchAfter(null);
             paginatedJsonQueryParameters.setFinished(false);
         }
-        return expiredQuery;
     }
 
     @Override
