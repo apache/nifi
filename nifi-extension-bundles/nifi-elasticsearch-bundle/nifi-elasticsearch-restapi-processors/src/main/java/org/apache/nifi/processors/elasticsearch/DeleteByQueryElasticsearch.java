@@ -19,6 +19,7 @@ package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,6 +37,7 @@ import java.util.Map;
         @WritesAttribute(attribute = "elasticsearch.delete.error", description = "The error message provided by Elasticsearch if there is an error running the delete.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
+@SupportsBatching
 @Tags({ "elastic", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "delete", "query"})
 @CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
         "or from the Query parameter.")
