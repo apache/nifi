@@ -267,7 +267,7 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
             count++;
 
             final String status = collab.getStatus().toString().toLowerCase();
-            final String role = collab.getRole().toString().toLowerCase();
+            final String role = roleToJsonValue(collab.getRole());
 
             // Skip if not in allowed roles or statuses
             if ((allowedRoles != null && !allowedRoles.contains(role))
@@ -332,5 +332,19 @@ public class GetBoxFileCollaborators extends AbstractProcessor {
         if (values != null && !values.isEmpty()) {
             attributes.put(key, String.join(",", values));
         }
+    }
+
+    private static String roleToJsonValue(final BoxCollaboration.Role role) {
+        // BoxCollaboration.Role::toJSONString() is package-private, so we have to duplicate the mapping.
+        return switch (role) {
+            case EDITOR -> "editor";
+            case VIEWER -> "viewer";
+            case PREVIEWER -> "previewer";
+            case UPLOADER -> "uploader";
+            case PREVIEWER_UPLOADER -> "previewer uploader";
+            case VIEWER_UPLOADER -> "viewer uploader";
+            case CO_OWNER -> "co-owner";
+            case OWNER -> "owner";
+        };
     }
 }

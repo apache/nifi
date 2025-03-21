@@ -1079,7 +1079,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                         LOG.error("Failed to synchronize {} with Flow Registry", group, e);
                     }
                 }
-            }, 5, 60, TimeUnit.SECONDS);
+            }, 5, 30, TimeUnit.MINUTES);
 
             initialized.set(true);
         } finally {

@@ -110,7 +110,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.782</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.30.36</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.31.2</software.amazon.awssdk.version>
         <gson.version>2.12.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.1.0</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.10</kotlin.version>
@@ -133,7 +133,7 @@
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <jetty.version>12.0.17</jetty.version>
+        <jetty.version>12.0.18</jetty.version>
         <jackson.bom.version>2.18.3</jackson.bom.version>
         <avro.version>1.11.4</avro.version>
         <jaxb.runtime.version>4.0.5</jaxb.runtime.version>
@@ -146,18 +146,18 @@
         <hadoop.version>3.4.1</hadoop.version>
         <ozone.version>1.4.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
-        <aspectj.version>1.9.22.1</aspectj.version>
+        <aspectj.version>1.9.23</aspectj.version>
         <jersey.bom.version>3.1.10</jersey.bom.version>
         <log4j2.version>2.24.3</log4j2.version>
-        <logback.version>1.5.17</logback.version>
-        <mockito.version>5.16.0</mockito.version>
+        <logback.version>1.5.18</logback.version>
+        <mockito.version>5.16.1</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.4</snakeyaml.version>
         <netty.4.version>4.1.119.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.version>6.2.3</spring.version>
-        <spring.security.version>6.4.3</spring.security.version>
-        <swagger.annotations.version>2.2.28</swagger.annotations.version>
+        <spring.version>6.2.4</spring.version>
+        <spring.security.version>6.4.4</spring.security.version>
+        <swagger.annotations.version>2.2.29</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.2.0</caffeine.version>

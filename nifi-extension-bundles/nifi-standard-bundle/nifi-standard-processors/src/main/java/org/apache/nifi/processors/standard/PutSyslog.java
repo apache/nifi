@@ -60,7 +60,7 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Sends Syslog messages to a given host and port over TCP or UDP. Messages are constructed from the \"Message ___\" properties of the processor " +
         "which can use expression language to generate messages from incoming FlowFiles. The properties are used to construct messages of the form: " +
         "(<PRIORITY>)(VERSION )(TIMESTAMP) (HOSTNAME) (BODY) where version is optional.  The constructed messages are checked against regular expressions for " +
-        "RFC5424 and RFC3164 formatted messages. The timestamp can be an RFC5424 timestamp with a format of \"yyyy-MM-dd'T'HH:mm:ss.SZ\" or \"yyyy-MM-dd'T'HH:mm:ss.S+hh:mm\", " +
+        "RFC5424 and RFC3164 formatted messages. The timestamp can be an RFC5424 timestamp with a format of \"yyyy-MM-dd'T'HH:mm:ss.S'Z'\" or \"yyyy-MM-dd'T'HH:mm:ss.S+hh:mm\", " +
         "or it can be an RFC3164 timestamp with a format of \"MMM d HH:mm:ss\". If a message is constructed that does not form a valid Syslog message according to the " +
         "above description, then it is routed to the invalid relationship. Valid messages are sent to the Syslog server and successes are routed to the success relationship, " +
         "failures routed to the failure relationship.")
@@ -118,7 +118,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
     public static final PropertyDescriptor MSG_TIMESTAMP = new PropertyDescriptor
             .Builder().name("Message Timestamp")
             .description("The timestamp for the Syslog messages. The timestamp can be an RFC5424 timestamp with a format of " +
-                    "\"yyyy-MM-dd'T'HH:mm:ss.SZ\" or \"yyyy-MM-dd'T'HH:mm:ss.S+hh:mm\", \" or it can be an RFC3164 timestamp " +
+                    "\"yyyy-MM-dd'T'HH:mm:ss.S'Z'\" or \"yyyy-MM-dd'T'HH:mm:ss.S+hh:mm\", \" or it can be an RFC3164 timestamp " +
                     "with a format of \"MMM d HH:mm:ss\".")
             .required(true)
             .defaultValue("${now():format('MMM d HH:mm:ss')}")

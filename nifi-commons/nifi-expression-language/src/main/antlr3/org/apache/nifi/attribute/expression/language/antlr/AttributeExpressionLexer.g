@@ -165,6 +165,7 @@ REPLACE_NULL : 'replaceNull';
 REPLACE_EMPTY : 'replaceEmpty';
 FIND	: 'find';	// regex
 MATCHES : 'matches';	// regex
+REPLACE_BY_PATTERN : 'replaceByPattern';	// regex
 EQUALS	: 'equals';
 EQUALS_IGNORE_CASE : 'equalsIgnoreCase';
 GREATER_THAN	: 'gt';
