@@ -87,7 +87,6 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         JsonValue mockJsonValue3 = mock(JsonValue.class);
         JsonValue mockJsonValue4 = mock(JsonValue.class);
 
-        // When asString() is called on these mocks, return appropriate values
         when(mockJsonValue1.asString()).thenReturn("document.pdf");
         when(mockJsonValue2.asString()).thenReturn("pdf");
         when(mockJsonValue3.asString()).thenReturn("Test Document");
@@ -106,12 +105,12 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         when(mockMetadata2.getID()).thenReturn(TEMPLATE_2_ID);
         when(mockMetadata2.getTemplateName()).thenReturn(TEMPLATE_2_NAME);
         when(mockMetadata2.getScope()).thenReturn(TEMPLATE_2_SCOPE);
+
         List<String> template2Fields = List.of("Test Number", "Title", "Author", "Date");
         when(mockMetadata2.getPropertyPaths()).thenReturn(template2Fields);
         when(mockMetadata2.getValue("Test Number")).thenReturn(null); // Test null handling
         when(mockMetadata2.getValue("Title")).thenReturn(mockJsonValue3);
         when(mockMetadata2.getValue("Author")).thenReturn(mockJsonValue4);
-        when(mockMetadata2.getValue("Date")).thenReturn(null); // Test null handling
         doReturn(metadataList).when(mockBoxFile).getAllMetadata();
 
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);
@@ -121,13 +120,19 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
 
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataTemplates.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("box.file.id", TEST_FILE_ID);
-        flowFile.assertAttributeEquals("record.count", "2");
+        flowFile.assertAttributeEquals("record.count", "1"); // Now we have only 1 root record
         flowFile.assertAttributeEquals("box.metadata.templates.names", "fileMetadata,properties");
         flowFile.assertAttributeEquals("box.metadata.templates.count", "2");
         flowFile.assertAttributeEquals("box.metadata.templates.scopes", "enterprise,global");
 
         String content = new String(flowFile.toByteArray());
         testRunner.getLogger().info("FlowFile content: {}", content);
+
+        // Check that content contains key elements
+        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"templates\""));
+        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"templateCount\""));
+        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"$id\""));
+        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"$template\""));
     }
 
     @Test
