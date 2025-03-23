@@ -26,7 +26,7 @@ const routes: Routes = [
     },
     {
         path: 'nifi-registry',
-        redirectTo: 'explorer/grid-list'
+        redirectTo: 'explorer'
     },
     {
         path: '',
