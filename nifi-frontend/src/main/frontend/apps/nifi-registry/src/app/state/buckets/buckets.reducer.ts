@@ -35,7 +35,4 @@ export const bucketsReducer = createReducer(
         buckets: response.buckets,
         status: 'success' as const
     }))
-    // on(resetBuckets, () => ({
-    //     ...initialState
-    // }))
 );
