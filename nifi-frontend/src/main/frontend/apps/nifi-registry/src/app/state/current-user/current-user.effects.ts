@@ -71,43 +71,4 @@ export class CurrentUserEffects {
             switchMap(() => of(UserActions.loadCurrentUser()))
         )
     );
-
-    // navigateToLogIn$ = createEffect(
-    //     () =>
-    //         this.actions$.pipe(
-    //             ofType(UserActions.navigateToLogIn),
-    //             tap(() => {
-    //                 this.router.navigate(['/login']);
-    //             })
-    //         ),
-    //     { dispatch: false }
-    // );
-
-    // logout$ = createEffect(() =>
-    //     this.actions$.pipe(
-    //         ofType(UserActions.logout),
-    //         switchMap(() =>
-    //             from(this.authService.logout()).pipe(
-    //                 map(() => UserActions.navigateToLogOut()),
-    //                 catchError((errorResponse: HttpErrorResponse) =>
-    //                     of(this.errorHelper.fullScreenError(errorResponse))
-    //                 )
-    //             )
-    //         )
-    //     )
-    // );
-
-    // navigateToLogOut$ = createEffect(
-    //     () =>
-    //         this.actions$.pipe(
-    //             ofType(UserActions.navigateToLogOut),
-    //             concatLatestFrom(() => this.store.select(selectLogoutUri)),
-    //             tap(([, logoutUri]) => {
-    //                 if (logoutUri) {
-    //                     window.location.href = logoutUri;
-    //                 }
-    //             })
-    //         ),
-    //     { dispatch: false }
-    // );
 }
