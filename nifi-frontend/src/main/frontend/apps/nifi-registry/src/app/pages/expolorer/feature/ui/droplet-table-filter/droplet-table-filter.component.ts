@@ -70,7 +70,6 @@ export class DropletTableFilterComponent implements AfterViewInit {
     }
 
     @Input() set filterTerm(term: string) {
-        // this.filterForm.controls['filterTerm']?.value(term);
         this.filterForm.controls['filterTerm']?.setValue(term);
     }
 
