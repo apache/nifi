@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-// import { RequiredPermission } from '../shared';
 import { Permissions } from '@nifi/shared';
 
 export const currentUserFeatureKey = 'currentUser';
@@ -23,11 +22,6 @@ export const currentUserFeatureKey = 'currentUser';
 export interface LoadCurrentUserResponse {
     user: CurrentUser;
 }
-
-// export interface ComponentRestrictionPermission {
-//     requiredPermission: RequiredPermission;
-//     permissions: Permissions;
-// }
 
 export interface ResourcePermission extends Permissions {
     canDelete: boolean;
