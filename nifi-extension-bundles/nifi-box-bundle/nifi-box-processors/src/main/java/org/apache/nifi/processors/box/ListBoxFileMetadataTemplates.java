@@ -196,7 +196,6 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
             } catch (final IOException e) {
                 getLogger().error("Failed writing metadata templates from file [{}]", fileId, e);
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-                flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
             }
 
@@ -214,7 +213,6 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
         } catch (final Exception e) {
             getLogger().error("Failed to process metadata templates for file [{}]", fileId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
