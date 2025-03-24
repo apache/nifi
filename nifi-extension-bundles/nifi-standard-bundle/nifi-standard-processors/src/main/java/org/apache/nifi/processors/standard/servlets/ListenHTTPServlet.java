@@ -48,7 +48,6 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
@@ -113,7 +112,6 @@ public class ListenHTTPServlet extends HttpServlet {
     private Pattern authorizedIssuerPattern;
     private Pattern headerPattern;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
-    private StreamThrottler streamThrottler;
     private String basePath;
     private int returnCode;
     private long multipartRequestMaxSize;
@@ -133,7 +131,6 @@ public class ListenHTTPServlet extends HttpServlet {
         this.authorizedIssuerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN);
         this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
-        this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
         this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
         this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
         this.multipartRequestMaxSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE);
@@ -148,7 +145,7 @@ public class ListenHTTPServlet extends HttpServlet {
     }
 
     @Override
-    protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+    public void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         if (request.getLocalPort() == port) {
             response.addHeader(ACCEPT_ENCODING_NAME, ACCEPT_ENCODING_VALUE);
             response.addHeader(ACCEPT_HEADER_NAME, ACCEPT_HEADER_VALUE);
@@ -159,7 +156,7 @@ public class ListenHTTPServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+    public void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
 
         if (request.getLocalPort() != port) {
             super.doPost(request, response);
@@ -241,9 +238,7 @@ public class ListenHTTPServlet extends HttpServlet {
             final boolean createHold = Boolean.parseBoolean(request.getHeader(FLOWFILE_CONFIRMATION_HEADER));
             final String contentType = request.getContentType();
 
-            final InputStream unthrottled = contentGzipped ? new GZIPInputStream(request.getInputStream()) : request.getInputStream();
-
-            final InputStream in = (streamThrottler == null) ? unthrottled : streamThrottler.newThrottledInputStream(unthrottled);
+            final InputStream in = contentGzipped ? new GZIPInputStream(request.getInputStream()) : request.getInputStream();
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Received request from {}, createHold={}, content-type={}, gzip={}", request.getRemoteHost(), createHold, contentType, contentGzipped);
@@ -328,7 +323,6 @@ public class ListenHTTPServlet extends HttpServlet {
     private Set<FlowFile> handleRequest(final HttpServletRequest request, final ProcessSession session, String foundSubject, String foundIssuer,
                                         final boolean destinationIsLegacyNiFi, final String contentType, final InputStream in) throws IOException {
         FlowFile flowFile;
-        String holdUuid = null;
         final AtomicBoolean hasMoreData = new AtomicBoolean(false);
         final FlowFileUnpackager unpackager = getFlowFileUnpackager(contentType);
 
@@ -366,13 +360,9 @@ public class ListenHTTPServlet extends HttpServlet {
                 attributes.put(CoreAttributes.FILENAME.key(), nameVal);
             }
 
-            String sourceSystemFlowFileIdentifier = attributes.get(CoreAttributes.UUID.key());
+            String sourceSystemFlowFileIdentifier = attributes.remove(CoreAttributes.UUID.key());
             if (sourceSystemFlowFileIdentifier != null) {
                 sourceSystemFlowFileIdentifier = "urn:nifi:" + sourceSystemFlowFileIdentifier;
-
-                // If we receveied a UUID, we want to give the FlowFile a new UUID and register the sending system's
-                // identifier as the SourceSystemFlowFileIdentifier field in the Provenance RECEIVE event
-                attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
             }
 
             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -381,9 +371,6 @@ public class ListenHTTPServlet extends HttpServlet {
             session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, details, transferMillis);
             flowFileSet.add(flowFile);
 
-            if (holdUuid == null) {
-                holdUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
-            }
         } while (hasMoreData.get());
         return flowFileSet;
     }
