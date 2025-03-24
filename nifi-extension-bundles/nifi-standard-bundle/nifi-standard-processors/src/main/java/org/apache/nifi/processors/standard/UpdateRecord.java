@@ -84,9 +84,9 @@ import java.util.stream.Stream;
         "Replacement Value Strategy" = "Record Path Value"
 
         A single additional property is added to the Processor. The name of the property is a RecordPath identifying the field to place the result in.
-        The value of the property uses the CONCAT Record Path function to concatenate multiple values together, potentially using other string literal values.
+        The value of the property uses the concat Record Path function to concatenate multiple values together, potentially using other string literal values.
         For example, to combine the `title`, `firstName` and `lastName` fields into a single field named `fullName`, we add a property with the name `/fullName` \
-        and a value of `CONCAT(/title, ' ', /firstName, ' ', /lastName)`
+        and a value of `concat(/title, ' ', /firstName, ' ', /lastName)`
         """
 )
 @UseCase(
