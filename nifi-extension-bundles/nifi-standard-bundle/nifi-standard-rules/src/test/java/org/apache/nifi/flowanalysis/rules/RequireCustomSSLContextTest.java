@@ -19,12 +19,11 @@ package org.apache.nifi.flowanalysis.rules;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.ssl.SSLContextProvider;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class RequireSecureConnectionTest extends AbstractFlowAnalaysisRuleTest<RequireSecureConnection> {
+public class RequireCustomSSLContextTest extends AbstractFlowAnalaysisRuleTest<RequireCustomSSLContext> {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -33,21 +32,15 @@ public class RequireSecureConnectionTest extends AbstractFlowAnalaysisRuleTest<R
             .identifiesControllerService(SSLContextProvider.class)
             .build();
     @Override
-    protected RequireSecureConnection initializeRule() {
-        return new RequireSecureConnection();
+    protected RequireCustomSSLContext initializeRule() {
+        return new RequireCustomSSLContext();
     }
 
-    @BeforeEach
-    @Override
-    public void setup() {
-        super.setup();
-        setProperty(RequireSecureConnection.COMPONENT_TYPE, "ListenHTTP");
-    }
     @Test
     public void testNoViolations() throws Exception {
         setProperty(SSL_CONTEXT_SERVICE, "9c50e433-c2aa-3d19-aae6-20299f4ac38c");
         testAnalyzeProcessors(
-                "src/test/resources/RequireSecureConnection/RequireSecureConnection_noViolation.json",
+                "src/test/resources/RequireCustomSSLContext/RequireSecureConnection_noViolation.json",
                 List.of()
         );
     }
@@ -58,7 +51,7 @@ public class RequireSecureConnectionTest extends AbstractFlowAnalaysisRuleTest<R
 
         ComponentAnalysisResult expectedResult = new ComponentAnalysisResult("b5734be4-0195-1000-0e75-bc0f150d06bd", "'ListenHTTP' is not allowed");
         testAnalyzeProcessors(
-                "src/test/resources/RequireSecureConnection/RequireSecureConnection.json",
+                "src/test/resources/RequireCustomSSLContext/RequireCustomSSLContext.json",
                 List.of(
                         expectedResult  // processor ListenHttp with no SSLContextService set
                 )
