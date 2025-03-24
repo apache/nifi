@@ -159,14 +159,14 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             jsonSourceAttributeName = context.getProperty(JSON_SOURCE_ATTRIBUTE).getValue();
             final String jsonSourceAttributeValue = original.getAttribute(jsonSourceAttributeName);
             if (StringUtils.isBlank(jsonSourceAttributeValue)) {
-                logger.error("FlowFile attribute [{}] value is blank", jsonSourceAttributeName);
+                logger.error("FlowFile attribute '{}' value is blank", jsonSourceAttributeName);
                 session.transfer(original, REL_FAILURE);
                 return;
             } else {
                 try {
                     inputJson = jsonUtil.jsonToObject(jsonSourceAttributeValue);
                 } catch (final Exception e) {
-                    logger.error("JSON parsing failed on FlowFile attribute for {}", original, e);
+                    logger.error("JSON parsing failed on attribute '{}' of FlowFile {}", jsonSourceAttributeName, original, e);
                     session.transfer(original, REL_FAILURE);
                     return;
                 }
@@ -203,7 +203,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
         } else {
             session.putAttribute(original, jsonSourceAttributeName, jsonString);
             session.transfer(original, REL_SUCCESS);
-            logger.info("Transform completed on FlowFile attribute for {}", original);
+            logger.info("Transform completed on attribute '{}' of FlowFile {}", jsonSourceAttributeName, original);
         }
     }
 
