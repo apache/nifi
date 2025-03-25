@@ -34,11 +34,11 @@ public class TestStandardRecordProcessorBlocker {
         final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
         thread.start();
 
-        blockerInspector.awaitAwaited();
+        blockerInspector.awaitBlockAwaited();
         assertTrue(thread.isAlive());
 
         recordProcessorBlocker.unblock();
-        blockerInspector.awaitFinished();
+        blockerInspector.awaitBlockExited();
     }
 
     @Test
@@ -51,7 +51,7 @@ public class TestStandardRecordProcessorBlocker {
         final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
         thread.start();
 
-        blockerInspector.awaitFinished();
+        blockerInspector.awaitBlockExited();
     }
 
     @Test
@@ -63,7 +63,7 @@ public class TestStandardRecordProcessorBlocker {
         final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
         thread.start();
 
-        blockerInspector.awaitAwaited();
+        blockerInspector.awaitBlockAwaited();
         assertTrue(thread.isAlive());
 
         recordProcessorBlocker.unblock();
@@ -72,34 +72,34 @@ public class TestStandardRecordProcessorBlocker {
     private static Runnable createRunnableWithInspector(final StandardRecordProcessorBlocker recordProcessorBlocker, TestThreadInspector blockerInspector) {
         return () -> {
             try {
-                blockerInspector.onPauseAwaited();
+                blockerInspector.onBlockAwaited();
                 recordProcessorBlocker.await();
             } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {
-                blockerInspector.onPauseFinished();
+                blockerInspector.onBlockExited();
             }
         };
     }
 
     private static class TestThreadInspector {
-        private boolean onPauseAwaited = false;
-        private boolean onPauseFinished = false;
+        private boolean blockAwaited = false;
+        private boolean blockExited = false;
 
-        public void onPauseAwaited() {
-            onPauseAwaited = true;
+        public void onBlockAwaited() {
+            blockAwaited = true;
         }
 
-        public void onPauseFinished() {
-            onPauseFinished = true;
+        public void onBlockExited() {
+            blockExited = true;
         }
 
-        public void awaitAwaited() {
-            busyWait(() -> !onPauseAwaited);
+        public void awaitBlockAwaited() {
+            busyWait(() -> !blockAwaited);
         }
 
-        public void awaitFinished() {
-            busyWait(() -> !onPauseFinished);
+        public void awaitBlockExited() {
+            busyWait(() -> !blockExited);
         }
 
         private void busyWait(final Supplier<Boolean> condition) {
