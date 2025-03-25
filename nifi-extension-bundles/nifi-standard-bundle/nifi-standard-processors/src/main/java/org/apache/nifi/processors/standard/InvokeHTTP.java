@@ -64,6 +64,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import org.apache.nifi.oauth2.TokenRefreshStrategy;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -269,11 +270,11 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REQUEST_OAUTH2_REFRESH_TOKEN = new PropertyDescriptor.Builder()
-            .name("Force OAuth2 Access Token Refresh")
-            .description("If true, will force refresh the OAuth2 Access Token in case of 401 response even if the existing token has not expired.")
+            .name("OAuth2 Access Token Refresh Strategy")
+            .description("Specifies which strategy should be used to refresh the OAuth2 Access Token.")
             .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
+            .defaultValue(TokenRefreshStrategy.ON_TOKEN_EXPIRATION)
+            .allowableValues(TokenRefreshStrategy.class)
             .dependsOn(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER)
             .build();
 
@@ -1230,8 +1231,9 @@ public class InvokeHTTP extends AbstractProcessor {
 
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
+            final TokenRefreshStrategy tokenRefreshStrategy = context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asAllowableValue(TokenRefreshStrategy.class);
             if (oauth2AccessTokenProviderOptional.isPresent()
-                    && context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asBoolean()
+                    && TokenRefreshStrategy.ON_NON_AUTHORIZED_REQUEST == tokenRefreshStrategy
                     && statusCode == 401) {
                 // we are using oauth2 and we got a 401 response
                 // it may be because the token has been revoked even though it has not expired

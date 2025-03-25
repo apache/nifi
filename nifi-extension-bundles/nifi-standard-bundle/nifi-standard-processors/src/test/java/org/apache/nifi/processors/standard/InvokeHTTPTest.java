@@ -25,6 +25,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import org.apache.nifi.oauth2.TokenRefreshStrategy;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.URLValidator;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
@@ -977,7 +978,7 @@ public class InvokeHTTPTest {
         runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
         runner.enableControllerService(oauth2AccessTokenProvider);
         runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
-        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_REFRESH_TOKEN, "true");
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_REFRESH_TOKEN, TokenRefreshStrategy.ON_NON_AUTHORIZED_REQUEST.name());
 
         enqueueResponseCodeAndRun(HTTP_UNAUTHORIZED);
 
