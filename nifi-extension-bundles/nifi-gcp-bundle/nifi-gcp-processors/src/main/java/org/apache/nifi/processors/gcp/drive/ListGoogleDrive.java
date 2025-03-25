@@ -71,11 +71,17 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_NAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_NAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
@@ -113,7 +119,11 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIE
         @WritesAttribute(attribute = OWNER, description = OWNER_DESC),
         @WritesAttribute(attribute = LAST_MODIFYING_USER, description = LAST_MODIFYING_USER_DESC),
         @WritesAttribute(attribute = WEB_VIEW_LINK, description = WEB_VIEW_LINK_DESC),
-        @WritesAttribute(attribute = WEB_CONTENT_LINK, description = WEB_CONTENT_LINK_DESC)})
+        @WritesAttribute(attribute = WEB_CONTENT_LINK, description = WEB_CONTENT_LINK_DESC),
+        @WritesAttribute(attribute = PARENT_FOLDER_ID, description = PARENT_FOLDER_ID_DESC),
+        @WritesAttribute(attribute = PARENT_FOLDER_NAME, description = PARENT_FOLDER_NAME_DESC),
+        @WritesAttribute(attribute = LISTED_FOLDER_ID, description = WEB_CONTENT_LINK_DESC),
+        @WritesAttribute(attribute = LISTED_FOLDER_NAME, description = WEB_CONTENT_LINK_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
@@ -189,6 +199,9 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
     private volatile Drive driveService;
 
+    private volatile String listedFolderId;
+    private volatile String listedFolderName;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -213,6 +226,9 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
         driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY);
+
+        listedFolderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
+        listedFolderName = getFolderName(listedFolderId);
     }
 
     @Override
@@ -255,7 +271,6 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     ) throws IOException {
         final List<GoogleDriveFileInfo> listing = new ArrayList<>();
 
-        final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
@@ -283,9 +298,9 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         final String queryTemplate = queryTemplateBuilder.toString();
 
-        final String folderPath = urlEncode(getFolderName(folderId));
+        final String listedFolderPath = urlEncode(listedFolderName);
 
-        queryFolder(folderId, folderPath, queryTemplate, recursive, listing);
+        queryFolder(listedFolderId, listedFolderName, listedFolderPath, queryTemplate, recursive, listing);
 
         return listing;
     }
@@ -318,6 +333,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
     private void queryFolder(
             final String folderId,
+            final String folderName,
             final String folderPath,
             final String queryTemplate,
             final boolean recursive,
@@ -347,7 +363,11 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                             .owner(Optional.ofNullable(file.getOwners()).filter(owners -> !owners.isEmpty()).map(List::getFirst).map(User::getDisplayName).orElse(null))
                             .lastModifyingUser(Optional.ofNullable(file.getLastModifyingUser()).map(User::getDisplayName).orElse(null))
                             .webViewLink(file.getWebViewLink())
-                            .webContentLink(file.getWebContentLink());
+                            .webContentLink(file.getWebContentLink())
+                            .parentFolderId(folderId)
+                            .parentFolderName(folderName)
+                            .listedFolderId(listedFolderId)
+                            .listedFolderName(listedFolderName);
 
                     listing.add(builder.build());
                 }
@@ -358,7 +378,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         for (final File subfolder : subfolders) {
             final String subfolderPath = folderPath + "/" + urlEncode(subfolder.getName());
-            queryFolder(subfolder.getId(), subfolderPath, queryTemplate, true, listing);
+            queryFolder(subfolder.getId(), subfolder.getName(), subfolderPath, queryTemplate, true, listing);
         }
     }
 

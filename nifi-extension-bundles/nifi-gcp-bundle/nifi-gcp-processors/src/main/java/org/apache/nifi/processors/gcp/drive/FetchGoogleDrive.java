@@ -29,8 +29,11 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import com.google.api.services.drive.model.User;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -65,15 +68,23 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_M
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK_DESC;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "drive", "storage", "fetch"})
@@ -90,6 +101,10 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
         @WritesAttribute(attribute = CREATED_TIME, description = CREATED_TIME_DESC),
         @WritesAttribute(attribute = MODIFIED_TIME, description = MODIFIED_TIME_DESC),
+        @WritesAttribute(attribute = OWNER, description = OWNER_DESC),
+        @WritesAttribute(attribute = LAST_MODIFYING_USER, description = LAST_MODIFYING_USER_DESC),
+        @WritesAttribute(attribute = WEB_VIEW_LINK, description = WEB_VIEW_LINK_DESC),
+        @WritesAttribute(attribute = WEB_CONTENT_LINK, description = WEB_CONTENT_LINK_DESC),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
@@ -291,7 +306,13 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         final long startNanos = System.nanoTime();
         try {
             final File fileMetadata = fetchFileMetadata(fileId);
-            final Map<String, String> attributeMap = createGoogleDriveFileInfoBuilder(fileMetadata).build().toAttributeMap();
+            final Map<String, String> attributeMap = createGoogleDriveFileInfoBuilder(fileMetadata)
+                    .owner(Optional.ofNullable(fileMetadata.getOwners()).filter(owners -> !owners.isEmpty()).map(List::getFirst).map(User::getDisplayName).orElse(null))
+                    .lastModifyingUser(Optional.ofNullable(fileMetadata.getLastModifyingUser()).map(User::getDisplayName).orElse(null))
+                    .webViewLink(fileMetadata.getWebViewLink())
+                    .webContentLink(fileMetadata.getWebContentLink())
+                    .build()
+                    .toAttributeMap();
 
             flowFile = fetchFile(fileMetadata, session, context, flowFile, attributeMap);
 
@@ -407,7 +428,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
                 .files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
-                .setFields("id, name, createdTime, modifiedTime, mimeType, size, exportLinks")
+                .setFields("id, name, createdTime, modifiedTime, mimeType, size, exportLinks, owners, lastModifyingUser, webViewLink, webContentLink")
                 .execute();
     }
 
