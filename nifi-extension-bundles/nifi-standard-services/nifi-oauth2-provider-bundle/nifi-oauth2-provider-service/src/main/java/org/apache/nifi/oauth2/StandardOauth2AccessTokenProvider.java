@@ -48,6 +48,7 @@ import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.Proxy;
@@ -337,6 +338,16 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
 
         return accessDetails;
+    }
+
+    @Override
+    public AccessToken getAccessDetails(boolean forceAccessTokenRefresh) {
+        if (forceAccessTokenRefresh) {
+            acquireAccessDetails();
+            return accessDetails;
+        } else {
+            return getAccessDetails();
+        }
     }
 
     private void getProperties(ConfigurationContext context) {

@@ -60,6 +60,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.security.auth.x500.X500Principal;
+
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
@@ -961,6 +962,42 @@ public class InvokeHTTPTest {
         String actualAuthorizationHeader = recordedRequest.getHeader(HttpHeader.AUTHORIZATION.getHeader());
         assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
 
+    }
+
+    @Test
+    public void testOAuth2WithForcedRefresh() throws Exception {
+        String accessToken = "access_token";
+        String refreshedAccessToken = "refreshed_access_token";
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+        when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(accessToken);
+
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_REFRESH_TOKEN, "true");
+
+        enqueueResponseCodeAndRun(HTTP_UNAUTHORIZED);
+
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        String actualAuthorizationHeader = recordedRequest.getHeader(HttpHeader.AUTHORIZATION.getHeader());
+        assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
+
+        assertRelationshipStatusCodeEquals(InvokeHTTP.NO_RETRY, HTTP_UNAUTHORIZED);
+        runner.clearTransferState();
+
+        when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(refreshedAccessToken);
+
+        enqueueResponseCodeAndRun(HTTP_OK);
+
+        recordedRequest = mockWebServer.takeRequest();
+        actualAuthorizationHeader = recordedRequest.getHeader(HttpHeader.AUTHORIZATION.getHeader());
+        assertEquals("Bearer " + refreshedAccessToken, actualAuthorizationHeader);
+
+        assertResponseSuccessRelationships();
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
     }
 
     private void setUrlProperty() {

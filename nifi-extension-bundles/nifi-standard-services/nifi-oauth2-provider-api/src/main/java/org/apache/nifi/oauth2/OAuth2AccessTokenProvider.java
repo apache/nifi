@@ -27,4 +27,14 @@ public interface OAuth2AccessTokenProvider extends ControllerService {
      * @return A valid access token (refreshed automatically if needed) and additional metadata (provided by the OAuth2 access server)
      */
     AccessToken getAccessDetails();
+
+    /**
+     * @param forceAccessTokenRefresh true if the access token should be refreshed
+     *                                even if it is not expired
+     * @return A valid access token (refreshed automatically if needed) and
+     *         additional metadata (provided by the OAuth2 access server)
+     */
+    default AccessToken getAccessDetails(final boolean forceAccessTokenRefresh) {
+        return getAccessDetails();
+    }
 }

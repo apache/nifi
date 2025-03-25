@@ -88,6 +88,7 @@ import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -265,6 +266,15 @@ public class InvokeHTTP extends AbstractProcessor {
             .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_OAUTH2_REFRESH_TOKEN = new PropertyDescriptor.Builder()
+            .name("Force OAuth2 Access Token Refresh")
+            .description("If true, will force refresh the OAuth2 Access Token in case of 401 response even if the existing token has not expired.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .dependsOn(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER)
             .build();
 
     public static final PropertyDescriptor REQUEST_USERNAME = new PropertyDescriptor.Builder()
@@ -495,6 +505,7 @@ public class InvokeHTTP extends AbstractProcessor {
             SOCKET_IDLE_CONNECTIONS,
             PROXY_CONFIGURATION_SERVICE,
             REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER,
+            REQUEST_OAUTH2_REFRESH_TOKEN,
             REQUEST_USERNAME,
             REQUEST_PASSWORD,
             REQUEST_DIGEST_AUTHENTICATION_ENABLED,
@@ -1219,6 +1230,15 @@ public class InvokeHTTP extends AbstractProcessor {
 
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
+            if (oauth2AccessTokenProviderOptional.isPresent()
+                    && context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asBoolean()
+                    && statusCode == 401) {
+                // we are using oauth2 and we got a 401 response
+                // it may be because the token has been revoked even though it has not expired
+                // yet, so we force the token to be refreshed if configured to do so
+                oauth2AccessTokenProviderOptional.get().getAccessDetails(true);
+            }
+
             if (request != null) {
                 if (context.getProperty(REQUEST_FAILURE_PENALIZATION_ENABLED).asBoolean()) {
                     request = session.penalize(request);
