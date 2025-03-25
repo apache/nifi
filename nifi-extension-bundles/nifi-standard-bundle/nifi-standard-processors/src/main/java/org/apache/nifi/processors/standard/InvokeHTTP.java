@@ -1233,7 +1233,7 @@ public class InvokeHTTP extends AbstractProcessor {
         } else {
             final TokenRefreshStrategy tokenRefreshStrategy = context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asAllowableValue(TokenRefreshStrategy.class);
             if (oauth2AccessTokenProviderOptional.isPresent()
-                    && TokenRefreshStrategy.ON_NON_AUTHORIZED_REQUEST == tokenRefreshStrategy
+                    && TokenRefreshStrategy.ON_UNAUTHORIZED_RESPONSE == tokenRefreshStrategy
                     && statusCode == 401) {
                 // we are using oauth2 and we got a 401 response
                 // it may be because the token has been revoked even though it has not expired

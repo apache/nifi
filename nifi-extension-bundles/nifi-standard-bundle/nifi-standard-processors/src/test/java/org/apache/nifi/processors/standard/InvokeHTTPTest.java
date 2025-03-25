@@ -978,7 +978,7 @@ public class InvokeHTTPTest {
         runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
         runner.enableControllerService(oauth2AccessTokenProvider);
         runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
-        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_REFRESH_TOKEN, TokenRefreshStrategy.ON_NON_AUTHORIZED_REQUEST.name());
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_REFRESH_TOKEN, TokenRefreshStrategy.ON_UNAUTHORIZED_RESPONSE.name());
 
         enqueueResponseCodeAndRun(HTTP_UNAUTHORIZED);
 

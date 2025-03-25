@@ -22,7 +22,7 @@ public enum TokenRefreshStrategy implements DescribedValue {
 
     ON_TOKEN_EXPIRATION("The token will be refreshed based on its expiration time and the configured refresh window"),
 
-    ON_NON_AUTHORIZED_REQUEST("A new token will be requested in case of a non-authorized request (HTTP 401) even if the current token has not expired");
+    ON_UNAUTHORIZED_RESPONSE("A new token will be requested in case of a non-authorized request (HTTP 401) even if the current token has not expired");
 
     private final String description;
 
