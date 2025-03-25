@@ -74,13 +74,13 @@ public class SqlJoinStrategy implements RecordJoinStrategy {
             throw t;
         }
 
-        final RecordSet recordSet = new ResultSetRecordSet(rs, outputSchema, defaultPrecision, defaultScale, true);
+        final ResultSetRecordSet recordSet = new ResultSetRecordSet(rs, outputSchema, defaultPrecision, defaultScale, true);
 
         // Create a RecordJoinResult that allows us to return our RecordSet and also close all resources when they are no longer needed
         return new RecordJoinResult() {
             @Override
             public void close() {
-                closeQuietly(originalTable, enrichmentTable);
+                closeQuietly(originalTable, enrichmentTable, recordSet);
                 cache.returnCalciteParameters(sql, outputSchema, calciteParameters);
             }
 
