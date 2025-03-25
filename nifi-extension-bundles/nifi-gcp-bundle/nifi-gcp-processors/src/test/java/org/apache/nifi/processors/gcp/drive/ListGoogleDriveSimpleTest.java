@@ -63,8 +63,6 @@ public class ListGoogleDriveSimpleTest {
                 return mockDriverService;
             }
         };
-
-        testSubject.onScheduled(mockProcessContext);
     }
 
     @Test
@@ -139,8 +137,14 @@ public class ListGoogleDriveSimpleTest {
                         .lastModifyingUser(lastModifyingUser)
                         .webViewLink(webViewLink)
                         .webContentLink(webContentLink)
+                        .parentFolderId(folderId)
+                        .parentFolderName(folderName)
+                        .listedFolderId(folderId)
+                        .listedFolderName(folderName)
                         .build()
         );
+
+        testSubject.onScheduled(mockProcessContext);
 
         // WHEN
         List<GoogleDriveFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
@@ -160,7 +164,11 @@ public class ListGoogleDriveSimpleTest {
                 GoogleDriveFileInfo::getOwner,
                 GoogleDriveFileInfo::getLastModifyingUser,
                 GoogleDriveFileInfo::getWebViewLink,
-                GoogleDriveFileInfo::getWebContentLink
+                GoogleDriveFileInfo::getWebContentLink,
+                GoogleDriveFileInfo::getParentFolderId,
+                GoogleDriveFileInfo::getParentFolderName,
+                GoogleDriveFileInfo::getListedFolderId,
+                GoogleDriveFileInfo::getListedFolderName
         );
 
         List<EqualsWrapper<GoogleDriveFileInfo>> expectedWrapper = wrapList(expected, propertyProviders);
