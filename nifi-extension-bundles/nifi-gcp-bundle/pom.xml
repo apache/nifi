@@ -25,7 +25,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <google.libraries.version>26.56.0</google.libraries.version>
+        <google.libraries.version>26.57.0</google.libraries.version>
     </properties>
 
     <dependencyManagement>
