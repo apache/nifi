@@ -22,7 +22,6 @@ This rule should be applied to prevent flow designers from opening ports for ins
 - **ListenFTP**
 - **ListenHTTP**
 - **ListenTCP**
-- **ListenTCPRecord**
 - **ListenSyslog**
 - **HandleHttpRequest**
 - **JettyWebSocketServer**
