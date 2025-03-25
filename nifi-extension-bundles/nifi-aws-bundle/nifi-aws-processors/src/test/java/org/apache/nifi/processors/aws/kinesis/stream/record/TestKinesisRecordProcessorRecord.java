@@ -21,6 +21,7 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
+import org.apache.nifi.processors.aws.kinesis.stream.pause.StandardRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterIdentity;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterWrapper;
 import org.apache.nifi.reporting.InitializationException;
@@ -103,7 +104,7 @@ public class TestKinesisRecordProcessorRecord {
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
-                reader, writer, new RecordConverterIdentity());
+                reader, writer, new RecordConverterIdentity(), StandardRecordProcessorBlocker.create());
     }
 
     @AfterEach
@@ -185,7 +186,7 @@ public class TestKinesisRecordProcessorRecord {
         final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
         fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", transitUriPrefix, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
-                reader, writer, useWrapper ? new RecordConverterWrapper() : new RecordConverterIdentity());
+                reader, writer, useWrapper ? new RecordConverterWrapper() : new RecordConverterIdentity(), StandardRecordProcessorBlocker.create());
 
         // skip checkpoint
         fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
