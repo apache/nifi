@@ -43,13 +43,12 @@ import java.util.List;
 public class RequireCustomSSLContext extends AbstractFlowAnalysisRule {
 
     private final List<String> componentTypes = List.of(
-            "ListenFTP",
-            "ListenHTTP",
-            "ListenTCP",
-            "ListenTCPRecord",
-            "ListenSyslog",
-            "HandleHttpRequest",
-            "JettyWebSocketServer"
+            "org.apache.nifi.processors.standard.ListenFTP",
+            "org.apache.nifi.processors.standard.ListenHTTP",
+            "org.apache.nifi.processors.standard.ListenTCP",
+            "org.apache.nifi.processors.standard.ListenSyslog",
+            "org.apache.nifi.processors.standard.HandleHttpRequest",
+            "org.apache.nifi.websocket.jetty.JettyWebSocketServer"
     );
 
     @Override
