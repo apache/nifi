@@ -65,8 +65,8 @@ public class RequireCustomSSLContext extends AbstractFlowAnalysisRule {
                 versionedConfigurableExtension.getProperties().forEach((propertyName, propertyValue) -> {
 
                     // If the SSL Context property exists and the value is not set, report a violation
-                    if (("SSL Context Service".equalsIgnoreCase(propertyName) || "ssl-context-service".equalsIgnoreCase(propertyName)) &&
-                            StringUtils.isEmpty(propertyValue)) {
+                    if (("SSL Context Service".equalsIgnoreCase(propertyName) || "ssl-context-service".equalsIgnoreCase(propertyName))
+                            && StringUtils.isEmpty(propertyValue)) {
                         ComponentAnalysisResult result = new ComponentAnalysisResult(
                                 component.getInstanceIdentifier(),
                                 "'" + encounteredSimpleComponentType + "' must specify an SSL Context Service"
