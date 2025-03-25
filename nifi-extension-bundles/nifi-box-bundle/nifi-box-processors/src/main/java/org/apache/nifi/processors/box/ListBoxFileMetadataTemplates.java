@@ -207,7 +207,6 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
                 session.transfer(flowFile, REL_NOT_FOUND);
             } else {
                 getLogger().error("Couldn't fetch metadata templates from file with id [{}]", fileId, e);
-                flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
             }
         } catch (final Exception e) {
