@@ -35,9 +35,13 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.CREATED
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
@@ -64,6 +68,10 @@ public class GoogleDriveFileInfo implements ListableEntity {
         recordFields.add(new RecordField(LAST_MODIFYING_USER, RecordFieldType.STRING.getDataType(), true));
         recordFields.add(new RecordField(WEB_VIEW_LINK, RecordFieldType.STRING.getDataType(), true));
         recordFields.add(new RecordField(WEB_CONTENT_LINK, RecordFieldType.STRING.getDataType(), true));
+        recordFields.add(new RecordField(PARENT_FOLDER_ID, RecordFieldType.STRING.getDataType(), true));
+        recordFields.add(new RecordField(PARENT_FOLDER_NAME, RecordFieldType.STRING.getDataType(), true));
+        recordFields.add(new RecordField(LISTED_FOLDER_ID, RecordFieldType.STRING.getDataType(), true));
+        recordFields.add(new RecordField(LISTED_FOLDER_NAME, RecordFieldType.STRING.getDataType(), true));
 
         SCHEMA = new SimpleRecordSchema(recordFields);
     }
@@ -81,6 +89,11 @@ public class GoogleDriveFileInfo implements ListableEntity {
     private final String lastModifyingUser;
     private final String webViewLink;
     private final String webContentLink;
+
+    private final String parentFolderId;
+    private final String parentFolderName;
+    private final String listedFolderId;
+    private final String listedFolderName;
 
     public String getId() {
         return id;
@@ -126,6 +139,22 @@ public class GoogleDriveFileInfo implements ListableEntity {
         return webContentLink;
     }
 
+    public String getParentFolderId() {
+        return parentFolderId;
+    }
+
+    public String getParentFolderName() {
+        return parentFolderName;
+    }
+
+    public String getListedFolderId() {
+        return listedFolderId;
+    }
+
+    public String getListedFolderName() {
+        return listedFolderName;
+    }
+
     @Override
     public Record toRecord() {
         return new MapRecord(SCHEMA, toMap());
@@ -147,6 +176,10 @@ public class GoogleDriveFileInfo implements ListableEntity {
         values.put(LAST_MODIFYING_USER, getLastModifyingUser());
         values.put(WEB_VIEW_LINK, getWebViewLink());
         values.put(WEB_CONTENT_LINK, getWebContentLink());
+        values.put(PARENT_FOLDER_ID, getParentFolderId());
+        values.put(PARENT_FOLDER_NAME, getParentFolderName());
+        values.put(LISTED_FOLDER_ID, getListedFolderId());
+        values.put(LISTED_FOLDER_NAME, getListedFolderName());
 
         return values;
     }
@@ -177,6 +210,10 @@ public class GoogleDriveFileInfo implements ListableEntity {
         private String lastModifyingUser;
         private String webViewLink;
         private String webContentLink;
+        private String parentFolderId;
+        private String parentFolderName;
+        private String listedFolderId;
+        private String listedFolderName;
 
         public Builder id(String id) {
             this.id = id;
@@ -238,6 +275,26 @@ public class GoogleDriveFileInfo implements ListableEntity {
             return this;
         }
 
+        public Builder parentFolderId(String parentFolderId) {
+            this.parentFolderId = parentFolderId;
+            return this;
+        }
+
+        public Builder parentFolderName(String parentFolderName) {
+            this.parentFolderName = parentFolderName;
+            return this;
+        }
+
+        public Builder listedFolderId(String listedFolderId) {
+            this.listedFolderId = listedFolderId;
+            return this;
+        }
+
+        public Builder listedFolderName(String listedFolderName) {
+            this.listedFolderName = listedFolderName;
+            return this;
+        }
+
         public GoogleDriveFileInfo build() {
             return new GoogleDriveFileInfo(this);
         }
@@ -287,6 +344,10 @@ public class GoogleDriveFileInfo implements ListableEntity {
         this.lastModifyingUser = builder.lastModifyingUser;
         this.webViewLink = builder.webViewLink;
         this.webContentLink = builder.webContentLink;
+        this.parentFolderId = builder.parentFolderId;
+        this.parentFolderName = builder.parentFolderName;
+        this.listedFolderId = builder.listedFolderId;
+        this.listedFolderName = builder.listedFolderName;
     }
 
     @Override
