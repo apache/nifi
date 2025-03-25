@@ -46,7 +46,7 @@ public class RequireCustomSSLContext extends AbstractFlowAnalysisRule {
             "ListenFTP",
             "ListenHTTP",
             "ListenTCP",
-            "ListenOLTP",
+            "ListenTCPRecord",
             "ListenSyslog",
             "HandleHttpRequest",
             "JettyWebSocketServer"
