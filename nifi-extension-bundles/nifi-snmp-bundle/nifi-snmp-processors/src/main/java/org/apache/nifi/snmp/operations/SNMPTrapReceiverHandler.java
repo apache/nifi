@@ -69,8 +69,12 @@ public class SNMPTrapReceiverHandler {
     }
 
     public void createTrapReceiver(final ProcessSessionFactory processSessionFactory, final ComponentLog logger) {
-        addUsmUsers();
-        SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, logger);
+        final int version = configuration.getVersion();
+        if (version == SnmpConstants.version3) {
+            addUsmUsers();
+        }
+
+        SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, configuration, logger);
         snmpManager.addCommandResponder(trapReceiver);
         isStarted = true;
     }
@@ -95,11 +99,9 @@ public class SNMPTrapReceiverHandler {
     }
 
     private void addUsmUsers() {
-        if (configuration.getVersion() == SnmpConstants.version3) {
-            USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
-            SecurityModels.getInstance().addSecurityModel(usm);
-            usmUsers.forEach(user -> snmpManager.getUSM().addUser(user));
-        }
+        USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
+        SecurityModels.getInstance().addSecurityModel(usm);
+        usmUsers.forEach(user -> snmpManager.getUSM().addUser(user));
     }
 
     // Visible for testing.

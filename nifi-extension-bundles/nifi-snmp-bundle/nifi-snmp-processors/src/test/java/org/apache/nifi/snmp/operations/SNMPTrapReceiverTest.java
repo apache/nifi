@@ -18,6 +18,8 @@ package org.apache.nifi.snmp.operations;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory;
+import org.apache.nifi.snmp.helper.configurations.SNMPV1V2cConfigurationFactory;
 import org.apache.nifi.snmp.processors.ListenTrapSNMP;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockComponentLog;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.PDU;
 import org.snmp4j.PDUv1;
+import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.Address;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.VariableBinding;
@@ -54,13 +57,16 @@ class SNMPTrapReceiverTest {
     private PDU mockPdu;
     private SNMPTrapReceiver snmpTrapReceiver;
 
+    private static final SNMPConfigurationFactory snmpV1ConfigurationFactory = new SNMPV1V2cConfigurationFactory(SnmpConstants.version1);
+
 
     @BeforeEach
     public void init() {
         mockProcessSessionFactory = mock(ProcessSessionFactory.class);
         mockComponentLog = new MockComponentLog("componentId", MOCK_COMPONENT_ID);
         mockPdu = mock(PDU.class);
-        snmpTrapReceiver = new SNMPTrapReceiver(mockProcessSessionFactory, mockComponentLog);
+        snmpTrapReceiver = new SNMPTrapReceiver(mockProcessSessionFactory, snmpV1ConfigurationFactory.createSnmpListenTrapConfig(0), mockComponentLog);
+
         final ListenTrapSNMP listenTrapSNMP = new ListenTrapSNMP();
         mockProcessSession = new MockProcessSession(new SharedSessionState(listenTrapSNMP, new AtomicLong(0L)), listenTrapSNMP);
     }

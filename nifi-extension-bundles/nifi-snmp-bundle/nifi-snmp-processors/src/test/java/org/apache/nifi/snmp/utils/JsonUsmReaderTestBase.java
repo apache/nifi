@@ -25,9 +25,10 @@ import java.util.List;
 
 public class JsonUsmReaderTestBase {
 
-    static final String USERS_JSON_PATH = "src/test/resources/users.json";
-    static final String NOT_FOUND_USERS_JSON_PATH = "src/test/resources/not_found.json";
-    static final String INVALID_USERS_JSON_PATH = "src/test/resources/invalid_users.json";
+    public static final String USERS_JSON_PATH = "src/test/resources/usm_users.json";
+    public static final String NOT_FOUND_USERS_JSON_PATH = "src/test/resources/not_found.json";
+    public static final String INVALID_USERS_JSON_PATH = "src/test/resources/invalid_usm_user_protocol.json";
+    public static final String LEGACY_USERS_JSON_PATH = "src/test/resources/invalid_usm_user_legacy_protocol.json";
 
     static final List<UsmUser> expectedUsmUsers;
 
@@ -35,14 +36,14 @@ public class JsonUsmReaderTestBase {
         expectedUsmUsers = new ArrayList<>();
         expectedUsmUsers.add(new UsmUser(
                 new OctetString("user1"),
-                new OID("1.3.6.1.6.3.10.1.1.2"),
+                new OID("1.3.6.1.6.3.10.1.1.7"),
                 new OctetString("abc12345"),
-                new OID("1.3.6.1.6.3.10.1.2.2"),
+                new OID("1.3.6.1.4.1.4976.2.2.1.1.1"),
                 new OctetString("abc12345")
         ));
         expectedUsmUsers.add(new UsmUser(
                 new OctetString("user2"),
-                new OID("1.3.6.1.6.3.10.1.1.3"),
+                new OID("1.3.6.1.6.3.10.1.1.5"),
                 new OctetString("abc12345"),
                 new OID("1.3.6.1.4.1.4976.2.2.1.1.2"),
                 new OctetString("abc12345")
