@@ -20,6 +20,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import org.apache.nifi.snmp.processors.properties.AuthenticationProtocol;
+import org.apache.nifi.snmp.processors.properties.PrivacyProtocol;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
@@ -34,13 +36,13 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
 
     @Override
     public UsmUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
-        JsonNode node = jp.getCodec().readTree(jp);
-        String securityName = node.get("securityName").asText();
+        final JsonNode node = jp.getCodec().readTree(jp);
+        final String securityName = node.get("securityName").asText();
 
         OID authProtocol = null;
         final JsonNode authProtocolNode = node.get("authProtocol");
         if (authProtocolNode != null) {
-            authProtocol = SNMPUtils.getAuth(authProtocolNode.asText());
+            authProtocol = AuthenticationProtocol.valueOf(authProtocolNode.asText()).getOid();
         }
 
         OctetString authPassphrase = null;
@@ -57,7 +59,7 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
         OID privProtocol = null;
         final JsonNode privProtocolNode = node.get("privProtocol");
         if (privProtocolNode != null) {
-            privProtocol = SNMPUtils.getPriv(privProtocolNode.asText());
+            privProtocol = PrivacyProtocol.valueOf(privProtocolNode.asText()).getOid();
         }
 
         OctetString privPassphrase = null;
