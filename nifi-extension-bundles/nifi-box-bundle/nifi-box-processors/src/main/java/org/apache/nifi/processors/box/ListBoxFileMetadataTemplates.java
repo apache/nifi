@@ -20,6 +20,7 @@ import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.Metadata;
+import com.eclipsesource.json.JsonValue;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -161,15 +162,24 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
                 templateFields.put("$template", metadata.getTemplateName());
                 templateFields.put("$scope", metadata.getScope());
 
-                // Add all dynamic fields from the metadata
                 for (final String fieldName : metadata.getPropertyPaths()) {
-                    if (metadata.getValue(fieldName) != null) {
-                        String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
-                        String fieldValue = metadata.getValue(fieldName).asString();
+                    final JsonValue jsonValue = metadata.getValue(fieldName);
+                    if (jsonValue != null) {
+                        final String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
+                        final Object fieldValue;
+
+                        if (jsonValue.isString()) {
+                            fieldValue = jsonValue.asString();
+                        } else if (jsonValue.isNumber()) {
+                            fieldValue = jsonValue.asLong();
+                        } else if (jsonValue.isBoolean()) {
+                            fieldValue = jsonValue.asBoolean();
+                        } else {
+                            fieldValue = jsonValue.toString();
+                        }
                         templateFields.put(cleanFieldName, fieldValue);
                     }
                 }
-
                 templatesList.add(templateFields);
             }
 
