@@ -17,11 +17,11 @@
 
 ## Summary
 
-This processor listens to SNMP traps and creates a flowfile from the trap PDU. The versions SNMPv1, SNMPv2c and SNMPv3
-are supported. The component is based on [SNMP4J](http://www.snmp4j.org/).
+The ListenTrapSNMP processor listens for incoming SNMP traps and generates a FlowFile from the received Protocol Data Unit (PDU). It supports SNMPv1, SNMPv2c, and SNMPv3, utilizing the SNMP4J library.
 
-SNMPv3 has user-based security. The USM Users Source property allows users to choose between three different ways to
-provide the USM user database. An example json file containing two users:
+When configured to use SNMPv3, SNMPv1 and SNMPv2c are automatically disabled. As a result, traps using SNMPv1 or SNMPv2c message models will not be received or processed. This is done to enforce a higher level of security, as SNMPv1 and SNMPv2c transmit community strings in plaintext, making them vulnerable to interception and unauthorized access.
+
+For SNMPv3, security is based on a User-Based Security Model (USM). The USM Users Source property allows users to configure the USM user database in different ways. Below is an example JSON file defining two users as "Json Content":
 
 ```json
 [
