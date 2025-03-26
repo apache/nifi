@@ -89,8 +89,8 @@ import java.util.Set;
 )
 public class IdentifyMimeType extends AbstractProcessor {
     static final AllowableValue PRESET = new AllowableValue("Preset", "Preset", "Use default NiFi MIME Types.");
-    static final AllowableValue REPLACE = new AllowableValue("Replace", "Replace", "Use config MIME Types only.");
-    static final AllowableValue MERGE = new AllowableValue("Merge", "Merge", "Use config together with default NiFi MIME Types.");
+    static final AllowableValue REPLACE = new AllowableValue("Replace", "Replace", "Use custom MIME types configuration only.");
+    static final AllowableValue MERGE = new AllowableValue("Merge", "Merge", "Use custom MIME types configuration together with default NiFi MIME types.");
 
     public static final PropertyDescriptor USE_FILENAME_IN_DETECTION = new PropertyDescriptor.Builder()
             .displayName("Use Filename In Detection")
