@@ -80,6 +80,11 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         JsonValue mockJsonValue3 = mock(JsonValue.class);
         JsonValue mockJsonValue4 = mock(JsonValue.class);
 
+        when(mockJsonValue1.isString()).thenReturn(true);
+        when(mockJsonValue2.isString()).thenReturn(true);
+        when(mockJsonValue3.isString()).thenReturn(true);
+        when(mockJsonValue4.isString()).thenReturn(true);
+
         when(mockJsonValue1.asString()).thenReturn("document.pdf");
         when(mockJsonValue2.asString()).thenReturn("pdf");
         when(mockJsonValue3.asString()).thenReturn("Test Document");

@@ -20,6 +20,7 @@ import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.Metadata;
+import com.eclipsesource.json.JsonValue;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -41,6 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -161,15 +163,14 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
                 templateFields.put("$template", metadata.getTemplateName());
                 templateFields.put("$scope", metadata.getScope());
 
-                // Add all dynamic fields from the metadata
                 for (final String fieldName : metadata.getPropertyPaths()) {
-                    if (metadata.getValue(fieldName) != null) {
-                        String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
-                        String fieldValue = metadata.getValue(fieldName).asString();
+                    final JsonValue jsonValue = metadata.getValue(fieldName);
+                    if (jsonValue != null) {
+                        final String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
+                        final Object fieldValue = parseJsonValue(jsonValue);
                         templateFields.put(cleanFieldName, fieldValue);
                     }
                 }
-
                 templatesList.add(templateFields);
             }
 
@@ -224,5 +225,39 @@ public class ListBoxFileMetadataTemplates extends AbstractProcessor {
      */
     BoxFile getBoxFile(final String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
+    }
+
+    /**
+     * Parses a JsonValue and returns the appropriate Java object.
+     *
+     * @param jsonValue The JsonValue to parse.
+     * @return The parsed Java object.
+     */
+    private static Object parseJsonValue(final JsonValue jsonValue) {
+        if (jsonValue == null) {
+            return null;
+        }
+        if (jsonValue.isString()) {
+            return jsonValue.asString();
+        } else if (jsonValue.isNumber()) {
+            final String numberString = jsonValue.toString();
+            if (numberString.contains(".") || numberString.toLowerCase().contains("e")) {
+                try {
+                    return (new BigDecimal(numberString)).toPlainString();
+                } catch (final NumberFormatException e) {
+                    return jsonValue.asDouble();
+                }
+            } else {
+                try {
+                    return jsonValue.asLong();
+                } catch (final NumberFormatException e) {
+                    return (new BigDecimal(numberString)).toPlainString();
+                }
+            }
+        } else if (jsonValue.isBoolean()) {
+            return jsonValue.asBoolean();
+        }
+        // Fallback: return the string representation.
+        return jsonValue.toString();
     }
 }
