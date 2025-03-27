@@ -23,9 +23,12 @@ import jakarta.ws.rs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
@@ -37,6 +40,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -55,8 +59,6 @@ import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.ssl.SSLContextProvider;
-import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
-import org.apache.nifi.stream.io.StreamThrottler;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
@@ -67,7 +69,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -93,7 +94,7 @@ import java.util.regex.Pattern;
         + "CONNECT will also result in an error and the HTTP response status code 400. "
         + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with the content \"OK\". "
         + "The health check functionality can be configured to be accessible via a different port. "
-        + "For details see the documentation of the \"Listening Port for health check requests\" property."
+        + "For details see the documentation of the \"Listening Port for health check requests\" property. "
         + "A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records. "
         + "Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).")
 @UseCase(
@@ -109,6 +110,31 @@ import java.util.regex.Pattern;
 
         The MergeContent and PackageFlowFile processors can generate FlowFileV3 formatted data.
         """
+)
+@MultiProcessorUseCase(
+        description = "Limit the date flow rate that is accepted",
+        keywords = {"rate", "limit"},
+        notes = """
+            When ListenHTTP cannot output FlowFiles due to back pressure, it will send HTTP 503 Service Unavailable
+            response to clients, or deny connections, until more space is available in the output queue.
+            """,
+        configurations = {
+            @ProcessorConfiguration(
+                processorClass = ListenHTTP.class,
+                configuration = """
+                    Connect the 'success' relationship of ListenHTTP to a ControlRate processor and configure back pressure on that
+                    connection so that a small amount of data will fill the queue. The size of the back pressure configuration
+                    determines how much data to buffer to handle spikes in rate without affecting clients.
+                    """
+            ),
+            @ProcessorConfiguration(
+                processorClass = ControlRate.class,
+                configuration = """
+                    Use the ControlRate properties to set the desired data flow rate limit. When the limit it reached,
+                    the ControlRate input connection will start accumulating files. When this connection is full, ListenHTTP
+                    will limit the input data flow rate.
+                    """)
+        }
 )
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private static final String MATCH_ALL = ".*";
@@ -195,12 +221,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .required(true)
         .defaultValue("60 secs")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .build();
-    public static final PropertyDescriptor MAX_DATA_RATE = new PropertyDescriptor.Builder()
-        .name("Max Data to Receive per Second")
-        .description("The maximum amount of data to receive per second; this allows the bandwidth to be throttled to a specified data rate; if not specified, the data rate is not throttled")
-        .required(false)
-        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
         .name("SSL Context Service")
@@ -302,7 +322,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             BASE_PATH,
             PORT,
             HEALTH_CHECK_PORT,
-            MAX_DATA_RATE,
             SSL_CONTEXT_SERVICE,
             HTTP_PROTOCOL_STRATEGY,
             CLIENT_AUTHENTICATION,
@@ -336,7 +355,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN = "authorityIssuerPattern";
     public static final String CONTEXT_ATTRIBUTE_HEADER_PATTERN = "headerPattern";
     public static final String CONTEXT_ATTRIBUTE_FLOWFILE_MAP = "flowFileMap";
-    public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
     public static final String CONTEXT_ATTRIBUTE_BASE_PATH = "basePath";
     public static final String CONTEXT_ATTRIBUTE_RETURN_CODE = "returnCode";
     public static final String CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE = "multipartRequestMaxSize";
@@ -346,7 +364,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference = new AtomicReference<>();
-    private final AtomicReference<StreamThrottler> throttlerRef = new AtomicReference<>();
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
@@ -382,17 +399,17 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         return PROPERTY_DESCRIPTORS;
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        if (config.removeProperty("Max Data to Receive per Second")) {
+            getLogger().warn("ListenHTTP rate limit feature was removed. Please see ListenHTTP documentation for alternatives.");
+        }
+    }
+
+    @OnShutdown
     @OnStopped
     public void shutdownHttpServer() {
-        final StreamThrottler throttler = throttlerRef.getAndSet(null);
-        if (throttler != null) {
-            try {
-                throttler.close();
-            } catch (IOException e) {
-                getLogger().error("Failed to close StreamThrottler", e);
-            }
-        }
-
         final Server toShutdown = this.server;
         if (toShutdown == null) {
             return;
@@ -423,14 +440,11 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         runOnPrimary.set(context.getExecutionNode().equals(ExecutionNode.PRIMARY));
         final String basePath = context.getProperty(BASE_PATH).evaluateAttributeExpressions().getValue();
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-        final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
-        final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
         final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
         final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxThreadPoolSize = context.getProperty(MAX_THREAD_POOL_SIZE).asInteger();
         final int requestHeaderSize = context.getProperty(REQUEST_HEADER_MAX_SIZE).asDataSize(DataUnit.B).intValue();
-        throttlerRef.set(streamThrottler);
 
         final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
         final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextProvider, clientAuthenticationProperty);
@@ -491,7 +505,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_ISSUER_DN_PATTERN)
                 .isSet() ? context.getProperty(AUTHORIZED_ISSUER_DN_PATTERN).getValue() : MATCH_ALL));
-        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE, returnCode);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE, requestMaxSize);
