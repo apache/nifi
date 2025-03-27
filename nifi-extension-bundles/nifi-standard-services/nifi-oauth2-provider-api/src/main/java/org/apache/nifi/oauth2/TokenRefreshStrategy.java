@@ -16,23 +16,33 @@
  */
 package org.apache.nifi.oauth2;
 
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.components.DescribedValue;
 
-/**
- * Controller service that provides OAuth2 access details
- */
-public interface OAuth2AccessTokenProvider extends ControllerService {
+public enum TokenRefreshStrategy implements DescribedValue {
 
-    /**
-     * @return A valid access token (refreshed automatically if needed) and additional metadata (provided by the OAuth2 access server)
-     */
-    AccessToken getAccessDetails();
+    ON_TOKEN_EXPIRATION("The token will be refreshed based on its expiration time and the configured refresh window"),
 
-    /**
-     * Request a new Access Token based on configured properties regardless of
-     * current expiration status. The default implementation does not perform any
-     * action.
-     */
-    default void refreshAccessDetails() {
+    ON_UNAUTHORIZED_RESPONSE("A new token will be requested in case of a non-authorized request (HTTP 401) even if the current token has not expired");
+
+    private final String description;
+
+    TokenRefreshStrategy(final String description) {
+        this.description = description;
     }
+
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return name();
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
 }

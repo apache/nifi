@@ -48,6 +48,7 @@ import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.Proxy;
@@ -339,6 +340,29 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         return accessDetails;
     }
 
+    @Override
+    public void refreshAccessDetails() {
+        if (this.accessDetails == null || this.accessDetails.getRefreshToken() == null) {
+            acquireAccessDetails();
+        } else {
+            getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
+
+            FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
+                    .add("grant_type", "refresh_token")
+                    .add("refresh_token", this.accessDetails.getRefreshToken());
+
+            addFormData(refreshTokenBuilder);
+
+            AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
+
+            if (newAccessDetails.getRefreshToken() == null) {
+                newAccessDetails.setRefreshToken(this.accessDetails.getRefreshToken());
+            }
+
+            this.accessDetails = newAccessDetails;
+        }
+    }
+
     private void getProperties(ConfigurationContext context) {
         authorizationServerUrl = context.getProperty(AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue();
 
@@ -391,24 +415,6 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         addFormData(acquireTokenBuilder);
 
         this.accessDetails = requestToken(acquireTokenBuilder);
-    }
-
-    private void refreshAccessDetails() {
-        getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
-
-        FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
-                .add("grant_type", "refresh_token")
-                .add("refresh_token", this.accessDetails.getRefreshToken());
-
-        addFormData(refreshTokenBuilder);
-
-        AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
-
-        if (newAccessDetails.getRefreshToken() == null) {
-            newAccessDetails.setRefreshToken(this.accessDetails.getRefreshToken());
-        }
-
-        this.accessDetails = newAccessDetails;
     }
 
     private void addFormData(FormBody.Builder formBuilder) {
