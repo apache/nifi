@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -40,6 +39,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.operations.SNMPTrapReceiverHandler;
 import org.apache.nifi.snmp.processors.properties.BasicProperties;
+import org.apache.nifi.snmp.processors.properties.UsmUserInputMethod;
 import org.apache.nifi.snmp.processors.properties.V3SecurityProperties;
 import org.apache.nifi.snmp.utils.JsonFileUsmReader;
 import org.apache.nifi.snmp.utils.JsonUsmReader;
@@ -67,11 +67,6 @@ import java.util.Set;
 @RequiresInstanceClassLoading
 public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements VerifiableProcessor {
 
-    public static final AllowableValue USM_JSON_FILE_PATH = new AllowableValue("usm-json-file-path", "Json File Path", "The path of the JSON file containing the USM users");
-    public static final AllowableValue USM_JSON_CONTENT = new AllowableValue("usm-json-content", "Json Content", "The JSON containing the USM users");
-    public static final AllowableValue USM_SECURITY_NAMES = new AllowableValue("usm-security-names", "Security Names", "In case of noAuthNoPriv security level" +
-            " - the list of security names separated by commas");
-
     public static final PropertyDescriptor SNMP_MANAGER_PORT = new PropertyDescriptor.Builder()
             .name("snmp-manager-port")
             .displayName("SNMP Manager Port")
@@ -80,13 +75,13 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor SNMP_USM_USER_SOURCE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SNMP_USM_USER_INPUT_METHOD = new PropertyDescriptor.Builder()
             .name("snmp-usm-users-source")
-            .displayName("USM Users Source")
-            .description("The ways to provide USM User data")
+            .displayName("USM Users Input Method")
+            .description("Specifies how USM user data is provided.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(USM_JSON_CONTENT, USM_JSON_FILE_PATH, USM_SECURITY_NAMES)
+            .allowableValues(UsmUserInputMethod.class)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
             .build();
 
@@ -97,7 +92,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
-            .dependsOn(SNMP_USM_USER_SOURCE, USM_JSON_FILE_PATH)
+            .dependsOn(SNMP_USM_USER_INPUT_METHOD, UsmUserInputMethod.USM_JSON_FILE_PATH)
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USERS_JSON = new PropertyDescriptor.Builder()
@@ -107,7 +102,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .required(false)
             .sensitive(true)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
-            .dependsOn(SNMP_USM_USER_SOURCE, USM_JSON_CONTENT)
+            .dependsOn(SNMP_USM_USER_INPUT_METHOD, UsmUserInputMethod.USM_JSON_CONTENT)
             .addValidator(JsonValidator.INSTANCE)
             .build();
 
@@ -118,7 +113,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .required(false)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
             .dependsOn(V3SecurityProperties.SNMP_SECURITY_LEVEL, V3SecurityProperties.NO_AUTH_NO_PRIV)
-            .dependsOn(SNMP_USM_USER_SOURCE, USM_SECURITY_NAMES)
+            .dependsOn(SNMP_USM_USER_INPUT_METHOD, UsmUserInputMethod.USM_SECURITY_NAMES)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -137,7 +132,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             BasicProperties.SNMP_VERSION,
             BasicProperties.SNMP_COMMUNITY,
             V3SecurityProperties.SNMP_SECURITY_LEVEL,
-            SNMP_USM_USER_SOURCE,
+            SNMP_USM_USER_INPUT_METHOD,
             SNMP_USM_USERS_JSON_FILE_PATH,
             SNMP_USM_USERS_JSON,
             SNMP_USM_SECURITY_NAMES
@@ -156,15 +151,12 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
-        final String usmUserSource = context.getProperty(SNMP_USM_USER_SOURCE).getValue();
-
-        if (usmUserSource != null) {
-            final UsmReader usmReader = getUsmReader(context, usmUserSource);
-
+        final String userInputMethodValue = context.getProperty(SNMP_USM_USER_INPUT_METHOD).getValue();
+        if (userInputMethodValue != null) {
+            final UsmUserInputMethod usmUserInputMethod = UsmUserInputMethod.fromValue(context.getProperty(SNMP_USM_USER_INPUT_METHOD).getValue());
+            final UsmReader usmReader = getUsmReader(context, usmUserInputMethod);
             try {
-                if (usmReader != null) {
-                    usmReader.readUsm();
-                }
+                usmReader.readUsm();
             } catch (Exception e) {
                 results.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("USM User processing")
@@ -182,23 +174,19 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
         final int managerPort = context.getProperty(SNMP_MANAGER_PORT).asInteger();
         final String securityLevel = context.getProperty(V3SecurityProperties.SNMP_SECURITY_LEVEL).getValue();
 
-        SNMPConfiguration configuration;
-
-        configuration = SNMPConfiguration.builder()
+        final SNMPConfiguration configuration = SNMPConfiguration.builder()
                 .setManagerPort(managerPort)
                 .setVersion(version)
                 .setSecurityLevel(securityLevel)
                 .setCommunityString(context.getProperty(BasicProperties.SNMP_COMMUNITY).getValue())
                 .build();
 
-        final String usmUserSource = context.getProperty(SNMP_USM_USER_SOURCE).getValue();
+        final String userInputMethodValue = context.getProperty(SNMP_USM_USER_INPUT_METHOD).getValue();
 
-        if (usmUserSource != null) {
-            final UsmReader usmReader = getUsmReader(context, usmUserSource);
-            if (usmReader != null) {
-                usmUsers = usmReader.readUsm();
-            }
-
+        if (userInputMethodValue != null) {
+            final UsmUserInputMethod usmUserInputMethod = UsmUserInputMethod.fromValue(context.getProperty(SNMP_USM_USER_INPUT_METHOD).getValue());
+            final UsmReader usmReader = getUsmReader(context, usmUserInputMethod);
+            usmUsers = usmReader.readUsm();
         }
 
         snmpTrapReceiverHandler = new SNMPTrapReceiverHandler(configuration, usmUsers);
@@ -237,20 +225,15 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
         return PROPERTY_DESCRIPTORS;
     }
 
-    private UsmReader getUsmReader(ProcessContext context, String usmUserSource) {
+    private UsmReader getUsmReader(ProcessContext context, UsmUserInputMethod usmUserInputMethod) {
         final String usmUsersJsonFilePath = context.getProperty(SNMP_USM_USERS_JSON_FILE_PATH).getValue();
         final String usmUsersJson = context.getProperty(SNMP_USM_USERS_JSON).getValue();
         final String usmSecurityNames = context.getProperty(SNMP_USM_SECURITY_NAMES).getValue();
 
-        UsmReader usmReader = null;
-
-        if (USM_JSON_FILE_PATH.getValue().equals(usmUserSource)) {
-            usmReader = new JsonFileUsmReader(usmUsersJsonFilePath);
-        } else if (USM_JSON_CONTENT.getValue().equals(usmUserSource)) {
-            usmReader = new JsonUsmReader(usmUsersJson);
-        } else if (USM_SECURITY_NAMES.getValue().equals(usmUserSource)) {
-            usmReader = new SecurityNamesUsmReader(usmSecurityNames);
-        }
-        return usmReader;
+        return switch (usmUserInputMethod) {
+            case USM_JSON_FILE_PATH -> new JsonFileUsmReader(usmUsersJsonFilePath);
+            case USM_JSON_CONTENT -> new JsonUsmReader(usmUsersJson);
+            case USM_SECURITY_NAMES -> new SecurityNamesUsmReader(usmSecurityNames);
+        };
     }
 }

@@ -19,6 +19,7 @@ package org.apache.nifi.snmp.operations;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.utils.JsonFileUsmReader;
+import org.apache.nifi.snmp.utils.JsonUsmReaderTestBase;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,8 +42,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SNMPTrapReceiverHandlerTest {
-
-    public static final String USERS_JSON = "src/test/resources/users.json";
 
     @Test
     void testTrapReceiverCreatesCommandResponder() {
@@ -86,7 +85,7 @@ class SNMPTrapReceiverHandlerTest {
 
     @Test
     void testAddUsmUsers() {
-        final List<UsmUser> usmUsers = new JsonFileUsmReader(USERS_JSON).readUsm();
+        final List<UsmUser> usmUsers = new JsonFileUsmReader(JsonUsmReaderTestBase.USERS_JSON_PATH).readUsm();
 
         final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()
                 .setManagerPort(0)

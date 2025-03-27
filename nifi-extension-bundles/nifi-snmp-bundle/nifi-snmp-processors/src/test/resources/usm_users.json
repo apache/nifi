@@ -1,14 +1,14 @@
 [
   {
     "securityName":"user1",
-    "authProtocol":"MD5",
+    "authProtocol":"HMAC384SHA512",
     "authPassphrase":"abc12345",
-    "privProtocol":"DES",
+    "privProtocol":"AES192",
     "privPassphrase":"abc12345"
   },
   {
     "securityName":"user2",
-    "authProtocol":"SHA",
+    "authProtocol":"HMAC192SHA256",
     "authPassphrase":"abc12345",
     "privProtocol":"AES256",
     "privPassphrase":"abc12345"
