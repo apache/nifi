@@ -47,4 +47,10 @@ class JsonFileUsmReaderTest extends JsonUsmReaderTestBase {
         assertThrows(ProcessException.class, jsonFileUsmReader::readUsm);
     }
 
+    @Test
+    void testReadLegacyJsonThrowsException() {
+        final UsmReader jsonFileUsmReader = new JsonFileUsmReader(LEGACY_USERS_JSON_PATH);
+        assertThrows(ProcessException.class, jsonFileUsmReader::readUsm);
+    }
+
 }

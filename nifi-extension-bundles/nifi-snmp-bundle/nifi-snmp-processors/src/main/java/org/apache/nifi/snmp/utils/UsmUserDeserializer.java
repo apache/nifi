@@ -20,11 +20,16 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import org.apache.nifi.snmp.processors.properties.AuthenticationProtocol;
+import org.apache.nifi.snmp.processors.properties.PrivacyProtocol;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 class UsmUserDeserializer extends StdDeserializer<UsmUser> {
 
@@ -34,49 +39,40 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
 
     @Override
     public UsmUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
-        JsonNode node = jp.getCodec().readTree(jp);
-        String securityName = node.get("securityName").asText();
+        final JsonNode node = jp.getCodec().readTree(jp);
 
-        OID authProtocol = null;
-        final JsonNode authProtocolNode = node.get("authProtocol");
-        if (authProtocolNode != null) {
-            authProtocol = SNMPUtils.getAuth(authProtocolNode.asText());
+        final String securityName = node.get("securityName").asText();
+        final OID authProtocol = getOid(node, "authProtocol", AuthenticationProtocol::isValid, SNMPUtils::getAuth);
+        final OctetString authPassphrase = getOctetString(node, "authPassphrase");
+
+        validatePassphrase(authProtocol, authPassphrase, "Authentication");
+
+        final OID privProtocol = getOid(node, "privProtocol", PrivacyProtocol::isValid, SNMPUtils::getPriv);
+        final OctetString privPassphrase = getOctetString(node, "privPassphrase");
+
+        validatePassphrase(privProtocol, privPassphrase, "Privacy");
+
+        return new UsmUser(new OctetString(securityName), authProtocol, authPassphrase, privProtocol, privPassphrase);
+    }
+
+    private OID getOid(final JsonNode node, final String key, final Predicate<String> isValid, final Function<String, OID> mapper) {
+        return Optional.ofNullable(node.get(key))
+                .map(JsonNode::asText)
+                .filter(isValid)
+                .map(mapper)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid protocol: " + node.get(key)));
+    }
+
+    private OctetString getOctetString(final JsonNode node, final String key) {
+        return Optional.ofNullable(node.get(key))
+                .map(JsonNode::asText)
+                .map(OctetString::new)
+                .orElse(null);
+    }
+
+    private void validatePassphrase(final OID protocol, final OctetString passphrase, final String type) {
+        if (protocol != null && passphrase == null) {
+            throw new IllegalArgumentException(type + " passphrase must be set and at least 8 bytes long if " + type.toLowerCase() + " protocol is specified.");
         }
-
-        OctetString authPassphrase = null;
-        final JsonNode authPassphraseNode = node.get("authPassphrase");
-        if (authPassphraseNode != null) {
-            authPassphrase = new OctetString(authPassphraseNode.asText());
-        }
-
-        if (authProtocol != null && authPassphrase == null) {
-            throw new IllegalArgumentException("Authentication passphrase must be set and at least 8 bytes long if" +
-                    "authentication protocol is specified.");
-        }
-
-        OID privProtocol = null;
-        final JsonNode privProtocolNode = node.get("privProtocol");
-        if (privProtocolNode != null) {
-            privProtocol = SNMPUtils.getPriv(privProtocolNode.asText());
-        }
-
-        OctetString privPassphrase = null;
-        final JsonNode privPassphraseNode = node.get("privPassphrase");
-        if (privPassphraseNode != null) {
-            privPassphrase = new OctetString(privPassphraseNode.asText());
-        }
-
-        if (privProtocol != null && privPassphrase == null) {
-            throw new IllegalArgumentException("Privacy passphrase must be set and at least 8 bytes long if" +
-                    "authentication protocol is specified.");
-        }
-
-        return new UsmUser(
-                new OctetString(securityName),
-                authProtocol,
-                authPassphrase,
-                privProtocol,
-                privPassphrase
-        );
     }
 }
