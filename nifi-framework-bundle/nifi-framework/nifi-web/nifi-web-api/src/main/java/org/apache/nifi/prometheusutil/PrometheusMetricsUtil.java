@@ -522,20 +522,20 @@ public class PrometheusMetricsUtil {
     private static void addProcessingPerformanceMetrics(final NiFiMetricsRegistry niFiMetricsRegistry, final ProcessingPerformanceStatus perfStatus, final String instanceId,
                                                         final String componentType, final String componentName, final String componentId, final String parentId) {
         if (perfStatus != null) {
-            niFiMetricsRegistry.setDataPoint(perfStatus.getCpuDuration() / 1000.0, "PROCESSING_PERF_CPU_MILLIS",
+            niFiMetricsRegistry.setDataPoint(perfStatus.getCpuDuration() / 1000.0, "PROCESSING_PERFORMANCE_CPU_DURATION",
                     instanceId, componentType, componentName, componentId, parentId, perfStatus.getIdentifier());
 
             // Base metric already in milliseconds
-            niFiMetricsRegistry.setDataPoint(perfStatus.getGarbageCollectionDuration(), "PROCESSING_PERF_GC_MILLIS",
+            niFiMetricsRegistry.setDataPoint(perfStatus.getGarbageCollectionDuration(), "PROCESSING_PERFORMANCE_GC_DURATION",
                     instanceId, componentType, componentName, componentId, parentId, perfStatus.getIdentifier());
 
-            niFiMetricsRegistry.setDataPoint(perfStatus.getContentReadDuration() / 1000.0, "PROCESSING_PERF_READ_MILLIS",
+            niFiMetricsRegistry.setDataPoint(perfStatus.getContentReadDuration() / 1000.0, "PROCESSING_PERFORMANCE_CONTENT_READ_DURATION",
                     instanceId, componentType, componentName, componentId, parentId, perfStatus.getIdentifier());
 
-            niFiMetricsRegistry.setDataPoint(perfStatus.getContentWriteDuration() / 1000.0, "PROCESSING_PERF_WRITE_MILLIS",
+            niFiMetricsRegistry.setDataPoint(perfStatus.getContentWriteDuration() / 1000.0, "PROCESSING_PERFORMANCE_CONTENT_WRITE_DURATION",
                     instanceId, componentType, componentName, componentId, parentId, perfStatus.getIdentifier());
 
-            niFiMetricsRegistry.setDataPoint(perfStatus.getSessionCommitDuration() / 1000.0, "PROCESSING_PERF_COMMIT_MILLIS",
+            niFiMetricsRegistry.setDataPoint(perfStatus.getSessionCommitDuration() / 1000.0, "PROCESSING_PERFORMANCE_SESSION_COMMIT_DURATION",
                     instanceId, componentType, componentName, componentId, parentId, perfStatus.getIdentifier());
         }
     }
