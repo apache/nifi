@@ -971,8 +971,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 setParameter(ps, ++deleteIndex, currentValue, fieldSqlType, sqlType);
                             }
                         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
-                            // Calculate the number of times to set the parameter based on fields divided by parameters
-                            final int timesToAddObjects = fieldIndexes.size() / preparedSqlAndColumns.parameterCount;
+                            // Calculate the number of times to set the parameter based on parameters divided by number of field indexes
+                            final int timesToAddObjects =  preparedSqlAndColumns.parameterCount / fieldIndexes.size();
                             for (int j = 0; j < timesToAddObjects; j++) {
                                 setParameter(ps, i + (fieldIndexes.size() * j) + 1, currentValue, fieldSqlType, sqlType);
                             }
