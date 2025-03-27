@@ -64,6 +64,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import org.apache.nifi.oauth2.TokenRefreshStrategy;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -88,6 +89,7 @@ import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -265,6 +267,15 @@ public class InvokeHTTP extends AbstractProcessor {
             .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_OAUTH2_REFRESH_TOKEN = new PropertyDescriptor.Builder()
+            .name("OAuth2 Access Token Refresh Strategy")
+            .description("Specifies which strategy should be used to refresh the OAuth2 Access Token.")
+            .required(false)
+            .defaultValue(TokenRefreshStrategy.ON_TOKEN_EXPIRATION)
+            .allowableValues(TokenRefreshStrategy.class)
+            .dependsOn(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER)
             .build();
 
     public static final PropertyDescriptor REQUEST_USERNAME = new PropertyDescriptor.Builder()
@@ -495,6 +506,7 @@ public class InvokeHTTP extends AbstractProcessor {
             SOCKET_IDLE_CONNECTIONS,
             PROXY_CONFIGURATION_SERVICE,
             REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER,
+            REQUEST_OAUTH2_REFRESH_TOKEN,
             REQUEST_USERNAME,
             REQUEST_PASSWORD,
             REQUEST_DIGEST_AUTHENTICATION_ENABLED,
@@ -1219,6 +1231,16 @@ public class InvokeHTTP extends AbstractProcessor {
 
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
+            final TokenRefreshStrategy tokenRefreshStrategy = context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asAllowableValue(TokenRefreshStrategy.class);
+            if (oauth2AccessTokenProviderOptional.isPresent()
+                    && TokenRefreshStrategy.ON_UNAUTHORIZED_RESPONSE == tokenRefreshStrategy
+                    && statusCode == 401) {
+                // we are using oauth2 and we got a 401 response
+                // it may be because the token has been revoked even though it has not expired
+                // yet, so we force the token to be refreshed if configured to do so
+                oauth2AccessTokenProviderOptional.get().refreshAccessDetails();
+            }
+
             if (request != null) {
                 if (context.getProperty(REQUEST_FAILURE_PENALIZATION_ENABLED).asBoolean()) {
                     request = session.penalize(request);
