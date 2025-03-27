@@ -1238,7 +1238,7 @@ public class InvokeHTTP extends AbstractProcessor {
                 // we are using oauth2 and we got a 401 response
                 // it may be because the token has been revoked even though it has not expired
                 // yet, so we force the token to be refreshed if configured to do so
-                oauth2AccessTokenProviderOptional.get().getAccessDetails(true);
+                oauth2AccessTokenProviderOptional.get().refreshAccessDetails();
             }
 
             if (request != null) {
