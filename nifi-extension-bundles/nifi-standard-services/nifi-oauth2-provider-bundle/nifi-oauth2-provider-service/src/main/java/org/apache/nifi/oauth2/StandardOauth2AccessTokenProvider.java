@@ -342,27 +342,25 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     @Override
     public void refreshAccessDetails() {
-
         if (this.accessDetails == null || this.accessDetails.getRefreshToken() == null) {
             acquireAccessDetails();
-            return;
+        } else {
+            getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
+
+            FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
+                    .add("grant_type", "refresh_token")
+                    .add("refresh_token", this.accessDetails.getRefreshToken());
+
+            addFormData(refreshTokenBuilder);
+
+            AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
+
+            if (newAccessDetails.getRefreshToken() == null) {
+                newAccessDetails.setRefreshToken(this.accessDetails.getRefreshToken());
+            }
+
+            this.accessDetails = newAccessDetails;
         }
-
-        getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
-
-        FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
-                .add("grant_type", "refresh_token")
-                .add("refresh_token", this.accessDetails.getRefreshToken());
-
-        addFormData(refreshTokenBuilder);
-
-        AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
-
-        if (newAccessDetails.getRefreshToken() == null) {
-            newAccessDetails.setRefreshToken(this.accessDetails.getRefreshToken());
-        }
-
-        this.accessDetails = newAccessDetails;
     }
 
     private void getProperties(ConfigurationContext context) {

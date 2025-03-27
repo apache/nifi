@@ -29,9 +29,10 @@ public interface OAuth2AccessTokenProvider extends ControllerService {
     AccessToken getAccessDetails();
 
     /**
-     * Refreshes the access token even if it has not expired yet
+     * Request a new Access Token based on configured properties regardless of
+     * current expiration status. The default implementation does not perform any
+     * action.
      */
     default void refreshAccessDetails() {
-        // no default implementation
     }
 }
