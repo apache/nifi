@@ -33,8 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -57,10 +55,8 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
     private ConfigurableUserGroupProvider userGroupProvider;
 
-    private Method refreshUserGroupHolderMethod;
-
     @BeforeEach
-    public void setup() throws NoSuchMethodException {
+    public void setup() {
         properties = new NiFiRegistryProperties();
         identityMapper = new DefaultIdentityMapper(properties);
 
@@ -72,9 +68,6 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
         databaseUserGroupProvider.initialize(initializationContext);
 
         userGroupProvider = databaseUserGroupProvider;
-
-        refreshUserGroupHolderMethod = DatabaseUserGroupProvider.class.getDeclaredMethod("refreshUserGroupHolder");
-        refreshUserGroupHolderMethod.setAccessible(true);
     }
 
     /**
@@ -107,46 +100,6 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
         final String sql = "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
         final int updatedRows1 = jdbcTemplate.update(sql, userIdentifier, userIdentity);
         assertEquals(1, updatedRows1);
-        invokeRefreshUserGroupHolder();
-    }
-
-    /**
-     * Helper method to create a group outside of the provider.
-     *
-     * @param groupIdentifier the group identifier
-     * @param groupIdentity the group identity
-     */
-    private void createGroup(final String groupIdentifier, final String groupIdentity) {
-        final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        final String sql = "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
-        final int updatedRows1 = jdbcTemplate.update(sql, groupIdentifier, groupIdentity);
-        assertEquals(1, updatedRows1);
-        invokeRefreshUserGroupHolder();
-    }
-
-    /**
-     * Helper method to add a user to a group outside of the provider
-     *
-     * @param userIdentifier the user identifier
-     * @param groupIdentifier the group identifier
-     */
-    private void addUserToGroup(final String userIdentifier, final String groupIdentifier) {
-        final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        final String sql = "INSERT INTO UGP_USER_GROUP(USER_IDENTIFIER, GROUP_IDENTIFIER) VALUES (?, ?)";
-        final int updatedRows1 = jdbcTemplate.update(sql, userIdentifier, groupIdentifier);
-        assertEquals(1, updatedRows1);
-        invokeRefreshUserGroupHolder();
-    }
-
-    /**
-     * Helper method to refresh the provider cache.
-     */
-    private void invokeRefreshUserGroupHolder() {
-        try {
-            refreshUserGroupHolderMethod.invoke(userGroupProvider);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new AssertionError(e);
-        }
     }
 
     // -- Test onConfigured
@@ -253,7 +206,8 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         final String userIdentifier = UUID.randomUUID().toString();
         final String userIdentity = "user1";
-        createUser(userIdentifier, userIdentity);
+        final User user1 = new User.Builder().identifier(userIdentifier).identity(userIdentity).build();
+        userGroupProvider.addUser(user1);
 
         final User retrievedUser1 = userGroupProvider.getUser(userIdentifier);
         assertNotNull(retrievedUser1);
@@ -275,7 +229,8 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         final String userIdentifier = UUID.randomUUID().toString();
         final String userIdentity = "user1";
-        createUser(userIdentifier, userIdentity);
+        final User user1 = new User.Builder().identifier(userIdentifier).identity(userIdentity).build();
+        userGroupProvider.addUser(user1);
 
         final User retrievedUser1 = userGroupProvider.getUserByIdentity(userIdentity);
         assertNotNull(retrievedUser1);
@@ -297,21 +252,25 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         // Create some users...
         final User user1 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user1").build();
-        createUser(user1.getIdentifier(), user1.getIdentity());
+        userGroupProvider.addUser(user1);
 
         final User user2 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user2").build();
-        createUser(user2.getIdentifier(), user2.getIdentity());
+        userGroupProvider.addUser(user2);
 
         // Create some groups...
-        final Group group1 = new Group.Builder().identifier(UUID.randomUUID().toString()).name("group1").build();
-        createGroup(group1.getIdentifier(), group1.getName());
+        final Group group1 = new Group.Builder()
+                .identifier(UUID.randomUUID().toString())
+                .name("group1")
+                .addUser(user1.getIdentifier())
+                .build();
+        userGroupProvider.addGroup(group1);
 
-        final Group group2 = new Group.Builder().identifier(UUID.randomUUID().toString()).name("group2").build();
-        createGroup(group2.getIdentifier(), group2.getName());
-
-        // Add users to groups...
-        addUserToGroup(user1.getIdentifier(), group1.getIdentifier());
-        addUserToGroup(user2.getIdentifier(), group2.getIdentifier());
+        final Group group2 = new Group.Builder()
+                .identifier(UUID.randomUUID().toString())
+                .name("group2")
+                .addUser(user2.getIdentifier())
+                .build();
+        userGroupProvider.addGroup(group2);
 
         // Retrieve UserAndGroups...
         final UserAndGroups user1AndGroups = userGroupProvider.getUserAndGroups(user1.getIdentity());
@@ -352,7 +311,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
         configureWithInitialUsers();
 
         final User user1 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user1").build();
-        createUser(user1.getIdentifier(), user1.getIdentity());
+        userGroupProvider.addUser(user1);
 
         final User retrievedUser1 = userGroupProvider.getUser(user1.getIdentifier());
         assertNotNull(retrievedUser1);
@@ -446,7 +405,8 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         final String user1Identifier = UUID.randomUUID().toString();
         final String user1Identity = "user1";
-        createUser(user1Identifier, user1Identity);
+        final User user1 = new User.Builder().identifier(user1Identifier).identity(user1Identity).build();
+        userGroupProvider.addUser(user1);
 
         final Set<Group> groupsBefore = userGroupProvider.getGroups();
         assertEquals(0, groupsBefore.size());
@@ -477,15 +437,16 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         final String group1Identifier = UUID.randomUUID().toString();
         final String group1Identity = "group1";
-        createGroup(group1Identifier, group1Identity);
+        final Group group1 = new Group.Builder().identifier(group1Identifier).name("group1").build();
+        userGroupProvider.addGroup(group1);
 
-        final Group group1 = userGroupProvider.getGroup(group1Identifier);
-        assertNotNull(group1);
-        assertEquals(group1Identifier, group1.getIdentifier());
-        assertEquals(group1Identity, group1.getName());
+        final Group retrievedGroup1 = userGroupProvider.getGroup(group1Identifier);
+        assertNotNull(retrievedGroup1);
+        assertEquals(group1Identifier, retrievedGroup1.getIdentifier());
+        assertEquals(group1Identity, retrievedGroup1.getName());
 
-        assertNotNull(group1.getUsers());
-        assertEquals(0, group1.getUsers().size());
+        assertNotNull(retrievedGroup1.getUsers());
+        assertEquals(0, retrievedGroup1.getUsers().size());
     }
 
     @Test
@@ -502,15 +463,18 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         // Create some users...
         final User user1 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user1").build();
-        createUser(user1.getIdentifier(), user1.getIdentity());
+        userGroupProvider.addUser(user1);
 
         final User user2 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user2").build();
-        createUser(user2.getIdentifier(), user2.getIdentity());
+        userGroupProvider.addUser(user2);
 
         // Create a group and add user1 to it...
-        final Group group1 = new Group.Builder().identifier(UUID.randomUUID().toString()).name("group1").build();
-        createGroup(group1.getIdentifier(), group1.getName());
-        addUserToGroup(user1.getIdentifier(), group1.getIdentifier());
+        final Group group1 = new Group.Builder()
+                .identifier(UUID.randomUUID().toString())
+                .name("group1")
+                .addUser(user1.getIdentifier())
+                .build();
+        userGroupProvider.addGroup(group1);
 
         // Retrieve the created group...
         final Group retrievedGroup1 = userGroupProvider.getGroup(group1.getIdentifier());
@@ -549,15 +513,18 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         // Create some users...
         final User user1 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user1").build();
-        createUser(user1.getIdentifier(), user1.getIdentity());
+        userGroupProvider.addUser(user1);
 
         final User user2 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user2").build();
-        createUser(user2.getIdentifier(), user2.getIdentity());
+        userGroupProvider.addUser(user2);
 
         // Create a group and add user1 to it...
-        final Group group1 = new Group.Builder().identifier(UUID.randomUUID().toString()).name("group1").build();
-        createGroup(group1.getIdentifier(), group1.getName());
-        addUserToGroup(user1.getIdentifier(), group1.getIdentifier());
+        final Group group1 = new Group.Builder()
+                .identifier(UUID.randomUUID().toString())
+                .name("group1")
+                .addUser(user1.getIdentifier())
+                .build();
+        userGroupProvider.addGroup(group1);
 
         // Retrieve the created group...
         final Group retrievedGroup1 = userGroupProvider.getGroup(group1.getIdentifier());
@@ -588,15 +555,18 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
         // Create some users...
         final User user1 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user1").build();
-        createUser(user1.getIdentifier(), user1.getIdentity());
+        userGroupProvider.addUser(user1);
 
         final User user2 = new User.Builder().identifier(UUID.randomUUID().toString()).identity("user2").build();
-        createUser(user2.getIdentifier(), user2.getIdentity());
+        userGroupProvider.addUser(user2);
 
         // Create a group and add user1 to it...
-        final Group group1 = new Group.Builder().identifier(UUID.randomUUID().toString()).name("group1").build();
-        createGroup(group1.getIdentifier(), group1.getName());
-        addUserToGroup(user1.getIdentifier(), group1.getIdentifier());
+        final Group group1 = new Group.Builder()
+                .identifier(UUID.randomUUID().toString())
+                .name("group1")
+                .addUser(user1.getIdentifier())
+                .build();
+        userGroupProvider.addGroup(group1);
 
         // Retrieve the created group...
         final Group retrievedGroup1 = userGroupProvider.getGroup(group1.getIdentifier());
