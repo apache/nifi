@@ -17,22 +17,23 @@
 package org.apache.nifi.kafka.service.api.producer;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 
 /**
- * Specification of parameters used by a Kafka processor to publish records to Kafka in the context of an enabled
- * {@link org.apache.nifi.kafka.service.api.KafkaConnectionService}.
+ * Specification of parameters used by a Kafka processor to publish records to
+ * Kafka in the context of an enabled {@link KafkaConnectionService}.
  */
 public class PublishContext {
     private final String topic;
-    private final Integer partition;
+    private final KafkaRecordPartitioner partitioner;
     private final Long timestamp;
     private final FlowFile flowFile;
 
     private Exception exception;
 
-    public PublishContext(final String topic, final Integer partition, final Long timestamp, final FlowFile flowFile) {
+    public PublishContext(final String topic, final KafkaRecordPartitioner partition, final Long timestamp, final FlowFile flowFile) {
         this.topic = topic;
-        this.partition = partition;
+        this.partitioner = partition;
         this.timestamp = timestamp;
         this.flowFile = flowFile;
         this.exception = null;
@@ -42,8 +43,8 @@ public class PublishContext {
         return topic;
     }
 
-    public Integer getPartition() {
-        return partition;
+    public KafkaRecordPartitioner getPartitioner() {
+        return partitioner;
     }
 
     public Long getTimestamp() {

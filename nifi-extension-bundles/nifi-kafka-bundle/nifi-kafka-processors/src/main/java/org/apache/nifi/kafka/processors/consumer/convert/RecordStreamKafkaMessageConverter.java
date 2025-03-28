@@ -28,7 +28,6 @@ import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -61,8 +60,8 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
     private final KeyEncoding keyEncoding;
     private final boolean commitOffsets;
     private final OffsetTracker offsetTracker;
-    private final Runnable onSuccess;
     private final ComponentLog logger;
+    private final String brokerUri;
 
     public RecordStreamKafkaMessageConverter(
             final RecordReaderFactory readerFactory,
@@ -72,8 +71,8 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
-            final Runnable onSuccess,
-            final ComponentLog logger) {
+            final ComponentLog logger,
+            final String brokerUri) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.headerEncoding = headerEncoding;
@@ -81,120 +80,112 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
         this.keyEncoding = keyEncoding;
         this.commitOffsets = commitOffsets;
         this.offsetTracker = offsetTracker;
-        this.onSuccess = onSuccess;
         this.logger = logger;
+        this.brokerUri = brokerUri;
     }
 
     @Override
     public void toFlowFiles(final ProcessSession session, final Iterator<ByteRecord> consumerRecords) {
-        try {
-            final Map<RecordGroupCriteria, RecordGroup> recordGroups = new HashMap<>();
+        final Map<RecordGroupCriteria, RecordGroup> recordGroups = new HashMap<>();
 
-            String topic = null;
-            int partition = 0;
-            while (consumerRecords.hasNext()) {
-                final ByteRecord consumerRecord = consumerRecords.next();
-                if (topic == null) {
-                    partition = consumerRecord.getPartition();
-                    topic = consumerRecord.getTopic();
-                }
+        while (consumerRecords.hasNext()) {
+            final ByteRecord consumerRecord = consumerRecords.next();
+            final String topic = consumerRecord.getTopic();
+            final int partition = consumerRecord.getPartition();
 
-                final byte[] value = consumerRecord.getValue();
-                final Map<String, String> headers = getRelevantHeaders(consumerRecord, headerNamePattern);
+            final byte[] value = consumerRecord.getValue();
+            final Map<String, String> headers = getRelevantHeaders(consumerRecord, headerNamePattern);
 
-                final Map<String, String> attributes = KafkaUtils.toAttributes(
+            final Map<String, String> attributes = KafkaUtils.toAttributes(
                     consumerRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
 
-                try (final InputStream in = new ByteArrayInputStream(value);
-                     final RecordReader valueRecordReader = readerFactory.createRecordReader(attributes, in, value.length, logger)) {
+            try (final InputStream in = new ByteArrayInputStream(value);
+                    final RecordReader valueRecordReader = readerFactory.createRecordReader(attributes, in, value.length, logger)) {
 
-                    int recordCount = 0;
-                    while (true) {
-                        final Record record = valueRecordReader.nextRecord();
-                        // If we get a KafkaRecord that has no value, we still need to process it.
-                        if (recordCount++ > 0 && record == null) {
-                            break;
-                        }
-
-                        final RecordSchema recordSchema = record == null ? EMPTY_SCHEMA : record.getSchema();
-                        final RecordSchema writeSchema = writerFactory.getSchema(attributes, recordSchema);
-
-                        // Get/Register the Record Group that is associated with the schema for this Kafka Record
-                        final RecordGroupCriteria groupCriteria = new RecordGroupCriteria(writeSchema, headers);
-                        RecordGroup recordGroup = recordGroups.get(groupCriteria);
-                        if (recordGroup == null) {
-                            FlowFile flowFile = session.create();
-                            final Map<String, String> groupAttributes = Map.of(
-                                KafkaFlowFileAttribute.KAFKA_TOPIC, consumerRecord.getTopic(),
-                                KafkaFlowFileAttribute.KAFKA_PARTITION, Long.toString(consumerRecord.getPartition())
-                            );
-                            flowFile = session.putAllAttributes(flowFile, groupAttributes);
-
-                            final OutputStream out = session.write(flowFile);
-                            final RecordSetWriter writer;
-                            try {
-                                writer = writerFactory.createWriter(logger, writeSchema, out, attributes);
-                                writer.beginRecordSet();
-                            } catch (final Exception e) {
-                                out.close();
-                                throw e;
-                            }
-
-                            recordGroup = new RecordGroup(flowFile, writer, topic, partition);
-                            recordGroups.put(groupCriteria, recordGroup);
-                        }
-
-                        // Create the Record object and write it to the Record Writer.
-                        if (record != null) {
-                            recordGroup.writer().write(record);
-                        }
+                int recordCount = 0;
+                while (true) {
+                    final Record record = valueRecordReader.nextRecord();
+                    // If we get a KafkaRecord that has no value, we still need to process it.
+                    if (recordCount++ > 0 && record == null) {
+                        break;
                     }
-                } catch (final MalformedRecordException e) {
-                    // Failed to parse the record. Transfer to a 'parse.failure' relationship
-                    FlowFile flowFile = session.create();
-                    flowFile = session.putAllAttributes(flowFile, attributes);
-                    flowFile = session.write(flowFile, out -> out.write(value));
-                    session.transfer(flowFile, ConsumeKafka.PARSE_FAILURE);
-                    session.adjustCounter("Records Received from " + consumerRecord.getTopic(), 1, false);
 
-                    // Track the offsets for the Kafka Record
-                    offsetTracker.update(consumerRecord);
-                    continue;
+                    final RecordSchema recordSchema = record == null ? EMPTY_SCHEMA : record.getSchema();
+                    final RecordSchema writeSchema = writerFactory.getSchema(attributes, recordSchema);
+
+                    // Get/Register the Record Group that is associated with the schema, topic and
+                    // partition id for this Kafka Record
+                    final RecordGroupCriteria groupCriteria = new RecordGroupCriteria(writeSchema, headers, topic, partition);
+                    RecordGroup recordGroup = recordGroups.get(groupCriteria);
+                    if (recordGroup == null) {
+                        FlowFile flowFile = session.create();
+                        final Map<String, String> groupAttributes = Map.of(
+                                KafkaFlowFileAttribute.KAFKA_TOPIC, consumerRecord.getTopic(),
+                                KafkaFlowFileAttribute.KAFKA_PARTITION, Long.toString(consumerRecord.getPartition()));
+                        flowFile = session.putAllAttributes(flowFile, groupAttributes);
+
+                        final OutputStream out = session.write(flowFile);
+                        final RecordSetWriter writer;
+                        try {
+                            writer = writerFactory.createWriter(logger, writeSchema, out, attributes);
+                            writer.beginRecordSet();
+                        } catch (final Exception e) {
+                            out.close();
+                            throw e;
+                        }
+
+                        recordGroup = new RecordGroup(flowFile, writer, topic, partition);
+                        recordGroups.put(groupCriteria, recordGroup);
+                    }
+
+                    // Create the Record object and write it to the Record Writer.
+                    if (record != null) {
+                        recordGroup.writer().write(record);
+                    }
                 }
+            } catch (final MalformedRecordException | IOException | SchemaNotFoundException e) {
+                // Failed to parse the record. Transfer to a 'parse.failure' relationship
+                FlowFile flowFile = session.create();
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                flowFile = session.write(flowFile, out -> out.write(value));
+                session.transfer(flowFile, ConsumeKafka.PARSE_FAILURE);
+                session.adjustCounter("Records Received from " + consumerRecord.getTopic(), 1, false);
+                session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + consumerRecord.getTopic());
 
                 // Track the offsets for the Kafka Record
                 offsetTracker.update(consumerRecord);
+                continue;
             }
 
-            // Finish writing the records
-            for (final Map.Entry<RecordGroupCriteria, RecordGroup> entry : recordGroups.entrySet()) {
-                final RecordGroupCriteria criteria = entry.getKey();
-                final RecordGroup recordGroup = entry.getValue();
+            // Track the offsets for the Kafka Record
+            offsetTracker.update(consumerRecord);
+        }
 
-                final Map<String, String> attributes;
-                final int recordCount;
-                try (final RecordSetWriter writer = recordGroup.writer()) {
-                    final WriteResult writeResult = writer.finishRecordSet();
-                    attributes = new HashMap<>(writeResult.getAttributes());
-                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                    attributes.putAll(criteria.headers());
-                    attributes.put(KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
-                    recordCount = writeResult.getRecordCount();
-                }
+        // Finish writing the records
+        for (final Map.Entry<RecordGroupCriteria, RecordGroup> entry : recordGroups.entrySet()) {
+            final RecordGroupCriteria criteria = entry.getKey();
+            final RecordGroup recordGroup = entry.getValue();
 
-                FlowFile flowFile = recordGroup.flowFile();
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                final ProvenanceReporter provenanceReporter = session.getProvenanceReporter();
-                final String transitUri = String.format(TRANSIT_URI_FORMAT, topic, partition);
-                provenanceReporter.receive(flowFile, transitUri);
-                session.transfer(flowFile, ConsumeKafka.SUCCESS);
-                session.adjustCounter("Records Received from " + topic, recordCount, false);
+            final Map<String, String> attributes;
+            final int recordCount;
+            try (final RecordSetWriter writer = recordGroup.writer()) {
+                final WriteResult writeResult = writer.finishRecordSet();
+                attributes = new HashMap<>(writeResult.getAttributes());
+                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                attributes.putAll(criteria.headers());
+                attributes.put(KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
+                recordCount = writeResult.getRecordCount();
+            } catch (final Exception e) {
+                throw new ProcessException("Failed to write Kafka records to FlowFile", e);
             }
 
-            onSuccess.run();
-        } catch (final SchemaNotFoundException | IOException e) {
-            throw new ProcessException("FlowFile Record conversion failed", e);
+            FlowFile flowFile = recordGroup.flowFile();
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + recordGroup.topic);
+
+            session.transfer(flowFile, ConsumeKafka.SUCCESS);
+            session.adjustCounter("Records Received from " + recordGroup.topic, recordCount, false);
         }
     }
 
@@ -215,7 +206,7 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
         return headers;
     }
 
-    private record RecordGroupCriteria(RecordSchema schema, Map<String, String> headers) {
+    private record RecordGroupCriteria(RecordSchema schema, Map<String, String> headers, String topic, int partition) {
     }
 
     private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, String topic, int partition) {
