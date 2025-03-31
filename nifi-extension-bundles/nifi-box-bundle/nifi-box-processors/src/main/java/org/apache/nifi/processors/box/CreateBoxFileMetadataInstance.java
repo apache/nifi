@@ -57,9 +57,11 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "create"})
-@CapabilityDescription("Creates a metadata instance for a Box file using a specified template with values from the flowFile content. " +
-        "The Box API requires newly created templates to be created with the scope set as enterprise so no scope is required. " +
-        "The input record should be a flat key-value object where each field name is used as the metadata key.")
+@CapabilityDescription("""
+        Creates a metadata instance for a Box file using a specified template with values from the flowFile content.\s
+        The Box API requires newly created templates to be created with the scope set as enterprise so no scope is required.\s
+        The input record should be a flat key-value object where each field name is used as the metadata key.
+        """)
 @SeeAlso({ListBoxFileMetadataTemplates.class, UpdateBoxFileMetadataInstance.class, ListBoxFile.class, FetchBoxFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file for which metadata was created"),

@@ -57,8 +57,11 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "update"})
-@CapabilityDescription("Updates metadata template values for a Box file using records from the flowFile content. " +
-        "The input record should be a flat key-value object where each field name is used as the metadata key.")
+@CapabilityDescription("""
+         Updates metadata template values for a Box file using the record in the given flowFile.\s
+         This record should be the desired state of the template after the update.\s
+         The input record should be a flat key-value object.
+        """)
 @SeeAlso({ListBoxFileMetadataTemplates.class, ListBoxFile.class, FetchBoxFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file whose metadata was updated"),
