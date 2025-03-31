@@ -28,8 +28,6 @@ import org.snmp4j.smi.OctetString;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 class UsmUserDeserializer extends StdDeserializer<UsmUser> {
 
@@ -42,12 +40,12 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
         final JsonNode node = jp.getCodec().readTree(jp);
 
         final String securityName = node.get("securityName").asText();
-        final OID authProtocol = getOid(node, "authProtocol", AuthenticationProtocol::isValid, SNMPUtils::getAuth);
+        final OID authProtocol = getAuthProtocolOid(node);
         final OctetString authPassphrase = getOctetString(node, "authPassphrase");
 
         validatePassphrase(authProtocol, authPassphrase, "Authentication");
 
-        final OID privProtocol = getOid(node, "privProtocol", PrivacyProtocol::isValid, SNMPUtils::getPriv);
+        final OID privProtocol = getPrivProtocolOid(node);
         final OctetString privPassphrase = getOctetString(node, "privPassphrase");
 
         validatePassphrase(privProtocol, privPassphrase, "Privacy");
@@ -55,12 +53,20 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
         return new UsmUser(new OctetString(securityName), authProtocol, authPassphrase, privProtocol, privPassphrase);
     }
 
-    private OID getOid(final JsonNode node, final String key, final Predicate<String> isValid, final Function<String, OID> mapper) {
-        return Optional.ofNullable(node.get(key))
+    private OID getAuthProtocolOid(final JsonNode node) {
+        return Optional.ofNullable(node.get("authProtocol"))
                 .map(JsonNode::asText)
-                .filter(isValid)
-                .map(mapper)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid protocol: " + node.get(key)));
+                .map(AuthenticationProtocol::valueOf)
+                .map(AuthenticationProtocol::getOid)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid protocol: " + node.get("authProtocol")));
+    }
+
+    private OID getPrivProtocolOid(final JsonNode node) {
+        return Optional.ofNullable(node.get("privProtocol"))
+                .map(JsonNode::asText)
+                .map(PrivacyProtocol::valueOf)
+                .map(PrivacyProtocol::getOid)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid protocol: " + node.get("privProtocol")));
     }
 
     private OctetString getOctetString(final JsonNode node, final String key) {

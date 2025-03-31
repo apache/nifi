@@ -17,27 +17,38 @@
 package org.apache.nifi.snmp.processors.properties;
 
 import org.apache.nifi.components.DescribedValue;
+import org.snmp4j.security.AuthHMAC128SHA224;
+import org.snmp4j.security.AuthHMAC192SHA256;
+import org.snmp4j.security.AuthHMAC256SHA384;
+import org.snmp4j.security.AuthHMAC384SHA512;
+import org.snmp4j.smi.OID;
 
 import java.util.Arrays;
 
 public enum AuthenticationProtocol implements DescribedValue {
     HMAC128SHA224("HMAC128SHA224", "SHA224",
-            "HMAC with SHA224, a variant of SHA-2, used for ensuring data integrity and authenticity. It combines the HMAC construction with the SHA224 hash function."),
+            "HMAC with SHA224, a variant of SHA-2, used for ensuring data integrity and authenticity. It combines the HMAC construction with the SHA224 hash function.",
+            AuthHMAC128SHA224.ID),
     HMAC192SHA256("HMAC192SHA256", "SHA256",
-            "HMAC with SHA256, a widely used secure hash function in the SHA-2 family, providing strong data integrity and authenticity guarantees."),
+            "HMAC with SHA256, a widely used secure hash function in the SHA-2 family, providing strong data integrity and authenticity guarantees.",
+            AuthHMAC192SHA256.ID),
     HMAC256SHA384("HMAC256SHA384", "SHA384",
-            "HMAC with SHA384, a stronger variant of SHA-2 providing a 384-bit hash for increased security in data integrity and authenticity."),
+            "HMAC with SHA384, a stronger variant of SHA-2 providing a 384-bit hash for increased security in data integrity and authenticity.",
+            AuthHMAC256SHA384.ID),
     HMAC384SHA512("HMAC384SHA512", "SHA512",
-            "HMAC with SHA512, using the SHA-2 family with a 512-bit hash, providing the highest level of security for data integrity and authenticity.");
+            "HMAC with SHA512, using the SHA-2 family with a 512-bit hash, providing the highest level of security for data integrity and authenticity.",
+            AuthHMAC384SHA512.ID);
 
     private final String value;
     private final String displayName;
     private final String description;
+    private final OID oid;
 
-    AuthenticationProtocol(String value, String displayName, String description) {
+    AuthenticationProtocol(final String value, final String displayName, final String description, final OID oid) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
+        this.oid = oid;
     }
 
     @Override
@@ -53,6 +64,10 @@ public enum AuthenticationProtocol implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    public OID getOid() {
+        return oid;
     }
 
     public static boolean isValid(String protocol) {

@@ -17,7 +17,8 @@
 package org.apache.nifi.snmp.factory.core;
 
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.apache.nifi.snmp.processors.properties.AuthenticationProtocol;
+import org.apache.nifi.snmp.processors.properties.PrivacyProtocol;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.UserTarget;
@@ -37,27 +38,8 @@ public class V3SNMPFactory extends SNMPManagerFactory implements SNMPContext {
     @Override
     public Snmp createSnmpManagerInstance(final SNMPConfiguration configuration) {
         final Snmp snmpManager = super.createSnmpManagerInstance(configuration);
-
-        // Create USM.
-        final OctetString localEngineId = new OctetString(MPv3.createLocalEngineID());
-        final USM usm = new USM(SecurityProtocols.getInstance(), localEngineId, 0);
-        SecurityModels.getInstance().addSecurityModel(usm);
-
-        Optional.ofNullable(configuration.getSecurityName())
-                .map(OctetString::new)
-                .ifPresent(securityName -> {
-                    OID authProtocol = Optional.ofNullable(configuration.getAuthProtocol())
-                            .map(SNMPUtils::getAuth).orElse(null);
-                    OctetString authPassphrase = Optional.ofNullable(configuration.getAuthPassphrase())
-                            .map(OctetString::new).orElse(null);
-                    OID privacyProtocol = Optional.ofNullable(configuration.getPrivacyProtocol())
-                            .map(SNMPUtils::getPriv).orElse(null);
-                    OctetString privacyPassphrase = Optional.ofNullable(configuration.getPrivacyPassphrase())
-                            .map(OctetString::new).orElse(null);
-                    snmpManager.getUSM().addUser(new UsmUser(securityName, authProtocol, authPassphrase,
-                            privacyProtocol, privacyPassphrase));
-                });
-
+        initializeUsm();
+        addUsmUserIfSecure(snmpManager, configuration);
         return snmpManager;
     }
 
@@ -73,5 +55,48 @@ public class V3SNMPFactory extends SNMPManagerFactory implements SNMPContext {
         Optional.ofNullable(securityName).map(OctetString::new).ifPresent(userTarget::setSecurityName);
 
         return userTarget;
+    }
+
+    private void initializeUsm() {
+        final OctetString localEngineId = new OctetString(MPv3.createLocalEngineID());
+        final USM usm = new USM(SecurityProtocols.getInstance(), localEngineId, 0);
+        SecurityModels.getInstance().addSecurityModel(usm);
+    }
+
+    private void addUsmUserIfSecure(final Snmp snmpManager, final SNMPConfiguration configuration) {
+        Optional.ofNullable(configuration.getSecurityName())
+                .map(OctetString::new)
+                .ifPresent(securityName -> addUserToUsm(snmpManager, configuration, securityName));
+    }
+
+    private void addUserToUsm(final Snmp snmpManager, final SNMPConfiguration configuration, final OctetString securityName) {
+        final OID authProtocol = getAuthProtocol(configuration);
+        final OctetString authPassphrase = getOctetString(configuration.getAuthPassphrase());
+        final OID privacyProtocol = getPrivacyProtocol(configuration);
+        final OctetString privacyPassphrase = getOctetString(configuration.getPrivacyPassphrase());
+
+        final UsmUser user = new UsmUser(securityName, authProtocol, authPassphrase,
+                privacyProtocol, privacyPassphrase);
+        snmpManager.getUSM().addUser(user);
+    }
+
+    private OID getAuthProtocol(final SNMPConfiguration configuration) {
+        return Optional.ofNullable(configuration.getAuthProtocol())
+                .map(AuthenticationProtocol::valueOf)
+                .map(AuthenticationProtocol::getOid)
+                .orElse(null);
+    }
+
+    private OID getPrivacyProtocol(final SNMPConfiguration configuration) {
+        return Optional.ofNullable(configuration.getPrivacyProtocol())
+                .map(PrivacyProtocol::valueOf)
+                .map(PrivacyProtocol::getOid)
+                .orElse(null);
+    }
+
+    private OctetString getOctetString(final String value) {
+        return Optional.ofNullable(value)
+                .map(OctetString::new)
+                .orElse(null);
     }
 }
