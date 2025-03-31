@@ -109,11 +109,6 @@ public abstract class AbstractCacheServer extends AbstractControllerService {
         cacheServer = null;
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        shutdownServer();
-    }
-
     /**
      * @return the port that the server is listening on, or -1 if the server has not been started
      */
