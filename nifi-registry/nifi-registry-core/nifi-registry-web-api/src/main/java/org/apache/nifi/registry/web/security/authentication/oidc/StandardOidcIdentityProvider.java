@@ -446,7 +446,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest createTokenHTTPRequest(AuthorizationGrant authorizationGrant, ClientAuthentication clientAuthentication) {
-        final TokenRequest request = new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(), clientAuthentication, authorizationGrant);
+        final TokenRequest request = new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(), clientAuthentication, authorizationGrant, null);
         return formHTTPRequest(request);
     }
 
