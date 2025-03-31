@@ -32,6 +32,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -174,15 +175,8 @@ public class IdentifyMimeType extends AbstractProcessor {
             this.detector = config.getDetector();
             this.mimeTypes = config.getMimeRepository();
         } else {
-            try (final InputStream customInputStream = context.getProperty(CUSTOM_MIME_CONFIGURATION).asResource().read()) {
-                if (configStrategy.equals(REPLACE.getValue())) {
-                    this.detector = MimeTypesFactory.create(customInputStream);
-                } else {
-                    try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream(CUSTOM_MIME_TYPES_FILENAME);
-                         final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream(DEFAULT_MIME_TYPES_PATH)) {
-                        this.detector = MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
-                    }
-                }
+            try {
+                this.detector = createCustomMimeTypes(configStrategy, context);
                 this.mimeTypes = (MimeTypes) this.detector;
             } catch (Exception e) {
                 context.yield();
@@ -276,15 +270,8 @@ public class IdentifyMimeType extends AbstractProcessor {
         String configStrategy = validationContext.getProperty(CONFIG_STRATEGY).getValue();
 
         if (!configStrategy.equals(PRESET.getValue())) {
-            try (final InputStream customInputStream = validationContext.getProperty(CUSTOM_MIME_CONFIGURATION).asResource().read()) {
-                if (configStrategy.equals(REPLACE.getValue())) {
-                    MimeTypesFactory.create(customInputStream);
-                } else {
-                    try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream(CUSTOM_MIME_TYPES_FILENAME);
-                         final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream(DEFAULT_MIME_TYPES_PATH)) {
-                            MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
-                    }
-                }
+            try {
+                createCustomMimeTypes(configStrategy, validationContext);
             } catch (Exception e) {
                 results.add(new ValidationResult.Builder()
                         .subject(CUSTOM_MIME_CONFIGURATION.getDisplayName())
@@ -295,5 +282,18 @@ public class IdentifyMimeType extends AbstractProcessor {
             }
         }
         return results;
+    }
+
+    private MimeTypes createCustomMimeTypes(String configStrategy, PropertyContext context) throws MimeTypeException, IOException {
+        try (final InputStream customInputStream = context.getProperty(CUSTOM_MIME_CONFIGURATION).asResource().read()) {
+            if (configStrategy.equals(REPLACE.getValue())) {
+                return MimeTypesFactory.create(customInputStream);
+            } else {
+                try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream(CUSTOM_MIME_TYPES_FILENAME);
+                     final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream(DEFAULT_MIME_TYPES_PATH)) {
+                    return MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
+                }
+            }
+        }
     }
 }
