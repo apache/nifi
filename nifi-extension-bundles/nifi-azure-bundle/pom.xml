@@ -28,8 +28,8 @@
 
     <properties>
         <!-- when changing the Azure SDK version, also update msal4j to the version that is required by azure-identity -->
-        <azure.sdk.bom.version>1.2.32</azure.sdk.bom.version>
-        <msal4j.version>1.19.0</msal4j.version>
+        <azure.sdk.bom.version>1.2.33</azure.sdk.bom.version>
+        <msal4j.version>1.19.1</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
 
@@ -55,7 +55,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.4.0-jre</version>
+                <version>33.4.6-jre</version>
             </dependency>
             <!-- Override Apache Qpid Proton J for Azure EventHubs to resolve PROTON-2347 -->
             <dependency>
