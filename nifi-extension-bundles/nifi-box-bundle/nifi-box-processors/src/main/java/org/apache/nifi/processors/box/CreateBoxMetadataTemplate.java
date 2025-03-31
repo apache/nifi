@@ -127,6 +127,15 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor HIDDEN_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("Template Field Hidden Record Path")
+            .description("Specifies the RecordPath to use for getting the field hidden status.")
+            .required(false)
+            .addValidator(new RecordPathValidator())
+            .defaultValue("/hidden")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final PropertyDescriptor DISPLAY_NAME_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("Template Display Name Field Record Path")
             .description("Specifies the RecordPath to use for getting the field display name. If not specified or if the path doesn't resolve to a value, the key will be used.")
@@ -159,7 +168,8 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             RECORD_READER,
             KEY_RECORD_PATH,
             TYPE_RECORD_PATH,
-            DISPLAY_NAME_RECORD_PATH
+            DISPLAY_NAME_RECORD_PATH,
+            HIDDEN_RECORD_PATH
     );
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -198,6 +208,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String keyRecordPathStr = context.getProperty(KEY_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final String typeRecordPathStr = context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
+        final String hiddenRecordPathStr = context.getProperty(HIDDEN_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
 
         final String displayNameRecordPathStr;
         if (context.getProperty(DISPLAY_NAME_RECORD_PATH).isSet()) {
@@ -211,6 +222,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
 
             final RecordPath keyRecordPath = RecordPath.compile(keyRecordPathStr);
             final RecordPath typeRecordPath = RecordPath.compile(typeRecordPathStr);
+            final RecordPath hiddenRecordPath = RecordPath.compile(hiddenRecordPathStr);
             final RecordPath displayNameRecordPath = displayNameRecordPathStr != null ? RecordPath.compile(displayNameRecordPathStr) : null;
 
             // Create list to hold fields for the template
@@ -221,7 +233,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             Record record;
             try {
                 while ((record = recordReader.nextRecord()) != null) {
-                    processRecord(record, keyRecordPath, typeRecordPath, displayNameRecordPath, fields, processedKeys, errors);
+                    processRecord(record, keyRecordPath, typeRecordPath, displayNameRecordPath, hiddenRecordPath, fields, processedKeys, errors);
                 }
             } catch (final Exception e) {
                 getLogger().error("Error processing record: {}", e.getMessage(), e);
@@ -273,6 +285,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
                                final RecordPath keyRecordPath,
                                final RecordPath typeRecordPath,
                                final RecordPath displayNameRecordPath,
+                               final RecordPath hiddenRecordPath,
                                final List<MetadataTemplate.Field> fields,
                                final Set<String> processedKeys,
                                final List<String> errors) {
@@ -292,9 +305,8 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
 
         final String key = keyObj.toString();
 
-        // Skip if we've already processed this key
         if (processedKeys.contains(key)) {
-            getLogger().warn("Duplicate key '{}' found in record, skipping", key);
+            errors.add("Duplicate key '" + key + "' found in record, skipping");
             return;
         }
 
@@ -335,11 +347,25 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             }
         }
 
+        Boolean hidden = false;
+        if (hiddenRecordPath != null) {
+            final RecordPathResult hiddenPathResult = hiddenRecordPath.evaluate(record);
+            final List<FieldValue> hiddenValues = hiddenPathResult.getSelectedFields().toList();
+
+            if (!hiddenValues.isEmpty()) {
+                final Object hiddenObj = hiddenValues.getFirst().getValue();
+                if (hiddenObj != null) {
+                    hidden = Boolean.parseBoolean(hiddenObj.toString());
+                }
+            }
+        }
+
         // Create and add the field
         final MetadataTemplate.Field metadataField = new MetadataTemplate.Field();
         metadataField.setType(type);
         metadataField.setKey(key);
         metadataField.setDisplayName(displayName);
+        metadataField.setIsHidden(hidden);
 
         fields.add(metadataField);
         processedKeys.add(key);
