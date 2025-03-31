@@ -42,12 +42,13 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.lang.String.valueOf;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
@@ -59,8 +60,9 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 @Tags({"box", "storage", "metadata", "templates", "update"})
 @CapabilityDescription("""
          Updates metadata template values for a Box file using the record in the given flowFile.\s
-         This record should be the desired state of the template after the update.\s
-         The input record should be a flat key-value object.
+         This record represents the desired end state of the template after the update.\s
+         The processor will calculate the necessary changes (add/replace/remove) to transform
+         the current metadata to the desired state. The input record should be a flat key-value object.
         """)
 @SeeAlso({ListBoxFileMetadataTemplates.class, ListBoxFile.class, FetchBoxFile.class})
 @WritesAttributes({
@@ -104,7 +106,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
 
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after metadata has been successfully updated.")
@@ -120,18 +121,18 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             .description("FlowFiles for which the specified Box file was not found will be routed to this relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(
-            REL_SUCCESS,
-            REL_FAILURE,
-            REL_NOT_FOUND
-    );
-
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FILE_ID,
             TEMPLATE_NAME,
             TEMPLATE_SCOPE,
             RECORD_READER
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_NOT_FOUND
     );
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -165,38 +166,42 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         final String templateScope = context.getProperty(TEMPLATE_SCOPE).evaluateAttributeExpressions(flowFile).getValue();
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
-        try (final InputStream inputStream = session.read(flowFile);
-             final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
-
-            // Create metadata object
+        try {
             final BoxFile boxFile = getBoxFile(fileId);
-            final Metadata metadata = new Metadata(templateScope, templateName);
-            final Set<String> updatedKeys = new HashSet<>();
-            final List<String> errors = new ArrayList<>();
 
-            Record record = recordReader.nextRecord();
-            if (record != null) {
-                processRecord(record, metadata, updatedKeys, errors);
-            } else {
-                errors.add("No records found in input");
-            }
+            // Parse the input record to get the desired state
+            final Map<String, Object> desiredState = readDesiredState(session, flowFile, recordReaderFactory);
 
-            if (!errors.isEmpty()) {
-                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, String.join(", ", errors));
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-
-            if (updatedKeys.isEmpty()) {
+            if (desiredState.isEmpty()) {
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "No valid metadata key-value pairs found in the input");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
-            boxFile.updateMetadata(metadata);
+            final Metadata metadata = getOrCreateMetadata(boxFile, templateScope, templateName, fileId);
+            final Set<String> processedKeys = updateMetadata(metadata, desiredState);
+
+            if (!processedKeys.isEmpty()) {
+                getLogger().info("Updating {} metadata fields for file {}", processedKeys.size(), fileId);
+                boxFile.updateMetadata(metadata);
+            } else {
+                getLogger().info("No changes needed for metadata on file {}", fileId);
+            }
+
+
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put("box.id", fileId);
+            attributes.put("box.template.name", templateName);
+            attributes.put("box.template.scope", templateScope);
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata/" + templateScope + "/" + templateName);
+            session.transfer(flowFile, REL_SUCCESS);
+
         } catch (final BoxAPIResponseException e) {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+
             if (e.getResponseCode() == 404) {
                 getLogger().warn("Box file with ID {} was not found.", fileId);
                 session.transfer(flowFile, REL_NOT_FOUND);
@@ -204,46 +209,121 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 getLogger().error("Couldn't update metadata for file with id [{}]", fileId, e);
                 session.transfer(flowFile, REL_FAILURE);
             }
-            return;
         } catch (Exception e) {
             getLogger().error("Error processing metadata update for Box file [{}]", fileId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
-
-        // Update FlowFile attributes
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("box.id", fileId);
-        attributes.put("box.template.name", templateName);
-        attributes.put("box.template.scope", templateScope);
-        flowFile = session.putAllAttributes(flowFile, attributes);
-
-        session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata/enterprise/" + templateName);
-        session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void processRecord(Record record, Metadata metadata, Set<String> updatedKeys, List<String> errors) {
-        if (record == null) {
-            errors.add("No record found in input");
-            return;
+    private Map<String, Object> readDesiredState(final ProcessSession session,
+                                                 final FlowFile flowFile,
+                                                 final RecordReaderFactory recordReaderFactory) throws Exception {
+        final Map<String, Object> desiredState = new HashMap<>();
+
+        try (final InputStream inputStream = session.read(flowFile);
+             final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
+
+            final Record record = recordReader.nextRecord();
+            if (record != null) {
+                for (String fieldName : record.getSchema().getFieldNames()) {
+                    desiredState.put(fieldName, record.getValue(fieldName));
+                }
+            }
         }
 
-        Set<String> fieldNames = new HashSet<>(record.getSchema().getFieldNames());
+        return desiredState;
+    }
 
-        if (fieldNames.isEmpty()) {
-            errors.add("Record has no fields");
-            return;
+    private Metadata getOrCreateMetadata(final BoxFile boxFile,
+                                         final String templateScope,
+                                         final String templateName,
+                                         final String fileId) {
+        try {
+            final Metadata metadata = boxFile.getMetadata(templateScope, templateName);
+            getLogger().debug("Retrieved existing metadata for file {}", fileId);
+            return metadata;
+        } catch (final BoxAPIResponseException e) {
+            if (e.getResponseCode() == 404) {
+                getLogger().info("No existing metadata found for file {} with template {}. Creating new metadata instance.",
+                        fileId, templateName);
+                return new Metadata(templateScope, templateName);
+            }
+            throw e;
+        }
+    }
+
+
+    private Set<String> updateMetadata(final Metadata metadata,
+                                       final Map<String, Object> desiredState) {
+        final Set<String> processedKeys = new HashSet<>();
+        final List<String> currentKeys = metadata.getPropertyPaths();
+
+        // Remove fields not in desired state
+        for (final String propertyPath : currentKeys) {
+            final String fieldName = propertyPath.substring(1); // Remove leading '/'
+
+            if (!desiredState.containsKey(fieldName)) {
+                metadata.remove(propertyPath);
+                processedKeys.add(fieldName);
+                getLogger().debug("Removing metadata field: {}", fieldName);
+            }
         }
 
-        for (String fieldName : fieldNames) {
-            Object valueObj = record.getValue(fieldName);
-            String value = valueObj != null ? valueObj.toString() : null;
+        // Add or update fields
+        for (final Map.Entry<String, Object> entry : desiredState.entrySet()) {
+            final String fieldName = entry.getKey();
+            final Object value = entry.getValue();
+            final String propertyPath = "/" + fieldName;
 
-            // Add the key-value pair to the metadata
-            metadata.add("/" + fieldName, value);
-            updatedKeys.add(fieldName);
+            if (updateField(metadata, propertyPath, value, currentKeys.contains(propertyPath))) {
+                processedKeys.add(fieldName);
+            }
         }
+
+        return processedKeys;
+    }
+
+    private boolean updateField(final Metadata metadata,
+                                final String propertyPath,
+                                final Object value,
+                                final boolean exists) {
+
+        final String stringValue = value != null ? value.toString() : null;
+        if (exists) {
+            final Object currentValue = metadata.getValue(propertyPath);
+            final String currentStringValue = currentValue != null ? currentValue.toString() : null;
+
+            // Only update if values are different
+            if (Objects.equals(currentStringValue, stringValue)) {
+                return false;
+            }
+
+            // Update with appropriate type
+            if (value instanceof Number) {
+                metadata.replace(propertyPath, ((Number) value).doubleValue());
+            } else if (value instanceof List) {
+                metadata.replace(propertyPath, convertListToStringList((List<?>) value));
+            } else {
+                metadata.replace(propertyPath, stringValue);
+            }
+        } else {
+            // Add new field with appropriate type
+            if (value instanceof Number) {
+                metadata.add(propertyPath, ((Number) value).doubleValue());
+            } else if (value instanceof List) {
+                metadata.add(propertyPath, convertListToStringList((List<?>) value));
+            } else {
+                metadata.add(propertyPath, stringValue);
+            }
+        }
+        return true;
+    }
+
+    private List<String> convertListToStringList(final List<?> list) {
+        return list.stream()
+                .map(item -> item != null ? item.toString() : null)
+                .collect(Collectors.toList());
     }
 
     /**

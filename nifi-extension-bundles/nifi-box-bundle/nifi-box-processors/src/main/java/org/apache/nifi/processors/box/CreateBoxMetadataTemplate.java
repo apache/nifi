@@ -225,7 +225,6 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             final RecordPath hiddenRecordPath = RecordPath.compile(hiddenRecordPathStr);
             final RecordPath displayNameRecordPath = displayNameRecordPathStr != null ? RecordPath.compile(displayNameRecordPathStr) : null;
 
-            // Create list to hold fields for the template
             final List<MetadataTemplate.Field> fields = new ArrayList<>();
             final List<String> errors = new ArrayList<>();
             final Set<String> processedKeys = new HashSet<>();
