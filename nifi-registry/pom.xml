@@ -36,7 +36,7 @@
     </modules>
     <properties>
         <spring.boot.version>3.4.4</spring.boot.version>
-        <flyway.version>11.4.1</flyway.version>
+        <flyway.version>11.5.0</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jgit.version>7.2.0.202503040940-r</jgit.version>
