@@ -34,7 +34,7 @@ import java.util.Map;
 import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
-public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
+public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
 
     private static final String TEMPLATE_KEY = "testTemplate";
     private static final String COMPLETION_REASON = "success";
@@ -45,7 +45,7 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        final ExtractBoxFileMetadataWithBoxAI testSubject = new ExtractBoxFileMetadataWithBoxAI() {
+        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
             BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponse(final String templateKey,
                                                                              final String fileId) {
                 return mockAIResponse;
@@ -55,8 +55,8 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
 
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.TEMPLATE_KEY, TEMPLATE_KEY);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
         lenient().when(mockAIResponse.getCompletionReason()).thenReturn(COMPLETION_REASON);
         lenient().when(mockAIResponse.getCreatedAt()).thenReturn(CREATED_AT);
     }
@@ -66,8 +66,8 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
         testRunner.enqueue("test data");
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractBoxFileMetadataWithBoxAI.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractBoxFileMetadataWithBoxAI.REL_SUCCESS).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_SUCCESS).getFirst();
 
         flowFile.assertAttributeEquals("box.id", TEST_FILE_ID);
         flowFile.assertAttributeEquals("box.ai.completion.reason", COMPLETION_REASON);
@@ -77,7 +77,7 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() throws Exception {
-        final ExtractBoxFileMetadataWithBoxAI testSubject = new ExtractBoxFileMetadataWithBoxAI() {
+        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
             @Override
             BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponse(final String templateKey,
                                                                              final String fileId) {
@@ -88,20 +88,20 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
 
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.TEMPLATE_KEY, TEMPLATE_KEY);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
 
         testRunner.enqueue("test data");
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractBoxFileMetadataWithBoxAI.REL_NOT_FOUND, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractBoxFileMetadataWithBoxAI.REL_NOT_FOUND).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
     }
 
     @Test
     void testOtherAPIError() throws Exception {
-        final ExtractBoxFileMetadataWithBoxAI testSubject = new ExtractBoxFileMetadataWithBoxAI() {
+        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
             @Override
             BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponse(final String templateKey,
                                                                              final String fileId) {
@@ -112,20 +112,20 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
 
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.TEMPLATE_KEY, TEMPLATE_KEY);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
 
         testRunner.enqueue("test data");
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractBoxFileMetadataWithBoxAI.REL_FAILURE, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractBoxFileMetadataWithBoxAI.REL_FAILURE).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FAILURE, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "500");
     }
 
     @Test
     void testGenericException() throws Exception {
-        final ExtractBoxFileMetadataWithBoxAI testSubject = new ExtractBoxFileMetadataWithBoxAI() {
+        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
             @Override
             BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponse(final String templateKey,
                                                                              final String fileId) {
@@ -136,14 +136,14 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
 
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.TEMPLATE_KEY, TEMPLATE_KEY);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
 
         testRunner.enqueue("test data");
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractBoxFileMetadataWithBoxAI.REL_FAILURE, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractBoxFileMetadataWithBoxAI.REL_FAILURE).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FAILURE, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Something went wrong");
     }
 
@@ -154,14 +154,14 @@ public class ExtractBoxFileMetadataWithBoxAITest extends AbstractBoxFileTest {
         attributes.put("file.id", TEST_FILE_ID);
         attributes.put("template.key", TEMPLATE_KEY);
 
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.FILE_ID, "${file.id}");
-        testRunner.setProperty(ExtractBoxFileMetadataWithBoxAI.TEMPLATE_KEY, "${template.key}");
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, "${file.id}");
+        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, "${template.key}");
 
         testRunner.enqueue("test data", attributes);
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractBoxFileMetadataWithBoxAI.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractBoxFileMetadataWithBoxAI.REL_SUCCESS).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_SUCCESS).getFirst();
 
         flowFile.assertAttributeEquals("box.id", TEST_FILE_ID);
         flowFile.assertAttributeEquals("box.ai.completion.reason", COMPLETION_REASON);

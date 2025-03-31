@@ -36,10 +36,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPath;
-import org.apache.nifi.record.path.RecordPathResult;
-import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
@@ -61,7 +57,8 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "create"})
-@CapabilityDescription("Creates a Box metadata template using field specifications from the flowFile content.")
+@CapabilityDescription("Creates a Box metadata template using field specifications from the flowFile content. Expects a schema with fields: " +
+        "'type' (required), 'key' (required), 'displayName' (optional), 'description' (optional), 'hidden' (optional, boolean).")
 @SeeAlso({ListBoxFileMetadataTemplates.class, UpdateBoxFileMetadataInstance.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.template.name", description = "The template name that was created"),
@@ -109,42 +106,6 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
 
-    public static final PropertyDescriptor KEY_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("Template Key Field Record Path")
-            .description("Specifies the RecordPath to use for getting the field key names.")
-            .required(true)
-            .addValidator(new RecordPathValidator())
-            .defaultValue("/key")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor TYPE_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("Template Type Field Record Path")
-            .description("Specifies the RecordPath to use for getting the field type (string, float, date).")
-            .required(true)
-            .addValidator(new RecordPathValidator())
-            .defaultValue("/type")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor HIDDEN_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("Template Field Hidden Record Path")
-            .description("Specifies the RecordPath to use for getting the field hidden status.")
-            .required(false)
-            .addValidator(new RecordPathValidator())
-            .defaultValue("/hidden")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor DISPLAY_NAME_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("Template Display Name Field Record Path")
-            .description("Specifies the RecordPath to use for getting the field display name. If not specified or if the path doesn't resolve to a value, the key will be used.")
-            .required(false)
-            .addValidator(new RecordPathValidator())
-            .defaultValue("/displayName")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after a template has been successfully created.")
@@ -165,11 +126,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             TEMPLATE_NAME,
             TEMPLATE_KEY,
             HIDDEN,
-            RECORD_READER,
-            KEY_RECORD_PATH,
-            TYPE_RECORD_PATH,
-            DISPLAY_NAME_RECORD_PATH,
-            HIDDEN_RECORD_PATH
+            RECORD_READER
     );
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -206,24 +163,9 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
         final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final boolean hidden = Boolean.parseBoolean(context.getProperty(HIDDEN).evaluateAttributeExpressions(flowFile).getValue());
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final String keyRecordPathStr = context.getProperty(KEY_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        final String typeRecordPathStr = context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        final String hiddenRecordPathStr = context.getProperty(HIDDEN_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
-
-        final String displayNameRecordPathStr;
-        if (context.getProperty(DISPLAY_NAME_RECORD_PATH).isSet()) {
-            displayNameRecordPathStr = context.getProperty(DISPLAY_NAME_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        } else {
-            displayNameRecordPathStr = null;
-        }
 
         try (final InputStream inputStream = session.read(flowFile);
              final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
-
-            final RecordPath keyRecordPath = RecordPath.compile(keyRecordPathStr);
-            final RecordPath typeRecordPath = RecordPath.compile(typeRecordPathStr);
-            final RecordPath hiddenRecordPath = RecordPath.compile(hiddenRecordPathStr);
-            final RecordPath displayNameRecordPath = displayNameRecordPathStr != null ? RecordPath.compile(displayNameRecordPathStr) : null;
 
             final List<MetadataTemplate.Field> fields = new ArrayList<>();
             final List<String> errors = new ArrayList<>();
@@ -232,7 +174,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             Record record;
             try {
                 while ((record = recordReader.nextRecord()) != null) {
-                    processRecord(record, keyRecordPath, typeRecordPath, displayNameRecordPath, hiddenRecordPath, fields, processedKeys, errors);
+                    processRecord(record, fields, processedKeys, errors);
                 }
             } catch (final Exception e) {
                 getLogger().error("Error processing record: {}", e.getMessage(), e);
@@ -251,7 +193,6 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
                 return;
             }
 
-            // Create the template
             createBoxMetadataTemplate(
                     boxAPIConnection,
                     templateKey,
@@ -281,27 +222,15 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
     }
 
     private void processRecord(final Record record,
-                               final RecordPath keyRecordPath,
-                               final RecordPath typeRecordPath,
-                               final RecordPath displayNameRecordPath,
-                               final RecordPath hiddenRecordPath,
                                final List<MetadataTemplate.Field> fields,
                                final Set<String> processedKeys,
                                final List<String> errors) {
-        final RecordPathResult keyPathResult = keyRecordPath.evaluate(record);
-        final List<FieldValue> keyValues = keyPathResult.getSelectedFields().toList();
-
-        if (keyValues.isEmpty()) {
+        // Extract and validate key (required)
+        final Object keyObj = record.getValue("key");
+        if (keyObj == null) {
             errors.add("Record is missing a key field");
             return;
         }
-
-        final Object keyObj = keyValues.getFirst().getValue();
-        if (keyObj == null) {
-            errors.add("Record has a null key value");
-            return;
-        }
-
         final String key = keyObj.toString();
 
         if (processedKeys.contains(key)) {
@@ -309,62 +238,38 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             return;
         }
 
-        final RecordPathResult typePathResult = typeRecordPath.evaluate(record);
-        final List<FieldValue> typeValues = typePathResult.getSelectedFields().toList();
-
-        if (typeValues.isEmpty()) {
+        // Extract and validate type (required)
+        final Object typeObj = record.getValue("type");
+        if (typeObj == null) {
             errors.add("Record with key '" + key + "' is missing a type field");
             return;
         }
+        final String normalizedType = typeObj.toString().toLowerCase();
 
-        final Object typeObj = typeValues.getFirst().getValue();
-        if (typeObj == null) {
-            errors.add("Record with key '" + key + "' has a null type value");
+        if (!VALID_FIELD_TYPES.contains(normalizedType)) {
+            errors.add("Record with key '" + key + "' has an invalid type: '" + normalizedType +
+                    "'. Valid types are: " + String.join(", ", VALID_FIELD_TYPES));
             return;
         }
 
-        final String type = typeObj.toString().toLowerCase();
-
-        // Validate field type
-        if (!VALID_FIELD_TYPES.contains(type)) {
-            errors.add("Record with key '" + key + "' has an invalid type: '" + type + "'. Valid types are: " +
-                    String.join(", ", VALID_FIELD_TYPES));
-            return;
-        }
-
-        // Get the display name from the record (falls back to key if missing)
-        String displayName = key;
-        if (displayNameRecordPath != null) {
-            final RecordPathResult displayNamePathResult = displayNameRecordPath.evaluate(record);
-            final List<FieldValue> displayNameValues = displayNamePathResult.getSelectedFields().toList();
-
-            if (!displayNameValues.isEmpty()) {
-                final Object displayNameObj = displayNameValues.getFirst().getValue();
-                if (displayNameObj != null) {
-                    displayName = displayNameObj.toString();
-                }
-            }
-        }
-
-        Boolean hidden = false;
-        if (hiddenRecordPath != null) {
-            final RecordPathResult hiddenPathResult = hiddenRecordPath.evaluate(record);
-            final List<FieldValue> hiddenValues = hiddenPathResult.getSelectedFields().toList();
-
-            if (!hiddenValues.isEmpty()) {
-                final Object hiddenObj = hiddenValues.getFirst().getValue();
-                if (hiddenObj != null) {
-                    hidden = Boolean.parseBoolean(hiddenObj.toString());
-                }
-            }
-        }
-
-        // Create and add the field
         final MetadataTemplate.Field metadataField = new MetadataTemplate.Field();
-        metadataField.setType(type);
         metadataField.setKey(key);
-        metadataField.setDisplayName(displayName);
-        metadataField.setIsHidden(hidden);
+        metadataField.setType(normalizedType);
+
+        final Object displayNameObj = record.getValue("displayName");
+        if (displayNameObj != null) {
+            metadataField.setDisplayName(displayNameObj.toString());
+        }
+
+        final Object hiddenObj = record.getValue("hidden");
+        if (hiddenObj != null) {
+            metadataField.setIsHidden(Boolean.parseBoolean(hiddenObj.toString()));
+        }
+
+        final Object descriptionObj = record.getValue("description");
+        if (descriptionObj != null) {
+            metadataField.setDescription(descriptionObj.toString());
+        }
 
         fields.add(metadataField);
         processedKeys.add(key);

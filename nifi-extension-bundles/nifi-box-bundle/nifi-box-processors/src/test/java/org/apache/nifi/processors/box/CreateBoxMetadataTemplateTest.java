@@ -80,9 +80,6 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.setProperty(CreateBoxMetadataTemplate.TEMPLATE_KEY, TEMPLATE_KEY);
         testRunner.setProperty(CreateBoxMetadataTemplate.HIDDEN, HIDDEN_VALUE);
         testRunner.setProperty(CreateBoxMetadataTemplate.RECORD_READER, "json-reader");
-        testRunner.setProperty(CreateBoxMetadataTemplate.KEY_RECORD_PATH, "/key");
-        testRunner.setProperty(CreateBoxMetadataTemplate.TYPE_RECORD_PATH, "/type");
-        testRunner.setProperty(CreateBoxMetadataTemplate.DISPLAY_NAME_RECORD_PATH, "/displayName");
     }
 
     private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
@@ -104,7 +101,7 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.run();
         assertEquals(2, capturedFields.size());
 
-        MetadataTemplate.Field field1 = capturedFields.get(0);
+        MetadataTemplate.Field field1 = capturedFields.getFirst();
         assertEquals("field1", field1.getKey());
         assertEquals("string", field1.getType());
         assertEquals("Field One", field1.getDisplayName());
@@ -112,7 +109,6 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         MetadataTemplate.Field field2 = capturedFields.get(1);
         assertEquals("field2", field2.getKey());
         assertEquals("float", field2.getType());
-        assertEquals("field2", field2.getDisplayName()); // Default to key when displayName not provided
 
         testRunner.assertAllFlowFilesTransferred(CreateBoxMetadataTemplate.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxMetadataTemplate.REL_SUCCESS).get(0);
@@ -194,9 +190,9 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
     void testAllFieldTypes() {
         final String inputJson = """
                 [
-                    {"key": "strField", "type": "string", "displayName": "String Field"},
-                    {"key": "numField", "type": "float", "displayName": "Number Field"},
-                    {"key": "dateField", "type": "date", "displayName": "Date Field"}
+                    {"key": "strField", "type": "string", "displayName": "String Field", "description": "A string field", "hidden": false},
+                    {"key": "numField", "type": "float", "displayName": "Number Field", "description": "A float field", "hidden": true},
+                    {"key": "dateField", "type": "date", "displayName": "Date Field", "description": "A date field"}
                 ]
                 """;
 
@@ -210,6 +206,11 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         assertEquals("String Field", capturedFields.get(0).getDisplayName());
         assertEquals("Number Field", capturedFields.get(1).getDisplayName());
         assertEquals("Date Field", capturedFields.get(2).getDisplayName());
+        assertEquals("A string field", capturedFields.get(0).getDescription());
+        assertEquals("A float field", capturedFields.get(1).getDescription());
+        assertEquals("A date field", capturedFields.get(2).getDescription());
+        assertEquals(false, capturedFields.get(0).getIsHidden());
+        assertEquals(true, capturedFields.get(1).getIsHidden());
 
         testRunner.assertAllFlowFilesTransferred(CreateBoxMetadataTemplate.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxMetadataTemplate.REL_SUCCESS).getFirst();

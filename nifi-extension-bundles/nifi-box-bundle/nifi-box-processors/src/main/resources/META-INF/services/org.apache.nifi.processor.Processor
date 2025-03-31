@@ -17,7 +17,7 @@ org.apache.nifi.processors.box.ConsumeBoxEnterpriseEvents
 org.apache.nifi.processors.box.ConsumeBoxEvents
 org.apache.nifi.processors.box.CreateBoxMetadataTemplate
 org.apache.nifi.processors.box.CreateBoxFileMetadataInstance
-org.apache.nifi.processors.box.ExtractBoxFileMetadataWithBoxAI
+org.apache.nifi.processors.box.ExtractStructuredBoxFileMetadata
 org.apache.nifi.processors.box.FetchBoxFile
 org.apache.nifi.processors.box.FetchBoxFileInfo
 org.apache.nifi.processors.box.FetchBoxFileRepresentation
