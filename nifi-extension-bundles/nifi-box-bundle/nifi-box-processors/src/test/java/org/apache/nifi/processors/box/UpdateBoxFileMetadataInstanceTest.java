@@ -36,8 +36,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
@@ -47,6 +48,9 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Mock
     private BoxFile mockBoxFile;
+
+    @Mock
+    private Metadata mockMetadata;
 
     @Override
     @BeforeEach
@@ -67,8 +71,11 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_NAME, TEMPLATE_NAME);
         testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_SCOPE, TEMPLATE_SCOPE);
         testRunner.setProperty(UpdateBoxFileMetadataInstance.RECORD_READER, "json-reader");
-        testRunner.setProperty(UpdateBoxFileMetadataInstance.KEY_RECORD_PATH, "/key");
-        testRunner.setProperty(UpdateBoxFileMetadataInstance.VALUE_RECORD_PATH, "/value");
+
+        // Set up mocks
+        lenient().when(mockMetadata.getScope()).thenReturn(TEMPLATE_SCOPE);
+        lenient().when(mockMetadata.getTemplateName()).thenReturn(TEMPLATE_NAME);
+        lenient().when(mockBoxFile.getMetadata(TEMPLATE_NAME, TEMPLATE_SCOPE)).thenReturn(mockMetadata);
     }
 
     private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
@@ -80,16 +87,13 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     @Test
     void testSuccessfulMetadataUpdate() {
         final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": "value1"
-                  },
-                  {
-                    "key": "metadata2",
-                    "value": "value2"
-                  }
-                ]""";
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans",
+                  "competitiveDocument": "no",
+                  "status": "active",
+                  "author": "Jones"
+                }""";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -111,7 +115,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testEmptyInput() {
-        final String inputJson = "[]";
+        final String inputJson = "{}";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -123,17 +127,15 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() {
-        // Simulate 404 Not Found response
+        // Simulate 404 Not Found response when getMetadata is called
         BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        doThrow(mockException).when(mockBoxFile).updateMetadata(any(Metadata.class));
+        when(mockBoxFile.updateMetadata(any())).thenThrow(mockException);
 
         final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": "value1"
-                  }
-                ]""";
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans"
+                }""";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -148,16 +150,11 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     void testNullValues() {
         // Test with null values for keys/values
         final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": null
-                  },
-                  {
-                    "key": "metadata3",
-                    "value": "value3"
-                  }
-                ]""";
+                {
+                  "audience": null,
+                  "documentType": "Q1 plans",
+                  "status": "active"
+                }""";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -181,12 +178,10 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_SCOPE, "${template.scope}");
 
         final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": "value1"
-                  }
-                ]""";
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans"
+                }""";
 
         testRunner.enqueue(inputJson, attributes);
         testRunner.run();
