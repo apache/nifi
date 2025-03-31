@@ -75,7 +75,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
 
     public static final String SCOPE_ENTERPRISE = "enterprise";
 
-    private static final Set<String> VALID_FIELD_TYPES = new HashSet<>(Arrays.asList("string", "float", "date"));
+    private static final Set<String> VALID_FIELD_TYPES = new HashSet<>(Arrays.asList("string", "float", "date", "enum", "multiSelect"));
 
     public static final PropertyDescriptor TEMPLATE_NAME = new PropertyDescriptor.Builder()
             .name("Template Name")

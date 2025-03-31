@@ -193,7 +193,8 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             final RecordPath valueRecordPath = RecordPath.compile(valueRecordPathStr);
 
             // Create metadata object
-            final Metadata metadata = new Metadata(templateScope, templateName);
+            final BoxFile boxFile = getBoxFile(fileId);
+            final Metadata metadata = boxFile.getMetadata(templateName, templateScope);
             final Set<String> updatedKeys = new HashSet<>();
             final List<String> errors = new ArrayList<>();
 
@@ -219,7 +220,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 return;
             }
 
-            final BoxFile boxFile = getBoxFile(fileId);
             boxFile.updateMetadata(metadata);
 
             // Update FlowFile attributes
@@ -229,7 +229,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             attributes.put("box.template.scope", templateScope);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId);
+            session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata/enterprise/" + templateName);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final BoxAPIResponseException e) {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));

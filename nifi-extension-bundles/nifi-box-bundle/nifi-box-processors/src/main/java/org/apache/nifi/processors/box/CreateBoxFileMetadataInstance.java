@@ -37,10 +37,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPath;
-import org.apache.nifi.record.path.RecordPathResult;
-import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
@@ -62,7 +58,8 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "create"})
 @CapabilityDescription("Creates a metadata instance for a Box file using a specified template with values from the flowFile content. " +
-        "The Box API requires newly created templates to be created with the scope set as enterprise so no scope is required.")
+        "The Box API requires newly created templates to be created with the scope set as enterprise so no scope is required. " +
+        "The input record should be a flat key-value object where each field name is used as the metadata key.")
 @SeeAlso({ListBoxFileMetadataTemplates.class, UpdateBoxFileMetadataInstance.class, ListBoxFile.class, FetchBoxFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file for which metadata was created"),
@@ -96,24 +93,6 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
 
-    public static final PropertyDescriptor KEY_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("Metadata Key Record Path")
-            .description("Specifies the RecordPath to use for getting the metadata key to create.")
-            .required(true)
-            .addValidator(new RecordPathValidator())
-            .defaultValue("/key")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor VALUE_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("Metadata Value Record Path")
-            .description("Specifies the record path to use for getting the metadata value to create.")
-            .required(true)
-            .addValidator(new RecordPathValidator())
-            .defaultValue("/value")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after metadata has been successfully created.")
@@ -139,9 +118,7 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             BoxClientService.BOX_CLIENT_SERVICE,
             FILE_ID,
             TEMPLATE_NAME,
-            RECORD_READER,
-            KEY_RECORD_PATH,
-            VALUE_RECORD_PATH
+            RECORD_READER
     );
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -173,26 +150,19 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String templateName = context.getProperty(TEMPLATE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final String keyRecordPathStr = context.getProperty(KEY_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        final String valueRecordPathStr = context.getProperty(VALUE_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
 
         try (final InputStream inputStream = session.read(flowFile);
              final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
 
-            final RecordPath keyRecordPath = RecordPath.compile(keyRecordPathStr);
-            final RecordPath valueRecordPath = RecordPath.compile(valueRecordPathStr);
             final Metadata metadata = new Metadata();
             final Set<String> createdKeys = new HashSet<>();
             final List<String> errors = new ArrayList<>();
 
-            Record record;
-            try {
-                while ((record = recordReader.nextRecord()) != null) {
-                    processRecord(record, keyRecordPath, valueRecordPath, metadata, createdKeys, errors);
-                }
-            } catch (final Exception e) {
-                getLogger().error("Error processing record: {}", e.getMessage(), e);
-                errors.add("Error processing record: " + e.getMessage());
+            Record record = recordReader.nextRecord();
+            if (record != null) {
+                processRecord(record, metadata, createdKeys, errors);
+            } else {
+                errors.add("No records found in input");
             }
 
             if (!errors.isEmpty()) {
@@ -209,15 +179,6 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
 
             final BoxFile boxFile = getBoxFile(fileId);
             boxFile.createMetadata(templateName, metadata);
-
-            // Update FlowFile attributes
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("box.id", fileId);
-            attributes.put("box.template.name", templateName);
-            flowFile = session.putAllAttributes(flowFile, attributes);
-
-            session.getProvenanceReporter().create(flowFile, BoxFileUtils.BOX_URL + fileId);
-            session.transfer(flowFile, REL_SUCCESS);
         } catch (final BoxAPIResponseException e) {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
@@ -228,47 +189,47 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
                 getLogger().error("Couldn't create metadata for file with id [{}]", fileId, e);
                 session.transfer(flowFile, REL_FAILURE);
             }
+            return;
         } catch (Exception e) {
             getLogger().error("Error processing metadata creation for Box file [{}]", fileId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
+            return;
         }
+
+        // Update FlowFile attributes
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("box.id", fileId);
+        attributes.put("box.template.name", templateName);
+        flowFile = session.putAllAttributes(flowFile, attributes);
+
+        session.getProvenanceReporter().create(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata/enterprise/" + templateName);
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void processRecord(Record record, RecordPath keyRecordPath, RecordPath valueRecordPath,
-                               Metadata metadata, Set<String> createdKeys, List<String> errors) {
-        // Get the key from the record
-        final RecordPathResult keyPathResult = keyRecordPath.evaluate(record);
-        final List<FieldValue> keyValues = keyPathResult.getSelectedFields().toList();
-
-        if (keyValues.isEmpty()) {
-            errors.add("Record is missing a key field");
+    private void processRecord(Record record, Metadata metadata, Set<String> createdKeys, List<String> errors) {
+        if (record == null) {
+            errors.add("No record found in input");
             return;
         }
 
-        final Object keyObj = keyValues.getFirst().getValue();
-        if (keyObj == null) {
-            errors.add("Record has a null key value");
+        // Get all field names from the record
+        Set<String> fieldNames = new HashSet<>(record.getSchema().getFieldNames());
+
+        if (fieldNames.isEmpty()) {
+            errors.add("Record has no fields");
             return;
         }
 
-        final String key = keyObj.toString();
+        // Process each field as a key-value pair
+        for (String fieldName : fieldNames) {
+            Object valueObj = record.getValue(fieldName);
+            String value = valueObj != null ? valueObj.toString() : null;
 
-        // Get the value from the record
-        final RecordPathResult valuePathResult = valueRecordPath.evaluate(record);
-        final List<FieldValue> valueValues = valuePathResult.getSelectedFields().toList();
-
-        if (valueValues.isEmpty()) {
-            errors.add("Record with key '" + key + "' is missing a value field");
-            return;
+            // Add the key-value pair to the metadata
+            metadata.add("/" + fieldName, value);
+            createdKeys.add(fieldName);
         }
-
-        final Object valueObj = valueValues.getFirst().getValue();
-        String value = valueObj != null ? valueObj.toString() : null;
-
-        // Add the key-value pair to the metadata
-        metadata.add("/" + key, value);
-        createdKeys.add(key);
     }
 
     /**

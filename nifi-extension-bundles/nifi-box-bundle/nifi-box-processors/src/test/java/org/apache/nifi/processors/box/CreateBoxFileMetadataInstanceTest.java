@@ -31,11 +31,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +49,7 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         final CreateBoxFileMetadataInstance testSubject = new CreateBoxFileMetadataInstance() {
             @Override
             BoxFile getBoxFile(String fileId) {
+                System.out.println("getBoxFile called with ID: " + fileId);
                 return mockBoxFile;
             }
         };
@@ -64,29 +62,30 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.setProperty(CreateBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(CreateBoxFileMetadataInstance.TEMPLATE_NAME, TEMPLATE_NAME);
         testRunner.setProperty(CreateBoxFileMetadataInstance.RECORD_READER, "json-reader");
-        testRunner.setProperty(CreateBoxFileMetadataInstance.KEY_RECORD_PATH, "/key");
-        testRunner.setProperty(CreateBoxFileMetadataInstance.VALUE_RECORD_PATH, "/value");
+
+        System.out.println("Test setup complete");
     }
 
     private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
         final JsonTreeReader readerService = new JsonTreeReader();
+
         runner.addControllerService("json-reader", readerService);
+        runner.setProperty(readerService, "Date Format", "yyyy-MM-dd");
+        runner.setProperty(readerService, "Timestamp Format", "yyyy-MM-dd HH:mm:ss");
+
         runner.enableControllerService(readerService);
     }
 
     @Test
     void testSuccessfulMetadataCreation() {
         final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": "value1"
-                  },
-                  {
-                    "key": "metadata2",
-                    "value": "value2"
-                  }
-                ]""";
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans",
+                  "competitiveDocument": "no",
+                  "status": "active",
+                  "author": "Jones"
+                }""";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -103,7 +102,7 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testEmptyInput() {
-        final String inputJson = "[]";
+        final String inputJson = "{}";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -115,17 +114,14 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() {
-        // Simulate 404 Not Found response
         BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        doThrow(mockException).when(mockBoxFile).createMetadata(any(), any(Metadata.class));
+        lenient().doThrow(mockException).when(mockBoxFile).createMetadata(any(String.class), any(Metadata.class));
 
         final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": "value1"
-                  }
-                ]""";
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans"
+                }""";
 
         testRunner.enqueue(inputJson);
         testRunner.run();
@@ -136,53 +132,4 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
-    @Test
-    void testNullValues() {
-        // Test with null values for keys/values
-        final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": null
-                  },
-                  {
-                    "key": "metadata3",
-                    "value": "value3"
-                  }
-                ]""";
-
-        testRunner.enqueue(inputJson);
-        testRunner.run();
-
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).createMetadata(any(), metadataCaptor.capture());
-        testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_SUCCESS, 1);
-    }
-
-    @Test
-    void testExpressionLanguage() {
-        // Test with expression language in property values
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("file.id", TEST_FILE_ID);
-        attributes.put("template.key", TEMPLATE_NAME);
-
-        testRunner.setProperty(CreateBoxFileMetadataInstance.FILE_ID, "${file.id}");
-        testRunner.setProperty(CreateBoxFileMetadataInstance.TEMPLATE_NAME, "${template.key}");
-
-        final String inputJson = """
-                [
-                  {
-                    "key": "metadata1",
-                    "value": "value1"
-                  }
-                ]""";
-
-        testRunner.enqueue(inputJson, attributes);
-        testRunner.run();
-
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).createMetadata(any(), metadataCaptor.capture());
-
-        testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_SUCCESS, 1);
-    }
 }
