@@ -59,8 +59,10 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "ai", "extract"})
-@CapabilityDescription("Extracts metadata from a Box file using Box AI. The extraction can use either a template or a list of fields. " +
-        "The extracted metadata is written to the FlowFile content as JSON.")
+@CapabilityDescription("""
+        Extracts metadata from a Box file using Box AI. The extraction can use either a template or a list of fields.\s
+        The extracted metadata is written to the FlowFile content as JSON.
+        """)
 @SeeAlso({ListBoxFileMetadataTemplates.class, ListBoxFile.class, FetchBoxFile.class, UpdateBoxFileMetadataInstance.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file from which metadata was extracted"),
@@ -229,7 +231,6 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
                 final String errorBody = e.getResponse();
                 if (errorBody != null && errorBody.contains("Specified Metadata Template not found")) {
                     getLogger().warn("Box metadata template was not found for extraction request.");
-                    flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "Specified Metadata Template not found");
                     session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
                 } else {
                     getLogger().warn("Box file with ID {} was not found.", fileId);

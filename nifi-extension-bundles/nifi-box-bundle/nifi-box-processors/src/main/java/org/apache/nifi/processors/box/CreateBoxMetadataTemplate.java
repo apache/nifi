@@ -57,8 +57,10 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "create"})
-@CapabilityDescription("Creates a Box metadata template using field specifications from the flowFile content. Expects a schema with fields: " +
-        "'type' (required), 'key' (required), 'displayName' (optional), 'description' (optional), 'hidden' (optional, boolean).")
+@CapabilityDescription("""
+         Creates a Box metadata template using field specifications from the flowFile content. Expects a schema with fields:\s
+         "'type' (required), 'key' (required), 'displayName' (optional), 'description' (optional), 'hidden' (optional, boolean).
+        """)
 @SeeAlso({ListBoxFileMetadataTemplates.class, UpdateBoxFileMetadataInstance.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.template.name", description = "The template name that was created"),

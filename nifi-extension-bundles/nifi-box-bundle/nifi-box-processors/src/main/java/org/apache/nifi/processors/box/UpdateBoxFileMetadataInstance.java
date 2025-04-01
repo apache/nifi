@@ -195,7 +195,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             final String errorBody = e.getResponse();
             if (errorBody != null && errorBody.toLowerCase().contains("specified metadata template not found")) {
                 getLogger().warn("Box metadata template with key {} was not found.", templateKey);
-                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, errorBody);
                 session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
             } else {
                 getLogger().warn("Box file with ID {} was not found.", fileId);
