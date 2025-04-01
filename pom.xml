@@ -104,7 +104,7 @@
         <node.version>v22.1.0</node.version>
         <frontend.mvn.plugin.version>1.15.1</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
-        <nifi-api.version>2.0.0</nifi-api.version>
+        <nifi-api.version>2.1.0</nifi-api.version>
         <project.build.outputTimestamp>1741688885</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
