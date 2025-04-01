@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxAI;
+import com.box.sdk.BoxAIExtractField;
 import com.box.sdk.BoxAIExtractMetadataTemplate;
 import com.box.sdk.BoxAIExtractStructuredResponse;
 import com.box.sdk.BoxAIItem;
@@ -40,10 +41,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,17 +59,24 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "ai", "extract"})
-@CapabilityDescription("Extracts metadata from a Box file using Box AI and a template. The extracted metadata is written to the FlowFile content as JSON.")
+@CapabilityDescription("Extracts metadata from a Box file using Box AI. The extraction can use either a template or a list of fields. " +
+        "The extracted metadata is written to the FlowFile content as JSON.")
 @SeeAlso({ListBoxFileMetadataTemplates.class, ListBoxFile.class, FetchBoxFile.class, UpdateBoxFileMetadataInstance.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file from which metadata was extracted"),
-        @WritesAttribute(attribute = "box.ai.template.key", description = "The template key used for extraction"),
+        @WritesAttribute(attribute = "box.ai.template.key", description = "The template key used for extraction (when using TEMPLATE extraction method)"),
+        @WritesAttribute(attribute = "box.ai.extraction.method", description = "The extraction method used (TEMPLATE or FIELDS)"),
         @WritesAttribute(attribute = "box.ai.completion.reason", description = "The completion reason from the AI extraction"),
         @WritesAttribute(attribute = "mime.type", description = "Set to 'application/json' for the JSON content"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
 public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
+
+    public static class ExtractionMethod {
+        public static final String TEMPLATE = "TEMPLATE";
+        public static final String FIELDS = "FIELDS";
+    }
 
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
@@ -79,12 +87,31 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor EXTRACTION_METHOD = new PropertyDescriptor.Builder()
+            .name("Extraction Method")
+            .description("The method to use for extracting metadata. TEMPLATE uses a Box metadata template for extraction. " +
+                    "FIELDS uses a comma-separated list of field names to extract.")
+            .required(true)
+            .allowableValues(ExtractionMethod.TEMPLATE, ExtractionMethod.FIELDS)
+            .defaultValue(ExtractionMethod.TEMPLATE)
+            .build();
+
     public static final PropertyDescriptor TEMPLATE_KEY = new PropertyDescriptor.Builder()
             .name("Template Key")
-            .description("The key of the metadata template to use for extraction.")
+            .description("The key of the metadata template to use for extraction. Required when Extraction Method is TEMPLATE.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.TEMPLATE)
+            .build();
+
+    public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
+            .name("Fields")
+            .description("A comma-separated list of field names to extract. Required when Extraction Method is FIELDS.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.FIELDS)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -111,7 +138,9 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FILE_ID,
-            TEMPLATE_KEY
+            EXTRACTION_METHOD,
+            TEMPLATE_KEY,
+            FIELDS
     );
 
     private static final String SCOPE = "enterprise";
@@ -143,11 +172,29 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
+        final String extractionMethod = context.getProperty(EXTRACTION_METHOD).getValue();
 
         try {
-            final BoxAIExtractStructuredResponse result = getBoxAIExtractStructuredResponse(templateKey, fileId);
-            flowFile = session.putAllAttributes(flowFile, getAttributes(result, fileId));
+            final BoxAIExtractStructuredResponse result;
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put("box.id", fileId);
+            attributes.put("box.ai.extraction.method", extractionMethod);
+
+            if (ExtractionMethod.TEMPLATE.equals(extractionMethod)) {
+                final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
+                attributes.put("box.ai.template.key", templateKey);
+                result = getBoxAIExtractStructuredResponseWithTemplate(templateKey, fileId);
+            } else {
+                final String fieldsString = context.getProperty(FIELDS).evaluateAttributeExpressions(flowFile).getValue();
+                result = getBoxAIExtractStructuredResponseWithFields(fieldsString, fileId);
+            }
+
+            final String completionReason = result.getCompletionReason();
+            if (completionReason != null) {
+                attributes.put("box.ai.completion.reason", completionReason);
+            }
+
+            flowFile = session.putAllAttributes(flowFile, attributes);
 
             // Write the results directly to the FlowFile content. No record reader is needed.
             try (final OutputStream out = session.write(flowFile)) {
@@ -183,15 +230,15 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
     }
 
     /**
-     * This method is responsible for extracting metadata from a Box file using the specified template key.
+     * Extracts metadata from a Box file using the specified template key.
      * Visible for testing purposes.
      *
      * @param templateKey The key of the metadata template to use for extraction.
      * @param fileId      The ID of the Box file from which to extract metadata.
      * @return The response containing the extracted metadata.
      */
-    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponse(final String templateKey,
-                                                                     final String fileId) {
+    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
+                                                                                 final String fileId) {
         final BoxAIExtractMetadataTemplate template = new BoxAIExtractMetadataTemplate(templateKey, SCOPE);
         final BoxAIItem fileItem = new BoxAIItem(fileId, BoxAIItem.Type.FILE);
 
@@ -202,16 +249,47 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
         );
     }
 
-    private static @NotNull Map<String, String> getAttributes(final BoxAIExtractStructuredResponse result,
-                                                              final String fileId) {
-        final String completionReason = result.getCompletionReason();
+    /**
+     * Extracts metadata from a Box file using the specified fields.
+     * Visible for testing purposes.
+     *
+     * @param fieldsString A comma-separated list of field names to extract.
+     * @param fileId       The ID of the Box file from which to extract metadata.
+     * @return The response containing the extracted metadata.
+     */
+    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final String fieldsString,
+                                                                               final String fileId) {
+        final List<BoxAIExtractField> fields = parseFields(fieldsString);
+        final BoxAIItem fileItem = new BoxAIItem(fileId, BoxAIItem.Type.FILE);
 
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("box.id", fileId);
+        return BoxAI.extractMetadataStructured(
+                boxAPIConnection,
+                Collections.singletonList(fileItem),
+                fields
+        );
+    }
 
-        if (completionReason != null) {
-            attributes.put("box.ai.completion.reason", completionReason);
+    /**
+     * Parses a comma-separated string of field names into a list of BoxAIExtractField objects.
+     *
+     * @param fieldsString A comma-separated list of field names.
+     * @return A list of BoxAIExtractField objects.
+     */
+    private List<BoxAIExtractField> parseFields(final String fieldsString) {
+        if (fieldsString == null || fieldsString.trim().isEmpty()) {
+            return Collections.emptyList();
         }
-        return attributes;
+
+        final List<BoxAIExtractField> fields = new ArrayList<>();
+        final String[] fieldNames = fieldsString.split(",");
+
+        for (final String fieldName : fieldNames) {
+            final String trimmedField = fieldName.trim();
+            if (!trimmedField.isEmpty()) {
+                fields.add(new BoxAIExtractField(trimmedField));
+            }
+        }
+
+        return fields;
     }
 }
