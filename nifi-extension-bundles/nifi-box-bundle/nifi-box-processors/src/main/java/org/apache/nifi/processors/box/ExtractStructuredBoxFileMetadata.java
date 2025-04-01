@@ -200,6 +200,10 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             try (final OutputStream out = session.write(flowFile)) {
                 if (result.getAnswer() != null) {
                     out.write(result.getAnswer().toString().getBytes());
+                } else {
+                    flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "No answer present in the AI extraction result");
+                    session.transfer(flowFile, REL_FAILURE);
+                    return;
                 }
             } catch (final IOException e) {
                 getLogger().error("Error writing Box AI metadata extraction answer to FlowFile", e);
@@ -216,7 +220,14 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             if (e.getResponseCode() == 404) {
-                getLogger().warn("Box file with ID {} was not found.", fileId);
+                // This could be either the file not found or the metadata template not found
+                final String errorBody = e.getResponse();
+                if (errorBody != null && errorBody.contains("Specified Metadata Template not found")) {
+                    getLogger().warn("Box metadata template was not found for extraction request.");
+                    flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "Specified Metadata Template not found");
+                } else {
+                    getLogger().warn("Box file with ID {} was not found.", fileId);
+                }
                 session.transfer(flowFile, REL_NOT_FOUND);
             } else {
                 getLogger().error("Couldn't extract metadata from file with id [{}]", fileId, e);

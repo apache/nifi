@@ -83,21 +83,14 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TEMPLATE_NAME = new PropertyDescriptor.Builder()
-            .name("Template Name")
-            .description("The name of the metadata template to update.")
+    public static final PropertyDescriptor TEMPLATE_KEY = new PropertyDescriptor.Builder()
+            .name("Template Key")
+            .description("The key of the metadata template to update.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TEMPLATE_SCOPE = new PropertyDescriptor.Builder()
-            .name("Template Scope")
-            .description("The scope of the metadata template to update (e.g., 'enterprise', 'global').")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
@@ -124,8 +117,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FILE_ID,
-            TEMPLATE_NAME,
-            TEMPLATE_SCOPE,
+            TEMPLATE_KEY,
             RECORD_READER
     );
 
@@ -162,8 +154,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final String templateName = context.getProperty(TEMPLATE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String templateScope = context.getProperty(TEMPLATE_SCOPE).evaluateAttributeExpressions(flowFile).getValue();
+        final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         try {
@@ -178,24 +169,24 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 return;
             }
 
-            final Metadata metadata = getOrCreateMetadata(boxFile, templateScope, templateName, fileId);
+            final Metadata metadata = getOrCreateMetadata(boxFile, templateKey, fileId);
             final Set<String> processedKeys = updateMetadata(metadata, desiredState);
 
-            if (!processedKeys.isEmpty()) {
+            if (!metadata.getOperations().isEmpty()) {
                 getLogger().info("Updating {} metadata fields for file {}", processedKeys.size(), fileId);
-                boxFile.updateMetadata(metadata);
+                updateBoxFileMetadata(boxFile, metadata);
             } else {
                 getLogger().info("No changes needed for metadata on file {}", fileId);
             }
 
 
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("box.id", fileId);
-            attributes.put("box.template.name", templateName);
-            attributes.put("box.template.scope", templateScope);
+            final Map<String, String> attributes = Map.of(
+                    "box.id", fileId,
+                    "box.template.key", templateKey);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata/" + templateScope + "/" + templateName);
+            // Metadata scope will be determined by Box
+            session.getProvenanceReporter().modifyAttributes(flowFile, "%s%s/metadata/enterprise/%s".formatted(BoxFileUtils.BOX_URL, fileId, templateKey));
             session.transfer(flowFile, REL_SUCCESS);
 
         } catch (final BoxAPIResponseException e) {
@@ -235,19 +226,19 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         return desiredState;
     }
 
-    private Metadata getOrCreateMetadata(final BoxFile boxFile,
-                                         final String templateScope,
-                                         final String templateName,
-                                         final String fileId) {
+    Metadata getOrCreateMetadata(final BoxFile boxFile,
+                                 final String templateKey,
+                                 final String fileId) {
         try {
-            final Metadata metadata = boxFile.getMetadata(templateScope, templateName);
+            // Pass just the templateKey - Box will determine the appropriate scope
+            final Metadata metadata = boxFile.getMetadata(templateKey);
             getLogger().debug("Retrieved existing metadata for file {}", fileId);
             return metadata;
         } catch (final BoxAPIResponseException e) {
             if (e.getResponseCode() == 404) {
-                getLogger().info("No existing metadata found for file {} with template {}. Creating new metadata instance.",
-                        fileId, templateName);
-                return new Metadata(templateScope, templateName);
+                // For update processor, we don't want to create new metadata - this is what CreateBoxFileMetadataInstance is for
+                getLogger().warn("No existing metadata found for file {} with template key {}.", fileId, templateKey);
+                throw e;
             }
             throw e;
         }
@@ -300,29 +291,27 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             }
 
             // Update with appropriate type
-            if (value instanceof Number) {
-                metadata.replace(propertyPath, ((Number) value).doubleValue());
-            } else if (value instanceof List) {
-                metadata.replace(propertyPath, convertListToStringList((List<?>) value));
-            } else {
-                metadata.replace(propertyPath, stringValue);
+            switch (value) {
+                case Number n -> metadata.replace(propertyPath, n.doubleValue());
+                case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l));
+                default -> metadata.replace(propertyPath, stringValue);
             }
         } else {
             // Add new field with appropriate type
-            if (value instanceof Number) {
-                metadata.add(propertyPath, ((Number) value).doubleValue());
-            } else if (value instanceof List) {
-                metadata.add(propertyPath, convertListToStringList((List<?>) value));
-            } else {
-                metadata.add(propertyPath, stringValue);
+            switch (value) {
+                case Number n -> metadata.add(propertyPath, n.doubleValue());
+                case List<?> l -> metadata.add(propertyPath, convertListToStringList(l));
+                default -> metadata.add(propertyPath, stringValue);
             }
         }
         return true;
     }
 
     private List<String> convertListToStringList(final List<?> list) {
+        // Box doesn't support null values in metadata lists, so we filter them out
         return list.stream()
-                .map(item -> item != null ? item.toString() : null)
+                .filter(Objects::nonNull)
+                .map(Object::toString)
                 .collect(Collectors.toList());
     }
 
@@ -334,5 +323,15 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
      */
     BoxFile getBoxFile(final String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
+    }
+
+    /**
+     * Updates the metadata for a Box file.
+     *
+     * @param boxFile  The Box file to update.
+     * @param metadata The metadata to update.
+     */
+    void updateBoxFileMetadata(final BoxFile boxFile, final Metadata metadata) {
+        boxFile.updateMetadata(metadata);
     }
 }

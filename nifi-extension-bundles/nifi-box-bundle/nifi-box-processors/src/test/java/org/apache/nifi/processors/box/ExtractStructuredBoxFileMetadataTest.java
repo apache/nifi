@@ -18,6 +18,7 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxAIExtractStructuredResponse;
 import com.box.sdk.BoxAPIResponseException;
+import com.eclipsesource.json.JsonObject;
 import org.apache.nifi.processors.box.ExtractStructuredBoxFileMetadata.ExtractionMethod;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -69,6 +70,11 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
         lenient().when(mockAIResponse.getCompletionReason()).thenReturn(COMPLETION_REASON);
         lenient().when(mockAIResponse.getCreatedAt()).thenReturn(CREATED_AT);
+        // Add a mock answer
+        JsonObject jsonAnswer = new JsonObject();
+        jsonAnswer.add("title", "Sample Document");
+        jsonAnswer.add("author", "John Doe");
+        lenient().when(mockAIResponse.getAnswer()).thenReturn(jsonAnswer);
     }
 
     @Test
@@ -130,6 +136,7 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Not Found [404]");
     }
 
     @Test
@@ -155,6 +162,7 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Not Found [404]");
     }
 
     @Test

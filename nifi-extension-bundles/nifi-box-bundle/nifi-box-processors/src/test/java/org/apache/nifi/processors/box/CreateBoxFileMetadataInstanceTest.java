@@ -31,8 +31,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,7 +50,6 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         final CreateBoxFileMetadataInstance testSubject = new CreateBoxFileMetadataInstance() {
             @Override
             BoxFile getBoxFile(String fileId) {
-                System.out.println("getBoxFile called with ID: " + fileId);
                 return mockBoxFile;
             }
         };
@@ -60,10 +60,8 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         configureJsonRecordReader(testRunner);
 
         testRunner.setProperty(CreateBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(CreateBoxFileMetadataInstance.TEMPLATE_NAME, TEMPLATE_NAME);
+        testRunner.setProperty(CreateBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_NAME);
         testRunner.setProperty(CreateBoxFileMetadataInstance.RECORD_READER, "json-reader");
-
-        System.out.println("Test setup complete");
     }
 
     private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
@@ -90,14 +88,21 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
 
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+        final ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
         verify(mockBoxFile).createMetadata(any(), metadataCaptor.capture());
+
+        final Metadata capturedMetadata = metadataCaptor.getValue();
+        assertEquals("internal", capturedMetadata.getValue("/audience").asString());
+        assertEquals("Q1 plans", capturedMetadata.getValue("/documentType").asString());
+        assertEquals("no", capturedMetadata.getValue("/competitiveDocument").asString());
+        assertEquals("active", capturedMetadata.getValue("/status").asString());
+        assertEquals("Jones", capturedMetadata.getValue("/author").asString());
 
         testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxFileMetadataInstance.REL_SUCCESS).getFirst();
 
         flowFile.assertAttributeEquals("box.id", TEST_FILE_ID);
-        flowFile.assertAttributeEquals("box.template.name", TEMPLATE_NAME);
+        flowFile.assertAttributeEquals("box.template.key", TEMPLATE_NAME);
     }
 
     @Test
@@ -114,8 +119,8 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() {
-        BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        lenient().doThrow(mockException).when(mockBoxFile).createMetadata(any(String.class), any(Metadata.class));
+        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
+        doThrow(mockException).when(mockBoxFile).createMetadata(any(String.class), any(Metadata.class));
 
         final String inputJson = """
                 {

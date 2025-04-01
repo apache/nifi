@@ -43,7 +43,6 @@ import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +64,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 @SeeAlso({ListBoxFileMetadataTemplates.class, UpdateBoxFileMetadataInstance.class, ListBoxFile.class, FetchBoxFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file for which metadata was created"),
-        @WritesAttribute(attribute = "box.template.name", description = "The template name used for metadata creation"),
+        @WritesAttribute(attribute = "box.template.key", description = "The template key used for metadata creation"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
@@ -80,9 +79,9 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TEMPLATE_NAME = new PropertyDescriptor.Builder()
-            .name("Template Name")
-            .description("The name of the metadata template to use for creation.")
+    public static final PropertyDescriptor TEMPLATE_KEY = new PropertyDescriptor.Builder()
+            .name("Template Key")
+            .description("The key of the metadata template to use for creation.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -119,7 +118,7 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FILE_ID,
-            TEMPLATE_NAME,
+            TEMPLATE_KEY,
             RECORD_READER
     );
 
@@ -150,7 +149,7 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final String templateName = context.getProperty(TEMPLATE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         try (final InputStream inputStream = session.read(flowFile);
@@ -180,12 +179,19 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             }
 
             final BoxFile boxFile = getBoxFile(fileId);
-            boxFile.createMetadata(templateName, metadata);
+            boxFile.createMetadata(templateKey, metadata);
         } catch (final BoxAPIResponseException e) {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             if (e.getResponseCode() == 404) {
-                getLogger().warn("Box file with ID {} was not found.", fileId);
+                // This could be either the file not found or the metadata template not found
+                final String errorBody = e.getResponse();
+                if (errorBody != null && errorBody.contains("Specified Metadata Template not found")) {
+                    getLogger().warn("Box metadata template with key {} was not found.", templateKey);
+                    flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "Specified Metadata Template not found");
+                } else {
+                    getLogger().warn("Box file with ID {} was not found.", fileId);
+                }
                 session.transfer(flowFile, REL_NOT_FOUND);
             } else {
                 getLogger().error("Couldn't create metadata for file with id [{}]", fileId, e);
@@ -200,12 +206,12 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
         }
 
         // Update FlowFile attributes
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("box.id", fileId);
-        attributes.put("box.template.name", templateName);
+        final Map<String, String> attributes = Map.of(
+                "box.id", fileId,
+                "box.template.key", templateKey);
         flowFile = session.putAllAttributes(flowFile, attributes);
 
-        session.getProvenanceReporter().create(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata/enterprise/" + templateName);
+        session.getProvenanceReporter().create(flowFile, "%s%s/metadata/%s/%s".formatted(BoxFileUtils.BOX_URL, fileId, "enterprise", templateKey));
         session.transfer(flowFile, REL_SUCCESS);
     }
 

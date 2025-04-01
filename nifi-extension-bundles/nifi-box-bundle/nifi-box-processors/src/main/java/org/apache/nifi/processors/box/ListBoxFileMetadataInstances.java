@@ -62,7 +62,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 @CapabilityDescription("Retrieves all metadata instances associated with a Box file.")
 @SeeAlso({ListBoxFile.class, FetchBoxFile.class, FetchBoxFileInfo.class})
 @WritesAttributes({
-        @WritesAttribute(attribute = "box.file.id", description = "The ID of the file from which metadata was fetched"),
+        @WritesAttribute(attribute = "box.id", description = "The ID of the file from which metadata was fetched"),
         @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type specified by the Record Writer"),
         @WritesAttribute(attribute = "box.metadata.instances.names", description = "Comma-separated list of instances names"),
@@ -144,7 +144,7 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
             final Set<String> templateNames = new LinkedHashSet<>();
 
             if (!iterator.hasNext()) {
-                flowFile = session.putAttribute(flowFile, "box.file.id", fileId);
+                flowFile = session.putAttribute(flowFile, "box.id", fileId);
                 flowFile = session.putAttribute(flowFile, "box.metadata.instances.count", "0");
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
@@ -152,26 +152,26 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
 
             while (iterator.hasNext()) {
                 final Metadata metadata = iterator.next();
-                final Map<String, Object> templateFields = new HashMap<>();
+                final Map<String, Object> instanceFields = new HashMap<>();
 
                 templateNames.add(metadata.getTemplateName());
 
                 // Add standard metadata fields
-                templateFields.put("$id", metadata.getID());
-                templateFields.put("$type", metadata.getTypeName());
-                templateFields.put("$parent", "file_" + fileId); // match the Box API format
-                templateFields.put("$template", metadata.getTemplateName());
-                templateFields.put("$scope", metadata.getScope());
+                instanceFields.put("$id", metadata.getID());
+                instanceFields.put("$type", metadata.getTypeName());
+                instanceFields.put("$parent", "file_" + fileId); // match the Box API format
+                instanceFields.put("$template", metadata.getTemplateName());
+                instanceFields.put("$scope", metadata.getScope());
 
                 for (final String fieldName : metadata.getPropertyPaths()) {
                     final JsonValue jsonValue = metadata.getValue(fieldName);
                     if (jsonValue != null) {
                         final String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
                         final Object fieldValue = parseJsonValue(jsonValue);
-                        templateFields.put(cleanFieldName, fieldValue);
+                        instanceFields.put(cleanFieldName, fieldValue);
                     }
                 }
-                instanceList.add(templateFields);
+                instanceList.add(instanceFields);
             }
 
             try {
@@ -187,12 +187,12 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
                 final Map<String, String> recordAttributes = new HashMap<>();
                 recordAttributes.put("record.count", String.valueOf(instanceList.size()));
                 recordAttributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-                recordAttributes.put("box.file.id", fileId);
+                recordAttributes.put("box.id", fileId);
                 recordAttributes.put("box.metadata.instances.names", String.join(",", templateNames));
                 recordAttributes.put("box.metadata.instances.count", String.valueOf(instanceList.size()));
                 flowFile = session.putAllAttributes(flowFile, recordAttributes);
 
-                session.getProvenanceReporter().receive(flowFile, BoxFileUtils.BOX_URL + fileId);
+                session.getProvenanceReporter().receive(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata");
                 session.transfer(flowFile, REL_SUCCESS);
             } catch (final IOException e) {
                 getLogger().error("Failed writing metadata instances from file [{}]", fileId, e);
@@ -230,6 +230,9 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
     /**
      * Parses a JsonValue and returns the appropriate Java object.
      * Box does not allow exponential notation in metadata values, so we need to handle
+     * special number formats. For numbers containing decimal points or exponents, we try to
+     * convert them to BigDecimal first for precise representation. If that fails, we
+     * fall back to double, which might lose precision but allows the processing to continue.
      *
      * @param jsonValue The JsonValue to parse.
      * @return The parsed Java object.

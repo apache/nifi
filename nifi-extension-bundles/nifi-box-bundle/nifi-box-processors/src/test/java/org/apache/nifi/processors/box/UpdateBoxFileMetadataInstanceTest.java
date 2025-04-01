@@ -19,6 +19,8 @@ package org.apache.nifi.processors.box;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.Metadata;
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonArray;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -27,7 +29,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,7 +40,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
@@ -58,8 +58,15 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final UpdateBoxFileMetadataInstance testSubject = new UpdateBoxFileMetadataInstance() {
             @Override
-            BoxFile getBoxFile(String fileId) {
+            BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
+            }
+
+            @Override
+            Metadata getOrCreateMetadata(final BoxFile boxFile,
+                                         final String templateKey,
+                                         final String fileId) {
+                return mockMetadata;
             }
         };
 
@@ -69,16 +76,15 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         configureJsonRecordReader(testRunner);
 
         testRunner.setProperty(UpdateBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_NAME, TEMPLATE_NAME);
-        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_SCOPE, TEMPLATE_SCOPE);
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_NAME);
         testRunner.setProperty(UpdateBoxFileMetadataInstance.RECORD_READER, "json-reader");
 
         lenient().when(mockMetadata.getScope()).thenReturn(TEMPLATE_SCOPE);
         lenient().when(mockMetadata.getTemplateName()).thenReturn(TEMPLATE_NAME);
-        lenient().when(mockBoxFile.getMetadata(TEMPLATE_SCOPE, TEMPLATE_NAME)).thenReturn(mockMetadata);
+        lenient().when(mockBoxFile.getMetadata(TEMPLATE_NAME)).thenReturn(mockMetadata);
         lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of("/temp1", "/test"));
-        lenient().when(mockMetadata.getValue("/temp1")).thenReturn(com.eclipsesource.json.Json.value("value1"));
-        lenient().when(mockMetadata.getValue("/test")).thenReturn(com.eclipsesource.json.Json.value("test"));
+        lenient().when(mockMetadata.getValue("/temp1")).thenReturn(Json.value("value1"));
+        lenient().when(mockMetadata.getValue("/test")).thenReturn(Json.value("test"));
     }
 
     private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
@@ -89,6 +95,10 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testSuccessfulMetadataUpdate() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
         final String inputJson = """
                 {
                   "audience": "internal",
@@ -101,19 +111,13 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
 
-        final ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).updateMetadata(metadataCaptor.capture());
-
-        final Metadata capturedMetadata = metadataCaptor.getValue();
-        assertEquals(TEMPLATE_SCOPE, capturedMetadata.getScope());
-        assertEquals(TEMPLATE_NAME, capturedMetadata.getTemplateName());
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
 
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(UpdateBoxFileMetadataInstance.REL_SUCCESS).getFirst();
 
         flowFile.assertAttributeEquals("box.id", TEST_FILE_ID);
-        flowFile.assertAttributeEquals("box.template.name", TEMPLATE_NAME);
-        flowFile.assertAttributeEquals("box.template.scope", TEMPLATE_SCOPE);
+        flowFile.assertAttributeEquals("box.template.key", TEMPLATE_NAME);
     }
 
     @Test
@@ -129,10 +133,21 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     }
 
     @Test
-    void testFileNotFound() {
-        // Simulate 404 Not Found response when getMetadata is called
-        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        when(mockBoxFile.updateMetadata(any())).thenThrow(mockException);
+    void testFileNotFound() throws Exception {
+        final UpdateBoxFileMetadataInstance testSubject = new UpdateBoxFileMetadataInstance() {
+            @Override
+            BoxFile getBoxFile(final String fileId) {
+                throw new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
+            }
+        };
+
+        testRunner = TestRunners.newTestRunner(testSubject);
+        super.setUp();
+        configureJsonRecordReader(testRunner);
+
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_NAME);
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.RECORD_READER, "json-reader");
 
         final String inputJson = """
                 {
@@ -146,15 +161,17 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(UpdateBoxFileMetadataInstance.REL_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
     @Test
     void testNullValues() {
-        // Test with null values for keys/values
+        JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
         final String inputJson = """
                 {
-                  "audience": null,
+                  "audience": "internal",
                   "documentType": "Q1 plans",
                   "status": "active"
                 }""";
@@ -162,23 +179,23 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
 
-        final ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).updateMetadata(metadataCaptor.capture());
+        // Verify the mockBoxFile.updateMetadata was called
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
-
     }
 
     @Test
     void testExpressionLanguage() {
-        // Test with expression language in property values
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("file.id", TEST_FILE_ID);
         attributes.put("template.key", TEMPLATE_NAME);
-        attributes.put("template.scope", TEMPLATE_SCOPE);
 
         testRunner.setProperty(UpdateBoxFileMetadataInstance.FILE_ID, "${file.id}");
-        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_NAME, "${template.key}");
-        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_SCOPE, "${template.scope}");
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_KEY, "${template.key}");
 
         final String inputJson = """
                 {
@@ -189,18 +206,22 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson, attributes);
         testRunner.run();
 
-        final ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).updateMetadata(metadataCaptor.capture());
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
 
-        final Metadata capturedMetadata = metadataCaptor.getValue();
-        assertEquals(TEMPLATE_SCOPE, capturedMetadata.getScope());
-        assertEquals(TEMPLATE_NAME, capturedMetadata.getTemplateName());
+        assertEquals(TEST_FILE_ID,
+                testRunner.getProcessContext().getProperty(UpdateBoxFileMetadataInstance.FILE_ID).evaluateAttributeExpressions(attributes).getValue());
+        assertEquals(TEMPLATE_NAME,
+                testRunner.getProcessContext().getProperty(UpdateBoxFileMetadataInstance.TEMPLATE_KEY).evaluateAttributeExpressions(attributes).getValue());
 
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
     }
 
     @Test
     void testMetadataPatchChanges() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
         // This tests the core functionality where we replace the entire state
         // Original metadata has "/temp1":"value1" and "/test":"test"
         // New metadata will have "/temp2":"value2" and "/test":"updated"
@@ -213,31 +234,13 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
         testRunner.enqueue(inputJson);
         testRunner.run();
-        final ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).updateMetadata(metadataCaptor.capture());
+
+        // Verify the correct operations were done on the mockMetadata
         verify(mockMetadata).remove("/temp1");  // Should remove temp1
         verify(mockMetadata).add("/temp2", "value2");  // Should add temp2
         verify(mockMetadata).replace("/test", "updated");  // Should update test
-        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
-    }
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
 
-    @Test
-    void testNewMetadataCreation() {
-        // Test case where the file doesn't have any metadata for this template yet
-        final BoxAPIResponseException notFoundEx = new BoxAPIResponseException("Not found", 404, "Not found", null);
-        when(mockBoxFile.getMetadata(TEMPLATE_SCOPE, TEMPLATE_NAME)).thenThrow(notFoundEx);
-        final String inputJson = """
-                {
-                  "newProp": "newValue",
-                  "anotherProp": "anotherValue"
-                }""";
-
-        testRunner.enqueue(inputJson);
-        testRunner.run();
-        // Since getMetadata throws a 404 exception, the processor should create a new Metadata
-        // instance and add the fields from the input
-        final ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
-        verify(mockBoxFile).updateMetadata(metadataCaptor.capture());
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
     }
 }

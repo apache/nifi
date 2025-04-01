@@ -55,12 +55,11 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         }
 
         @Override
-        protected void createBoxMetadataTemplate(
-                BoxAPIConnection boxAPIConnection,
-                String templateKey,
-                String templateName,
-                boolean isHidden,
-                List<MetadataTemplate.Field> fields) {
+        protected void createBoxMetadataTemplate(final BoxAPIConnection boxAPIConnection,
+                                                 final String templateKey,
+                                                 final String templateName,
+                                                 final boolean isHidden,
+                                                 final List<MetadataTemplate.Field> fields) {
             capturedFields = fields;
             capturedTemplateKey = templateKey;
             capturedTemplateName = templateName;
@@ -101,12 +100,12 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.run();
         assertEquals(2, capturedFields.size());
 
-        MetadataTemplate.Field field1 = capturedFields.getFirst();
+        final MetadataTemplate.Field field1 = capturedFields.getFirst();
         assertEquals("field1", field1.getKey());
         assertEquals("string", field1.getType());
         assertEquals("Field One", field1.getDisplayName());
 
-        MetadataTemplate.Field field2 = capturedFields.get(1);
+        final MetadataTemplate.Field field2 = capturedFields.get(1);
         assertEquals("field2", field2.getKey());
         assertEquals("float", field2.getType());
 
@@ -146,7 +145,8 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(CreateBoxMetadataTemplate.REL_FAILURE, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxMetadataTemplate.REL_FAILURE).getFirst();
         final String errorMessage = flowFile.getAttribute("error.message");
-        assertTrue(errorMessage.contains("missing a key field") || errorMessage.contains("has an invalid type"));
+        assertTrue(errorMessage.contains("missing a key field"));
+        assertTrue(errorMessage.contains("has an invalid type"));
     }
 
     @Test
