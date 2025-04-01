@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import static org.mockito.Mockito.lenient;
 
@@ -46,19 +47,27 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
     @Mock
     private BoxAIExtractStructuredResponse mockAIResponse;
 
+    private BiFunction<String, String, BoxAIExtractStructuredResponse> templateResponseSupplier;
+
+    private BiFunction<String, String, BoxAIExtractStructuredResponse> fieldsResponseSupplier;
+
     @BeforeEach
     void setUp() throws Exception {
+        // Set up default suppliers to return mockAIResponse
+        templateResponseSupplier = (templateKey, fileId) -> mockAIResponse;
+        fieldsResponseSupplier = (fieldsString, fileId) -> mockAIResponse;
+
         final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
             @Override
             BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
                                                                                          final String fileId) {
-                return mockAIResponse;
+                return templateResponseSupplier.apply(templateKey, fileId);
             }
 
             @Override
             BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final String fieldsString,
                                                                                        final String fileId) {
-                return mockAIResponse;
+                return fieldsResponseSupplier.apply(fieldsString, fileId);
             }
         };
 
@@ -114,73 +123,63 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
     }
 
     @Test
-    void testFileNotFoundWithTemplate() throws Exception {
-        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
-            @Override
-            BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
-                                                                                         final String fileId) {
-                throw new BoxAPIResponseException("Not Found", 404, "Not Found", null);
-            }
+    void testFileNotFoundWithTemplate() {
+        // Configure template response supplier to throw a 404 exception
+        templateResponseSupplier = (templateKey, fileId) -> {
+            throw new BoxAPIResponseException("Not Found", 404, "Not Found", null);
         };
-
-        testRunner = TestRunners.newTestRunner(testSubject);
-        super.setUp();
-
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.EXTRACTION_METHOD, ExtractionMethod.TEMPLATE);
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
 
         testRunner.enqueue("test data");
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Not Found [404]");
     }
 
     @Test
-    void testFileNotFoundWithFields() throws Exception {
-        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
-            @Override
-            BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final String fieldsString,
-                                                                                       final String fileId) {
-                throw new BoxAPIResponseException("Not Found", 404, "Not Found", null);
-            }
+    void testFileNotFoundWithFields() {
+        // Configure fields response supplier to throw a 404 exception
+        fieldsResponseSupplier = (fieldsString, fileId) -> {
+            throw new BoxAPIResponseException("Not Found", 404, "Not Found", null);
         };
 
-        testRunner = TestRunners.newTestRunner(testSubject);
-        super.setUp();
-
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.EXTRACTION_METHOD, ExtractionMethod.FIELDS);
+        testRunner.removeProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY);
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.FIELDS, FIELDS_STRING);
 
         testRunner.enqueue("test data");
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_NOT_FOUND).getFirst();
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Not Found [404]");
     }
 
     @Test
-    void testOtherAPIError() throws Exception {
-        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
-            @Override
-            BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
-                                                                                         final String fileId) {
-                throw new BoxAPIResponseException("Server Error", 500, "Server Error", null);
-            }
+    void testTemplateNotFound() {
+        // Configure template response supplier to throw a 404 exception with template not found message
+        templateResponseSupplier = (templateKey, fileId) -> {
+            throw new BoxAPIResponseException("API Error", 404, "Specified Metadata Template not found", null);
         };
 
-        testRunner = TestRunners.newTestRunner(testSubject);
-        super.setUp();
+        testRunner.enqueue("test data");
+        testRunner.run();
 
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.EXTRACTION_METHOD, ExtractionMethod.TEMPLATE);
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
+        testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_TEMPLATE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_TEMPLATE_NOT_FOUND).getFirst();
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Specified Metadata Template not found");
+    }
+
+    @Test
+    void testOtherAPIError() {
+        // Configure template response supplier to throw a 500 exception
+        templateResponseSupplier = (templateKey, fileId) -> {
+            throw new BoxAPIResponseException("Server Error", 500, "Server Error", null);
+        };
 
         testRunner.enqueue("test data");
         testRunner.run();
@@ -191,21 +190,11 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
     }
 
     @Test
-    void testGenericException() throws Exception {
-        final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
-            @Override
-            BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
-                                                                                         final String fileId) {
-                throw new RuntimeException("Something went wrong");
-            }
+    void testGenericException() {
+        // Configure template response supplier to throw a runtime exception
+        templateResponseSupplier = (templateKey, fileId) -> {
+            throw new RuntimeException("Something went wrong");
         };
-
-        testRunner = TestRunners.newTestRunner(testSubject);
-        super.setUp();
-
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, TEST_FILE_ID);
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.EXTRACTION_METHOD, ExtractionMethod.TEMPLATE);
-        testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, TEMPLATE_KEY);
 
         testRunner.enqueue("test data");
         testRunner.run();
@@ -224,7 +213,6 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
 
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, "${file.id}");
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY, "${template.key}");
-
         testRunner.enqueue("test data", attributes);
         testRunner.run();
 
@@ -247,7 +235,6 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.removeProperty(ExtractStructuredBoxFileMetadata.TEMPLATE_KEY);
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.FILE_ID, "${file.id}");
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.FIELDS, "${fields}");
-
         testRunner.enqueue("test data", attributes);
         testRunner.run();
 

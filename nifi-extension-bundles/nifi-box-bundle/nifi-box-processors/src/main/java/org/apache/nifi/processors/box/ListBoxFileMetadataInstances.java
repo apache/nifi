@@ -237,7 +237,7 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
      * @param jsonValue The JsonValue to parse.
      * @return The parsed Java object.
      */
-    private static Object parseJsonValue(final JsonValue jsonValue) {
+    protected static Object parseJsonValue(final JsonValue jsonValue) {
         if (jsonValue == null) {
             return null;
         }

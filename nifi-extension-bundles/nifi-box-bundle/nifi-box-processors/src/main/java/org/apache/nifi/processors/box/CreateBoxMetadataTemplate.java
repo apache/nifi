@@ -271,7 +271,6 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             metadataField.setDescription(descriptionObj.toString());
         }
 
-        // Handle options for enum and multiSelect field types
         if ("enum".equals(normalizedType) || "multiSelect".equals(normalizedType)) {
             final Object optionsObj = record.getValue("options");
             if (optionsObj instanceof List<?> optionsList) {

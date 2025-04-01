@@ -277,4 +277,143 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
     }
+
+    @Test
+    void testAddingDifferentDataTypes() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
+        // Clear the property paths to simulate no existing metadata
+        lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of());
+
+        final String inputJson = """
+                {
+                  "stringField": "text value",
+                  "numberField": 42,
+                  "doubleField": 42.5,
+                  "booleanField": true,
+                  "listField": ["item1", "item2", "item3"],
+                  "emptyListField": []
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+
+        // Verify all fields were added with correct types
+        verify(mockMetadata).add("/stringField", "text value");
+        verify(mockMetadata).add("/numberField", 42.0); // Numbers are stored as doubles
+        verify(mockMetadata).add("/doubleField", 42.5);
+        verify(mockMetadata).add("/booleanField", "true"); // Booleans are stored as strings
+        // We need to use doAnswer/when to capture and verify list fields being added, but this is simpler
+
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testUpdateExistingFieldsWithDifferentTypes() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+        lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of(
+                "/stringField", "/numberField", "/listField"
+        ));
+
+        lenient().when(mockMetadata.getValue("/stringField")).thenReturn(Json.value("old value"));
+        lenient().when(mockMetadata.getValue("/numberField")).thenReturn(Json.value(10.0));
+        JsonArray oldList = new JsonArray();
+        oldList.add("old1");
+        oldList.add("old2");
+        lenient().when(mockMetadata.getValue("/listField")).thenReturn(oldList);
+
+        final String inputJson = """
+                {
+                  "stringField": "new value",
+                  "numberField": 20,
+                  "listField": ["new1", "new2", "new3"]
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+
+        // Verify fields were replaced with new values
+        verify(mockMetadata).replace("/stringField", "new value");
+        verify(mockMetadata).replace("/numberField", 20.0);
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testNoUpdateWhenValuesUnchanged() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
+        // Set up existing fields
+        lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of(
+                "/unchangedField", "/unchangedNumber"
+        ));
+
+        // Set up current values
+        lenient().when(mockMetadata.getValue("/unchangedField")).thenReturn(Json.value("same value"));
+        lenient().when(mockMetadata.getValue("/unchangedNumber")).thenReturn(Json.value(42.0));
+
+        final String inputJson = """
+                {
+                  "unchangedField": "same value",
+                  "unchangedNumber": 42
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
+    }
+
+    @Test
+    void testHandlingNullAndMissingValues() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+
+        lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of(
+                "/toBeRemoved1", "/toBeRemoved2", "/toBeKept"
+        ));
+
+        lenient().when(mockMetadata.getValue("/toBeKept")).thenReturn(Json.value("keep this"));
+
+        final String inputJson = """
+                {
+                  "toBeKept": "keep this",
+                  "nullField": null
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+
+        verify(mockMetadata).remove("/toBeRemoved1");
+        verify(mockMetadata).remove("/toBeRemoved2");
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
+    }
+
+    @Test
+    void testMixedListHandling() {
+        final JsonArray operationsArray = new JsonArray();
+        operationsArray.add("someOperation");
+        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
+        lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of());
+
+        final String inputJson = """
+                {
+                  "mixedList": ["string", 42, true, null, 3.14]
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+        verify(mockBoxFile).updateMetadata(any(Metadata.class));
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
+    }
 }

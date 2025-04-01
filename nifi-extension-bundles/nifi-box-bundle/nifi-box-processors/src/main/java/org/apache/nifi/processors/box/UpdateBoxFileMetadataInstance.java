@@ -165,8 +165,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
 
         try {
             final BoxFile boxFile = getBoxFile(fileId);
-
-            // Parse the input record to get the desired state
             final Map<String, Object> desiredState = readDesiredState(session, flowFile, recordReaderFactory);
 
             if (desiredState.isEmpty()) {
@@ -188,7 +186,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                     "box.template.key", templateKey);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            // Metadata scope will be determined by Box
             session.getProvenanceReporter().modifyAttributes(flowFile, "%s%s/metadata/enterprise/%s".formatted(BoxFileUtils.BOX_URL, fileId, templateKey));
             session.transfer(flowFile, REL_SUCCESS);
 
@@ -234,20 +231,17 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                                  final String templateKey,
                                  final String fileId) {
         try {
-            // Pass just the templateKey - Box will determine the appropriate scope
             final Metadata metadata = boxFile.getMetadata(templateKey);
             getLogger().debug("Retrieved existing metadata for file {}", fileId);
             return metadata;
         } catch (final BoxAPIResponseException e) {
             if (e.getResponseCode() == 404) {
-                // For update processor, we don't want to create new metadata - this is what CreateBoxFileMetadataInstance is for
                 getLogger().warn("No existing metadata found for file {} with template key {}.", fileId, templateKey);
                 throw e;
             }
             throw e;
         }
     }
-
 
     private Set<String> updateMetadata(final Metadata metadata,
                                        final Map<String, Object> desiredState) {
@@ -295,14 +289,14 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 return false;
             }
 
-            // Update with appropriate type
+            // Update
             switch (value) {
                 case Number n -> metadata.replace(propertyPath, n.doubleValue());
                 case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l));
                 default -> metadata.replace(propertyPath, value.toString());
             }
         } else {
-            // Add new field with appropriate type
+            // Add new field
             switch (value) {
                 case Number n -> metadata.add(propertyPath, n.doubleValue());
                 case List<?> l -> metadata.add(propertyPath, convertListToStringList(l));

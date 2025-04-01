@@ -189,7 +189,6 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             if (e.getResponseCode() == 404) {
-                // This could be either the file not found or the metadata template not found
                 final String errorBody = e.getResponse();
                 if (errorBody != null && errorBody.toLowerCase().contains("specified metadata template not found")) {
                     getLogger().warn("Box metadata template with key {} was not found.", templateKey);
@@ -211,7 +210,6 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             return;
         }
 
-        // Update FlowFile attributes
         final Map<String, String> attributes = Map.of(
                 "box.id", fileId,
                 "box.template.key", templateKey);
@@ -227,7 +225,6 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             return;
         }
 
-        // Get all field names from the record
         Set<String> fieldNames = new HashSet<>(record.getSchema().getFieldNames());
 
         if (fieldNames.isEmpty()) {
@@ -235,12 +232,9 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             return;
         }
 
-        // Process each field as a key-value pair
         for (String fieldName : fieldNames) {
             Object valueObj = record.getValue(fieldName);
             String value = valueObj != null ? valueObj.toString() : null;
-
-            // Add the key-value pair to the metadata
             metadata.add("/" + fieldName, value);
         }
     }

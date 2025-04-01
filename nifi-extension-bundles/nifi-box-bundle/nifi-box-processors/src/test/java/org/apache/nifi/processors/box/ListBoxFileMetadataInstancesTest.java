@@ -162,5 +162,4 @@ public class ListBoxFileMetadataInstancesTest extends AbstractBoxFileTest {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataInstances.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "General API Error\nUnexpected Error");
     }
-
 }

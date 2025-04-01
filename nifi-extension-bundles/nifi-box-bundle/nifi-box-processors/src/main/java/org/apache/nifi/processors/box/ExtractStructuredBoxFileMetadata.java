@@ -124,15 +124,21 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if an error occurs during metadata extraction.")
             .build();
 
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
-            .name("not found")
+    public static final Relationship REL_FILE_NOT_FOUND = new Relationship.Builder()
+            .name("file not found")
             .description("FlowFiles for which the specified Box file was not found will be routed to this relationship.")
+            .build();
+
+    public static final Relationship REL_TEMPLATE_NOT_FOUND = new Relationship.Builder()
+            .name("template not found")
+            .description("FlowFiles for which the specified metadata template was not found will be routed to this relationship.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE,
-            REL_NOT_FOUND
+            REL_FILE_NOT_FOUND,
+            REL_TEMPLATE_NOT_FOUND
     );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -220,15 +226,15 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             if (e.getResponseCode() == 404) {
-                // This could be either the file not found or the metadata template not found
                 final String errorBody = e.getResponse();
                 if (errorBody != null && errorBody.contains("Specified Metadata Template not found")) {
                     getLogger().warn("Box metadata template was not found for extraction request.");
                     flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "Specified Metadata Template not found");
+                    session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
                 } else {
                     getLogger().warn("Box file with ID {} was not found.", fileId);
+                    session.transfer(flowFile, REL_FILE_NOT_FOUND);
                 }
-                session.transfer(flowFile, REL_NOT_FOUND);
             } else {
                 getLogger().error("Couldn't extract metadata from file with id [{}]", fileId, e);
                 session.transfer(flowFile, REL_FAILURE);
