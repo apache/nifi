@@ -71,13 +71,12 @@ public class SNMPTrapReceiverHandler {
     }
 
     public void createTrapReceiver(final ProcessSessionFactory processSessionFactory, final ComponentLog logger) {
-        if (configuration.getVersion() == SnmpConstants.version3) {
-            removeMessageProcessingModel(MessageProcessingModel.MPv1);
-            removeMessageProcessingModel(MessageProcessingModel.MPv2c);
+        final int version = configuration.getVersion();
+        if (version == SnmpConstants.version3) {
             addUsmUsers();
         }
 
-        SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, logger);
+        SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, configuration, logger);
         snmpManager.addCommandResponder(trapReceiver);
         isStarted = true;
     }

@@ -20,11 +20,14 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.snmp4j.CommandResponder;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.PDU;
 import org.snmp4j.PDUv1;
+import org.snmp4j.mp.SnmpConstants;
+import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.smi.Address;
 
 import java.util.Map;
@@ -36,15 +39,34 @@ public class SNMPTrapReceiver implements CommandResponder {
 
     private final ProcessSessionFactory processSessionFactory;
     private final ComponentLog logger;
+    private final SNMPConfiguration configuration;
 
-    public SNMPTrapReceiver(final ProcessSessionFactory processSessionFactory, final ComponentLog logger) {
+    public SNMPTrapReceiver(final ProcessSessionFactory processSessionFactory, final SNMPConfiguration configuration, final ComponentLog logger) {
         this.processSessionFactory = processSessionFactory;
         this.logger = logger;
+        this.configuration = configuration;
     }
 
     @Override
     public void processPdu(final CommandResponderEvent event) {
         final PDU pdu = event.getPDU();
+        final int expectedVersion = configuration.getVersion();
+
+        final int receivedVersion = event.getMessageProcessingModel();
+        if (expectedVersion != receivedVersion) {
+            logger.debug("Ignoring trap: Expected version {} but received {}", expectedVersion, receivedVersion);
+            return;
+        }
+
+        final int receivedSecurityLevel = event.getSecurityLevel();
+        if (expectedVersion == SnmpConstants.version3) {
+            final int expectedSecurityLevel = SecurityLevel.valueOf(configuration.getSecurityLevel()).getSnmpValue();
+            if (expectedSecurityLevel != receivedSecurityLevel) {
+                logger.debug("Ignoring SNMPv3 trap: Expected security level {} but received {}", expectedSecurityLevel, receivedSecurityLevel);
+                return;
+            }
+        }
+
         if (isValidTrapPdu(pdu)) {
             final ProcessSession processSession = processSessionFactory.createSession();
             final FlowFile flowFile = createFlowFile(processSession, event);
@@ -60,7 +82,7 @@ public class SNMPTrapReceiver implements CommandResponder {
         }
     }
 
-    private FlowFile createFlowFile(final ProcessSession processSession, final  CommandResponderEvent event) {
+    private FlowFile createFlowFile(final ProcessSession processSession, final CommandResponderEvent event) {
         FlowFile flowFile = processSession.create();
         final Map<String, String> attributes;
         final PDU pdu = event.getPDU();
