@@ -110,7 +110,7 @@ public class NiFiRegistrySecurityConfig {
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig.maxAgeInSeconds(31540000))
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
-                .authorizeHttpRequests((authorize) -> authorize
+                .authorizeRequests((authorize) -> authorize
                         .requestMatchers(
                                 antMatcher("/access/token"),
                                 antMatcher("/access/token/identity-provider"),
