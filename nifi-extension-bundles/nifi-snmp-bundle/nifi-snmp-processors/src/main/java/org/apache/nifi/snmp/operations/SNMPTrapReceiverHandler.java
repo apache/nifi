@@ -23,11 +23,9 @@ import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.factory.core.SNMPManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snmp4j.MessageDispatcher;
 import org.snmp4j.Snmp;
 import org.snmp4j.TransportMapping;
 import org.snmp4j.mp.MPv3;
-import org.snmp4j.mp.MessageProcessingModel;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.SecurityProtocols;
@@ -104,15 +102,6 @@ public class SNMPTrapReceiverHandler {
         USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
         SecurityModels.getInstance().addSecurityModel(usm);
         usmUsers.forEach(user -> snmpManager.getUSM().addUser(user));
-    }
-
-    private void removeMessageProcessingModel(final int modelId) {
-        final MessageDispatcher dispatcher = snmpManager.getMessageDispatcher();
-        final MessageProcessingModel messageProcessingModel = dispatcher.getMessageProcessingModel(modelId);
-
-        if (messageProcessingModel != null) {
-            dispatcher.removeMessageProcessingModel(messageProcessingModel);
-        }
     }
 
     // Visible for testing.

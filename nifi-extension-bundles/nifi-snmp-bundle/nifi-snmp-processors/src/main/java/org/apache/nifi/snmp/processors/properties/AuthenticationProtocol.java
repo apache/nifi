@@ -23,8 +23,6 @@ import org.snmp4j.security.AuthHMAC256SHA384;
 import org.snmp4j.security.AuthHMAC384SHA512;
 import org.snmp4j.smi.OID;
 
-import java.util.Arrays;
-
 public enum AuthenticationProtocol implements DescribedValue {
     HMAC128SHA224("HMAC128SHA224", "SHA224",
             "HMAC with SHA224, a variant of SHA-2, used for ensuring data integrity and authenticity. It combines the HMAC construction with the SHA224 hash function.",
@@ -68,9 +66,5 @@ public enum AuthenticationProtocol implements DescribedValue {
 
     public OID getOid() {
         return oid;
-    }
-
-    public static boolean isValid(String protocol) {
-        return Arrays.stream(values()).anyMatch(p -> p.name().equals(protocol));
     }
 }

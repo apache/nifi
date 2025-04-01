@@ -23,8 +23,6 @@ import org.snmp4j.security.PrivAES256;
 import org.snmp4j.security.PrivDES;
 import org.snmp4j.smi.OID;
 
-import java.util.Arrays;
-
 public enum PrivacyProtocol implements DescribedValue {
     DES("DES", "DES",
             "Data Encryption Standard (DES) is an older symmetric-key algorithm used for encrypting digital data. DES is considered insecure due" +
@@ -69,9 +67,5 @@ public enum PrivacyProtocol implements DescribedValue {
 
     public OID getOid() {
         return oid;
-    }
-
-    public static boolean isValid(String protocol) {
-        return Arrays.stream(values()).anyMatch(p -> p.name().equals(protocol));
     }
 }

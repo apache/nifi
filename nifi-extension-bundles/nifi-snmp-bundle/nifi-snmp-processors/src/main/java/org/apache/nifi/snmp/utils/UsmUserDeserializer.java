@@ -27,7 +27,6 @@ import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 
 import java.io.IOException;
-import java.util.Optional;
 
 class UsmUserDeserializer extends StdDeserializer<UsmUser> {
 
@@ -38,47 +37,48 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
     @Override
     public UsmUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         final JsonNode node = jp.getCodec().readTree(jp);
-
         final String securityName = node.get("securityName").asText();
-        final OID authProtocol = getAuthProtocolOid(node);
-        final OctetString authPassphrase = getOctetString(node, "authPassphrase");
 
-        validatePassphrase(authProtocol, authPassphrase, "Authentication");
-
-        final OID privProtocol = getPrivProtocolOid(node);
-        final OctetString privPassphrase = getOctetString(node, "privPassphrase");
-
-        validatePassphrase(privProtocol, privPassphrase, "Privacy");
-
-        return new UsmUser(new OctetString(securityName), authProtocol, authPassphrase, privProtocol, privPassphrase);
-    }
-
-    private OID getAuthProtocolOid(final JsonNode node) {
-        return Optional.ofNullable(node.get("authProtocol"))
-                .map(JsonNode::asText)
-                .map(AuthenticationProtocol::valueOf)
-                .map(AuthenticationProtocol::getOid)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid protocol: " + node.get("authProtocol")));
-    }
-
-    private OID getPrivProtocolOid(final JsonNode node) {
-        return Optional.ofNullable(node.get("privProtocol"))
-                .map(JsonNode::asText)
-                .map(PrivacyProtocol::valueOf)
-                .map(PrivacyProtocol::getOid)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid protocol: " + node.get("privProtocol")));
-    }
-
-    private OctetString getOctetString(final JsonNode node, final String key) {
-        return Optional.ofNullable(node.get(key))
-                .map(JsonNode::asText)
-                .map(OctetString::new)
-                .orElse(null);
-    }
-
-    private void validatePassphrase(final OID protocol, final OctetString passphrase, final String type) {
-        if (protocol != null && passphrase == null) {
-            throw new IllegalArgumentException(type + " passphrase must be set and at least 8 bytes long if " + type.toLowerCase() + " protocol is specified.");
+        OID authProtocol = null;
+        final JsonNode authProtocolNode = node.get("authProtocol");
+        if (authProtocolNode != null) {
+            authProtocol = AuthenticationProtocol.valueOf(authProtocolNode.asText()).getOid();
         }
+
+        OctetString authPassphrase = null;
+        final JsonNode authPassphraseNode = node.get("authPassphrase");
+        if (authPassphraseNode != null) {
+            authPassphrase = new OctetString(authPassphraseNode.asText());
+        }
+
+        if (authProtocol != null && authPassphrase == null) {
+            throw new IllegalArgumentException("Authentication passphrase must be set and at least 8 bytes long if" +
+                    "authentication protocol is specified.");
+        }
+
+        OID privProtocol = null;
+        final JsonNode privProtocolNode = node.get("privProtocol");
+        if (privProtocolNode != null) {
+            privProtocol = PrivacyProtocol.valueOf(privProtocolNode.asText()).getOid();
+        }
+
+        OctetString privPassphrase = null;
+        final JsonNode privPassphraseNode = node.get("privPassphrase");
+        if (privPassphraseNode != null) {
+            privPassphrase = new OctetString(privPassphraseNode.asText());
+        }
+
+        if (privProtocol != null && privPassphrase == null) {
+            throw new IllegalArgumentException("Privacy passphrase must be set and at least 8 bytes long if" +
+                    "authentication protocol is specified.");
+        }
+
+        return new UsmUser(
+                new OctetString(securityName),
+                authProtocol,
+                authPassphrase,
+                privProtocol,
+                privPassphrase
+        );
     }
 }
