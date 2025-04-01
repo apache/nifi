@@ -162,6 +162,14 @@ The multi-part copy code in CopyS3Object was derived from code found in the Amaz
     https://github.com/awsdocs/aws-doc-sdk-examples/blob/df606a664bf2f7cfe3abc76c187e024451d0279c/LICENSE
 
 ************************
+Berkeley Software Distribution License 3-Clause
+************************
+
+The following binary components are provided under the BSD License. See project link for details.
+
+  (BSD License) Protocol Buffers (com.google.protobuf:protobuf-java:jar - https://github.com/protocolbuffers/protobuf)
+
+************************
 Eclipse Distribution License 1.0
 ************************
 
