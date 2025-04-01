@@ -109,9 +109,14 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if an error occurs during metadata update.")
             .build();
 
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
-            .name("not found")
+    public static final Relationship REL_FILE_NOT_FOUND = new Relationship.Builder()
+            .name("file not found")
             .description("FlowFiles for which the specified Box file was not found will be routed to this relationship.")
+            .build();
+
+    public static final Relationship REL_TEMPLATE_NOT_FOUND = new Relationship.Builder()
+            .name("template not found")
+            .description("FlowFiles for which the specified metadata template was not found will be routed to this relationship.")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -124,7 +129,8 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE,
-            REL_NOT_FOUND
+            REL_FILE_NOT_FOUND,
+            REL_TEMPLATE_NOT_FOUND
     );
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -175,10 +181,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             if (!metadata.getOperations().isEmpty()) {
                 getLogger().info("Updating {} metadata fields for file {}", processedKeys.size(), fileId);
                 updateBoxFileMetadata(boxFile, metadata);
-            } else {
-                getLogger().info("No changes needed for metadata on file {}", fileId);
             }
-
 
             final Map<String, String> attributes = Map.of(
                     "box.id", fileId,
@@ -192,13 +195,14 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         } catch (final BoxAPIResponseException e) {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-
-            if (e.getResponseCode() == 404) {
-                getLogger().warn("Box file with ID {} was not found.", fileId);
-                session.transfer(flowFile, REL_NOT_FOUND);
+            final String errorBody = e.getResponse();
+            if (errorBody != null && errorBody.toLowerCase().contains("specified metadata template not found")) {
+                getLogger().warn("Box metadata template with key {} was not found.", templateKey);
+                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, errorBody);
+                session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
             } else {
-                getLogger().error("Couldn't update metadata for file with id [{}]", fileId, e);
-                session.transfer(flowFile, REL_FAILURE);
+                getLogger().warn("Box file with ID {} was not found.", fileId);
+                session.transfer(flowFile, REL_FILE_NOT_FOUND);
             }
         } catch (Exception e) {
             getLogger().error("Error processing metadata update for Box file [{}]", fileId, e);
@@ -279,14 +283,15 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                                 final String propertyPath,
                                 final Object value,
                                 final boolean exists) {
+        if (value == null) {
+            return false;
+        }
 
-        final String stringValue = value != null ? value.toString() : null;
         if (exists) {
             final Object currentValue = metadata.getValue(propertyPath);
-            final String currentStringValue = currentValue != null ? currentValue.toString() : null;
 
             // Only update if values are different
-            if (Objects.equals(currentStringValue, stringValue)) {
+            if (Objects.equals(currentValue, value)) {
                 return false;
             }
 
@@ -294,14 +299,14 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             switch (value) {
                 case Number n -> metadata.replace(propertyPath, n.doubleValue());
                 case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l));
-                default -> metadata.replace(propertyPath, stringValue);
+                default -> metadata.replace(propertyPath, value.toString());
             }
         } else {
             // Add new field with appropriate type
             switch (value) {
                 case Number n -> metadata.add(propertyPath, n.doubleValue());
                 case List<?> l -> metadata.add(propertyPath, convertListToStringList(l));
-                default -> metadata.add(propertyPath, stringValue);
+                default -> metadata.add(propertyPath, value.toString());
             }
         }
         return true;

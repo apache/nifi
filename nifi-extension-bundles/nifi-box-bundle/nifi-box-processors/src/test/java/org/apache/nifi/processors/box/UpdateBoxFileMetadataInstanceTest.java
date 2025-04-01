@@ -158,9 +158,43 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_NOT_FOUND, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(UpdateBoxFileMetadataInstance.REL_NOT_FOUND).getFirst();
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_FILE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(UpdateBoxFileMetadataInstance.REL_FILE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+    }
+
+    @Test
+    void testTemplateNotFound() throws Exception {
+        final UpdateBoxFileMetadataInstance testSubject = new UpdateBoxFileMetadataInstance() {
+            @Override
+            Metadata getOrCreateMetadata(final BoxFile boxFile,
+                                         final String templateKey,
+                                         final String fileId) {
+                throw new BoxAPIResponseException("API Error", 404, "Specified Metadata Template not found", null);
+            }
+        };
+
+        testRunner = TestRunners.newTestRunner(testSubject);
+        super.setUp();
+        configureJsonRecordReader(testRunner);
+
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_NAME);
+        testRunner.setProperty(UpdateBoxFileMetadataInstance.RECORD_READER, "json-reader");
+
+        final String inputJson = """
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans"
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(UpdateBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND).getFirst();
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Specified Metadata Template not found");
     }
 
     @Test

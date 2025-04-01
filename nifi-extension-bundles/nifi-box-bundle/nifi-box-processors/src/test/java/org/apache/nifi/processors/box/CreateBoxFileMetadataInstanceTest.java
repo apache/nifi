@@ -131,10 +131,30 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_NOT_FOUND, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxFileMetadataInstance.REL_NOT_FOUND).getFirst();
+        testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_FILE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxFileMetadataInstance.REL_FILE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
+    }
+
+    @Test
+    void testTemplateNotFound() {
+        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Specified Metadata Template not found", null);
+        doThrow(mockException).when(mockBoxFile).createMetadata(any(String.class), any(Metadata.class));
+
+        final String inputJson = """
+                {
+                  "audience": "internal",
+                  "documentType": "Q1 plans"
+                }""";
+
+        testRunner.enqueue(inputJson);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND).getFirst();
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Specified Metadata Template not found");
     }
 
 }

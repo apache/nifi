@@ -20,7 +20,9 @@ import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.Metadata;
-import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +37,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,12 +51,6 @@ public class ListBoxFileMetadataInstancesTest extends AbstractBoxFileTest {
 
     @Mock
     private BoxFile mockBoxFile;
-
-    @Mock
-    private Metadata mockMetadata1;
-
-    @Mock
-    private Metadata mockMetadata2;
 
     @Override
     @BeforeEach
@@ -73,42 +68,29 @@ public class ListBoxFileMetadataInstancesTest extends AbstractBoxFileTest {
 
     @Test
     void testSuccessfulMetadataRetrieval() {
-        final List<Metadata> metadataList = new ArrayList<>();
-        metadataList.add(mockMetadata1);
-        metadataList.add(mockMetadata2);
-        final JsonValue mockJsonValue1 = mock(JsonValue.class);
-        final JsonValue mockJsonValue2 = mock(JsonValue.class);
-        final JsonValue mockJsonValue3 = mock(JsonValue.class);
-        final JsonValue mockJsonValue4 = mock(JsonValue.class);
+        final JsonObject metadataJson1 = Json.object()
+                .add("$id", TEMPLATE_1_ID)
+                .add("$type", "fileMetadata-123")
+                .add("$parent", "file_" + TEST_FILE_ID)
+                .add("$template", TEMPLATE_1_NAME)
+                .add("$scope", TEMPLATE_1_SCOPE)
+                .add("fileName", "document.pdf")
+                .add("fileExtension", "pdf");
+        final Metadata metadata1 = new Metadata(metadataJson1);
 
-        when(mockJsonValue1.isString()).thenReturn(true);
-        when(mockJsonValue1.asString()).thenReturn("document.pdf");
-        when(mockJsonValue2.isString()).thenReturn(true);
-        when(mockJsonValue2.asString()).thenReturn("pdf");
-        when(mockJsonValue3.isString()).thenReturn(true);
-        when(mockJsonValue3.asString()).thenReturn("Test Document");
-        when(mockJsonValue4.isString()).thenReturn(true);
-        when(mockJsonValue4.asString()).thenReturn("John Doe");
+        final JsonObject metadataJson2 = Json.object()
+                .add("$id", TEMPLATE_2_ID)
+                .add("$type", "properties-123456")
+                .add("$parent", "file_" + TEST_FILE_ID)
+                .add("$template", TEMPLATE_2_NAME)
+                .add("$scope", TEMPLATE_2_SCOPE)
+                .add("Test Number", Json.NULL)
+                .add("Title", "Test Document")
+                .add("Author", "John Doe");
+        final Metadata metadata2 = new Metadata(metadataJson2);
 
-        // Template 1 setup (fileMetadata)
-        when(mockMetadata1.getID()).thenReturn(TEMPLATE_1_ID);
-        when(mockMetadata1.getTemplateName()).thenReturn(TEMPLATE_1_NAME);
-        when(mockMetadata1.getScope()).thenReturn(TEMPLATE_1_SCOPE);
-        final List<String> template1Fields = List.of("fileName", "fileExtension");
-        when(mockMetadata1.getPropertyPaths()).thenReturn(template1Fields);
-        when(mockMetadata1.getValue("fileName")).thenReturn(mockJsonValue1);
-        when(mockMetadata1.getValue("fileExtension")).thenReturn(mockJsonValue2);
+        final List<Metadata> metadataList = List.of(metadata1, metadata2);
 
-        // Template 2 setup (properties)
-        when(mockMetadata2.getID()).thenReturn(TEMPLATE_2_ID);
-        when(mockMetadata2.getTemplateName()).thenReturn(TEMPLATE_2_NAME);
-        when(mockMetadata2.getScope()).thenReturn(TEMPLATE_2_SCOPE);
-
-        final List<String> template2Fields = List.of("Test Number", "Title", "Author", "Date");
-        when(mockMetadata2.getPropertyPaths()).thenReturn(template2Fields);
-        when(mockMetadata2.getValue("Test Number")).thenReturn(null); // Test null handling
-        when(mockMetadata2.getValue("Title")).thenReturn(mockJsonValue3);
-        when(mockMetadata2.getValue("Author")).thenReturn(mockJsonValue4);
         doReturn(metadataList).when(mockBoxFile).getAllMetadata();
 
         testRunner.setProperty(ListBoxFileMetadataInstances.FILE_ID, TEST_FILE_ID);
@@ -119,22 +101,24 @@ public class ListBoxFileMetadataInstancesTest extends AbstractBoxFileTest {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListBoxFileMetadataInstances.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("box.id", TEST_FILE_ID);
         flowFile.assertAttributeEquals("record.count", "2");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         flowFile.assertAttributeEquals("box.metadata.instances.names", "fileMetadata,properties");
         flowFile.assertAttributeEquals("box.metadata.instances.count", "2");
 
         final String content = new String(flowFile.toByteArray());
-        System.out.println(content);
-
-        // Check that content contains key elements
         assertTrue(content.contains("\"$id\":\"" + TEMPLATE_1_ID + "\""));
         assertTrue(content.contains("\"$template\":\"" + TEMPLATE_1_NAME + "\""));
         assertTrue(content.contains("\"$scope\":\"" + TEMPLATE_1_SCOPE + "\""));
+        assertTrue(content.contains("\"$parent\":\"file_" + TEST_FILE_ID + "\""));
         assertTrue(content.contains("\"fileName\":\"document.pdf\""));
         assertTrue(content.contains("\"fileExtension\":\"pdf\""));
+
+        assertTrue(content.contains("\"$id\":\"" + TEMPLATE_2_ID + "\""));
+        assertTrue(content.contains("\"$template\":\"" + TEMPLATE_2_NAME + "\""));
+        assertTrue(content.contains("\"$scope\":\"" + TEMPLATE_2_SCOPE + "\""));
+        assertTrue(content.contains("\"$parent\":\"file_" + TEST_FILE_ID + "\""));
         assertTrue(content.contains("\"Title\":\"Test Document\""));
         assertTrue(content.contains("\"Author\":\"John Doe\""));
-        assertTrue(content.contains("["));
-        assertTrue(content.contains("]"));
     }
 
     @Test
