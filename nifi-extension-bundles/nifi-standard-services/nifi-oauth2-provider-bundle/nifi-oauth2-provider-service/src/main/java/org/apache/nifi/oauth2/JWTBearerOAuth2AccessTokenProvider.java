@@ -19,7 +19,6 @@ package org.apache.nifi.oauth2;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.nimbusds.common.contenttype.ContentType;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -51,13 +50,13 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.key.service.api.PrivateKeyService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth2.key.Ed25519Signer;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.web.client.api.HttpRequestHeadersSpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
-import org.apache.nifi.web.security.jwt.key.Ed25519Signer;
 
 import javax.net.ssl.X509ExtendedKeyManager;
 
@@ -103,10 +102,6 @@ import java.util.stream.Collectors;
 })
 public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider, VerifiableControllerService {
 
-    private static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
-
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
             .name("Private Key Service")
             .description("The private key service to use for signing JWTs.")
@@ -117,9 +112,17 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     public static final PropertyDescriptor SIGNING_ALGORITHM = new PropertyDescriptor.Builder()
             .name("Signing Algorithm")
             .description("The algorithm to use for signing the JWT.")
-            .allowableValues(JWSAlgorithm.RS256.getName(), JWSAlgorithm.RS384.getName(), JWSAlgorithm.RS512.getName(),
-                    JWSAlgorithm.PS256.getName(), JWSAlgorithm.PS384.getName(), JWSAlgorithm.PS512.getName(),
-                    JWSAlgorithm.ES256.getName(), JWSAlgorithm.ES384.getName(), JWSAlgorithm.ES512.getName(), JWSAlgorithm.Ed25519.getName())
+            .allowableValues(
+                    JWSAlgorithm.RS256.getName(),
+                    JWSAlgorithm.RS384.getName(),
+                    JWSAlgorithm.RS512.getName(),
+                    JWSAlgorithm.PS256.getName(),
+                    JWSAlgorithm.PS384.getName(),
+                    JWSAlgorithm.PS512.getName(),
+                    JWSAlgorithm.ES256.getName(),
+                    JWSAlgorithm.ES384.getName(),
+                    JWSAlgorithm.ES512.getName(),
+                    JWSAlgorithm.Ed25519.getName())
             .defaultValue(JWSAlgorithm.PS256.getName())
             .required(true)
             .addValidator(Validator.VALID)
@@ -175,27 +178,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor NBF = new PropertyDescriptor.Builder()
-            .name("Set Not Before Time")
-            .description("The nbf (not before) claim identifies the time before which the JWT MUST NOT be accepted for processing."
-                    + " If set to true, the current time will be used.")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(Validator.VALID)
-            .build();
-
-    public static final PropertyDescriptor HEADER_TYPE = new PropertyDescriptor.Builder()
-            .name("Set JWT Header Type")
-            .description("If true, the JWT header type (typ) will be set to JWT.")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(Validator.VALID)
-            .build();
-
     public static final PropertyDescriptor HEADER_X5T = new PropertyDescriptor.Builder()
-            .name("Set JWT Header x5t")
+            .name("Set JWT Header X.509 Cert Thumbprint")
             .description("If true, will set the JWT header x5t field with the base64url-encoded SHA-256 thumbprint of the X.509 certificate's DER encoding."
                     + " If set to true, an instance of SSLContextProvider must be configured with a certificate using RSA algorithm.")
             .required(true)
@@ -272,9 +256,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             SUBJECT,
             AUDIENCE,
             SCOPE,
-            NBF,
             JTI,
-            HEADER_TYPE,
             HEADER_X5T,
             SSL_CONTEXT_PROVIDER,
             KID,
@@ -283,6 +265,10 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             REFRESH_WINDOW,
             JWT_VALIDITY
     );
+
+    private static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
     private volatile AccessToken accessDetails;
     private volatile JWSSigner signer;
@@ -301,8 +287,6 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     private volatile String kid;
     private volatile String grantType;
     private volatile String assertion;
-    private volatile boolean nbf;
-    private volatile boolean headerType;
     private volatile boolean headerX5T;
 
     private volatile Map<String, String> customClaims;
@@ -311,6 +295,9 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     static final String CLAIM_PREFIX = "CLAIM.";
     static final String FORM_PREFIX = "FORM.";
 
+    private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_URLENCODED = "application/x-www-form-urlencoded";
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -318,7 +305,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        getProperties(context);
+        initProperties(context);
         initJWTSigner();
     }
 
@@ -372,9 +359,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
 
         if (privateKey instanceof RSAPrivateKey) {
-            if (algorithmName.startsWith("RS") || algorithmName.startsWith("PS")) {
-                return validationResults;
-            } else {
+            if (!algorithmName.startsWith("RS")
+                    && !algorithmName.startsWith("PS")) {
                 validationResults.add(new ValidationResult.Builder()
                         .subject(SIGNING_ALGORITHM.getDisplayName())
                         .valid(false)
@@ -382,18 +368,16 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
                         .build());
             }
         } else if (privateKey instanceof ECPrivateKey) {
-            if (algorithm.equals(JWSAlgorithm.ES256) || algorithm.equals(JWSAlgorithm.ES384) || algorithm.equals(JWSAlgorithm.ES512)) {
-                return validationResults;
-            } else {
+            if (!algorithm.equals(JWSAlgorithm.ES256)
+                    && !algorithm.equals(JWSAlgorithm.ES384)
+                    && !algorithm.equals(JWSAlgorithm.ES512)) {
                 validationResults.add(new ValidationResult.Builder()
                         .subject(SIGNING_ALGORITHM.getDisplayName())
                         .valid(false)
                         .explanation("The private key is of EC type, the signing algorithm must be either ES256, ES384 or ES512.")
                         .build());
             }
-        } else if (algorithm.equals(JWSAlgorithm.Ed25519)) {
-            return validationResults;
-        } else {
+        } else if (!algorithm.equals(JWSAlgorithm.Ed25519)) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(SIGNING_ALGORITHM.getDisplayName())
                     .valid(false)
@@ -406,13 +390,13 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
     @Override
     public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
-        getProperties(context);
+        initProperties(context);
         initJWTSigner();
         ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder().verificationStepName("Acquire token");
         try {
             getAccessDetails();
             builder.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             String explanation = ex.getMessage();
             if (ex.getCause() != null) {
                 explanation += " (" + ex.getCause().getMessage() + ")";
@@ -427,8 +411,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         if (this.accessDetails == null || isRefreshRequired()) {
             try {
                 acquireAccessDetails();
-            } catch (Exception e) {
-                throw new AccessTokenRetrievalException("Failed to retrieve access token details", e);
+            } catch (final Exception e) {
+                throw new AccessTokenRetrievalException("Failed to acquire Access Token", e);
             }
         }
         return accessDetails;
@@ -454,10 +438,12 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         getLogger().debug("New Access Token request started [{}]", tokenEndpoint);
 
         final Instant now = Instant.now();
+        final Date nowDate = Date.from(now);
 
         Builder claimsSetBuilder = new JWTClaimsSet.Builder()
                 .expirationTime(Date.from(now.plus(jwtValidity)))
-                .issueTime(Date.from(now));
+                .issueTime(nowDate)
+                .notBeforeTime(nowDate);
 
         if (issuer != null) {
             claimsSetBuilder.issuer(issuer);
@@ -475,10 +461,6 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             claimsSetBuilder.claim("scope", scope);
         }
 
-        if (nbf) {
-            claimsSetBuilder.notBeforeTime(Date.from(now));
-        }
-
         if (jti != null) {
             claimsSetBuilder.jwtID(jti);
         }
@@ -486,10 +468,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         customClaims.forEach(claimsSetBuilder::claim);
 
         JWSHeader.Builder headerBuilder = new JWSHeader.Builder(JWSAlgorithm.parse(algorithmName));
-
-        if (headerType) {
-            headerBuilder.type(JOSEObjectType.JWT);
-        }
+        headerBuilder.type(JOSEObjectType.JWT);
 
         if (kid != null) {
             headerBuilder.keyID(kid);
@@ -499,15 +478,15 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             try {
                 final String alias = keyManager.chooseClientAlias(new String[] {"RSA"}, null, null);
                 if (alias == null) {
-                    getLogger().warn("No key alias found, setting x5t header to null.");
+                    throw new AccessTokenRetrievalException("Cannot set x5t header because no key alias found");
                 } else {
                     final PrivateKey privateKey = keyManager.getPrivateKey(alias);
                     if (privateKey == null) {
-                        getLogger().warn("No private key found, setting x5t header to null.");
+                        throw new AccessTokenRetrievalException(String.format("Cannot set x5t header because no private key found for alias %s", alias));
                     } else {
                         final X509Certificate[] certificates = keyManager.getCertificateChain(alias);
                         if (certificates == null || certificates.length == 0) {
-                            getLogger().warn("No certificates found");
+                            throw new AccessTokenRetrievalException(String.format("Cannot set x5t header because no certificate chain found for alias %s", alias));
                         } else {
                             final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
                             final byte[] bytes = messageDigest.digest(certificates[0].getEncoded());
@@ -516,8 +495,10 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
                         }
                     }
                 }
-            } catch (Exception e) {
-                getLogger().warn("Failed to set x5t header, setting to null.", e);
+            } catch (final AccessTokenRetrievalException e) {
+                throw e;
+            } catch (final Exception e) {
+                throw new AccessTokenRetrievalException("Failed to set x5t header", e);
             }
         }
 
@@ -533,8 +514,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         HttpRequestHeadersSpec request = webClientService
                 .post()
                 .uri(new URI(tokenEndpoint))
-                .header("Accept", ContentType.APPLICATION_JSON.getType())
-                .header("Content-Type", ContentType.APPLICATION_URLENCODED.getType())
+                .header("Accept", APPLICATION_JSON)
+                .header("Content-Type", APPLICATION_URLENCODED)
                 .body(formParams.entrySet()
                         .stream()
                         .map(param -> param.getKey() + "=" + param.getValue())
@@ -542,7 +523,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
         try (final HttpResponseEntity response = request.retrieve()) {
             if (response.statusCode() != 200) {
-                final String message = "Failed to retrieve access details. Status code: %s, response body: %s".formatted(
+                final String message = "Failed to retrieve Access Token: HTTP %s with Response [%s]".formatted(
                         response.statusCode(),
                         readBodyAsText(response).orElse("[no body]"));
 
@@ -573,7 +554,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
     }
 
-    private void getProperties(ConfigurationContext context) {
+    private void initProperties(ConfigurationContext context) {
         privateKey = context.getProperty(PRIVATE_KEY_SERVICE).asControllerService(PrivateKeyService.class).getPrivateKey();
         tokenEndpoint = context.getProperty(TOKEN_ENDPOINT).getValue();
         webClientService = context.getProperty(WEB_CLIENT_SERVICE).asControllerService(WebClientServiceProvider.class).getWebClientService();
@@ -581,8 +562,6 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         jwtValidity = context.getProperty(JWT_VALIDITY).asDuration();
         tokenEndpoint = context.getProperty(TOKEN_ENDPOINT).getValue();
         algorithmName = context.getProperty(SIGNING_ALGORITHM).getValue();
-        nbf = context.getProperty(NBF).asBoolean();
-        headerType = context.getProperty(HEADER_TYPE).asBoolean();
         headerX5T = context.getProperty(HEADER_X5T).asBoolean();
         grantType = context.getProperty(GRANT_TYPE).evaluateAttributeExpressions().getValue();
         assertion = context.getProperty(ASSERTION).evaluateAttributeExpressions().getValue();
@@ -654,7 +633,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             if (algorithm.equals(JWSAlgorithm.ES256) || algorithm.equals(JWSAlgorithm.ES384) || algorithm.equals(JWSAlgorithm.ES512)) {
                 try {
                     signer = new ECDSASigner((ECPrivateKey) privateKey);
-                } catch (JOSEException e) {
+                } catch (final JOSEException e) {
                     throw new IllegalArgumentException("Failed to create ECDSA signer", e);
                 }
             }
