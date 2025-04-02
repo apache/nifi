@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.action.ActionToFlowActionConverter;
+import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.EntityStoreAuditService;
 import org.apache.nifi.framework.configuration.ApplicationPropertiesConfiguration;
@@ -68,12 +70,13 @@ public class NiFiWebApiConfiguration {
      * Audit Service implementation from nifi-administration
      *
      * @param properties NiFi Properties
+     * @param flowActionReporter Flow Action Reporter
      * @return Audit Service implementation using Persistent Entity Store
      */
     @Bean
-    public AuditService auditService(final NiFiProperties properties) {
+    public AuditService auditService(final NiFiProperties properties, final FlowActionReporter flowActionReporter) {
         final File databaseDirectory = properties.getDatabaseRepositoryPath().toFile();
-        return new EntityStoreAuditService(databaseDirectory);
+        return new EntityStoreAuditService(databaseDirectory, flowActionReporter, new ActionToFlowActionConverter());
     }
 
     @Bean

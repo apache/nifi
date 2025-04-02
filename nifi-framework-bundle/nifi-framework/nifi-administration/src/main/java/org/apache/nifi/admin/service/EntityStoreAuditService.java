@@ -26,7 +26,9 @@ import jetbrains.exodus.env.Environment;
 import jetbrains.exodus.env.EnvironmentConfig;
 import jetbrains.exodus.env.Environments;
 import org.apache.nifi.action.Action;
+import org.apache.nifi.action.ActionConverter;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.ComponentDetails;
@@ -93,13 +95,21 @@ public class EntityStoreAuditService implements AuditService, Closeable {
 
     private final Environment environment;
 
+    private final FlowActionReporter flowActionReporter;
+
+    private final ActionConverter actionConverter;
+
     /**
      * Entity Store Audit Service constructor with required properties for persistent location
      *
-     * @param directory Persistent Entity Store directory
+     * @param directory          Persistent Entity Store directory
+     * @param flowActionReporter Flow Action Reporter
+     * @param actionConverter  Action Converter
      */
-    public EntityStoreAuditService(final File directory) {
+    public EntityStoreAuditService(final File directory, final FlowActionReporter flowActionReporter, final ActionConverter actionConverter) {
         environment = loadEnvironment(directory);
+        this.flowActionReporter = flowActionReporter;
+        this.actionConverter = actionConverter;
         entityStore = PersistentEntityStores.newInstance(environment);
         logger.info("Environment configured with directory [{}]", directory);
     }
@@ -119,6 +129,11 @@ public class EntityStoreAuditService implements AuditService, Closeable {
             }
             logger.debug("Actions added [{}]", actions.size());
         });
+        flowActionReporter.reportFlowActions(
+            actions.stream()
+                .map(actionConverter::convert)
+                .toList()
+        );
     }
 
     /**

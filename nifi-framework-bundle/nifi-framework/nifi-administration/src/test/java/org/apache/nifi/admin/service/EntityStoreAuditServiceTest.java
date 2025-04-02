@@ -18,8 +18,11 @@ package org.apache.nifi.admin.service;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowAction;
+import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.StandardFlowAction;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
@@ -40,6 +43,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -108,9 +112,11 @@ class EntityStoreAuditServiceTest {
 
     private EntityStoreAuditService service;
 
+    InMemoryFlowActionReporter flowActionReporter = new InMemoryFlowActionReporter();
+
     @BeforeEach
     void setService() {
-        service = new EntityStoreAuditService(directory);
+        service = new EntityStoreAuditService(directory, flowActionReporter, (__) -> new StandardFlowAction());
     }
 
     @AfterEach
@@ -133,7 +139,7 @@ class EntityStoreAuditServiceTest {
         }
 
         // Create Service with corrupted directory
-        service = new EntityStoreAuditService(directory);
+        service = new EntityStoreAuditService(directory, flowActionReporter, (__) -> new StandardFlowAction());
         final Action action = newAction();
         final Collection<Action> actions = Collections.singletonList(action);
         service.addActions(actions);
@@ -458,6 +464,28 @@ class EntityStoreAuditServiceTest {
 
         final ActionDetails actionDetails = actionFound.getActionDetails();
         assertConnectDetailsFound(connectDetails, actionDetails);
+    }
+
+    @Test
+    void shouldReportActions() {
+        final List<Action> actions = new ArrayList<>();
+        actions.add(newAction());
+
+        service.addActions(actions);
+
+        assertEquals(1, flowActionReporter.getReportedActions().size());
+    }
+
+    private static class InMemoryFlowActionReporter implements FlowActionReporter {
+        List<FlowAction> reportedActions = new ArrayList<>();
+        public void reportFlowActions(Collection<FlowAction> actions) {
+            reportedActions.addAll(actions);
+        }
+
+        List<FlowAction> getReportedActions() {
+            return reportedActions;
+        }
+
     }
 
     private FlowChangeAction newAction() {

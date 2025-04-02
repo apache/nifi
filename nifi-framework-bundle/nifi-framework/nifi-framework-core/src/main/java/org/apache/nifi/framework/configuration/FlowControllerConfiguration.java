@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.framework.configuration;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.action.FlowActionReporter;
+import org.apache.nifi.action.StandardFlowActionReporterConfigurationContext;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.asset.AssetComponentManager;
 import org.apache.nifi.asset.AssetManager;
@@ -82,6 +85,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration
 public class FlowControllerConfiguration {
+
+    private static final String FLOW_ACTION_REPORTER_IMPLEMENTATION = "nifi.flow.action.reporter.implementation";
 
     private NiFiProperties properties;
 
@@ -470,5 +475,27 @@ public class FlowControllerConfiguration {
     @Bean
     public AssetComponentManager affectedComponentManager() throws Exception {
         return new StandardAssetComponentManager(flowController());
+    }
+
+    /**
+     * Flow Action Reporter configured from NiFi Application Properties
+     *
+     * @return Flow Action Reporter
+     * @throws Exception Thrown on failures to create Flow Action Reporter
+     */
+    @Bean(destroyMethod = "preDestruction")
+    public FlowActionReporter flowActionReporter() throws Exception {
+        final String configuredClassName = properties.getProperty(FLOW_ACTION_REPORTER_IMPLEMENTATION);
+        if (StringUtils.isBlank(configuredClassName)) {
+            throw new IllegalStateException("Cannot create FlowActionReporter because the configuration is missing the following property: "
+                + FLOW_ACTION_REPORTER_IMPLEMENTATION);
+        }
+        try {
+            FlowActionReporter reporter = NarThreadContextClassLoader.createInstance(extensionManager, configuredClassName, FlowActionReporter.class, properties);
+            reporter.onConfigured(new StandardFlowActionReporterConfigurationContext(sslContext, trustManager));
+            return reporter;
+        } catch (final Exception e) {
+            throw new IllegalStateException("Failed to create FlowActionReporter with class " + configuredClassName, e);
+        }
     }
 }
