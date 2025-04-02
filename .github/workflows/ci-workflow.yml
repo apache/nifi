@@ -90,7 +90,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2
         id: changes
         with:
           filters: |
@@ -157,7 +157,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2
         id: changes
         with:
           filters: |
@@ -230,7 +230,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2
         id: changes
         with:
           filters: |
