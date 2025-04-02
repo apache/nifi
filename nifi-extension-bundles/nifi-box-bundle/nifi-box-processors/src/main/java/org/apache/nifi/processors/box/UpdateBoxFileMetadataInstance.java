@@ -284,24 +284,28 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             // Update
             switch (value) {
                 case Number n -> metadata.replace(propertyPath, n.doubleValue());
-                case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l));
+                case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l, propertyPath));
                 default -> metadata.replace(propertyPath, value.toString());
             }
         } else {
             // Add new field
             switch (value) {
                 case Number n -> metadata.add(propertyPath, n.doubleValue());
-                case List<?> l -> metadata.add(propertyPath, convertListToStringList(l));
+                case List<?> l -> metadata.add(propertyPath, convertListToStringList(l, propertyPath));
                 default -> metadata.add(propertyPath, value.toString());
             }
         }
     }
 
-    private List<String> convertListToStringList(final List<?> list) {
-        // Box doesn't support null values in metadata lists, so we filter them out
+    private List<String> convertListToStringList(final List<?> list,
+                                                 final String fieldName) {
         return list.stream()
-                .filter(Objects::nonNull)
-                .map(Object::toString)
+                .map(obj -> {
+                    if (obj == null) {
+                        throw new IllegalArgumentException("Null value found in list for field: " + fieldName);
+                    }
+                    return obj.toString();
+                })
                 .collect(Collectors.toList());
     }
 

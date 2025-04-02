@@ -308,7 +308,9 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
 
     public enum ExtractionMethod implements DescribedValue {
         TEMPLATE("Template", "Uses a Box metadata template for extraction."),
-        FIELDS("Fields", "Uses a JSON schema of fields to extract from the FlowFile content.");
+        FIELDS("Fields", "Uses a JSON schema of fields to extract from the FlowFile content. " +
+                "The schema should include 'key' (required); 'type', 'description', 'displayName', 'prompt', and 'options' fields are optional. " +
+                "This follows the BOX API schema for fields.");
 
         private final String displayName;
         private final String description;
