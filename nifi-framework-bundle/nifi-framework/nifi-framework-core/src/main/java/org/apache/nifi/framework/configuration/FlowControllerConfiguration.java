@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.framework.configuration;
 
+import org.apache.nifi.action.ActionConverter;
+import org.apache.nifi.action.ActionToFlowActionConverter;
+import org.apache.nifi.action.FlowActionReporter;
+import org.apache.nifi.action.HeadlessFlowActionReporter;
+import org.apache.nifi.action.StandardFlowActionReporterConfigurationContext;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.asset.AssetComponentManager;
 import org.apache.nifi.asset.AssetManager;
@@ -74,6 +79,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -470,5 +476,31 @@ public class FlowControllerConfiguration {
     @Bean
     public AssetComponentManager affectedComponentManager() throws Exception {
         return new StandardAssetComponentManager(flowController());
+    }
+
+    /**
+     * Flow Action Reporter configured from NiFi Application Properties
+     *
+     * @return Flow Action Reporter
+     * @throws Exception Thrown on failures to create Flow Action Reporter
+     */
+    @Bean(destroyMethod = "preDestruction")
+    public FlowActionReporter flowActionReporter() throws Exception {
+        final String configuredClassName = properties.getProperty(NiFiProperties.COMPONENT_FLOW_ACTION_REPORTER_IMPLEMENTATION);
+        final String className = configuredClassName == null ? HeadlessFlowActionReporter.class.getName() : configuredClassName;
+        FlowActionReporter reporter = NarThreadContextClassLoader.createInstance(extensionManager, className, FlowActionReporter.class, properties);
+        reporter.onConfigured(new StandardFlowActionReporterConfigurationContext(Map.of(), sslContext, trustManager));
+        return reporter;
+    }
+
+    /**
+     * Action Converter for converting actions to flow actions
+     *
+     * @return Action Converter
+     * @throws Exception Thrown on failures to create Action Converter
+     */
+    @Bean
+    public ActionConverter flowActionConverter() throws Exception {
+        return new ActionToFlowActionConverter();
     }
 }
