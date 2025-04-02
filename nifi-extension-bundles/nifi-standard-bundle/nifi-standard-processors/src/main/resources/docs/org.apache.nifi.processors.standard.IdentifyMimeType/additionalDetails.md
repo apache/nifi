@@ -47,7 +47,7 @@ The following is a non-exhaustive list of MIME Types detected by default in NiFi
 * application/zip
 * application/x-lzh
 
-An example value for the Config Body property that will identify a file whose contents start with "abcd" as MIME Type "
+An example value for the "Custom MIME Configuration" property that will identify a file whose contents start with "abcd" as MIME Type "
 custom/abcd" and with extension ".abcd" would look like the following:
 
 ```xml
@@ -63,5 +63,5 @@ custom/abcd" and with extension ".abcd" would look like the following:
 ```
 
 For a more complete list of Tika's default types (and additional details regarding customization of the value for the
-Config Body property), please refer
+"Custom MIME Configuration" property), please refer
 to [Apache Tika's documentation](https://tika.apache.org/1.22/detection.html#Mime_Magic_Detection)
