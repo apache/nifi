@@ -220,14 +220,14 @@ public class TestKinesisRecordProcessorRecord {
 
     private String expectRecordContentWrapper() {
         return """
-                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","partitionKey":"partition-1",\
-                "approximateArrival":1609459140000},"value":{"record":"1"}}
-                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","partitionKey":"partition-1",\
-                "approximateArrival":1609459140000},"value":{"record":"1b"}}
-                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"no-date","partitionKey":"partition-no-date",\
-                "approximateArrival":null},"value":{"record":"no-date"}}
-                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"2","partitionKey":"partition-2",\
-                "approximateArrival":1609459200000},"value":{"record":"2"}}""";
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","subSequenceNumber":0,\
+                "shardedSequenceNumber":"100000000000000000000","partitionKey":"partition-1","approximateArrival":1609459140000},"value":{"record":"1"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"1","subSequenceNumber":0,\
+                "shardedSequenceNumber":"100000000000000000000","partitionKey":"partition-1","approximateArrival":1609459140000},"value":{"record":"1b"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"no-date","subSequenceNumber":0,\
+                "shardedSequenceNumber":"no-date00000000000000000000","partitionKey":"partition-no-date","approximateArrival":null},"value":{"record":"no-date"}}
+                {"metadata":{"stream":"kinesis-test","shardId":"another-shard","sequenceNumber":"2","subSequenceNumber":0,\
+                "shardedSequenceNumber":"200000000000000000000","partitionKey":"partition-2","approximateArrival":1609459200000},"value":{"record":"2"}}""";
     }
 
     @Test

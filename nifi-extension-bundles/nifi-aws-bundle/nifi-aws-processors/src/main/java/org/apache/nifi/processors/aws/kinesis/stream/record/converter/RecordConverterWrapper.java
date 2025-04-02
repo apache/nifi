@@ -38,16 +38,20 @@ public class RecordConverterWrapper implements RecordConverter {
     private static final String STREAM = "stream";
     private static final String SHARD_ID = "shardId";
     private static final String SEQUENCE_NUMBER = "sequenceNumber";
+    private static final String SUB_SEQUENCE_NUMBER = "subSequenceNumber";
+    private static final String SHARDED_SEQUENCE_NUMBER = "shardedSequenceNumber";
     private static final String PARTITION_KEY = "partitionKey";
     private static final String APPROX_ARRIVAL_TIMESTAMP = "approximateArrival";
 
     private static final RecordField FIELD_STREAM = new RecordField(STREAM, RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_SHARD_ID = new RecordField(SHARD_ID, RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_SEQUENCE_NUMBER = new RecordField(SEQUENCE_NUMBER, RecordFieldType.STRING.getDataType());
+    private static final RecordField FIELD_SUB_SEQUENCE_NUMBER = new RecordField(SUB_SEQUENCE_NUMBER, RecordFieldType.LONG.getDataType());
+    private static final RecordField FIELD_SHARDED_SEQUENCE_NUMBER = new RecordField(SHARDED_SEQUENCE_NUMBER, RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_PARTITION_KEY = new RecordField(PARTITION_KEY, RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_APPROX_ARRIVAL_TIMESTAMP = new RecordField(APPROX_ARRIVAL_TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType());
     private static final RecordSchema SCHEMA_METADATA = new SimpleRecordSchema(Arrays.asList(
-            FIELD_STREAM, FIELD_SHARD_ID, FIELD_SEQUENCE_NUMBER, FIELD_PARTITION_KEY, FIELD_APPROX_ARRIVAL_TIMESTAMP));
+            FIELD_STREAM, FIELD_SHARD_ID, FIELD_SEQUENCE_NUMBER, FIELD_SUB_SEQUENCE_NUMBER, FIELD_SHARDED_SEQUENCE_NUMBER, FIELD_PARTITION_KEY, FIELD_APPROX_ARRIVAL_TIMESTAMP));
 
     public static final RecordField FIELD_METADATA = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(SCHEMA_METADATA));
 
@@ -57,7 +61,12 @@ public class RecordConverterWrapper implements RecordConverter {
         final Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put(STREAM, streamName);
         metadata.put(SHARD_ID, shardId);
-        metadata.put(SEQUENCE_NUMBER, kinesisRecord.sequenceNumber());
+        final String sequenceNumber = kinesisRecord.sequenceNumber();
+        metadata.put(SEQUENCE_NUMBER, sequenceNumber);
+        final long subSequenceNumber = kinesisRecord.subSequenceNumber();
+        metadata.put(SUB_SEQUENCE_NUMBER, subSequenceNumber);
+        final String shardedSequenceNumber = String.format("%s%020d", sequenceNumber, subSequenceNumber);
+        metadata.put(SHARDED_SEQUENCE_NUMBER, shardedSequenceNumber);
         metadata.put(PARTITION_KEY, kinesisRecord.partitionKey());
         final Instant approxArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         metadata.put(APPROX_ARRIVAL_TIMESTAMP, approxArrivalTimestamp == null ? null : approxArrivalTimestamp.toEpochMilli());
