@@ -236,7 +236,7 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
         final String key = keyObj.toString();
 
         if (processedKeys.contains(key)) {
-            errors.add("Duplicate key '" + key + "' found in record, skipping");
+            errors.add("Duplicate key '" + key + "' found in record, failing template creation");
             return;
         }
 
@@ -277,7 +277,12 @@ public class CreateBoxMetadataTemplate extends AbstractProcessor {
             final Object optionsObj = record.getValue("options");
             if (optionsObj instanceof List<?> optionsList) {
                 final List<String> options = optionsList.stream()
-                        .map(obj -> obj != null ? obj.toString() : "")
+                        .map(obj -> {
+                            if (obj == null) {
+                                throw new IllegalArgumentException("Null option value found for field '" + key + "'");
+                            }
+                            return obj.toString();
+                        })
                         .toList();
                 metadataField.setOptions(options);
             }

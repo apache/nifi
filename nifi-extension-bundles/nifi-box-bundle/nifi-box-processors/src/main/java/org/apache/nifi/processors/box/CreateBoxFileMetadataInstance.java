@@ -43,7 +43,6 @@ import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -214,7 +213,7 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
                 "box.template.key", templateKey);
         flowFile = session.putAllAttributes(flowFile, attributes);
 
-        session.getProvenanceReporter().create(flowFile, "%s%s/metadata/%s/%s".formatted(BoxFileUtils.BOX_URL, fileId, "enterprise", templateKey));
+        session.getProvenanceReporter().create(flowFile, "%s%s/metadata/enterprise/%s".formatted(BoxFileUtils.BOX_URL, fileId, templateKey));
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -224,7 +223,7 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             return;
         }
 
-        Set<String> fieldNames = new HashSet<>(record.getSchema().getFieldNames());
+        List<String> fieldNames = record.getSchema().getFieldNames();
 
         if (fieldNames.isEmpty()) {
             errors.add("Record has no fields");

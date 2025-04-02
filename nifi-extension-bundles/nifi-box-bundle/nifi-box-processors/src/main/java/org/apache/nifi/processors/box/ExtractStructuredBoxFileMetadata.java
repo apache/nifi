@@ -1,10 +1,10 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
+ * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * the License. You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -18,6 +18,7 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxAI;
 import com.box.sdk.BoxAIExtractField;
+import com.box.sdk.BoxAIExtractFieldOption;
 import com.box.sdk.BoxAIExtractMetadataTemplate;
 import com.box.sdk.BoxAIExtractStructuredResponse;
 import com.box.sdk.BoxAIItem;
@@ -31,6 +32,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.box.controllerservices.BoxClientService;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -41,8 +43,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.Record;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,10 +66,8 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "ai", "extract"})
-@CapabilityDescription("""
-        Extracts metadata from a Box file using Box AI. The extraction can use either a template or a list of fields.\s
-        The extracted metadata is written to the FlowFile content as JSON.
-        """)
+@CapabilityDescription("Extracts metadata from a Box file using Box AI. The extraction can use either a template or a list of fields. " +
+        "The extracted metadata is written to the FlowFile content as JSON.")
 @SeeAlso({ListBoxFileMetadataTemplates.class, ListBoxFile.class, FetchBoxFile.class, UpdateBoxFileMetadataInstance.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file from which metadata was extracted"),
@@ -74,11 +79,6 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
 public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
-
-    public static class ExtractionMethod {
-        public static final String TEMPLATE = "TEMPLATE";
-        public static final String FIELDS = "FIELDS";
-    }
 
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
@@ -92,10 +92,10 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
     public static final PropertyDescriptor EXTRACTION_METHOD = new PropertyDescriptor.Builder()
             .name("Extraction Method")
             .description("The method to use for extracting metadata. TEMPLATE uses a Box metadata template for extraction. " +
-                    "FIELDS uses a comma-separated list of field names to extract.")
+                    "FIELDS uses a JSON schema of fields (read from FlowFile content) for extraction.")
             .required(true)
             .allowableValues(ExtractionMethod.TEMPLATE, ExtractionMethod.FIELDS)
-            .defaultValue(ExtractionMethod.TEMPLATE)
+            .defaultValue(ExtractionMethod.TEMPLATE.getValue())
             .build();
 
     public static final PropertyDescriptor TEMPLATE_KEY = new PropertyDescriptor.Builder()
@@ -104,16 +104,16 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.TEMPLATE)
+            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.TEMPLATE.getValue())
             .build();
 
-    public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
-            .name("Fields")
-            .description("A comma-separated list of field names to extract. Required when Extraction Method is FIELDS.")
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("Record Reader")
+            .description("The Record Reader to use for parsing the incoming data. " +
+                    "Required when Extraction Method is FIELDS.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.FIELDS)
+            .identifiesControllerService(RecordReaderFactory.class)
+            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.FIELDS.getValue())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -148,7 +148,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             FILE_ID,
             EXTRACTION_METHOD,
             TEMPLATE_KEY,
-            FIELDS
+            RECORD_READER
     );
 
     private static final String SCOPE = "enterprise";
@@ -180,22 +180,30 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final String extractionMethod = context.getProperty(EXTRACTION_METHOD).getValue();
+        final ExtractionMethod extractionMethod = ExtractionMethod.valueOf(context.getProperty(EXTRACTION_METHOD).getValue());
 
         try {
             final BoxAIExtractStructuredResponse result;
             final Map<String, String> attributes = new HashMap<>();
             attributes.put("box.id", fileId);
-            attributes.put("box.ai.extraction.method", extractionMethod);
+            attributes.put("box.ai.extraction.method", extractionMethod.name());
 
-            if (ExtractionMethod.TEMPLATE.equals(extractionMethod)) {
-                final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
-                attributes.put("box.ai.template.key", templateKey);
-                result = getBoxAIExtractStructuredResponseWithTemplate(templateKey, fileId);
-            } else {
-                final String fieldsString = context.getProperty(FIELDS).evaluateAttributeExpressions(flowFile).getValue();
-                result = getBoxAIExtractStructuredResponseWithFields(fieldsString, fileId);
-            }
+            result = switch (extractionMethod) {
+                case TEMPLATE -> {
+                    final String templateKey = context.getProperty(TEMPLATE_KEY)
+                            .evaluateAttributeExpressions(flowFile).getValue();
+                    attributes.put("box.ai.template.key", templateKey);
+                    yield getBoxAIExtractStructuredResponseWithTemplate(templateKey, fileId);
+                }
+                case FIELDS -> {
+                    final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER)
+                            .asControllerService(RecordReaderFactory.class);
+                    try (final InputStream inputStream = session.read(flowFile);
+                         final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
+                        yield getBoxAIExtractStructuredResponseWithFields(recordReader, fileId);
+                    }
+                }
+            };
 
             final String completionReason = result.getCompletionReason();
             if (completionReason != null) {
@@ -204,7 +212,6 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
 
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            // Write the results directly to the FlowFile content. No record reader is needed.
             try (final OutputStream out = session.write(flowFile)) {
                 if (result.getAnswer() != null) {
                     out.write(result.getAnswer().toString().getBytes());
@@ -220,7 +227,6 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
                 return;
             }
             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-
             session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId);
             session.transfer(flowFile, REL_SUCCESS);
 
@@ -247,67 +253,84 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
         }
     }
 
-    /**
-     * Extracts metadata from a Box file using the specified template key.
-     * Visible for testing purposes.
-     *
-     * @param templateKey The key of the metadata template to use for extraction.
-     * @param fileId      The ID of the Box file from which to extract metadata.
-     * @return The response containing the extracted metadata.
-     */
     BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
                                                                                  final String fileId) {
         final BoxAIExtractMetadataTemplate template = new BoxAIExtractMetadataTemplate(templateKey, SCOPE);
         final BoxAIItem fileItem = new BoxAIItem(fileId, BoxAIItem.Type.FILE);
-
-        return BoxAI.extractMetadataStructured(
-                boxAPIConnection,
-                Collections.singletonList(fileItem),
-                template
-        );
+        return BoxAI.extractMetadataStructured(boxAPIConnection, Collections.singletonList(fileItem), template);
     }
 
-    /**
-     * Extracts metadata from a Box file using the specified fields.
-     * Visible for testing purposes.
-     *
-     * @param fieldsString A comma-separated list of field names to extract.
-     * @param fileId       The ID of the Box file from which to extract metadata.
-     * @return The response containing the extracted metadata.
-     */
-    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final String fieldsString,
-                                                                               final String fileId) {
-        final List<BoxAIExtractField> fields = parseFields(fieldsString);
+    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final RecordReader recordReader,
+                                                                               final String fileId) throws IOException, MalformedRecordException {
+        final List<BoxAIExtractField> fields = parseFieldsFromRecords(recordReader);
         final BoxAIItem fileItem = new BoxAIItem(fileId, BoxAIItem.Type.FILE);
-
-        return BoxAI.extractMetadataStructured(
-                boxAPIConnection,
-                Collections.singletonList(fileItem),
-                fields
-        );
+        return BoxAI.extractMetadataStructured(boxAPIConnection, Collections.singletonList(fileItem), fields);
     }
 
-    /**
-     * Parses a comma-separated string of field names into a list of BoxAIExtractField objects.
-     *
-     * @param fieldsString A comma-separated list of field names.
-     * @return A list of BoxAIExtractField objects.
-     */
-    private List<BoxAIExtractField> parseFields(final String fieldsString) {
-        if (fieldsString == null || fieldsString.trim().isEmpty()) {
-            return Collections.emptyList();
-        }
-
+    private List<BoxAIExtractField> parseFieldsFromRecords(final RecordReader recordReader) throws IOException, MalformedRecordException {
         final List<BoxAIExtractField> fields = new ArrayList<>();
-        final String[] fieldNames = fieldsString.split(",");
-
-        for (final String fieldName : fieldNames) {
-            final String trimmedField = fieldName.trim();
-            if (!trimmedField.isEmpty()) {
-                fields.add(new BoxAIExtractField(trimmedField));
+        Record record;
+        while ((record = recordReader.nextRecord()) != null) {
+            final String key = record.getAsString("key");
+            if (key == null || key.trim().isEmpty()) {
+                throw new MalformedRecordException("Field record missing a key field: " + record);
             }
+
+            final String type = record.getAsString("type");
+            final String description = record.getAsString("description");
+            final String displayName = record.getAsString("displayName");
+            final String prompt = record.getAsString("prompt");
+
+            List<BoxAIExtractFieldOption> options = null;
+            final Object optionsObj = record.getValue("options");
+            if (optionsObj instanceof Iterable<?> iterable) {
+                options = new ArrayList<>();
+                for (Object option : iterable) {
+                    if (option instanceof Record optionRecord) {
+                        final String optionKey = optionRecord.getAsString("key");
+                        if (optionKey != null && !optionKey.trim().isEmpty()) {
+                            options.add(new BoxAIExtractFieldOption(optionKey));
+                        } else {
+                            getLogger().warn("Option record missing a valid 'key': {}", optionRecord);
+                        }
+                    } else {
+                        getLogger().warn("Option is not a record: {}", option);
+                    }
+                }
+            }
+            fields.add(new BoxAIExtractField(type, description, displayName, key, options, prompt));
+        }
+        if (fields.isEmpty()) {
+            throw new MalformedRecordException("No valid field records found in the input");
+        }
+        return fields;
+    }
+
+    public enum ExtractionMethod implements DescribedValue {
+        TEMPLATE("Template", "Uses a Box metadata template for extraction."),
+        FIELDS("Fields", "Uses a JSON schema of fields to extract from the FlowFile content.");
+
+        private final String displayName;
+        private final String description;
+
+        ExtractionMethod(String displayName, String description) {
+            this.displayName = displayName;
+            this.description = description;
         }
 
-        return fields;
+        @Override
+        public String getValue() {
+            return this.name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
     }
 }

@@ -43,7 +43,6 @@ import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -173,11 +172,11 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 return;
             }
 
-            final Metadata metadata = getOrCreateMetadata(boxFile, templateKey, fileId);
-            final Set<String> processedKeys = updateMetadata(metadata, desiredState);
+            final Metadata metadata = getMetadata(boxFile, templateKey, fileId);
+            updateMetadata(metadata, desiredState);
 
             if (!metadata.getOperations().isEmpty()) {
-                getLogger().info("Updating {} metadata fields for file {}", processedKeys.size(), fileId);
+                getLogger().info("Updating {} metadata fields for file {}", metadata.getOperations().size(), fileId);
                 updateBoxFileMetadata(boxFile, metadata);
             }
 
@@ -226,9 +225,9 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         return desiredState;
     }
 
-    Metadata getOrCreateMetadata(final BoxFile boxFile,
-                                 final String templateKey,
-                                 final String fileId) {
+    Metadata getMetadata(final BoxFile boxFile,
+                         final String templateKey,
+                         final String fileId) {
         try {
             final Metadata metadata = boxFile.getMetadata(templateKey);
             getLogger().debug("Retrieved existing metadata for file {}", fileId);
@@ -242,9 +241,8 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         }
     }
 
-    private Set<String> updateMetadata(final Metadata metadata,
-                                       final Map<String, Object> desiredState) {
-        final Set<String> processedKeys = new HashSet<>();
+    private void updateMetadata(final Metadata metadata,
+                                final Map<String, Object> desiredState) {
         final List<String> currentKeys = metadata.getPropertyPaths();
 
         // Remove fields not in desired state
@@ -253,7 +251,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
 
             if (!desiredState.containsKey(fieldName)) {
                 metadata.remove(propertyPath);
-                processedKeys.add(fieldName);
                 getLogger().debug("Removing metadata field: {}", fieldName);
             }
         }
@@ -264,20 +261,16 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             final Object value = entry.getValue();
             final String propertyPath = "/" + fieldName;
 
-            if (updateField(metadata, propertyPath, value, currentKeys.contains(propertyPath))) {
-                processedKeys.add(fieldName);
-            }
+            updateField(metadata, propertyPath, value, currentKeys.contains(propertyPath));
         }
-
-        return processedKeys;
     }
 
-    private boolean updateField(final Metadata metadata,
-                                final String propertyPath,
-                                final Object value,
-                                final boolean exists) {
+    private void updateField(final Metadata metadata,
+                             final String propertyPath,
+                             final Object value,
+                             final boolean exists) {
         if (value == null) {
-            return false;
+            throw new IllegalArgumentException("Null value found for property path: " + propertyPath);
         }
 
         if (exists) {
@@ -285,7 +278,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
 
             // Only update if values are different
             if (Objects.equals(currentValue, value)) {
-                return false;
+                return;
             }
 
             // Update
@@ -302,7 +295,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 default -> metadata.add(propertyPath, value.toString());
             }
         }
-        return true;
     }
 
     private List<String> convertListToStringList(final List<?> list) {

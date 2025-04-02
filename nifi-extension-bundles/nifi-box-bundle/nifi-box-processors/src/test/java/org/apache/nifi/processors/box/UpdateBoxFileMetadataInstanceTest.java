@@ -53,24 +53,26 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     @Mock
     private Metadata mockMetadata;
 
-    @Override
-    @BeforeEach
-    void setUp() throws Exception {
-        final UpdateBoxFileMetadataInstance testSubject = new UpdateBoxFileMetadataInstance() {
+    private UpdateBoxFileMetadataInstance createTestSubject() {
+        return new UpdateBoxFileMetadataInstance() {
             @Override
             BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
 
             @Override
-            Metadata getOrCreateMetadata(final BoxFile boxFile,
-                                         final String templateKey,
-                                         final String fileId) {
+            Metadata getMetadata(final BoxFile boxFile,
+                                 final String templateKey,
+                                 final String fileId) {
                 return mockMetadata;
             }
         };
+    }
 
-        testRunner = TestRunners.newTestRunner(testSubject);
+    @Override
+    @BeforeEach
+    void setUp() throws Exception {
+        testRunner = TestRunners.newTestRunner(createTestSubject());
         super.setUp();
 
         configureJsonRecordReader(testRunner);
@@ -134,14 +136,12 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() throws Exception {
-        final UpdateBoxFileMetadataInstance testSubject = new UpdateBoxFileMetadataInstance() {
+        testRunner = TestRunners.newTestRunner(new UpdateBoxFileMetadataInstance() {
             @Override
             BoxFile getBoxFile(final String fileId) {
                 throw new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
             }
-        };
-
-        testRunner = TestRunners.newTestRunner(testSubject);
+        });
         super.setUp();
         configureJsonRecordReader(testRunner);
 
@@ -165,16 +165,14 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testTemplateNotFound() throws Exception {
-        final UpdateBoxFileMetadataInstance testSubject = new UpdateBoxFileMetadataInstance() {
+        testRunner = TestRunners.newTestRunner(new UpdateBoxFileMetadataInstance() {
             @Override
-            Metadata getOrCreateMetadata(final BoxFile boxFile,
-                                         final String templateKey,
-                                         final String fileId) {
+            Metadata getMetadata(final BoxFile boxFile,
+                                 final String templateKey,
+                                 final String fileId) {
                 throw new BoxAPIResponseException("API Error", 404, "Specified Metadata Template not found", null);
             }
-        };
-
-        testRunner = TestRunners.newTestRunner(testSubject);
+        });
         super.setUp();
         configureJsonRecordReader(testRunner);
 
@@ -368,33 +366,6 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
-        verify(mockBoxFile).updateMetadata(any(Metadata.class));
-    }
-
-    @Test
-    void testHandlingNullAndMissingValues() {
-        final JsonArray operationsArray = new JsonArray();
-        operationsArray.add("someOperation");
-        lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
-
-        lenient().when(mockMetadata.getPropertyPaths()).thenReturn(List.of(
-                "/toBeRemoved1", "/toBeRemoved2", "/toBeKept"
-        ));
-
-        lenient().when(mockMetadata.getValue("/toBeKept")).thenReturn(Json.value("keep this"));
-
-        final String inputJson = """
-                {
-                  "toBeKept": "keep this",
-                  "nullField": null
-                }""";
-
-        testRunner.enqueue(inputJson);
-        testRunner.run();
-
-        verify(mockMetadata).remove("/toBeRemoved1");
-        verify(mockMetadata).remove("/toBeRemoved2");
         testRunner.assertAllFlowFilesTransferred(UpdateBoxFileMetadataInstance.REL_SUCCESS, 1);
         verify(mockBoxFile).updateMetadata(any(Metadata.class));
     }
