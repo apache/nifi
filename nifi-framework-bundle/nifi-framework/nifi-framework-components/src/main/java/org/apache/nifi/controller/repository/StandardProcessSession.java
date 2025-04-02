@@ -3772,12 +3772,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        rollback(false, false);
-        super.finalize();
-    }
-
-    @Override
     public ProvenanceReporter getProvenanceReporter() {
         verifyTaskActive();
         return provenanceReporter;
