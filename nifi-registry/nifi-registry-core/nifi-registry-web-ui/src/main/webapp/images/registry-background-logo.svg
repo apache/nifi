@@ -1,0 +1,17 @@
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 142.71 182.73"><defs><style>.cls-1{fill:url(#linear-gradient);}.cls-2{fill:#6b8791;}.cls-3{fill:#8da4aa;}.cls-4{fill:#b0c1c6;}</style><linearGradient id="linear-gradient" x1="79.26" y1="128.13" x2="79.26" y2="78.82" gradientUnits="userSpaceOnUse"><stop offset="0.1" stop-color="#e2e6e8"/><stop offset="1" stop-color="#e2e6e8" stop-opacity="0"/></linearGradient></defs><title>Asset 5</title><g id="Layer_2" data-name="Layer 2"><g id="registryl-logo-mini"><polygon class="cls-1" points="54.6 128.13 54.6 78.82 103.91 78.82 54.6 128.13"/><polygon class="cls-2" points="0 182.73 0 133.42 49.31 133.42 0 182.73"/><rect class="cls-2" y="78.82" width="49.31" height="49.31" transform="translate(128.13 78.82) rotate(90)"/><path class="cls-2" d="M40.07,59.81l-.51-3c3.32-1.29,6.53-2.88,9.75-4.44V24.22H0V73.53H49.31V56.33C46.26,57.59,43.21,58.85,40.07,59.81ZM23.61,61.08A45.1,45.1,0,0,1,9.55,56.31c-2.21-1.17-.19-.72.86-.32a62.55,62.55,0,0,0,8,2.59,34.65,34.65,0,0,0,5.53.82Zm3,.34L27,59.48a33.79,33.79,0,0,0,7.72-1.07c.46-.12.9-.26,1.35-.4l.47,2.72A35.51,35.51,0,0,1,26.63,61.42Z"/><path class="cls-3" d="M64.48,46.82a40.43,40.43,0,0,1,21.43,2.29l8.78-3.72L75.42,0,30,19.27,45,54.45C51.31,51.46,57.47,48,64.48,46.82Z"/><path class="cls-3" d="M59.06,55.56c4.86-2.68,11.61-3.19,16.33-2.83,2.18.16,2.21-.35.11-.87a31.86,31.86,0,0,0-10.92-.42c-6.44.92-12.3,3.72-18.29,6.12l3,7.09h0C49.42,62.91,52.37,59.24,59.06,55.56Z"/><path class="cls-4" d="M102.44,61.87a36.29,36.29,0,0,1,5.42,13L142.71,40,107.84,5.13,73,40l7.38,7.39C89.2,49.47,97.4,54.46,102.44,61.87Z"/></g></g></svg>
