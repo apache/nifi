@@ -28,12 +28,14 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -41,6 +43,7 @@ import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.registry.EnvironmentVariables;
@@ -416,6 +419,20 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public Collection<ValidationResult> validate() {
+        return context.validate();
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final Map<String, String> variables) {
+        if (processor instanceof VerifiableProcessor vProcessor) {
+            return vProcessor.verify(context, logger, variables);
+        } else {
+            throw new IllegalStateException("The Processor does not implement the VerifiableProcessor interface");
+        }
+    }
+
+    @Override
     public boolean isValid() {
         return context.isValid();
     }
@@ -706,18 +723,40 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertValid(final ControllerService service) {
+        final Collection<ValidationResult> results = validate(service);
+        for (final ValidationResult result : results) {
+            if (!result.isValid()) {
+                Assertions.fail("Expected Controller Service to be valid but it is invalid due to: " + result);
+            }
+        }
+    }
+
+    @Override
+    public Collection<ValidationResult> validate(final ControllerService service) {
         final StateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
         if (serviceStateManager == null) {
             throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
         }
 
         final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
-        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+        return context.getControllerService(service.getIdentifier()).validate(validationContext);
+    }
 
-        for (final ValidationResult result : results) {
-            if (!result.isValid()) {
-                Assertions.fail("Expected Controller Service to be valid but it is invalid due to: " + result);
+    @Override
+    public List<ConfigVerificationResult> verify(final ControllerService service, final Map<String, String> variables) {
+        if (service instanceof VerifiableControllerService vService) {
+            final StateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
+            if (serviceStateManager == null) {
+                throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
             }
+
+            final ControllerServiceConfiguration configuration = context.getConfiguration(service.getIdentifier());
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, environmentVariables);
+            configContext.setValidateExpressions(validateExpressionUsage);
+
+            return vService.verify(configContext, getControllerServiceLogger(service.getIdentifier()), variables);
+        } else {
+            throw new IllegalStateException("The Controller Service does not implement the VerifiableControllerService interface");
         }
     }
 
