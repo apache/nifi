@@ -34,6 +34,7 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,7 +104,7 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testNoProxyChain() {
         final NiFiAuthenticationToken auth = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(getX509Request("", IDENTITY_1));
-        final NiFiUser user = ((NiFiUserDetails) auth.getDetails()).getNiFiUser();
+        final NiFiUser user = ((NiFiUserDetails) auth.getPrincipal()).getNiFiUser();
 
         assertNotNull(user);
         assertEquals(IDENTITY_1, user.getIdentity());
@@ -118,7 +119,7 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testOneProxy() {
         final NiFiAuthenticationToken auth = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(getX509Request(buildProxyChain(IDENTITY_1), PROXY_1));
-        final NiFiUser user = ((NiFiUserDetails) auth.getDetails()).getNiFiUser();
+        final NiFiUser user = ((NiFiUserDetails) auth.getPrincipal()).getNiFiUser();
 
         assertNotNull(user);
         assertEquals(IDENTITY_1, user.getIdentity());
@@ -139,7 +140,7 @@ public class X509AuthenticationProviderTest {
         x509AuthenticationProvider = new X509AuthenticationProvider(certificateIdentityProvider, authorizer, properties);
 
         final NiFiAuthenticationToken auth = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(getX509Request(buildProxyChain(ANONYMOUS), PROXY_1));
-        final NiFiUser user = ((NiFiUserDetails) auth.getDetails()).getNiFiUser();
+        final NiFiUser user = ((NiFiUserDetails) auth.getPrincipal()).getNiFiUser();
 
         assertNotNull(user);
         assertEquals(StandardNiFiUser.ANONYMOUS_IDENTITY, user.getIdentity());
@@ -158,7 +159,7 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testTwoProxies() {
         final NiFiAuthenticationToken auth = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(getX509Request(buildProxyChain(IDENTITY_1, PROXY_2), PROXY_1));
-        final NiFiUser user = ((NiFiUserDetails) auth.getDetails()).getNiFiUser();
+        final NiFiUser user = ((NiFiUserDetails) auth.getPrincipal()).getNiFiUser();
 
         assertNotNull(user);
         assertEquals(IDENTITY_1, user.getIdentity());
@@ -188,7 +189,7 @@ public class X509AuthenticationProviderTest {
         x509AuthenticationProvider = new X509AuthenticationProvider(certificateIdentityProvider, authorizer, properties);
 
         final NiFiAuthenticationToken auth = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(getX509Request(buildProxyChain(IDENTITY_1, ANONYMOUS), PROXY_1));
-        final NiFiUser user = ((NiFiUserDetails) auth.getDetails()).getNiFiUser();
+        final NiFiUser user = ((NiFiUserDetails) auth.getPrincipal()).getNiFiUser();
 
         assertNotNull(user);
         assertEquals(IDENTITY_1, user.getIdentity());
@@ -268,7 +269,13 @@ public class X509AuthenticationProviderTest {
     }
 
     private X509AuthenticationRequestToken getX509Request(final String proxyChain, final String proxiedEntityGroups, final String identity) {
-        return new X509AuthenticationRequestToken(proxyChain, proxiedEntityGroups, extractor, new X509Certificate[]{getX509Certificate(identity)}, "");
+        return new X509AuthenticationRequestToken(
+            proxyChain,
+            proxiedEntityGroups,
+            extractor,
+            new X509Certificate[]{getX509Certificate(identity)},
+            "",
+            new NiFiWebAuthenticationDetails("127.0.0.1", "someSessionId", "someUserAgent"));
     }
 
     private X509Certificate getX509Certificate(final String identity) {
