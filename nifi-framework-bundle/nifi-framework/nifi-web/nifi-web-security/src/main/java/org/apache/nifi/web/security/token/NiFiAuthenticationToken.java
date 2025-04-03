@@ -34,7 +34,7 @@ public class NiFiAuthenticationToken extends AbstractAuthenticationToken {
      * @param userDetails Spring Security User Details
      */
     public NiFiAuthenticationToken(final UserDetails userDetails) {
-        this(userDetails, userDetails.getPassword());
+        this(userDetails, userDetails.getPassword(), null);
     }
 
     /**
@@ -42,11 +42,12 @@ public class NiFiAuthenticationToken extends AbstractAuthenticationToken {
      *
      * @param userDetails Spring Security User Details
      * @param credentials Optional credentials from authentication processing
+     * @param authenticationDetails  Optional authentication details from authentication processing
      */
-    public NiFiAuthenticationToken(final UserDetails userDetails, final Object credentials) {
+    public NiFiAuthenticationToken(final UserDetails userDetails, final Object credentials, final Object authenticationDetails) {
         super(userDetails.getAuthorities());
         super.setAuthenticated(true);
-        setDetails(userDetails);
+        setDetails(authenticationDetails);
         this.nifiUserDetails = userDetails;
         this.credentials = credentials;
     }

@@ -56,7 +56,8 @@ public class StandardJwtAuthenticationConverter implements Converter<Jwt, NiFiAu
     @Override
     public NiFiAuthenticationToken convert(final Jwt jwt) {
         final NiFiUser user = getUser(jwt);
-        return new NiFiAuthenticationToken(new NiFiUserDetails(user), jwt);
+        // Authentication Details will be populated in JwtAuthenticationProvider
+        return new NiFiAuthenticationToken(new NiFiUserDetails(user), jwt, null);
     }
 
     private NiFiUser getUser(final Jwt jwt) {

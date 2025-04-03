@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
@@ -44,6 +45,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     private static final Logger log = LoggerFactory.getLogger(NiFiAuthenticationFilter.class);
 
+    protected AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource;
     private AuthenticationManager authenticationManager;
     private NiFiProperties properties;
 
@@ -161,6 +163,10 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     public void setAuthenticationManager(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
+    }
+
+    public void setAuthenticationDetailsSource(final AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource) {
+        this.authenticationDetailsSource = authenticationDetailsSource;
     }
 
     public void setProperties(NiFiProperties properties) {

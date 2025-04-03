@@ -37,11 +37,12 @@ public class X509AuthenticationRequestToken extends NiFiAuthenticationRequestTok
      *
      * @param proxiedEntitiesChain   The http servlet request
      * @param certificates  The certificate chain
+     * @param authenticationDetails The authentication details of the client making the request
      */
     public X509AuthenticationRequestToken(final String proxiedEntitiesChain, final String proxiedEntityGroups,
                                           final X509PrincipalExtractor principalExtractor, final X509Certificate[] certificates,
-                                          final String clientAddress) {
-        super(clientAddress);
+                                          final String clientAddress, final Object authenticationDetails) {
+        super(clientAddress, authenticationDetails);
         setAuthenticated(false);
         this.proxiedEntitiesChain = proxiedEntitiesChain;
         this.proxiedEntityGroups = proxiedEntityGroups;

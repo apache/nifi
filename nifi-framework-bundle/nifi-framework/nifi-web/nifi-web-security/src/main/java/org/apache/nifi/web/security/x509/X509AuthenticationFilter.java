@@ -55,7 +55,13 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
         final String proxiedEntityIdpGroups = request.getHeader(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS);
         logger.debug("Raw {} - {}", ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityIdpGroups);
 
-        return new X509AuthenticationRequestToken(proxiedEntitiesChain, proxiedEntityIdpGroups, principalExtractor, certificates, request.getRemoteAddr());
+        return new X509AuthenticationRequestToken(
+            proxiedEntitiesChain,
+            proxiedEntityIdpGroups,
+            principalExtractor,
+            certificates,
+            request.getRemoteAddr(),
+            authenticationDetailsSource.buildDetails(request));
     }
 
     /* setters */

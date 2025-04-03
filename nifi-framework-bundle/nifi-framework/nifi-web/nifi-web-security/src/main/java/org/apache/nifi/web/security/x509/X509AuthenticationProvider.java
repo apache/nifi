@@ -92,7 +92,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
             final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());
             final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build();
-            return new NiFiAuthenticationToken(new NiFiUserDetails(user), certificates);
+            return new NiFiAuthenticationToken(new NiFiUserDetails(user), certificates, request.getDetails());
         } else {
             // get the idp groups for the end-user that were sent over in the X-ProxiedEntityGroups header
             final Set<String> endUserIdpGroups = ProxiedEntitiesUtils.tokenizeProxiedEntityGroups(request.getProxiedEntityGroups());
@@ -142,7 +142,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 logProxyChain(proxy);
             }
 
-            return new NiFiAuthenticationToken(new NiFiUserDetails(proxy), certificates);
+            return new NiFiAuthenticationToken(new NiFiUserDetails(proxy), certificates, request.getDetails());
         }
     }
 

@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.anonymous;
-
-import org.apache.nifi.web.security.NiFiAuthenticationFilter;
-import org.springframework.security.core.Authentication;
+package org.apache.nifi.web.security;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 
 /**
- * Extracts an anonymous authentication request from a specified servlet request.
+ * AuthenticationDetailsSource implementation for NiFi Web.
  */
-public class NiFiAnonymousAuthenticationFilter extends NiFiAuthenticationFilter {
-
+public class NiFiWebAuthenticationDetailsSource implements AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> {
     @Override
-    public Authentication attemptAuthentication(final HttpServletRequest request) {
-        // return the anonymous authentication request for this http request
-        return new NiFiAnonymousAuthenticationRequestToken(request.isSecure(), request.getRemoteAddr(), authenticationDetailsSource.buildDetails(request));
+    public NiFiWebAuthenticationDetails buildDetails(final HttpServletRequest context) {
+        return new NiFiWebAuthenticationDetails(context);
     }
 }
