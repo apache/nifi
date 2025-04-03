@@ -663,6 +663,68 @@ The following settings can be configured in _nifi.properties_ to control JSON We
 |`nifi.security.user.jws.key.rotation.period` | JSON Web Signature Key Rotation Period defines how often the system generates a new RSA Key Pair, expressed as an ISO 8601 duration. The default is one hour: `PT1H`
 |==================================================================================================================================================
 
+[[x509_client_certificates]]
+=== X.509 Client Certificates
+
+NiFi supports authentication using mutual TLS with X.509 client certificates as part of the standard configuration when
+running with HTTPS enabled. Client certificate authentication is required for communication between NiFi nodes in a
+clustered deployment and cannot be disabled.
+
+NiFi sends a certificate request during the TLS handshake as described in
+link:https://www.rfc-editor.org/rfc/rfc8446#section-4.3.2[RFC 8446 Section 4.3.2] for TLS 1.3. When configured for
+authentication using a Login Identity Provider or Single Sign-On, NiFi sends a certificate request but does
+not require the client to respond. In absence of other authentication strategies, NiFi requires the client to present a
+certificate during the TLS handshake process. The NiFi security trust store properties define the certificate
+authorities accepted as issuers of client certificates.
+
+==== Proxied Entities Chain
+
+NiFi supports proxied entity access in conjunction with X.509 client certificate authentication. Clients that present
+trusted certificates for mutual TLS authentication can send proxied identity information through specified
+HTTP request headers. The client certificate subject principal must be authorized to send a proxy request, based on the
+configured Authorizer.
+
+Authorized proxies can present one or more proxied identities using an HTTP request header and a value delimited using
+angle bracket characters.
+
+- Header Name: `X-ProxiedEntitiesChain`
+- Value: `<user-identity>`
+
+Multiple proxied entities can be specified to indicate a chain of proxy services.
+
+- Header Name: `X-ProxiedEntitiesChain`
+- Value: `<user-identity><proxy-server-identity>`
+
+Proxied identities that contain characters outside of US-ASCII must be encoded using Base64 and wrapped with additional
+angle brackets.
+
+- Header Name: `X-ProxiedEntitiesChain`
+- Value: `\<<dXNlci1pZGVudGl0eQ>>`
+
+NiFi includes an HTTP response header on successful authentication of HTTP requests with proxied entities.
+
+- Header Name: `X-ProxiedEntitiesAccepted`
+- Value: `true`
+
+NiFi includes an HTTP response header on failed authentication of proxied entities describing the error.
+
+- Header Name: `X-ProxiedEntitiesDetails`
+- Value: error message
+
+==== Proxied Entity Groups
+
+NiFi supports passing group membership information together with proxied identity information from clients that present
+authorized X.509 client certificates.
+
+Authorized proxies can pass one or more group names using an HTTP request header and values delimited using angle
+bracket characters.
+
+- Header Name: `X-ProxiedEntityGroups`
+- Value: `<first-group><second-group>`
+
+Proxied group names follow the same encoding standards as proxied entities, requiring Base64 encoding for characters
+outside of US-ASCII.
+
 [[csrf-protection]]
 === Cross-Site Request Forgery Protection
 
