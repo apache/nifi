@@ -18,60 +18,65 @@ package org.apache.nifi.web.client.api;
 
 public enum HttpHeaderName {
 
-    // Authentication & Authorization
-    AUTHORIZATION("Authorization"),
-    BEARER("Bearer "), // Usually used as prefix in Authorization header
-
-    // Content negotiation
+    /** RFC 7231 */
     ACCEPT("Accept"),
-    ACCEPT_ENCODING("Accept-Encoding"),
-    ACCEPT_LANGUAGE("Accept-Language"),
-    CONTENT_TYPE("Content-Type"),
-    CONTENT_LENGTH("Content-Length"),
-    CONTENT_ENCODING("Content-Encoding"),
-    TRANSFER_ENCODING("Transfer-Encoding"),
 
-    // Caching
+    /** RFC 7231 */
+    ACCEPT_ENCODING("Accept-Encoding"),
+
+    /** RFC 7231 */
+    ACCEPT_LANGUAGE("Accept-Language"),
+
+    /** RFC 7235 */
+    AUTHORIZATION("Authorization"),
+
+    /** RFC 7234 */
     CACHE_CONTROL("Cache-Control"),
-    PRAGMA("Pragma"),
-    EXPIRES("Expires"),
+
+    /** RFC 7230 */
+    CONNECTION("Connection"),
+
+    /** RFC 7230 */
+    CONTENT_ENCODING("Content-Encoding"),
+
+    /** RFC 7230 */
+    CONTENT_LENGTH("Content-Length"),
+
+    /** RFC 7231 */
+    CONTENT_TYPE("Content-Type"),
+
+    /** RFC 7234 */
     ETAG("ETag"),
+
+    /** RFC 7234 */
+    EXPIRES("Expires"),
+
+    /** RFC 7231 */
+    HOST("Host"),
+
+    /** RFC 7232 */
     IF_MODIFIED_SINCE("If-Modified-Since"),
+
+    /** RFC 7232 */
     IF_NONE_MATCH("If-None-Match"),
 
-    // Connection / Transport
-    CONNECTION("Connection"),
-    HOST("Host"),
-    ORIGIN("Origin"),
-    REFERER("Referer"),
-    USER_AGENT("User-Agent"),
-
-    // Request specifics
-    RANGE("Range"),
-    COOKIE("Cookie"),
-    SET_COOKIE("Set-Cookie"),
+    /** RFC 7231 */
     LOCATION("Location"),
 
-    // Security-related
-    X_FORWARDED_FOR("X-Forwarded-For"),
-    X_FORWARDED_PROTO("X-Forwarded-Proto"),
-    X_FRAME_OPTIONS("X-Frame-Options"),
-    X_CONTENT_TYPE_OPTIONS("X-Content-Type-Options"),
-    STRICT_TRANSPORT_SECURITY("Strict-Transport-Security"),
+    /** RFC 7231 */
+    PRAGMA("Pragma"),
 
-    // CORS
-    ACCESS_CONTROL_ALLOW_ORIGIN("Access-Control-Allow-Origin"),
-    ACCESS_CONTROL_ALLOW_METHODS("Access-Control-Allow-Methods"),
-    ACCESS_CONTROL_ALLOW_HEADERS("Access-Control-Allow-Headers"),
-    ACCESS_CONTROL_EXPOSE_HEADERS("Access-Control-Expose-Headers"),
-    ACCESS_CONTROL_MAX_AGE("Access-Control-Max-Age"),
-    ACCESS_CONTROL_REQUEST_METHOD("Access-Control-Request-Method"),
-    ACCESS_CONTROL_REQUEST_HEADERS("Access-Control-Request-Headers"),
+    /** RFC 7231 */
+    REFERER("Referer"),
 
-    // Tracing / Monitoring
-    TRACEPARENT("traceparent"),
-    REQUEST_ID("X-Request-ID"),
-    CORRELATION_ID("X-Correlation-ID");
+    /** RFC 7233 */
+    RANGE("Range"),
+
+    /** RFC 7230 */
+    TRANSFER_ENCODING("Transfer-Encoding"),
+
+    /** RFC 7231 */
+    USER_AGENT("User-Agent");
 
     private final String headerName;
 
