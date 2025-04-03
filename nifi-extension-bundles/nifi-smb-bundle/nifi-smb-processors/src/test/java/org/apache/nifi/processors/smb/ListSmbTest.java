@@ -19,15 +19,19 @@ package org.apache.nifi.processors.smb;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.BY_TIMESTAMPS;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.LISTING_STRATEGY;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
 import static org.apache.nifi.processors.smb.ListSmb.FILE_NAME_SUFFIX_FILTER;
+import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_STRATEGY;
+import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_TIMESTAMP;
 import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.smb.ListSmb.SMB_LISTING_STRATEGY;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processor.util.list.ListedEntity;
+import org.apache.nifi.processors.smb.util.InitialListingStrategy;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbListableEntity;
@@ -88,7 +93,7 @@ class ListSmbTest {
         testRunner.addControllerService("cacheService", cacheService);
         testRunner.setProperty(TRACKING_STATE_CACHE, "cacheService");
         testRunner.enableControllerService(cacheService);
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
         long now = System.currentTimeMillis();
         mockSmbFolders(mockNifiSmbClientService,
                 listableEntity("should_list_this_again_after_property_change", now - 100));
@@ -125,7 +130,7 @@ class ListSmbTest {
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
         testRunner.setProperty(MINIMUM_AGE, minimumAge + " ms");
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
         setTime(1000L);
         mockSmbFolders(mockNifiSmbClientService);
         testRunner.run();
@@ -168,7 +173,7 @@ class ListSmbTest {
         testRunner.addControllerService("cacheService", cacheService);
         testRunner.setProperty(TRACKING_STATE_CACHE, "cacheService");
         testRunner.enableControllerService(cacheService);
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
         setTime(1000L);
         mockSmbFolders(mockNifiSmbClientService,
                 listableEntity("first", 1000)
@@ -194,7 +199,7 @@ class ListSmbTest {
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
         testRunner.setProperty(MINIMUM_AGE, minimumAge + " ms");
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
         setTime(1000L);
         mockSmbFolders(mockNifiSmbClientService,
                 listableEntity("first", 1000)
@@ -214,7 +219,7 @@ class ListSmbTest {
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
         testRunner.setProperty(MINIMUM_AGE, "10 ms");
         testRunner.setProperty(MAXIMUM_AGE, "30 ms");
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
         setTime(1000L);
         mockSmbFolders(mockNifiSmbClientService,
                 listableEntity("too_young", 1000),
@@ -231,7 +236,7 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
         when(mockNifiSmbClientService.listFiles(anyString())).thenThrow(new RuntimeException("test exception"));
         testRunner.run();
         assertEquals(1, testRunner.getLogger().getErrorMessages().size());
@@ -241,7 +246,7 @@ class ListSmbTest {
     @Test
     public void shouldFormatRemotePathProperly() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbClientProviderService clientProviderService = mockSmbConnectionPoolService();
+        final SmbClientProviderService clientProviderService = mockSmbClientProviderService();
         testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, CLIENT_SERVICE_PROVIDER_ID);
         testRunner.addControllerService(CLIENT_SERVICE_PROVIDER_ID, clientProviderService);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://hostname:445/share"));
@@ -260,19 +265,50 @@ class ListSmbTest {
 
     }
 
-    private SmbClientProviderService mockSmbConnectionPoolService() {
+    @Test
+    void testInitialListingTimestampValidEpoch() throws Exception {
+        testInitialListingTimestamp("123456789", true);
+    }
+
+    @Test
+    void testInitialListingTimestampValidUTCTime() throws Exception {
+        testInitialListingTimestamp("2025-04-03T16:16:54Z", true);
+    }
+
+    @Test
+    void testInitialListingTimestampInvalidTime() throws Exception {
+        testInitialListingTimestamp("2025-04-03 16:16:54", false);
+    }
+
+    private void testInitialListingTimestamp(String propertyValue, boolean shouldBeValid) throws Exception {
+        final TestRunner testRunner = newTestRunner(ListSmb.class);
+
+        configureTestRunnerWithMockedSmbClientService(testRunner);
+
+        testRunner.setProperty(SMB_LISTING_STRATEGY, BY_TIMESTAMPS);
+        testRunner.setProperty(INITIAL_LISTING_STRATEGY, InitialListingStrategy.FROM_TIMESTAMP);
+        testRunner.setProperty(INITIAL_LISTING_TIMESTAMP, propertyValue);
+
+        if (shouldBeValid) {
+            testRunner.assertValid();
+        } else {
+            testRunner.assertNotValid();
+        }
+    }
+
+    private SmbClientProviderService mockSmbClientProviderService() {
         final SmbClientProviderService clientProviderService = mock(SmbClientProviderService.class);
         when(clientProviderService.getIdentifier()).thenReturn(CLIENT_SERVICE_PROVIDER_ID);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
         return clientProviderService;
     }
 
-    private SmbClientService configureTestRunnerWithMockedSambaClient(TestRunner testRunner)
+    private SmbClientService configureTestRunnerWithMockedSmbClientService(TestRunner testRunner)
             throws Exception {
         final SmbClientService mockNifiSmbClientService = mock(SmbClientService.class);
         testRunner.setProperty(DIRECTORY, "testDirectory");
 
-        final SmbClientProviderService clientProviderService = mockSmbConnectionPoolService();
+        final SmbClientProviderService clientProviderService = mockSmbClientProviderService();
         when(clientProviderService.getClient()).thenReturn(mockNifiSmbClientService);
         testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, CLIENT_SERVICE_PROVIDER_ID);
         testRunner.addControllerService(CLIENT_SERVICE_PROVIDER_ID, clientProviderService);
