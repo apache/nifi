@@ -37,11 +37,21 @@ import { ExplorerModule } from './pages/expolorer/feature/explorer.module';
 import { BucketsEffects } from './state/buckets/buckets.effects';
 
 const entry = localStorage.getItem('disable-animations');
-let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
+let disableAnimations = '';
+
+try {
+    disableAnimations = entry !== null ? JSON.parse(entry).item : '';
+} catch (error) {
+    /* empty */
+}
 
 // honor OS settings if user has not explicitly disabled animations for the application
-if (disableAnimations !== 'true' && disableAnimations !== 'false') {
-    disableAnimations = window.matchMedia('(prefers-reduced-motion: reduce)').matches.toString();
+try {
+    if (disableAnimations !== 'true' && disableAnimations !== 'false') {
+        disableAnimations = window.matchMedia('(prefers-reduced-motion: reduce)').matches.toString();
+    }
+} catch (error) {
+    /* empty */
 }
 
 @NgModule({

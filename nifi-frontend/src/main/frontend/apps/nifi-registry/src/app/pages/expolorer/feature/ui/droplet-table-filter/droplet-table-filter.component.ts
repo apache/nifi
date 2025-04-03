@@ -53,6 +53,8 @@ export class DropletTableFilterComponent implements AfterViewInit {
     private _initialFilterColumn = 'name';
     private _filterableColumns: DropletTableFilterColumn[] = [];
     private _buckets: Bucket[] = [];
+    private _filteredCount = 0;
+    private _totalCount = 0;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     set filterableColumns(filterableColumns: DropletTableFilterColumn[]) {
@@ -88,6 +90,22 @@ export class DropletTableFilterComponent implements AfterViewInit {
 
     @Input() set filterBucket(term: string) {
         this.filterForm.controls['filterBucket']?.setValue(term);
+    }
+
+    @Input() set filteredCount(filteredCount: number) {
+        this._filteredCount = filteredCount;
+    }
+
+    get filteredCount(): number {
+        return this._filteredCount;
+    }
+
+    @Input() set totalCount(totalCount: number) {
+        this._totalCount = totalCount;
+    }
+
+    get totalCount(): number {
+        return this._totalCount;
     }
 
     @Output() filterChanged: EventEmitter<DropletTableFilterContext> = new EventEmitter<DropletTableFilterContext>();
