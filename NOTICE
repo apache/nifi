@@ -103,3 +103,12 @@ This includes derived works from Spring Framework available under Apache Softwar
       https://github.com/spring-projects/spring-framework/blob/main/spring-web/src/main/java/org/springframework/web/util/UriComponentsBuilder.java
     and can be found in
       nifi-api/src/main/java/org/apache/nifi/processor/util/URLValidator.java
+
+This includes derived works from Apache POI available under Apache Software License V2
+    Copyright 2003-2025 The Apache Software Foundation
+    The derived work is adapted from
+    https://svn.apache.org/repos/asf/poi/trunk/poi-ooxml/src/main/java/org/apache/poi/xssf/usermodel/XSSFSheet (copyRows method)
+    https://svn.apache.org/repos/asf/poi/trunk/poi-ooxml/src/main/java/org/apache/poi/xssf/usermodel/XSSFRow (copyRowFrom method)
+    https://svn.apache.org/repos/asf/poi/trunk/poi/src/main/java/org/apache/poi/ss/util/CellUtil.java (copyCell method).
+    and can be found in
+    nifi-extension-bundles/nifi-poi-bundle/nifi-poi-services/src/main/java/org/apache/nifi/processors/excel/SplitExcel.java.SheetCopyStrategy
