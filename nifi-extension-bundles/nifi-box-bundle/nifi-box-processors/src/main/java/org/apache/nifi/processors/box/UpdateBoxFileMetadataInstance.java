@@ -172,7 +172,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                 return;
             }
 
-            final Metadata metadata = getMetadata(boxFile, templateKey, fileId);
+            final Metadata metadata = getMetadata(boxFile, templateKey);
             updateMetadata(metadata, desiredState);
 
             if (!metadata.getOperations().isEmpty()) {
@@ -223,22 +223,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
         }
 
         return desiredState;
-    }
-
-    Metadata getMetadata(final BoxFile boxFile,
-                         final String templateKey,
-                         final String fileId) {
-        try {
-            final Metadata metadata = boxFile.getMetadata(templateKey);
-            getLogger().debug("Retrieved existing metadata for file {}", fileId);
-            return metadata;
-        } catch (final BoxAPIResponseException e) {
-            if (e.getResponseCode() == 404) {
-                getLogger().warn("No existing metadata found for file {} with template key {}.", fileId, templateKey);
-                throw e;
-            }
-            throw e;
-        }
     }
 
     private void updateMetadata(final Metadata metadata,
@@ -307,6 +291,19 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
                     return obj.toString();
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves the metadata for a Box file.
+     * Visible for testing purposes.
+     *
+     * @param boxFile     The Box file to retrieve metadata from.
+     * @param templateKey The key of the metadata template.
+     * @return The metadata for the Box file.
+     */
+    Metadata getMetadata(final BoxFile boxFile,
+                         final String templateKey) {
+        return boxFile.getMetadata(templateKey);
     }
 
     /**

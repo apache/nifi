@@ -62,8 +62,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
             @Override
             Metadata getMetadata(final BoxFile boxFile,
-                                 final String templateKey,
-                                 final String fileId) {
+                                 final String templateKey) {
                 return mockMetadata;
             }
         };
@@ -168,8 +167,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner = TestRunners.newTestRunner(new UpdateBoxFileMetadataInstance() {
             @Override
             Metadata getMetadata(final BoxFile boxFile,
-                                 final String templateKey,
-                                 final String fileId) {
+                                 final String templateKey) {
                 throw new BoxAPIResponseException("API Error", 404, "Specified Metadata Template not found", null);
             }
         });
