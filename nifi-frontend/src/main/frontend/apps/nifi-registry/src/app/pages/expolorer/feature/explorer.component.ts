@@ -72,8 +72,8 @@ export class ExplorerComponent implements OnInit {
         private router: Router,
         private activatedRoute: ActivatedRoute
     ) {
-        this.droplets$ = this.store.select(selectDroplets);
-        this.buckets$ = this.store.select(selectBuckets);
+        this.droplets$ = this.store.select(selectDroplets).pipe(takeUntilDestroyed());
+        this.buckets$ = this.store.select(selectBuckets).pipe(takeUntilDestroyed());
         this.store
             .select(selectQueryParams)
             .pipe(takeUntilDestroyed())
