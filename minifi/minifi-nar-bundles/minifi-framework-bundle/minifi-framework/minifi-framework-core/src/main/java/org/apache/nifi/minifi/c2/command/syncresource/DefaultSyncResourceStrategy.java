@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSyncResourceStrategy.class);
-    private static final Pattern ALLOWED_RESOURCE_PATH_PATTERN = compile("^(?:(?:.[/\\\\])?[^~<>:\\|\\\"\\?\\*\\./\\\\]+(?:(?!(\\.\\.))[^~<>:\\|\\\"\\?\\*])*)?$");
+    private static final Pattern ALLOWED_RESOURCE_PATH_PATTERN = compile("^(?:[^~<>:\\|\\\"\\?\\*\\.\\/\\\\]+(?:[/\\\\][^~<>:\\|\\\"\\?\\*\\.\\/\\\\]+)*)?$");
 
     private static final Set<Entry<OperationState, OperationState>> SUCCESS_RESULT_PAIRS = Set.of(
         entry(NO_OPERATION, NO_OPERATION),

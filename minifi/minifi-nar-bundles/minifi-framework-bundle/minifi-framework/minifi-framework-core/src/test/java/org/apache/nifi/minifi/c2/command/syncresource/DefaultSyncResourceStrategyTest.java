@@ -348,20 +348,8 @@ public class DefaultSyncResourceStrategyTest {
                 null,
                 "",
                 "sub-folder",
-                "sub-folder/",
-                "sub-folder\\",
-                "./sub-folder",
-                "./sub-folder/",
-                ".\\sub-folder",
-                ".\\sub-folder\\",
-                "./sub-folder/sub-sub-folder",
-                "./sub-folder/sub-sub-folder/",
-                ".\\sub-folder\\sub-sub-folder",
-                ".\\sub-folder\\sub-sub-folder\\",
-                "./sub-folder/sub-sub-folder/sub-sub-sub-folder",
-                "./sub-folder/sub-sub-folder/sub-sub-sub-folder/",
-                ".\\sub-folder\\sub-sub-folder\\sub-sub-sub-folder",
-                ".\\sub-folder\\sub-sub-folder\\sub-sub-sub-folder\\"
+                "sub-folder/sub-sub-folder",
+                "sub-folder\\sub-sub-folder"
             )
             .map(Arguments::of);
     }
@@ -406,9 +394,24 @@ public class DefaultSyncResourceStrategyTest {
                 "\\absolute-path\\..",
                 "\\absolute-path\\invalid-char-in-path-~",
                 "C:\\",
-                "C:\\path",
-                "C:/",
-                "C:/path"
+                "C:\\relative-path",
+                "C:\\relative-path\\",
+                "C:\\relative-path\\sub-folder",
+                "C:\\relative-path\\sub-folder\\",
+                "./sub-folder",
+                "./sub-folder/",
+                "sub-folder/",
+                "sub-folder\\",
+                ".\\sub-folder",
+                ".\\sub-folder\\",
+                "./sub-folder/sub-sub-folder",
+                "./sub-folder/sub-sub-folder/",
+                ".\\sub-folder\\sub-sub-folder",
+                ".\\sub-folder\\sub-sub-folder\\",
+                "./sub-folder/sub-sub-folder/sub-sub-sub-folder",
+                "./sub-folder/sub-sub-folder/sub-sub-sub-folder/",
+                ".\\sub-folder\\sub-sub-folder\\sub-sub-sub-folder",
+                ".\\sub-folder\\sub-sub-folder\\sub-sub-sub-folder\\"
             )
             .map(Arguments::of);
     }
