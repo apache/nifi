@@ -16,43 +16,41 @@
  */
 package org.apache.nifi.web.client.api;
 
-public enum ContentType {
+public enum MediaType {
 
+    /** RFC 4329 */
+    APPLICATION_JAVASCRIPT("application/javascript"),
+
+    /** RFC 8259 (was RFC 4627) */
     APPLICATION_JSON("application/json"),
+
+    /** RFC 7303 */
     APPLICATION_XML("application/xml"),
+
+    /** RFC 2046 */
     APPLICATION_OCTET_STREAM("application/octet-stream"),
+
+    /** HTML form data (not IANA-registered with a formal RFC) */
     APPLICATION_X_WWW_FORM_URLENCODED("application/x-www-form-urlencoded"),
+
+    /** RFC 2388 */
     MULTIPART_FORM_DATA("multipart/form-data"),
 
-    TEXT_PLAIN("text/plain"),
+    /** RFC 2046 */
     TEXT_HTML("text/html"),
+
+    /** RFC 4180 (informal, CSV is not formally IANA-registered) */
     TEXT_CSV("text/csv"),
-    TEXT_XML("text/xml"),
 
-    IMAGE_PNG("image/png"),
-    IMAGE_JPEG("image/jpeg"),
-    IMAGE_GIF("image/gif"),
-    IMAGE_WEBP("image/webp"),
-    IMAGE_SVG_XML("image/svg+xml"),
+    /** RFC 2046 */
+    TEXT_PLAIN("text/plain"),
 
-    AUDIO_MPEG("audio/mpeg"),
-    AUDIO_OGG("audio/ogg"),
-
-    VIDEO_MP4("video/mp4"),
-    VIDEO_WEBM("video/webm"),
-
-    APPLICATION_PDF("application/pdf"),
-    APPLICATION_ZIP("application/zip"),
-    APPLICATION_GZIP("application/gzip"),
-    APPLICATION_JAVASCRIPT("application/javascript"),
-    APPLICATION_PROBLEM_JSON("application/problem+json"), // For RFC 7807 problem details
-    APPLICATION_JSON_PATCH("application/json-patch+json"), // For PATCH requests
-
-    APPLICATION_VND_API_JSON("application/vnd.api+json"); // JSON:API media type
+    /** RFC 7303 */
+    TEXT_XML("text/xml");
 
     private final String contentType;
 
-    ContentType(final String contentType) {
+    MediaType(final String contentType) {
         this.contentType = contentType;
     }
 
