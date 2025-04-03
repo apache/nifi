@@ -24,18 +24,23 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 public abstract class NiFiAuthenticationRequestToken extends AbstractAuthenticationToken {
 
     private final String clientAddress;
+    private final String userAgent;
 
     /**
      * @param clientAddress   The address of the client making the request
      */
-    public NiFiAuthenticationRequestToken(final String clientAddress) {
+    public NiFiAuthenticationRequestToken(final String clientAddress, final String userAgent) {
         super(null);
         setAuthenticated(false);
         this.clientAddress = clientAddress;
+        this.userAgent = userAgent;
     }
 
     public String getClientAddress() {
         return clientAddress;
     }
 
+    public String getUserAgent() {
+        return userAgent;
+    }
 }

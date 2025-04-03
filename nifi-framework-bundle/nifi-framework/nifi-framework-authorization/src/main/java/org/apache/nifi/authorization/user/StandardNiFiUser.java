@@ -36,6 +36,7 @@ public class StandardNiFiUser implements NiFiUser {
     private final NiFiUser chain;
     private final String clientAddress;
     private final boolean isAnonymous;
+    private final String userAgent;
 
     private StandardNiFiUser(final Builder builder) {
         this.identity = builder.identity;
@@ -44,6 +45,7 @@ public class StandardNiFiUser implements NiFiUser {
         this.chain = builder.chain;
         this.clientAddress = builder.clientAddress;
         this.isAnonymous = builder.isAnonymous;
+        this.userAgent = builder.userAgent;
 
         final Set<String> combineGroups = new HashSet<>();
         if (this.groups != null) {
@@ -58,12 +60,13 @@ public class StandardNiFiUser implements NiFiUser {
     /**
      * This static builder allows the chain and clientAddress to be populated without allowing calling code to provide a non-anonymous identity of the anonymous user.
      *
-     * @param chain the proxied entities in {@see NiFiUser} form
+     * @param chain         the proxied entities in {@see NiFiUser} form
      * @param clientAddress the address the request originated from
+     * @param userAgent     the user agent the request originated from
      * @return an anonymous user instance with the identity "anonymous"
      */
-    public static StandardNiFiUser populateAnonymousUser(NiFiUser chain, String clientAddress) {
-        return new Builder().identity(ANONYMOUS_IDENTITY).chain(chain).clientAddress(clientAddress).anonymous(true).build();
+    public static StandardNiFiUser populateAnonymousUser(NiFiUser chain, String clientAddress, String userAgent) {
+        return new Builder().identity(ANONYMOUS_IDENTITY).chain(chain).clientAddress(clientAddress).userAgent(userAgent).anonymous(true).build();
     }
 
     @Override
@@ -99,6 +102,11 @@ public class StandardNiFiUser implements NiFiUser {
     @Override
     public String getClientAddress() {
         return clientAddress;
+    }
+
+    @Override
+    public String getUserAgent() {
+        return userAgent;
     }
 
     @Override
@@ -145,6 +153,7 @@ public class StandardNiFiUser implements NiFiUser {
         private NiFiUser chain;
         private String clientAddress;
         private boolean isAnonymous = false;
+        private String userAgent;
 
         /**
          * Sets the identity.
@@ -211,6 +220,18 @@ public class StandardNiFiUser implements NiFiUser {
             this.isAnonymous = isAnonymous;
             return this;
         }
+
+        /**
+         * Sets the user agent.
+         *
+         * @param userAgent user agent of the request
+         * @return the builder
+         */
+        public Builder userAgent(final String userAgent) {
+            this.userAgent = userAgent;
+            return this;
+        }
+
 
         /**
          * @return builds a StandardNiFiUser from the current state of the builder

@@ -32,8 +32,8 @@ public class NiFiAnonymousAuthenticationRequestToken extends NiFiAuthenticationR
      *
      * @param clientAddress the address of the client making the request
      */
-    public NiFiAnonymousAuthenticationRequestToken(final boolean secureRequest, final String clientAddress) {
-        super(clientAddress);
+    public NiFiAnonymousAuthenticationRequestToken(final boolean secureRequest, final String clientAddress, final String userAgent) {
+        super(clientAddress, userAgent);
         setAuthenticated(false);
         this.secureRequest = secureRequest;
     }

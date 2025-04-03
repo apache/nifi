@@ -265,6 +265,11 @@ public class TestVolatileProvenanceRepository {
             public String getClientAddress() {
                 return null;
             }
+
+            @Override
+            public String getUserAgent() {
+                return null;
+            }
         };
     }
 }
