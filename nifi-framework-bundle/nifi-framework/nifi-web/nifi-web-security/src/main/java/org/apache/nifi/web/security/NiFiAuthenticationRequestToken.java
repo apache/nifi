@@ -26,11 +26,13 @@ public abstract class NiFiAuthenticationRequestToken extends AbstractAuthenticat
     private final String clientAddress;
 
     /**
-     * @param clientAddress   The address of the client making the request
+     * @param clientAddress The address of the client making the request
+     * @param authenticationDetails The authentication details of the client making the request
      */
-    public NiFiAuthenticationRequestToken(final String clientAddress) {
+    public NiFiAuthenticationRequestToken(final String clientAddress, final Object authenticationDetails) {
         super(null);
         setAuthenticated(false);
+        setDetails(authenticationDetails);
         this.clientAddress = clientAddress;
     }
 

@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.web.security.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
@@ -28,6 +30,7 @@ import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
@@ -50,12 +53,14 @@ public class X509AuthenticationSecurityConfiguration {
     }
 
     @Bean
-    public X509AuthenticationFilter x509AuthenticationFilter(final AuthenticationManager authenticationManager) {
+    public X509AuthenticationFilter x509AuthenticationFilter(final AuthenticationManager authenticationManager,
+        final AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource) {
         final X509AuthenticationFilter x509AuthenticationFilter = new X509AuthenticationFilter();
         x509AuthenticationFilter.setProperties(niFiProperties);
         x509AuthenticationFilter.setCertificateExtractor(certificateExtractor());
         x509AuthenticationFilter.setPrincipalExtractor(principalExtractor());
         x509AuthenticationFilter.setAuthenticationManager(authenticationManager);
+        x509AuthenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource);
         return x509AuthenticationFilter;
     }
 

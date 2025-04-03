@@ -106,7 +106,7 @@ public class StandardJwtAuthenticationConverterTest {
         assertNotNull(authenticationToken);
         assertEquals(USERNAME, authenticationToken.toString());
 
-        final NiFiUserDetails details = (NiFiUserDetails) authenticationToken.getDetails();
+        final NiFiUserDetails details = (NiFiUserDetails) authenticationToken.getPrincipal();
         final NiFiUser user = details.getNiFiUser();
 
         final Set<String> expectedGroups = Collections.singleton(AUTHORIZER_GROUP);
