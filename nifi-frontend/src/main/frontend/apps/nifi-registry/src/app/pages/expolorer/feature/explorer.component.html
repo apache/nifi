@@ -20,7 +20,7 @@
         <h3 class="primary-color">Flows</h3>
         <div class="flex justify-between items-center">
             <droplet-table-filter [buckets]="buckets" [filterTerm]="filterTerm" [filterBucket]="filterBucket"
-                [filterColumn]="filterColumn" (filterChanged)="applyFilter($event)"></droplet-table-filter>
+                [filterColumn]="filterColumn" [filteredCount]="dataSource.filteredData.length" [totalCount]="dataSource.data.length" (filterChanged)="applyFilter($event)"></droplet-table-filter>
             <button mat-flat-button (click)="openImportNewFlowDialog()">Import New Flow</button>
         </div>
         @if (droplets$; as droplets) {
@@ -123,6 +123,15 @@
                     <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                     <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns"></tr>
                 </table>
+                <div class="py-5" *ngIf="dataSource.filteredData.length === 0 && buckets.length !== 0 && filterTerm">
+                    <p class="text-center">No results match this query.</p>
+                </div>
+                <div class="py-5" *ngIf="dataSource.data.length === 0 && buckets.length === 0">
+                    <p class="text-center">There are no buckets to display.</p>
+                </div>
+                <div class="py-5" *ngIf="dataSource.data.length === 0 && buckets.length !== 0">
+                    <p class="text-center">There are no flows to display.</p>
+                </div>
             </div>
         </div>
         }
