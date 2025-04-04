@@ -1,0 +1,29 @@
+<routes xmlns="http://camel.apache.org/schema/spring">
+    <route>
+        <from uri="direct:in"/>
+
+        <transform>
+            <simple>Received camel message: "${body}" and headers ${headers}</simple>
+        </transform>
+
+        <setHeader name="filename">
+            <simple>${header.filename}-updated</simple>
+        </setHeader>
+
+        <setHeader name="newKey1">
+            <simple>newValue1</simple>
+        </setHeader>
+
+        <setHeader name="newKey2">
+            <simple>3</simple>
+        </setHeader>
+
+        <setHeader name="newKey3">
+            <simple>true</simple>
+        </setHeader>
+
+        <convertBodyTo type="java.io.InputStream"/>
+
+        <to uri="direct:out"/>
+    </route>
+</routes>

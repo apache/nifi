@@ -1,0 +1,23 @@
+- from:
+    uri: "direct:in"
+    steps:
+      - choice:
+          when:
+            - simple: "${body} == 'input1'"
+              steps:
+                - transform:
+                    expression:
+                      simple: "Received camel message: \"${body}\" and headers ${headers}"
+                - convertBodyTo:
+                    type: java.io.InputStream
+                - to:
+                    uri: "direct:out1"
+          otherwise:
+            steps:
+              - transform:
+                  expression:
+                    simple: "Received camel message: \"${body}\" and headers ${headers}"
+              - convertBodyTo:
+                  type: java.io.InputStream
+              - to:
+                  uri: "direct:out2"

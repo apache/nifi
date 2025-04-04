@@ -1,0 +1,10 @@
+- from:
+    uri: "direct:in"
+    steps:
+      - transform:
+          expression:
+            simple: "Received camel message: \"${body}\""
+      - convertBodyTo:
+          type: java.io.InputStream
+      - to:
+          uri: "direct:err"

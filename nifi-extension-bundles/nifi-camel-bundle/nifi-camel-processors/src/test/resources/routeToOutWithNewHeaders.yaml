@@ -1,0 +1,22 @@
+- from:
+    uri: "direct:in"
+    steps:
+      - transform:
+          expression:
+            simple: "Received camel message: \"${body}\" and headers ${headers}"
+      - setHeader:
+          name: "filename"
+          simple: "${header.filename}-updated"
+      - setHeader:
+          name: "newKey1"
+          simple: "newValue1"
+      - setHeader:
+          name: "newKey2"
+          simple: 3
+      - setHeader:
+          name: "newKey3"
+          simple: true
+      - convertBodyTo:
+          type: java.io.InputStream
+      - to:
+          uri: "direct:out"

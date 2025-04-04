@@ -1,0 +1,22 @@
+<routes xmlns="http://camel.apache.org/schema/spring">
+    <route>
+        <from uri="direct:in"/>
+        <choice>
+            <when>
+                <simple>${body} == 'input1'</simple>
+                <transform>
+                    <simple>Received camel message: "${body}" and headers ${headers}</simple>
+                </transform>
+                <convertBodyTo type="java.io.InputStream"/>
+                <to uri="direct:out1"/>
+            </when>
+            <otherwise>
+                <transform>
+                    <simple>Received camel message: "${body}" and headers ${headers}</simple>
+                </transform>
+                <convertBodyTo type="java.io.InputStream"/>
+                <to uri="direct:out2"/>
+            </otherwise>
+        </choice>
+    </route>
+</routes>

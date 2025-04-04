@@ -1,0 +1,13 @@
+<routes xmlns="http://camel.apache.org/schema/spring">
+    <route>
+        <from uri="direct:in"/>
+
+        <transform>
+            <simple>Received camel message: "${body}" and headers ${headers}</simple>
+        </transform>
+
+        <convertBodyTo type="java.io.InputStream"/>
+
+        <to uri="direct:out"/>
+    </route>
+</routes>

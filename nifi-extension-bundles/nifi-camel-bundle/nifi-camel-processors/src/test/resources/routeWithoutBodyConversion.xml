@@ -1,0 +1,11 @@
+<routes xmlns="http://camel.apache.org/schema/spring">
+    <route>
+        <from uri="direct:in"/>
+
+        <transform>
+            <simple>Received camel message: "${body}"</simple>
+        </transform>
+
+        <to uri="direct:out"/>
+    </route>
+</routes>

@@ -1,0 +1,8 @@
+- from:
+    uri: "direct:in"
+    steps:
+      - transform:
+          expression:
+            simple: "Received camel message: \"${body}\""
+      - to:
+          uri: "direct:out"
