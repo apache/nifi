@@ -68,6 +68,8 @@ describe('FlowEffects', () => {
     let propertyTableHelperService: PropertyTableHelperService;
     let dialog: MatDialog;
     let store: MockStore;
+    let copyPasteService: CopyPasteService;
+    let canvasView: CanvasView;
     let verify: EventEmitter<VerifyPropertiesRequestContext>;
     let editProcessor: EventEmitter<UpdateProcessorRequest>;
     let startRequest: EventEmitter<StartComponentRequest>;
