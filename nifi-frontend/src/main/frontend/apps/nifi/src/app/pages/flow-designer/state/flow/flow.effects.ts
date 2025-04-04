@@ -2808,16 +2808,25 @@ export class FlowEffects {
         { dispatch: false }
     );
 
-    leaveProcessGroup$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.leaveProcessGroup),
-                concatLatestFrom(() => this.store.select(selectParentProcessGroupId)),
-                filter(([, parentProcessGroupId]) => parentProcessGroupId != null),
-                tap(([, parentProcessGroupId]) => {
-                    this.router.navigate(['/process-groups', parentProcessGroupId]);
-                })
-            ),
+    leaveProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.leaveProcessGroup),
+            concatLatestFrom(() => [
+                this.store.select(selectParentProcessGroupId).pipe(isDefinedAndNotNull()),
+                this.store.select(selectCurrentProcessGroupId).pipe(isDefinedAndNotNull()),
+            ]),
+            tap(([,parentProcessGroupId, currentProcessGroupId]) => {
+                this.store.dispatch(
+                    FlowActions.navigateWithoutTransform({ url: [
+                            'process-groups',
+                            parentProcessGroupId,
+                            ComponentType.ProcessGroup,
+                            currentProcessGroupId
+                        ]
+                    })
+                )
+            }),
+        ),
         { dispatch: false }
     );
 

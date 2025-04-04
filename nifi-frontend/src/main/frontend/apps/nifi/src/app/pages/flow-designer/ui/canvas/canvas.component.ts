@@ -172,7 +172,7 @@ export class Canvas implements OnInit, OnDestroy {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
-                    this.store.dispatch(centerSelectedComponents({ request: { allowTransition } }));
+                    this.store.dispatch(restoreViewport());
                 }
             });
 
