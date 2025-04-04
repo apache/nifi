@@ -205,6 +205,10 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         try {
             final Q queryJsonParameters = buildJsonQueryParameters(input, context, session);
 
+            if (queryJsonParameters == null) {
+                context.yield();
+                return;
+            }
             List<FlowFile> hitsFlowFiles = new ArrayList<>();
             final StopWatch stopWatch = new StopWatch(true);
             final SearchResponse response = doQuery(queryJsonParameters, hitsFlowFiles, session, context, input, stopWatch);
