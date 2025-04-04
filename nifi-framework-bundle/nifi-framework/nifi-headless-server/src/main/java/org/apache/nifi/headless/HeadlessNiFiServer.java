@@ -17,6 +17,9 @@
 package org.apache.nifi.headless;
 
 import org.apache.nifi.NiFiServer;
+import org.apache.nifi.action.HeadlessActionConverter;
+import org.apache.nifi.action.HeadlessFlowActionReporter;
+import org.apache.nifi.action.ReportableAuditService;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -107,7 +110,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             logger.info("Loading Flow...");
 
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
-            AuditService auditService = new HeadlessAuditService();
+            AuditService auditService = new ReportableAuditService(new HeadlessAuditService(), new HeadlessFlowActionReporter(), new HeadlessActionConverter());
             Authorizer authorizer = new Authorizer() {
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
