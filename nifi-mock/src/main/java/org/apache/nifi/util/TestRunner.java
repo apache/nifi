@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -38,6 +39,7 @@ import org.apache.nifi.state.MockStateManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -395,6 +397,19 @@ public interface TestRunner {
      * are valid
      */
     void assertValid();
+
+    /**
+     * Validates the currently configured set of properties/annotation data
+     * @return a Collection of ValidationResult
+     */
+    Collection<ValidationResult> validate();
+
+    /**
+     * Verifies the currently configured set of properties/annotation data
+     * @param variables the variables to use for verification
+     * @return a Collection of ConfigVerificationResult
+     */
+    List<ConfigVerificationResult> verify(Map<String, String> variables);
 
     boolean isValid();
 
@@ -845,6 +860,22 @@ public interface TestRunner {
      *             {@link #removeControllerService(ControllerService)} method.
      */
     void assertValid(ControllerService service);
+
+    /**
+     * Validates the currently configured set of properties/annotation data for
+     * the given Controller Service.
+     * @param service the service to validate
+     * @return a Collection of ValidationResult
+     */
+    Collection<ValidationResult> validate(ControllerService service);
+
+    /**
+     * Verifies the currently configured set of properties/annotation data for
+     * the given Controller Service.
+     * @param variables the variables to use for verification
+     * @return a Collection of ConfigVerificationResult
+     */
+    List<ConfigVerificationResult> verify(ControllerService service, Map<String, String> variables);
 
     /**
      * Assert that the currently configured set of properties/annotation data
