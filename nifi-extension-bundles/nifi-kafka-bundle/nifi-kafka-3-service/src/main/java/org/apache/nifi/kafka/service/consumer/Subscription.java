@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.service.consumer.pool;
+package org.apache.nifi.kafka.service.consumer;
 
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 

@@ -36,7 +36,7 @@ import java.util.Properties;
 
 public abstract class AbstractKafkaBaseIT {
 
-    protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.6.1";  // April 2024
+    protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0"; // December 2024
 
     private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
     private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";

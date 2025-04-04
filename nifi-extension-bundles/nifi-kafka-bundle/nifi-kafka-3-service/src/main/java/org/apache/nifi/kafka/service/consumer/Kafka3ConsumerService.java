@@ -17,6 +17,7 @@
 package org.apache.nifi.kafka.service.consumer;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -28,39 +29,58 @@ import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
-import org.apache.nifi.kafka.service.consumer.pool.Subscription;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Kafka 3 Consumer Service implementation with Object Pooling for subscribed Kafka Consumers
  */
-public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
+public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, ConsumerRebalanceListener {
 
     private final ComponentLog componentLog;
     private final Consumer<byte[], byte[]> consumer;
     private final Subscription subscription;
-    private final Duration maxUncommittedTime;
     private volatile boolean closed = false;
 
-    public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer, final Subscription subscription,
-            final Duration maxUncommittedTime) {
-
+    public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer, final Subscription subscription) {
         this.componentLog = Objects.requireNonNull(componentLog, "Component Log required");
         this.consumer = consumer;
         this.subscription = subscription;
-        this.maxUncommittedTime = maxUncommittedTime;
+
+        final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
+        if (topicPatternFound.isPresent()) {
+            final Pattern topicPattern = topicPatternFound.get();
+            consumer.subscribe(topicPattern, this);
+        } else {
+            final Collection<String> topics = subscription.getTopics();
+            consumer.subscribe(topics, this);
+        }
+    }
+
+    @Override
+    public void onPartitionsAssigned(final Collection<TopicPartition> partitions) {
+        componentLog.info("Kafka assigned the following Partitions to this consumer: {}", partitions);
+    }
+
+    @Override
+    public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
+        componentLog.info("Kafka revoked the following Partitions from this consumer: {}", partitions);
+        rollback(new HashSet<>(partitions));
     }
 
     @Override
@@ -76,10 +96,16 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
 
     @Override
     public void rollback() {
-        final Set<TopicPartition> assignment = consumer.assignment();
+        rollback(consumer.assignment());
+    }
+
+    private void rollback(final Set<TopicPartition> partitions) {
+        if (partitions.isEmpty()) {
+            return;
+        }
 
         try {
-            final Map<TopicPartition, OffsetAndMetadata> metadataMap = consumer.committed(assignment);
+            final Map<TopicPartition, OffsetAndMetadata> metadataMap = consumer.committed(partitions);
             for (final Map.Entry<TopicPartition, OffsetAndMetadata> entry : metadataMap.entrySet()) {
                 final TopicPartition topicPartition = entry.getKey();
                 final OffsetAndMetadata offsetAndMetadata = entry.getValue();
@@ -94,7 +120,6 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
             }
         } catch (final Exception rollbackException) {
             componentLog.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
-            close();
         }
     }
 
@@ -104,8 +129,12 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
     }
 
     @Override
-    public Iterable<ByteRecord> poll() {
-        final ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(maxUncommittedTime);
+    public Iterable<ByteRecord> poll(final Duration maxWaitDuration) {
+        final ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(maxWaitDuration);
+        if (consumerRecords.isEmpty()) {
+            return List.of();
+        }
+
         return new RecordIterable(consumerRecords);
     }
 
