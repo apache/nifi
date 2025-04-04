@@ -61,4 +61,8 @@ public interface NiFiUser {
      */
     String getClientAddress();
 
+    /**
+     * @return the user agent of the client that made the request which created this user
+     */
+    String getUserAgent();
 }

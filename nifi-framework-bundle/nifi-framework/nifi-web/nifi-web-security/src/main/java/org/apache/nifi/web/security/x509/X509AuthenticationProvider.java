@@ -91,7 +91,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
             final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());
-            final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build();
+            final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).userAgent(request.getUserAgent()).build();
             return new NiFiAuthenticationToken(new NiFiUserDetails(user), certificates);
         } else {
             // get the idp groups for the end-user that were sent over in the X-ProxiedEntityGroups header
@@ -127,7 +127,8 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
                 // Only set the client address for client making the request because we don't know the clientAddress of the proxied entities
                 String clientAddress = (proxy == null) ? request.getClientAddress() : null;
-                proxy = createUser(identity, groups, idpGroups, proxy, clientAddress, isAnonymous);
+                String userAgent = (proxy == null) ? request.getUserAgent() : null;
+                proxy = createUser(identity, groups, idpGroups, proxy, clientAddress, isAnonymous, userAgent);
 
                 if (chainIter.hasPrevious()) {
                     try {
@@ -167,13 +168,14 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
      * @param chain         the proxied entities
      * @param clientAddress the requesting IP address
      * @param isAnonymous   if true, an anonymous user will be returned (identity will be ignored)
+     * @param userAgent     the user agent
      * @return the populated user
      */
-    protected static NiFiUser createUser(String identity, Set<String> groups, Set<String> idpGroups, NiFiUser chain, String clientAddress, boolean isAnonymous) {
+    protected static NiFiUser createUser(String identity, Set<String> groups, Set<String> idpGroups, NiFiUser chain, String clientAddress, boolean isAnonymous, String userAgent) {
         if (isAnonymous) {
-            return StandardNiFiUser.populateAnonymousUser(chain, clientAddress);
+            return StandardNiFiUser.populateAnonymousUser(chain, clientAddress, userAgent);
         } else {
-            return new Builder().identity(identity).groups(groups).identityProviderGroups(idpGroups).chain(chain).clientAddress(clientAddress).build();
+            return new Builder().identity(identity).groups(groups).identityProviderGroups(idpGroups).chain(chain).clientAddress(clientAddress).userAgent(userAgent).build();
         }
     }
 

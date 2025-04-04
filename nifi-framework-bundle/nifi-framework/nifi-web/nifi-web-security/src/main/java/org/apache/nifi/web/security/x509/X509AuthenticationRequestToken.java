@@ -40,8 +40,8 @@ public class X509AuthenticationRequestToken extends NiFiAuthenticationRequestTok
      */
     public X509AuthenticationRequestToken(final String proxiedEntitiesChain, final String proxiedEntityGroups,
                                           final X509PrincipalExtractor principalExtractor, final X509Certificate[] certificates,
-                                          final String clientAddress) {
-        super(clientAddress);
+                                          final String clientAddress, final String userAgent) {
+        super(clientAddress, userAgent);
         setAuthenticated(false);
         this.proxiedEntitiesChain = proxiedEntitiesChain;
         this.proxiedEntityGroups = proxiedEntityGroups;

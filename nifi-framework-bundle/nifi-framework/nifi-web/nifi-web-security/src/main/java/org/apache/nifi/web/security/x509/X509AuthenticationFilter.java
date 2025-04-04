@@ -20,6 +20,7 @@ import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
@@ -55,7 +56,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
         final String proxiedEntityIdpGroups = request.getHeader(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS);
         logger.debug("Raw {} - {}", ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityIdpGroups);
 
-        return new X509AuthenticationRequestToken(proxiedEntitiesChain, proxiedEntityIdpGroups, principalExtractor, certificates, request.getRemoteAddr());
+        return new X509AuthenticationRequestToken(proxiedEntitiesChain, proxiedEntityIdpGroups, principalExtractor, certificates, request.getRemoteAddr(), request.getHeader(HttpHeaders.USER_AGENT));
     }
 
     /* setters */

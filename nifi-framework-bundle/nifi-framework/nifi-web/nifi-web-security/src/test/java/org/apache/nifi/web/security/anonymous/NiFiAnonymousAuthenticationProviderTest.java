@@ -39,7 +39,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
 
-        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(false, StringUtils.EMPTY);
+        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(false, StringUtils.EMPTY, StringUtils.EMPTY);
 
         final NiFiAuthenticationToken authentication = (NiFiAuthenticationToken) anonymousAuthenticationProvider.authenticate(authenticationRequest);
         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getDetails();
@@ -53,7 +53,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
 
-        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(false, StringUtils.EMPTY);
+        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(false, StringUtils.EMPTY, StringUtils.EMPTY);
 
         final NiFiAuthenticationToken authentication = (NiFiAuthenticationToken) anonymousAuthenticationProvider.authenticate(authenticationRequest);
         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getDetails();
@@ -67,7 +67,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
 
-        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(true, StringUtils.EMPTY);
+        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(true, StringUtils.EMPTY, StringUtils.EMPTY);
 
         assertThrows(InvalidAuthenticationException.class, () -> anonymousAuthenticationProvider.authenticate(authenticationRequest));
     }
@@ -79,7 +79,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
 
-        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(true, StringUtils.EMPTY);
+        final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(true, StringUtils.EMPTY, StringUtils.EMPTY);
 
         final NiFiAuthenticationToken authentication = (NiFiAuthenticationToken) anonymousAuthenticationProvider.authenticate(authenticationRequest);
         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getDetails();

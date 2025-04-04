@@ -214,7 +214,7 @@ public class X509AuthenticationProviderTest {
         String identity = "someone";
 
         // Act
-        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, true);
+        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, true, null);
 
         // Assert
         assertInstanceOf(StandardNiFiUser.class, user);
@@ -228,7 +228,7 @@ public class X509AuthenticationProviderTest {
         String identity = "someone";
 
         // Act
-        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, false);
+        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, false, null);
 
         // Assert
         assertInstanceOf(StandardNiFiUser.class, user);
@@ -268,7 +268,7 @@ public class X509AuthenticationProviderTest {
     }
 
     private X509AuthenticationRequestToken getX509Request(final String proxyChain, final String proxiedEntityGroups, final String identity) {
-        return new X509AuthenticationRequestToken(proxyChain, proxiedEntityGroups, extractor, new X509Certificate[]{getX509Certificate(identity)}, "");
+        return new X509AuthenticationRequestToken(proxyChain, proxiedEntityGroups, extractor, new X509Certificate[]{getX509Certificate(identity)}, "", "");
     }
 
     private X509Certificate getX509Certificate(final String identity) {
