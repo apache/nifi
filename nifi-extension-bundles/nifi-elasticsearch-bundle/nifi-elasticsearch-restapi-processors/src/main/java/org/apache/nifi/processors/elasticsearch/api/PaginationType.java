@@ -20,17 +20,19 @@ package org.apache.nifi.processors.elasticsearch.api;
 import org.apache.nifi.components.DescribedValue;
 
 public enum PaginationType implements DescribedValue {
-    SCROLL("pagination-scroll", "Use Elasticsearch \"_scroll\" API to page results. Does not accept additional query parameters."),
-    SEARCH_AFTER("pagination-search_after", "Use Elasticsearch \"search_after\" _search API to page sorted results."),
+    SCROLL("pagination-scroll", "Use Elasticsearch \"_scroll\" API to page results. Does not accept additional query parameters.", true),
+    SEARCH_AFTER("pagination-search_after", "Use Elasticsearch \"search_after\" _search API to page sorted results.", false),
     POINT_IN_TIME("pagination-pit", "Use Elasticsearch (7.10+ with XPack) \"point in time\" _search API to page sorted results. " +
-            "Not available for use with AWS OpenSearch.");
+            "Not available for use with AWS OpenSearch.", true);
 
     private final String value;
     private final String description;
+    private final boolean hasExpiry;
 
-    PaginationType(final String value, final String description) {
+    PaginationType(final String value, final String description, final boolean hasExpiry) {
         this.value = value;
         this.description = description;
+        this.hasExpiry = hasExpiry;
     }
 
     @Override
@@ -46,5 +48,9 @@ public enum PaginationType implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    public boolean hasExpiry() {
+        return this.hasExpiry;
     }
 }

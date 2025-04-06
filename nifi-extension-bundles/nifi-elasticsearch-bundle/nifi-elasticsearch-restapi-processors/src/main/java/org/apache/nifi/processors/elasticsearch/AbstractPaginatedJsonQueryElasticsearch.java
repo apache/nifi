@@ -69,6 +69,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
                     "in between requests (this is not the time expected for all pages to be returned, but the maximum " +
                     "allowed time for requests between page retrievals).")
             .required(true)
+            .dependsOn(PAGINATION_TYPE, PaginationType.SCROLL, PaginationType.POINT_IN_TIME)
             .defaultValue("10 mins")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, 24, TimeUnit.HOURS))
@@ -100,9 +101,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
                            final StopWatch stopWatch) throws IOException {
         SearchResponse response = null;
         do {
-            // check any previously started query hasn't expired
-            final boolean expiredQuery = isExpired(paginatedJsonQueryParameters, context, response);
-            final boolean newQuery = StringUtils.isBlank(paginatedJsonQueryParameters.getPageExpirationTimestamp()) || expiredQuery;
+            // reset query params if query needs to be restarted from the beginning
+            this.resetQueryParamsIfRequired(paginatedJsonQueryParameters, context);
+            final boolean newQuery = paginatedJsonQueryParameters.getPageCount() == 0;
 
             // execute query/scroll
             final String queryJson = updateQueryJson(newQuery, paginatedJsonQueryParameters, context, input);
@@ -155,13 +156,14 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         final PaginatedJsonQueryParameters paginatedJsonQueryParameters = new PaginatedJsonQueryParameters();
         populateCommonJsonQueryParameters(paginatedJsonQueryParameters, input, context, session);
 
-        paginatedJsonQueryParameters.setKeepAlive(context.getProperty(PAGINATION_KEEP_ALIVE).asTimePeriod(TimeUnit.SECONDS) + "s");
+        if (this.paginationType.hasExpiry()) {
+            paginatedJsonQueryParameters.setKeepAlive(context.getProperty(PAGINATION_KEEP_ALIVE).asTimePeriod(TimeUnit.SECONDS) + "s");
+        }
 
         return paginatedJsonQueryParameters;
     }
 
-    abstract boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryParameters, final ProcessContext context,
-                               final SearchResponse response) throws IOException;
+    abstract void resetQueryParamsIfRequired(final PaginatedJsonQueryParameters paginatedQueryParameters, final ProcessContext context) throws IOException;
 
     abstract String getScrollId(final ProcessContext context, final SearchResponse response) throws IOException;
 
@@ -283,12 +285,14 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
     void updateQueryParameters(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final SearchResponse response) {
         paginatedJsonQueryParameters.incrementPageCount();
+        paginatedJsonQueryParameters.setFinished(response.getHits().isEmpty());
 
-        // mark the paginated query for expiry if there are no hits (no more pages to obtain so stop looping on this query)
-        final String keepAliveDuration = "PT" + (!response.getHits().isEmpty() ? paginatedJsonQueryParameters.getKeepAlive() : "0s");
-        paginatedJsonQueryParameters.setPageExpirationTimestamp(
-                String.valueOf(Instant.now().plus(Duration.parse(keepAliveDuration)).toEpochMilli())
-        );
+        if (this.paginationType.hasExpiry()) {
+            final String keepAliveDuration = "PT" + paginatedJsonQueryParameters.getKeepAlive();
+            paginatedJsonQueryParameters.setPageExpirationTimestamp(
+                    String.valueOf(Instant.now().plus(Duration.parse(keepAliveDuration)).toEpochMilli())
+            );
+        }
     }
 
     void clearElasticsearchState(final ProcessContext context, final SearchResponse response, final FlowFile input) {

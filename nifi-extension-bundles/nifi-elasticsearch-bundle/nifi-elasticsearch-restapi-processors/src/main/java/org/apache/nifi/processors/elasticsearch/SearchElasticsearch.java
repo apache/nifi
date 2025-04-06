@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -39,6 +40,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
 import org.apache.nifi.processors.elasticsearch.api.PaginationType;
 import org.apache.nifi.util.StringUtils;
@@ -98,25 +100,39 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     static final String STATE_PAGE_EXPIRATION_TIMESTAMP = "pageExpirationTimestamp";
     static final String STATE_PAGE_COUNT = "pageCount";
     static final String STATE_HIT_COUNT = "hitCount";
+    static final String STATE_FINISHED = "finished";
 
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder().fromPropertyDescriptor(ElasticsearchRestProcessor.QUERY)
             .description("A query in JSON syntax, not Lucene syntax. Ex: {\"query\":{\"match\":{\"somefield\":\"somevalue\"}}}. " +
                     "If the query is empty, a default JSON Object will be used, which will result in a \"match_all\" query in Elasticsearch.")
             .build();
 
-    private static final Set<Relationship> relationships = Set.of(REL_HITS, REL_AGGREGATIONS);
+    static final PropertyDescriptor RESTART_ON_FINISH = new PropertyDescriptor.Builder()
+            .name("restart-on-finish")
+            .displayName("Restart On Finish?")
+            .description("Should the processor start from the beginning when the query finishes?")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .defaultValue(Boolean.TRUE.toString()) // maintain existing behavior
+            .required(true)
+            .build();
+
+    private static final Set<Relationship> relationships = Set.of(REL_FAILURE, REL_RETRY, REL_HITS, REL_AGGREGATIONS);
 
     static final List<PropertyDescriptor> scrollPropertyDescriptors = Stream.concat(
             Stream.of(
                     // ensure QUERY_DEFINITION_STYLE first for consistency between Elasticsearch processors
                     QUERY_DEFINITION_STYLE,
-                    QUERY
+                    QUERY,
+                    RESTART_ON_FINISH
             ),
             paginatedPropertyDescriptors.stream().filter(
                     // override QUERY to change description (no FlowFile content used by SearchElasticsearch)
                     pd -> !ElasticsearchRestProcessor.QUERY.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd)
             )
     ).toList();
+
+    boolean restartOnFinish = true;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -133,16 +149,33 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     }
 
     @Override
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        super.onScheduled(context);
+        if (context.getProperty(RESTART_ON_FINISH).asBoolean() != null) {
+            this.restartOnFinish = context.getProperty(RESTART_ON_FINISH).asBoolean();
+        }
+    }
+
+    @Override
     PaginatedJsonQueryParameters buildJsonQueryParameters(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
+        final StateMap stateMap = context.getStateManager().getState(getStateScope());
+
+        final boolean finished = stateMap.get(STATE_FINISHED) == null ? false : Boolean.parseBoolean(stateMap.get(STATE_FINISHED));
+
+        if (finished && !this.restartOnFinish) {
+            return null;
+        }
+
         final PaginatedJsonQueryParameters paginatedQueryJsonParameters = super.buildJsonQueryParameters(input, context, session);
 
-        final StateMap stateMap = context.getStateManager().getState(getStateScope());
         paginatedQueryJsonParameters.setHitCount(stateMap.get(STATE_HIT_COUNT) == null ? 0 : Integer.parseInt(stateMap.get(STATE_HIT_COUNT)));
         paginatedQueryJsonParameters.setPageCount(stateMap.get(STATE_PAGE_COUNT) == null ? 0 : Integer.parseInt(stateMap.get(STATE_PAGE_COUNT)));
         paginatedQueryJsonParameters.setScrollId(stateMap.get(STATE_SCROLL_ID));
         paginatedQueryJsonParameters.setSearchAfter(stateMap.get(STATE_SEARCH_AFTER));
         paginatedQueryJsonParameters.setPitId(stateMap.get(STATE_PIT_ID));
         paginatedQueryJsonParameters.setPageExpirationTimestamp(stateMap.get(STATE_PAGE_EXPIRATION_TIMESTAMP));
+        paginatedQueryJsonParameters.setFinished(finished);
 
         return paginatedQueryJsonParameters;
     }
@@ -153,11 +186,9 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
         final Map<String, String> newStateMap = new HashMap<>(10, 1);
         additionalState(newStateMap, paginatedJsonQueryParameters);
 
-        if (response.getHits().isEmpty()) {
-            getLogger().debug("No more results for paginated query, resetting state for future queries");
-        } else {
-            getLogger().debug("Updating state for next execution");
+        getLogger().debug("Updating state for next execution");
 
+        if (!paginatedJsonQueryParameters.isFinished()) {
             if (paginationType == PaginationType.SCROLL) {
                 newStateMap.put(STATE_SCROLL_ID, response.getScrollId());
             } else {
@@ -167,10 +198,14 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
                     newStateMap.put(STATE_PIT_ID, response.getPitId());
                 }
             }
-            newStateMap.put(STATE_HIT_COUNT, Integer.toString(paginatedJsonQueryParameters.getHitCount()));
-            newStateMap.put(STATE_PAGE_COUNT, Integer.toString(paginatedJsonQueryParameters.getPageCount()));
-            newStateMap.put(STATE_PAGE_EXPIRATION_TIMESTAMP, paginatedJsonQueryParameters.getPageExpirationTimestamp());
+            if (paginatedJsonQueryParameters.getPageExpirationTimestamp() != null) {
+                newStateMap.put(STATE_PAGE_EXPIRATION_TIMESTAMP, paginatedJsonQueryParameters.getPageExpirationTimestamp());
+            }
         }
+        newStateMap.put(STATE_HIT_COUNT, Integer.toString(paginatedJsonQueryParameters.getHitCount()));
+        newStateMap.put(STATE_PAGE_COUNT, Integer.toString(paginatedJsonQueryParameters.getPageCount()));
+        newStateMap.put(STATE_FINISHED, Boolean.toString(paginatedJsonQueryParameters.isFinished()));
+
         updateProcessorState(context, newStateMap);
     }
 
@@ -179,13 +214,13 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     }
 
     @Override
-    boolean isExpired(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessContext context,
-                      final SearchResponse response) throws IOException {
-        final boolean expiredQuery = StringUtils.isNotEmpty(paginatedJsonQueryParameters.getPageExpirationTimestamp())
+    void resetQueryParamsIfRequired(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessContext context) throws IOException {
+        final boolean expiredQuery = this.paginationType.hasExpiry() && StringUtils.isNotEmpty(paginatedJsonQueryParameters.getPageExpirationTimestamp())
                 && Instant.ofEpochMilli(Long.parseLong(paginatedJsonQueryParameters.getPageExpirationTimestamp())).isBefore(Instant.now());
+        final boolean restaredQuery = paginatedJsonQueryParameters.isFinished() && this.restartOnFinish;
 
-        if (expiredQuery) {
-            getLogger().debug("Existing paginated query has expired, resetting for new query");
+        if (expiredQuery || restaredQuery) {
+            getLogger().debug("Existing paginated query has expired or restarted, resetting for new query");
 
             final Map<String, String> newStateMap = new HashMap<>(1, 1);
             additionalState(newStateMap, paginatedJsonQueryParameters);
@@ -197,8 +232,8 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             paginatedJsonQueryParameters.setPitId(null);
             paginatedJsonQueryParameters.setScrollId(null);
             paginatedJsonQueryParameters.setSearchAfter(null);
+            paginatedJsonQueryParameters.setFinished(false);
         }
-        return expiredQuery;
     }
 
     @Override
