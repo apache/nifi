@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import jakarta.servlet.http.HttpServletResponse;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -56,9 +57,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-
-import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -162,6 +160,9 @@ public class TestListenHTTP {
         runner.setEnvironmentVariableValue(BASEPATH_VARIABLE, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.PORT, "0");
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @AfterEach

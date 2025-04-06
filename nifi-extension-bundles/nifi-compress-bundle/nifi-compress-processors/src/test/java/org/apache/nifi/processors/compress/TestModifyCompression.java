@@ -44,6 +44,8 @@ class TestModifyCompression {
     @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(ModifyCompression.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test

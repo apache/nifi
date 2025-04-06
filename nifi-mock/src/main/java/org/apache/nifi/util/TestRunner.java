@@ -943,6 +943,24 @@ public interface TestRunner {
     void setAllowRecursiveReads(boolean allow);
 
     /**
+     * Specifies whether the TestRunner allows to retrieve the value of a property whose dependencies are not satisfied.
+     * <p>
+     * When enabled, upon any call to {@link ProcessContext#getProperty(PropertyDescriptor)} or
+     * {@link ProcessContext#getProperty(String)} the dependencies of the given property are validated.
+     * In case a dependency is defined and not satisfied, an {@link AssertionError} is thrown to fail the test.
+     * By default, the value is <code>true</code>, which means the usage will be prohibited.
+     * <p>
+     * The purpose of this is to avoid incorporating properties with unsatisfied dependencies into implementations.
+     * These properties are not shown to the user,
+     * their values should be ignored by the implementation if the necessary dependencies are not fulfilled.
+     * This precaution is crucial to prevent potentially confusing and unpredictable side effects for the user.
+     * See <a href="https://issues.apache.org/jira/browse/NIFI-14400">issue NIFI-14400</a> for more background.
+     *
+     * @param prohibit Whether to prohibit the use of properties with unsatisfied dependencies
+     */
+    void setProhibitUseOfPropertiesWithUnsatisfiedDependencies(boolean prohibit);
+
+    /**
      * Removes the {@link PropertyDescriptor} from the {@link ProcessContext},
      * effectively setting its value to null, or the property's default value, if it has one.
      *

@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map.Entry;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
@@ -40,9 +35,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -100,6 +100,8 @@ public class TestTailFile {
 
         processor = new TailFile();
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(TailFile.FILENAME, "target/log.txt");
         runner.assertValid();
 

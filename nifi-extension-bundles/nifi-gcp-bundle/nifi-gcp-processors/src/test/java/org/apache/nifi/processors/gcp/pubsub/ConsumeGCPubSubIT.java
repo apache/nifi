@@ -30,6 +30,8 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT {
     @BeforeAll
     public static void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test

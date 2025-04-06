@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -46,6 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.function.Predicate.not;
 
 public class MockProcessContext extends MockControllerServiceLookup implements ProcessContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -57,6 +61,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private String annotationData = null;
     private boolean yieldCalled = false;
     private boolean allowExpressionValidation = true;
+    private boolean prohibitUseOfPropertiesWithUnsatisfiedDependencies = true;
     private volatile boolean incomingConnection = true;
     private volatile boolean nonLoopConnection = true;
     private volatile InputRequirement inputRequirement = null;
@@ -84,7 +89,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     /**
      * Creates a new MockProcessContext for the given Processor
      *
-     * @param component being mocked
+     * @param component    being mocked
      * @param stateManager state manager
      */
     public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager) {
@@ -120,9 +125,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     /**
      * Creates a new MockProcessContext for the given Processor with given name
      *
-     * @param component being mocked
+     * @param component     being mocked
      * @param componentName the name to be given the component;
-     * @param stateManager state manager
+     * @param stateManager  state manager
      */
     public MockProcessContext(final ConfigurableComponent component,
                               final String componentName,
@@ -134,7 +139,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         this.stateManager = stateManager;
         this.environmentVariables = environmentVariables;
     }
-
 
 
     @Override
@@ -161,11 +165,66 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             return null;
         }
 
+        if (prohibitUseOfPropertiesWithUnsatisfiedDependencies) {
+            final List<ValidatedPropertyDependency> unsatisfiedDependencies = determineUnsatisfiedDependencies(descriptor);
+
+            if (!unsatisfiedDependencies.isEmpty()) {
+                throw new AssertionError("Attempted to use property \"%s\" whose dependencies are not satisfied:\n%s\n\n%s".formatted(
+                        descriptor.getName(),
+                        unsatisfiedDependencies.stream().map(ValidatedPropertyDependency::toString).collect(Collectors.joining("\n")),
+                        "Temporarily disable this check by applying TestRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false)"
+                ));
+            }
+        }
+
         final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
         final boolean alreadyEvaluated = !this.allowExpressionValidation;
         return new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, environmentVariables);
+    }
+
+    private List<ValidatedPropertyDependency> determineUnsatisfiedDependencies(PropertyDescriptor descriptor) {
+        return validatedDependencies(descriptor).stream().filter(not(ValidatedPropertyDependency::isSatisfied)).toList();
+    }
+
+    private List<ValidatedPropertyDependency> validatedDependencies(final PropertyDescriptor descriptor) {
+        return descriptor.getDependencies().stream().map(dependency -> {
+                    final PropertyDescriptor dependencyDescriptor =
+                            component.getPropertyDescriptor(dependency.getPropertyName());
+
+                    if (dependencyDescriptor == null) {
+                        return new ValidatedPropertyDependency(dependency, null);
+                    }
+                    component.getPropertyDescriptor(dependency.getPropertyName());
+
+                    if (!determineUnsatisfiedDependencies(dependencyDescriptor).isEmpty()) {
+                        return new ValidatedPropertyDependency(dependency, null);
+                    }
+
+                    final String dependencyPropertyValue =
+                            properties.getOrDefault(dependencyDescriptor, dependencyDescriptor.getDefaultValue());
+
+                    return new ValidatedPropertyDependency(dependency, dependencyPropertyValue);
+                }
+        ).toList();
+    }
+
+    record ValidatedPropertyDependency(PropertyDependency dependency, String value) {
+        public boolean isSatisfied() {
+            Set<String> dependentValues = dependency.getDependentValues();
+
+            return dependentValues == null ? value != null : dependentValues.contains(value);
+        }
+
+        @Override
+        public String toString() {
+            String result = isSatisfied() ? "satisfied" : "not satisfied";
+            Set<String> dependentValues = dependency.getDependentValues();
+            String reason = dependentValues == null
+                    ? "requires any value" : "requires one of the values %s".formatted(dependentValues);
+            return "Dependency \"%s\" is %s with value of %s; %s".formatted(dependency.getPropertyName(), result, value, reason);
+        }
     }
 
     @Override
@@ -189,7 +248,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      * the property is valid
      *
      * @param descriptor of property to modify
-     * @param value new value
+     * @param value      new value
      * @return result
      */
     public ValidationResult setProperty(final PropertyDescriptor descriptor, final String value) {
@@ -347,11 +406,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             final ControllerService controllerService = getControllerService(controllerServiceId);
             if (controllerService == null) {
                 final ValidationResult result = new ValidationResult.Builder()
-                    .valid(false)
-                    .subject(descriptor.getDisplayName())
-                    .input(controllerServiceId)
-                    .explanation("Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier")
-                    .build();
+                        .valid(false)
+                        .subject(descriptor.getDisplayName())
+                        .input(controllerServiceId)
+                        .explanation("Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier")
+                        .build();
 
                 validationResults.add(result);
                 continue;
@@ -360,11 +419,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             final Class<? extends ControllerService> requiredServiceClass = descriptor.getControllerServiceDefinition();
             if (!requiredServiceClass.isAssignableFrom(controllerService.getClass())) {
                 final ValidationResult result = new ValidationResult.Builder()
-                    .valid(false)
-                    .subject(descriptor.getDisplayName())
-                    .input(controllerServiceId)
-                    .explanation("Invalid Controller Service: " + controllerServiceId + " does not implement interface " + requiredServiceClass)
-                    .build();
+                        .valid(false)
+                        .subject(descriptor.getDisplayName())
+                        .input(controllerServiceId)
+                        .explanation("Invalid Controller Service: " + controllerServiceId + " does not implement interface " + requiredServiceClass)
+                        .build();
 
                 validationResults.add(result);
                 continue;
@@ -373,11 +432,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             final boolean enabled = isControllerServiceEnabled(controllerServiceId);
             if (!enabled) {
                 validationResults.add(new ValidationResult.Builder()
-                    .input(controllerServiceId)
-                    .subject(descriptor.getDisplayName())
-                    .explanation("Controller Service with ID " + controllerServiceId + " is not enabled")
-                    .valid(false)
-                    .build());
+                        .input(controllerServiceId)
+                        .subject(descriptor.getDisplayName())
+                        .explanation("Controller Service with ID " + controllerServiceId + " is not enabled")
+                        .valid(false)
+                        .build());
             }
         }
 
@@ -412,6 +471,10 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     public void setValidateExpressionUsage(final boolean validate) {
         allowExpressionValidation = validate;
+    }
+
+    public void setProhibitUseOfPropertiesWithUnsatisfiedDependencies(final boolean prohibit) {
+        prohibitUseOfPropertiesWithUnsatisfiedDependencies = prohibit;
     }
 
     Map<PropertyDescriptor, String> getControllerServiceProperties(final ControllerService controllerService) {

@@ -65,6 +65,8 @@ public class TestListenSyslog {
     public void setRunner() {
         processor = new ListenSyslog();
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(ListenSyslog.CHARSET, CHARSET.name());
     }
 

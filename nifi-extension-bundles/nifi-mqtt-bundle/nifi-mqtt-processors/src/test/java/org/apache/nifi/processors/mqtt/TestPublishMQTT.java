@@ -540,6 +540,8 @@ public class TestPublishMQTT {
         testRunner.setProperty(PublishMQTT.PROP_BROKER_URI, BROKER_URI);
         testRunner.setProperty(PublishMQTT.PROP_RETAIN, RETAIN);
         testRunner.setProperty(PublishMQTT.PROP_TOPIC, TOPIC);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         return testRunner;
     }

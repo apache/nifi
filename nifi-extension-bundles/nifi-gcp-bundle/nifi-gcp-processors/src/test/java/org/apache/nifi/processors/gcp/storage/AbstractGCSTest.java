@@ -69,6 +69,8 @@ public abstract class AbstractGCSTest {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService("gcpCredentialsControllerService", credentialsService);
         runner.enableControllerService(credentialsService);
 

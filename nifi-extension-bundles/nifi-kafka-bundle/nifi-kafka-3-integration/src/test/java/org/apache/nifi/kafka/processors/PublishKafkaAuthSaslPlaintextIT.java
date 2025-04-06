@@ -109,6 +109,8 @@ public class PublishKafkaAuthSaslPlaintextIT {
     @Test
     public void test_1_KafkaTestContainerProduceOne() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         addKafkaConnectionService(runner);
 

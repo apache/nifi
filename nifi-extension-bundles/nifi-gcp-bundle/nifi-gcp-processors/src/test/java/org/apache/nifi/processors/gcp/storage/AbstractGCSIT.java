@@ -93,6 +93,8 @@ public abstract class AbstractGCSIT {
     protected static TestRunner buildNewRunner(Processor processor) throws Exception {
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
         final TestRunner runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService("gcpCredentialsControllerService", credentialsControllerService);
         runner.enableControllerService(credentialsControllerService);
 

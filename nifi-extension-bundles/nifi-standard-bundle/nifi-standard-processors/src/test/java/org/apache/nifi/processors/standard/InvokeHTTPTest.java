@@ -199,6 +199,8 @@ public class InvokeHTTPTest {
     public void setRunner() {
         mockWebServer = new MockWebServer();
         runner = TestRunners.newTestRunner(new InvokeHTTP());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         // Disable Connection Pooling
         runner.setProperty(InvokeHTTP.SOCKET_IDLE_CONNECTIONS, Integer.toString(0));
     }

@@ -92,6 +92,8 @@ public class ConsumeGCPubSubTest {
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, SUBSCRIPTION);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         messages.clear();
     }

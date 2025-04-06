@@ -63,6 +63,9 @@ public class TestGenerateRecord {
     public void setup() {
         processor = new GenerateRecord();
         testRunner = TestRunners.newTestRunner(processor);
+
+        // implementation relies on default values of dependant properties; remove this once refactored
+        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
@@ -277,7 +280,7 @@ public class TestGenerateRecord {
         testRunner.enableControllerService(recordWriter);
         testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
         testRunner.setProperty(GenerateRecord.SCHEMA_TEXT, schemaText);
-        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "false"); // Should be ignored
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true");
         testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "100");
         testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
 

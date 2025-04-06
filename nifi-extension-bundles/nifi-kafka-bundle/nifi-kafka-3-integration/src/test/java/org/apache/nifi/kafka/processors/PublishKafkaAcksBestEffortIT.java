@@ -50,6 +50,8 @@ public class PublishKafkaAcksBestEffortIT extends AbstractPublishKafkaIT {
     @Disabled(value = "need a strategy to handle invalid config")
     public void test_1_KafkaTestContainerProduceOneFail() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -62,6 +64,8 @@ public class PublishKafkaAcksBestEffortIT extends AbstractPublishKafkaIT {
     @Test
     public void test_1_KafkaTestContainerProduceOne() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());

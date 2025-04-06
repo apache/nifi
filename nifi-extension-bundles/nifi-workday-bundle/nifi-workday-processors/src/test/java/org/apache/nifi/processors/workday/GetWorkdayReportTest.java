@@ -17,29 +17,6 @@
 
 package org.apache.nifi.processors.workday;
 
-import static org.apache.nifi.processors.workday.GetWorkdayReport.FAILURE;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.HEADER_AUTHORIZATION;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.ORIGINAL;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_COUNT;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_READER_FACTORY;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_WRITER_FACTORY;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.STATUS_CODE;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.SUCCESS;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.WEB_CLIENT_SERVICE;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -62,6 +39,30 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+import static org.apache.nifi.processors.workday.GetWorkdayReport.FAILURE;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.HEADER_AUTHORIZATION;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.ORIGINAL;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_COUNT;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_READER_FACTORY;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_WRITER_FACTORY;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.STATUS_CODE;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.SUCCESS;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.WEB_CLIENT_SERVICE;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 class GetWorkdayReportTest {
 
     private static final String LOCALHOST = "localhost";
@@ -81,6 +82,8 @@ class GetWorkdayReportTest {
     @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(new GetWorkdayReport());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         mockWebServer = new MockWebServer();
     }
 

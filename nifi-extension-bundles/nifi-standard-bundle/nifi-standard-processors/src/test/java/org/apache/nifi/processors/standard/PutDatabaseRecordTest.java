@@ -211,6 +211,9 @@ public class PutDatabaseRecordTest {
         }
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, testCase.getRollbackOnFailureAsString());
         runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, testCase.getBatchSizeAsString());
+
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
@@ -240,6 +243,8 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceAutoCommitTest(DB_LOCATION);
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -277,6 +282,8 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceThrowConnectionException(new SQLTransientException("connection failed"));
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -303,6 +310,8 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceThrowConnectionException(new NullPointerException("connection is null"));
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -2209,6 +2218,8 @@ public class PutDatabaseRecordTest {
 
         dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION, false)); // Use H2
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);

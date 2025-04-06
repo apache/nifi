@@ -278,6 +278,8 @@ public class PutDynamoDBRecordTest {
 
     private TestRunner getTestRunner() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(testSubject);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         runner.addControllerService("recordReader", RECORD_READER);
         runner.addControllerService("credentialProviderService", credentialsProviderService);

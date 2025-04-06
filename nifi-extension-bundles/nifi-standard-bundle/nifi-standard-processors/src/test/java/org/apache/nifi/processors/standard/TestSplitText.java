@@ -652,6 +652,8 @@ public class TestSplitText {
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        mergeRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         mergeRunner.enqueue(splits.toArray(new MockFlowFile[0]));

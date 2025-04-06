@@ -49,6 +49,8 @@ public class PublishKafkaSSLIT {
     @Disabled("use this to test 'context.yield()' on misconfiguration of KafkaConnectionService; requires running Kafka cluster")
     public void testKafkaSSLContext() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());

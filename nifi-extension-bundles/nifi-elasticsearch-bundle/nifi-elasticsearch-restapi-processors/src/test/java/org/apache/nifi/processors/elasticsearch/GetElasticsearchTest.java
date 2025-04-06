@@ -37,6 +37,8 @@ class GetElasticsearchTest {
     @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(new GetElasticsearch());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final TestElasticsearchClientService service = new TestElasticsearchClientService(false);
         runner.addControllerService(CONTROLLER_SERVICE_NAME, service);
         runner.enableControllerService(service);

@@ -75,6 +75,10 @@ public class ConnectionFactoryConfigIT {
     public void before() {
         publisher = TestRunners.newTestRunner(PublishJMS.class);
         consumer = TestRunners.newTestRunner(ConsumeJMS.class);
+
+        // implementation relies on default values of dependant properties; remove this once refactored
+        publisher.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
+        consumer.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test

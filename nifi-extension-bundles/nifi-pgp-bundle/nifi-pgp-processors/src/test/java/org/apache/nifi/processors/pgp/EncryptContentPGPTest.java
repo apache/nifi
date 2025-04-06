@@ -55,6 +55,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -118,6 +120,8 @@ public class EncryptContentPGPTest {
     @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(new EncryptContentPGP());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
@@ -151,16 +155,14 @@ public class EncryptContentPGPTest {
         assertSuccess(DEFAULT_SYMMETRIC_KEY_ALGORITHM, PASSPHRASE.toCharArray());
     }
 
-    @Test
-    public void testSuccessPasswordBasedEncryptionSymmetricKeyAlgorithms() throws IOException, PGPException {
-        for (final SymmetricKeyAlgorithm symmetricKeyAlgorithm : SymmetricKeyAlgorithm.values()) {
-            runner = TestRunners.newTestRunner(new EncryptContentPGP());
-            runner.setProperty(EncryptContentPGP.PASSPHRASE, PASSPHRASE);
-            runner.setProperty(EncryptContentPGP.SYMMETRIC_KEY_ALGORITHM, symmetricKeyAlgorithm.toString());
-            runner.enqueue(DATA);
-            runner.run();
-            assertSuccess(symmetricKeyAlgorithm, PASSPHRASE.toCharArray());
-        }
+    @ParameterizedTest
+    @EnumSource(SymmetricKeyAlgorithm.class)
+    public void testSuccessPasswordBasedEncryptionSymmetricKeyAlgorithms(final SymmetricKeyAlgorithm symmetricKeyAlgorithm) throws IOException, PGPException {
+        runner.setProperty(EncryptContentPGP.PASSPHRASE, PASSPHRASE);
+        runner.setProperty(EncryptContentPGP.SYMMETRIC_KEY_ALGORITHM, symmetricKeyAlgorithm.toString());
+        runner.enqueue(DATA);
+        runner.run();
+        assertSuccess(symmetricKeyAlgorithm, PASSPHRASE.toCharArray());
     }
 
     @Test

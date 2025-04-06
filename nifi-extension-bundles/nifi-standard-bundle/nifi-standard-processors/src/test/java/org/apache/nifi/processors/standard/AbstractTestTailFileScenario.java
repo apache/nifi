@@ -80,6 +80,8 @@ public class AbstractTestTailFileScenario {
             }
         };
         runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(TailFile.FILENAME, TARGET_FILE_PATH);
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "in.txt*");
         runner.setProperty(TailFile.REREAD_ON_NUL, "true");

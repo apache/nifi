@@ -91,6 +91,8 @@ public class PutDatabaseRecordIT {
         truncateTable();
 
         runner = TestRunners.newTestRunner(PutDatabaseRecord.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final DBCPConnectionPool connectionPool = new DBCPConnectionPool();
         runner.addControllerService("connectionPool", connectionPool);
         runner.setProperty(connectionPool, DBCPProperties.DATABASE_URL, postgres.getJdbcUrl());

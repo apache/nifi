@@ -99,6 +99,8 @@ public class PublishJMSIT {
         final String destinationName = "validateSuccessfulPublishAndTransferToSuccess";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -146,6 +148,8 @@ public class PublishJMSIT {
         final String destinationName = "fooQueue";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -182,6 +186,8 @@ public class PublishJMSIT {
 
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -209,6 +215,8 @@ public class PublishJMSIT {
         final String destinationName = "validatePublishTextMessage";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -250,6 +258,8 @@ public class PublishJMSIT {
         final String destinationName = "validatePublishPropertyTypes";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -323,6 +333,8 @@ public class PublishJMSIT {
         final String destinationName = "validatePublishTextMessage";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -403,6 +415,8 @@ public class PublishJMSIT {
             });
 
             TestRunner runner = TestRunners.newTestRunner(new PublishJmsForNifi7034());
+            // implementation relies on default values of dependant properties; remove this once refactored
+            runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
@@ -449,6 +463,8 @@ public class PublishJMSIT {
             ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
 
             TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
+            // implementation relies on default values of dependant properties; remove this once refactored
+            runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
@@ -511,6 +527,8 @@ public class PublishJMSIT {
             ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
 
             TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
+            // implementation relies on default values of dependant properties; remove this once refactored
+            runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
@@ -555,6 +573,8 @@ public class PublishJMSIT {
         final String nonExistentClassName = "DummyInitialContextFactoryClass";
 
         TestRunner runner = TestRunners.newTestRunner(PublishJMS.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         // using JNDI JMS Connection Factory configured locally on the processor
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, nonExistentClassName);
@@ -721,6 +741,8 @@ public class PublishJMSIT {
 
     private TestRunner initializeTestRunner(PublishJMS processor, ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(connectionFactory);

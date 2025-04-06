@@ -246,6 +246,8 @@ public abstract class AbstractS3IT {
 
     protected TestRunner initRunner(final Class<? extends AbstractS3Processor> processorClass) {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         try {
             setSecureProperties(runner);

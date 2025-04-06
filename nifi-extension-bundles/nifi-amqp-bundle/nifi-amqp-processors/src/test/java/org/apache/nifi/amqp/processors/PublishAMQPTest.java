@@ -24,6 +24,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -40,10 +41,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PublishAMQPTest {
 
+    private final LocalPublishAMQP pubProc = new LocalPublishAMQP();
+    private final TestRunner runner = TestRunners.newTestRunner(pubProc);
+
+    @BeforeEach
+    void setUp() {
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
+    }
+
     @Test
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
 
         final Map<String, String> expectedHeaders = new HashMap<>();
@@ -75,7 +83,7 @@ public class PublishAMQPTest {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final Channel channel = pubProc.getConnection().createChannel();
         final GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
         assertEquals("foo/bar", msg1.getProps().getContentType());
@@ -102,8 +110,6 @@ public class PublishAMQPTest {
 
     @Test
     public void validateSuccessWithHeaderWithCommaPublishToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
 
@@ -122,7 +128,7 @@ public class PublishAMQPTest {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final Channel channel = pubProc.getConnection().createChannel();
         final GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
 
@@ -135,16 +141,12 @@ public class PublishAMQPTest {
 
     @Test
     public void validateWithNotValidHeaderSeparatorParameter() {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|,");
         runner.assertNotValid();
     }
 
     @Test
     public void validateMalformedHeaderIgnoredAndPublishToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
 
@@ -164,7 +166,7 @@ public class PublishAMQPTest {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final Channel channel = pubProc.getConnection().createChannel();
         final GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
 
@@ -177,8 +179,6 @@ public class PublishAMQPTest {
 
     @Test
     public void validateFailedPublishAndTransferToFailure() {
-        PublishAMQP pubProc = new LocalPublishAMQP();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.EXCHANGE, "nonExistentExchange");
 
@@ -192,8 +192,6 @@ public class PublishAMQPTest {
 
     @Test
     public void validateSuccessWithHeaderFromAttributeRegexToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
         runner.setProperty(PublishAMQP.HEADERS_PATTERN, "test.*|tmp\\..*|foo2|foo3");
@@ -223,7 +221,7 @@ public class PublishAMQPTest {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final Channel channel = pubProc.getConnection().createChannel();
         final GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
 
@@ -236,8 +234,6 @@ public class PublishAMQPTest {
 
     @Test
     public void validateWithNotValidRegexForAttributeMatch() {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
         runner.setProperty(PublishAMQP.HEADERS_PATTERN, "*");

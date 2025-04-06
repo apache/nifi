@@ -67,6 +67,8 @@ public class GetAzureEventHubTest {
     public void setUp() throws Exception {
         partitionEvents = new ArrayList<>();
         testRunner = TestRunners.newTestRunner(new MockGetAzureEventHub());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test

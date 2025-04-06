@@ -76,8 +76,9 @@ public class TestConsumeEmail {
 
     @Test
     public void testConsumeIMAP4() throws Exception {
-
         final TestRunner runner = TestRunners.newTestRunner(new ConsumeIMAP());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.IMAP.getBindAddress());
         runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.IMAP.getPort()));
         runner.setProperty(ConsumeIMAP.USER, "nifiUserImap");
@@ -107,8 +108,9 @@ public class TestConsumeEmail {
 
     @Test
     public void testConsumePOP3() throws Exception {
-
         final TestRunner runner = TestRunners.newTestRunner(new ConsumePOP3());
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.POP3.getBindAddress());
         runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.POP3.getPort()));
         runner.setProperty(ConsumeIMAP.USER, "nifiUserPop");

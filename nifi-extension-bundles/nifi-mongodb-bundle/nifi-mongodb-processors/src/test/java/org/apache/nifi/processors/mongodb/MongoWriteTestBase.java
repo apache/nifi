@@ -56,6 +56,8 @@ public class MongoWriteTestBase extends AbstractMongoIT {
 
     public TestRunner init(Class processor) throws Exception {
         TestRunner runner = TestRunners.newTestRunner(processor);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");

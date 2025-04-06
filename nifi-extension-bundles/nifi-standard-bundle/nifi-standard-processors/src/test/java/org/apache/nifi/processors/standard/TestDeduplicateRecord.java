@@ -44,6 +44,8 @@ public class TestDeduplicateRecord {
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(DeduplicateRecord.class);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         // RECORD_READER, RECORD_WRITER
         reader = new MockRecordParser();

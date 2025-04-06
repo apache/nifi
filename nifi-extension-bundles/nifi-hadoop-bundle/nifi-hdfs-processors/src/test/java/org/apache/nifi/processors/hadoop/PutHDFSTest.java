@@ -237,6 +237,8 @@ public class PutHDFSTest {
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
         final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
 
@@ -330,6 +332,8 @@ public class PutHDFSTest {
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
         final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
         runner.setProperty(PutHDFS.WRITING_STRATEGY, PutHDFS.SIMPLE_WRITE);
@@ -366,6 +370,8 @@ public class PutHDFSTest {
         PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         proc.getFileSystem().mkdirs(new Path(targetDir));
         TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, targetDir);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
@@ -400,6 +406,8 @@ public class PutHDFSTest {
     public void testPutFileWithCompression() throws IOException {
         PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setProperty(PutHDFS.COMPRESSION_CODEC, "GZIP");
@@ -482,6 +490,8 @@ public class PutHDFSTest {
     public void testPutFileWhenDirectoryUsesValidELFunction() throws IOException {
         PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):substring(0,4)}");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
@@ -540,6 +550,8 @@ public class PutHDFSTest {
         MockFileSystem fileSystem = new MockFileSystem();
         PutHDFS proc = new TestablePutHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         String umaskPropertyValue = "027";
@@ -562,6 +574,8 @@ public class PutHDFSTest {
         MockFileSystem fileSystem = new MockFileSystem();
         PutHDFS proc = new TestablePutHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setProperty(PutHDFS.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-perms.xml");
@@ -583,6 +597,8 @@ public class PutHDFSTest {
         MockFileSystem fileSystem = new MockFileSystem();
         PutHDFS proc = new TestablePutHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         // invoke the abstractOnScheduled method so the Hadoop configuration is available to apply the MockFileSystem instance
@@ -638,6 +654,8 @@ public class PutHDFSTest {
 
             final PutHDFS processor = new TestablePutHDFS(fileSystem);
             final TestRunner runner = TestRunners.newTestRunner(processor);
+            // implementation relies on default values of dependant properties; remove this once refactored
+            runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
             runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
             if (setUmaskIt) {
                 runner.setProperty(PutHDFS.UMASK, "077");
@@ -668,6 +686,8 @@ public class PutHDFSTest {
 
             final PutHDFS processor = new TestablePutHDFS(fileSystem);
             final TestRunner runner = TestRunners.newTestRunner(processor);
+            // implementation relies on default values of dependant properties; remove this once refactored
+            runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
             runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
             if (setUmaskIt) {
                 runner.setProperty(PutHDFS.UMASK, "077");
@@ -714,6 +734,8 @@ public class PutHDFSTest {
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
         final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
         runner.setProperty(PutHDFS.WRITING_STRATEGY, PutHDFS.SIMPLE_WRITE);

@@ -44,6 +44,8 @@ public class TestControlRate {
     public void setRunner() {
         controlRate = new ConfigurableControlRate();
         runner = TestRunners.newTestRunner(controlRate);
+        // implementation relies on default values of dependant properties; remove this once refactored
+        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
