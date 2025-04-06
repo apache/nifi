@@ -25,6 +25,7 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
     private String pageExpirationTimestamp = null;
     private String keepAlive;
     private String trackingRangeValue;
+    private boolean finished = false;
 
     public int getPageCount() {
         return pageCount;
@@ -84,5 +85,13 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
 
     public void setTrackingRangeValue(String trackingRangeValue) {
         this.trackingRangeValue = trackingRangeValue;
+    }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 }

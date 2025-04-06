@@ -188,7 +188,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
     private static final List<PropertyDescriptor> propertyDescriptors = Stream.concat(
             Stream.of(RANGE_FIELD, RANGE_FIELD_SORT_ORDER, RANGE_INITIAL_VALUE, RANGE_DATE_FORMAT, RANGE_TIME_ZONE, ADDITIONAL_FILTERS),
             scrollPropertyDescriptors.stream()
-                    .filter(pd -> !QUERY.equals(pd) && !QUERY_CLAUSE.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd))
+                    .filter(pd -> !QUERY.equals(pd) && !QUERY_CLAUSE.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd) && !RESTART_ON_FINISH.equals(pd))
                     .map(property -> {
                         if (property == ElasticsearchRestProcessor.SIZE) return SIZE;
                         if (property == ElasticsearchRestProcessor.AGGREGATIONS) return AGGREGATIONS;

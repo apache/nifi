@@ -54,23 +54,41 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     }
 
     @Test
-    void testInvalidPaginationProperties() {
+    void testInvalidPaginationTypeProperty() {
         final TestRunner runner = createRunner(false);
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "not-a-period");
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, "not-enum");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
         final String expected = String.format("""
-                        Processor has 2 validation failures:
+                        Processor has 1 validation failures:
                         '%s' validated against 'not-enum' is invalid because Given value not found in allowed set '%s'
-                        '%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> \
-                        is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days
                         """,
                 AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE.getName(),
                 Stream.of(PaginationType.values()).map(PaginationType::getValue).collect(Collectors.joining(", ")),
                 AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE.getName());
         assertEquals(expected, assertionError.getMessage());
+    }
+
+    @ParameterizedTest
+    @EnumSource(PaginationType.class)
+    void testInvalidPaginationKeepAliveProperty(final PaginationType paginationType) {
+        final TestRunner runner = createRunner(false);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "not-a-period");
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
+
+        if (paginationType.hasExpiry()) {
+            runner.assertNotValid();
+            final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
+            final String expected = String.format("Processor has 1 validation failures:\n" +
+                    "'%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> " +
+                    "is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n",
+                    AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE.getName());
+            assertEquals(expected, assertionError.getMessage());
+        } else {
+            runner.assertValid();
+        }
     }
 
     @Test
