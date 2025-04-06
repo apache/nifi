@@ -23,6 +23,7 @@ import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
+import org.apache.nifi.processors.elasticsearch.api.PaginationType;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
@@ -151,6 +152,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         paginatedJsonQueryParameters.setPageCount(pageCount);
         paginatedJsonQueryParameters.setTrackingRangeValue(defaultUnset);
 
+        ((ConsumeElasticsearch) runner.getProcessor()).paginationType = PaginationType.SCROLL;
         ((ConsumeElasticsearch) runner.getProcessor()).updateQueryParameters(paginatedJsonQueryParameters, response);
 
         if ("asc".equals(sortOrder)) {
