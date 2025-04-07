@@ -264,12 +264,11 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
+        final TransportProtocol transportProtocol = TransportProtocol.valueOf(context.getProperty(PROTOCOL).getValue());
+
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final int receiveBufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final int maxSocketBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
-        final String protocol = context.getProperty(PROTOCOL).getValue();
-        final TransportProtocol transportProtocol = TransportProtocol.valueOf(protocol);
         final String networkInterfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
@@ -277,20 +276,33 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         parser = new SyslogParser(charset);
         syslogEvents = new LinkedBlockingQueue<>(maxMessageQueueSize);
 
+        final int maxSocketBufferSize;
+        final int maxConnections;
+        final SSLContextProvider sslContextProvider;
+        final Boolean socketKeepAlive;
+        if (transportProtocol == TransportProtocol.TCP) {
+            maxSocketBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+            maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
+            sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+            socketKeepAlive = context.getProperty(SOCKET_KEEP_ALIVE).asBoolean();
+        } else {
+            maxSocketBufferSize = 1_000_000;
+            maxConnections = 2;
+            sslContextProvider = null;
+            socketKeepAlive = false;
+        }
+
         final InetAddress address = getListenAddress(networkInterfaceName);
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(getLogger(),
                 address, port, transportProtocol, messageDemarcatorBytes, receiveBufferSize, syslogEvents, FilteringStrategy.EMPTY);
         factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         factory.setThreadNamePrefix(String.format("%s[%s]", ListenSyslog.class.getSimpleName(), getIdentifier()));
-        final int maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
         factory.setWorkerThreads(maxConnections);
         factory.setSocketReceiveBuffer(maxSocketBufferSize);
 
-        final Boolean socketKeepAlive = context.getProperty(SOCKET_KEEP_ALIVE).asBoolean();
         factory.setSocketKeepAlive(socketKeepAlive);
 
-        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-        if (sslContextProvider != null && TCP_VALUE.getValue().equals(protocol)) {
+        if (sslContextProvider != null) {
             final SSLContext sslContext = sslContextProvider.createContext();
             ClientAuth clientAuth = ClientAuth.REQUIRED;
             final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
