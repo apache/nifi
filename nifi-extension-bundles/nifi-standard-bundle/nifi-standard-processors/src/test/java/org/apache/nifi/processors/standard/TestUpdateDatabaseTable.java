@@ -105,8 +105,6 @@ public class TestUpdateDatabaseTable {
         }
 
         runner = TestRunners.newTestRunner(processor);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
