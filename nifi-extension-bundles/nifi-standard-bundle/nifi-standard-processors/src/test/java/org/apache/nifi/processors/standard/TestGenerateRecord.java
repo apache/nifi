@@ -63,9 +63,6 @@ public class TestGenerateRecord {
     public void setup() {
         processor = new GenerateRecord();
         testRunner = TestRunners.newTestRunner(processor);
-
-        // implementation relies on default values of dependant properties; remove this once refactored
-        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
