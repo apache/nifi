@@ -160,9 +160,6 @@ public class TestListenHTTP {
         runner.setEnvironmentVariableValue(BASEPATH_VARIABLE, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.PORT, "0");
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @AfterEach

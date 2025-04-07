@@ -446,8 +446,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final int maxThreadPoolSize = context.getProperty(MAX_THREAD_POOL_SIZE).asInteger();
         final int requestHeaderSize = context.getProperty(REQUEST_HEADER_MAX_SIZE).asDataSize(DataUnit.B).intValue();
 
-        final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
-        final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextProvider, clientAuthenticationProperty);
+        final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextProvider, context);
 
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool(maxThreadPoolSize);
@@ -458,7 +457,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
+        final HttpProtocolStrategy httpProtocolStrategy = sslContextProvider == null
+                ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
+                : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
                 requestHeaderSize,
@@ -537,18 +538,25 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private ClientAuthentication getClientAuthentication(final SSLContextProvider sslContextProvider,
-                                                         final PropertyValue clientAuthenticationProperty) {
+                                                         final ProcessContext context) {
         ClientAuthentication clientAuthentication = ClientAuthentication.NONE;
-        if (clientAuthenticationProperty.isSet()) {
-            clientAuthentication = ClientAuthentication.valueOf(clientAuthenticationProperty.getValue());
-            if (ClientAuthentication.AUTO == clientAuthentication && sslContextProvider != null) {
-                final X509TrustManager trustManager = sslContextProvider.createTrustManager();
-                if (isTrustManagerConfigured(trustManager)) {
-                    clientAuthentication = ClientAuthentication.REQUIRED;
-                    getLogger().debug("Client Authentication REQUIRED from SSLContextService Trust Manager configuration");
+
+        if (sslContextProvider != null) {
+            final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
+
+            if (clientAuthenticationProperty.isSet()) {
+                clientAuthentication = ClientAuthentication.valueOf(clientAuthenticationProperty.getValue());
+
+                if (clientAuthentication == ClientAuthentication.AUTO) {
+                    final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+                    if (isTrustManagerConfigured(trustManager)) {
+                        clientAuthentication = ClientAuthentication.REQUIRED;
+                        getLogger().debug("Client Authentication REQUIRED from SSLContextService Trust Manager configuration");
+                    }
                 }
             }
         }
+
         return clientAuthentication;
     }
 
