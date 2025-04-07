@@ -25,7 +25,7 @@ import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCC
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
-import static org.apache.nifi.processors.smb.ListSmb.FILE_NAME_SUFFIX_FILTER;
+import static org.apache.nifi.processors.smb.ListSmb.IGNORE_FILES_WITH_SUFFIX;
 import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_STRATEGY;
 import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_TIMESTAMP;
 import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_AGE;
@@ -105,7 +105,7 @@ class ListSmbTest {
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.clearTransferState();
 
-        testRunner.setProperty(FILE_NAME_SUFFIX_FILTER, "suffix_changed");
+        testRunner.setProperty(IGNORE_FILES_WITH_SUFFIX, "suffix_changed");
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.clearTransferState();
