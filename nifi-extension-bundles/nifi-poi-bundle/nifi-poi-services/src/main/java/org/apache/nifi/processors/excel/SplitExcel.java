@@ -122,7 +122,7 @@ public class SplitExcel extends AbstractProcessor {
 
     private static final CellCopyPolicy CELL_COPY_POLICY = new CellCopyPolicy.Builder()
             .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
-            .cellStyle(false) // NOTE: setting to false avoids exceeding the maximum number of cell styles (64000) in a .xlsx Workbook.
+            .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
             .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
             .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
             .copyHyperlink(CellCopyPolicy.DEFAULT_COPY_HYPERLINK_POLICY)
