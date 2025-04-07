@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -74,6 +75,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.smb.util.InitialListingStrategy;
@@ -203,9 +205,27 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .identifiesControllerService(SmbClientProviderService.class)
             .build();
 
-    public static final PropertyDescriptor FILE_NAME_SUFFIX_FILTER = new Builder()
+    public static final PropertyDescriptor FILE_FILTER = new Builder()
+            .name("file-filter")
+            .displayName("File Filter")
+            .description("Only files whose names match the given regular expression will be listed.")
+            .required(false)
+            .addValidator(NON_BLANK_VALIDATOR)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PATH_FILTER = new Builder()
+            .name("path-filter")
+            .displayName("Path Filter")
+            .description("Only files whose paths (up to the file's parent directory) match the given regular expression will be listed.")
+            .required(false)
+            .addValidator(NON_BLANK_VALIDATOR)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor IGNORE_FILES_WITH_SUFFIX = new Builder()
             .name("file-name-suffix-filter")
-            .displayName("File Name Suffix Filter")
+            .displayName("Ignore Files with Suffix")
             .description("Files ending with the given suffix will be omitted. Can be used to make sure that files "
                     + "that are still uploading are not listed multiple times, by having those files have a suffix "
                     + "and remove the suffix once the upload finishes. This is highly recommended when using "
@@ -236,7 +256,9 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             INITIAL_LISTING_STRATEGY,
             INITIAL_LISTING_TIMESTAMP,
             DIRECTORY,
-            FILE_NAME_SUFFIX_FILTER,
+            FILE_FILTER,
+            PATH_FILTER,
+            IGNORE_FILES_WITH_SUFFIX,
             AbstractListProcessor.RECORD_WRITER,
             MINIMUM_AGE,
             MAXIMUM_AGE,
@@ -328,7 +350,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     @Override
     protected boolean isListingResetNecessary(PropertyDescriptor property) {
-        return asList(SMB_CLIENT_PROVIDER_SERVICE, DIRECTORY, FILE_NAME_SUFFIX_FILTER).contains(property);
+        return asList(SMB_CLIENT_PROVIDER_SERVICE, DIRECTORY, IGNORE_FILES_WITH_SUFFIX).contains(property);
     }
 
     @Override
@@ -375,7 +397,9 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final Double maximumSizeOrNull =
                 context.getProperty(MAXIMUM_SIZE).isSet() ? context.getProperty(MAXIMUM_SIZE).asDataSize(DataUnit.B)
                         : null;
-        final String suffixOrNull = context.getProperty(FILE_NAME_SUFFIX_FILTER).getValue();
+        final Pattern filePatternOrNull = context.getProperty(FILE_FILTER).isSet() ? Pattern.compile(context.getProperty(FILE_FILTER).getValue()) : null;
+        final Pattern pathPatternOrNull = context.getProperty(PATH_FILTER).isSet() ? Pattern.compile(context.getProperty(PATH_FILTER).getValue()) : null;
+        final String ignoreSuffixOrNull = context.getProperty(IGNORE_FILES_WITH_SUFFIX).getValue();
 
         final long now = getCurrentTime();
         Predicate<SmbListableEntity> filter = entity -> now - entity.getLastModifiedTime() >= minimumAge;
@@ -400,8 +424,16 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             filter = filter.and(entity -> entity.getSize() <= maximumSizeOrNull);
         }
 
-        if (suffixOrNull != null) {
-            filter = filter.and(entity -> !entity.getName().endsWith(suffixOrNull));
+        if (filePatternOrNull != null) {
+            filter = filter.and(entity -> filePatternOrNull.matcher(entity.getName()).matches());
+        }
+
+        if (pathPatternOrNull != null) {
+            filter = filter.and(entity -> pathPatternOrNull.matcher(entity.getPath()).matches());
+        }
+
+        if (ignoreSuffixOrNull != null) {
+            filter = filter.and(entity -> !entity.getName().endsWith(ignoreSuffixOrNull));
         }
 
         return filter;
