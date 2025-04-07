@@ -167,7 +167,7 @@ public class ValidateCsv extends AbstractProcessor {
             .displayName("Validation strategy")
             .description("Strategy to apply when routing input files to output relationships.")
             .required(true)
-            .defaultValue(VALIDATE_WHOLE_FLOWFILE.getValue())
+            .defaultValue(VALIDATE_WHOLE_FLOWFILE)
             .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -179,7 +179,7 @@ public class ValidateCsv extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
-            .dependsOn(VALIDATION_STRATEGY, VALIDATE_WHOLE_FLOWFILE.getValue())
+            .dependsOn(VALIDATION_STRATEGY, VALIDATE_WHOLE_FLOWFILE)
             .build();
 
     public static final PropertyDescriptor INCLUDE_ALL_VIOLATIONS = new PropertyDescriptor.Builder()
@@ -490,7 +490,7 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         InputStream stream;
-        if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet() && isWholeFFValidation) {
+        if (isWholeFFValidation && context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
             String csvAttribute = flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
             stream = new ByteArrayInputStream(Objects.requireNonNullElse(csvAttribute, "").getBytes(StandardCharsets.UTF_8));
         } else {

@@ -19,7 +19,6 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -28,12 +27,6 @@ import java.util.Map;
 public class TestValidateCsv {
 
     private final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
-
-    @BeforeEach
-    void setUp() {
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-    }
 
     @Test
     public void testHeaderAndSplit() {
