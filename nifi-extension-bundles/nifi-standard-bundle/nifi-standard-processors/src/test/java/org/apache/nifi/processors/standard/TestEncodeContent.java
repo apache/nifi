@@ -50,9 +50,6 @@ class TestEncodeContent {
     @BeforeEach
     void setUp() {
         testRunner = TestRunners.newTestRunner(EncodeContent.class);
-
-        // implementation relies on default values of dependant properties; remove this once refactored
-        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
