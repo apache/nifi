@@ -89,9 +89,6 @@ public class TestLookupRecord {
         recordReader.addRecord("John Doe", 48, null, null);
         recordReader.addRecord("Jane Doe", 47, null, null);
         recordReader.addRecord("Jimmy Doe", 14, null, null);
-
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
 
@@ -788,8 +785,6 @@ public class TestLookupRecord {
     @Test
     public void testLookupArray() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -832,8 +827,6 @@ public class TestLookupRecord {
     @Test
     public void testLookupEmptyArray() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -888,8 +881,6 @@ public class TestLookupRecord {
     @Test
     public void testLookupMissingJsonField() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -930,8 +921,6 @@ public class TestLookupRecord {
     @Test
     public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
