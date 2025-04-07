@@ -25,7 +25,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -57,17 +56,10 @@ public class TestUnpackContent {
     private final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
     private final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
 
-    @BeforeEach
-    void setUp() {
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-        autoUnpackRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-    }
-
     @Test
     public void testTar() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         runner.enqueue(dataPath.resolve("data.tar"));
         runner.enqueue(dataPath.resolve("data.tar"));
         Map<String, String> attributes = new HashMap<>(1);
@@ -118,9 +110,9 @@ public class TestUnpackContent {
 
     @Test
     public void testTarWithFilter() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
         runner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         runner.enqueue(dataPath.resolve("data.tar"));
         runner.enqueue(dataPath.resolve("data.tar"));
@@ -167,9 +159,9 @@ public class TestUnpackContent {
 
     @Test
     public void testZip() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); //just forces this to be exercised
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         runner.enqueue(dataPath.resolve("data.zip"));
         runner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
@@ -221,9 +213,9 @@ public class TestUnpackContent {
 
     @Test
     public void testInvalidZip() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         runner.enqueue(dataPath.resolve("invalid_data.zip"));
         runner.enqueue(dataPath.resolve("invalid_data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
@@ -252,7 +244,7 @@ public class TestUnpackContent {
     }
     @Test
     public void testZipEncodingField() {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "invalid-encoding");
         runner.assertNotValid();
         runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "IBM437");
@@ -268,11 +260,11 @@ public class TestUnpackContent {
     @Test
     public void testZipWithCp437Encoding() throws IOException {
         String zipFilename = "windows-with-cp437.zip";
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); // just forces this to be exercised
 
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
 
         runner.enqueue(dataPath.resolve(zipFilename));
@@ -303,7 +295,7 @@ public class TestUnpackContent {
     }
     @Test
     public void testEncryptedZipWithCp437Encoding() throws IOException {
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
         autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         final String password = String.class.getSimpleName();
@@ -345,7 +337,7 @@ public class TestUnpackContent {
 
     @Test
     public void testZipEncryptionNoPasswordConfigured() throws IOException {
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
         final String password = String.class.getSimpleName();
         final char[] streamPassword = password.toCharArray();
@@ -361,10 +353,10 @@ public class TestUnpackContent {
     @Test
     public void testZipWithFilter() throws IOException {
         runner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         runner.enqueue(dataPath.resolve("data.zip"));
         runner.enqueue(dataPath.resolve("data.zip"));
@@ -409,7 +401,7 @@ public class TestUnpackContent {
 
     @Test
     public void testFlowFileStreamV3() throws IOException {
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3);
         autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev3"));
         autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev3"));
 
@@ -434,7 +426,7 @@ public class TestUnpackContent {
 
     @Test
     public void testFlowFileStreamV2() throws IOException {
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V2);
         autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev2"));
         autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev2"));
 
@@ -459,7 +451,7 @@ public class TestUnpackContent {
 
     @Test
     public void testTarThenMerge() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
 
         runner.enqueue(dataPath.resolve("data.tar"));
         runner.run();
@@ -493,7 +485,7 @@ public class TestUnpackContent {
 
     @Test
     public void testZipThenMerge() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
         runner.enqueue(dataPath.resolve("data.zip"));
@@ -530,7 +522,7 @@ public class TestUnpackContent {
 
     @Test
     public void testZipHandlesBadData() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
         runner.enqueue(dataPath.resolve("data.tar"));
@@ -543,7 +535,7 @@ public class TestUnpackContent {
 
     @Test
     public void testTarHandlesBadData() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
 
         runner.enqueue(dataPath.resolve("data.zip"));
         runner.run();
@@ -560,7 +552,7 @@ public class TestUnpackContent {
      */
     @Test
     public void testThreadSafetyUsingAutoDetect() throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
 
         Map<String, String> attrsTar = new HashMap<>(1);
         Map<String, String> attrsFFv3 = new HashMap<>(1);
@@ -584,7 +576,7 @@ public class TestUnpackContent {
     }
 
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
         final String password = String.class.getSimpleName();
         runner.setProperty(UnpackContent.PASSWORD, password);
