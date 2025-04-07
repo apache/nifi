@@ -26,7 +26,6 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -61,12 +60,6 @@ public class TestAttributesToJSON {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final TestRunner runner = TestRunners.newTestRunner(new AttributesToJSON());
-
-    @BeforeEach
-    void setUp() {
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-    }
 
     @Test
     public void testInvalidUserSuppliedAttributeList() {
