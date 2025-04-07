@@ -107,9 +107,6 @@ public class TestPutSyslog {
         runner.setProperty(PutSyslog.MSG_HOSTNAME, LOCALHOST);
         runner.setProperty(PutSyslog.MSG_TIMESTAMP, TIMESTAMP);
         runner.assertValid();
-
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @AfterEach
