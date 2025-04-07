@@ -475,10 +475,8 @@ public class TestUnpackContent {
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        // implementation relies on default values of dependant properties; remove this once refactored
-        mergeRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_TAR);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.TAR);
+        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         mergeRunner.setProperty(MergeContent.KEEP_PATH, "true");
         mergeRunner.enqueue(unpacked.toArray(new MockFlowFile[0]));
         mergeRunner.run();
@@ -514,10 +512,8 @@ public class TestUnpackContent {
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        // implementation relies on default values of dependant properties; remove this once refactored
-        mergeRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.ZIP);
+        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         mergeRunner.setProperty(MergeContent.KEEP_PATH, "true");
         mergeRunner.enqueue(unpacked.toArray(new MockFlowFile[0]));
         mergeRunner.run();
