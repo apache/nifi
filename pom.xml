@@ -110,7 +110,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.782</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.31.11</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.31.16</software.amazon.awssdk.version>
         <gson.version>2.12.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.1.0</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.20</kotlin.version>
@@ -133,7 +133,7 @@
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <jetty.version>12.0.18</jetty.version>
+        <jetty.version>12.0.19</jetty.version>
         <jackson.bom.version>2.18.3</jackson.bom.version>
         <avro.version>1.11.4</avro.version>
         <jaxb.runtime.version>4.0.5</jaxb.runtime.version>
@@ -150,14 +150,14 @@
         <jersey.bom.version>3.1.10</jersey.bom.version>
         <log4j2.version>2.24.3</log4j2.version>
         <logback.version>1.5.18</logback.version>
-        <mockito.version>5.16.1</mockito.version>
+        <mockito.version>5.17.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.4</snakeyaml.version>
-        <netty.4.version>4.1.119.Final</netty.4.version>
+        <netty.4.version>4.2.0.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.version>6.2.5</spring.version>
         <spring.security.version>6.4.4</spring.security.version>
-        <swagger.annotations.version>2.2.29</swagger.annotations.version>
+        <swagger.annotations.version>2.2.30</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.2.0</caffeine.version>
@@ -671,7 +671,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.3.0</version>
                     <configuration>
                         <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
                     </configuration>
@@ -723,7 +723,7 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.45.1</version>
+                    <version>0.46.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -778,12 +778,12 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.12</version>
+                    <version>0.8.13</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.28</version>
+                    <version>2.2.30</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
