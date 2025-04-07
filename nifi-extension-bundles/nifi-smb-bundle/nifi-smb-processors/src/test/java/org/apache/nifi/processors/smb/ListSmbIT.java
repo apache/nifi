@@ -23,11 +23,13 @@ import static org.apache.nifi.processor.util.list.AbstractListProcessor.LISTING_
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.RECORD_WRITER;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
-import static org.apache.nifi.processors.smb.ListSmb.FILE_NAME_SUFFIX_FILTER;
+import static org.apache.nifi.processors.smb.ListSmb.FILE_FILTER;
+import static org.apache.nifi.processors.smb.ListSmb.IGNORE_FILES_WITH_SUFFIX;
 import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_STRATEGY;
 import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_TIMESTAMP;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_SIZE;
+import static org.apache.nifi.processors.smb.ListSmb.PATH_FILTER;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.HOSTNAME;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
@@ -40,6 +42,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.smb.util.InitialListingStrategy;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.services.smb.SmbClientProviderService;
@@ -199,11 +202,51 @@ public class ListSmbIT extends SambaTestContainers {
     }
 
     @Test
+    public void shouldFilterByFileFilter() throws Exception {
+        final TestRunner testRunner = newTestRunner(ListSmb.class);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
+
+        testRunner.setProperty(MINIMUM_AGE, "0 ms");
+        testRunner.setProperty(FILE_FILTER, "^(?!.*skip).*");
+        testRunner.setProperty(LISTING_STRATEGY, "none");
+
+        writeFile("should_list_this", generateContentWithSize(1));
+        writeFile("should_skip_this", generateContentWithSize(1));
+
+        testRunner.run();
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "should_list_this");
+
+        testRunner.disableControllerService(smbjClientProviderService);
+    }
+
+    @Test
+    public void shouldFilterByPathFilter() throws Exception {
+        final TestRunner testRunner = newTestRunner(ListSmb.class);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
+
+        testRunner.setProperty(MINIMUM_AGE, "0 ms");
+        testRunner.setProperty(PATH_FILTER, "dir1/.*");
+        testRunner.setProperty(LISTING_STRATEGY, "none");
+
+        writeFile("dir1/dir11/should_list_this", generateContentWithSize(1));
+        writeFile("dir2/dir21/should_skip_this", generateContentWithSize(1));
+
+        testRunner.run();
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "should_list_this");
+
+        testRunner.disableControllerService(smbjClientProviderService);
+    }
+
+    @Test
     public void shouldFilterByGivenSuffix() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
-        testRunner.setProperty(FILE_NAME_SUFFIX_FILTER, ".suffix");
+        testRunner.setProperty(IGNORE_FILES_WITH_SUFFIX, ".suffix");
         testRunner.setProperty(LISTING_STRATEGY, "none");
         writeFile("should_list_this", generateContentWithSize(1));
         writeFile("should_skip_this.suffix", generateContentWithSize(1));
