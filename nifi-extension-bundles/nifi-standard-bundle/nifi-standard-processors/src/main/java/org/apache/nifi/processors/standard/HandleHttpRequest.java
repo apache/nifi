@@ -400,7 +400,9 @@ public class HandleHttpRequest extends AbstractProcessor {
         serverConnectorFactory.setWantClientAuth(wantClientAuth);
         final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
         serverConnectorFactory.setSslContext(sslContext);
-        final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
+        final HttpProtocolStrategy httpProtocolStrategy = sslContext == null
+                ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
+                : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         serverConnectorFactory.setApplicationLayerProtocols(httpProtocolStrategy.getApplicationLayerProtocols());
 
         final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();

@@ -60,8 +60,6 @@ class HandleHttpRequestTest {
     void setRunner() throws InitializationException {
         handleHttpRequest = new HandleHttpRequest();
         runner = TestRunners.newTestRunner(handleHttpRequest);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         when(httpContextMap.getIdentifier()).thenReturn(CONTEXT_MAP_ID);
         runner.addControllerService(CONTEXT_MAP_ID, httpContextMap);
