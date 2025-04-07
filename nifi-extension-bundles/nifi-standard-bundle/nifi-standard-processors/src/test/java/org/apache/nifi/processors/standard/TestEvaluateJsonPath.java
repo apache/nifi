@@ -23,7 +23,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedOutputStream;
@@ -43,12 +42,6 @@ class TestEvaluateJsonPath {
     private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
 
     private final TestRunner runner = TestRunners.newTestRunner(new EvaluateJsonPath());
-
-    @BeforeEach
-    void setUp() {
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-    }
 
     @Test
     void testInvalidJsonPath() {
