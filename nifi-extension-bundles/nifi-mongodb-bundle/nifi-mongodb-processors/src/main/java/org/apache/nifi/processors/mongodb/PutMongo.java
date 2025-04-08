@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -213,7 +214,7 @@ public class PutMongo extends AbstractMongoProcessor {
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final String processorMode = context.getProperty(MODE).getValue();
-        final String updateOperationMode = context.getProperty(UPDATE_OPERATION_MODE).getValue();
+        final String updateOperationMode = processorMode.equals(MODE_UPDATE) ? context.getProperty(UPDATE_OPERATION_MODE).getValue() : null;
         final WriteConcern writeConcern = clientService.getWriteConcern();
 
         try {
@@ -223,7 +224,7 @@ public class PutMongo extends AbstractMongoProcessor {
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, content, true));
 
             // parse
-            final Object doc = (processorMode.equals(MODE_INSERT) || (processorMode.equals(MODE_UPDATE) && updateOperationMode.equals(UPDATE_WITH_DOC.getValue())))
+            final Object doc = processorMode.equals(MODE_INSERT) || Objects.equals(updateOperationMode, UPDATE_WITH_DOC.getValue())
                     ? Document.parse(new String(content, charset)) : BasicDBObject.parse(new String(content, charset));
 
             if (MODE_INSERT.equals(processorMode)) {
@@ -243,7 +244,7 @@ public class PutMongo extends AbstractMongoProcessor {
                     updateQuery = Document.parse(filterQuery);
                 }
                 UpdateResult updateResult;
-                if (updateOperationMode.equals(UPDATE_WITH_DOC.getValue())) {
+                if (Objects.equals(updateOperationMode, UPDATE_WITH_DOC.getValue())) {
                     updateResult = collection.replaceOne(updateQuery, (Document) doc, new ReplaceOptions().upsert(upsert));
                 } else {
                     BasicDBObject update = (BasicDBObject) doc;
