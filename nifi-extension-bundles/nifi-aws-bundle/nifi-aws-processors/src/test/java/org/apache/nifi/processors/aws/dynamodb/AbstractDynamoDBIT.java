@@ -105,8 +105,6 @@ public class AbstractDynamoDBIT {
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
         runner.setProperty(AbstractDynamoDBProcessor.REGION, localstack.getRegion());

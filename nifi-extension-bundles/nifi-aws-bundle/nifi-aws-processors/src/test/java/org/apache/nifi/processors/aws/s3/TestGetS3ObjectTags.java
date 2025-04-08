@@ -63,8 +63,6 @@ class TestGetS3ObjectTags {
             }
         };
         runner = TestRunners.newTestRunner(mockGetS3ObjectTags);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
 
         mockTags = mock(GetObjectTaggingResult.class);

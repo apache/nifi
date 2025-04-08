@@ -28,7 +28,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -153,16 +152,16 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final Pattern attributePattern;
 
-        final PropertyValue attributeIncludePatternProperty = context.getProperty(ATTRIBUTE_INCLUDE_PATTERN).evaluateAttributeExpressions(flowFile);
-        if (attributeIncludePatternProperty.isSet()) {
-             attributePattern = Pattern.compile(attributeIncludePatternProperty.getValue());
+        final MetadataTarget metadataTarget = context.getProperty(METADATA_TARGET).asAllowableValue(MetadataTarget.class);
+
+        final Pattern attributePattern;
+        if (metadataTarget == MetadataTarget.ATTRIBUTES) {
+            final String attributeRegex = context.getProperty(ATTRIBUTE_INCLUDE_PATTERN).evaluateAttributeExpressions(flowFile).getValue();
+            attributePattern = attributeRegex == null ? null : Pattern.compile(attributeRegex);
         } else {
             attributePattern = null;
         }
-
-        final MetadataTarget metadataTarget = context.getProperty(METADATA_TARGET).asAllowableValue(MetadataTarget.class);
 
         try {
             Relationship relationship;

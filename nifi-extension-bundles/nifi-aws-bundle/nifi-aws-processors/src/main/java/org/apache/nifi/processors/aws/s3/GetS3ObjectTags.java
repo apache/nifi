@@ -29,7 +29,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -152,16 +151,16 @@ public class GetS3ObjectTags extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final Pattern attributePattern;
 
-        final PropertyValue attributeIncludePatternProperty = context.getProperty(ATTRIBUTE_INCLUDE_PATTERN).evaluateAttributeExpressions(flowFile);
-        if (attributeIncludePatternProperty.isSet()) {
-             attributePattern = Pattern.compile(attributeIncludePatternProperty.getValue());
+        final TagsTarget tagsTarget = context.getProperty(TAGS_TARGET).asAllowableValue(TagsTarget.class);
+
+        final Pattern attributePattern;
+        if (tagsTarget == TagsTarget.ATTRIBUTES) {
+            final String attributeRegex = context.getProperty(ATTRIBUTE_INCLUDE_PATTERN).evaluateAttributeExpressions(flowFile).getValue();
+            attributePattern = attributeRegex == null ? null : Pattern.compile(attributeRegex);
         } else {
             attributePattern = null;
         }
-
-        final TagsTarget tagsTarget = context.getProperty(TAGS_TARGET).asAllowableValue(TagsTarget.class);
 
         try {
             Relationship relationship;

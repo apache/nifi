@@ -47,7 +47,7 @@ public class ITPutDynamoDBRecord extends AbstractDynamoDBIT {
     @Test
     public void partitionKeySortKeySuccess() throws JsonProcessingException {
         runDynamoDBTest(10, PARTITION_AND_SORT_KEY_TABLE, true, runner -> {
-            runner.setProperty(PutDynamoDBRecord.SORT_KEY_STRATEGY, PutDynamoDBRecord.SORT_BY_FIELD);
+            runner.setProperty(PutDynamoDBRecord.SORT_KEY_STRATEGY, PutDynamoDBRecord.SortKeyStrategy.BY_FIELD);
             runner.setProperty(PutDynamoDBRecord.SORT_KEY_FIELD, "sortKey");
         });
     }
