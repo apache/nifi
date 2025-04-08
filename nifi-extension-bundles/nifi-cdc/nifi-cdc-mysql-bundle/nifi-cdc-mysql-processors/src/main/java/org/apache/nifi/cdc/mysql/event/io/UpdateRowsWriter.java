@@ -82,26 +82,15 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
             jsonGenerator.writeStartObject();
             jsonGenerator.writeNumberField("id", i + 1);
             ColumnDefinition columnDefinition = event.getColumnByIndex(i);
-            Integer columnType = null;
             if (columnDefinition != null) {
                 jsonGenerator.writeStringField("name", columnDefinition.getName());
-                columnType = columnDefinition.getType();
-                jsonGenerator.writeNumberField("column_type", columnType);
+                jsonGenerator.writeNumberField("column_type", columnDefinition.getType());
             }
             Serializable[] oldRow = row.getKey();
             Serializable[] newRow = row.getValue();
 
-            if (oldRow[i] == null) {
-                jsonGenerator.writeNullField("last_value");
-            } else {
-                jsonGenerator.writeObjectField("last_value", getWritableObject(columnType, oldRow[i]));
-            }
-
-            if (newRow[i] == null) {
-                jsonGenerator.writeNullField("value");
-            } else {
-                jsonGenerator.writeObjectField("value", getWritableObject(columnType, newRow[i]));
-            }
+            writeObjectAsValueField(jsonGenerator, "last_value", columnDefinition, oldRow[i]);
+            writeObjectAsValueField(jsonGenerator, "value", columnDefinition, newRow[i]);
             jsonGenerator.writeEndObject();
             i = includedColumns.nextSetBit(i + 1);
         }

@@ -1253,7 +1253,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 for (int i = 1; i <= numCols; i++) {
                     // Use the column label if it exists, otherwise use the column name. We're not doing aliasing here, but it's better practice.
                     String columnLabel = rsmd.getColumnLabel(i);
-                    columnDefinitions.add(new ColumnDefinition(rsmd.getColumnType(i), columnLabel != null ? columnLabel : rsmd.getColumnName(i)));
+                    columnDefinitions.add(new ColumnDefinition(
+                            rsmd.isSigned(i), rsmd.getColumnType(i), columnLabel != null ? columnLabel : rsmd.getColumnName(i)
+                    ));
                 }
 
                 tableInfo = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(), columnDefinitions);
