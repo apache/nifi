@@ -92,8 +92,6 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     @Override
     TestRunner createRunner(final boolean returnAggs) {
         final TestRunner runner = super.createRunner(returnAggs);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
 
         // onScheduled method isn't always triggered (because the processor isn't always executed through the TestRunner)

@@ -38,8 +38,6 @@ public abstract class AbstractPutElasticsearchTest {
     @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(getTestProcessor());
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         clientService = new MockBulkLoadClientService();
         clientService.setResponse(new IndexOperationResponse(1500));

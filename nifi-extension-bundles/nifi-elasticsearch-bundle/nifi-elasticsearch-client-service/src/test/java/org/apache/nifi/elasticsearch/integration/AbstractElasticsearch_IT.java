@@ -36,8 +36,6 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
     @BeforeEach
     void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         service = new ElasticSearchClientServiceImpl();
         runner.addControllerService(CLIENT_SERVICE_NAME, service);
         runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, CLIENT_SERVICE_NAME);

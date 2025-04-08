@@ -201,7 +201,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        if(context.getProperty(AUTHORIZATION_MODE).getValue().equals(OAUTH_AUTHORIZATION_MODE.getValue())) {
+        if (context.getProperty(AUTHORIZATION_MODE).getValue().equals(OAUTH_AUTHORIZATION_MODE.getValue())) {
             OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
             oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);

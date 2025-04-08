@@ -273,11 +273,13 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
             filters.add(Collections.singletonMap("range", Collections.singletonMap(getTrackingRangeField(context),
                     new HashMap<String, String>(3, 1) {{
                         put("gt", trackingRangeValue);
-                        if (context.getProperty(RANGE_DATE_FORMAT).isSet()) {
-                            put("format", context.getProperty(RANGE_DATE_FORMAT).getValue());
-                        }
-                        if (context.getProperty(RANGE_TIME_ZONE).isSet()) {
-                            put("time_zone", context.getProperty(RANGE_TIME_ZONE).getValue());
+                        if (context.getProperty(RANGE_INITIAL_VALUE).isSet()) {
+                            if (context.getProperty(RANGE_DATE_FORMAT).isSet()) {
+                                put("format", context.getProperty(RANGE_DATE_FORMAT).getValue());
+                            }
+                            if (context.getProperty(RANGE_TIME_ZONE).isSet()) {
+                                put("time_zone", context.getProperty(RANGE_TIME_ZONE).getValue());
+                            }
                         }
                     }})));
         }
