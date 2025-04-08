@@ -61,7 +61,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private String annotationData = null;
     private boolean yieldCalled = false;
     private boolean allowExpressionValidation = true;
-    private boolean prohibitUseOfPropertiesWithUnsatisfiedDependencies = true;
     private volatile boolean incomingConnection = true;
     private volatile boolean nonLoopConnection = true;
     private volatile InputRequirement inputRequirement = null;
@@ -165,16 +164,17 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             return null;
         }
 
-        if (prohibitUseOfPropertiesWithUnsatisfiedDependencies) {
-            final List<ValidatedPropertyDependency> unsatisfiedDependencies = determineUnsatisfiedDependencies(descriptor);
-
-            if (!unsatisfiedDependencies.isEmpty()) {
-                throw new AssertionError("Attempted to use property \"%s\" whose dependencies are not satisfied:\n%s\n\n%s".formatted(
-                        descriptor.getName(),
-                        unsatisfiedDependencies.stream().map(ValidatedPropertyDependency::toString).collect(Collectors.joining("\n")),
-                        "Temporarily disable this check by applying TestRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false)"
-                ));
-            }
+        final List<ValidatedPropertyDependency> unsatisfiedDependencies = determineUnsatisfiedDependencies(descriptor);
+        if (!unsatisfiedDependencies.isEmpty()) {
+            throw new AssertionError("Attempted to use property \"%s\" whose dependencies are not satisfied:\n%s\n\n%s".formatted(
+                    descriptor.getName(),
+                    unsatisfiedDependencies.stream().map(ValidatedPropertyDependency::toString).collect(Collectors.joining("\n")),
+                    """
+                        Properties whose dependencies are not satisfied are not shown to the user,
+                        their values should be ignored by the implementation if the necessary dependencies are not fulfilled.
+                        This precaution is crucial to prevent potentially confusing and unpredictable side effects for the user.
+                        See NIFI-14400 (https://issues.apache.org/jira/browse/NIFI-14400) for more background."""
+            ));
         }
 
         final String setPropertyValue = properties.get(descriptor);
@@ -471,10 +471,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     public void setValidateExpressionUsage(final boolean validate) {
         allowExpressionValidation = validate;
-    }
-
-    public void setProhibitUseOfPropertiesWithUnsatisfiedDependencies(final boolean prohibit) {
-        prohibitUseOfPropertiesWithUnsatisfiedDependencies = prohibit;
     }
 
     Map<PropertyDescriptor, String> getControllerServiceProperties(final ControllerService controllerService) {

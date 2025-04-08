@@ -175,11 +175,6 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void setProhibitUseOfPropertiesWithUnsatisfiedDependencies(final boolean prohibit) {
-        context.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(prohibit);
-    }
-
-    @Override
     public Processor getProcessor() {
         return processor;
     }
