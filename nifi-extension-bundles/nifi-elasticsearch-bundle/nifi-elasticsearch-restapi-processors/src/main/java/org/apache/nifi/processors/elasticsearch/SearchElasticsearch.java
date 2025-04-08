@@ -110,10 +110,10 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     static final PropertyDescriptor RESTART_ON_FINISH = new PropertyDescriptor.Builder()
             .name("restart-on-finish")
             .displayName("Restart On Finish?")
-            .description("Should the processor start from the beginning when the query finishes?")
+            .description("Whether the should processor start another search with the same query once a paginated search has completed.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
-            .defaultValue(Boolean.TRUE.toString()) // maintain existing behavior
+            .defaultValue(Boolean.TRUE.toString())
             .required(true)
             .build();
 
@@ -152,7 +152,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
-        if (context.getProperty(RESTART_ON_FINISH).asBoolean() != null) {
+        if (context.getProperty(RESTART_ON_FINISH) != null) {
             this.restartOnFinish = context.getProperty(RESTART_ON_FINISH).asBoolean();
         }
     }
@@ -161,7 +161,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     PaginatedJsonQueryParameters buildJsonQueryParameters(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         final StateMap stateMap = context.getStateManager().getState(getStateScope());
 
-        final boolean finished = stateMap.get(STATE_FINISHED) == null ? false : Boolean.parseBoolean(stateMap.get(STATE_FINISHED));
+        final boolean finished = stateMap.get(STATE_FINISHED) != null && Boolean.parseBoolean(stateMap.get(STATE_FINISHED))
 
         if (finished && !this.restartOnFinish) {
             return null;
