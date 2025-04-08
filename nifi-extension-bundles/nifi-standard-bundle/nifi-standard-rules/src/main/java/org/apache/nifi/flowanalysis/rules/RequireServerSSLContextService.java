@@ -40,7 +40,7 @@ import java.util.List;
                 To avoid the violation, ensure that the "SSL Context Service" property is set for the specified component(s).
                 """
 )
-public class RequireCustomSSLContext extends AbstractFlowAnalysisRule {
+public class RequireServerSSLContextService extends AbstractFlowAnalysisRule {
 
     private final List<String> componentTypes = List.of(
             "org.apache.nifi.processors.standard.ListenFTP",

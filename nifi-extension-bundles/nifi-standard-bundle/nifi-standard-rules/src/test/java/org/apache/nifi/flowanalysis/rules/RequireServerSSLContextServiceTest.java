@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class RequireCustomSSLContextTest extends AbstractFlowAnalaysisRuleTest<RequireCustomSSLContext> {
+public class RequireServerSSLContextServiceTest extends AbstractFlowAnalaysisRuleTest<RequireServerSSLContextService> {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -32,15 +32,15 @@ public class RequireCustomSSLContextTest extends AbstractFlowAnalaysisRuleTest<R
             .identifiesControllerService(SSLContextProvider.class)
             .build();
     @Override
-    protected RequireCustomSSLContext initializeRule() {
-        return new RequireCustomSSLContext();
+    protected RequireServerSSLContextService initializeRule() {
+        return new RequireServerSSLContextService();
     }
 
     @Test
     public void testNoViolations() throws Exception {
         setProperty(SSL_CONTEXT_SERVICE, "9c50e433-c2aa-3d19-aae6-20299f4ac38c");
         testAnalyzeProcessors(
-                "src/test/resources/RequireCustomSSLContext/RequireSecureConnection_noViolation.json",
+                "src/test/resources/RequireServerSSLContextService/RequireServerSSLContextService_noViolation.json",
                 List.of()
         );
     }
@@ -51,7 +51,7 @@ public class RequireCustomSSLContextTest extends AbstractFlowAnalaysisRuleTest<R
 
         ComponentAnalysisResult expectedResult = new ComponentAnalysisResult("b5734be4-0195-1000-0e75-bc0f150d06bd", "'ListenHTTP' is not allowed");
         testAnalyzeProcessors(
-                "src/test/resources/RequireCustomSSLContext/RequireCustomSSLContext.json",
+                "src/test/resources/RequireServerSSLContextService/RequireServerSSLContextService.json",
                 List.of(
                         expectedResult  // processor ListenHttp with no SSLContextService set
                 )
