@@ -69,8 +69,6 @@ class TestJoltTransformJSON {
     void setUp() {
         this.processor = new JoltTransformJSON();
         this.runner = TestRunners.newTestRunner(processor);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test

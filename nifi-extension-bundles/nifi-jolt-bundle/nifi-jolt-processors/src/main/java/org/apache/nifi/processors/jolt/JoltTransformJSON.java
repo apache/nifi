@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.jolt.util.TransformUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
@@ -218,7 +219,9 @@ public class JoltTransformJSON extends AbstractJoltTransform {
         jsonUtil = JsonUtils.customJsonUtil(objectMapper);
 
         try {
-            if (context.getProperty(MODULES).isSet()) {
+            final JoltTransformStrategy strategy = context.getProperty(JOLT_TRANSFORM).asAllowableValue(JoltTransformStrategy.class);
+
+            if (strategy == JoltTransformStrategy.CUSTOMR && context.getProperty(MODULES).isSet()) {
                 customClassLoader = ClassLoaderUtils.getCustomClassLoader(
                         context.getProperty(MODULES).evaluateAttributeExpressions().getValue(),
                         this.getClass().getClassLoader(),
