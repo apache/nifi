@@ -28,7 +28,6 @@ import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.PullRequest;
 import com.google.pubsub.v1.PullResponse;
 import com.google.pubsub.v1.ReceivedMessage;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
@@ -79,21 +78,14 @@ public class ConsumeGCPubSubTest {
 
         runner = TestRunners.newTestRunner(new ConsumeGCPubSub() {
             @Override
-            @OnScheduled
-            public void onScheduled(ProcessContext context) {
-                subscriber = subscriberMock;
-
-                outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
-                processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
-                demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR).getValue();
+            protected SubscriberStub getSubscriber(ProcessContext context) {
+                return subscriberMock;
             }
         });
 
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, SUBSCRIPTION);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         messages.clear();
     }

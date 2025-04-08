@@ -232,9 +232,9 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
             getLogger().error("Failed to create Google Cloud Subscriber", e);
         }
 
-        outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
         processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
-        demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR).getValue();
+        outputStrategy = processingStrategy == ProcessingStrategy.RECORD ? context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class) : null;
+        demarcatorValue = processingStrategy == ProcessingStrategy.DEMARCATOR ? context.getProperty(MESSAGE_DEMARCATOR).getValue() : null;
     }
 
     @Override
@@ -327,9 +327,9 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         List<ReceivedMessage> receivedMessages = pullResponse.getReceivedMessagesList();
 
         switch (processingStrategy) {
-        case RECORD -> processInputRecords(context, session, receivedMessages, subscriptionName, ackIds);
-        case FLOW_FILE -> processInputFlowFile(session, receivedMessages, subscriptionName, ackIds);
-        case DEMARCATOR -> processInputDemarcator(session, receivedMessages, subscriptionName, ackIds);
+            case RECORD -> processInputRecords(context, session, receivedMessages, subscriptionName, ackIds);
+            case FLOW_FILE -> processInputFlowFile(session, receivedMessages, subscriptionName, ackIds);
+            case DEMARCATOR -> processInputDemarcator(session, receivedMessages, subscriptionName, ackIds);
         }
 
         session.commitAsync(() -> acknowledgeAcks(ackIds, subscriptionName));
@@ -399,14 +399,10 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        PubSubMessageConverter converter;
-        if (OutputStrategy.USE_VALUE.equals(outputStrategy)) {
-            converter = new RecordStreamPubSubMessageConverter(readerFactory, writerFactory, getLogger());
-        } else if (OutputStrategy.USE_WRAPPER.equals(outputStrategy)) {
-            converter = new WrapperRecordStreamPubSubMessageConverter(readerFactory, writerFactory, getLogger());
-        } else {
-            throw new ProcessException(String.format("Output Strategy not supported [%s]", outputStrategy));
-        }
+        PubSubMessageConverter converter = switch (outputStrategy) {
+            case USE_VALUE -> new RecordStreamPubSubMessageConverter(readerFactory, writerFactory, getLogger());
+            case USE_WRAPPER -> new WrapperRecordStreamPubSubMessageConverter(readerFactory, writerFactory, getLogger());
+        };
 
         converter.toFlowFiles(session, receivedMessages, ackIds, subscriptionName);
     }
@@ -435,7 +431,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     }
 
-    private SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
+    protected SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
         final String endpoint = context.getProperty(API_ENDPOINT).getValue();
 
         final SubscriberStubSettings.Builder subscriberBuilder = SubscriberStubSettings.newBuilder()
