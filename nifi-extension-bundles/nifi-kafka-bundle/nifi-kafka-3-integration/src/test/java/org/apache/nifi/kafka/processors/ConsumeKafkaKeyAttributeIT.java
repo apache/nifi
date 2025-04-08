@@ -83,8 +83,7 @@ public class ConsumeKafkaKeyAttributeIT extends AbstractConsumeKafkaIT {
         runner.run(1, false, true);
         final List<Header> headers = Collections.emptyList();
         produceOne(topic, 0, kafkaMessageKey, RECORD_VALUE, headers);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
         runner.run(1, true, false);

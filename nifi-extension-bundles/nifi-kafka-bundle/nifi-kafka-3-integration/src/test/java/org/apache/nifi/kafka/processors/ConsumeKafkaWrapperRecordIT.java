@@ -133,8 +133,7 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
         final List<Header> headersPublish = Collections.singletonList(
                 new RecordHeader("header1", "value1".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, MESSAGE_KEY, message, headersPublish);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while (System.currentTimeMillis() < pollUntil) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
         runner.run(1, true, false);

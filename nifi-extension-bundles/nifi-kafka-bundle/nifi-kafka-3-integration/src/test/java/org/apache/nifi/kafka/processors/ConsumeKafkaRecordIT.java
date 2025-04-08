@@ -32,6 +32,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -51,6 +55,13 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
     private static final int TEST_RECORD_COUNT = 3;
 
     private static final int FIRST_PARTITION = 0;
+    private static final String VALID_RECORD_1_TEXT = """
+            { "id": 1, "name": "A" }
+            """;
+    private static final String VALID_RECORD_2_TEXT = """
+            { "id": 2, "name": "B" }
+            """;
+    private static final String INVALID_RECORD_TEXT = "non-json";
 
     private TestRunner runner;
 
@@ -78,6 +89,39 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
         runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 0);
     }
 
+    static Stream<Arguments> invalidRecordScenarios() {
+        return Stream.of(
+                Arguments.of("testInvalidRecordAtStart", new String[]{INVALID_RECORD_TEXT, VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT}),
+                Arguments.of("testInvalidRecordInMiddle", new String[]{VALID_RECORD_1_TEXT, INVALID_RECORD_TEXT, VALID_RECORD_2_TEXT}),
+                Arguments.of("testInvalidRecordAtEnd", new String[]{VALID_RECORD_1_TEXT, VALID_RECORD_2_TEXT, INVALID_RECORD_TEXT}));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRecordScenarios")
+    void testInvalidRecord(String testName, String[] recordTexts) throws Exception {
+        runner.setProperty(ConsumeKafka.TOPICS, testName);
+        runner.setProperty(ConsumeKafka.GROUP_ID, testName);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.RECORD.getValue());
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, AutoOffsetReset.EARLIEST.getValue());
+
+        for (String text : recordTexts) {
+            produceOne(testName, 0, null, text, List.of());
+        }
+
+        runner.run(1, false, true);
+
+        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
+            Thread.sleep(10L);
+            runner.run(1, false, false);
+        }
+
+        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
+        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 1);
+
+        assertEquals(String.valueOf(recordTexts.length - 1), runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst().getAttribute("record.count"));
+        runner.getFlowFilesForRelationship(ConsumeKafka.PARSE_FAILURE).getFirst().assertContentEquals(INVALID_RECORD_TEXT);
+    }
+
     @Test
     void testProcessingStrategyFlowFileOneRecord() throws InterruptedException, ExecutionException, IOException {
         final String topic = UUID.randomUUID().toString();
@@ -100,11 +144,9 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
                 new RecordHeader("bbb", "value".getBytes(StandardCharsets.UTF_8)),
                 new RecordHeader("ccc", "value".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, null, flowFileString, headers);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while (System.currentTimeMillis() < pollUntil) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
-
         runner.run(1, true, false);
 
         final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS);

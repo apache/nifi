@@ -101,8 +101,7 @@ class ConsumeKafkaOffsetsIT extends AbstractConsumeKafkaIT {
             records.add(new ProducerRecord<>(topic, null, (String) null, value, Collections.emptyList()));
         }
         produce(topic, records);
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").size() < values.length) {
             runner.run(1, false, false);
         }
         runner.assertTransferCount("success", values.length);

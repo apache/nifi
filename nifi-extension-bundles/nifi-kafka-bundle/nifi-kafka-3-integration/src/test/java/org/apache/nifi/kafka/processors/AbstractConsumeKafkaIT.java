@@ -53,7 +53,6 @@ public abstract class AbstractConsumeKafkaIT extends AbstractKafkaBaseIT {
             final RecordMetadata metadata = future.get();
             assertEquals(topic, metadata.topic());
             assertTrue(metadata.hasOffset());
-            assertEquals(0L, metadata.offset());
         }
     }
 
