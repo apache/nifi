@@ -82,8 +82,6 @@ class GetWorkdayReportTest {
     @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(new GetWorkdayReport());
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         mockWebServer = new MockWebServer();
     }
 
