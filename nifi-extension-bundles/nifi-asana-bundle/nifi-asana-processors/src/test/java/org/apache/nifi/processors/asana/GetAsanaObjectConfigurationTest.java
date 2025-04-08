@@ -72,8 +72,6 @@ public class GetAsanaObjectConfigurationTest {
     @BeforeEach
     public void init() {
         runner = newTestRunner(GetAsanaObject.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         mockService = new MockAsanaClientProviderService();
         mockDistributedMapCacheClient = new MockDistributedMapCacheClient();
     }
