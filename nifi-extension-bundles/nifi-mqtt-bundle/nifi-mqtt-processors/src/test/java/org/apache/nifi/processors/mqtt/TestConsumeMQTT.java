@@ -653,8 +653,6 @@ public class TestConsumeMQTT {
         final TestRunner testRunner = TestRunners.newTestRunner(ConsumeMQTT.class);
 
         setCommonProperties(testRunner);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         return testRunner;
     }
@@ -668,8 +666,6 @@ public class TestConsumeMQTT {
         });
 
         setCommonProperties(testRunner);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
 
         return testRunner;
     }
