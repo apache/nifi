@@ -77,8 +77,6 @@ public class TestSplitExcel {
     @BeforeEach
     void setUp() {
         runner = TestRunners.newTestRunner(SplitExcel.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
