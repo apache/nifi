@@ -20,7 +20,6 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -49,7 +48,7 @@ public class TestMonitorActivity {
     @Test
     public void testFirstMessage() throws InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
-        final TestRunner runner = newTestRunner(processor);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
 
@@ -108,7 +107,7 @@ public class TestMonitorActivity {
     @Test
     public void testFirstMessageWithWaitForActivityTrue() throws InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
-        final TestRunner runner = newTestRunner(processor);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
         runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
@@ -498,7 +497,7 @@ public class TestMonitorActivity {
     @Test
     public void testFirstMessageWithInherit() throws InterruptedException {
         final TestableProcessor processor = new TestableProcessor(1000);
-        final TestRunner runner = newTestRunner(processor);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
@@ -568,7 +567,7 @@ public class TestMonitorActivity {
     @Test
     public void testFirstRunNoMessages() throws InterruptedException {
         // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
-        final TestRunner runner = newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         int threshold = 100;
         boolean rerun;
@@ -1144,7 +1143,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testLocalStateIsNotDeletedInStandaloneCaseWhenStopped() throws IOException {
-        final TestRunner runner = newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
         runner.setIsConfiguredForClustering(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_ALL);
@@ -1163,7 +1162,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testLocalStateIsNotDeletedInClusteredCaseNodeScopeWhenStopped() throws IOException {
-        final TestRunner runner = newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
         runner.setIsConfiguredForClustering(true);
         runner.setConnected(true);
         runner.setPrimaryNode(true);
@@ -1311,7 +1310,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testResetStateOnStartupByDefault() throws IOException {
-        final TestRunner runner = newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setIsConfiguredForClustering(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
         runner.setProperty(MonitorActivity.THRESHOLD, "24 hours");
@@ -1333,7 +1332,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testResetStateOnStartupDisabled() throws IOException {
-        final TestRunner runner = newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setIsConfiguredForClustering(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
         runner.setProperty(MonitorActivity.THRESHOLD, "24 hours");
@@ -1357,7 +1356,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testMultipleFlowFilesActivateTheFlowInSingleTriggerResultsInSingleMarker() throws IOException {
-        final TestRunner runner = newTestRunner(new TestableProcessor(TimeUnit.DAYS.toMillis(1)));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.DAYS.toMillis(1)));
         runner.setIsConfiguredForClustering(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
         runner.setProperty(MonitorActivity.THRESHOLD, "3 hours");
@@ -1414,13 +1413,5 @@ public class TestMonitorActivity {
         runNext(runner);
         final String state_2 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
         assertNotEquals(state_1, state_2);
-    }
-
-    private TestRunner newTestRunner(final Processor processor) {
-        final TestRunner runner = TestRunners.newTestRunner(processor);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-
-        return runner;
     }
 }

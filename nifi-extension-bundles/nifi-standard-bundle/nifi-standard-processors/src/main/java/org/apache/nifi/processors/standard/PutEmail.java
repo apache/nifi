@@ -563,8 +563,8 @@ public class PutEmail extends AbstractProcessor {
             final String mailProperty = entry.getKey();
             final PropertyDescriptor propertyDescriptor = entry.getValue();
 
-            if (propertyDescriptor == SMTP_PASSWORD &&
-                    !context.getProperty(AUTHORIZATION_MODE).getValue().equals(PASSWORD_BASED_AUTHORIZATION_MODE.getValue())) {
+            if (propertyDescriptor == SMTP_PASSWORD
+                    && !context.getProperty(AUTHORIZATION_MODE).getValue().equals(PASSWORD_BASED_AUTHORIZATION_MODE.getValue())) {
                 continue; // password property is only available for password based authentication; skip evaluation otherwise
             }
 
