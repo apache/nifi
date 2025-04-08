@@ -223,7 +223,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
             xmlStreamWriter.writeEndElement();
 
             xmlStreamWriter.writeStartElement("p");
-            xmlStreamWriter.writeCharacters("Please consider using one the following alternatives: ");
+            xmlStreamWriter.writeCharacters("Please consider using one of the following alternatives: ");
 
             final List<String> alternatives = deprecationNotice.getAlternatives();
             if (alternatives != null && alternatives.size() > 0) {
