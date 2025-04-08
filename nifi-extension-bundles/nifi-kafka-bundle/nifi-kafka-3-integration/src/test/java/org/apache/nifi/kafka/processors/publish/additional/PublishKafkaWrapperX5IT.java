@@ -92,8 +92,6 @@ public class PublishKafkaWrapperX5IT extends AbstractPublishKafkaIT {
     @Test
     public void test1ProduceOneFlowFile() throws InitializationException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         addRecordReaderService(runner);

@@ -68,8 +68,6 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
     @BeforeEach
     void setRunner() throws InitializationException {
         runner = TestRunners.newTestRunner(ConsumeKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         addKafkaConnectionService(runner);
 
         runner.setProperty(ConsumeKafka.CONNECTION_SERVICE, CONNECTION_SERVICE_ID);

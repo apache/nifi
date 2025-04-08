@@ -43,8 +43,6 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
     @MethodSource("argumentsTransactionality")
     public void testKafkaMultipleFlowFilesSuccess(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -67,8 +65,6 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
     @MethodSource("argumentsTransactionality")
     public void testNiFiFailureTooBig(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -86,8 +82,6 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
     @MethodSource("argumentsTransactionality")
     public void testKafkaFailureTooBig(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -103,8 +97,6 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
     @MethodSource("argumentsTransactionality")
     public void testKafkaMultipleFlowFilesPartialFailureRollback(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -121,8 +113,6 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
     @MethodSource("argumentsTransactionality")
     public void testKafkaMultipleFlowFilesPartialFailureTransferFailure(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());

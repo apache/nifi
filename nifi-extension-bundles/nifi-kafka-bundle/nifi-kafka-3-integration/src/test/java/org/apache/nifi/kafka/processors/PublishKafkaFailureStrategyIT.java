@@ -34,8 +34,6 @@ public class PublishKafkaFailureStrategyIT extends AbstractPublishKafkaIT {
     @Test
     public void testProduceRouteToFailure() throws InitializationException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         addRecordReaderService(runner);
@@ -56,8 +54,6 @@ public class PublishKafkaFailureStrategyIT extends AbstractPublishKafkaIT {
     @Test
     public void testProduceRollback() throws InitializationException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         addRecordReaderService(runner);

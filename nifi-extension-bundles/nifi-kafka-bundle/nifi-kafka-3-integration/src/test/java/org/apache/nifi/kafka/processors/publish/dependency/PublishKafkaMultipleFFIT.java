@@ -63,8 +63,6 @@ public class PublishKafkaMultipleFFIT {
     @Disabled("use this to test publish of multiple FlowFiles; requires running Kafka cluster")
     public void testKafkaMultipleFlowFilesSuccess(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -88,8 +86,6 @@ public class PublishKafkaMultipleFFIT {
     @Disabled("use this to test partial publish failure; requires running Kafka cluster")
     public void testNiFiFailureTooBig(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -108,8 +104,6 @@ public class PublishKafkaMultipleFFIT {
     @Disabled("use this to test partial publish failure; requires running Kafka cluster")
     public void testKafkaFailureTooBig(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
@@ -126,8 +120,6 @@ public class PublishKafkaMultipleFFIT {
     @Disabled("use this to test partial publish failure; requires running Kafka cluster")
     public void testKafkaMultipleFlowFilesPartialFailure(final Boolean transactionality) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
