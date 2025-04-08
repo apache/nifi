@@ -37,6 +37,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -88,10 +89,11 @@ class FetchBoxFileRepresentationTest extends AbstractBoxFileTest {
         when(mockFileInfo.getType()).thenReturn(TEST_FILE_TYPE);
 
         doAnswer(invocation -> {
-            final OutputStream outputStream = invocation.getArgument(1);
+            final OutputStream outputStream = invocation.getArgument(2);
             outputStream.write(TEST_CONTENT);
             return null;
-        }).when(mockBoxFile).getRepresentationContent(eq("[" + TEST_REPRESENTATION_TYPE + "]"), any(OutputStream.class));
+        }).when(mockBoxFile).getRepresentationContent(eq("[" + TEST_REPRESENTATION_TYPE + "]"), anyString(), any(OutputStream.class), anyInt());
+
 
         testRunner.enqueue("");
         testRunner.run();
@@ -139,7 +141,7 @@ class FetchBoxFileRepresentationTest extends AbstractBoxFileTest {
         when(repNotFoundException.getMessage()).thenReturn("No matching representations found for requested hint");
         when(repNotFoundException.getResponseCode()).thenReturn(400);
 
-        doThrow(repNotFoundException).when(mockBoxFile).getRepresentationContent(anyString(), any(OutputStream.class));
+        doThrow(repNotFoundException).when(mockBoxFile).getRepresentationContent(eq("[" + TEST_REPRESENTATION_TYPE + "]"), anyString(), any(OutputStream.class), anyInt());
 
         testRunner.enqueue("");
         testRunner.run();
@@ -157,7 +159,7 @@ class FetchBoxFileRepresentationTest extends AbstractBoxFileTest {
         when(generalException.getMessage()).thenReturn("API error occurred");
         when(generalException.getResponseCode()).thenReturn(500);
 
-        doThrow(generalException).when(mockBoxFile).getRepresentationContent(anyString(), any(OutputStream.class));
+        doThrow(generalException).when(mockBoxFile).getRepresentationContent(eq("[" + TEST_REPRESENTATION_TYPE + "]"), anyString(), any(OutputStream.class), anyInt());
 
         testRunner.enqueue("");
         testRunner.run();
@@ -178,10 +180,10 @@ class FetchBoxFileRepresentationTest extends AbstractBoxFileTest {
         testRunner.setProperty(FetchBoxFileRepresentation.FILE_ID, "${box.id}");
 
         doAnswer(invocation -> {
-            final OutputStream outputStream = invocation.getArgument(1);
+            final OutputStream outputStream = invocation.getArgument(2);
             outputStream.write(TEST_CONTENT);
             return null;
-        }).when(mockBoxFile).getRepresentationContent(anyString(), any(OutputStream.class));
+        }).when(mockBoxFile).getRepresentationContent(eq("[" + TEST_REPRESENTATION_TYPE + "]"), anyString(), any(OutputStream.class), anyInt());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("box.id", TEST_FILE_ID);
