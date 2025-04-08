@@ -317,7 +317,6 @@ public class GeohashRecord extends AbstractProcessor {
                 notMatchedWriter.beginRecordSet();
             }
 
-            int level = context.getProperty(GEOHASH_LEVEL).evaluateAttributeExpressions(input).asInteger();
             final String rawLatitudePath = context.getProperty(LATITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
             RecordPath latitudePath = cache.getCompiled(rawLatitudePath);
             final String rawLongitudePath = context.getProperty(LONGITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
@@ -330,6 +329,8 @@ public class GeohashRecord extends AbstractProcessor {
 
                 try {
                     if (encode) {
+                        int level = context.getProperty(GEOHASH_LEVEL).evaluateAttributeExpressions(input).asInteger();
+
                         Object encodedGeohash = getEncodedGeohash(latitudePath, longitudePath, record, format, level);
                         updated = updateRecord(GEOHASH_RECORD_PATH, encodedGeohash, record, paths);
                     } else {

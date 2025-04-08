@@ -82,8 +82,6 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.GEOHASH_RECORD_PATH, "/geohash");
         runner.setProperty(GeohashRecord.GEOHASH_FORMAT, GeohashRecord.GeohashFormat.BASE32.toString());
         runner.setProperty(GeohashRecord.GEOHASH_LEVEL, "12");
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     private void assertTransfers(String path, int failure, int success, int matched, int notMatched, int original) {
