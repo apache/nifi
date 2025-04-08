@@ -120,6 +120,13 @@ public class FetchBoxFileRepresentation extends AbstractProcessor implements Ver
             REL_REPRESENTATION_NOT_FOUND
     );
 
+    /*
+     * The maximum number of retries for polling the status of the generated representation.
+     * Each retry waits for 100 milliseconds before the next attempt, set in the Box SDK.
+     * Total wait time is 5 seconds.
+     */
+    private static final int MAX_RETRIES = 50;
+
     private volatile BoxAPIConnection boxAPIConnection;
 
     @Override
@@ -156,7 +163,7 @@ public class FetchBoxFileRepresentation extends AbstractProcessor implements Ver
 
             flowFile = session.write(flowFile, outputStream ->
                     // Download the file representation, box sdk handles a request to create representation if it doesn't exist
-                    boxFile.getRepresentationContent("[" + representationType + "]", outputStream)
+                    boxFile.getRepresentationContent("[" + representationType + "]", "", outputStream, MAX_RETRIES)
             );
 
             flowFile = session.putAllAttributes(flowFile, Map.of(
