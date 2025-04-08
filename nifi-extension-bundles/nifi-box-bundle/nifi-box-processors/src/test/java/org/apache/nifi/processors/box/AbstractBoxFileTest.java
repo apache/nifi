@@ -82,8 +82,6 @@ public class AbstractBoxFileTest {
         testRunner.addControllerService(mockBoxClientService.getIdentifier(), mockBoxClientService);
         testRunner.enableControllerService(mockBoxClientService);
         testRunner.setProperty(BoxClientService.BOX_CLIENT_SERVICE, mockBoxClientService.getIdentifier());
-        // implementation relies on default values of dependant properties; remove this once refactored
-        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     protected BoxFile.Info createFileInfo(String path, Long createdTime) {
