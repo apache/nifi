@@ -576,10 +576,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         // Build a event writer config object for the event writers to use
         final FlowFileEventWriteStrategy flowFileEventWriteStrategy = context.getProperty(EVENTS_PER_FLOWFILE_STRATEGY).asAllowableValue(FlowFileEventWriteStrategy.class);
-        eventWriterConfiguration = new EventWriterConfiguration(
-                flowFileEventWriteStrategy,
-                context.getProperty(NUMBER_OF_EVENTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger()
-        );
+        final int numberOfEventsPerFlowFile = flowFileEventWriteStrategy == FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE
+                ? context.getProperty(NUMBER_OF_EVENTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger() : 1;
+        eventWriterConfiguration = new EventWriterConfiguration(flowFileEventWriteStrategy, numberOfEventsPerFlowFile);
 
         PropertyValue dbNameValue = context.getProperty(DATABASE_NAME_PATTERN);
         databaseNamePattern = dbNameValue.isSet() ? Pattern.compile(dbNameValue.getValue()) : null;
@@ -650,9 +649,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             currentDataCaptureState.setSequenceId(Long.parseLong(seqIdString));
         }
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE)
-                .asControllerService(SSLContextService.class);
         final SSLMode sslMode = SSLMode.valueOf(context.getProperty(SSL_MODE).getValue());
+        final SSLContextService sslContextService = sslMode == SSLMode.DISABLED ? null : context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         // Save off MySQL cluster and JDBC driver information, will be used to connect for event enrichment as well as for the binlog connector
         try {

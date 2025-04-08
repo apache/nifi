@@ -128,8 +128,6 @@ public class CaptureChangeMySQLTest {
     public void setUp(@Mock Connection connection) {
         processor = new MockCaptureChangeMySQL(connection);
         testRunner = TestRunners.newTestRunner(processor);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        testRunner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         client = new MockBinlogClient(LOCAL_HOST, DEFAULT_PORT, ROOT_USER, PASSWORD);
     }
 
