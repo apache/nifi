@@ -39,6 +39,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.KeyPair;
@@ -89,6 +90,14 @@ class StandardServerProviderTest {
     private static final String FRONTEND_PATH = "/nifi";
 
     private static final String FRONTEND_PATH_TRAILING_SLASH = "/nifi/";
+
+    private static final List<String> STANDARD_RESPONSE_HEADERS = List.of(
+            "Content-Security-Policy",
+            "Strict-Transport-Security",
+            "X-Content-Type-Options",
+            "X-Frame-Options",
+            "X-XSS-Protection"
+    );
 
     private static SSLContext sslContext;
 
@@ -219,6 +228,8 @@ class StandardServerProviderTest {
         final String localhostLocation = localhostLocationFound.get();
         assertEquals(FRONTEND_PATH_TRAILING_SLASH, localhostLocation);
 
+        assertStandardResponseHeadersFound(localhostResponse);
+
         final URI frontendPathUri = UriComponentsBuilder.fromUri(localhostUri).path(FRONTEND_PATH).build().toUri();
 
         final HttpRequest frontendPathRequest = HttpRequest.newBuilder(frontendPathUri)
@@ -265,6 +276,15 @@ class StandardServerProviderTest {
                 .header(HOST_HEADER, LOCALHOST_HTTP_PORT)
                 .build();
         assertResponseStatusCode(httpClient, localhostPortRequest, HttpStatus.MISDIRECTED_REQUEST_421);
+    }
+
+    void assertStandardResponseHeadersFound(final HttpResponse<Void> response) {
+        final HttpHeaders headers = response.headers();
+
+        for (final String standardHeader : STANDARD_RESPONSE_HEADERS) {
+            final Optional<String> headerFound = headers.firstValue(standardHeader);
+            assertTrue(headerFound.isPresent(), "HTTP Response Header [%s] not found".formatted(standardHeader));
+        }
     }
 
     HttpResponse<Void> assertResponseStatusCode(final HttpClient httpClient, final HttpRequest request, final int statusCodeExpected) throws IOException, InterruptedException {
