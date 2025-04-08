@@ -30,6 +30,9 @@ public class HeaderWriterHandler extends Handler.Wrapper {
     private static final String CONTENT_SECURITY_POLICY_HEADER = "Content-Security-Policy";
     private static final String CONTENT_SECURITY_POLICY = "frame-ancestors 'self'";
 
+    private static final String CONTENT_TYPE_OPTIONS_HEADER = "X-Content-Type-Options";
+    private static final String CONTENT_TYPE_OPTIONS = "nosniff";
+
     private static final String FRAME_OPTIONS_HEADER = "X-Frame-Options";
     private static final String FRAME_OPTIONS = "SAMEORIGIN";
 
@@ -52,6 +55,7 @@ public class HeaderWriterHandler extends Handler.Wrapper {
     public boolean handle(final Request request, final Response response, final Callback callback) throws Exception {
         final HttpFields.Mutable responseHeaders = response.getHeaders();
         responseHeaders.put(CONTENT_SECURITY_POLICY_HEADER, CONTENT_SECURITY_POLICY);
+        responseHeaders.put(CONTENT_TYPE_OPTIONS_HEADER, CONTENT_TYPE_OPTIONS);
         responseHeaders.put(FRAME_OPTIONS_HEADER, FRAME_OPTIONS);
         responseHeaders.put(XSS_PROTECTION_HEADER, XSS_PROTECTION);
 
