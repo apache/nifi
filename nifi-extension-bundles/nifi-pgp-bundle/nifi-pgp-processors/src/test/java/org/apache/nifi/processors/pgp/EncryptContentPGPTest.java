@@ -120,8 +120,6 @@ public class EncryptContentPGPTest {
     @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(new EncryptContentPGP());
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
     }
 
     @Test
