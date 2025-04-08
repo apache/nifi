@@ -148,7 +148,7 @@ public class StandardFlowComparator implements FlowComparator {
         if (componentA == null) {
             differences.add(difference(DifferenceType.COMPONENT_ADDED, componentA, componentB, componentA, componentB));
 
-            if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP_WITH_RECURSIVE_PG
+            if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
                     && componentB instanceof VersionedProcessGroup groupB) {
                 // we want to also add the differences of the sub process groups
                 // to do that we create an empty process group to simulate groupA
@@ -161,6 +161,15 @@ public class StandardFlowComparator implements FlowComparator {
 
         if (componentB == null) {
             differences.add(difference(DifferenceType.COMPONENT_REMOVED, componentA, componentB, componentA, componentB));
+
+            if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
+                    && componentA instanceof VersionedProcessGroup groupA) {
+                // we want to also add the differences of the sub process groups
+                // to do that we create an empty process group to simulate groupA
+                // and compare it to groupB
+                compare(groupA, new VersionedProcessGroup(), differences, comparePos);
+            }
+
             return true;
         }
 

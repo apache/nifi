@@ -26,12 +26,6 @@ public enum FlowComparatorVersionedStrategy {
      */
     DEEP,
     /**
-     * The whole versioned process group is considered and every component change
-     * should appear as a difference. This also includes the list of changes within
-     * a newly added process group. Version information is included as well.
-     */
-    DEEP_WITH_RECURSIVE_PG,
-    /**
      * The comparator should disregard individual changes but only look for changes
      * in the version information.
      */

@@ -181,7 +181,7 @@ public class TestStandardFlowComparator {
     }
 
     @Test
-    public void testEmbeddedProcessGroupWithDeepRecursiveStrategy() {
+    public void testDeepStrategyWithChildPGs() {
         final Function<String, String> decryptor = encryptedToDecrypted::get;
 
         final VersionedProcessGroup rootPGA = new VersionedProcessGroup();
@@ -205,33 +205,65 @@ public class TestStandardFlowComparator {
         final ComparableDataFlow flowA = new StandardComparableDataFlow("Flow A", rootPGA);
         final ComparableDataFlow flowB = new StandardComparableDataFlow("Flow B", rootPGB);
 
-        comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
-                new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+        // Testing when a child PG is added and the child PG contains components
 
-        final Set<FlowDifference> differencesDeep = comparator.compare().getDifferences();
-        assertEquals(1, differencesDeep.size());
-        assertTrue(differencesDeep.stream()
+        comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
+                new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+
+        final Set<FlowDifference> diffShallowChildPgAdded = comparator.compare().getDifferences();
+        assertEquals(1, diffShallowChildPgAdded.size());
+        assertTrue(diffShallowChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.PROCESS_GROUP));
 
         comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
-                new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP_WITH_RECURSIVE_PG);
-        final Set<FlowDifference> differencesDeepRecursive = comparator.compare().getDifferences();
-        assertEquals(4, differencesDeepRecursive.size());
-        assertTrue(differencesDeepRecursive.stream()
+                new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+        final Set<FlowDifference> diffDeepChildPgAdded = comparator.compare().getDifferences();
+        assertEquals(4, diffDeepChildPgAdded.size());
+        assertTrue(diffDeepChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.PROCESS_GROUP
                         && difference.getComponentB().getIdentifier().equals("childPG")));
-        assertTrue(differencesDeepRecursive.stream()
+        assertTrue(diffDeepChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.PROCESS_GROUP
                         && difference.getComponentB().getIdentifier().equals("subChildPG")));
-        assertTrue(differencesDeepRecursive.stream()
+        assertTrue(diffDeepChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.PROCESSOR));
-        assertTrue(differencesDeepRecursive.stream()
+        assertTrue(diffDeepChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.CONTROLLER_SERVICE));
+
+        // Testing when a child PG is removed and the child PG contains components
+
+        comparator = new StandardFlowComparator(flowB, flowA, Collections.emptySet(),
+                new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+
+        final Set<FlowDifference> diffShallowChildPgRemoved = comparator.compare().getDifferences();
+        assertEquals(1, diffShallowChildPgRemoved.size());
+        assertTrue(diffShallowChildPgRemoved.stream()
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
+                        && difference.getComponentA().getComponentType() == ComponentType.PROCESS_GROUP));
+
+        comparator = new StandardFlowComparator(flowB, flowA, Collections.emptySet(),
+                new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+        final Set<FlowDifference> diffDeepChildPgRemoved = comparator.compare().getDifferences();
+        assertEquals(4, diffDeepChildPgRemoved.size());
+        assertTrue(diffDeepChildPgRemoved.stream()
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
+                        && difference.getComponentA().getComponentType() == ComponentType.PROCESS_GROUP
+                        && difference.getComponentA().getIdentifier().equals("childPG")));
+        assertTrue(diffDeepChildPgRemoved.stream()
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
+                        && difference.getComponentA().getComponentType() == ComponentType.PROCESS_GROUP
+                        && difference.getComponentA().getIdentifier().equals("subChildPG")));
+        assertTrue(diffDeepChildPgRemoved.stream()
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
+                        && difference.getComponentA().getComponentType() == ComponentType.PROCESSOR));
+        assertTrue(diffDeepChildPgRemoved.stream()
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
+                        && difference.getComponentA().getComponentType() == ComponentType.CONTROLLER_SERVICE));
     }
 
     private VersionedParameter createParameter(final String name, final String value, final boolean sensitive) {
