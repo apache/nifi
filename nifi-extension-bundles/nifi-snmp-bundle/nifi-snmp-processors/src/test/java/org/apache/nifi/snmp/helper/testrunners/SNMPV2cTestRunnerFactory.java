@@ -39,8 +39,6 @@ public class SNMPV2cTestRunnerFactory implements SNMPTestRunnerFactory {
     @Override
     public TestRunner createSnmpGetTestRunner(final int agentPort, final String oid, final String strategy) {
         final TestRunner runner = TestRunners.newTestRunner(GetSNMP.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final SNMPConfiguration snmpConfiguration = snmpV2cConfigurationFactory.createSnmpGetSetConfiguration(agentPort);
         runner.setProperty(GetSNMP.OID, oid);
         runner.setProperty(GetSNMP.AGENT_HOST, snmpConfiguration.getTargetHost());
@@ -54,8 +52,6 @@ public class SNMPV2cTestRunnerFactory implements SNMPTestRunnerFactory {
     @Override
     public TestRunner createSnmpSetTestRunner(int agentPort, final String oid, final String oidValue) {
         final TestRunner runner = TestRunners.newTestRunner(SetSNMP.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final SNMPConfiguration snmpConfiguration = snmpV2cConfigurationFactory.createSnmpGetSetConfiguration(agentPort);
         runner.setProperty(SetSNMP.AGENT_HOST, snmpConfiguration.getTargetHost());
         runner.setProperty(SetSNMP.AGENT_PORT, snmpConfiguration.getTargetPort());
@@ -69,8 +65,6 @@ public class SNMPV2cTestRunnerFactory implements SNMPTestRunnerFactory {
     @Override
     public TestRunner createSnmpSendTrapTestRunner(final int managerPort, final String oid, final String oidValue) {
         final TestRunner runner = TestRunners.newTestRunner(SendTrapSNMP.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final SNMPConfiguration snmpConfiguration = snmpV2cConfigurationFactory.createSnmpGetSetConfiguration(managerPort);
         final V2TrapConfiguration trapConfiguration = TrapConfigurationFactory.getV2TrapConfiguration();
         runner.setProperty(SendTrapSNMP.SNMP_MANAGER_HOST, snmpConfiguration.getTargetHost());
@@ -86,8 +80,6 @@ public class SNMPV2cTestRunnerFactory implements SNMPTestRunnerFactory {
     @Override
     public TestRunner createSnmpListenTrapTestRunner(final int managerPort) {
         final TestRunner runner = TestRunners.newTestRunner(ListenTrapSNMP.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         final SNMPConfiguration snmpConfiguration = snmpV2cConfigurationFactory.createSnmpListenTrapConfig(managerPort);
         runner.setProperty(ListenTrapSNMP.SNMP_MANAGER_PORT, String.valueOf(snmpConfiguration.getManagerPort()));
         runner.setProperty(BasicProperties.SNMP_COMMUNITY, snmpConfiguration.getCommunityString());

@@ -95,7 +95,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
             .description("SNMP strategy to use (SNMP Get or SNMP Walk)")
             .required(true)
             .allowableValues(GET, WALK)
-            .defaultValue(GET.getValue())
+            .defaultValue(GET)
             .build();
 
     public static final PropertyDescriptor TEXTUAL_OID = new PropertyDescriptor.Builder()
