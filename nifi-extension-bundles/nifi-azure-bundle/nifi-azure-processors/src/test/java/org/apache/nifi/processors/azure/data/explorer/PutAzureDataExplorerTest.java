@@ -61,8 +61,6 @@ public class PutAzureDataExplorerTest {
     @BeforeEach
     void setRunner() throws InitializationException {
         runner = TestRunners.newTestRunner(PutAzureDataExplorer.class);
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         runner.setValidateExpressionUsage(false);
         when(kustoIngestService.getIdentifier()).thenReturn(SERVICE_ID);
         runner.addControllerService(SERVICE_ID, kustoIngestService);
