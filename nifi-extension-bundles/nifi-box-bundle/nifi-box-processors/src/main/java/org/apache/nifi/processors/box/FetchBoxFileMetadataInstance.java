@@ -41,10 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,19 +54,18 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 import static org.apache.nifi.processors.box.utils.BoxMetadataUtils.processBoxMetadataInstance;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"box", "storage", "metadata", "instances", "templates"})
-@CapabilityDescription("Retrieves all metadata instances associated with a Box file.")
-@SeeAlso({ListBoxFile.class, FetchBoxFile.class, FetchBoxFileInfo.class})
+@Tags({"box", "storage", "metadata", "instance", "template"})
+@CapabilityDescription("Retrieves specific metadata instance associated with a Box file using template key and scope.")
+@SeeAlso({ListBoxFileMetadataInstances.class, ListBoxFile.class, FetchBoxFile.class, FetchBoxFileInfo.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "box.id", description = "The ID of the file from which metadata was fetched"),
-        @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
-        @WritesAttribute(attribute = "mime.type", description = "The MIME Type specified by the Record Writer"),
-        @WritesAttribute(attribute = "box.metadata.instances.names", description = "Comma-separated list of instances names"),
-        @WritesAttribute(attribute = "box.metadata.instances.count", description = "Number of metadata instances found"),
+        @WritesAttribute(attribute = "box.metadata.template.key", description = "The metadata template key"),
+        @WritesAttribute(attribute = "box.metadata.template.scope", description = "The metadata template scope"),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile content"),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
-public class ListBoxFileMetadataInstances extends AbstractProcessor {
+public class FetchBoxFileMetadataInstance extends AbstractProcessor {
 
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
@@ -80,30 +76,55 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor TEMPLATE_KEY = new PropertyDescriptor.Builder()
+            .name("Template Key")
+            .description("The metadata template key to retrieve.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor TEMPLATE_SCOPE = new PropertyDescriptor.Builder()
+            .name("Template Scope")
+            .description("The metadata template scope (e.g., 'enterprise', 'global').")
+            .required(true)
+            .defaultValue("enterprise")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile containing the metadata instances records will be routed to this relationship upon successful processing.")
+            .description("A FlowFile containing the metadata instance will be routed to this relationship upon successful processing.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile will be routed here if there is an error fetching metadata instances from the file.")
+            .description("A FlowFile will be routed here if there is an error fetching metadata instance from the file.")
             .build();
 
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
-            .name("not found")
+    public static final Relationship REL_FILE_NOT_FOUND = new Relationship.Builder()
+            .name("file not found")
             .description("FlowFiles for which the specified Box file was not found will be routed to this relationship.")
+            .build();
+
+    public static final Relationship REL_TEMPLATE_NOT_FOUND = new Relationship.Builder()
+            .name("template not found")
+            .description("FlowFiles for which the specified metadata template was not found will be routed to this relationship.")
             .build();
 
     public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE,
-            REL_NOT_FOUND
+            REL_FILE_NOT_FOUND,
+            REL_TEMPLATE_NOT_FOUND
     );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
-            FILE_ID
+            FILE_ID,
+            TEMPLATE_KEY,
+            TEMPLATE_SCOPE
     );
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -133,55 +154,35 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
+        final String templateScope = context.getProperty(TEMPLATE_SCOPE).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
             final BoxFile boxFile = getBoxFile(fileId);
+            final Metadata metadata = boxFile.getMetadata(templateKey, templateScope);
 
-            final List<Map<String, Object>> instanceList = new ArrayList<>();
-            final Iterable<Metadata> metadataList = boxFile.getAllMetadata();
-            final Iterator<Metadata> iterator = metadataList.iterator();
-            final Set<String> templateNames = new LinkedHashSet<>();
-
-            if (!iterator.hasNext()) {
-                flowFile = session.putAttribute(flowFile, "box.id", fileId);
-                flowFile = session.putAttribute(flowFile, "box.metadata.instances.count", "0");
-                session.transfer(flowFile, REL_SUCCESS);
-                return;
-            }
-
-            while (iterator.hasNext()) {
-                final Metadata metadata = iterator.next();
-                final Map<String, Object> instanceFields = new HashMap<>();
-
-                templateNames.add(metadata.getTemplateName());
-
-                // Add standard metadata fields
-                processBoxMetadataInstance(fileId, metadata, instanceFields);
-                instanceList.add(instanceFields);
-            }
+            final Map<String, Object> instanceFields = new HashMap<>();
+            processBoxMetadataInstance(fileId, metadata, instanceFields);
 
             try {
                 try (final OutputStream out = session.write(flowFile);
                      final BoxMetadataJsonArrayWriter writer = BoxMetadataJsonArrayWriter.create(out)) {
-
-                    // Write each metadata template as a separate JSON object in the array
-                    for (Map<String, Object> templateFields : instanceList) {
-                        writer.write(templateFields);
-                    }
+                    writer.write(instanceFields);
                 }
 
                 final Map<String, String> recordAttributes = new HashMap<>();
-                recordAttributes.put("record.count", String.valueOf(instanceList.size()));
                 recordAttributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 recordAttributes.put("box.id", fileId);
-                recordAttributes.put("box.metadata.instances.names", String.join(",", templateNames));
-                recordAttributes.put("box.metadata.instances.count", String.valueOf(instanceList.size()));
+                recordAttributes.put("box.metadata.template.key", templateKey);
+                recordAttributes.put("box.metadata.template.scope", templateScope);
                 flowFile = session.putAllAttributes(flowFile, recordAttributes);
 
-                session.getProvenanceReporter().receive(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata");
+                session.getProvenanceReporter().receive(flowFile,
+                        String.format("%s/%s/metadata/%s", BoxFileUtils.BOX_URL, fileId, templateKey));
                 session.transfer(flowFile, REL_SUCCESS);
             } catch (final IOException e) {
-                getLogger().error("Failed writing metadata instances from file [{}]", fileId, e);
+                getLogger().error("Failed writing metadata instance from file [{}] with template key [{}] and scope [{}]",
+                        fileId, templateKey, templateScope, e);
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
                 session.transfer(flowFile, REL_FAILURE);
             }
@@ -190,14 +191,22 @@ public class ListBoxFileMetadataInstances extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             if (e.getResponseCode() == 404) {
-                getLogger().warn("Box file with ID {} was not found.", fileId);
-                session.transfer(flowFile, REL_NOT_FOUND);
+                final String errorBody = e.getResponse();
+                if (errorBody != null && errorBody.toLowerCase().contains("instance_not_found")) {
+                    getLogger().warn("Box metadata template with key {} and scope {} was not found.", templateKey, templateScope);
+                    session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
+                } else {
+                    getLogger().warn("Box file with ID {} was not found.", fileId);
+                    session.transfer(flowFile, REL_FILE_NOT_FOUND);
+                }
             } else {
-                getLogger().error("Couldn't fetch metadata instances from file with id [{}]", fileId, e);
+                getLogger().error("Couldn't fetch metadata instance from file with id [{}] with template key [{}] and scope [{}]",
+                        fileId, templateKey, templateScope, e);
                 session.transfer(flowFile, REL_FAILURE);
             }
         } catch (final Exception e) {
-            getLogger().error("Failed to process metadata instances for file [{}]", fileId, e);
+            getLogger().error("Failed to process metadata instance for file [{}] with template key [{}] and scope [{}]",
+                    fileId, templateKey, templateScope, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
         }

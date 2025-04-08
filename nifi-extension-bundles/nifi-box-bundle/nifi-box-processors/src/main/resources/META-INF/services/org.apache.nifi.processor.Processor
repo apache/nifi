@@ -20,6 +20,7 @@ org.apache.nifi.processors.box.CreateBoxFileMetadataInstance
 org.apache.nifi.processors.box.ExtractStructuredBoxFileMetadata
 org.apache.nifi.processors.box.FetchBoxFile
 org.apache.nifi.processors.box.FetchBoxFileInfo
+org.apache.nifi.processors.box.FetchBoxFileMetadataInstance
 org.apache.nifi.processors.box.FetchBoxFileRepresentation
 org.apache.nifi.processors.box.GetBoxFileCollaborators
 org.apache.nifi.processors.box.GetBoxGroupMembers
