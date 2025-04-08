@@ -86,8 +86,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         }
         produce(topic, records);
 
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
 
@@ -135,8 +134,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         }
         produce(topic, records);
 
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while (System.currentTimeMillis() < pollUntil) {
+        while (runner.getFlowFilesForRelationship("success").size() < 2) {
             runner.run(1, false, false);
         }
 
@@ -191,8 +189,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         }
         produce(topic, records);
 
-        final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
-        while (System.currentTimeMillis() < pollUntil) {
+        while (runner.getFlowFilesForRelationship("success").size() < expectedGroupCount) {
             runner.run(1, false, false);
         }
 

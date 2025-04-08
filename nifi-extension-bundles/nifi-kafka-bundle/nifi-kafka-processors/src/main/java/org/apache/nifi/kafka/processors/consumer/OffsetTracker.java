@@ -43,10 +43,10 @@ public class OffsetTracker {
         final PollingSummary pollingSummary;
         if (pollingContext.getTopicPattern().isPresent()) {
             pollingSummary = new PollingSummary(pollingContext.getGroupId(), pollingContext.getTopicPattern().get(),
-                    pollingContext.getAutoOffsetReset(), pollingContext.getMaxUncommittedTime(), offsets);
+                    pollingContext.getAutoOffsetReset(), offsets);
         } else {
             pollingSummary = new PollingSummary(pollingContext.getGroupId(), pollingContext.getTopics(),
-                    pollingContext.getAutoOffsetReset(), pollingContext.getMaxUncommittedTime(), offsets);
+                    pollingContext.getAutoOffsetReset(), offsets);
         }
         return pollingSummary;
     }

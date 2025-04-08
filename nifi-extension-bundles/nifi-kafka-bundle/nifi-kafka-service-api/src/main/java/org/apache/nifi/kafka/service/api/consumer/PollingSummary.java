@@ -19,7 +19,6 @@ package org.apache.nifi.kafka.service.api.consumer;
 import org.apache.nifi.kafka.service.api.common.OffsetSummary;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -32,10 +31,9 @@ public class PollingSummary extends PollingContext {
             final String groupId,
             final Collection<String> topics,
             final AutoOffsetReset autoOffsetReset,
-            final Duration maxUncommittedTime,
             final Map<TopicPartitionSummary, OffsetSummary> offsets
     ) {
-        super(groupId, topics, autoOffsetReset, maxUncommittedTime);
+        super(groupId, topics, autoOffsetReset);
         this.offsets = Objects.requireNonNull(offsets, "Offsets required");
     }
 
@@ -43,10 +41,9 @@ public class PollingSummary extends PollingContext {
             final String groupId,
             final Pattern topicPattern,
             final AutoOffsetReset autoOffsetReset,
-            final Duration maxUncommittedTime,
             final Map<TopicPartitionSummary, OffsetSummary> offsets
     ) {
-        super(groupId, topicPattern, autoOffsetReset, maxUncommittedTime);
+        super(groupId, topicPattern, autoOffsetReset);
         this.offsets = Objects.requireNonNull(offsets, "Offsets required");
     }
 

@@ -29,5 +29,4 @@ public interface KafkaMessageConverter {
 
     void toFlowFiles(final ProcessSession session, final Iterator<ByteRecord> consumerRecords);
 
-    String TRANSIT_URI_FORMAT = "kafka://%s/%s";
 }
