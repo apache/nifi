@@ -91,7 +91,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .description("How to authorize sending email on the user's behalf.")
             .required(true)
             .allowableValues(PASSWORD_BASED_AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
-            .defaultValue(PASSWORD_BASED_AUTHORIZATION_MODE.getValue())
+            .defaultValue(PASSWORD_BASED_AUTHORIZATION_MODE)
             .build();
     public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
             .name("oauth2-access-token-provider")
@@ -201,14 +201,14 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+        if(context.getProperty(AUTHORIZATION_MODE).getValue().equals(OAUTH_AUTHORIZATION_MODE.getValue())) {
             OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
-            oauth2AccessDetails = oauth2AccessTokenProvider.getAccessDetails();
-
             oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
+            oauth2AccessDetails = oauth2AccessTokenProvider.getAccessDetails();
         } else {
             oauth2AccessTokenProviderOptional = Optional.empty();
+            oauth2AccessDetails = null;
         }
     }
 
