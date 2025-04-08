@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.web.client.api;
 
+/**
+ * Enumeration of common and registered HTTP request and response header names
+ */
 public enum HttpHeaderName {
 
     /** RFC 7231 */

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.web.client.api;
 
+/**
+ * Enumeration of common and registered Media Types
+ */
 public enum MediaType {
 
     /** RFC 4329 */
@@ -48,14 +51,14 @@ public enum MediaType {
     /** RFC 7303 */
     TEXT_XML("text/xml");
 
-    private final String contentType;
+    private final String mediaType;
 
-    MediaType(final String contentType) {
-        this.contentType = contentType;
+    MediaType(final String mediaType) {
+        this.mediaType = mediaType;
     }
 
-    public String getContentType() {
-        return contentType;
+    public String getMediaType() {
+        return mediaType;
     }
 
 }
