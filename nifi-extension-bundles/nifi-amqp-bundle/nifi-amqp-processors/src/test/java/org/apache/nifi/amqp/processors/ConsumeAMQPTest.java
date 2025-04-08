@@ -376,8 +376,6 @@ public class ConsumeAMQPTest {
         runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
         runner.setProperty(ConsumeAMQP.USER, "user");
         runner.setProperty(ConsumeAMQP.PASSWORD, "password");
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
         return runner;
     }
 

@@ -24,7 +24,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -43,12 +42,6 @@ public class PublishAMQPTest {
 
     private final LocalPublishAMQP pubProc = new LocalPublishAMQP();
     private final TestRunner runner = TestRunners.newTestRunner(pubProc);
-
-    @BeforeEach
-    void setUp() {
-        // implementation relies on default values of dependant properties; remove this once refactored
-        runner.setProhibitUseOfPropertiesWithUnsatisfiedDependencies(false);
-    }
 
     @Test
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
