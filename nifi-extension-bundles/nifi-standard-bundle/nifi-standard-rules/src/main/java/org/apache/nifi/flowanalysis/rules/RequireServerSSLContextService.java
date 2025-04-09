@@ -42,7 +42,7 @@ import java.util.List;
 )
 public class RequireServerSSLContextService extends AbstractFlowAnalysisRule {
 
-    private final List<String> componentTypes = List.of(
+    private final static List<String> COMPONENT_TYPES = List.of(
             "org.apache.nifi.processors.standard.ListenFTP",
             "org.apache.nifi.processors.standard.ListenHTTP",
             "org.apache.nifi.processors.standard.ListenTCP",
@@ -58,15 +58,16 @@ public class RequireServerSSLContextService extends AbstractFlowAnalysisRule {
         if (component instanceof VersionedConfigurableExtension versionedConfigurableExtension) {
 
             String encounteredComponentType = versionedConfigurableExtension.getType();
-            String encounteredSimpleComponentType = encounteredComponentType.substring(encounteredComponentType.lastIndexOf(".") + 1);
 
-            if (componentTypes.isEmpty() || componentTypes.contains(encounteredComponentType) || componentTypes.contains(encounteredSimpleComponentType)) {
+            if (COMPONENT_TYPES.contains(encounteredComponentType)) {
                 // Loop over the properties for this component looking for an SSLContextService
                 versionedConfigurableExtension.getProperties().forEach((propertyName, propertyValue) -> {
 
                     // If the SSL Context property exists and the value is not set, report a violation
                     if (("SSL Context Service".equalsIgnoreCase(propertyName) || "ssl-context-service".equalsIgnoreCase(propertyName))
                             && StringUtils.isEmpty(propertyValue)) {
+
+                        String encounteredSimpleComponentType = encounteredComponentType.substring(encounteredComponentType.lastIndexOf(".") + 1);
                         ComponentAnalysisResult result = new ComponentAnalysisResult(
                                 component.getInstanceIdentifier(),
                                 "'" + encounteredSimpleComponentType + "' must specify an SSL Context Service"
