@@ -147,29 +147,11 @@ public class StandardFlowComparator implements FlowComparator {
         final boolean compareName, final boolean comparePos, final boolean compareComments) {
         if (componentA == null) {
             differences.add(difference(DifferenceType.COMPONENT_ADDED, componentA, componentB, componentA, componentB));
-
-            if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
-                    && componentB instanceof VersionedProcessGroup groupB) {
-                // we want to also add the differences of the sub process groups
-                // to do that we create an empty process group to simulate groupA
-                // and compare it to groupB
-                compare(new VersionedProcessGroup(), groupB, differences, comparePos);
-            }
-
             return true;
         }
 
         if (componentB == null) {
             differences.add(difference(DifferenceType.COMPONENT_REMOVED, componentA, componentB, componentA, componentB));
-
-            if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
-                    && componentA instanceof VersionedProcessGroup groupA) {
-                // we want to also add the differences of the sub process groups
-                // to do that we create an empty process group to simulate groupA
-                // and compare it to groupB
-                compare(groupA, new VersionedProcessGroup(), differences, comparePos);
-            }
-
             return true;
         }
 
@@ -544,6 +526,16 @@ public class StandardFlowComparator implements FlowComparator {
 
     private void compare(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB, final Set<FlowDifference> differences, final boolean compareNamePos) {
         if (compareComponents(groupA, groupB, differences, compareNamePos, compareNamePos, true)) {
+            return;
+        }
+
+        if (groupA == null) {
+            differences.add(difference(DifferenceType.COMPONENT_ADDED, groupA, groupB, groupA, groupB));
+            return;
+        }
+
+        if (groupB == null) {
+            differences.add(difference(DifferenceType.COMPONENT_REMOVED, groupA, groupB, groupA, groupB));
             return;
         }
 

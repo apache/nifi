@@ -26,8 +26,7 @@ public enum FlowComparatorVersionedStrategy {
      */
     DEEP,
     /**
-     * The comparator should disregard individual changes but only look for changes
-     * in the version information.
+     * The comparator should disregard individual changes but only look for changes in the version information.
      */
     SHALLOW
 }
