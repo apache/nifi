@@ -103,6 +103,9 @@
         "tailwindcss": "^3.3.6",
         "typescript": "5.7.3"
     },
+    "optionalDependencies": {
+        "@esbuild/linux-x64":"0.25.2"
+    },
     "engines": {
         "node": ">=22.0.0"
     },
