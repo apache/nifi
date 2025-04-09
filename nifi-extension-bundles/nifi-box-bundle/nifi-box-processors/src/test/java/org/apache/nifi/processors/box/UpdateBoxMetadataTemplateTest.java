@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.MetadataTemplate;
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -50,11 +48,6 @@ public class UpdateBoxMetadataTemplateTest extends AbstractBoxFileTest {
     private String capturedTemplateKey;
 
     private class TestUpdateBoxMetadataTemplate extends UpdateBoxMetadataTemplate {
-        @Override
-        protected BoxAPIConnection getBoxAPIConnection(final ProcessContext context) {
-            return mockBoxAPIConnection;
-        }
-
         @Override
         protected MetadataTemplate getMetadataTemplate(final String scope, final String templateKey) {
             if (scope.equals("notFound") || templateKey.equals("notFound")) {
@@ -153,9 +146,8 @@ public class UpdateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         assertEquals(TEMPLATE_KEY, capturedTemplateKey);
         assertFalse(capturedOperations.isEmpty(), "Should generate operations for template updates");
 
-        // Check success results
         testRunner.assertAllFlowFilesTransferred(UpdateBoxMetadataTemplate.REL_SUCCESS, 1);
-        final MockFlowFile outFile = testRunner.getFlowFilesForRelationship(UpdateBoxMetadataTemplate.REL_SUCCESS).get(0);
+        final MockFlowFile outFile = testRunner.getFlowFilesForRelationship(UpdateBoxMetadataTemplate.REL_SUCCESS).getFirst();
         outFile.assertAttributeEquals("box.template.key", TEMPLATE_KEY);
         outFile.assertAttributeEquals("box.template.scope", SCOPE);
         outFile.assertAttributeEquals("box.template.operations.count", String.valueOf(capturedOperations.size()));
@@ -180,7 +172,6 @@ public class UpdateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.enqueue(content);
         testRunner.run();
 
-        // Verify correct routing
         testRunner.assertAllFlowFilesTransferred(UpdateBoxMetadataTemplate.REL_TEMPLATE_NOT_FOUND, 1);
         final MockFlowFile outFile = testRunner.getFlowFilesForRelationship(UpdateBoxMetadataTemplate.REL_TEMPLATE_NOT_FOUND).getFirst();
         outFile.assertAttributeExists(BoxFileAttributes.ERROR_MESSAGE);
@@ -201,8 +192,6 @@ public class UpdateBoxMetadataTemplateTest extends AbstractBoxFileTest {
 
         testRunner.enqueue(content);
         testRunner.run();
-
-        // Verify correct routing
         testRunner.assertAllFlowFilesTransferred(UpdateBoxMetadataTemplate.REL_FAILURE, 1);
     }
 
@@ -229,23 +218,18 @@ public class UpdateBoxMetadataTemplateTest extends AbstractBoxFileTest {
 
         testRunner.enqueue(content);
         testRunner.run();
-
-        // Verify no operations generated
         assertEquals(0, capturedOperations.size(), "Should not generate any operations when no changes needed");
-
-        // Verify success flow
         testRunner.assertAllFlowFilesTransferred(UpdateBoxMetadataTemplate.REL_SUCCESS, 1);
     }
 
     @Test
     public void testApiError() {
-        // Setup test to throw error when updating
         testRunner.setProperty(UpdateBoxMetadataTemplate.TEMPLATE_KEY, "forbidden");
 
         final String content = """
                 [
                     {
-                        "key": "company_name", 
+                        "key": "company_name",
                         "displayName": "Company Name",
                         "type": "string",
                         "hidden": false
@@ -255,8 +239,6 @@ public class UpdateBoxMetadataTemplateTest extends AbstractBoxFileTest {
 
         testRunner.enqueue(content);
         testRunner.run();
-
-        // Verify correct routing
         testRunner.assertAllFlowFilesTransferred(UpdateBoxMetadataTemplate.REL_FAILURE, 1);
     }
 }

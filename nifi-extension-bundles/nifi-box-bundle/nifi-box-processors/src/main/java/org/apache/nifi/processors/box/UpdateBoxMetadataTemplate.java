@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,10 +60,9 @@ import static org.apache.nifi.processors.box.CreateBoxMetadataTemplate.SCOPE_ENT
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "templates", "update"})
 @CapabilityDescription("""
-         Updates a Box metadata template using the desired schema from the flowFile content.\s
-         Takes in the desired end state of the template, compares it with the existing template, 
-         and computes the necessary operations to transform the template to the desired state.
-         Admin permissions are required to update templates.
+        Updates a Box metadata template using the desired schema from the flowFile content.
+        Takes in the desired end state of the template, compares it with the existing template,\s
+        and computes the necessary operations to transform the template to the desired state.
         """)
 @SeeAlso({ListBoxFileMetadataTemplates.class, CreateBoxMetadataTemplate.class, UpdateBoxFileMetadataInstance.class})
 @WritesAttributes({
@@ -166,9 +166,8 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
             // Get the current template
             final MetadataTemplate existingTemplate = getMetadataTemplate(scope, templateKey);
 
-            // Parse the desired state from the flowFile
+            // Parse the desired state from the FlowFile
             final List<FieldDefinition> desiredFields = readDesiredFields(session, flowFile, recordReaderFactory);
-
             if (desiredFields.isEmpty()) {
                 flowFile = session.putAttribute(flowFile, "box.error.message", "No valid metadata field specifications found in the input");
                 session.transfer(flowFile, REL_FAILURE);
@@ -186,7 +185,8 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
             final Map<String, String> attributes = Map.of(
                     "box.template.key", templateKey,
                     "box.template.scope", scope,
-                    "box.template.operations.count", String.valueOf(operations.size()));
+                    "box.template.operations.count", String.valueOf(operations.size())
+            );
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().modifyAttributes(flowFile, "Updated Box metadata template: " + templateKey);
@@ -238,6 +238,7 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
                                     final List<FieldDefinition> fields,
                                     final Set<String> processedKeys,
                                     final List<String> errors) {
+
         // Extract and validate key (required)
         final Object keyObj = record.getValue("key");
         if (keyObj == null) {
@@ -245,7 +246,6 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
             return;
         }
         final String key = keyObj.toString();
-
         if (processedKeys.contains(key)) {
             errors.add("Duplicate key '" + key + "' found in record");
             return;
@@ -258,7 +258,6 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
             return;
         }
         final String type = typeObj.toString().toLowerCase();
-
         if (!VALID_FIELD_TYPES.contains(type)) {
             errors.add("Record with key '" + key + "' has an invalid type: '" + type +
                     "'. Valid types are: " + String.join(", ", VALID_FIELD_TYPES));
@@ -284,11 +283,12 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
             field.description = descriptionObj.toString();
         }
 
-        if ("enum".equals(type) || "multiSelect".equals(type)) {
+        // For enum or multiSelect fields, capture options
+        if (("enum".equals(type) || "multiSelect".equals(type))) {
             final Object optionsObj = record.getValue("options");
             if (optionsObj instanceof List<?> optionsList) {
                 field.options = optionsList.stream()
-                        .filter(obj -> obj != null)
+                        .filter(Objects::nonNull)
                         .map(Object::toString)
                         .collect(Collectors.toList());
             }
@@ -300,38 +300,32 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
 
     private List<MetadataTemplate.FieldOperation> generateOperations(final MetadataTemplate existingTemplate,
                                                                      final List<FieldDefinition> desiredFields) {
+        final Map<String, MetadataTemplate.Field> existingFieldsByKey =
+                existingTemplate.getFields().stream()
+                        .collect(Collectors.toMap(MetadataTemplate.Field::getKey, f -> f));
+
         final List<MetadataTemplate.FieldOperation> operations = new ArrayList<>();
-        final Map<String, MetadataTemplate.Field> existingFieldsByKey = new HashMap<>();
 
-        // Create a map of existing fields by key for efficient lookup
-        for (MetadataTemplate.Field field : existingTemplate.getFields()) {
-            existingFieldsByKey.put(field.getKey(), field);
-        }
-
-        // Process each desired field
         for (FieldDefinition desiredField : desiredFields) {
-            MetadataTemplate.Field existingField = existingFieldsByKey.get(desiredField.key);
+            final MetadataTemplate.Field existingField = existingFieldsByKey.get(desiredField.key);
 
             if (existingField == null) {
                 // Field doesn't exist - add it
                 operations.add(createAddFieldOperation(desiredField));
             } else {
                 // Field exists - check if it needs updating
-                Map<String, Object> changes = getFieldChanges(existingField, desiredField);
+                final Map<String, Object> changes = getFieldChanges(existingField, desiredField);
                 if (!changes.isEmpty()) {
                     operations.add(createEditFieldOperation(existingField.getKey(), changes));
                 }
-
-                // Remove processed field from the map so we can track which fields to remove
                 existingFieldsByKey.remove(desiredField.key);
             }
         }
 
-        // Any remaining fields in existingFieldsByKey are not in the desired state - remove them
-        for (String keyToRemove : existingFieldsByKey.keySet()) {
+        // Any leftover fields in existingFieldsByKey are not desired - remove them
+        for (final String keyToRemove : existingFieldsByKey.keySet()) {
             operations.add(createRemoveFieldOperation(keyToRemove));
         }
-
         return operations;
     }
 
@@ -339,38 +333,32 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
                                                 final FieldDefinition desiredField) {
         final Map<String, Object> changes = new HashMap<>();
 
-        // Check if key has changed
         if (!existingField.getKey().equals(desiredField.key)) {
             changes.put("key", desiredField.key);
         }
 
-        // Check if displayName has changed
-        if (desiredField.displayName != null &&
-                (existingField.getDisplayName() == null || !existingField.getDisplayName().equals(desiredField.displayName))) {
+        if (desiredField.displayName != null && (existingField.getDisplayName() == null
+                || !existingField.getDisplayName().equals(desiredField.displayName))) {
             changes.put("displayName", desiredField.displayName);
         }
 
-        // Check if type has changed (this is a rare case)
         if (!existingField.getType().equals(desiredField.type)) {
             changes.put("type", desiredField.type);
         }
 
-        // Check if hidden state has changed
         if (desiredField.hidden != existingField.getIsHidden()) {
             changes.put("hidden", desiredField.hidden);
         }
 
-        // Check if description has changed
-        if (desiredField.description != null &&
-                (existingField.getDescription() == null || !existingField.getDescription().equals(desiredField.description))) {
+        if (desiredField.description != null && (existingField.getDescription() == null
+                || !existingField.getDescription().equals(desiredField.description))) {
             changes.put("description", desiredField.description);
         }
 
-        // For enum and multiSelect fields, check if options have changed
-        if (("enum".equals(desiredField.type) || "multiSelect".equals(desiredField.type)) &&
-                desiredField.options != null && !desiredField.options.isEmpty()) {
-
-            List<String> existingOptions = existingField.getOptions();
+        // Check for updated options on enum or multiSelect fields
+        boolean isEnumOrMultiSelect = "enum".equals(desiredField.type) || "multiSelect".equals(desiredField.type);
+        if (isEnumOrMultiSelect && desiredField.options != null && !desiredField.options.isEmpty()) {
+            final List<String> existingOptions = existingField.getOptions();
             if (existingOptions == null || !new HashSet<>(existingOptions).equals(new HashSet<>(desiredField.options))) {
                 changes.put("options", desiredField.options);
             }
@@ -380,39 +368,32 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
     }
 
     private MetadataTemplate.FieldOperation createAddFieldOperation(final FieldDefinition field) {
+        // Build JSON for the addField operation
+        boolean isEnumOrMultiSelect = "enum".equals(field.type) || "multiSelect".equals(field.type);
+
         final StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.append("{\"op\":\"addField\",\"data\":{");
-
-        // Add mandatory fields
-        jsonBuilder.append("\"key\":\"").append(field.key).append("\",");
-        jsonBuilder.append("\"type\":\"").append(field.type).append("\",");
-
-        // Add optional fields
+        jsonBuilder.append("{\"op\":\"addField\",\"data\":{")
+                .append("\"key\":\"").append(field.key).append("\",")
+                .append("\"type\":\"").append(field.type).append("\",");
         if (field.displayName != null) {
             jsonBuilder.append("\"displayName\":\"").append(field.displayName).append("\",");
         }
-
         jsonBuilder.append("\"hidden\":").append(field.hidden);
 
         if (field.description != null) {
             jsonBuilder.append(",\"description\":\"").append(field.description).append("\"");
         }
 
-        // Add options for enum or multiSelect fields
-        if (("enum".equals(field.type) || "multiSelect".equals(field.type)) &&
-                field.options != null && !field.options.isEmpty()) {
+        if (isEnumOrMultiSelect && field.options != null && !field.options.isEmpty()) {
             jsonBuilder.append(",\"options\":[");
-
             for (int i = 0; i < field.options.size(); i++) {
                 jsonBuilder.append("{\"key\":\"").append(field.options.get(i)).append("\"}");
                 if (i < field.options.size() - 1) {
                     jsonBuilder.append(",");
                 }
             }
-
             jsonBuilder.append("]");
         }
-
         jsonBuilder.append("}}");
 
         return new MetadataTemplate.FieldOperation(jsonBuilder.toString());
@@ -420,23 +401,24 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
 
     private MetadataTemplate.FieldOperation createEditFieldOperation(final String fieldKey, final Map<String, Object> changes) {
         final StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.append("{\"op\":\"editField\",\"fieldKey\":\"").append(fieldKey).append("\",\"data\":{");
+        jsonBuilder.append("{\"op\":\"editField\",\"fieldKey\":\"")
+                .append(fieldKey).append("\",\"data\":{");
 
         int i = 0;
-        for (Map.Entry<String, Object> entry : changes.entrySet()) {
+        for (final Map.Entry<String, Object> entry : changes.entrySet()) {
             if (i > 0) {
                 jsonBuilder.append(",");
             }
-
             jsonBuilder.append("\"").append(entry.getKey()).append("\":");
 
-            if (entry.getValue() instanceof String) {
-                jsonBuilder.append("\"").append(entry.getValue()).append("\"");
-            } else if (entry.getValue() instanceof Boolean) {
-                jsonBuilder.append(entry.getValue());
-            } else if (entry.getValue() instanceof List) {
+            final Object value = entry.getValue();
+            if (value instanceof String) {
+                jsonBuilder.append("\"").append(value).append("\"");
+            } else if (value instanceof Boolean) {
+                jsonBuilder.append(value);
+            } else if (value instanceof List) {
                 @SuppressWarnings("unchecked")
-                List<String> options = (List<String>) entry.getValue();
+                List<String> options = (List<String>) value;
                 jsonBuilder.append("[");
                 for (int j = 0; j < options.size(); j++) {
                     jsonBuilder.append("{\"key\":\"").append(options.get(j)).append("\"}");
@@ -446,26 +428,23 @@ public class UpdateBoxMetadataTemplate extends AbstractProcessor {
                 }
                 jsonBuilder.append("]");
             } else {
-                jsonBuilder.append(entry.getValue());
+                jsonBuilder.append(value);
             }
-
             i++;
         }
-
         jsonBuilder.append("}}");
 
         return new MetadataTemplate.FieldOperation(jsonBuilder.toString());
     }
 
     private MetadataTemplate.FieldOperation createRemoveFieldOperation(final String fieldKey) {
-        // Create the operation JSON
-        String removeFieldJson = String.format("{\"op\":\"removeField\",\"fieldKey\":\"%s\"}", fieldKey);
-
+        // Build JSON for the removeField operation
+        final String removeFieldJson = String.format("{\"op\":\"removeField\",\"fieldKey\":\"%s\"}", fieldKey);
         return new MetadataTemplate.FieldOperation(removeFieldJson);
     }
 
     protected MetadataTemplate getMetadataTemplate(final String scope, final String templateKey) {
-        return MetadataTemplate.getMetadataTemplate(boxAPIConnection, scope, templateKey);
+        return MetadataTemplate.getMetadataTemplate(boxAPIConnection, templateKey, scope);
     }
 
     protected void updateMetadataTemplate(final String scope,
