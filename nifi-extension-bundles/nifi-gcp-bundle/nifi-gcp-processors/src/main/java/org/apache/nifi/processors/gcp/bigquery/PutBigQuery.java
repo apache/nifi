@@ -313,6 +313,9 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         // Close the connection to the server.
         streamWriter.close();
 
+        // finalize the stream
+        writeClient.finalizeWriteStream(streamName);
+
         // Verify that no error occurred in the stream.
         if (error.get() != null) {
             getLogger().error("Stream processing failed", error.get());
@@ -322,7 +325,6 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             error.set(null); // set error to null for next execution
         } else {
             if (isBatch()) {
-                writeClient.finalizeWriteStream(streamName);
 
                 BatchCommitWriteStreamsRequest commitRequest =
                     BatchCommitWriteStreamsRequest.newBuilder()
