@@ -16,7 +16,7 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
-call %~dp0\nifi-env.cmd
+call "%~dp0\nifi-env.cmd"
 
 if exist "%JAVA_HOME%\bin\java.exe" (
   set JAVA_EXE=%JAVA_HOME%\bin\java.exe
@@ -33,15 +33,15 @@ set CONFIG_FILE_PROPERTY=-Dorg.apache.nifi.bootstrap.config.file=%CONF_DIR%\boot
 set PROPERTIES_FILE_PROPERTY=-Dnifi.properties.file.path=%CONF_DIR%\nifi.properties
 set BOOTSTRAP_HEAP_SIZE=48m
 
-set JAVA_ARGS=%LOG_DIR_PROPERTY% %CONFIG_FILE_PROPERTY%
-set JAVA_PARAMS=-cp %BOOTSTRAP_LIB_DIR%\*;%CONF_DIR% %JAVA_ARGS%
+set JAVA_ARGS="%LOG_DIR_PROPERTY%" "%CONFIG_FILE_PROPERTY%"
+set JAVA_PARAMS=-cp "%BOOTSTRAP_LIB_DIR%\*;%CONF_DIR%" %JAVA_ARGS%
 set JAVA_MEMORY=-Xms%BOOTSTRAP_HEAP_SIZE% -Xmx%BOOTSTRAP_HEAP_SIZE%
 
 echo JAVA_HOME=%JAVA_HOME%
 echo NIFI_HOME=%NIFI_HOME%
 echo.
 
-pushd %NIFI_HOME%
+pushd "%NIFI_HOME%"
 
 set RUN_COMMAND="%~1"
 if %RUN_COMMAND% == "set-single-user-credentials" (
