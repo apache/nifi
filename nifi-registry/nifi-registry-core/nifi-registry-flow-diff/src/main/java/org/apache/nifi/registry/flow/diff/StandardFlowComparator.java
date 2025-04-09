@@ -151,9 +151,15 @@ public class StandardFlowComparator implements FlowComparator {
             if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
                     && componentB instanceof VersionedProcessGroup groupB) {
                 // we want to also add the differences of the sub process groups
-                // to do that we create an empty process group to simulate groupA
-                // and compare it to groupB
-                compare(new VersionedProcessGroup(), groupB, differences, comparePos);
+                differences.addAll(compareComponents(Set.of(), groupB.getConnections(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getProcessors(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getControllerServices(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getFunnels(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getInputPorts(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getLabels(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getOutputPorts(), this::compare));
+                differences.addAll(compareComponents(Set.of(), groupB.getProcessGroups(), (a, b, diffs) -> compare(a, b, diffs, true)));
+                differences.addAll(compareComponents(Set.of(), groupB.getRemoteProcessGroups(), this::compare));
             }
 
             return true;
@@ -165,9 +171,15 @@ public class StandardFlowComparator implements FlowComparator {
             if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
                     && componentA instanceof VersionedProcessGroup groupA) {
                 // we want to also add the differences of the sub process groups
-                // to do that we create an empty process group to simulate groupA
-                // and compare it to groupB
-                compare(groupA, new VersionedProcessGroup(), differences, comparePos);
+                differences.addAll(compareComponents(groupA.getConnections(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getProcessors(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getControllerServices(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getFunnels(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getInputPorts(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getLabels(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getOutputPorts(), Set.of(), this::compare));
+                differences.addAll(compareComponents(groupA.getProcessGroups(), Set.of(), (a, b, diffs) -> compare(a, b, diffs, true)));
+                differences.addAll(compareComponents(groupA.getRemoteProcessGroups(), Set.of(), this::compare));
             }
 
             return true;
