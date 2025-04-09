@@ -63,7 +63,9 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
                 description = String.format("Property '%s' is a parameter reference in %s but not in %s", fieldName, flowBName, flowAName);
                 break;
             case SCHEDULED_STATE_CHANGED:
-                description = String.format("%s %s has a Scheduled State of %s in %s but %s in %s", componentA.getComponentType(), getId(componentA), valueA, flowAName, valueB, flowBName);
+                description = String.format("%s %s has a Scheduled State of %s in %s but %s in %s",
+                        componentA == null ? componentB.getComponentType().getTypeName() : componentA.getComponentType().getTypeName(),
+                        componentA == null ? getId(componentB) : getId(componentA), valueA, flowAName, valueB, flowBName);
                 break;
             case VERSIONED_FLOW_COORDINATES_CHANGED:
                 if (valueA instanceof VersionedFlowCoordinates && valueB instanceof VersionedFlowCoordinates) {
@@ -84,9 +86,9 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
                     flowAName, valueA, flowBName, valueB);
                 break;
             default:
-                description = String.format("%s for %s with ID %s; flow '%s' has value %s; flow '%s' has value %s",
-                    type.getDescription(), componentA.getComponentType().getTypeName(), getId(componentA),
-                    flowAName, valueA, flowBName, valueB);
+                description = String.format("%s for %s with ID %s; flow '%s' has value %s; flow '%s' has value %s", type.getDescription(),
+                        componentA == null ? componentB.getComponentType().getTypeName() : componentA.getComponentType().getTypeName(),
+                        componentA == null ? getId(componentB) : getId(componentA), flowAName, valueA, flowBName, valueB);
                 break;
         }
 

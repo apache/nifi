@@ -18,6 +18,8 @@
 package org.apache.nifi.registry.flow.diff;
 
 import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -202,6 +204,19 @@ public class TestStandardFlowComparator {
         controllerService.setIdentifier("controllerService");
         subChildPG.getControllerServices().add(controllerService);
 
+        // change all configuration of PG to check diff on PG configuration
+        subChildPG.setExecutionEngine(ExecutionEngine.STATELESS);
+        subChildPG.setFlowFileConcurrency("SINGLE_BATCH_PER_NODE");
+        subChildPG.setFlowFileOutboundPolicy("BATCH_OUTPUT");
+        subChildPG.setDefaultBackPressureDataSizeThreshold("1B");
+        subChildPG.setDefaultBackPressureObjectThreshold(1L);
+        subChildPG.setDefaultFlowFileExpiration("10 sec");
+        subChildPG.setParameterContextName("paramContextName");
+        subChildPG.setLogFileSuffix("logSuffix");
+        subChildPG.setScheduledState(ScheduledState.DISABLED);
+        subChildPG.setMaxConcurrentTasks(4);
+        subChildPG.setStatelessFlowTimeout("30 sec");
+
         final ComparableDataFlow flowA = new StandardComparableDataFlow("Flow A", rootPGA);
         final ComparableDataFlow flowB = new StandardComparableDataFlow("Flow B", rootPGB);
 
@@ -219,7 +234,7 @@ public class TestStandardFlowComparator {
         comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
                 new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
         final Set<FlowDifference> diffDeepChildPgAdded = comparator.compare().getDifferences();
-        assertEquals(4, diffDeepChildPgAdded.size());
+        assertEquals(15, diffDeepChildPgAdded.size());
         assertTrue(diffDeepChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.PROCESS_GROUP
@@ -234,6 +249,10 @@ public class TestStandardFlowComparator {
         assertTrue(diffDeepChildPgAdded.stream()
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.CONTROLLER_SERVICE));
+        assertTrue(diffDeepChildPgAdded.stream()
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.EXECUTION_ENGINE_CHANGED
+                        && difference.getComponentB().getComponentType() == ComponentType.PROCESS_GROUP
+                        && difference.getComponentB().getIdentifier().equals("subChildPG")));
 
         // Testing when a child PG is removed and the child PG contains components
 
