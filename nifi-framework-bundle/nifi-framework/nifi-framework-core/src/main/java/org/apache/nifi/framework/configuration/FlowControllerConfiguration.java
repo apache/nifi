@@ -481,14 +481,12 @@ public class FlowControllerConfiguration {
      * Flow Action Reporter configured from NiFi Application Properties
      *
      * @return Flow Action Reporter
-     * @throws Exception Thrown on failures to create Flow Action Reporter
      */
-    @Bean(destroyMethod = "preDestruction")
-    public FlowActionReporter flowActionReporter() throws Exception {
+    @Bean
+    public FlowActionReporter flowActionReporter() {
         final String configuredClassName = properties.getProperty(FLOW_ACTION_REPORTER_IMPLEMENTATION);
         if (StringUtils.isBlank(configuredClassName)) {
-            throw new IllegalStateException("Cannot create FlowActionReporter because the configuration is missing the following property: "
-                + FLOW_ACTION_REPORTER_IMPLEMENTATION);
+            return null;
         }
         try {
             FlowActionReporter reporter = NarThreadContextClassLoader.createInstance(extensionManager, configuredClassName, FlowActionReporter.class, properties);

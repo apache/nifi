@@ -36,56 +36,55 @@ public class ActionToFlowActionConverter implements ActionConverter {
     @Override
     public FlowAction convert(Action action) {
         Map<String, String> attributes = new HashMap<>();
-        attributes.putAll(actionAttributes(action));
-        attributes.putAll(actionDetailsAttributes(action.getActionDetails()));
-        attributes.putAll(componentDetailsProperties(action.getComponentDetails()));
+        populateActionAttributes(action, attributes);
+        populateActionDetailsAttributes(action.getActionDetails(), attributes);
+        populateComponentDetailsProperties(action.getComponentDetails(), attributes);
         return new StandardFlowAction(attributes);
     }
 
-    private Map<String, String> actionAttributes(Action action) {
-        return Map.of(
-            FlowActionAttribute.ACTION_ID.key(), String.valueOf(action.getId()),
-            FlowActionAttribute.ACTION_TIMESTAMP.key(), action.getTimestamp().toInstant().toString(),
-            FlowActionAttribute.ACTION_USER_IDENTITY.key(), action.getUserIdentity(),
-            FlowActionAttribute.ACTION_SOURCE_ID.key(), action.getSourceId(),
-            FlowActionAttribute.ACTION_SOURCE_TYPE.key(), action.getSourceType().name(),
-            FlowActionAttribute.ACTION_OPERATION.key(), action.getOperation().name()
-        );
+    private void populateActionAttributes(Action action, Map<String, String> attributes) {
+        attributes.put(FlowActionAttribute.ACTION_ID.key(), String.valueOf(action.getId()));
+        attributes.put(FlowActionAttribute.ACTION_TIMESTAMP.key(), action.getTimestamp().toInstant().toString());
+        attributes.put(FlowActionAttribute.ACTION_USER_IDENTITY.key(), action.getUserIdentity());
+        attributes.put(FlowActionAttribute.ACTION_SOURCE_ID.key(), action.getSourceId());
+        attributes.put(FlowActionAttribute.ACTION_SOURCE_TYPE.key(), action.getSourceType().name());
+        attributes.put(FlowActionAttribute.ACTION_OPERATION.key(), action.getOperation().name());
     }
 
-    private Map<String, String> actionDetailsAttributes(ActionDetails actionDetails) {
-        return switch (actionDetails) {
-            case ConfigureDetails configureDetails -> Map.of(
+    private void populateActionDetailsAttributes(ActionDetails actionDetails, Map<String, String> attributes) {
+        switch (actionDetails) {
+            case ConfigureDetails configureDetails -> attributes.put(
                 FlowActionAttribute.ACTION_DETAILS_NAME.key(), configureDetails.getName()
             );
-            case ConnectDetails connectDetails -> Map.of(
-                FlowActionAttribute.ACTION_DETAILS_SOURCE_ID.key(), connectDetails.getSourceId(),
-                FlowActionAttribute.ACTION_DETAILS_SOURCE_TYPE.key(), connectDetails.getSourceType().name(),
-                FlowActionAttribute.ACTION_DETAILS_DESTINATION_ID.key(), connectDetails.getDestinationId(),
-                FlowActionAttribute.ACTION_DETAILS_DESTINATION_TYPE.key(), connectDetails.getDestinationType().name(),
-                FlowActionAttribute.ACTION_DETAILS_RELATIONSHIP.key(), connectDetails.getRelationship()
-            );
-            case MoveDetails moveDetails -> Map.of(
-                FlowActionAttribute.ACTION_DETAILS_GROUP_ID.key(), moveDetails.getGroupId(),
-                FlowActionAttribute.ACTION_DETAILS_PREVIOUS_GROUP_ID.key(), moveDetails.getPreviousGroupId()
-            );
-            case PurgeDetails purgeDetails -> Map.of(
+            case ConnectDetails connectDetails -> {
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_SOURCE_ID.key(), connectDetails.getSourceId());
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_SOURCE_TYPE.key(), connectDetails.getSourceType().name());
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_DESTINATION_ID.key(), connectDetails.getDestinationId());
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_DESTINATION_TYPE.key(), connectDetails.getDestinationType().name());
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_RELATIONSHIP.key(), connectDetails.getRelationship());
+            }
+            case MoveDetails moveDetails -> {
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_GROUP_ID.key(), moveDetails.getGroupId());
+                attributes.put(FlowActionAttribute.ACTION_DETAILS_PREVIOUS_GROUP_ID.key(), moveDetails.getPreviousGroupId());
+            }
+            case PurgeDetails purgeDetails -> attributes.put(
                 FlowActionAttribute.ACTION_DETAILS_END_DATE.key(), purgeDetails.getEndDate().toInstant().toString()
             );
-            case null, default -> Map.of();
-        };
+            case null, default -> {
+            }
+        }
     }
 
-    private Map<String, String> componentDetailsProperties(ComponentDetails componentDetails) {
-        return switch (componentDetails) {
-            case ExtensionDetails extensionDetails -> Map.of(
+    private void populateComponentDetailsProperties(ComponentDetails componentDetails, Map<String, String> attributes) {
+        switch (componentDetails) {
+            case ExtensionDetails extensionDetails -> attributes.put(
                 FlowActionAttribute.COMPONENT_DETAILS_TYPE.key(), extensionDetails.getType()
-
             );
-            case RemoteProcessGroupDetails remoteProcessGroupDetails -> Map.of(
+            case RemoteProcessGroupDetails remoteProcessGroupDetails -> attributes.put(
                 FlowActionAttribute.COMPONENT_DETAILS_URI.key(), remoteProcessGroupDetails.getUri()
             );
-            case null, default -> Map.of();
-        };
+            case null, default -> {
+            }
+        }
     }
 }

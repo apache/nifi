@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.admin.service;
 
+import jakarta.annotation.Nullable;
 import jetbrains.exodus.entitystore.Entity;
 import jetbrains.exodus.entitystore.EntityId;
 import jetbrains.exodus.entitystore.EntityIterable;
@@ -95,9 +96,24 @@ public class EntityStoreAuditService implements AuditService, Closeable {
 
     private final Environment environment;
 
+    @Nullable
     private final FlowActionReporter flowActionReporter;
 
+    @Nullable
     private final ActionConverter actionConverter;
+
+    /**
+     * Entity Store Audit Service constructor with required properties for persistent location
+     *
+     * @param directory          Persistent Entity Store directory
+     */
+    public EntityStoreAuditService(final File directory) {
+        environment = loadEnvironment(directory);
+        entityStore = PersistentEntityStores.newInstance(environment);
+        logger.info("Environment configured with directory [{}]", directory);
+        this.flowActionReporter = null;
+        this.actionConverter = null;
+    }
 
     /**
      * Entity Store Audit Service constructor with required properties for persistent location
@@ -106,12 +122,12 @@ public class EntityStoreAuditService implements AuditService, Closeable {
      * @param flowActionReporter Flow Action Reporter
      * @param actionConverter  Action Converter
      */
-    public EntityStoreAuditService(final File directory, final FlowActionReporter flowActionReporter, final ActionConverter actionConverter) {
+    public EntityStoreAuditService(final File directory, @Nullable final FlowActionReporter flowActionReporter, @Nullable final ActionConverter actionConverter) {
         environment = loadEnvironment(directory);
-        this.flowActionReporter = flowActionReporter;
-        this.actionConverter = actionConverter;
         entityStore = PersistentEntityStores.newInstance(environment);
         logger.info("Environment configured with directory [{}]", directory);
+        this.flowActionReporter = flowActionReporter;
+        this.actionConverter = actionConverter;
     }
 
     /**
@@ -129,11 +145,14 @@ public class EntityStoreAuditService implements AuditService, Closeable {
             }
             logger.debug("Actions added [{}]", actions.size());
         });
-        flowActionReporter.reportFlowActions(
-            actions.stream()
-                .map(actionConverter::convert)
-                .toList()
-        );
+        if (flowActionReporter != null && actionConverter != null) {
+            flowActionReporter.reportFlowActions(
+                actions.stream()
+                    .map(actionConverter::convert)
+                    .toList()
+            );
+        }
+
     }
 
     /**
