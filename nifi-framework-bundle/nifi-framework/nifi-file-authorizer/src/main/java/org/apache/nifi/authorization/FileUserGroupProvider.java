@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.authorization;
 
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -42,11 +47,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import javax.xml.XMLConstants;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBElement;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -70,7 +70,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
@@ -101,15 +100,18 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     private static final String IDENTITY_ATTR = "identity";
     private static final String NAME_ATTR = "name";
 
-    static final String PROP_INITIAL_USER_IDENTITY_PREFIX = "Initial User Identity ";
     static final String PROP_TENANTS_FILE = "Users File";
+    static final String PROP_INITIAL_USER_IDENTITY_PREFIX = "Initial User Identity ";
     static final Pattern INITIAL_USER_IDENTITY_PATTERN = Pattern.compile(PROP_INITIAL_USER_IDENTITY_PREFIX + "\\S+");
+    static final String PROP_INITIAL_GROUP_IDENTITY_PREFIX = "Initial Group Identity ";
+    static final Pattern INITIAL_GROUP_IDENTITY_PATTERN = Pattern.compile(PROP_INITIAL_GROUP_IDENTITY_PREFIX + "\\S+");
 
     private Schema tenantsSchema;
     private NiFiProperties properties;
     private File tenantsFile;
     private File restoreTenantsFile;
     private Set<String> initialUserIdentities;
+    private Set<String> initialGroupIdentities;
 
     private final AtomicReference<UserGroupHolder> userGroupHolder = new AtomicReference<>();
 
@@ -168,10 +170,19 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
             // extract any node identities
             initialUserIdentities = new HashSet<>();
+            initialGroupIdentities = new HashSet<>();
             for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
-                Matcher matcher = INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey());
-                if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
-                    initialUserIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
+                if (INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey()).matches()) {
+                    if (StringUtils.isNotBlank(entry.getValue())) {
+                        initialUserIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
+                    }
+                    continue;
+                }
+
+                if (INITIAL_GROUP_IDENTITY_PATTERN.matcher(entry.getKey()).matches()) {
+                    if (StringUtils.isNotBlank(entry.getValue())) {
+                        initialGroupIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
+                    }
                 }
             }
 
@@ -670,6 +681,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         if (emptyTenants) {
             populateInitialUsers(tenants);
+            populateInitialGroups(tenants);
 
             // save any changes that were made and repopulate the holder
             saveAndRefreshHolder(tenants);
@@ -709,6 +721,12 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         }
     }
 
+    private void populateInitialGroups(final Tenants tenants) {
+        for (String initialGroupIdentity : initialGroupIdentities) {
+            createGroup(tenants, initialGroupIdentity);
+        }
+    }
+
     /**
      * Finds the User with the given identity, or creates a new one and adds it to the Tenants.
      *
@@ -720,21 +738,43 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             return;
         }
 
-        org.apache.nifi.authorization.file.tenants.generated.User foundUser = null;
         for (org.apache.nifi.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
             if (user.getIdentity().equals(userIdentity)) {
-                foundUser = user;
-                break;
+                return;
             }
         }
 
-        if (foundUser == null) {
-            final String userIdentifier = IdentifierUtil.getIdentifier(userIdentity);
-            foundUser = new org.apache.nifi.authorization.file.tenants.generated.User();
-            foundUser.setIdentifier(userIdentifier);
-            foundUser.setIdentity(userIdentity);
-            tenants.getUsers().getUser().add(foundUser);
+        final User builtUser = new User.Builder().identifierGenerateFromSeed(userIdentity).identity(userIdentity).build();
+        final org.apache.nifi.authorization.file.tenants.generated.User newUser =
+                new org.apache.nifi.authorization.file.tenants.generated.User();
+        newUser.setIdentifier(builtUser.getIdentifier());
+        newUser.setIdentity(builtUser.getIdentity());
+        tenants.getUsers().getUser().add(newUser);
+    }
+
+    /**
+     * Finds the Group with the given name, or creates a new one and adds it to Tenants.
+     *
+     * @param tenants the Tenants reference
+     * @param groupName the name of the group to look for
+     */
+    private void createGroup(final Tenants tenants, final String groupName) {
+        if (StringUtils.isBlank(groupName)) {
+            return;
         }
+
+        for (org.apache.nifi.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
+            if (group.getName().equals(groupName)) {
+                return;
+            }
+        }
+
+        final Group builtGroup = new Group.Builder().identifierGenerateFromSeed(groupName).name(groupName).build();
+        final org.apache.nifi.authorization.file.tenants.generated.Group newGroup =
+                new org.apache.nifi.authorization.file.tenants.generated.Group();
+        newGroup.setIdentifier(builtGroup.getIdentifier());
+        newGroup.setName(builtGroup.getName());
+        tenants.getGroups().getGroup().add(newGroup);
     }
 
     /**

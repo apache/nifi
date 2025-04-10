@@ -125,6 +125,17 @@ public class FileUserGroupProviderTest {
                 }
             }
 
+            int j = 1;
+            while (true) {
+                final String key = FileUserGroupProvider.PROP_INITIAL_GROUP_IDENTITY_PREFIX + j++;
+                final PropertyValue value = configurationContext.getProperty(key);
+                if (value == null) {
+                    break;
+                } else {
+                    properties.put(key, value.getValue());
+                }
+            }
+
             return properties;
         });
 
@@ -140,12 +151,14 @@ public class FileUserGroupProviderTest {
     }
 
     @Test
-    public void testOnConfiguredWhenInitialUsersNotProvided() throws Exception {
+    public void testOnConfiguredWhenInitialUsersAndInitialGroupsNotProvided() throws Exception {
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
 
         final Set<User> users = userGroupProvider.getUsers();
         assertEquals(0, users.size());
+        final Set<Group> groups = userGroupProvider.getGroups();
+        assertEquals(0, groups.size());
     }
 
     @Test
@@ -173,6 +186,26 @@ public class FileUserGroupProviderTest {
     }
 
     @Test
+    public void testOnConfiguredWhenInitialGroupsProvided() throws Exception {
+        final String adminGroupIdentity = "admin-group";
+        final String otherGroupIdentity = "other-group";
+
+        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_GROUP_IDENTITY_PREFIX + "1")))
+                .thenReturn(new StandardPropertyValue(adminGroupIdentity, null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_GROUP_IDENTITY_PREFIX + "2")))
+                .thenReturn(new StandardPropertyValue(otherGroupIdentity, null, ParameterLookup.EMPTY));
+
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
+        userGroupProvider.onConfigured(configurationContext);
+
+        final Set<Group> groups = userGroupProvider.getGroups();
+        assertEquals(2, groups.size());
+
+        assertTrue(groups.contains(new Group.Builder().identifierGenerateFromSeed(adminGroupIdentity).name(adminGroupIdentity).build()));
+        assertTrue(groups.contains(new Group.Builder().identifierGenerateFromSeed(otherGroupIdentity).name(otherGroupIdentity).build()));
+    }
+
+    @Test
     public void testOnConfiguredWhenTenantsExistAndInitialUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
         final String nodeIdentity1 = "node-identity-1";
@@ -194,6 +227,24 @@ public class FileUserGroupProviderTest {
 
         assertTrue(users.contains(new User.Builder().identifier("user-1").identity("user-1").build()));
         assertTrue(users.contains(new User.Builder().identifier("user-2").identity("user-2").build()));
+    }
+
+    @Test
+    public void testOnConfiguredWhenTenantsExistAndInitialGroupsProvided() throws Exception {
+        final String adminGroupIdentity = "admin-group";
+        final String otherGroupIdentity = "other-group";
+
+        // despite setting initial groups, they will not be loaded as the tenants file is non-empty
+        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_GROUP_IDENTITY_PREFIX + "1")))
+                .thenReturn(new StandardPropertyValue(adminGroupIdentity, null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_GROUP_IDENTITY_PREFIX + "2")))
+                .thenReturn(new StandardPropertyValue(otherGroupIdentity, null, ParameterLookup.EMPTY));
+
+        writeFile(primaryTenants, SIMPLE_TENANTS_BY_USER);
+        userGroupProvider.onConfigured(configurationContext);
+
+        final Set<Group> groups = userGroupProvider.getGroups();
+        assertEquals(0, groups.size());
     }
 
     @Test
