@@ -31,6 +31,7 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_CLASS
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_HEARTBEAT_PERIOD;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_IDENTIFIER;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_ASSET_DIRECTORY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_ASSET_REPOSITORY_DIRECTORY;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_BOOTSTRAP_ACKNOWLEDGE_TIMEOUT;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_CONFIG_DIRECTORY;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED;
@@ -170,7 +171,7 @@ public class C2NifiClientService {
         this.flowController = flowController;
         C2Serializer c2Serializer = new C2JacksonSerializer();
         ResourceRepository resourceRepository =
-            new FileResourceRepository(Path.of(clientConfig.getC2AssetDirectory()), niFiProperties.getNarAutoLoadDirectory().toPath(),
+            new FileResourceRepository(Path.of(clientConfig.getC2AssetRepositoryDirectory()), niFiProperties.getNarAutoLoadDirectory().toPath(),
                 niFiProperties.getFlowConfigurationFileDir().toPath(), c2Serializer);
         C2HttpClient client = C2HttpClient.create(clientConfig, c2Serializer);
         FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
@@ -209,6 +210,7 @@ public class C2NifiClientService {
             .httpHeaders(properties.getProperty(C2_REST_HTTP_HEADERS.getKey(), C2_REST_HTTP_HEADERS.getDefaultValue()))
             .c2RequestCompression(properties.getProperty(C2_REQUEST_COMPRESSION.getKey(), C2_REQUEST_COMPRESSION.getDefaultValue()))
             .c2AssetDirectory(properties.getProperty(C2_ASSET_DIRECTORY.getKey(), C2_ASSET_DIRECTORY.getDefaultValue()))
+            .c2AssetRepositoryDirectory(properties.getProperty(C2_ASSET_REPOSITORY_DIRECTORY.getKey(), C2_ASSET_REPOSITORY_DIRECTORY.getDefaultValue()))
             .confDirectory(properties.getProperty(C2_CONFIG_DIRECTORY.getKey(), C2_CONFIG_DIRECTORY.getDefaultValue()))
             .runtimeManifestIdentifier(properties.getProperty(C2_RUNTIME_MANIFEST_IDENTIFIER.getKey(), C2_RUNTIME_MANIFEST_IDENTIFIER.getDefaultValue()))
             .runtimeType(properties.getProperty(C2_RUNTIME_TYPE.getKey(), C2_RUNTIME_TYPE.getDefaultValue()))
