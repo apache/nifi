@@ -49,7 +49,7 @@ public class TestControlRate {
     @Test
     public void testRouteToRateExceeded() {
         runner.setProperty(ControlRate.RATE_EXCEEDED_STRATEGY, ControlRate.ROUTE_TO_RATE_EXCEEDED.getValue());
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "10");
         runner.setProperty(ControlRate.TIME_PERIOD, "1 min");
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
@@ -80,7 +80,7 @@ public class TestControlRate {
         // If we have flowfiles queued that have different values for the "Rate Controlled Attribute"
         // and we encounter a FlowFile whose rate should be throttled, we should continue pulling other flowfiles
         // whose rate does not need to be throttled.
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "3");
         runner.setProperty(ControlRate.TIME_PERIOD, "1 min");
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
@@ -106,7 +106,7 @@ public class TestControlRate {
 
     @Test
     public void testFileCountRate() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "3");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
@@ -135,7 +135,7 @@ public class TestControlRate {
 
     @Test
     public void testFileCountWithGrouping() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "2");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
@@ -166,7 +166,7 @@ public class TestControlRate {
 
     @Test
     public void testDataSizeRate() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "20 b");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
@@ -194,7 +194,7 @@ public class TestControlRate {
 
     @Test
     public void testViaAttribute() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "count");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
@@ -234,7 +234,7 @@ public class TestControlRate {
 
     @Test
     public void testAttributeDoesNotExist() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "no.such.attribute");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
@@ -255,7 +255,7 @@ public class TestControlRate {
 
     @Test
     public void testBadAttributeRate() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "count");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
@@ -272,7 +272,7 @@ public class TestControlRate {
 
     @Test
     public void testBatchLimit() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "5555");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
@@ -300,7 +300,7 @@ public class TestControlRate {
 
     @Test
     public void testNonExistingGroupAttribute() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "2");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
@@ -318,7 +318,7 @@ public class TestControlRate {
 
     @Test
     public void testIncreaseDataRate() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "11 B");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
@@ -352,7 +352,7 @@ public class TestControlRate {
 
     @Test
     public void testIncreaseFlowFileRate() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "1");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
@@ -386,7 +386,7 @@ public class TestControlRate {
 
     @Test
     public void testDataOrFlowFileCountLimitedByBytes() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_OR_FLOWFILE_RATE);
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         // Data rate will throttle before FlowFile count
         runner.setProperty(ControlRate.MAX_DATA_RATE, "22 B");
@@ -416,7 +416,7 @@ public class TestControlRate {
 
     @Test
     public void testDataOrFlowFileCountLimitedByCount() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_OR_FLOWFILE_RATE);
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         // FlowFile count rate will throttle before data rate
         runner.setProperty(ControlRate.MAX_DATA_RATE, "44 B"); // greater than all flowfiles to be queued
@@ -441,7 +441,7 @@ public class TestControlRate {
 
     @Test
     public void testDataOrFlowFileCountLimitedByBytesThenCount() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_OR_FLOWFILE_RATE);
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         // Data rate will throttle before FlowFile count
         runner.setProperty(ControlRate.MAX_DATA_RATE, "22 B");
@@ -472,7 +472,7 @@ public class TestControlRate {
 
     @Test
     public void testValidate() {
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_RATE);
         runner.assertNotValid(); // MAX_RATE is not set
         runner.setProperty(ControlRate.MAX_RATE, "1");
         runner.assertNotValid(); // MAX_RATE is not a byte size
@@ -484,7 +484,7 @@ public class TestControlRate {
         runner.assertNotValid(); // MAX_RATE is a required property for this rate control criteria
 
         runner.clearProperties();
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
         runner.assertNotValid(); // MAX_RATE is not set
         runner.setProperty(ControlRate.MAX_RATE, "1 MB");
         runner.assertNotValid(); // MAX_RATE is not an integer
@@ -496,7 +496,7 @@ public class TestControlRate {
         runner.assertNotValid(); // MAX_RATE is a required property for this rate control criteria
 
         runner.clearProperties();
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "count");
         runner.assertNotValid(); // MAX_RATE is not set
         runner.setProperty(ControlRate.MAX_RATE, "1 MB");
@@ -512,7 +512,7 @@ public class TestControlRate {
         runner.assertNotValid(); // RATE_CONTROL_ATTRIBUTE_NAME is a required property for this rate control criteria
 
         runner.clearProperties();
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_OR_FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_DATA_RATE, "1 MB");
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "1");
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "2");

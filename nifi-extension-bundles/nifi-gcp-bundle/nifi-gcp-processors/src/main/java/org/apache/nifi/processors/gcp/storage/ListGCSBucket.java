@@ -21,19 +21,6 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -78,6 +65,26 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_OWNER_ATTR;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_OWNER_DESC;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_READER_ATTR;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_READER_DESC;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_WRITER_ATTR;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_WRITER_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CACHE_CONTROL_ATTR;
@@ -100,12 +107,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ENCRYPTIO
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ENCRYPTION_SHA256_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ETAG_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ETAG_DESC;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_OWNER_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_OWNER_DESC;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_READER_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_READER_DESC;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_WRITER_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_WRITER_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.GENERATED_ID_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.GENERATED_ID_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.GENERATION_ATTR;
@@ -217,7 +218,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
     public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(ListedEntityTracker.TRACKING_TIME_WINDOW)
-        .dependsOn(INITIAL_LISTING_TARGET, ListedEntityTracker.INITIAL_LISTING_TARGET_WINDOW)
         .required(true)
         .build();
 

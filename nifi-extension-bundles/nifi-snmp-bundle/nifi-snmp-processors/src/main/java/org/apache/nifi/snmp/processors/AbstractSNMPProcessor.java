@@ -48,7 +48,15 @@ import org.snmp4j.security.SecurityModels;
 import org.snmp4j.smi.Integer32;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
+
+import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_V1;
+import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_V2C;
+import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_V3;
+import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_VERSION;
+import static org.apache.nifi.snmp.processors.properties.V3SecurityProperties.AUTH_NO_PRIV;
+import static org.apache.nifi.snmp.processors.properties.V3SecurityProperties.AUTH_PRIV;
 
 /**
  * Base processor that uses SNMP4J client API.
@@ -95,35 +103,33 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void initSnmpManager(final ProcessContext context) {
-        final int version = SNMPUtils.getVersion(context.getProperty(BasicProperties.SNMP_VERSION).getValue());
-        final SNMPConfiguration configuration;
+        final String snmpVersion = context.getProperty(SNMP_VERSION).getValue();
+        final String securityLevel = getSecurityLevel(context, snmpVersion);
 
-        configuration = SNMPConfiguration.builder()
-                .setAuthProtocol(context.getProperty(V3SecurityProperties.SNMP_AUTH_PROTOCOL).getValue())
-                .setAuthPassphrase(context.getProperty(V3SecurityProperties.SNMP_AUTH_PASSWORD).getValue())
-                .setPrivacyProtocol(context.getProperty(V3SecurityProperties.SNMP_PRIVACY_PROTOCOL).getValue())
-                .setPrivacyPassphrase(context.getProperty(V3SecurityProperties.SNMP_PRIVACY_PASSWORD).getValue())
-                .setSecurityName(context.getProperty(V3SecurityProperties.SNMP_SECURITY_NAME).getValue())
+        final SNMPConfiguration configuration = SNMPConfiguration.builder()
+                .setAuthProtocol(getAuthProtocol(context, securityLevel))
+                .setAuthPassphrase(getAuthPassphrase(context, securityLevel))
+                .setPrivacyProtocol(getPrivacyProtocol(context, securityLevel))
+                .setPrivacyPassphrase(getPrivacyPassphrase(context, securityLevel))
+                .setSecurityName(getSecurityName(context, snmpVersion))
                 .build();
 
-        factory = SNMPFactoryProvider.getFactory(version);
+        factory = SNMPFactoryProvider.getFactory(SNMPUtils.getVersion(snmpVersion));
         snmpManager = factory.createSnmpManagerInstance(configuration);
     }
 
     protected SNMPConfiguration getTargetConfiguration(final ProcessContext context, final FlowFile flowFile) {
-        final int version = SNMPUtils.getVersion(context.getProperty(BasicProperties.SNMP_VERSION).getValue());
-        final String targetHost = getTargetHost(context, flowFile);
-        final String targetPort = getTargetPort(context, flowFile);
+        final String snmpVersion = context.getProperty(SNMP_VERSION).getValue();
 
         return SNMPConfiguration.builder()
-                .setVersion(version)
-                .setTargetHost(targetHost)
-                .setTargetPort(targetPort)
+                .setVersion(SNMPUtils.getVersion(snmpVersion))
+                .setTargetHost(getTargetHost(context, flowFile))
+                .setTargetPort(getTargetPort(context, flowFile))
                 .setRetries(context.getProperty(BasicProperties.SNMP_RETRIES).asInteger())
                 .setTimeoutInMs(context.getProperty(BasicProperties.SNMP_TIMEOUT).asInteger())
-                .setSecurityName(context.getProperty(V3SecurityProperties.SNMP_SECURITY_NAME).getValue())
-                .setSecurityLevel(context.getProperty(V3SecurityProperties.SNMP_SECURITY_LEVEL).getValue())
-                .setCommunityString(context.getProperty(BasicProperties.SNMP_COMMUNITY).getValue())
+                .setSecurityName(getSecurityName(context, snmpVersion))
+                .setSecurityLevel(getSecurityLevel(context, snmpVersion))
+                .setCommunityString(getCommunity(context, snmpVersion))
                 .build();
     }
 
@@ -199,4 +205,39 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
     protected abstract String getTargetHost(final ProcessContext processContext, final FlowFile flowFile);
 
     protected abstract String getTargetPort(final ProcessContext processContext, final FlowFile flowFile);
+
+    public static String getSecurityName(final ProcessContext context, final String snmpVersion) {
+        return snmpVersion.equals(SNMP_V3.getValue())
+                ? context.getProperty(V3SecurityProperties.SNMP_SECURITY_NAME).getValue() : null;
+    }
+
+    public static String getPrivacyPassphrase(final ProcessContext context, final String securityLevel) {
+        return Objects.equals(securityLevel, AUTH_PRIV.getValue())
+                ? context.getProperty(V3SecurityProperties.SNMP_PRIVACY_PASSWORD).getValue() : null;
+    }
+
+    public static String getPrivacyProtocol(final ProcessContext context, final String securityLevel) {
+        return Objects.equals(securityLevel, AUTH_PRIV.getValue())
+                ?  context.getProperty(V3SecurityProperties.SNMP_PRIVACY_PROTOCOL).getValue() : null;
+    }
+
+    public static String getAuthPassphrase(final ProcessContext context, final String securityLevel) {
+        return Objects.equals(securityLevel, AUTH_NO_PRIV.getValue()) || Objects.equals(securityLevel, AUTH_PRIV.getValue())
+                ? context.getProperty(V3SecurityProperties.SNMP_AUTH_PASSWORD).getValue() : null;
+    }
+
+    public static String getAuthProtocol(final ProcessContext context, final String securityLevel) {
+        return Objects.equals(securityLevel, AUTH_NO_PRIV.getValue()) || Objects.equals(securityLevel, AUTH_PRIV.getValue())
+                ?  context.getProperty(V3SecurityProperties.SNMP_AUTH_PROTOCOL).getValue() : null;
+    }
+
+    public static String getCommunity(final ProcessContext context, final String snmpVersion) {
+        return snmpVersion.equals(SNMP_V1.getValue()) || snmpVersion.equals(SNMP_V2C.getValue())
+                ? context.getProperty(BasicProperties.SNMP_COMMUNITY).getValue() : null;
+    }
+
+    public static String getSecurityLevel(final ProcessContext context, final String snmpVersion) {
+        return snmpVersion.equals(SNMP_V3.getValue())
+                ? context.getProperty(V3SecurityProperties.SNMP_SECURITY_LEVEL).getValue() : null;
+    }
 }

@@ -148,7 +148,9 @@ public class SplitExcel extends AbstractProcessor {
             return;
         }
 
-        final String password = context.getProperty(PASSWORD).getValue();
+        final ProtectionType protectionType = context.getProperty(PROTECTION_TYPE).asAllowableValue(ProtectionType.class);
+        final String password = protectionType == ProtectionType.PASSWORD ? context.getProperty(PASSWORD).getValue() : null;
+
         final List<WorkbookSplit> workbookSplits = new ArrayList<>();
 
         try {

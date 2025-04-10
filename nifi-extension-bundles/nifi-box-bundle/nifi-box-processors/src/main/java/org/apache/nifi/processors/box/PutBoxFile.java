@@ -17,43 +17,12 @@
 
 package org.apache.nifi.processors.box;
 
-import static java.lang.String.format;
-import static java.lang.String.valueOf;
-import static org.apache.nifi.processor.util.StandardValidators.createRegexMatchingValidator;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
-import static org.apache.nifi.processors.box.BoxFileUtils.BOX_URL;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
-
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-import java.util.stream.StreamSupport;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -75,6 +44,38 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.stream.StreamSupport;
+
+import static java.lang.String.format;
+import static java.lang.String.valueOf;
+import static org.apache.nifi.processor.util.StandardValidators.createRegexMatchingValidator;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
+import static org.apache.nifi.processors.box.BoxFileUtils.BOX_URL;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 
 
 @SeeAlso({ListBoxFile.class, FetchBoxFile.class})
@@ -272,11 +273,12 @@ public class PutBoxFile extends AbstractProcessor {
 
     private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile ) {
         final String subfolderPath = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final boolean createFolder = context.getProperty(CREATE_SUBFOLDER).asBoolean();
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
         BoxFolder parentFolder = getFolderById(folderId);
 
         if (subfolderPath != null) {
+            final boolean createFolder = context.getProperty(CREATE_SUBFOLDER).asBoolean();
+
             final Queue<String> subFolderNames = getSubFolderNames(subfolderPath);
             parentFolder = getOrCreateSubfolders(subFolderNames, parentFolder, createFolder);
         }

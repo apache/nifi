@@ -38,8 +38,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -154,10 +154,8 @@ public class UnpackContent extends AbstractProcessor {
             .name("Packaging Format")
             .description("The Packaging Format used to create the file")
             .required(true)
-            .allowableValues(PackageFormat.AUTO_DETECT_FORMAT.toString(), PackageFormat.TAR_FORMAT.toString(),
-                    PackageFormat.ZIP_FORMAT.toString(), PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString(),
-                    PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString(), PackageFormat.FLOWFILE_TAR_FORMAT.toString())
-            .defaultValue(PackageFormat.AUTO_DETECT_FORMAT.toString())
+            .allowableValues(PackageFormat.class)
+            .defaultValue(PackageFormat.AUTO_DETECT_FORMAT)
             .build();
     public static final PropertyDescriptor ZIP_FILENAME_CHARSET = new PropertyDescriptor.Builder()
             .name("Filename Character Set")
@@ -166,11 +164,8 @@ public class UnpackContent extends AbstractProcessor {
                 "If supplied this character set will be supplied to the Zip utility to attempt to decode filenames using the specific character set. "
                     + "If not specified the default platform character set will be used. This is useful if a Zip was created with a different character "
                     + "set than the platform default and the zip uses non standard values to specify.")
-            .required(false)
-            .dependsOn(
-                PACKAGING_FORMAT,
-                PackageFormat.ZIP_FORMAT.toString(),
-                PackageFormat.AUTO_DETECT_FORMAT.toString())
+            .required(true)
+            .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT, PackageFormat.AUTO_DETECT_FORMAT)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(Charset.defaultCharset().toString())
             .build();
@@ -189,6 +184,7 @@ public class UnpackContent extends AbstractProcessor {
             .description("Password used for decrypting Zip archives encrypted with ZipCrypto or AES. Configuring a password disables support for alternative Zip compression algorithms.")
             .required(false)
             .sensitive(true)
+            .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT, PackageFormat.AUTO_DETECT_FORMAT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -202,7 +198,7 @@ public class UnpackContent extends AbstractProcessor {
             .defaultValue("false")
             .sensitive(false)
             .allowableValues("true", "false")
-            .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT.toString())
+            .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT, PackageFormat.AUTO_DETECT_FORMAT)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
@@ -256,20 +252,30 @@ public class UnpackContent extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext context) throws ProcessException {
         if (fileFilter == null) {
+            final PackageFormat packageFormat = context.getProperty(PACKAGING_FORMAT).asAllowableValue(PackageFormat.class);
+
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
-            tarUnpacker = new TarUnpacker(fileFilter);
 
-            char[] password = null;
-            final PropertyValue passwordProperty = context.getProperty(PASSWORD);
-            if (passwordProperty.isSet()) {
-                password = passwordProperty.getValue().toCharArray();
-            }
-            final PropertyValue allowStoredEntriesWithDataDescriptorVal = context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR);
-            final boolean allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptorVal.isSet() ? allowStoredEntriesWithDataDescriptorVal.asBoolean() : false;
+            tarUnpacker = switch (packageFormat) {
+                case AUTO_DETECT_FORMAT, TAR_FORMAT, X_TAR_FORMAT -> new TarUnpacker(fileFilter);
+                default -> null;
+            };
 
-            final String filenamesEncodingVal = context.getProperty(ZIP_FILENAME_CHARSET).getValue();
-            Charset filenamesEncoding = Charsets.toCharset(filenamesEncodingVal);
-            zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor, filenamesEncoding);
+            zipUnpacker = switch (packageFormat) {
+                case AUTO_DETECT_FORMAT, ZIP_FORMAT -> {
+                    final String passwordText = context.getProperty(PASSWORD).getValue();
+                    char[] password = passwordText == null ? null : passwordText.toCharArray();
+
+                    final boolean allowStoredEntriesWithDataDescriptor =
+                            context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR).asBoolean();
+
+                    final Charset filenamesEncoding =
+                            Charsets.toCharset(context.getProperty(ZIP_FILENAME_CHARSET).getValue());
+
+                    yield new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor, filenamesEncoding);
+                }
+                default -> null;
+            };
         }
     }
 
@@ -281,7 +287,7 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        PackageFormat packagingFormat = PackageFormat.getFormat(context.getProperty(PACKAGING_FORMAT).getValue().toLowerCase());
+        PackageFormat packagingFormat = context.getProperty(PACKAGING_FORMAT).asAllowableValue(PackageFormat.class);
         if (packagingFormat == PackageFormat.AUTO_DETECT_FORMAT) {
             packagingFormat = null;
             final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
@@ -708,46 +714,42 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    protected enum PackageFormat {
-        AUTO_DETECT_FORMAT(AUTO_DETECT_FORMAT_NAME),
-        TAR_FORMAT(TAR_FORMAT_NAME, "application/tar"),
-        X_TAR_FORMAT(TAR_FORMAT_NAME, "application/x-tar"),
-        ZIP_FORMAT(ZIP_FORMAT_NAME, "application/zip"),
-        FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, StandardFlowFileMediaType.VERSION_3.getMediaType()),
-        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, StandardFlowFileMediaType.VERSION_2.getMediaType()),
-        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, StandardFlowFileMediaType.VERSION_1.getMediaType());
+    protected enum PackageFormat implements DescribedValue {
+        AUTO_DETECT_FORMAT(AUTO_DETECT_FORMAT_NAME, null, null),
+        TAR_FORMAT(TAR_FORMAT_NAME, null, "application/tar"),
+        X_TAR_FORMAT(TAR_FORMAT_NAME, null, "application/x-tar"),
+        ZIP_FORMAT(ZIP_FORMAT_NAME, null, "application/zip"),
+        FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, null, StandardFlowFileMediaType.VERSION_3.getMediaType()),
+        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, null, StandardFlowFileMediaType.VERSION_2.getMediaType()),
+        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, null, StandardFlowFileMediaType.VERSION_1.getMediaType());
 
+        private final String value;
+        private final String description;
+        private final String mimeType;
 
-        private final String textValue;
-        private String mimeType;
-
-        PackageFormat(String textValue, String mimeType) {
-            this.textValue = textValue;
+        PackageFormat(final String value, final String description, final String mimeType) {
+            this.value = value;
+            this.description = description;
             this.mimeType = mimeType;
         }
 
-        PackageFormat(String textValue) {
-            this.textValue = textValue;
+        @Override
+        public String getValue() {
+            return value;
         }
 
-        @Override public String toString() {
-            return textValue;
+        @Override
+        public String getDisplayName() {
+            return value;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
         }
 
         public String getMimeType() {
             return mimeType;
-        }
-
-        public static PackageFormat getFormat(String textValue) {
-            return switch (textValue) {
-                case AUTO_DETECT_FORMAT_NAME -> AUTO_DETECT_FORMAT;
-                case TAR_FORMAT_NAME -> TAR_FORMAT;
-                case ZIP_FORMAT_NAME -> ZIP_FORMAT;
-                case FLOWFILE_STREAM_FORMAT_V3_NAME -> FLOWFILE_STREAM_FORMAT_V3;
-                case FLOWFILE_STREAM_FORMAT_V2_NAME -> FLOWFILE_STREAM_FORMAT_V2;
-                case FLOWFILE_TAR_FORMAT_NAME -> FLOWFILE_TAR_FORMAT;
-                default -> null;
-            };
         }
     }
 }

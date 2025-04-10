@@ -893,8 +893,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 }
             }
 
-            retainId = context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
-            retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
+            retainId = idPath != null && context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
+            retainTimestamp = atTimestampPath != null && context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
             batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
         }
 

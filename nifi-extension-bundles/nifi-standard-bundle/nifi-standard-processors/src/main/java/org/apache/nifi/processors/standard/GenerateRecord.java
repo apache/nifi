@@ -204,6 +204,9 @@ public class GenerateRecord extends AbstractProcessor {
         final String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final int numRecords = context.getProperty(NUM_RECORDS).evaluateAttributeExpressions().asInteger();
+        final boolean nullable = context.getProperty(NULLABLE_FIELDS).asBoolean();
+        final int nullPercentage = nullable ? context.getProperty(NULL_PERCENTAGE).evaluateAttributeExpressions().asInteger() : 0;
+
         FlowFile flowFile = session.create();
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -212,14 +215,12 @@ public class GenerateRecord extends AbstractProcessor {
             flowFile = session.write(flowFile, out -> {
                 final RecordSchema recordSchema;
                 final boolean usingSchema;
-                final int nullPercentage = context.getProperty(NULL_PERCENTAGE).evaluateAttributeExpressions().asInteger();
                 if (StringUtils.isNotEmpty(schemaText)) {
                     final Schema avroSchema = new Schema.Parser().parse(schemaText);
                     recordSchema = AvroTypeUtil.createSchema(avroSchema);
                     usingSchema = true;
                 } else {
                     // Generate RecordSchema from user-defined properties
-                    final boolean nullable = context.getProperty(NULLABLE_FIELDS).asBoolean();
                     final Map<String, String> fields = getFields(context);
                     recordSchema = generateRecordSchema(fields, nullable);
                     usingSchema = false;
@@ -239,12 +240,9 @@ public class GenerateRecord extends AbstractProcessor {
                                 if (usingSchema) {
                                     writeFieldValue = generateValueFromRecordField(writeRecordField, faker, nullPercentage);
                                 } else {
-                                    final boolean nullValue;
-                                    if (!context.getProperty(GenerateRecord.NULLABLE_FIELDS).asBoolean() || nullPercentage == 0) {
-                                        nullValue = false;
-                                    } else {
-                                        nullValue = (faker.number().numberBetween(0, 100) <= nullPercentage);
-                                    }
+                                    final boolean nullValue =
+                                            nullPercentage > 0 && faker.number().numberBetween(0, 100) <= nullPercentage;
+
                                     if (nullValue) {
                                         writeFieldValue = null;
                                     } else {
