@@ -24,14 +24,16 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 public class ColumnDefinition {
 
     private int type;
+    private Boolean isSigned;
     private String name = "";
 
-    public ColumnDefinition(int type) {
+    public ColumnDefinition(Boolean isSigned, int type) {
         this.type = type;
+        this.isSigned = isSigned;
     }
 
-    public ColumnDefinition(int type, String name) {
-        this(type);
+    public ColumnDefinition(Boolean isSigned, int type, String name) {
+        this(isSigned, type);
         this.name = name;
     }
 
@@ -41,6 +43,14 @@ public class ColumnDefinition {
 
     public void setType(int type) {
         this.type = type;
+    }
+
+    public Boolean getIsSigned() {
+        return isSigned;
+    }
+
+    public void setIsSigned(boolean isSigned) {
+        this.isSigned = isSigned;
     }
 
     public String getName() {
