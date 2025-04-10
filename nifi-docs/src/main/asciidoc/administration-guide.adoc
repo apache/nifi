@@ -58,7 +58,9 @@ NOTE: Under sustained and extremely high throughput the CodeCache settings may n
 *** `start`: starts NiFi in the background
 *** `stop`: stops NiFi that is running in the background
 *** `status`: provides the current status of NiFi
+*** `run`: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi.
 
+NOTE: When using Ctrl-C to initiate shutdown of NiFi on Windows, it is recommended to answer `N` to the `Terminate batch job (Y/N)?` prompt to allow the nifi.cmd to exit cleanly and restore the current working directory.  Alternatively, a `.\nifi.cmd stop` can be run from another console.
 
 When NiFi first starts up, the following files and directories are created:
 
