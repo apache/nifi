@@ -68,7 +68,7 @@ public class AbstractAMQPProcessorTest {
     public void testNotValidBothUserPasswordAndClientCertAuth() throws Exception {
         testRunner.setProperty(AbstractAMQPProcessor.USER, "user");
         testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "password");
-        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+        testRunner.setProperty(AbstractAMQPProcessor.CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED, "true");
         configureSSLContextService();
 
         testRunner.assertNotValid();
@@ -76,7 +76,7 @@ public class AbstractAMQPProcessorTest {
 
     @Test
     public void testValidClientCertAuth() throws Exception {
-        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+        testRunner.setProperty(AbstractAMQPProcessor.CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED, "true");
         configureSSLContextService();
 
         testRunner.assertValid();
@@ -84,7 +84,7 @@ public class AbstractAMQPProcessorTest {
 
     @Test
     public void testNotValidClientCertAuthButNoSSLContextService() throws Exception {
-        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+        testRunner.setProperty(AbstractAMQPProcessor.CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED, "true");
 
         testRunner.assertNotValid();
     }

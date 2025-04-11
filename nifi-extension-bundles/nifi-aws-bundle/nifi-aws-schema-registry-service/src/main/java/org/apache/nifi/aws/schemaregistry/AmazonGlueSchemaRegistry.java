@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -70,16 +71,14 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
 
     static final PropertyDescriptor SCHEMA_REGISTRY_NAME = new PropertyDescriptor.Builder()
-            .name("schema-registry-name")
-            .displayName("Schema Registry Name")
+            .name("Schema Registry Name")
             .description("The name of the Schema Registry")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("region")
-            .displayName("Region")
+            .name("Region")
             .description("The region of the cloud resources")
             .required(true)
             .allowableValues(getAvailableRegions())
@@ -87,8 +86,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("cache-size")
-            .displayName("Cache Size")
+            .name("Cache Size")
             .description("Specifies how many Schemas should be cached from the Schema Registry")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue("1000")
@@ -96,8 +94,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .build();
 
     static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
-            .name("cache-expiration")
-            .displayName("Cache Expiration")
+            .name("Cache Expiration")
             .description("Specifies how long a Schema that is cached should remain in the cache. Once this time period elapses, a "
                     + "cached version of a schema will no longer be used, and the service will have to communicate with the "
                     + "Schema Registry again in order to obtain the schema.")
@@ -107,8 +104,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .build();
 
     static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("communications-timeout")
-            .displayName("Communications Timeout")
+            .name("Communications Timeout")
             .description("Specifies how long to wait to receive data from the Schema Registry before considering the communications a failure")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -117,16 +113,14 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .build();
 
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("aws-credentials-provider-service")
-            .displayName("AWS Credentials Provider Service")
+            .name("AWS Credentials Provider Service")
             .description("The Controller Service that is used to obtain AWS credentials provider")
             .required(false)
             .identifiesControllerService(AWSCredentialsProviderService.class)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("ssl-context-service")
-            .displayName("SSL Context Service")
+            .name("SSL Context Service")
             .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
@@ -147,6 +141,16 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             SSL_CONTEXT_SERVICE
     );
 
+    @Override
+    public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        propertyConfiguration.renameProperty("schema-registry-name", SCHEMA_REGISTRY_NAME.getName());
+        propertyConfiguration.renameProperty("region", REGION.getName());
+        propertyConfiguration.renameProperty("communications-timeout", COMMUNICATIONS_TIMEOUT.getName());
+        propertyConfiguration.renameProperty("cache-size", CACHE_SIZE.getName());
+        propertyConfiguration.renameProperty("cache-expiration", CACHE_EXPIRATION.getName());
+        propertyConfiguration.renameProperty("aws-credentials-provider-service", AWS_CREDENTIALS_PROVIDER_SERVICE.getName());
+        propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

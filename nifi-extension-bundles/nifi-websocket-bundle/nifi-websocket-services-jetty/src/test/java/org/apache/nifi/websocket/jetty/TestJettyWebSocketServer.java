@@ -61,7 +61,7 @@ public class TestJettyWebSocketServer {
     public void testValidationHashLoginService() throws Exception {
         final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(IDENTIFIER, server);
-        runner.setProperty(server, JettyWebSocketServer.LISTEN_PORT, Integer.toString(MAX_PORT));
+        runner.setProperty(server, JettyWebSocketServer.PORT, Integer.toString(MAX_PORT));
         runner.setProperty(server, JettyWebSocketServer.LOGIN_SERVICE, JettyWebSocketServer.LOGIN_SERVICE_HASH.getValue());
         runner.setProperty(server, JettyWebSocketServer.BASIC_AUTH, Boolean.TRUE.toString());
         runner.assertNotValid();
@@ -71,7 +71,7 @@ public class TestJettyWebSocketServer {
     public void testValidationSuccess() throws Exception {
         final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(IDENTIFIER, server);
-        runner.setProperty(server, JettyWebSocketServer.LISTEN_PORT, Integer.toString(MAX_PORT));
+        runner.setProperty(server, JettyWebSocketServer.PORT, Integer.toString(MAX_PORT));
         runner.assertValid(server);
     }
 
@@ -81,7 +81,7 @@ public class TestJettyWebSocketServer {
         final String identifier = JettyWebSocketServer.class.getSimpleName();
         final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(identifier, server);
-        runner.setProperty(server, JettyWebSocketServer.LISTEN_PORT, "0");
+        runner.setProperty(server, JettyWebSocketServer.PORT, "0");
         runner.enableControllerService(server);
 
         server.registerProcessor(ROOT_ENDPOINT_ID, runner.getProcessor());

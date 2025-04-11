@@ -24,6 +24,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -55,8 +56,7 @@ import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATIO
 public class StandardWebClientServiceProvider extends AbstractControllerService implements WebClientServiceProvider {
 
     static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("connect-timeout")
-            .displayName("Connect Timeout")
+            .name("Connect Timeout")
             .description("Maximum amount of time to wait before failing during initial socket connection")
             .required(true)
             .defaultValue("10 secs")
@@ -64,8 +64,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .build();
 
     static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("read-timeout")
-            .displayName("Read Timeout")
+            .name("Read Timeout")
             .description("Maximum amount of time to wait before failing while reading socket responses")
             .required(true)
             .defaultValue("10 secs")
@@ -73,8 +72,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .build();
 
     static final PropertyDescriptor WRITE_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("write-timeout")
-            .displayName("Write Timeout")
+            .name("Write Timeout")
             .description("Maximum amount of time to wait before failing while writing socket requests")
             .required(true)
             .defaultValue("10 secs")
@@ -82,8 +80,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .build();
 
     static final PropertyDescriptor REDIRECT_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("redirect-handling-strategy")
-            .displayName("Redirect Handling Strategy")
+            .name("Redirect Handling Strategy")
             .description("Handling strategy for responding to HTTP 301 or 302 redirects received with a Location header")
             .required(true)
             .defaultValue(RedirectHandling.FOLLOWED.name())
@@ -91,8 +88,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .build();
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("ssl-context-service")
-            .displayName("SSL Context Service")
+            .name("SSL Context Service")
             .description("SSL Context Service overrides system default TLS settings for HTTPS communication")
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
@@ -108,6 +104,15 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
     );
 
     private StandardWebClientService webClientService;
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        propertyConfiguration.renameProperty("connect-timeout", CONNECT_TIMEOUT.getName());
+        propertyConfiguration.renameProperty("read-timeout", READ_TIMEOUT.getName());
+        propertyConfiguration.renameProperty("write-timeout", WRITE_TIMEOUT.getName());
+        propertyConfiguration.renameProperty("redirect-handling-strategy", REDIRECT_HANDLING_STRATEGY.getName());
+        propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+    }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
