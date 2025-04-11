@@ -19,6 +19,8 @@ package org.apache.nifi.excel;
 import com.github.pjfanning.xlsx.StreamingReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.poi.hssf.record.crypto.Biff8EncryptionKey;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -42,13 +44,26 @@ class RowIterator implements Iterator<Row>, Closeable {
     private Row currentRow;
 
     RowIterator(final InputStream in, final ExcelRecordReaderConfiguration configuration, final ComponentLog logger) {
-        this.workbook = StreamingReader.builder()
-                .rowCacheSize(100)
-                .bufferSize(4096)
-                .password(configuration.getPassword())
-                .setAvoidTempFiles(configuration.isAvoidTempFiles())
-                .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
-                .open(in);
+        if (configuration.getInputFileType() == InputFileType.XLSX) {
+            this.workbook = StreamingReader.builder()
+                    .rowCacheSize(100)
+                    .bufferSize(4096)
+                    .password(configuration.getPassword())
+                    .setAvoidTempFiles(configuration.isAvoidTempFiles())
+                    .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
+                    .open(in);
+        } else {
+            // Providing the password to the HSSFWorkbook is done by setting a thread variable managed by
+            // Biff8EncryptionKey. After the workbook is created, the thread variable can be cleared.
+            Biff8EncryptionKey.setCurrentUserPassword(configuration.getPassword());
+            try {
+                this.workbook = new HSSFWorkbook(in);
+            } catch (final IOException e) {
+                throw new ProcessException("Failed to open XLS file", e);
+            } finally {
+                Biff8EncryptionKey.setCurrentUserPassword(null);
+            }
+        }
 
         final List<String> requiredSheets = configuration.getRequiredSheets();
         if (requiredSheets == null || requiredSheets.isEmpty()) {
