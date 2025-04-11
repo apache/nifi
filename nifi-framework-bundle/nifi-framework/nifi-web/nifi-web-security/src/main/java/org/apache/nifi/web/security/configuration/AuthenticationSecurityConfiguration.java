@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.web.security.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetailsSource;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
@@ -27,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 
 /**
@@ -65,6 +69,7 @@ public class AuthenticationSecurityConfiguration {
         final NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter = new NiFiAnonymousAuthenticationFilter();
         anonymousAuthenticationFilter.setProperties(niFiProperties);
         anonymousAuthenticationFilter.setAuthenticationManager(authenticationManager);
+        anonymousAuthenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
         return anonymousAuthenticationFilter;
     }
 
@@ -89,5 +94,10 @@ public class AuthenticationSecurityConfiguration {
     @Bean
     public NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider() {
         return new NiFiAnonymousAuthenticationProvider(niFiProperties, authorizer);
+    }
+
+    @Bean
+    public AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource() {
+        return new NiFiWebAuthenticationDetailsSource();
     }
 }

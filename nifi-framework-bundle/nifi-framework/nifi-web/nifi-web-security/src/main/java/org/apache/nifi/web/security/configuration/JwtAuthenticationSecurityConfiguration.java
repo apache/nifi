@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.web.security.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.jwt.converter.StandardJwtAuthenticationConverter;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.jwt.jws.StandardJwsSignerProvider;
@@ -38,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
@@ -93,8 +96,10 @@ public class JwtAuthenticationSecurityConfiguration {
      * @return Bearer Token Authentication Filter
      */
     @Bean
-    public BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter(final AuthenticationManager authenticationManager) {
+    public BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter(final AuthenticationManager authenticationManager,
+        final AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource) {
         final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter = new BearerTokenAuthenticationFilter(authenticationManager);
+        bearerTokenAuthenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource);
         bearerTokenAuthenticationFilter.setBearerTokenResolver(bearerTokenResolver());
         bearerTokenAuthenticationFilter.setAuthenticationEntryPoint(authenticationEntryPoint());
         return bearerTokenAuthenticationFilter;

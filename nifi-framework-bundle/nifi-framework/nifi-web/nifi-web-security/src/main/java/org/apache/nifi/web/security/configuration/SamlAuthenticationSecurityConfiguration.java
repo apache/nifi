@@ -18,10 +18,12 @@ package org.apache.nifi.web.security.configuration;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
@@ -41,6 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.saml2.provider.service.authentication.AbstractSaml2AuthenticationRequest;
 import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider;
@@ -142,9 +145,11 @@ public class SamlAuthenticationSecurityConfiguration {
      * @return SAML 2 Authentication Filter
      */
     @Bean
-    public Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter(final AuthenticationManager authenticationManager) {
+    public Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter(final AuthenticationManager authenticationManager,
+        final AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource) {
         final Saml2AuthenticationTokenConverter authenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver());
         final Saml2WebSsoAuthenticationFilter filter = new Saml2WebSsoAuthenticationFilter(authenticationTokenConverter, SamlUrlPath.LOGIN_RESPONSE_REGISTRATION_ID.getPath());
+        filter.setAuthenticationDetailsSource(authenticationDetailsSource);
         filter.setAuthenticationManager(authenticationManager);
         filter.setAuthenticationSuccessHandler(getAuthenticationSuccessHandler());
         filter.setAuthenticationRequestRepository(saml2AuthenticationRequestRepository());
