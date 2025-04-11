@@ -24,7 +24,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
-
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
@@ -274,20 +273,23 @@ public class StandardOauth2AccessTokenProviderTest {
         @Test
         public void testAcquireNewToken() throws Exception {
             String accessTokenValue = "access_token_value";
+            String customFieldKey = "custom_field_key";
+            String customFieldValue = "custom_field_value";
 
             // GIVEN
             Response response = buildResponse(
                 HTTP_OK,
-                "{ \"access_token\":\"" + accessTokenValue + "\" }"
+                    "{ \"access_token\":\"" + accessTokenValue + "\", \"" + customFieldKey + "\":\"" + customFieldValue + "\" }"
             );
 
             when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
 
             // WHEN
-            String actual = testSubject.getAccessDetails().getAccessToken();
+            AccessToken accessToken = testSubject.getAccessDetails();
 
             // THEN
-            assertEquals(accessTokenValue, actual);
+            assertEquals(accessTokenValue, accessToken.getAccessToken());
+            assertEquals(customFieldValue, accessToken.getCustomFields().get(customFieldKey));
         }
 
         @Test
