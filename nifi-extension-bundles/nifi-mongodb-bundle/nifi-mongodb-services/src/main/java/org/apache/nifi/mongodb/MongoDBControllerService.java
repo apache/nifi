@@ -71,6 +71,10 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
         propertyConfiguration.removeProperty("ssl-client-auth");
+
+        propertyConfiguration.renameProperty("mongo-uri", URI.getName());
+        propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+        propertyConfiguration.renameProperty("mongo-write-concern", WRITE_CONCERN.getName());
     }
 
     // TODO: Remove duplicate code by refactoring shared method to accept PropertyContext
