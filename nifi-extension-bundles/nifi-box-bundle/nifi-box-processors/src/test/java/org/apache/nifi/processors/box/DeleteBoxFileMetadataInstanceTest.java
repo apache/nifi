@@ -84,7 +84,7 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testMetadataNotFound() {
-        final BoxAPIResponseException mockException = new BoxAPIResponseException("instance_not_found - Template not found", 404, "instance_not_found", null);
+        final BoxAPIResponseException mockException = new BoxAPIResponseException("Specified metadata template not found - Template not found", 404, "Specified metadata template not found", null);
         doThrow(mockException).when(mockBoxFile).deleteMetadata(TEMPLATE_KEY);
 
         testRunner.enqueue("test content");
@@ -93,7 +93,7 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(DeleteBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(DeleteBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "instance_not_found - Template not found [404]");
+        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Specified metadata template not found - Template not found [404]");
     }
 
     @Test
