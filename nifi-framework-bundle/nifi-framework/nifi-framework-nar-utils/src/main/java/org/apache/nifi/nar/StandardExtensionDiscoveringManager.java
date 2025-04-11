@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authentication.LoginIdentityProvider;
@@ -132,6 +133,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(PythonBridge.class, new HashSet<>());
         definitionMap.put(NarPersistenceProvider.class, new HashSet<>());
         definitionMap.put(AssetManager.class, new HashSet<>());
+        definitionMap.put(FlowActionReporter.class, new HashSet<>());
 
         additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));
     }
