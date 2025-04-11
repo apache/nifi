@@ -25,16 +25,26 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -42,18 +52,11 @@ import static org.mockito.Mockito.when;
 
 class ConsumeBoxEnterpriseEventsTest extends AbstractBoxFileTest {
 
-    private TestEventStream eventStream;
+    private TestConsumeBoxEnterpriseEvents processor;
 
     @BeforeEach
     void setUp() throws Exception {
-        eventStream = new TestEventStream();
-
-        final ConsumeBoxEnterpriseEvents processor = new ConsumeBoxEnterpriseEvents() {
-            @Override
-            EventLog getEventLog(String position) {
-                return eventStream.consume(position);
-            }
-        };
+        processor = new TestConsumeBoxEnterpriseEvents();
 
         testRunner = TestRunners.newTestRunner(processor);
         super.setUp();
@@ -70,6 +73,9 @@ class ConsumeBoxEnterpriseEventsTest extends AbstractBoxFileTest {
         if (startOffset != null) {
             testRunner.setProperty(ConsumeBoxEnterpriseEvents.START_OFFSET, startOffset);
         }
+
+        final TestEventStream eventStream = new TestEventStream();
+        processor.overrideGetEventLog(eventStream::consume);
 
         eventStream.addEvent(0);
         eventStream.addEvent(1);
@@ -97,12 +103,62 @@ class ConsumeBoxEnterpriseEventsTest extends AbstractBoxFileTest {
         );
     }
 
+    @Test
+    void testGracefulTermination() throws InterruptedException {
+        final CountDownLatch scheduledLatch = new CountDownLatch(1);
+        final AtomicInteger consumedEvents = new AtomicInteger(0);
+
+        // Infinite stream.
+        processor.overrideGetEventLog(__ -> {
+            scheduledLatch.countDown();
+            consumedEvents.incrementAndGet();
+            return createEventLog(List.of(createBoxEvent(1)), "");
+        });
+
+        final ExecutorService runExecutor = Executors.newSingleThreadExecutor();
+
+        try {
+            // Starting the processor that consumes an infinite stream.
+            final Future<?> runFuture = runExecutor.submit(() -> testRunner.run(/*iterations=*/ 1, /*stopOnFinish=*/ false));
+
+            assertTrue(scheduledLatch.await(5, TimeUnit.SECONDS), "Processor did not start");
+
+            // Triggering the processor to stop.
+            testRunner.unSchedule();
+
+            assertDoesNotThrow(() -> runFuture.get(5, TimeUnit.SECONDS), "Processor did not stop gracefully");
+
+            testRunner.assertAllFlowFilesTransferred(ConsumeBoxEnterpriseEvents.REL_SUCCESS, consumedEvents.get());
+        } finally {
+            // We can't use try with resources, as Executors use a shutdown method
+            // which indefinitely waits for submitted tasks.
+            runExecutor.shutdownNow();
+        }
+    }
+
     private Stream<Integer> extractEventIds(final MockFlowFile flowFile) {
         final JsonValue json = Json.parse(flowFile.getContent());
         return json.asArray().values().stream()
                 .map(JsonValue::asObject)
                 .map(jsonObject -> jsonObject.get("id").asString())
                 .map(Integer::parseInt);
+    }
+
+    /**
+     * This class is used to override external call in {@link ConsumeBoxEnterpriseEvents#getEventLog(String)}.
+     */
+    private static class TestConsumeBoxEnterpriseEvents extends ConsumeBoxEnterpriseEvents {
+
+        private volatile Function<String, EventLog> fakeEventLog;
+
+        void overrideGetEventLog(final Function<String, EventLog> fakeEventLog) {
+            this.fakeEventLog = fakeEventLog;
+        }
+
+        @Override
+        EventLog getEventLog(String position) {
+            return fakeEventLog.apply(position);
+        }
     }
 
     private static class TestEventStream {
@@ -112,39 +168,40 @@ class ConsumeBoxEnterpriseEventsTest extends AbstractBoxFileTest {
         private final List<BoxEvent> events = new ArrayList<>();
 
         void addEvent(final int eventId) {
-            final BoxEvent boxEvent = new BoxEvent(null, "{\"event_id\": \"%d\"}".formatted(eventId));
-            events.add(boxEvent);
+            events.add(createBoxEvent(eventId));
         }
 
         EventLog consume(final String position) {
+            final String nextPosition = String.valueOf(events.size());
+
             if (NOW_POSITION.equals(position)) {
-                return createEmptyEventLog();
+                return createEventLog(emptyList(), nextPosition);
             }
 
             final int streamPosition = Integer.parseInt(position);
             if (streamPosition > events.size()) {
                 // Real Box API returns the latest offset position, even if streamPosition was greater.
-                return createEmptyEventLog();
+                return createEventLog(emptyList(), nextPosition);
             }
 
             final List<BoxEvent> consumedEvents = events.subList(streamPosition, events.size());
 
-            return createEventLog(consumedEvents);
+            return createEventLog(consumedEvents, nextPosition);
         }
+    }
 
-        private EventLog createEmptyEventLog() {
-            return createEventLog(emptyList());
-        }
+    private static BoxEvent createBoxEvent(final int eventId) {
+        return new BoxEvent(null, "{\"event_id\": \"%d\"}".formatted(eventId));
+    }
 
-        private EventLog createEventLog(final List<BoxEvent> consumedEvents) {
-            // EventLog is not designed for being extended. Thus, mocking it.
-            final EventLog eventLog = mock();
+    private static EventLog createEventLog(final List<BoxEvent> consumedEvents, final String nextPosition) {
+        // EventLog is not designed for being extended. Thus, mocking it.
+        final EventLog eventLog = mock();
 
-            when(eventLog.getNextStreamPosition()).thenReturn(String.valueOf(events.size()));
-            lenient().when(eventLog.getSize()).thenReturn(consumedEvents.size());
-            lenient().when(eventLog.iterator()).thenReturn(consumedEvents.iterator());
+        when(eventLog.getNextStreamPosition()).thenReturn(nextPosition);
+        lenient().when(eventLog.getSize()).thenReturn(consumedEvents.size());
+        lenient().when(eventLog.iterator()).thenReturn(consumedEvents.iterator());
 
-            return eventLog;
-        }
+        return eventLog;
     }
 }

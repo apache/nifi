@@ -179,13 +179,18 @@ public class ConsumeBoxEnterpriseEvents extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        while (true) {
+        while (isScheduled()) {
+            getLogger().debug("Consuming Box Events from position: {}", streamPosition);
+
             final EventLog eventLog = getEventLog(streamPosition);
             streamPosition = eventLog.getNextStreamPosition();
+
+            getLogger().debug("Consumed {} Box Enterprise Events. New position: {}", eventLog.getSize(), streamPosition);
+
             writeStreamPosition(streamPosition, session);
 
             if (eventLog.getSize() == 0) {
-                return;
+                break;
             }
 
             writeLogAsRecords(eventLog, session);
