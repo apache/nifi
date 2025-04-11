@@ -53,13 +53,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Tags({"excel", "spreadsheet", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
+@Tags({"excel", "spreadsheet", "xls", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
 @CapabilityDescription("Parses a Microsoft Excel document returning each row in each sheet as a separate record. "
         + "This reader allows for inferring a schema from all the required sheets "
         + "or providing an explicit schema for interpreting the values."
         + "See Controller Service's Usage for further documentation. "
-        + "This reader is currently only capable of processing .xlsx "
-        + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
+        + "This reader is capable of processing .xlsx (XSSF 2007 OOXML file format) "
+        + "Excel documents and older .xls (HSSF '97(-2007) file format) documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor

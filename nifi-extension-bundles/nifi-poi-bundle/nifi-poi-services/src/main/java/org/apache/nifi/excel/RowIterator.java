@@ -19,6 +19,12 @@ package org.apache.nifi.excel;
 import com.github.pjfanning.xlsx.StreamingReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.stream.io.NonCloseableInputStream;
+import org.apache.poi.hssf.record.crypto.Biff8EncryptionKey;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.DirectoryNode;
+import org.apache.poi.poifs.filesystem.FileMagic;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -32,6 +38,9 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+import static org.apache.poi.extractor.ExtractorFactory.OOXML_PACKAGE;
+import static org.apache.poi.poifs.crypt.Decryptor.DEFAULT_POIFS_ENTRY;
+
 class RowIterator implements Iterator<Row>, Closeable {
     private final Workbook workbook;
     private final Iterator<Sheet> sheets;
@@ -42,13 +51,26 @@ class RowIterator implements Iterator<Row>, Closeable {
     private Row currentRow;
 
     RowIterator(final InputStream in, final ExcelRecordReaderConfiguration configuration, final ComponentLog logger) {
-        this.workbook = StreamingReader.builder()
-                .rowCacheSize(100)
-                .bufferSize(4096)
-                .password(configuration.getPassword())
-                .setAvoidTempFiles(configuration.isAvoidTempFiles())
-                .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
-                .open(in);
+        if (isXSSFExcelFile(in, configuration.getPassword())) {
+            this.workbook = StreamingReader.builder()
+                    .rowCacheSize(100)
+                    .bufferSize(4096)
+                    .password(configuration.getPassword())
+                    .setAvoidTempFiles(configuration.isAvoidTempFiles())
+                    .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
+                    .open(in);
+        } else {
+            // Providing the password to the HSSFWorkbook is done by setting a thread variable managed by
+            // Biff8EncryptionKey. After the workbook is created, the thread variable can be cleared.
+            Biff8EncryptionKey.setCurrentUserPassword(configuration.getPassword());
+            try {
+                this.workbook = new HSSFWorkbook(in);
+            } catch (final IOException e) {
+                throw new ProcessException("Failed to open XLS file", e);
+            } finally {
+                Biff8EncryptionKey.setCurrentUserPassword(null);
+            }
+        }
 
         final List<String> requiredSheets = configuration.getRequiredSheets();
         if (requiredSheets == null || requiredSheets.isEmpty()) {
@@ -128,5 +150,38 @@ class RowIterator implements Iterator<Row>, Closeable {
             logger.debug("Exhausted all rows from sheet {}", currentSheet.getSheetName());
         }
         return exhausted;
+    }
+
+    private boolean isXSSFExcelFile(InputStream in, final String password) {
+        final FileMagic fileType;
+        try {
+            fileType = FileMagic.valueOf(in);
+        } catch (final IOException e) {
+            throw new ProcessException("Failed to determine file type", e);
+        }
+
+        if (fileType == FileMagic.OOXML) {
+            // Unencrypted XLSX file
+            return true;
+        }
+        if (fileType != FileMagic.OLE2) {
+            // Not an Excel file
+            return false;
+        }
+        if (password == null) {
+            // If there is no password on the OLE2 file, then it's an XLS file. Otherwise, the type must be further
+            // investigated.
+            return false;
+        }
+
+        DirectoryNode root;
+        try {
+            root = new POIFSFileSystem(new NonCloseableInputStream(in)).getRoot();
+            in.reset();
+        } catch (final IOException e) {
+            throw new ProcessException("Failed to determine file type", e);
+        }
+        // Encrypted XLSX file must have DEFAULT_POIFS_ENTRY or OOXML_PACKAGE entry.
+        return root.hasEntryCaseInsensitive(DEFAULT_POIFS_ENTRY) || root.hasEntryCaseInsensitive(OOXML_PACKAGE);
     }
 }
