@@ -274,20 +274,22 @@ public class StandardOauth2AccessTokenProviderTest {
         @Test
         public void testAcquireNewToken() throws Exception {
             String accessTokenValue = "access_token_value";
+            String scopeValue = "scope_value";
 
             // GIVEN
             Response response = buildResponse(
                 HTTP_OK,
-                "{ \"access_token\":\"" + accessTokenValue + "\" }"
+                "{ \"access_token\":\"" + accessTokenValue + "\", \"scope\":\"" + scopeValue + "\" }"
             );
 
             when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
 
             // WHEN
-            String actual = testSubject.getAccessDetails().getAccessToken();
+            AccessToken accessToken = testSubject.getAccessDetails();
 
             // THEN
-            assertEquals(accessTokenValue, actual);
+            assertEquals(accessTokenValue, accessToken.getAccessToken());
+            assertEquals(scopeValue, accessToken.getScope());
         }
 
         @Test
