@@ -21,7 +21,9 @@ import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.NiFiProperties;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
+import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
+import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -43,6 +45,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -68,6 +71,8 @@ class FrameworkServerConnectorFactoryTest {
     private static final String KEY_STORE_EXTENSION = ".p12";
 
     private static final String KEY_STORE_PASS = FrameworkServerConnectorFactoryTest.class.getName();
+
+    private static final String CUSTOM_HTTP_COMPLIANCE = "RFC7230,TRANSFER_ENCODING_WITH_CONTENT_LENGTH";
 
     @TempDir
     private static Path keyStoreDirectory;
@@ -174,6 +179,33 @@ class FrameworkServerConnectorFactoryTest {
 
         final ALPNServerConnectionFactory alpnServerConnectionFactory = serverConnector.getConnectionFactory(ALPNServerConnectionFactory.class);
         assertNotNull(alpnServerConnectionFactory);
+    }
+
+    @Test
+    void testHttpComplianceNotAppliedIfPropertyIsNotConfiguredAndDefaultIsLoaded() {
+        final Properties serverProperties = new Properties();
+        serverProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, Integer.toString(HTTP_PORT));
+        final NiFiProperties properties = getProperties(serverProperties);
+
+        final Server server = new Server();
+        final FrameworkServerConnectorFactory factory = new FrameworkServerConnectorFactory(server, properties);
+
+        HttpConfiguration httpConfiguration = factory.getHttpConfiguration();
+        assertEquals(httpConfiguration.getHttpCompliance(), HttpCompliance.RFC7230);
+    }
+
+    @Test
+    void testThatHttpComplianceIsAppliedIfConfigured() {
+        final Properties serverProperties = new Properties();
+        serverProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, Integer.toString(HTTP_PORT));
+        serverProperties.setProperty(NiFiProperties.WEB_HTTP_COMPLIANCE, CUSTOM_HTTP_COMPLIANCE);
+        final NiFiProperties properties = getProperties(serverProperties);
+
+        final Server server = new Server();
+        final FrameworkServerConnectorFactory factory = new FrameworkServerConnectorFactory(server, properties);
+
+        HttpConfiguration httpConfiguration = factory.getHttpConfiguration();
+        assertEquals(httpConfiguration.getHttpCompliance().getAllowed(), Set.of(HttpCompliance.Violation.TRANSFER_ENCODING_WITH_CONTENT_LENGTH));
     }
 
     private Properties getHttpsProperties() {
