@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.action;
 
+import java.io.Closeable;
 import java.util.Collection;
 
 /**
  * A {@link FlowActionReporter} is responsible for reporting {@link FlowAction}s.
  * Provides {@link FlowActionReporterConfigurationContext} to allow for configuration and initialization.
- * Uses {@link #preDestruction()} to allow for cleanup.
+ * Uses {@link #close()} to allow for cleanup.
  */
-public interface FlowActionReporter {
+public interface FlowActionReporter extends Closeable {
     /**
      * Initialization method for the reporter. This method is called just after reporter is created.
      * @param context reporter configuration context
@@ -39,8 +40,9 @@ public interface FlowActionReporter {
     void reportFlowActions(Collection<FlowAction> actions);
 
     /**
-     * Cleanup method for the reporter. This method is called just before the reporter is destroyed.
+     * Close method for releasing resources when shutting down the application. This method is called just before the reporter is destroyed.
      */
-    default void preDestruction() {
+    @Override
+    default void close() {
     }
 }

@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.framework.configuration;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.FlowActionReporter;
+import org.apache.nifi.action.FlowActionReporterConfigurationContext;
 import org.apache.nifi.action.StandardFlowActionReporterConfigurationContext;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.asset.AssetComponentManager;
@@ -484,16 +484,21 @@ public class FlowControllerConfiguration {
      */
     @Bean
     public FlowActionReporter flowActionReporter() {
+        final FlowActionReporter flowActionReporter;
+
         final String configuredClassName = properties.getProperty(FLOW_ACTION_REPORTER_IMPLEMENTATION);
-        if (StringUtils.isBlank(configuredClassName)) {
-            return null;
+        if (configuredClassName == null || configuredClassName.isBlank()) {
+            flowActionReporter = null;
+        } else {
+            try {
+                flowActionReporter = NarThreadContextClassLoader.createInstance(extensionManager, configuredClassName, FlowActionReporter.class, properties);
+                final FlowActionReporterConfigurationContext configurationContext = new StandardFlowActionReporterConfigurationContext(sslContext, trustManager);
+                flowActionReporter.onConfigured(configurationContext);
+            } catch (final Exception e) {
+                throw new IllegalStateException("Failed to create FlowActionReporter with class [%s]".formatted(configuredClassName), e);
+            }
         }
-        try {
-            FlowActionReporter reporter = NarThreadContextClassLoader.createInstance(extensionManager, configuredClassName, FlowActionReporter.class, properties);
-            reporter.onConfigured(new StandardFlowActionReporterConfigurationContext(sslContext, trustManager));
-            return reporter;
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to create FlowActionReporter with class " + configuredClassName, e);
-        }
+
+        return flowActionReporter;
     }
 }

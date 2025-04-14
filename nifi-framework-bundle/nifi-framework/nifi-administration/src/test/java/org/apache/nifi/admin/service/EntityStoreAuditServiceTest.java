@@ -22,13 +22,13 @@ import org.apache.nifi.action.FlowAction;
 import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.StandardFlowAction;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.action.details.FlowChangeConnectDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.admin.action.ActionConverter;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
@@ -107,6 +107,8 @@ class EntityStoreAuditServiceTest {
 
     private static final String SORT_ASCENDING = "ASC";
 
+    private static final ActionConverter actionConverter = action -> (FlowAction) Map::of;
+
     @TempDir
     File directory;
 
@@ -116,7 +118,7 @@ class EntityStoreAuditServiceTest {
 
     @BeforeEach
     void setService() {
-        service = new EntityStoreAuditService(directory, flowActionReporter, (__) -> new StandardFlowAction());
+        service = new EntityStoreAuditService(directory, actionConverter, flowActionReporter);
     }
 
     @AfterEach
@@ -139,7 +141,7 @@ class EntityStoreAuditServiceTest {
         }
 
         // Create Service with corrupted directory
-        service = new EntityStoreAuditService(directory, flowActionReporter, (__) -> new StandardFlowAction());
+        service = new EntityStoreAuditService(directory, actionConverter, flowActionReporter);
         final Action action = newAction();
         final Collection<Action> actions = Collections.singletonList(action);
         service.addActions(actions);
@@ -243,7 +245,7 @@ class EntityStoreAuditServiceTest {
         final History actionsHistory = service.getActions(historyQuery);
 
         assertNotNull(actionsHistory);
-        assertEquals(actionsHistory.getTotal(), 1);
+        assertEquals(1, actionsHistory.getTotal());
         assertNotNull(actionsHistory.getLastRefreshed());
 
         final Collection<Action> actionsFound = actionsHistory.getActions();
@@ -478,14 +480,15 @@ class EntityStoreAuditServiceTest {
 
     private static class InMemoryFlowActionReporter implements FlowActionReporter {
         List<FlowAction> reportedActions = new ArrayList<>();
-        public void reportFlowActions(Collection<FlowAction> actions) {
+
+        @Override
+        public void reportFlowActions(final Collection<FlowAction> actions) {
             reportedActions.addAll(actions);
         }
 
         List<FlowAction> getReportedActions() {
             return reportedActions;
         }
-
     }
 
     private FlowChangeAction newAction() {

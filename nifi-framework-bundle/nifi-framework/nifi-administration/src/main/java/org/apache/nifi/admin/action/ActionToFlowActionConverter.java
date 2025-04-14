@@ -14,8 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action;
+package org.apache.nifi.admin.action;
 
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.FlowAction;
+import org.apache.nifi.action.FlowActionAttribute;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
@@ -34,15 +37,15 @@ import java.util.Map;
 public class ActionToFlowActionConverter implements ActionConverter {
 
     @Override
-    public FlowAction convert(Action action) {
-        Map<String, String> attributes = new HashMap<>();
+    public FlowAction convert(final Action action) {
+        final Map<String, String> attributes = new HashMap<>();
         populateActionAttributes(action, attributes);
         populateActionDetailsAttributes(action.getActionDetails(), attributes);
         populateComponentDetailsProperties(action.getComponentDetails(), attributes);
         return new StandardFlowAction(attributes);
     }
 
-    private void populateActionAttributes(Action action, Map<String, String> attributes) {
+    private void populateActionAttributes(final Action action, final Map<String, String> attributes) {
         attributes.put(FlowActionAttribute.ACTION_ID.key(), String.valueOf(action.getId()));
         attributes.put(FlowActionAttribute.ACTION_TIMESTAMP.key(), action.getTimestamp().toInstant().toString());
         attributes.put(FlowActionAttribute.ACTION_USER_IDENTITY.key(), action.getUserIdentity());
@@ -51,7 +54,7 @@ public class ActionToFlowActionConverter implements ActionConverter {
         attributes.put(FlowActionAttribute.ACTION_OPERATION.key(), action.getOperation().name());
     }
 
-    private void populateActionDetailsAttributes(ActionDetails actionDetails, Map<String, String> attributes) {
+    private void populateActionDetailsAttributes(final ActionDetails actionDetails, final Map<String, String> attributes) {
         switch (actionDetails) {
             case ConfigureDetails configureDetails -> attributes.put(
                 FlowActionAttribute.ACTION_DETAILS_NAME.key(), configureDetails.getName()
@@ -75,7 +78,7 @@ public class ActionToFlowActionConverter implements ActionConverter {
         }
     }
 
-    private void populateComponentDetailsProperties(ComponentDetails componentDetails, Map<String, String> attributes) {
+    private void populateComponentDetailsProperties(final ComponentDetails componentDetails, final Map<String, String> attributes) {
         switch (componentDetails) {
             case ExtensionDetails extensionDetails -> attributes.put(
                 FlowActionAttribute.COMPONENT_DETAILS_TYPE.key(), extensionDetails.getType()

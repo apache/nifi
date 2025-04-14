@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action;
+package org.apache.nifi.admin.action;
+
+import org.apache.nifi.action.FlowAction;
+
+import java.util.Map;
 
 /**
- * Converter for converting an action to a flow action. Used in the reporting flow actions process.
+ * A standard implementation of the {@link FlowAction} interface allowing to store {@link String} key and values.
  */
-public interface ActionConverter {
+public record StandardFlowAction(Map<String, String> attributes) implements FlowAction {
 
-    FlowAction convert(Action action);
+    @Override
+    public Map<String, String> getAttributes() {
+        return Map.copyOf(attributes);
+    }
 }

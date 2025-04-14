@@ -27,7 +27,7 @@ public class StandardFlowActionReporterConfigurationContext implements FlowActio
     private final SSLContext sslContext;
     private final X509TrustManager trustManager;
 
-    public StandardFlowActionReporterConfigurationContext(final SSLContext sslContext, X509TrustManager trustManager) {
+    public StandardFlowActionReporterConfigurationContext(final SSLContext sslContext, final X509TrustManager trustManager) {
         this.sslContext = sslContext;
         this.trustManager = trustManager;
     }
