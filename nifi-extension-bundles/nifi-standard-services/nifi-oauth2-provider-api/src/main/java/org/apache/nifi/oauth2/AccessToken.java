@@ -17,8 +17,6 @@
 
 package org.apache.nifi.oauth2;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,7 +99,6 @@ public class AccessToken {
         return Instant.now();
     }
 
-    @JsonAnySetter
     public void setCustomField(String key, String value) {
         customFields.put(key, value);
     }

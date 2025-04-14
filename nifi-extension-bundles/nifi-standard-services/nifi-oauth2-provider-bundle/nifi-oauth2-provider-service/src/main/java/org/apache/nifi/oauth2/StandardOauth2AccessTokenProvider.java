@@ -19,6 +19,7 @@ package org.apache.nifi.oauth2;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import okhttp3.Credentials;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
@@ -221,6 +222,12 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+    static {
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(AccessToken.class, new AccessTokenDeserializer());
+        ACCESS_DETAILS_MAPPER.registerModule(module);
+    }
 
     private volatile String authorizationServerUrl;
     private volatile OkHttpClient httpClient;
