@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web;
 
+import jakarta.annotation.Nullable;
+import org.apache.nifi.admin.action.ActionConverter;
+import org.apache.nifi.admin.action.ActionToFlowActionConverter;
+import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.EntityStoreAuditService;
 import org.apache.nifi.framework.configuration.ApplicationPropertiesConfiguration;
@@ -36,9 +40,9 @@ import java.net.URISyntaxException;
  * Web Application Spring Configuration
  */
 @ComponentScan(basePackageClasses = {
-        ApplicationPropertiesConfiguration.class,
-        WebSecurityConfiguration.class,
-        WebApplicationConfiguration.class
+    ApplicationPropertiesConfiguration.class,
+    WebSecurityConfiguration.class,
+    WebApplicationConfiguration.class
 })
 @Configuration
 public class NiFiWebApiConfiguration {
@@ -67,13 +71,15 @@ public class NiFiWebApiConfiguration {
     /**
      * Audit Service implementation from nifi-administration
      *
-     * @param properties NiFi Properties
+     * @param properties                 NiFi Properties
+     * @param flowActionReporter         Flow Action Reporter can be null
      * @return Audit Service implementation using Persistent Entity Store
      */
     @Bean
-    public AuditService auditService(final NiFiProperties properties) {
+    public AuditService auditService(final NiFiProperties properties, @Nullable final FlowActionReporter flowActionReporter) {
         final File databaseDirectory = properties.getDatabaseRepositoryPath().toFile();
-        return new EntityStoreAuditService(databaseDirectory);
+        final ActionConverter actionConverter = new ActionToFlowActionConverter();
+        return new EntityStoreAuditService(databaseDirectory, actionConverter, flowActionReporter);
     }
 
     @Bean
