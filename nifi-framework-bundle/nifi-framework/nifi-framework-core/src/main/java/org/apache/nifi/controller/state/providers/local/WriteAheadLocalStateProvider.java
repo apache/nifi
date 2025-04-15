@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -34,6 +35,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -46,6 +48,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.SerDe;
 import org.wali.SerDeFactory;
 import org.wali.UpdateType;
@@ -134,7 +137,12 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         versionGenerator = new AtomicLong(-1L);
         writeAheadLog = new SequentialAccessWriteAheadLog<>(basePath, new SerdeFactory(serde));
 
-        final Collection<StateMapUpdate> updates = writeAheadLog.recoverRecords();
+        final Collection<StateMapUpdate> updates = getStateWithMigrationAsNecessary(
+                basePath,
+                serde,
+                writeAheadLog
+        );
+
         long maxRecordVersion = EMPTY_VERSION;
 
         for (final StateMapUpdate update : updates) {
@@ -158,6 +166,76 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         versionGenerator.set(maxRecordVersion);
 
         executor.scheduleWithFixedDelay(new CheckpointTask(), checkpointIntervalMillis, checkpointIntervalMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @SuppressWarnings("deprecation")
+    public Collection<StateMapUpdate> getStateWithMigrationAsNecessary(
+            final File basePath,
+            final StateMapSerDe serde,
+            final WriteAheadRepository<StateMapUpdate> currentWriteAheadLog
+    ) throws IOException {
+        final Collection<StateMapUpdate> updates;
+
+        // We need this for 2 reasons:
+        //  1. currentWriteAheadLog.update can only be called after currentWriteAheadLog.recoverRecords has been called
+        //  2. We need to create a union of current and previous updates. Both have non-component-related updates with
+        //      component ids like "org.apache.nifi.web.security.oidc.client.web.StandardOidcAuthorizedClientRepository"
+        //      and "org.apache.nifi.web.security.jwt.key.service.StandardVerificationKeyService". These should not be
+        //      migrated.
+        final Collection<StateMapUpdate> currentUpdates = currentWriteAheadLog.recoverRecords();
+
+        if (basePath.toPath().resolve("partition-0").toFile().exists()) {
+            logger.info(
+                    "Detected {} managed local state, migrating to {}",
+                    MinimalLockingWriteAheadLog.class.getSimpleName(),
+                    SequentialAccessWriteAheadLog.class.getSimpleName()
+            );
+
+            final MinimalLockingWriteAheadLog<StateMapUpdate> previousWriteAheadLog = new MinimalLockingWriteAheadLog<>(
+                    basePath.toPath(),
+                    1, // Real number of partitions will be automatically detected
+                    serde,
+                    null
+            );
+            final Collection<StateMapUpdate> previousUpdates = previousWriteAheadLog.recoverRecords();
+            previousWriteAheadLog.shutdown();
+
+            final Map<String, StateMapUpdate> componentIdToUpdate = new HashMap<>();
+            // There are overlapping entries that should not be overridden by the old state. We create a union with
+            //  the current state having priority.
+            previousUpdates.forEach(update -> componentIdToUpdate.put(update.getComponentId(), update));
+            currentUpdates.forEach(update -> componentIdToUpdate.put(update.getComponentId(), update));
+
+            updates = componentIdToUpdate.values();
+            currentWriteAheadLog.update(updates, true);
+            currentWriteAheadLog.checkpoint();
+
+            logger.info(
+                    "Migrated local state from {} to {}",
+                    MinimalLockingWriteAheadLog.class.getSimpleName(),
+                    SequentialAccessWriteAheadLog.class.getSimpleName()
+            );
+
+            for (final File stateFileOrDirectory : Objects.requireNonNull(basePath.listFiles())) {
+                final String stateFileOrDirectoryName = stateFileOrDirectory.getName();
+                final String stateFileOrDirectoryAbsolutePath = stateFileOrDirectory.getAbsolutePath();
+
+                if (stateFileOrDirectory.isDirectory() && stateFileOrDirectoryName.startsWith("partition-")) {
+                    logger.info("Removing old partition directory {}", stateFileOrDirectoryAbsolutePath);
+                    FileUtils.deleteDirectory(stateFileOrDirectory);
+                } else if (stateFileOrDirectory.isFile() && stateFileOrDirectoryName.equals("snapshot")) {
+                    logger.info("Removing old snapshot file {}", stateFileOrDirectoryAbsolutePath);
+                    boolean successfullyDeletedOldSnapshot = stateFileOrDirectory.delete();
+                    if (!successfullyDeletedOldSnapshot) {
+                        logger.warn("Couldn't remove old snapshot file {}", stateFileOrDirectoryAbsolutePath);
+                    }
+                }
+            }
+        } else {
+            updates = currentUpdates;
+        }
+
+        return updates;
     }
 
     @Override
