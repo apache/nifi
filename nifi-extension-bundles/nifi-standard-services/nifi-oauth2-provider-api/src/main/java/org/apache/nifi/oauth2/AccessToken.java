@@ -30,8 +30,7 @@ public class AccessToken {
 
     private final Instant fetchTime;
 
-    // Map to store custom fields
-    private final Map<String, String> customFields = new HashMap<>();
+    protected Map<String, String> customFields = new HashMap<>();
 
     public AccessToken() {
         this.fetchTime = Instant.now();
@@ -44,6 +43,16 @@ public class AccessToken {
         this.tokenType = tokenType;
         this.expiresIn = expiresIn;
         this.scope = scope;
+    }
+
+    public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scope, Map<String, String> customFields) {
+        this();
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.tokenType = tokenType;
+        this.expiresIn = expiresIn;
+        this.scope = scope;
+        this.customFields = customFields;
     }
 
     public String getAccessToken() {

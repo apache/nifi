@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.oauth2;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import okhttp3.Credentials;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
@@ -58,6 +59,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -222,12 +224,6 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
-
-    static {
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(AccessToken.class, new AccessTokenDeserializer());
-        ACCESS_DETAILS_MAPPER.registerModule(module);
-    }
 
     private volatile String authorizationServerUrl;
     private volatile OkHttpClient httpClient;
@@ -467,7 +463,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             final String responseBody = response.body().string();
             if (response.isSuccessful()) {
                 getLogger().debug("OAuth2 Access Token retrieved [HTTP {}]", response.code());
-                return ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
+                return ACCESS_DETAILS_MAPPER.readValue(responseBody, ExtendedAccessToken.class);
             } else {
                 getLogger().error(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", response.code(), responseBody));
                 throw new ProcessException(String.format("OAuth2 access token request failed [HTTP %d]", response.code()));
@@ -493,5 +489,21 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
 
         return Arrays.asList(builder.build());
+    }
+
+    @JsonView(AccessTokenViews.Full.class)
+    public static class ExtendedAccessToken extends AccessToken {
+        public ExtendedAccessToken() {
+            super();
+        }
+
+        public ExtendedAccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scope) {
+            super(accessToken, refreshToken, tokenType, expiresIn, scope, new HashMap<>());
+        }
+
+        @JsonAnySetter
+        public void setCustomField(String key, String value) {
+            customFields.put(key, value);
+        }
     }
 }
