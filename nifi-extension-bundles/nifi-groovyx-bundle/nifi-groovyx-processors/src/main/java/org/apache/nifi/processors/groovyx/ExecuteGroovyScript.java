@@ -85,9 +85,11 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value. "
                 + "Use `CTL.` to access any controller services, `SQL.` to access any DBCPServices, `RecordReader.` to access RecordReaderFactory instances, or "
-                + "`RecordWriter.` to access any RecordSetWriterFactory instances.")
+                + "`RecordWriter.` to access any RecordSetWriterFactory instances. Use `SENSITIVE.` to mark the property as sensitive.")
 public class ExecuteGroovyScript extends AbstractProcessor {
     public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
+
+    protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
     private static final String PRELOADS = "import org.apache.nifi.components.*;" + "import org.apache.nifi.flowfile.FlowFile;" + "import org.apache.nifi.processor.*;"
             + "import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;" + "import org.apache.nifi.processor.exception.*;" + "import org.apache.nifi.processor.io.*;"
@@ -542,13 +544,19 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     .identifiesControllerService(RecordSetWriterFactory.class)
                     .build();
         }
-        return new PropertyDescriptor.Builder()
+
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-                .dynamic(true)
-                .build();
+                .dynamic(true);
+
+        if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
+            builder.sensitive(true);
+        }
+
+        return builder.build();
     }
 
     /** simple HashMap with exception on access of non-existent key */
