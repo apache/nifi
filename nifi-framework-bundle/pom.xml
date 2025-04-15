@@ -286,7 +286,7 @@
             <dependency>
                 <groupId>org.apache.santuario</groupId>
                 <artifactId>xmlsec</artifactId>
-                <version>4.0.3</version>
+                <version>4.0.4</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.fasterxml.woodstox</groupId>
