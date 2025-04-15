@@ -280,7 +280,7 @@ public class StandardOauth2AccessTokenProviderTest {
             // GIVEN
             Response response = buildResponse(
                 HTTP_OK,
-                    "{ \"access_token\":\"" + accessTokenValue + "\", \"scope\":\"" + scopeValue + "\", \"" + customFieldKey + "\":\"" + customFieldValue + "\" }"
+                "{ \"access_token\":\"" + accessTokenValue + "\", \"scope\":\"" + scopeValue + "\", \"" + customFieldKey + "\":\"" + customFieldValue + "\" }"
             );
 
             when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);

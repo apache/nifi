@@ -59,7 +59,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -491,14 +490,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         return Arrays.asList(builder.build());
     }
 
+    private class AccessTokenViews {
+        public static class Full {
+        }
+    }
+
     @JsonView(AccessTokenViews.Full.class)
-    public static class ExtendedAccessToken extends AccessToken {
+    static class ExtendedAccessToken extends AccessToken {
         public ExtendedAccessToken() {
             super();
-        }
-
-        public ExtendedAccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scope) {
-            super(accessToken, refreshToken, tokenType, expiresIn, scope, new HashMap<>());
         }
 
         @JsonAnySetter

@@ -45,16 +45,6 @@ public class AccessToken {
         this.scope = scope;
     }
 
-    public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scope, Map<String, String> customFields) {
-        this();
-        this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
-        this.tokenType = tokenType;
-        this.expiresIn = expiresIn;
-        this.scope = scope;
-        this.customFields = customFields;
-    }
-
     public String getAccessToken() {
         return accessToken;
     }
