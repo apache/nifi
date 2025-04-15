@@ -3529,7 +3529,7 @@ The CustomRequestLog writes formatted messages using the following SLF4J logger:
 `org.apache.nifi.web.server.RequestLog`
 |`nifi.web.jmx.metrics.allowed.filter.pattern`|The regular expression controlling the JMX MBean names that the REST API
 is allowed to return. The default value is empty, blocking all MBeans. Configuring `.*` allows all registered MBeans.
-|====
+|nifi.web.jetty.http.compliance| You can configure link:https://jetty.org/docs/jetty/12/programming-guide/server/compliance.html[jetty http compliance]. This way you can allow some http violation if you need compatibility with older http clients. Example value: RFC7230,TRANSFER_ENCODING_WITH_CONTENT_LENGTH |====
 
 [[security_properties]]
 === Security Properties
