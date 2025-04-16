@@ -24,6 +24,8 @@ import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.RequestDetails;
+import org.apache.nifi.action.StandardRequestDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.asset.Asset;
@@ -410,12 +412,16 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionClaim;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.util.PredictionBasedParallelProcessingService;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.stereotype.Service;
 
@@ -3563,21 +3569,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void deleteActions(final Date endDate) {
-        // get the user from the request
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user == null) {
-            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-        }
-
         // create the purge details
         final FlowChangePurgeDetails details = new FlowChangePurgeDetails();
         details.setEndDate(endDate);
 
         // create a purge action to record that records are being removed
-        final FlowChangeAction purgeAction = new FlowChangeAction();
-        purgeAction.setUserIdentity(user.getIdentity());
+        final FlowChangeAction purgeAction = createFlowChangeAction();
         purgeAction.setOperation(Operation.Purge);
-        purgeAction.setTimestamp(new Date());
         purgeAction.setSourceId("Flow Controller");
         purgeAction.setSourceName("History");
         purgeAction.setSourceType(Component.Controller);
@@ -7122,6 +7120,31 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return NiFiUserUtils.getAuthenticationCredentials()
                 .map(credentials -> credentials instanceof OAuth2Token)
                 .orElse(false);
+    }
+
+    private FlowChangeAction createFlowChangeAction() {
+        final FlowChangeAction flowChangeAction = new FlowChangeAction();
+        flowChangeAction.setTimestamp(new Date());
+
+        final SecurityContext securityContext = SecurityContextHolder.getContext();
+        final Authentication authentication = securityContext.getAuthentication();
+        if (authentication == null) {
+            throw new WebApplicationException(new IllegalStateException("Security Context missing Authentication for current user"));
+        } else {
+            final String userIdentity = authentication.getName();
+            flowChangeAction.setUserIdentity(userIdentity);
+
+            final Object details = authentication.getDetails();
+            if (details instanceof NiFiWebAuthenticationDetails authenticationDetails) {
+                final String remoteAddress = authenticationDetails.getRemoteAddress();
+                final String forwardedFor = authenticationDetails.getForwardedFor();
+                final String userAgent = authenticationDetails.getUserAgent();
+                final RequestDetails requestDetails = new StandardRequestDetails(remoteAddress, forwardedFor, userAgent);
+                flowChangeAction.setRequestDetails(requestDetails);
+            }
+        }
+
+        return flowChangeAction;
     }
 
     @Override

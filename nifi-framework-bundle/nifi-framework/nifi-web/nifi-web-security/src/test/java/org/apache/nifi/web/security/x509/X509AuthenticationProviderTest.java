@@ -39,6 +39,7 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -275,7 +276,7 @@ public class X509AuthenticationProviderTest {
             extractor,
             new X509Certificate[]{getX509Certificate(identity)},
             "",
-            new NiFiWebAuthenticationDetails("127.0.0.1", "someSessionId", "someUserAgent"));
+            new NiFiWebAuthenticationDetails(new MockHttpServletRequest()));
     }
 
     private X509Certificate getX509Certificate(final String identity) {

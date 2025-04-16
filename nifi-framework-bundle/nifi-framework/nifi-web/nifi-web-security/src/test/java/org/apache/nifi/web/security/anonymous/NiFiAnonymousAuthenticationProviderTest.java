@@ -25,6 +25,7 @@ import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,7 +44,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
         final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(
             false,
             StringUtils.EMPTY,
-            new NiFiWebAuthenticationDetails("127.0.0.1", "someSessionId", "someUserAgent"));
+            new NiFiWebAuthenticationDetails(new MockHttpServletRequest()));
 
         final NiFiAuthenticationToken authentication = (NiFiAuthenticationToken) anonymousAuthenticationProvider.authenticate(authenticationRequest);
         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getPrincipal();
@@ -60,7 +61,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
         final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(
             false,
             StringUtils.EMPTY,
-            new NiFiWebAuthenticationDetails("127.0.0.1", "someSessionId", "someUserAgent"));
+            new NiFiWebAuthenticationDetails(new MockHttpServletRequest()));
 
         final NiFiAuthenticationToken authentication = (NiFiAuthenticationToken) anonymousAuthenticationProvider.authenticate(authenticationRequest);
         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getPrincipal();
@@ -77,7 +78,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
         final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(
             true,
             StringUtils.EMPTY,
-            new NiFiWebAuthenticationDetails("127.0.0.1", "someSessionId", "someUserAgent"));
+            new NiFiWebAuthenticationDetails(new MockHttpServletRequest()));
 
         assertThrows(InvalidAuthenticationException.class, () -> anonymousAuthenticationProvider.authenticate(authenticationRequest));
     }
@@ -92,7 +93,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
         final NiFiAnonymousAuthenticationRequestToken authenticationRequest = new NiFiAnonymousAuthenticationRequestToken(
             true,
             StringUtils.EMPTY,
-            new NiFiWebAuthenticationDetails("127.0.0.1", "someSessionId", "someUserAgent"));
+            new NiFiWebAuthenticationDetails(new MockHttpServletRequest()));
 
         final NiFiAuthenticationToken authentication = (NiFiAuthenticationToken) anonymousAuthenticationProvider.authenticate(authenticationRequest);
         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getPrincipal();

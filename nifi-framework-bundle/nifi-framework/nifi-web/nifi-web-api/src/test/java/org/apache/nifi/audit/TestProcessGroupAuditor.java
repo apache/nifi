@@ -21,9 +21,6 @@ import org.apache.nifi.action.Action;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -102,9 +99,7 @@ public class TestProcessGroupAuditor {
     void testVerifyProcessGroupAuditing() {
         final SecurityContext securityContext = SecurityContextHolder.getContext();
         securityContext.setAuthentication(authentication);
-        final NiFiUser user = new StandardNiFiUser.Builder().identity(USER_ID).build();
-        final NiFiUserDetails userDetail = new NiFiUserDetails(user);
-        when(authentication.getPrincipal()).thenReturn(userDetail);
+        when(authentication.getName()).thenReturn(USER_ID);
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         final ProcessorNode processor1 = mock(StandardProcessorNode.class);
@@ -124,9 +119,9 @@ public class TestProcessGroupAuditor {
         verify(auditService).addActions(argumentCaptorActions.capture());
         final List<Action> actions = argumentCaptorActions.getValue();
         assertEquals(1, actions.size());
-        final Action action = actions.iterator().next();
+        final Action action = actions.getFirst();
         assertInstanceOf(FlowChangeAction.class, action);
-        assertEquals(user.getIdentity(), action.getUserIdentity());
+        assertEquals(USER_ID, action.getUserIdentity());
         assertEquals("ProcessGroup", action.getSourceType().name());
         assertEquals(Operation.Start, action.getOperation());
     }

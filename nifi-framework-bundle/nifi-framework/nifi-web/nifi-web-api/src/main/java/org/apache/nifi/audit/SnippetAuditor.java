@@ -26,7 +26,6 @@ import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.action.details.FlowChangeConnectDetails;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -36,7 +35,6 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -213,14 +211,8 @@ public class SnippetAuditor extends NiFiAuditor {
     private FlowChangeAction generateAuditRecord(String id, String name, Component type, Operation operation, Date timestamp) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            // create the action for adding this funnel
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+        if (isAuditable()) {
+            action = createFlowChangeAction();
             action.setOperation(operation);
             action.setTimestamp(timestamp);
             action.setSourceId(id);

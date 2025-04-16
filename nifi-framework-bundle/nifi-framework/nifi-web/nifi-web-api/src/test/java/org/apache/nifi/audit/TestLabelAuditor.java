@@ -22,9 +22,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.StandardLabel;
@@ -83,7 +80,7 @@ public class TestLabelAuditor {
     @Autowired
     AuditService auditService;
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     Authentication authentication;
 
     @Autowired
@@ -111,9 +108,8 @@ public class TestLabelAuditor {
 
         final SecurityContext securityContext = SecurityContextHolder.getContext();
         securityContext.setAuthentication(authentication);
-        final NiFiUser user = new StandardNiFiUser.Builder().identity(USER_IDENTITY).build();
-        final NiFiUserDetails userDetail = new NiFiUserDetails(user);
-        when(authentication.getPrincipal()).thenReturn(userDetail);
+        when(authentication.getName()).thenReturn(USER_IDENTITY);
+        when(authentication.getCredentials()).thenReturn(Object.class.getSimpleName());
 
         when(flowController.getFlowManager()).thenReturn(flowManager);
         labelDao.setFlowController(flowController);

@@ -25,8 +25,6 @@ import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.action.details.FlowChangeConnectDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -120,11 +118,7 @@ public class RelationshipAuditor extends NiFiAuditor {
         // perform the underlying operation
         connection = (Connection) proceedingJoinPoint.proceed();
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             Collection<Action> actions = new ArrayList<>();
             Map<String, String> updatedValues = extractConfiguredPropertyValues(connection, connectionDTO);
 
@@ -187,8 +181,7 @@ public class RelationshipAuditor extends NiFiAuditor {
                     configurationDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(Operation.Configure);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(connection.getIdentifier());
@@ -329,11 +322,7 @@ public class RelationshipAuditor extends NiFiAuditor {
     public Action generateAuditRecordForConnection(Connection connection, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // determine the source details
             final String connectionId = connection.getIdentifier();
 
@@ -350,8 +339,7 @@ public class RelationshipAuditor extends NiFiAuditor {
             Date actionTimestamp = new Date();
 
             // create a new relationship action
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
             action.setTimestamp(actionTimestamp);
             action.setSourceId(connectionId);

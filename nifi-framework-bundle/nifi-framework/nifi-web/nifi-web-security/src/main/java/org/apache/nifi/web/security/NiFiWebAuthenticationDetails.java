@@ -23,23 +23,37 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import java.util.Objects;
 
 /**
- * Authentication details for NiFi web. Stores the user agent in addition to the remote address and session id.
+ * Standard Web Authentication Details with additional headers including User-Agent and X-Forwarded-For
  */
 public class NiFiWebAuthenticationDetails extends WebAuthenticationDetails {
+    private static final String FORWARD_FOR_HEADER = "X-Forwarded-For";
+
     private final String userAgent;
+
+    private final String forwardedFor;
 
     public NiFiWebAuthenticationDetails(final HttpServletRequest request) {
         super(request);
         this.userAgent = request.getHeader(HttpHeaders.USER_AGENT);
+        this.forwardedFor = request.getHeader(FORWARD_FOR_HEADER);
     }
 
-    public NiFiWebAuthenticationDetails(final String remoteAddress, final String sessionId, String userAgent) {
-        super(remoteAddress, sessionId);
-        this.userAgent = userAgent;
-    }
-
+    /**
+     * Get User Agent can be null when the User-Agent header is not provided
+     *
+     * @return User Agent
+     */
     public String getUserAgent() {
         return userAgent;
+    }
+
+    /**
+     * Get Forwarded For addresses can be null when the X-Forwarded-For header is not provided
+     *
+     * @return Forwarded For addresses
+     */
+    public String getForwardedFor() {
+        return forwardedFor;
     }
 
     @Override
@@ -51,16 +65,16 @@ public class NiFiWebAuthenticationDetails extends WebAuthenticationDetails {
             return false;
         }
         final NiFiWebAuthenticationDetails details = (NiFiWebAuthenticationDetails) o;
-        return Objects.equals(userAgent, details.userAgent);
+        return Objects.equals(userAgent, details.userAgent) && Objects.equals(forwardedFor, details.forwardedFor);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), userAgent);
+        return Objects.hash(super.hashCode(), userAgent, forwardedFor);
     }
 
     @Override
     public String toString() {
-        return "remoteAddress=[%s] userAgent=[%s]".formatted(getRemoteAddress(), userAgent);
+        return "remoteAddress=[%s] userAgent=[%s] forwardedFor=[%s]".formatted(getRemoteAddress(), userAgent, forwardedFor);
     }
 }

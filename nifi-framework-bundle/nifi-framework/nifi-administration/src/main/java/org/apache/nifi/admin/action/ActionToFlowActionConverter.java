@@ -19,6 +19,8 @@ package org.apache.nifi.admin.action;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.FlowAction;
 import org.apache.nifi.action.FlowActionAttribute;
+import org.apache.nifi.action.RequestAction;
+import org.apache.nifi.action.RequestDetails;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
@@ -46,12 +48,15 @@ public class ActionToFlowActionConverter implements ActionConverter {
     }
 
     private void populateActionAttributes(final Action action, final Map<String, String> attributes) {
-        attributes.put(FlowActionAttribute.ACTION_ID.key(), String.valueOf(action.getId()));
         attributes.put(FlowActionAttribute.ACTION_TIMESTAMP.key(), action.getTimestamp().toInstant().toString());
         attributes.put(FlowActionAttribute.ACTION_USER_IDENTITY.key(), action.getUserIdentity());
         attributes.put(FlowActionAttribute.ACTION_SOURCE_ID.key(), action.getSourceId());
         attributes.put(FlowActionAttribute.ACTION_SOURCE_TYPE.key(), action.getSourceType().name());
         attributes.put(FlowActionAttribute.ACTION_OPERATION.key(), action.getOperation().name());
+
+        if (action instanceof RequestAction requestAction) {
+            populateRequestDetails(requestAction.getRequestDetails(), attributes);
+        }
     }
 
     private void populateActionDetailsAttributes(final ActionDetails actionDetails, final Map<String, String> attributes) {
@@ -87,6 +92,25 @@ public class ActionToFlowActionConverter implements ActionConverter {
                 FlowActionAttribute.COMPONENT_DETAILS_URI.key(), remoteProcessGroupDetails.getUri()
             );
             case null, default -> {
+            }
+        }
+    }
+
+    private void populateRequestDetails(final RequestDetails requestDetails, final Map<String, String> attributes) {
+        if (requestDetails != null) {
+            final String forwardedFor = requestDetails.getForwardedFor();
+            if (forwardedFor != null) {
+                attributes.put(FlowActionAttribute.REQUEST_DETAILS_FORWARDED_FOR.key(), forwardedFor);
+            }
+
+            final String remoteAddress = requestDetails.getRemoteAddress();
+            if (remoteAddress != null) {
+                attributes.put(FlowActionAttribute.REQUEST_DETAILS_REMOTE_ADDRESS.key(), remoteAddress);
+            }
+
+            final String userAgent = requestDetails.getUserAgent();
+            if (userAgent != null) {
+                attributes.put(FlowActionAttribute.REQUEST_DETAILS_USER_AGENT.key(), userAgent);
             }
         }
     }

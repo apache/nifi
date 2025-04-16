@@ -68,6 +68,7 @@
                 <include>*:nifi-system-test-extensions-services-nar</include>
                 <include>*:nifi-system-test-extensions-services-api-nar</include>
                 <include>*:nifi-system-test-extensions2-nar</include>
+                <include>*:nifi-system-test-flow-action-reporter-nar</include>
                 <include>*:nifi-jetty-nar</include>
                 <include>*:nifi-framework-nar</include>
                 <include>*:nifi-server-nar</include>

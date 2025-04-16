@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.audit;
 
-import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
@@ -36,10 +33,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
 
 @Service
 @Aspect
@@ -62,32 +55,19 @@ public class ComponentStateAuditor extends NiFiAuditor {
         // update the processors state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
-        // if no exception were thrown, add the clear action...
-
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            Collection<Action> actions = new ArrayList<>();
-
-            // create the processor details
+        if (isAuditable()) {
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(processor.getComponentType());
 
             // create the clear action
-            FlowChangeAction configAction = new FlowChangeAction();
-            configAction.setUserIdentity(user.getIdentity());
+            final FlowChangeAction configAction = createFlowChangeAction();
             configAction.setOperation(Operation.ClearState);
-            configAction.setTimestamp(new Date());
             configAction.setSourceId(processor.getIdentifier());
             configAction.setSourceName(processor.getName());
             configAction.setSourceType(Component.Processor);
             configAction.setComponentDetails(processorDetails);
-            actions.add(configAction);
 
-            // record the action
-            saveActions(actions, logger);
+            saveAction(configAction, logger);
         }
 
         return stateMap;
@@ -108,32 +88,20 @@ public class ComponentStateAuditor extends NiFiAuditor {
         // update the controller service state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
-        // if no exception were thrown, add the clear action...
-
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            Collection<Action> actions = new ArrayList<>();
-
+        if (isAuditable()) {
             // create the controller service details
             FlowChangeExtensionDetails controllerServiceDetails = new FlowChangeExtensionDetails();
             controllerServiceDetails.setType(controllerService.getComponentType());
 
             // create the clear action
-            FlowChangeAction configAction = new FlowChangeAction();
-            configAction.setUserIdentity(user.getIdentity());
+            final FlowChangeAction configAction = createFlowChangeAction();
             configAction.setOperation(Operation.ClearState);
-            configAction.setTimestamp(new Date());
             configAction.setSourceId(controllerService.getIdentifier());
             configAction.setSourceName(controllerService.getName());
             configAction.setSourceType(Component.ControllerService);
             configAction.setComponentDetails(controllerServiceDetails);
-            actions.add(configAction);
 
-            // record the action
-            saveActions(actions, logger);
+            saveAction(configAction, logger);
         }
 
         return stateMap;
@@ -154,32 +122,19 @@ public class ComponentStateAuditor extends NiFiAuditor {
         // update the reporting task state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
-        // if no exception were thrown, add the clear action...
-
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            Collection<Action> actions = new ArrayList<>();
-
-            // create the reporting task details
+        if (isAuditable()) {
             FlowChangeExtensionDetails reportingTaskDetails = new FlowChangeExtensionDetails();
             reportingTaskDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
 
             // create the clear action
-            FlowChangeAction configAction = new FlowChangeAction();
-            configAction.setUserIdentity(user.getIdentity());
+            final FlowChangeAction configAction = createFlowChangeAction();
             configAction.setOperation(Operation.ClearState);
-            configAction.setTimestamp(new Date());
             configAction.setSourceId(reportingTask.getIdentifier());
             configAction.setSourceName(reportingTask.getName());
             configAction.setSourceType(Component.ReportingTask);
             configAction.setComponentDetails(reportingTaskDetails);
-            actions.add(configAction);
 
-            // record the action
-            saveActions(actions, logger);
+            saveAction(configAction, logger);
         }
 
         return stateMap;
@@ -200,32 +155,19 @@ public class ComponentStateAuditor extends NiFiAuditor {
         // update the flow analysis rule state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
-        // if no exception were thrown, add the clear action...
-
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            Collection<Action> actions = new ArrayList<>();
-
-            // create the flow analysis rule details
+        if (isAuditable()) {
             FlowChangeExtensionDetails flowAnalysisRuleDetails = new FlowChangeExtensionDetails();
             flowAnalysisRuleDetails.setType(flowAnalysisRule.getFlowAnalysisRule().getClass().getSimpleName());
 
             // create the clear action
-            FlowChangeAction configAction = new FlowChangeAction();
-            configAction.setUserIdentity(user.getIdentity());
+            final FlowChangeAction configAction = createFlowChangeAction();
             configAction.setOperation(Operation.ClearState);
-            configAction.setTimestamp(new Date());
             configAction.setSourceId(flowAnalysisRule.getIdentifier());
             configAction.setSourceName(flowAnalysisRule.getName());
             configAction.setSourceType(Component.FlowAnalysisRule);
             configAction.setComponentDetails(flowAnalysisRuleDetails);
-            actions.add(configAction);
 
-            // record the action
-            saveActions(actions, logger);
+            saveAction(configAction, logger);
         }
 
         return stateMap;
@@ -246,32 +188,19 @@ public class ComponentStateAuditor extends NiFiAuditor {
         // update the parameter provider state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
-        // if no exception were thrown, add the clear action...
-
-        // get the current user
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            final Collection<Action> actions = new ArrayList<>();
-
-            // create the parameter provider details
+        if (isAuditable()) {
             final FlowChangeExtensionDetails parameterProviderDetails = new FlowChangeExtensionDetails();
             parameterProviderDetails.setType(parameterProvider.getParameterProvider().getClass().getSimpleName());
 
             // create the clear action
-            final FlowChangeAction configAction = new FlowChangeAction();
-            configAction.setUserIdentity(user.getIdentity());
+            final FlowChangeAction configAction = createFlowChangeAction();
             configAction.setOperation(Operation.ClearState);
-            configAction.setTimestamp(new Date());
             configAction.setSourceId(parameterProvider.getIdentifier());
             configAction.setSourceName(parameterProvider.getName());
             configAction.setSourceType(Component.ParameterProvider);
             configAction.setComponentDetails(parameterProviderDetails);
-            actions.add(configAction);
 
-            // record the action
-            saveActions(actions, logger);
+            saveAction(configAction, logger);
         }
 
         return stateMap;
@@ -292,32 +221,19 @@ public class ComponentStateAuditor extends NiFiAuditor {
         // update the flow registry client state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
-        // if no exception were thrown, add the clear action...
-
-        // get the current user
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            final Collection<Action> actions = new ArrayList<>();
-
-            // create the flow registry client details
+        if (isAuditable()) {
             final FlowChangeExtensionDetails flowRegistryClientDetails = new FlowChangeExtensionDetails();
             flowRegistryClientDetails.setType(flowRegistryClient.getComponent().getClass().getSimpleName());
 
             // create the clear action
-            final FlowChangeAction configAction = new FlowChangeAction();
-            configAction.setUserIdentity(user.getIdentity());
+            final FlowChangeAction configAction = createFlowChangeAction();
             configAction.setOperation(Operation.ClearState);
-            configAction.setTimestamp(new Date());
             configAction.setSourceId(flowRegistryClient.getIdentifier());
             configAction.setSourceName(flowRegistryClient.getName());
             configAction.setSourceType(Component.FlowRegistryClient);
             configAction.setComponentDetails(flowRegistryClientDetails);
-            actions.add(configAction);
 
-            // record the action
-            saveActions(actions, logger);
+            saveAction(configAction, logger);
         }
 
         return stateMap;

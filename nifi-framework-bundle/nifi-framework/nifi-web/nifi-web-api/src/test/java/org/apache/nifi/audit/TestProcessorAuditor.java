@@ -22,9 +22,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -99,7 +96,7 @@ class TestProcessorAuditor {
 
     @Autowired
     private AuditService auditService;
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private Authentication authentication;
     @Mock
     private Processor processor;
@@ -117,8 +114,6 @@ class TestProcessorAuditor {
     private StateManagerProvider mockStateManagerProvider;
     @Mock
     private StateManager mockStateManager;
-    @Mock
-    private NiFiUserDetails userDetail;
 
     @Captor
     private ArgumentCaptor<List<Action>> actionsArgumentCaptor;
@@ -129,9 +124,8 @@ class TestProcessorAuditor {
         reset(auditService);
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        final NiFiUser user = new StandardNiFiUser.Builder().identity(USER_IDENTITY).build();
-        userDetail = new NiFiUserDetails(user);
-        when(authentication.getPrincipal()).thenReturn(userDetail);
+        when(authentication.getName()).thenReturn(USER_IDENTITY);
+        when(authentication.getCredentials()).thenReturn(Object.class.getSimpleName());
 
         when(flowController.getFlowManager()).thenReturn(flowManager);
 

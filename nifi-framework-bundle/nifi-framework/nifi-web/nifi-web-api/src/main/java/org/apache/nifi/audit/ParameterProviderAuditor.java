@@ -23,8 +23,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ParameterProviderNode;
@@ -59,7 +57,6 @@ public class ParameterProviderAuditor extends NiFiAuditor {
 
     /**
      * Audits the creation of parameter provider via createParameterProvider().
-     *
      * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
      * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
@@ -109,11 +106,7 @@ public class ParameterProviderAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the parameter provider action...
         parameterProvider = parameterProviderDAO.getParameterProvider(updatedParameterProvider.getIdentifier());
 
-        // get the current user
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // determine the updated values
             final Map<String, String> updatedValues = extractConfiguredPropertyValues(parameterProvider, parameterProviderDTO);
 
@@ -142,10 +135,10 @@ public class ParameterProviderAuditor extends NiFiAuditor {
                     final PropertyDescriptor propertyDescriptor = parameterProvider.getParameterProvider().getPropertyDescriptor(property);
                     if (propertyDescriptor != null && propertyDescriptor.isSensitive()) {
                         if (newValue != null) {
-                            newValue = "********";
+                            newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                         if (oldValue != null) {
-                            oldValue = "********";
+                            oldValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                     } else if (ANNOTATION_DATA.equals(property)) {
                         if (newValue != null) {
@@ -162,8 +155,7 @@ public class ParameterProviderAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    final FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(parameterProvider.getIdentifier());
@@ -236,20 +228,14 @@ public class ParameterProviderAuditor extends NiFiAuditor {
     public Action generateAuditRecord(ParameterProviderNode parameterProvider, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the parameter provider details
             FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(parameterProvider.getComponentType());
 
             // create the parameter provider action for adding this parameter provider
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(parameterProvider.getIdentifier());
             action.setSourceName(parameterProvider.getName());
             action.setSourceType(Component.ParameterProvider);
