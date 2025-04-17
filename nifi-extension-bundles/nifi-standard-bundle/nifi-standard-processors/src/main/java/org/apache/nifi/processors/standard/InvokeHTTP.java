@@ -296,7 +296,7 @@ public class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor REQUEST_DIGEST_AUTHENTICATION_ENABLED = new PropertyDescriptor.Builder()
             .name("Request Digest Authentication Enabled")
             .description("Enable Digest Authentication on HTTP requests with Username and Password credentials as described in RFC 7616.")
-            .required(false)
+            .required(true)
             .defaultValue("false")
             .allowableValues("true", "false")
             .dependsOn(REQUEST_USERNAME)
@@ -405,6 +405,7 @@ public class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor RESPONSE_BODY_ATTRIBUTE_SIZE = new PropertyDescriptor.Builder()
             .name("Response Body Attribute Size")
             .description("Maximum size in bytes applied when writing an HTTP response body to a FlowFile attribute. Attributes exceeding the maximum will be truncated.")
+            .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("256")
             .dependsOn(RESPONSE_BODY_ATTRIBUTE_NAME)
@@ -574,8 +575,6 @@ public class InvokeHTTP extends AbstractProcessor {
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
     private volatile Pattern requestHeaderAttributesPattern = null;
-
-    private volatile boolean chunkedTransferEncoding = false;
 
     private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
 
@@ -806,8 +805,6 @@ public class InvokeHTTP extends AbstractProcessor {
 
         setAuthenticator(okHttpClientBuilder, context);
 
-        chunkedTransferEncoding = context.getProperty(REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED).asBoolean();
-
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
     }
 
@@ -828,7 +825,7 @@ public class InvokeHTTP extends AbstractProcessor {
         final String authUser = trimToEmpty(context.getProperty(REQUEST_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
-        if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).getValue())) {
+        if (!authUser.isEmpty() && context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).asBoolean()) {
             final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
 
             final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
@@ -848,6 +845,8 @@ public class InvokeHTTP extends AbstractProcessor {
 
         // Checking to see if the property to put the body of the response in an attribute was set
         boolean putToAttribute = context.getProperty(RESPONSE_BODY_ATTRIBUTE_NAME).isSet();
+        final int maxAttributeSize = putToAttribute ? context.getProperty(RESPONSE_BODY_ATTRIBUTE_SIZE).asInteger() : 256;
+
         if (requestFlowFile == null) {
             if (context.hasNonLoopConnection()) {
                 return;
@@ -863,7 +862,6 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
 
-        final int maxAttributeSize = context.getProperty(RESPONSE_BODY_ATTRIBUTE_SIZE).asInteger();
         final ComponentLog logger = getLogger();
         final UUID txId = UUID.randomUUID();
 
@@ -1040,23 +1038,15 @@ public class InvokeHTTP extends AbstractProcessor {
         final String authUser = trimToEmpty(context.getProperty(REQUEST_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
-        if ("false".equalsIgnoreCase(context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).getValue())) {
-            if (!authUser.isEmpty()) {
-                final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
+        if (!authUser.isEmpty() && !context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).asBoolean()) {
+            final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
 
-                String credential = Credentials.basic(authUser, authPass);
-                requestBuilder.header(HttpHeader.AUTHORIZATION.getHeader(), credential);
-            } else {
-                oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
+            String credential = Credentials.basic(authUser, authPass);
+            requestBuilder.header(HttpHeader.AUTHORIZATION.getHeader(), credential);
+        } else {
+            oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
                     requestBuilder.addHeader(HttpHeader.AUTHORIZATION.getHeader(), "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
-                );
-            }
-        }
-
-        final ContentEncodingStrategy contentEncodingStrategy =
-                context.getProperty(REQUEST_CONTENT_ENCODING).asAllowableValue(ContentEncodingStrategy.class);
-        if (ContentEncodingStrategy.GZIP == contentEncodingStrategy) {
-            requestBuilder.addHeader(HttpHeader.CONTENT_ENCODING.getHeader(), ContentEncodingStrategy.GZIP.getValue().toLowerCase());
+            );
         }
 
         final String method = getRequestMethod(context, requestFlowFile);
@@ -1066,6 +1056,12 @@ public class InvokeHTTP extends AbstractProcessor {
         if (httpMethodFound.isPresent()) {
             final HttpMethod httpMethod = httpMethodFound.get();
             if (httpMethod.isRequestBodySupported()) {
+                final ContentEncodingStrategy contentEncodingStrategy =
+                        context.getProperty(REQUEST_CONTENT_ENCODING).asAllowableValue(ContentEncodingStrategy.class);
+                if (contentEncodingStrategy == ContentEncodingStrategy.GZIP) {
+                    requestBuilder.addHeader(HttpHeader.CONTENT_ENCODING.getHeader(), ContentEncodingStrategy.GZIP.getValue().toLowerCase());
+                }
+
                 requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
             } else {
                 requestBody = null;
@@ -1100,6 +1096,7 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
 
+        final boolean chunkedTransferEncoding = context.getProperty(REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED).asBoolean();
         final boolean contentLengthUnknown = chunkedTransferEncoding || ContentEncodingStrategy.GZIP == contentEncodingStrategy;
         RequestBody requestBody = new RequestBody() {
             @Nullable
@@ -1231,15 +1228,16 @@ public class InvokeHTTP extends AbstractProcessor {
 
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
-            final TokenRefreshStrategy tokenRefreshStrategy = context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asAllowableValue(TokenRefreshStrategy.class);
-            if (oauth2AccessTokenProviderOptional.isPresent()
-                    && TokenRefreshStrategy.ON_UNAUTHORIZED_RESPONSE == tokenRefreshStrategy
-                    && statusCode == 401) {
-                // we are using oauth2 and we got a 401 response
-                // it may be because the token has been revoked even though it has not expired
-                // yet, so we force the token to be refreshed if configured to do so
-                oauth2AccessTokenProviderOptional.get().refreshAccessDetails();
-            }
+            oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider -> {
+                final TokenRefreshStrategy tokenRefreshStrategy = context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asAllowableValue(TokenRefreshStrategy.class);
+
+                if (tokenRefreshStrategy == TokenRefreshStrategy.ON_UNAUTHORIZED_RESPONSE && statusCode == 401) {
+                    // we are using oauth2 and we got a 401 response
+                    // it may be because the token has been revoked even though it has not expired
+                    // yet, so we force the token to be refreshed if configured to do so
+                    oauth2AccessTokenProvider.refreshAccessDetails();
+                }
+            });
 
             if (request != null) {
                 if (context.getProperty(REQUEST_FAILURE_PENALIZATION_ENABLED).asBoolean()) {

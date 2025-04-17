@@ -220,11 +220,11 @@ public class PutAzureDataExplorer extends AbstractProcessor {
         final String dataFormat = context.getProperty(DATA_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
         final String mappingName = context.getProperty(MAPPING_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String partiallySucceededRoutingStrategy = context.getProperty(PARTIALLY_SUCCEEDED_ROUTING_STRATEGY).getValue();
-        final Duration ingestionStatusPollingTimeout = Duration.ofSeconds(context.getProperty(INGEST_STATUS_POLLING_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
-        final Duration ingestionStatusPollingInterval = Duration.ofSeconds(context.getProperty(INGEST_STATUS_POLLING_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
+        final boolean pollOnIngestionStatus = context.getProperty(POLL_FOR_INGEST_STATUS).evaluateAttributeExpressions().asBoolean();
+        final Duration ingestionStatusPollingTimeout = pollOnIngestionStatus ? Duration.ofSeconds(context.getProperty(INGEST_STATUS_POLLING_TIMEOUT).asTimePeriod(TimeUnit.SECONDS)) : null;
+        final Duration ingestionStatusPollingInterval = pollOnIngestionStatus ? Duration.ofSeconds(context.getProperty(INGEST_STATUS_POLLING_INTERVAL).asTimePeriod(TimeUnit.SECONDS)) : null;
         final boolean ignoreFirstRecord = context.getProperty(IGNORE_FIRST_RECORD).asBoolean();
         final boolean streamingEnabled = context.getProperty(STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
-        final boolean pollOnIngestionStatus = context.getProperty(POLL_FOR_INGEST_STATUS).evaluateAttributeExpressions().asBoolean();
 
         Relationship transferRelationship = FAILURE;
         try (final InputStream inputStream = session.read(flowFile)) {

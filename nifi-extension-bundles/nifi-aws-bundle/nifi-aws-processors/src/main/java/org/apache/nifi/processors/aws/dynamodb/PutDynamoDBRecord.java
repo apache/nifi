@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -41,6 +42,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SplitRecordSetHandler;
 import org.apache.nifi.serialization.SplitRecordSetHandlerException;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -60,6 +62,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 @SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class, PutDynamoDB.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -106,13 +109,6 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     static final AllowableValue PARTITION_GENERATED = new AllowableValue("Generated", "Generated UUID",
             "Uses a generated UUID as value for the partition key. The incoming Records must not contain field with the same name defined by the \"Partition Key Field\".");
 
-    static final AllowableValue SORT_NONE = new AllowableValue("None", "None",
-            "The processor will not assign sort key to the inserted Items.");
-    static final AllowableValue SORT_BY_FIELD = new AllowableValue("ByField", "Sort By Field",
-            "Uses the value of the Record field identified by the \"Sort Key Field\" property as sort key value.");
-    static final AllowableValue SORT_BY_SEQUENCE = new AllowableValue("BySequence", "Generate Sequence",
-            "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. This will be used as sort key value.");
-
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
             .displayName("Record Reader")
@@ -127,7 +123,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(PARTITION_BY_FIELD, PARTITION_BY_ATTRIBUTE, PARTITION_GENERATED)
-            .defaultValue(PARTITION_BY_FIELD.getValue())
+            .defaultValue(PARTITION_BY_FIELD)
             .description("Defines the strategy the processor uses to assign partition key value to the inserted Items.")
             .build();
 
@@ -157,8 +153,8 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .displayName("Sort Key Strategy")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(SORT_NONE, SORT_BY_FIELD, SORT_BY_SEQUENCE)
-            .defaultValue(SORT_NONE.getValue())
+            .allowableValues(SortKeyStrategy.class)
+            .defaultValue(SortKeyStrategy.NONE)
             .description("Defines the strategy the processor uses to assign sort key to the inserted Items.")
             .build();
 
@@ -166,7 +162,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .name("sort-key-field")
             .displayName("Sort Key Field")
             .required(true)
-            .dependsOn(SORT_KEY_STRATEGY, SORT_BY_FIELD, SORT_BY_SEQUENCE)
+            .dependsOn(SORT_KEY_STRATEGY, SortKeyStrategy.BY_FIELD, SortKeyStrategy.BY_SEQUENCE)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Defines the name of the sort key field in the DynamoDB table. Sort key is also known as range key.")
@@ -253,6 +249,41 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
     }
 
+    enum SortKeyStrategy implements DescribedValue {
+        NONE("None", "None",
+                "The processor will not assign sort key to the inserted Items."),
+        BY_FIELD("ByField", "Sort By Field",
+                "Uses the value of the Record field identified by the \"Sort Key Field\" property as sort key value."),
+        BY_SEQUENCE("BySequence", "Generate Sequence",
+                "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. This will be used as sort key value.");
+
+
+        private final String value;
+        private final String displayName;
+        private final String description;
+
+        SortKeyStrategy(String value, String displayName, String description) {
+            this.value = value;
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
     private static class DynamoDbSplitRecordSetHandler extends SplitRecordSetHandler {
         private final DynamoDbClient client;
         private final String tableName;
@@ -305,9 +336,16 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
 
         private WriteRequest convert(final Record record) {
-            final String partitionKeyField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
-            final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
-            final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
+            final String partitionKeyField = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
+            final SortKeyStrategy sortKeyStrategy = context.getProperty(SORT_KEY_STRATEGY).asAllowableValue(SortKeyStrategy.class);
+            final Predicate<RecordField> sortFilter = switch (sortKeyStrategy) {
+                case NONE -> (field) -> true;
+                case BY_FIELD, BY_SEQUENCE -> {
+                    final String sortKeyField = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
+
+                    yield (field) -> !field.getFieldName().equals(sortKeyField);
+                }
+            };
 
             final PutRequest.Builder putRequestBuilder = PutRequest.builder();
             final Map<String, AttributeValue> item = new HashMap<>();
@@ -316,7 +354,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                     .getFields()
                     .stream()
                     .filter(field -> !field.getFieldName().equals(partitionKeyField))
-                    .filter(field -> SORT_NONE.getValue().equals(sortKeyStrategy) || !field.getFieldName().equals(sortKeyField))
+                    .filter(sortFilter)
                     .forEach(field -> RecordToItemConverter.addField(record, item, field.getDataType().getFieldType(), field.getFieldName()));
 
             addPartitionKey(record, item);
@@ -327,7 +365,6 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         private void addPartitionKey(final Record record, final Map<String, AttributeValue> item) {
             final String partitionKeyStrategy = context.getProperty(PARTITION_KEY_STRATEGY).getValue();
             final String partitionKeyField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
-            final String partitionKeyAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
 
             final Object partitionKeyValue;
             if (PARTITION_BY_FIELD.getValue().equals(partitionKeyStrategy)) {
@@ -341,6 +378,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                     throw new ProcessException("Cannot reuse existing field with " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + PARTITION_BY_ATTRIBUTE.getDisplayName() + "\"");
                 }
 
+                final String partitionKeyAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
                 if (!flowFileAttributes.containsKey(partitionKeyAttribute)) {
                     throw new ProcessException("Missing attribute \"" + partitionKeyAttribute + "\"" );
                 }
@@ -360,28 +398,29 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
 
         private void addSortKey(final Record record, final Map<String, AttributeValue> item) {
-            final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
-            final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
+            final SortKeyStrategy sortKeyStrategy = context.getProperty(SORT_KEY_STRATEGY).asAllowableValue(SortKeyStrategy.class);
+            final String sortKeyField = sortKeyStrategy == SortKeyStrategy.NONE ? null : context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
 
-            final Object sortKeyValue;
-            if (SORT_BY_FIELD.getValue().equals(sortKeyStrategy)) {
-                if (!record.getSchema().getFieldNames().contains(sortKeyField)) {
-                    throw new ProcessException(SORT_BY_FIELD.getDisplayName() + " strategy needs the \"" + SORT_KEY_FIELD.getDisplayName() + "\" to present in the record");
+            final Object sortKeyValue = switch (sortKeyStrategy) {
+                case BY_FIELD -> {
+                    if (!record.getSchema().getFieldNames().contains(sortKeyField)) {
+                        throw new ProcessException(SortKeyStrategy.BY_FIELD.getDisplayName() + " strategy needs the \"" + SORT_KEY_FIELD.getDisplayName() + "\" to present in the record");
+                    }
+
+                    yield record.getValue(sortKeyField);
                 }
+                case BY_SEQUENCE -> {
+                    if (record.getSchema().getFieldNames().contains(sortKeyField)) {
+                        throw new ProcessException("Cannot reuse existing field with " + SORT_KEY_STRATEGY.getDisplayName() + "  \"" + SortKeyStrategy.BY_SEQUENCE.getDisplayName() + "\"");
+                    }
 
-                sortKeyValue = record.getValue(sortKeyField);
-            } else if (SORT_BY_SEQUENCE.getValue().equals(sortKeyStrategy)) {
-                if (record.getSchema().getFieldNames().contains(sortKeyField)) {
-                    throw new ProcessException("Cannot reuse existing field with " + SORT_KEY_STRATEGY.getDisplayName() + "  \"" + SORT_BY_SEQUENCE.getDisplayName() + "\"");
+                    yield itemCounter;
                 }
-
-                sortKeyValue = itemCounter;
-            } else if (SORT_NONE.getValue().equals(sortKeyStrategy)) {
-                logger.debug("No {} was applied", SORT_KEY_STRATEGY.getDisplayName());
-                sortKeyValue = null;
-            } else {
-                throw new ProcessException("Unknown " + SORT_KEY_STRATEGY.getDisplayName() + " \"" + sortKeyStrategy + "\"");
-            }
+                case NONE -> {
+                    logger.debug("No {} was applied", SORT_KEY_STRATEGY.getDisplayName());
+                    yield null;
+                }
+            };
 
             if (sortKeyValue != null) {
                 item.put(sortKeyField, RecordToItemConverter.toAttributeValue(sortKeyValue));

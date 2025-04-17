@@ -207,7 +207,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("The format used to output the JMS message into a FlowFile record.")
             .dependsOn(RECORD_READER)
             .required(true)
-            .defaultValue(OutputStrategy.USE_VALUE.getValue())
+            .defaultValue(OutputStrategy.USE_VALUE)
             .allowableValues(OutputStrategy.class)
             .build();
 
@@ -378,8 +378,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
         int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty(OUTPUT_STRATEGY).getValue());
+        final RecordSetWriterFactory writerFactory = readerFactory == null ? null : context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final OutputStrategy outputStrategy = readerFactory == null ? null : context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
 
         final FlowFileWriter<JMSResponse> flowFileWriter = new RecordWriter<>(
                 readerFactory,

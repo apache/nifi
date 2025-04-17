@@ -47,7 +47,7 @@ public class V3SecurityProperties {
                     "3. Communication with authentication and encryption (AuthPriv).")
             .required(true)
             .allowableValues(NO_AUTH_NO_PRIV, AUTH_NO_PRIV, AUTH_PRIV)
-            .defaultValue(NO_AUTH_NO_PRIV.getValue())
+            .defaultValue(NO_AUTH_NO_PRIV)
             .dependsOn(SNMP_VERSION, SNMP_V3)
             .build();
 

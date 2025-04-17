@@ -162,7 +162,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .required(true)
             .addValidator(Validator.VALID)
             .allowableValues(CREATE_IF_NOT_EXISTS, FAIL_IF_NOT_EXISTS)
-            .defaultValue(FAIL_IF_NOT_EXISTS.getValue())
+            .defaultValue(FAIL_IF_NOT_EXISTS)
             .build();
 
     static final PropertyDescriptor PRIMARY_KEY_FIELDS = new PropertyDescriptor.Builder()
@@ -195,8 +195,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("The strategy used to normalize table column name. Column Name will be uppercased to " +
                     "do case-insensitive matching irrespective of strategy")
             .allowableValues(TranslationStrategy.class)
-            .defaultValue(TranslationStrategy.REMOVE_UNDERSCORE.getValue())
-            .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
+            .defaultValue(TranslationStrategy.REMOVE_UNDERSCORE)
+            .dependsOn(TRANSLATE_FIELD_NAMES, "true")
             .build();
 
     public static final PropertyDescriptor TRANSLATION_PATTERN = new PropertyDescriptor.Builder()
@@ -206,8 +206,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
-            .dependsOn(TRANSLATION_STRATEGY, TranslationStrategy.PATTERN.getValue())
+            .dependsOn(TRANSLATION_STRATEGY, TranslationStrategy.PATTERN)
             .build();
 
     static final PropertyDescriptor UPDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
@@ -339,12 +338,18 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             return;
         }
 
+        final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
+        final boolean updateFieldNames = context.getProperty(UPDATE_FIELD_NAMES).asBoolean();
+        final boolean createIfNotExists = context.getProperty(CREATE_TABLE).getValue().equals(CREATE_IF_NOT_EXISTS.getValue());
+
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory recordWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+        final RecordSetWriterFactory recordWriterFactory = updateFieldNames
+                ? context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class) : null;
         final String catalogName = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String primaryKeyFields = context.getProperty(PRIMARY_KEY_FIELDS).evaluateAttributeExpressions(flowFile).getValue();
+        final String primaryKeyFields = createIfNotExists
+                ? context.getProperty(PRIMARY_KEY_FIELDS).evaluateAttributeExpressions(flowFile).getValue() : null;
         final ComponentLog log = getLogger();
 
         try {
@@ -379,16 +384,18 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
             final RecordSchema recordSchema = reader.getSchema();
 
-            final boolean createIfNotExists = context.getProperty(CREATE_TABLE).getValue().equals(CREATE_IF_NOT_EXISTS.getValue());
-            final boolean updateFieldNames = context.getProperty(UPDATE_FIELD_NAMES).asBoolean();
-            final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
-            final TranslationStrategy translationStrategy = TranslationStrategy.valueOf(context.getProperty(TRANSLATION_STRATEGY).getValue());
-            final String translationRegex = context.getProperty(TRANSLATION_PATTERN).getValue();
-            final Pattern translationPattern = translationRegex == null ? null : Pattern.compile(translationRegex);
-            NameNormalizer normalizer = null;
+            final NameNormalizer normalizer;
             if (translateFieldNames) {
+                final TranslationStrategy translationStrategy =
+                        context.getProperty(TRANSLATION_STRATEGY).asAllowableValue(TranslationStrategy.class);
+                final Pattern translationPattern = translationStrategy == TranslationStrategy.PATTERN
+                        ? Pattern.compile(context.getProperty(TRANSLATION_PATTERN).getValue()) : null;
+
                 normalizer = NameNormalizerFactory.getNormalizer(translationStrategy, translationPattern);
+            } else {
+                normalizer = null;
             }
+
             if (recordWriterFactory == null && updateFieldNames) {
                 throw new ProcessException("Record Writer must be set if 'Update Field Names' is true");
             }
