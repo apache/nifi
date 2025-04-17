@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.oauth2;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -220,6 +221,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .addMixIn(AccessToken.class, AccessTokenAdditionalParameters.class)
         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
     private volatile String authorizationServerUrl;
@@ -486,5 +488,11 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
 
         return Arrays.asList(builder.build());
+    }
+
+    interface AccessTokenAdditionalParameters {
+
+        @JsonAnySetter
+        void setAdditionalParameter(String key, Object value);
     }
 }
