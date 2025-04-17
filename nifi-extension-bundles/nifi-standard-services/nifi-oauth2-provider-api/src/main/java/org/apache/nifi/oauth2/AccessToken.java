@@ -18,6 +18,8 @@
 package org.apache.nifi.oauth2;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AccessToken {
     private String accessToken;
@@ -27,6 +29,8 @@ public class AccessToken {
     private String scope;
 
     private final Instant fetchTime;
+
+    private final Map<String, Object> additionalParameters = new HashMap<>();
 
     public AccessToken() {
         this.fetchTime = Instant.now();
@@ -92,5 +96,13 @@ public class AccessToken {
 
     Instant now() {
         return Instant.now();
+    }
+
+    public void setAdditionalParameter(final String key, final Object value) {
+        additionalParameters.put(key, value);
+    }
+
+    public Map<String, Object> getAdditionalParameters() {
+        return additionalParameters;
     }
 }
