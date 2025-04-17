@@ -84,7 +84,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @SupportsSensitiveDynamicProperties
@@ -538,11 +537,16 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
         try (final HttpResponseEntity response = request.retrieve()) {
             if (response.statusCode() != 200) {
+                String body;
+                try (final InputStream is = response.body()) {
+                    body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    body = "[failed to read response: " + e.getMessage() + "]";
+                }
                 final String message = "Failed to retrieve Access Token from [%s]: HTTP %s with Response [%s]".formatted(
                         tokenEndpoint,
                         response.statusCode(),
-                        readBodyAsText(response).orElse("[no body]"));
-
+                        body);
                 throw new AccessTokenRetrievalException(message);
             }
 
@@ -558,16 +562,6 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
         signedJWT.sign(signer);
         return signedJWT.serialize();
-    }
-
-    private Optional<String> readBodyAsText(final HttpResponseEntity response) {
-        try (final InputStream is = response.body()) {
-            final String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            return Optional.of(body);
-        } catch (final IOException e) {
-            getLogger().warn("Failed to read response body", e);
-            return Optional.empty();
-        }
     }
 
     private void initProperties(ConfigurationContext context) {
