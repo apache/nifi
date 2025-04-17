@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.oauth2;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -268,6 +269,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
     private static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .addMixIn(AccessToken.class, AccessTokenAdditionalParameters.class)
             .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
     private volatile AccessToken accessDetails;
@@ -652,5 +654,11 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         public AccessTokenRetrievalException(final String message, final Throwable cause) {
             super(message, cause);
         }
+    }
+
+    interface AccessTokenAdditionalParameters {
+
+        @JsonAnySetter
+        void setAdditionalParameter(String key, Object value);
     }
 }
