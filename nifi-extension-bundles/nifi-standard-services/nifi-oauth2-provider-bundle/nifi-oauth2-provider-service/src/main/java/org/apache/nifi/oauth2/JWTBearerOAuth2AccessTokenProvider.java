@@ -68,7 +68,9 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -102,6 +104,20 @@ import java.util.stream.Collectors;
                 description = "Custom parameters that should be added to the body of the request against the token endpoint.")
 })
 public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider, VerifiableControllerService {
+
+    public static final PropertyDescriptor TOKEN_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("Token Endpoint URL")
+            .description("The URL of the OAuth2 token endpoint.")
+            .required(true)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor WEB_CLIENT_SERVICE = new PropertyDescriptor.Builder()
+            .name("Web Client Service")
+            .description("The Web Client Service to use for calling the token endpoint.")
+            .identifiesControllerService(WebClientServiceProvider.class)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
             .name("Private Key Service")
@@ -181,8 +197,10 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
     public static final PropertyDescriptor HEADER_X5T = new PropertyDescriptor.Builder()
             .name("Set JWT Header X.509 Cert Thumbprint")
-            .description("If true, will set the JWT header x5t field with the base64url-encoded SHA-256 thumbprint of the X.509 certificate's DER encoding."
-                    + " If set to true, an instance of SSLContextProvider must be configured with a certificate using RSA algorithm.")
+            .description("""
+                    If true, will set the JWT header x5t field with the base64url-encoded SHA-256 thumbprint of the X.509 certificate's DER encoding.
+                    If set to true, an instance of SSLContextProvider must be configured with a certificate using RSA algorithm.
+                    """)
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -199,11 +217,13 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
     public static final PropertyDescriptor JTI = new PropertyDescriptor.Builder()
             .name("JWT ID")
-            .description("The \"jti\" (JWT ID) claim provides a unique identifier for the JWT. The identifier value must be assigned in a "
-                    + "manner that ensures that there's a negligible probability that the same value will be accidentally assigned to a "
-                    + "different data object; if the application uses multiple issuers, collisions MUST be prevented among values produced "
-                    + "by different issuers as well. The \"jti\" value is a case-sensitive string. If set, it is recommended to set this "
-                    + "value to ${UUID()}.")
+            .description("""
+                    The "jti" (JWT ID) claim provides a unique identifier for the JWT. The identifier value must be assigned in a
+                    manner that ensures that there's a negligible probability that the same value will be accidentally assigned to a
+                    different data object; if the application uses multiple issuers, collisions MUST be prevented among values produced
+                    by different issuers as well. The \"jti\" value is a case-sensitive string. If set, it is recommended to set this
+                    value to ${UUID()}.
+                    """)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -217,20 +237,6 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor TOKEN_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("Token Endpoint URL")
-            .description("The URL of the OAuth2 token endpoint.")
-            .required(true)
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor WEB_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("Web Client Service")
-            .description("The Web Client Service to use for calling the token endpoint.")
-            .identifiesControllerService(WebClientServiceProvider.class)
-            .required(true)
-            .build();
-
     static final PropertyDescriptor REFRESH_WINDOW = new PropertyDescriptor.Builder()
             .name("Refresh Window")
             .description("The service will attempt to refresh tokens expiring within the refresh window, subtracting the configured duration from the token expiration.")
@@ -241,8 +247,10 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
     static final PropertyDescriptor JWT_VALIDITY = new PropertyDescriptor.Builder()
             .name("JWT Expiration Time")
-            .description("Expiration time used to set the corresponding claim of the JWT. In case the returned access token does not include an expiration time, this will"
-                    + " be used with the refresh window to re-acquire a new access token.")
+            .description("""
+                    Expiration time used to set the corresponding claim of the JWT. In case the returned access token does not include
+                    an expiration time, this will be used with the refresh window to re-acquire a new access token.
+                    """)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("1 hour")
             .required(true)
@@ -441,9 +449,10 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
         final Instant now = Instant.now();
         final Date nowDate = Date.from(now);
+        final Date expirationTime = Date.from(now.plus(jwtValidity));
 
         Builder claimsSetBuilder = new JWTClaimsSet.Builder()
-                .expirationTime(Date.from(now.plus(jwtValidity)))
+                .expirationTime(expirationTime)
                 .issueTime(nowDate)
                 .notBeforeTime(nowDate);
 
@@ -478,25 +487,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
         if (headerX5T) {
             try {
-                final String alias = keyManager.chooseClientAlias(new String[] {"RSA"}, null, null);
-                if (alias == null) {
-                    throw new AccessTokenRetrievalException("Cannot set x5t header because no key alias found");
-                } else {
-                    final PrivateKey privateKey = keyManager.getPrivateKey(alias);
-                    if (privateKey == null) {
-                        throw new AccessTokenRetrievalException(String.format("Cannot set x5t header because no private key found for alias %s", alias));
-                    } else {
-                        final X509Certificate[] certificates = keyManager.getCertificateChain(alias);
-                        if (certificates == null || certificates.length == 0) {
-                            throw new AccessTokenRetrievalException(String.format("Cannot set x5t header because no certificate chain found for alias %s", alias));
-                        } else {
-                            final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-                            final byte[] bytes = messageDigest.digest(certificates[0].getEncoded());
-                            String url = Base64.getEncoder().encodeToString(bytes);
-                            headerBuilder.x509CertSHA256Thumbprint(new Base64URL(url));
-                        }
-                    }
-                }
+                final String url = getBase64EncodedSHA256Digest();
+                headerBuilder.x509CertSHA256Thumbprint(new Base64URL(url));
             } catch (final AccessTokenRetrievalException e) {
                 throw e;
             } catch (final Exception e) {
@@ -512,6 +504,27 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         requestTokenEndpoint(formParams);
     }
 
+    private String getBase64EncodedSHA256Digest() throws NoSuchAlgorithmException, CertificateEncodingException {
+        final String alias = keyManager.chooseClientAlias(new String[] {"RSA"}, null, null);
+        if (alias == null) {
+            throw new AccessTokenRetrievalException("Cannot set x5t header because no key alias found");
+        } else {
+            final PrivateKey privateKey = keyManager.getPrivateKey(alias);
+            if (privateKey == null) {
+                throw new AccessTokenRetrievalException(String.format("Cannot set x5t header because no private key found for alias %s", alias));
+            } else {
+                final X509Certificate[] certificates = keyManager.getCertificateChain(alias);
+                if (certificates == null || certificates.length == 0) {
+                    throw new AccessTokenRetrievalException(String.format("Cannot set x5t header because no certificate chain found for alias %s", alias));
+                } else {
+                    final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+                    final byte[] bytes = messageDigest.digest(certificates[0].getEncoded());
+                    return Base64.getEncoder().encodeToString(bytes);
+                }
+            }
+        }
+    }
+
     protected void requestTokenEndpoint(Map<String, String> formParams) throws URISyntaxException {
         HttpRequestHeadersSpec request = webClientService
                 .post()
@@ -525,7 +538,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
         try (final HttpResponseEntity response = request.retrieve()) {
             if (response.statusCode() != 200) {
-                final String message = "Failed to retrieve Access Token: HTTP %s with Response [%s]".formatted(
+                final String message = "Failed to retrieve Access Token from [%s]: HTTP %s with Response [%s]".formatted(
+                        tokenEndpoint,
                         response.statusCode(),
                         readBodyAsText(response).orElse("[no body]"));
 
@@ -625,19 +639,15 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     }
 
     private void initJWTSigner() {
-        JWSAlgorithm algorithm = JWSAlgorithm.parse(algorithmName);
+        final JWSAlgorithm algorithm = JWSAlgorithm.parse(algorithmName);
 
-        if (privateKey instanceof RSAPrivateKey) {
-            if (algorithmName.startsWith("RS") || algorithmName.startsWith("PS")) {
-                signer = new RSASSASigner((RSAPrivateKey) privateKey);
-            }
-        } else if (privateKey instanceof ECPrivateKey) {
-            if (algorithm.equals(JWSAlgorithm.ES256) || algorithm.equals(JWSAlgorithm.ES384) || algorithm.equals(JWSAlgorithm.ES512)) {
-                try {
-                    signer = new ECDSASigner((ECPrivateKey) privateKey);
-                } catch (final JOSEException e) {
-                    throw new IllegalArgumentException("Failed to create ECDSA signer", e);
-                }
+        if (privateKey instanceof RSAPrivateKey rsaPrivateKey) {
+            signer = new RSASSASigner(rsaPrivateKey);
+        } else if (privateKey instanceof ECPrivateKey ecPrivateKey) {
+            try {
+                signer = new ECDSASigner(ecPrivateKey);
+            } catch (final JOSEException e) {
+                throw new IllegalArgumentException("Failed to create ECDSA signer", e);
             }
         } else if (algorithm.equals(JWSAlgorithm.Ed25519)) {
             signer = new Ed25519Signer(privateKey);
