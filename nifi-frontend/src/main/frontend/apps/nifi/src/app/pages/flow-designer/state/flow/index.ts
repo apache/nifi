@@ -322,6 +322,7 @@ export interface CreateProcessGroupRequest extends CreateComponentRequest {
 
 export interface UploadProcessGroupRequest extends CreateComponentRequest {
     name: string;
+    keepExistingParameterContext: boolean;
     flowDefinition: File;
 }
 
