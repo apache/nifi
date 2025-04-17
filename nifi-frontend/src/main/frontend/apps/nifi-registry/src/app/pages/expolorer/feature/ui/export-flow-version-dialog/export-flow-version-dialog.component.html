@@ -1,0 +1,45 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+
+<h2 mat-dialog-title class="pad-bottom-md" fxLayout="row" fxLayoutAlign="space-between center">Export Version
+</h2>
+<mat-dialog-content fxLayout="column" fxLayoutAlign="space-between start"
+    class="pb-2 flex flex-col justify-between start">
+    <div class="pb-2 label-name">
+        <label>Choose Version</label>
+    </div>
+    <div class="w-full bucket-dropdown-field">
+        <mat-form-field appearance="fill" class="flex">
+            <mat-select panelClass="bucket-dropdown-select" [(value)]="selectedVersion">
+                <mat-option *ngFor="let snapshotMeta of [].constructor(droplet.versionCount); let i = index"
+                    [value]="i + 1">
+                    <span *ngIf="snapshotMeta === i">Latest (Version {{i + 1}})</span>
+                    <span *ngIf="snapshotMeta !== i">Version {{i + 1}}</span>
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close type="button">
+        Cancel
+    </button>
+    <button mat-flat-button class="pl-2" data-automation-id="export-versioned-flow-button" (click)="exportVersion()" data-test-id="export-btn">
+        Export
+    </button>
+</mat-dialog-actions>
