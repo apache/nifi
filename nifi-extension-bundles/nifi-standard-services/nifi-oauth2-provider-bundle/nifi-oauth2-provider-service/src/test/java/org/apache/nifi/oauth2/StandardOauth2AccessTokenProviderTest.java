@@ -291,7 +291,7 @@ public class StandardOauth2AccessTokenProviderTest {
             // THEN
             assertEquals(accessTokenValue, accessToken.getAccessToken());
             assertEquals(scopeValue, accessToken.getScope());
-            assertEquals(customFieldValue, accessToken.getCustomFields().get(customFieldKey));
+            assertEquals(customFieldValue, accessToken.getAdditionalParameters().get(customFieldKey));
         }
 
         @Test

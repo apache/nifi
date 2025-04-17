@@ -17,7 +17,6 @@
 package org.apache.nifi.oauth2;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -222,6 +221,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .addMixIn(AccessToken.class, AccessTokenAdditionalParameters.class)
         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
     private volatile String authorizationServerUrl;
@@ -462,7 +462,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             final String responseBody = response.body().string();
             if (response.isSuccessful()) {
                 getLogger().debug("OAuth2 Access Token retrieved [HTTP {}]", response.code());
-                return ACCESS_DETAILS_MAPPER.readValue(responseBody, ExtendedAccessToken.class);
+                return ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
             } else {
                 getLogger().error(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", response.code(), responseBody));
                 throw new ProcessException(String.format("OAuth2 access token request failed [HTTP %d]", response.code()));
@@ -490,20 +490,9 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         return Arrays.asList(builder.build());
     }
 
-    private class AccessTokenViews {
-        public static class Full {
-        }
-    }
-
-    @JsonView(AccessTokenViews.Full.class)
-    static class ExtendedAccessToken extends AccessToken {
-        public ExtendedAccessToken() {
-            super();
-        }
+    interface AccessTokenAdditionalParameters {
 
         @JsonAnySetter
-        public void setCustomField(String key, String value) {
-            customFields.put(key, value);
-        }
+        void setAdditionalParameter(String key, Object value);
     }
 }

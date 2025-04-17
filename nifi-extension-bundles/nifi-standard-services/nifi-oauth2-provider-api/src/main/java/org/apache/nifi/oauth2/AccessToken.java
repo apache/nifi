@@ -30,7 +30,7 @@ public class AccessToken {
 
     private final Instant fetchTime;
 
-    protected Map<String, String> customFields = new HashMap<>();
+    private final Map<String, Object> additionalParameters = new HashMap<>();
 
     public AccessToken() {
         this.fetchTime = Instant.now();
@@ -98,11 +98,11 @@ public class AccessToken {
         return Instant.now();
     }
 
-    public void setCustomField(String key, String value) {
-        customFields.put(key, value);
+    public void setAdditionalParameter(final String key, final Object value) {
+        additionalParameters.put(key, value);
     }
 
-    public Map<String, String> getCustomFields() {
-        return customFields;
+    public Map<String, Object> getAdditionalParameters() {
+        return additionalParameters;
     }
 }
