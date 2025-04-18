@@ -238,13 +238,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * @param properties Map of Property Name to Value
      */
     protected void overwriteProperties(final Map<String, String> properties) {
-        // Update properties.
         final Map<String, String> updatedProperties = new HashMap<>(properties);
-        final Set<String> sensitiveDynamicPropNames = new HashSet<>();
+
+        // Build set of Sensitive Dynamic Property Names based on updated Properties
+        final Set<String> updatedSensitiveDynamicPropertyNames = new HashSet<>();
         for (final String propertyName : updatedProperties.keySet()) {
             final PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
             if (descriptor != null && descriptor.isDynamic() && descriptor.isSensitive()) {
-                sensitiveDynamicPropNames.add(propertyName);
+                updatedSensitiveDynamicPropertyNames.add(propertyName);
             }
         }
 
@@ -253,7 +254,10 @@ public abstract class AbstractComponentNode implements ComponentNode {
             updatedProperties.putIfAbsent(descriptor.getName(), null);
         }
 
-        setProperties(updatedProperties, true, sensitiveDynamicPropNames);
+        // Clear existing Sensitive Dynamic Property Names to avoid cases where a sensitive property name has been changed or removed
+        sensitiveDynamicPropertyNames.getAndSet(Set.of());
+
+        setProperties(updatedProperties, true, updatedSensitiveDynamicPropertyNames);
     }
 
     /**
