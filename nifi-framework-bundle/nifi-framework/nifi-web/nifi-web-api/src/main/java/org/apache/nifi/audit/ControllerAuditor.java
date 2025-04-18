@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.audit;
 
-import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -30,10 +27,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
 
 /**
  * Audits configuration changes to the controller.
@@ -66,34 +59,22 @@ public class ControllerAuditor extends NiFiAuditor {
         // if no exception were thrown, add the configuration action...
         // ensure the value changed
         if (previousMaxTimerDrivenThreadCount != maxTimerDrivenThreadCount) {
-            // get the current user
-            NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-            // ensure the user was found
-            if (user != null) {
-                Collection<Action> actions = new ArrayList<>();
-
-                // create the configure details
+            if (isAuditable()) {
                 FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Controller Max Timer Driven Thread Count");
                 configDetails.setValue(String.valueOf(maxTimerDrivenThreadCount));
                 configDetails.setPreviousValue(String.valueOf(previousMaxTimerDrivenThreadCount));
 
                 // create the config action
-                FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getIdentity());
+                FlowChangeAction configAction = createFlowChangeAction();
                 configAction.setOperation(Operation.Configure);
-                configAction.setTimestamp(new Date());
                 configAction.setSourceId("Flow Controller");
                 configAction.setSourceName("Flow Controller");
                 configAction.setSourceType(Component.Controller);
                 configAction.setActionDetails(configDetails);
-                actions.add(configAction);
 
-                // record the action
-                saveActions(actions, logger);
+                saveAction(configAction, logger);
             }
         }
     }
-
 }

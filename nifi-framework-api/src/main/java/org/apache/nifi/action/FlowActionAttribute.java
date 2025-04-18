@@ -39,7 +39,11 @@ public enum FlowActionAttribute {
     ACTION_DETAILS_END_DATE("actionDetails.endDate"),
 
     COMPONENT_DETAILS_TYPE("componentDetails.type"),
-    COMPONENT_DETAILS_URI("componentDetails.uri");
+    COMPONENT_DETAILS_URI("componentDetails.uri"),
+
+    REQUEST_DETAILS_FORWARDED_FOR("requestDetails.forwardedFor"),
+    REQUEST_DETAILS_REMOTE_ADDRESS("requestDetails.remoteAddress"),
+    REQUEST_DETAILS_USER_AGENT("requestDetails.userAgent");
 
     private final String key;
 

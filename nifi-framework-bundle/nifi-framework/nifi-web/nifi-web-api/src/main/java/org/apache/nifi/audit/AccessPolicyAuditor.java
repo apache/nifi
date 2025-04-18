@@ -24,8 +24,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.authorization.AccessPolicy;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -59,7 +57,6 @@ public class AccessPolicyAuditor extends NiFiAuditor {
 
     /**
      * Audits the creation of policies via createAccessPolicy().
-     *
      * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
      * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
@@ -108,11 +105,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the policy action...
         accessPolicy = accessPolicyDAO.getAccessPolicy(updatedAccessPolicy.getIdentifier());
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(accessPolicy, accessPolicyDTO);
 
@@ -139,8 +132,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(accessPolicy.getIdentifier());
@@ -214,16 +206,10 @@ public class AccessPolicyAuditor extends NiFiAuditor {
     public Action generateAuditRecord(AccessPolicy policy, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the policy action for adding this policy
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(policy.getIdentifier());
             action.setSourceName(formatPolicyName(policy));
             action.setSourceType(Component.AccessPolicy);

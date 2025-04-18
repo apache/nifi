@@ -23,8 +23,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
@@ -115,11 +113,7 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the flow analysis rule action...
         flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(updatedFlowAnalysisRule.getIdentifier());
 
-        // get the current user
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             final Set<String> sensitiveDynamicPropertyNames = flowAnalysisRuleDTO.getSensitiveDynamicPropertyNames() == null
                     ? Collections.emptySet() : flowAnalysisRuleDTO.getSensitiveDynamicPropertyNames();
 
@@ -172,8 +166,7 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(flowAnalysisRule.getIdentifier());
@@ -192,8 +185,7 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
                 actionDetails.setValue(String.valueOf(updatedEnforcementPolicy));
                 actionDetails.setPreviousValue(String.valueOf(enforcementPolicy));
 
-                final FlowChangeAction configurationAction = new FlowChangeAction();
-                configurationAction.setUserIdentity(user.getIdentity());
+                final FlowChangeAction configurationAction = createFlowChangeAction();
                 configurationAction.setOperation(Operation.Configure);
                 configurationAction.setTimestamp(actionTimestamp);
                 configurationAction.setSourceId(flowAnalysisRule.getIdentifier());
@@ -210,9 +202,7 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (state != updatedState) {
                 // create a flow analysis rule action
-                FlowChangeAction ruleAction = new FlowChangeAction();
-                ruleAction.setUserIdentity(user.getIdentity());
-                ruleAction.setTimestamp(new Date());
+                final FlowChangeAction ruleAction = createFlowChangeAction();
                 ruleAction.setSourceId(flowAnalysisRule.getIdentifier());
                 ruleAction.setSourceName(flowAnalysisRule.getName());
                 ruleAction.setSourceType(Component.FlowAnalysisRule);
@@ -288,20 +278,14 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
     public Action generateAuditRecord(FlowAnalysisRuleNode flowAnalysisRule, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the flow analysis rule details
             FlowChangeExtensionDetails ruleDetails = new FlowChangeExtensionDetails();
             ruleDetails.setType(flowAnalysisRule.getComponentType());
 
             // create the flow analysis rule action for adding this flow analysis rule
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(flowAnalysisRule.getIdentifier());
             action.setSourceName(flowAnalysisRule.getName());
             action.setSourceType(Component.FlowAnalysisRule);

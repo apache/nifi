@@ -23,8 +23,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
@@ -118,11 +116,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the controller service action...
         controllerService = controllerServiceDAO.getControllerService(updatedControllerService.getIdentifier());
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             final Set<String> sensitiveDynamicPropertyNames = controllerServiceDTO.getSensitiveDynamicPropertyNames() == null
                     ? Collections.emptySet() : controllerServiceDTO.getSensitiveDynamicPropertyNames();
 
@@ -178,8 +172,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(controllerService.getIdentifier());
@@ -197,9 +190,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (isDisabled != updateIsDisabled) {
                 // create a controller service action
-                FlowChangeAction serviceAction = new FlowChangeAction();
-                serviceAction.setUserIdentity(user.getIdentity());
-                serviceAction.setTimestamp(new Date());
+                FlowChangeAction serviceAction = createFlowChangeAction();
                 serviceAction.setSourceId(controllerService.getIdentifier());
                 serviceAction.setSourceName(controllerService.getName());
                 serviceAction.setSourceType(Component.ControllerService);
@@ -239,14 +230,11 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         // update the controller service references
         final Set<ComponentNode> referencingComponents = (Set<ComponentNode>) proceedingJoinPoint.proceed();
 
-        // get the current user
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        if (user != null) {
+        if (isAuditable()) {
             final Collection<Action> actions = new ArrayList<>();
 
             // get all applicable actions
-            getUpdateActionsForReferencingComponents(user, actions, referencingComponents);
+            getUpdateActionsForReferencingComponents(actions, referencingComponents);
 
             // ensure there are actions to record
             if (!actions.isEmpty()) {
@@ -261,11 +249,10 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     /**
      * Gets the update actions for all specified referencing components.
      *
-     * @param user user
      * @param actions actions
      * @param referencingComponents components
      */
-    private void getUpdateActionsForReferencingComponents(final NiFiUser user, final Collection<Action> actions, final Set<ComponentNode> referencingComponents) {
+    private void getUpdateActionsForReferencingComponents(final Collection<Action> actions, final Set<ComponentNode> referencingComponents) {
         // consider each component updates
         for (final ComponentNode component : referencingComponents) {
             if (component instanceof ProcessorNode) {
@@ -276,9 +263,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 processorDetails.setType(processor.getComponentType());
 
                 // create a processor action
-                FlowChangeAction processorAction = new FlowChangeAction();
-                processorAction.setUserIdentity(user.getIdentity());
-                processorAction.setTimestamp(new Date());
+                final FlowChangeAction processorAction = createFlowChangeAction();
                 processorAction.setSourceId(processor.getIdentifier());
                 processorAction.setSourceName(processor.getName());
                 processorAction.setSourceType(Component.Processor);
@@ -293,9 +278,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 taskDetails.setType(reportingTask.getComponentType());
 
                 // create a reporting task action
-                FlowChangeAction reportingTaskAction = new FlowChangeAction();
-                reportingTaskAction.setUserIdentity(user.getIdentity());
-                reportingTaskAction.setTimestamp(new Date());
+                final FlowChangeAction reportingTaskAction = createFlowChangeAction();
                 reportingTaskAction.setSourceId(reportingTask.getIdentifier());
                 reportingTaskAction.setSourceName(reportingTask.getName());
                 reportingTaskAction.setSourceType(Component.ReportingTask);
@@ -310,9 +293,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 serviceDetails.setType(controllerService.getComponentType());
 
                 // create a controller service action
-                FlowChangeAction serviceAction = new FlowChangeAction();
-                serviceAction.setUserIdentity(user.getIdentity());
-                serviceAction.setTimestamp(new Date());
+                final FlowChangeAction serviceAction = createFlowChangeAction();
                 serviceAction.setSourceId(controllerService.getIdentifier());
                 serviceAction.setSourceName(controllerService.getName());
                 serviceAction.setSourceType(Component.ControllerService);
@@ -374,20 +355,14 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     private Action generateAuditRecord(ControllerServiceNode controllerService, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the controller service details
             FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
             serviceDetails.setType(controllerService.getComponentType());
 
             // create the controller service action for adding this controller service
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(controllerService.getIdentifier());
             action.setSourceName(controllerService.getName());
             action.setSourceType(Component.ControllerService);

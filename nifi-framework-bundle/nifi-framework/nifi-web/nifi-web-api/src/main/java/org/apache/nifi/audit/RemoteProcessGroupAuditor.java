@@ -36,8 +36,6 @@ import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDeta
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.util.StringUtils;
@@ -262,11 +260,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         // perform the underlying operation
         final RemoteProcessGroup updatedRemoteProcessGroup = (RemoteProcessGroup) proceedingJoinPoint.proceed();
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             final Collection<ActionDetails> details = new ArrayList<>();
 
             // see if any property has changed
@@ -284,7 +278,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                 // create the actions
                 for (ActionDetails detail : details) {
                     // create a configure action for each updated property
-                    FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(user, timestamp,
+                    final FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
                             updatedRemoteProcessGroup, remoteProcessGroupDetails);
                     remoteProcessGroupAction.setOperation(Operation.Configure);
                     remoteProcessGroupAction.setActionDetails(detail);
@@ -299,7 +293,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // determine if the running state has changed
             if (transmissionState != updatedTransmissionState) {
                 // create a remote process group action
-                FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(user, timestamp,
+                final FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
                         updatedRemoteProcessGroup, remoteProcessGroupDetails);
 
                 // set the operation accordingly
@@ -321,12 +315,11 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         return updatedRemoteProcessGroup;
     }
 
-    private FlowChangeAction createFlowChangeAction(final NiFiUser user, final Date timestamp,
+    private FlowChangeAction createFlowChangeAction(final Date timestamp,
                                                     final RemoteProcessGroup remoteProcessGroup,
                                                     final FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails) {
 
-        FlowChangeAction remoteProcessGroupAction = new FlowChangeAction();
-        remoteProcessGroupAction.setUserIdentity(user.getIdentity());
+        final FlowChangeAction remoteProcessGroupAction = createFlowChangeAction();
         remoteProcessGroupAction.setTimestamp(timestamp);
         remoteProcessGroupAction.setSourceId(remoteProcessGroup.getIdentifier());
         remoteProcessGroupAction.setSourceName(remoteProcessGroup.getName());
@@ -370,10 +363,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         // perform the underlying operation
         final RemoteGroupPort updatedRemoteProcessGroupPort = (RemoteGroupPort) proceedingJoinPoint.proceed();
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        if (user != null) {
+        if (isAuditable()) {
             final Collection<ActionDetails> details = new ArrayList<>();
 
             // see if any property has changed
@@ -388,7 +378,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // save the actions if necessary
             for (ActionDetails detail : details) {
                 // create a configure action for each updated property
-                FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(user, timestamp,
+                FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
                         remoteProcessGroup, remoteProcessGroupDetails);
                 remoteProcessGroupAction.setOperation(Operation.Configure);
                 remoteProcessGroupAction.setActionDetails(detail);
@@ -481,19 +471,13 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
     public Action generateAuditRecord(RemoteProcessGroup remoteProcessGroup, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the remote process group details
             FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = createFlowChangeDetails(remoteProcessGroup);
 
             // create the remote process group action
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(remoteProcessGroup.getIdentifier());
             action.setSourceName(remoteProcessGroup.getName());
             action.setSourceType(Component.RemoteProcessGroup);

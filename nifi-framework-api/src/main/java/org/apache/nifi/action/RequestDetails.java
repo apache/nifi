@@ -16,15 +16,28 @@
  */
 package org.apache.nifi.action;
 
-import java.util.Map;
-
 /**
- * An interface that represents an action that can be taken on a flow. Please check {@link FlowActionAttribute} for the common names of the attributes that can be used in the action.
+ * Additional information from the HTTP request associated with Actions
  */
-public interface FlowAction {
+public interface RequestDetails {
     /**
-     * Return the action attributes
-     * @return the action attributes
+     * Get Remote Address
+     *
+     * @return Internet Protocol address of remote system
      */
-    Map<String, String> getAttributes();
+    String getRemoteAddress();
+
+    /**
+     * Get Forwarded For addresses
+     *
+     * @return Forwarded For addresses or null when not provided
+     */
+    String getForwardedFor();
+
+    /**
+     * Get User Agent
+     *
+     * @return User Agent presented in HTTP request headers
+     */
+    String getUserAgent();
 }

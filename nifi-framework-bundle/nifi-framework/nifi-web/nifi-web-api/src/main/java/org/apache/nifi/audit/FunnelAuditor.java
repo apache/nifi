@@ -21,8 +21,6 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -31,8 +29,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.util.Date;
 
 @Service
 @Aspect
@@ -114,16 +110,9 @@ public class FunnelAuditor extends NiFiAuditor {
     public Action generateAuditRecord(Funnel funnel, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
-            // create the action for adding this funnel
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+        if (isAuditable()) {
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(funnel.getIdentifier());
             action.setSourceName(funnel.getName());
             action.setSourceType(Component.Funnel);

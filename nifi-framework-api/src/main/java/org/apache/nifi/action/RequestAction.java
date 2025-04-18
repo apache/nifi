@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.action;
 
-import java.util.Map;
-
 /**
- * An interface that represents an action that can be taken on a flow. Please check {@link FlowActionAttribute} for the common names of the attributes that can be used in the action.
+ * Extension of Action interface with additional HTTP Request Details
  */
-public interface FlowAction {
+public interface RequestAction extends Action {
     /**
-     * Return the action attributes
-     * @return the action attributes
+     * Get HTTP Request Details
+     *
+     * @return Request Details
      */
-    Map<String, String> getAttributes();
+    RequestDetails getRequestDetails();
 }

@@ -22,8 +22,6 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.dao.LabelDAO;
@@ -34,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.Objects;
 
 @Service
@@ -82,15 +79,11 @@ public class LabelAuditor extends NiFiAuditor {
 
         final Label updatedLabel = (Label) proceedingJoinPoint.proceed();
 
-        // ensure the user was found
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
+        if (isAuditable()) {
             final String updatedLabelValue = updatedLabel.getValue();
             if ((originalLabelValue == null && updatedLabelValue != null)
                     || !Objects.equals(originalLabelValue, updatedLabelValue)) {
-                final FlowChangeAction labelAction = new FlowChangeAction();
-                labelAction.setUserIdentity(user.getIdentity());
-                labelAction.setTimestamp(new Date());
+                final FlowChangeAction labelAction = createFlowChangeAction();
                 labelAction.setSourceId(label.getIdentifier());
                 labelAction.setSourceType(Component.Label);
                 labelAction.setOperation(Operation.Configure);
@@ -158,12 +151,9 @@ public class LabelAuditor extends NiFiAuditor {
     public Action generateAuditRecord(final Label label, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+        if (isAuditable()) {
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(label.getIdentifier());
             // Labels do not have a Name; use UUID to provide a unique name
             action.setSourceName(label.getIdentifier());

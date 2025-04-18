@@ -28,6 +28,7 @@ import jetbrains.exodus.env.EnvironmentConfig;
 import jetbrains.exodus.env.Environments;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowAction;
 import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
@@ -132,11 +133,8 @@ public class EntityStoreAuditService implements AuditService, Closeable {
             logger.debug("Actions added [{}]", actions.size());
         });
         if (flowActionReporter != null) {
-            flowActionReporter.reportFlowActions(
-                actions.stream()
-                    .map(actionConverter::convert)
-                    .toList()
-            );
+            final List<FlowAction> flowActions = actions.stream().map(actionConverter::convert).toList();
+            flowActionReporter.reportFlowActions(flowActions);
         }
 
     }
