@@ -24,8 +24,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
@@ -139,11 +137,7 @@ public class ProcessorAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the processor action...
         processor = processorDAO.getProcessor(updatedProcessor.getIdentifier());
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processorDTO);
 
             // determine the updated values
@@ -229,8 +223,7 @@ public class ProcessorAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(processor.getIdentifier());
@@ -248,9 +241,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (scheduledState != updatedScheduledState) {
                 // create a processor action
-                FlowChangeAction processorAction = new FlowChangeAction();
-                processorAction.setUserIdentity(user.getIdentity());
-                processorAction.setTimestamp(new Date());
+                FlowChangeAction processorAction = createFlowChangeAction();
                 processorAction.setSourceId(processor.getIdentifier());
                 processorAction.setSourceName(processor.getName());
                 processorAction.setSourceType(Component.Processor);
@@ -335,20 +326,14 @@ public class ProcessorAuditor extends NiFiAuditor {
     public Action generateAuditRecord(ProcessorNode processor, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(processor.getComponentType());
 
             // create the processor action for adding this processor
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(processor.getIdentifier());
             action.setSourceName(processor.getName());
             action.setSourceType(Component.Processor);

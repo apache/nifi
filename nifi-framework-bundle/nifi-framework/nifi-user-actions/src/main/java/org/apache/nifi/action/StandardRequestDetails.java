@@ -16,15 +16,34 @@
  */
 package org.apache.nifi.action;
 
-import java.util.Map;
-
 /**
- * An interface that represents an action that can be taken on a flow. Please check {@link FlowActionAttribute} for the common names of the attributes that can be used in the action.
+ * Standard implementation of HTTP Request Details
  */
-public interface FlowAction {
-    /**
-     * Return the action attributes
-     * @return the action attributes
-     */
-    Map<String, String> getAttributes();
+public class StandardRequestDetails implements RequestDetails {
+    private final String remoteAddress;
+
+    private final String forwardedFor;
+
+    private final String userAgent;
+
+    public StandardRequestDetails(final String remoteAddress, final String forwardedFor, final String userAgent) {
+        this.remoteAddress = remoteAddress;
+        this.forwardedFor = forwardedFor;
+        this.userAgent = userAgent;
+    }
+
+    @Override
+    public String getRemoteAddress() {
+        return remoteAddress;
+    }
+
+    @Override
+    public String getForwardedFor() {
+        return forwardedFor;
+    }
+
+    @Override
+    public String getUserAgent() {
+        return userAgent;
+    }
 }

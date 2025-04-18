@@ -24,8 +24,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.authorization.Group;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.dao.UserGroupDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -108,11 +106,7 @@ public class UserGroupAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the user group action...
         user = userGroupDAO.getUserGroup(updatedUserGroup.getIdentifier());
 
-        // get the current user
-        NiFiUser niFiUser = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (niFiUser != null) {
+        if (isAuditable()) {
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(user, userGroupDTO);
 
@@ -139,8 +133,7 @@ public class UserGroupAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(niFiUser.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(user.getIdentifier());
@@ -214,16 +207,10 @@ public class UserGroupAuditor extends NiFiAuditor {
     public Action generateAuditRecord(Group userGroup, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser niFiUser = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (niFiUser != null) {
+        if (isAuditable()) {
             // create the user action for adding this user
-            action = new FlowChangeAction();
-            action.setUserIdentity(niFiUser.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(userGroup.getIdentifier());
             action.setSourceName(userGroup.getName());
             action.setSourceType(Component.UserGroup);

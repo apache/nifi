@@ -23,8 +23,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -111,11 +109,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the reporting task action...
         reportingTask = reportingTaskDAO.getReportingTask(updatedReportingTask.getIdentifier());
 
-        // get the current user
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             final Set<String> sensitiveDynamicPropertyNames = reportingTaskDTO.getSensitiveDynamicPropertyNames() == null
                     ? Collections.emptySet() : reportingTaskDTO.getSensitiveDynamicPropertyNames();
 
@@ -171,8 +165,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(user.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(reportingTask.getIdentifier());
@@ -190,9 +183,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (scheduledState != updatedScheduledState) {
                 // create a reporting task action
-                FlowChangeAction taskAction = new FlowChangeAction();
-                taskAction.setUserIdentity(user.getIdentity());
-                taskAction.setTimestamp(new Date());
+                FlowChangeAction taskAction = createFlowChangeAction();
                 taskAction.setSourceId(reportingTask.getIdentifier());
                 taskAction.setSourceName(reportingTask.getName());
                 taskAction.setSourceType(Component.ReportingTask);
@@ -275,20 +266,14 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     public Action generateAuditRecord(ReportingTaskNode reportingTask, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the reporting task details
             FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(reportingTask.getComponentType());
 
             // create the reporting task action for adding this reporting task
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(reportingTask.getIdentifier());
             action.setSourceName(reportingTask.getName());
             action.setSourceType(Component.ReportingTask);

@@ -23,8 +23,6 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.authorization.User;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -102,11 +100,7 @@ public class UserAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the user action...
         user = userDAO.getUser(updatedUser.getIdentifier());
 
-        // get the current user
-        NiFiUser niFiUser = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (niFiUser != null) {
+        if (isAuditable()) {
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(user, userDTO);
 
@@ -133,8 +127,7 @@ public class UserAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = new FlowChangeAction();
-                    configurationAction.setUserIdentity(niFiUser.getIdentity());
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(user.getIdentifier());
@@ -208,16 +201,9 @@ public class UserAuditor extends NiFiAuditor {
     public Action generateAuditRecord(User user, Operation operation, ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser niFiUser = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (niFiUser != null) {
-            // create the user action for adding this user
-            action = new FlowChangeAction();
-            action.setUserIdentity(niFiUser.getIdentity());
+        if (isAuditable()) {
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(user.getIdentifier());
             action.setSourceName(user.getIdentity());
             action.setSourceType(Component.User);

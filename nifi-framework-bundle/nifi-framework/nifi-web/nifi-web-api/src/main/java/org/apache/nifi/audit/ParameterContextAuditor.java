@@ -21,8 +21,6 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
@@ -37,7 +35,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,11 +63,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
         // update the processor state
         ParameterContext parameterContext = (ParameterContext) proceedingJoinPoint.proceed();
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create a parameter context action
             Collection<Action> actions = new ArrayList<>();
 
@@ -83,7 +76,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
 
             // determine the actions performed in this request
             final Date actionTimestamp = new Date(createAction.getTimestamp().getTime() + 1);
-            determineActions(user, parameterContext, actions, actionTimestamp, updatedValues, Collections.EMPTY_MAP);
+            determineActions(parameterContext, actions, actionTimestamp, updatedValues, Map.of());
 
             // save the actions
             saveActions(actions, logger);
@@ -116,11 +109,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add the processor action...
         parameterContext = parameterContextDAO.getParameterContext(updatedParameterContext.getIdentifier());
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredParameterContextValues(parameterContext, parameterContextDTO);
 
@@ -129,7 +118,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
             Collection<Action> actions = new ArrayList<>();
 
             // determine the actions performed in this request
-            determineActions(user, parameterContext, actions, actionTimestamp, updatedValues, values);
+            determineActions(parameterContext, actions, actionTimestamp, updatedValues, values);
 
             // ensure there are actions to record
             if (!actions.isEmpty()) {
@@ -144,14 +133,13 @@ public class ParameterContextAuditor extends NiFiAuditor {
     /**
      * Extract configuration changes.
      *
-     * @param user the user
      * @param parameterContext the parameter context
      * @param actions actions list
      * @param actionTimestamp timestamp of the request
      * @param updatedValues the updated values
      * @param values the current values
      */
-    private void determineActions(final NiFiUser user, final ParameterContext parameterContext, final Collection<Action> actions,
+    private void determineActions(final ParameterContext parameterContext, final Collection<Action> actions,
                                    final Date actionTimestamp, final Map<String, String> updatedValues, final Map<String, String> values) {
 
         // go through each updated value
@@ -171,10 +159,10 @@ public class ParameterContextAuditor extends NiFiAuditor {
                 final Parameter parameter = parameterContext.getParameter(key).orElse(null);
                 if (parameter != null && parameter.getDescriptor().isSensitive()) {
                     if (newValue != null) {
-                        newValue = "********";
+                        newValue = SENSITIVE_VALUE_PLACEHOLDER;
                     }
                     if (oldValue != null) {
-                        oldValue = "********";
+                        oldValue = SENSITIVE_VALUE_PLACEHOLDER;
                     }
                 }
 
@@ -184,8 +172,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
                 actionDetails.setPreviousValue(oldValue);
 
                 // create a configuration action
-                FlowChangeAction configurationAction = new FlowChangeAction();
-                configurationAction.setUserIdentity(user.getIdentity());
+                final FlowChangeAction configurationAction = createFlowChangeAction();
                 configurationAction.setOperation(operation);
                 configurationAction.setTimestamp(actionTimestamp);
                 configurationAction.setSourceId(parameterContext.getIdentifier());
@@ -236,16 +223,10 @@ public class ParameterContextAuditor extends NiFiAuditor {
     private Action generateAuditRecord(ParameterContext parameterContext, Operation operation) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
-        if (user != null) {
+        if (isAuditable()) {
             // create the processor action for adding this processor
-            action = new FlowChangeAction();
-            action.setUserIdentity(user.getIdentity());
+            action = createFlowChangeAction();
             action.setOperation(operation);
-            action.setTimestamp(new Date());
             action.setSourceId(parameterContext.getIdentifier());
             action.setSourceName(parameterContext.getName());
             action.setSourceType(Component.ParameterContext);

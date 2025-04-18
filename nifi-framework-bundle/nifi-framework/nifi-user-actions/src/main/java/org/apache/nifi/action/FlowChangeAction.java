@@ -21,9 +21,9 @@ import org.apache.nifi.action.details.ActionDetails;
 import java.util.Date;
 
 /**
- *
+ * Flow Change Action provides the default implementation for audited actions within the framework
  */
-public class FlowChangeAction implements Action {
+public class FlowChangeAction implements RequestAction {
 
     private Integer id;
     private String userIdentity;
@@ -36,6 +36,7 @@ public class FlowChangeAction implements Action {
 
     private Operation operation;
     private ActionDetails actionDetails;
+    private RequestDetails requestDetails;
 
     @Override
     public Integer getId() {
@@ -116,5 +117,14 @@ public class FlowChangeAction implements Action {
 
     public void setActionDetails(ActionDetails actionDetails) {
         this.actionDetails = actionDetails;
+    }
+
+    public void setRequestDetails(final RequestDetails requestDetails) {
+        this.requestDetails = requestDetails;
+    }
+
+    @Override
+    public RequestDetails getRequestDetails() {
+        return requestDetails;
     }
 }

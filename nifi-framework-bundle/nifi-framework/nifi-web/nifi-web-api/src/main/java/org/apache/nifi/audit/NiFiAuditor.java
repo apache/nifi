@@ -18,17 +18,27 @@ package org.apache.nifi.audit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
+import org.apache.nifi.action.FlowChangeAction;
+import org.apache.nifi.action.RequestDetails;
+import org.apache.nifi.action.StandardRequestDetails;
 import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
+import java.util.Optional;
 
 /**
  * A NiFi audit service.
@@ -36,6 +46,8 @@ import java.util.Collection;
 public abstract class NiFiAuditor {
 
     protected static final String SENSITIVE_VALUE_PLACEHOLDER = "********";
+
+    private static final String UNAUTHENTICATED_USER_IDENTITY = "UNAUTHENTICATED";
 
     private AuditService auditService;
 
@@ -121,6 +133,46 @@ public abstract class NiFiAuditor {
         }
 
         return String.format("%s from %s", formattedType, formattedBundle);
+    }
+
+    /**
+     * Return auditable status based on the presence of Authentication Credentials
+     *
+     * @return Auditable status
+     */
+    protected boolean isAuditable() {
+        final Optional<Object> authenticationCredentialsFound = NiFiUserUtils.getAuthenticationCredentials();
+        return authenticationCredentialsFound.isPresent();
+    }
+
+    /**
+     * Create Flow Change Action with current user and standard properties
+     *
+     * @return Flow Change Action
+     */
+    protected FlowChangeAction createFlowChangeAction() {
+        final FlowChangeAction flowChangeAction = new FlowChangeAction();
+        flowChangeAction.setTimestamp(new Date());
+
+        final SecurityContext securityContext = SecurityContextHolder.getContext();
+        final Authentication authentication = securityContext.getAuthentication();
+        if (authentication == null) {
+            flowChangeAction.setUserIdentity(UNAUTHENTICATED_USER_IDENTITY);
+        } else {
+            final String userIdentity = authentication.getName();
+            flowChangeAction.setUserIdentity(userIdentity);
+
+            final Object details = authentication.getDetails();
+            if (details instanceof NiFiWebAuthenticationDetails authenticationDetails) {
+                final String remoteAddress = authenticationDetails.getRemoteAddress();
+                final String forwardedFor = authenticationDetails.getForwardedFor();
+                final String userAgent = authenticationDetails.getUserAgent();
+                final RequestDetails requestDetails = new StandardRequestDetails(remoteAddress, forwardedFor, userAgent);
+                flowChangeAction.setRequestDetails(requestDetails);
+            }
+        }
+
+        return flowChangeAction;
     }
 
     @Autowired

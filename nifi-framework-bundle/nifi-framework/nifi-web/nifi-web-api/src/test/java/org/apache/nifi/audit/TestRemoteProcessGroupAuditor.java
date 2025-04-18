@@ -23,9 +23,6 @@ import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -62,10 +59,11 @@ public class TestRemoteProcessGroupAuditor {
         final SecurityContext securityContext = SecurityContextHolder.getContext();
         final Authentication authentication = mock(Authentication.class);
         securityContext.setAuthentication(authentication);
-        final NiFiUser user = new Builder().identity("user-id").build();
-        final NiFiUserDetails userDetail = new NiFiUserDetails(user);
-        when(authentication.getPrincipal()).thenReturn(userDetail);
 
+        final Object credentials = Object.class.getSimpleName();
+        when(authentication.getCredentials()).thenReturn(credentials);
+
+        when(authentication.getName()).thenReturn("user-id");
     }
 
     private Collection<Action> updateProcessGroupConfiguration(RemoteProcessGroupDTO inputRPGDTO, RemoteProcessGroup existingRPG) throws Throwable {
