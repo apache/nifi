@@ -78,6 +78,10 @@ public class TestAbstractComponentNode {
 
     private static final String PROPERTY_VALUE = "abstract-property-value";
 
+    private static final String SECOND_PROPERTY_NAME = "Second Property";
+
+    private static final String SECOND_PROPERTY_VALUE = "2";
+
     @Timeout(5)
     @Test
     public void testGetValidationStatusWithTimeout() {
@@ -397,6 +401,27 @@ public class TestAbstractComponentNode {
         final PropertyDescriptor removedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
         assertTrue(removedPropertyDescriptor.isDynamic());
         assertFalse(removedPropertyDescriptor.isSensitive());
+    }
+
+    @Test
+    public void testOverwritePropertiesSensitiveDynamicPropertyNames() {
+        final AbstractComponentNode node = new LocalComponentNode();
+
+        final Map<String, String> properties = Map.of(PROPERTY_NAME, PROPERTY_VALUE);
+        final Set<String> sensitiveDynamicPropertyNames = Collections.singleton(PROPERTY_NAME);
+        node.setProperties(properties, false, sensitiveDynamicPropertyNames);
+
+        final PropertyDescriptor propertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(propertyDescriptor.isDynamic());
+        assertTrue(propertyDescriptor.isSensitive());
+
+        // Overwrite Properties which clears existing Sensitive Dynamic Property Names
+        final Map<String, String> secondProperties = Map.of(SECOND_PROPERTY_NAME, SECOND_PROPERTY_VALUE);
+        node.overwriteProperties(secondProperties);
+
+        final PropertyDescriptor updatedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(updatedPropertyDescriptor.isDynamic());
+        assertFalse(updatedPropertyDescriptor.isSensitive());
     }
 
     private ValidationContext getServiceValidationContext(final ControllerServiceState serviceState, final ControllerServiceProvider serviceProvider) {
