@@ -54,6 +54,16 @@
                 </td>
             </ng-container>
 
+            <!-- Process Group Column -->
+            <ng-container matColumnDef="process groups">
+                <th mat-header-cell
+                    *matHeaderCellDef
+                    mat-sort-header>Process Groups</th>
+                <td mat-cell *matCellDef="let item" [title]="formatProcessGroups(item)">
+                    {{ formatProcessGroups(item) }}
+                </td>
+            </ng-container>
+
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
