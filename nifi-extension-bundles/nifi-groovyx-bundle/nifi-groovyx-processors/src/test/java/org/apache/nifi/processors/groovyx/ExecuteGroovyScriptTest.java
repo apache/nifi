@@ -40,7 +40,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -553,6 +552,15 @@ public class ExecuteGroovyScriptTest {
 
         runner.run();
         assertEquals("testDB", ((DBCPServiceSimpleImpl) dbcp).getDatabaseName());
+    }
+
+    @Test
+    public void test_sensitive_dynamic_property() throws Exception {
+        runner.setProperty("SENSITIVE.password", "MyP@ssW0rd!");
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY,
+                "assert context.getProperties().find {k,v -> k.name == 'SENSITIVE.password'}.key.sensitive");
+        runner.assertValid();
+        runner.run();
     }
 
 
