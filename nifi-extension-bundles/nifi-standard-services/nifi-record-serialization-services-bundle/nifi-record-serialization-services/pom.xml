@@ -94,7 +94,7 @@
         <dependency>
             <groupId>com.github.palindromicity</groupId>
             <artifactId>simple-syslog-5424</artifactId>
-            <version>0.0.16</version>
+            <version>0.0.18</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
