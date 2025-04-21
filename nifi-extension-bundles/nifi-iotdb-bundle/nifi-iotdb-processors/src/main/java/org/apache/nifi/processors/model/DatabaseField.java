@@ -19,9 +19,9 @@ package org.apache.nifi.processors.model;
 import java.util.HashMap;
 import java.util.Set;
 
-import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
+import org.apache.tsfile.file.metadata.enums.CompressionType;
+import org.apache.tsfile.enums.TSDataType;
+import org.apache.tsfile.file.metadata.enums.TSEncoding;
 
 public class DatabaseField {
     private String tsName;

@@ -36,12 +36,13 @@ import org.apache.nifi.processors.model.DatabaseField;
 import org.apache.nifi.processors.model.DatabaseSchema;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.Session;
-import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
-import org.apache.iotdb.tsfile.utils.Binary;
-import org.apache.iotdb.tsfile.write.record.Tablet;
-import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
+import org.apache.tsfile.file.metadata.enums.CompressionType;
+import org.apache.tsfile.enums.TSDataType;
+import org.apache.tsfile.file.metadata.enums.TSEncoding;
+import org.apache.tsfile.utils.Binary;
+import org.apache.tsfile.write.record.Tablet;
+import org.apache.tsfile.write.schema.IMeasurementSchema;
+import org.apache.tsfile.write.schema.MeasurementSchema;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -312,7 +313,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         final Map<String, Tablet> tablets = new LinkedHashMap<>();
         deviceMeasurementMap.forEach(
                 (device, measurements) -> {
-                    ArrayList<MeasurementSchema> schemas = new ArrayList<>();
+                    final List<IMeasurementSchema> schemas = new ArrayList<>();
                     for (String measurement : measurements) {
                         TSDataType dataType = schema.getDataType(measurement);
                         TSEncoding encoding = schema.getEncodingType(measurement);
