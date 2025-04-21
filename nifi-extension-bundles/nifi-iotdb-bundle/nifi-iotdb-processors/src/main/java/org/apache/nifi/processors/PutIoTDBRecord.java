@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.nifi.processors.model.DatabaseSchema;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.write.record.Tablet;
-import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
+import org.apache.tsfile.enums.TSDataType;
+import org.apache.tsfile.write.record.Tablet;
+import org.apache.tsfile.write.schema.IMeasurementSchema;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -152,17 +152,17 @@ public class PutIoTDBRecord extends AbstractIoTDB {
 
                 for (final Map.Entry<String, Tablet> entry : tablets.entrySet()) {
                     Tablet tablet = entry.getValue();
-                    int rowIndex = tablet.rowSize++;
+                    int rowIndex = tablet.getRowSize() + 1;
 
                     tablet.addTimestamp(rowIndex, timestamp);
-                    List<MeasurementSchema> measurements = tablet.getSchemas();
-                    for (MeasurementSchema measurement : measurements) {
-                        String id = measurement.getMeasurementId();
+                    List<IMeasurementSchema> measurements = tablet.getSchemas();
+                    for (IMeasurementSchema measurement : measurements) {
+                        String id = measurement.getMeasurementName();
                         TSDataType type = measurement.getType();
                         Object value = getTypedValue(record.getValue(id), type);
                         tablet.addValue(id, rowIndex, value);
                     }
-                    filled = tablet.rowSize == tablet.getMaxRowNumber();
+                    filled = tablet.getRowSize() == tablet.getMaxRowNumber();
                 }
                 if (filled) {
                     if (aligned) {
@@ -177,7 +177,7 @@ public class PutIoTDBRecord extends AbstractIoTDB {
             final AtomicBoolean remaining = new AtomicBoolean(false);
             tablets.forEach(
                     (device, tablet) -> {
-                        if (!remaining.get() && tablet.rowSize != 0) {
+                        if (!remaining.get() && tablet.getRowSize() != 0) {
                             remaining.set(true);
                         }
                     });
@@ -214,20 +214,13 @@ public class PutIoTDBRecord extends AbstractIoTDB {
     private long getTimestamp(final String timeField, final Record record) {
         final long timestamp;
         final Object time = record.getValue(timeField);
-        if (time instanceof  Timestamp) {
-            Timestamp temp = (Timestamp) time;
-            timestamp = temp.getTime();
-        } else if (time instanceof  Time) {
-            Time temp = (Time) time;
-            timestamp = temp.getTime();
-        } else if (time instanceof  Date) {
-            Date temp = (Date) time;
-            timestamp = temp.getTime();
-        } else if (time instanceof Long) {
-            timestamp = (Long) time;
-        } else {
-            throw new IllegalArgumentException(String.format("Unexpected Time Field Type: %s", time));
-        }
+        timestamp = switch (time) {
+            case Timestamp temp -> temp.getTime();
+            case Time temp -> temp.getTime();
+            case Date temp -> temp.getTime();
+            case Long number -> number;
+            case null, default -> throw new IllegalArgumentException(String.format("Unexpected Time Field Type: %s", time));
+        };
         return timestamp;
     }
 
