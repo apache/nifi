@@ -19,9 +19,9 @@ package org.apache.nifi.processors;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.processors.model.DatabaseSchema;
-import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
+import org.apache.tsfile.file.metadata.enums.CompressionType;
+import org.apache.tsfile.enums.TSDataType;
+import org.apache.tsfile.file.metadata.enums.TSEncoding;
 
 import org.junit.jupiter.api.Test;
 
