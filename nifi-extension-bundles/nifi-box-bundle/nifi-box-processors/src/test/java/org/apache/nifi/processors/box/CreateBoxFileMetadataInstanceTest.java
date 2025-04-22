@@ -31,6 +31,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.text.ParseException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Date;
+import java.util.List;
+
+import static java.time.ZoneOffset.UTC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -75,14 +82,20 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     }
 
     @Test
-    void testSuccessfulMetadataCreation() {
+    void testSuccessfulMetadataCreation() throws ParseException {
         final String inputJson = """
                 {
                   "audience": "internal",
                   "documentType": "Q1 plans",
                   "competitiveDocument": "no",
                   "status": "active",
-                  "author": "Jones"
+                  "author": "Jones",
+                  "int": 1,
+                  "double": 1.234,
+                  "almostTenToThePowerOfThirty": 1000000000000000000000000000123,
+                  "array": [ "one", "two", "three" ],
+                  "intArray": [ 1, 2, 3 ],
+                  "date": "2025-01-01"
                 }""";
 
         testRunner.enqueue(inputJson);
@@ -97,6 +110,12 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         assertEquals("no", capturedMetadata.getValue("/competitiveDocument").asString());
         assertEquals("active", capturedMetadata.getValue("/status").asString());
         assertEquals("Jones", capturedMetadata.getValue("/author").asString());
+        assertEquals(1, capturedMetadata.getValue("/int").asInt());
+        assertEquals(1.234, capturedMetadata.getDouble("/double"));
+        assertEquals(1e30, capturedMetadata.getDouble("/almostTenToThePowerOfThirty")); // Precision loss is accepted.
+        assertEquals(List.of("one", "two", "three"), capturedMetadata.getMultiSelect("/array"));
+        assertEquals(List.of("1", "2", "3"), capturedMetadata.getMultiSelect("/intArray"));
+        assertEquals(createLegacyDate(2025, 1, 1), capturedMetadata.getDate("/date"));
 
         testRunner.assertAllFlowFilesTransferred(CreateBoxFileMetadataInstance.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxFileMetadataInstance.REL_SUCCESS).getFirst();
@@ -157,4 +176,9 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
+    private static Date createLegacyDate(int year, int month, int day) {
+        final LocalDate date = LocalDate.of(year, month, day);
+        final Instant instant = date.atStartOfDay(UTC).toInstant();
+        return Date.from(instant);
+    }
 }

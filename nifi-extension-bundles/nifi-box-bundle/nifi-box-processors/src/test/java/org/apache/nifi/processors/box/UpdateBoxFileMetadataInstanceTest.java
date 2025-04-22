@@ -91,6 +91,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
         final JsonTreeReader readerService = new JsonTreeReader();
         runner.addControllerService("json-reader", readerService);
+        runner.setProperty(readerService, "Date Format", "yyyy-MM-dd");
         runner.enableControllerService(readerService);
     }
 
@@ -290,7 +291,8 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
                   "doubleField": 42.5,
                   "booleanField": true,
                   "listField": ["item1", "item2", "item3"],
-                  "emptyListField": []
+                  "emptyListField": [],
+                  "date": "2025-01-01"
                 }""";
 
         testRunner.enqueue(inputJson);
@@ -301,6 +303,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         verify(mockMetadata).add("/numberField", 42.0); // Numbers are stored as doubles
         verify(mockMetadata).add("/doubleField", 42.5);
         verify(mockMetadata).add("/booleanField", "true"); // Booleans are stored as strings
+        verify(mockMetadata).add("/date", "2025-01-01T00:00:00.000Z"); // Dates have a specific format.
         // We need to use doAnswer/when to capture and verify list fields being added, but this is simpler
 
         verify(mockBoxFile).updateMetadata(any(Metadata.class));
