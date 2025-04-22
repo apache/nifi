@@ -1478,72 +1478,59 @@ export class CanvasUtils {
         let lineHeight = height;
 
         for (const fullLine of lines) {
-            const words: string[] = fullLine.split(/\s+/).reverse();
+            // Preserve leading spaces per word
+            const words: string[] = fullLine.match(/(\s*\S+)/g)?.reverse() || [];
 
             let newLine = true;
             let line: string[] = [];
-            let tspan = selection.append('tspan').attr('x', x).attr('width', width);
 
-            // go through each word
+            let tspan = selection.append('tspan')
+                .attr('x', x)
+                .attr('width', width)
+                .attr('xml:space', 'preserve'); // preserve leading spaces
+
             let word = words.pop();
 
             while (word) {
-                // add the current word
                 line.push(word);
-
-                // update the label text
-                tspan.text(line.join(' '));
+                tspan.text(line.join(''));
 
                 if (!lineCountCalculated) {
                     const bbox = tspan.node().getBoundingClientRect();
                     lineHeight = bbox.height / this.scale;
-
                     lineCount = Math.floor(height / lineHeight);
                     lineCountCalculated = true;
                 }
 
                 if (newLine) {
-                    // set the label height
                     tspan.attr('y', lineHeight * i++);
                     newLine = false;
                 }
 
-                // if this word caused us to go too far
                 if (tspan.node().getComputedTextLength() > width) {
-                    // remove the current word
-                    line.pop();
+                    line.pop(); // remove word that caused overflow
+                    tspan.text(line.join(''));
 
-                    // update the label text
-                    tspan.text(line.join(' '));
+                    tspan = selection.append('tspan')
+                        .attr('x', x)
+                        .attr('dy', '1.2em')
+                        .attr('width', width)
+                        .attr('xml:space', 'preserve');
 
-                    // create the tspan for the next line
-                    tspan = selection.append('tspan').attr('x', x).attr('dy', '1.2em').attr('width', width);
-
-                    // if we've reached the last line, use single line ellipsis
                     if (i++ >= lineCount) {
-                        // get the remainder using the current word and
-                        // reversing whats left
                         const remainder = [word].concat(words.reverse());
-
-                        // apply ellipsis to the last line
-                        this.ellipsis(tspan, remainder.join(' '), cacheName);
-
-                        // we've reached the line count
+                        this.ellipsis(tspan, remainder.join(''), cacheName);
                         return;
                     } else {
                         tspan.text(word);
-
-                        // prep the line for the next iteration
                         line = [word];
                     }
                 }
 
-                // get the next word
                 word = words.pop();
             }
 
             if (newLine) {
-                // set the label height
                 tspan.attr('y', lineHeight * i++);
                 newLine = false;
             }
