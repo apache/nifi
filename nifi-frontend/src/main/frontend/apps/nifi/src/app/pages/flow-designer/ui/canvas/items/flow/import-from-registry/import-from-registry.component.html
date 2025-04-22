@@ -103,6 +103,13 @@
                     >
                 </mat-form-field>
                 <div class="mb-5">
+                    <mat-form-field>
+                        <mat-label>Custom Versioned Flow Name</mat-label>
+                        <input matInput formControlName="customFlowName" type="text" />
+                        <mat-hint>Name of the created Process Group. If none provided, then the name is taken from versioned flow.</mat-hint>
+                    </mat-form-field>
+                </div>
+                <div class="mb-5">
                     <mat-checkbox formControlName="keepParameterContexts">
                         Keep existing Parameter Contexts
                         <i

@@ -1047,6 +1047,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
             unresolvedParameterProviders.addAll(serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser()));
 
+            // If Process Group name was provided in the request, prioritize it over the name from version control
+            if (requestProcessGroupEntity.getComponent().getName() != null) {
+                flowSnapshot.getFlowContents().setName(requestProcessGroupEntity.getComponent().getName());
+            }
+
             // Step 6: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
         }

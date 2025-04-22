@@ -33,7 +33,7 @@ import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { MatHint, MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
@@ -67,6 +67,7 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         MatDialogModule,
         MatFormFieldModule,
         MatInputModule,
+        MatHint,
         NgIf,
         NifiSpinnerDirective,
         ReactiveFormsModule,
@@ -159,6 +160,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
 
         const initialRegistry = this.registryClientOptions.length > 0 ? this.registryClientOptions[0].value : null;
         this.importFromRegistryForm = this.formBuilder.group({
+            customFlowName: new FormControl(null),
             registry: new FormControl(initialRegistry, Validators.required),
             branch: new FormControl(null),
             bucket: new FormControl(null, Validators.required),
@@ -397,6 +399,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
                 }),
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
                 component: {
+                    name: this.importFromRegistryForm.get('customFlowName')?.value,
                     position: {
                         x: this.dialogRequest.request.position.x,
                         y: this.dialogRequest.request.position.y
