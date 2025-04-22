@@ -2913,6 +2913,15 @@ The Database Settings section defines the settings for the internal database, wh
 |`nifi.database.directory`*|The location of the Flow Configuration History database directory. The default value is `./database_repository`.
 |====
 
+=== Flow Action Reporter
+
+The Flow Action Reporter is a framework interface that supports exporting flow configuration changes using a custom implementation class.
+
+|====
+|*Property*                                 | *Description*
+|`nifi.flow.action.reporter.implementation` | The class implementing `org.apache.nifi.action.FlowActionReporter` from `nifi-framework-api`. The default value is not specified.
+|====
+
 === FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
