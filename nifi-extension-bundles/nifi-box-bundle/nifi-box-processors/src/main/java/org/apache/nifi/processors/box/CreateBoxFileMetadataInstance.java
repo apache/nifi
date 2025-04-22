@@ -37,14 +37,20 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.box.utils.BoxDate;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static java.lang.String.valueOf;
@@ -223,18 +229,56 @@ public class CreateBoxFileMetadataInstance extends AbstractProcessor {
             return;
         }
 
-        List<String> fieldNames = record.getSchema().getFieldNames();
+        final List<RecordField> fields = record.getSchema().getFields();
 
-        if (fieldNames.isEmpty()) {
+        if (fields.isEmpty()) {
             errors.add("Record has no fields");
             return;
         }
 
-        for (String fieldName : fieldNames) {
-            Object valueObj = record.getValue(fieldName);
-            String value = valueObj != null ? valueObj.toString() : null;
-            metadata.add("/" + fieldName, value);
+        for (final RecordField field : fields) {
+            addValueToMetadata(metadata, record, field);
         }
+    }
+
+    private void addValueToMetadata(final Metadata metadata, final Record record, final RecordField field) {
+        if (record.getValue(field) == null) {
+            return;
+        }
+
+        final RecordFieldType fieldType = field.getDataType().getFieldType();
+        final String fieldName = field.getFieldName();
+        final String path = "/" + fieldName;
+
+        if (isNumber(fieldType)) {
+            metadata.add(path, record.getAsDouble(fieldName));
+        } else if (isDate(fieldType)) {
+            final LocalDate date = record.getAsLocalDate(fieldName, null);
+            metadata.add(path, BoxDate.of(date).format());
+        } else if (isArray(fieldType)) {
+            final List<String> values = Arrays.stream(record.getAsArray(fieldName))
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .toList();
+
+            metadata.add(path, values);
+        } else {
+            metadata.add(path, record.getAsString(fieldName));
+        }
+    }
+
+    private boolean isNumber(final RecordFieldType fieldType) {
+        final boolean isInteger = RecordFieldType.BIGINT.equals(fieldType) || RecordFieldType.BIGINT.isWiderThan(fieldType);
+        final boolean isFloat = RecordFieldType.DECIMAL.equals(fieldType) || RecordFieldType.DECIMAL.isWiderThan(fieldType);
+        return isInteger || isFloat;
+    }
+
+    private boolean isDate(final RecordFieldType fieldType) {
+        return RecordFieldType.DATE.equals(fieldType);
+    }
+
+    private boolean isArray(final RecordFieldType fieldType) {
+        return RecordFieldType.ARRAY.equals(fieldType);
     }
 
     /**

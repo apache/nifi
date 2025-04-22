@@ -37,11 +37,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.box.utils.BoxDate;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -216,8 +220,16 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
 
             final Record record = recordReader.nextRecord();
             if (record != null) {
-                for (String fieldName : record.getSchema().getFieldNames()) {
-                    desiredState.put(fieldName, record.getValue(fieldName));
+                final List<RecordField> fields = record.getSchema().getFields();
+                for (final RecordField field : fields) {
+                    final String fieldName = field.getFieldName();
+                    final RecordFieldType type = field.getDataType().getFieldType();
+
+                    final Object value = RecordFieldType.DATE.equals(type)
+                            ? record.getAsLocalDate(fieldName, null) // Ensuring dates are read as LocalDate.
+                            : record.getValue(field);
+
+                    desiredState.put(fieldName, value);
                 }
             }
         }
@@ -269,6 +281,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             switch (value) {
                 case Number n -> metadata.replace(propertyPath, n.doubleValue());
                 case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l, propertyPath));
+                case LocalDate d -> metadata.replace(propertyPath, BoxDate.of(d).format());
                 default -> metadata.replace(propertyPath, value.toString());
             }
         } else {
@@ -276,6 +289,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractProcessor {
             switch (value) {
                 case Number n -> metadata.add(propertyPath, n.doubleValue());
                 case List<?> l -> metadata.add(propertyPath, convertListToStringList(l, propertyPath));
+                case LocalDate d -> metadata.add(propertyPath, BoxDate.of(d).format());
                 default -> metadata.add(propertyPath, value.toString());
             }
         }
