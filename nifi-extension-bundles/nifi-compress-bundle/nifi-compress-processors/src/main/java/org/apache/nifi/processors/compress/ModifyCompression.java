@@ -221,7 +221,7 @@ public class ModifyCompression extends AbstractProcessor {
         final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
         final StopWatch stopWatch = new StopWatch(true);
         final long inputFileSize = flowFile.getSize();
-        final int outputCompressionLevel = context.getProperty(OUTPUT_COMPRESSION_LEVEL).asInteger();
+        final Integer outputCompressionLevel = getOutputCompressionLevel(context, outputCompressionStrategy);
         try {
             flowFile = session.write(flowFile, (flowFileInputStream, flowFileOutputStream) -> {
                 try (
@@ -259,6 +259,18 @@ public class ModifyCompression extends AbstractProcessor {
         }
     }
 
+    private static Integer getOutputCompressionLevel(ProcessContext context, CompressionStrategy outputCompressionStrategy) {
+        return switch (outputCompressionStrategy) {
+            case MIME_TYPE_ATTRIBUTE,
+                 GZIP,
+                 DEFLATE,
+                 XZ_LZMA2,
+                 ZSTD,
+                 BROTLI -> context.getProperty(OUTPUT_COMPRESSION_LEVEL).asInteger();
+            case NONE, LZMA, SNAPPY, BZIP2, SNAPPY_HADOOP, SNAPPY_FRAMED, LZ4_FRAMED -> null;
+        };
+    }
+
     private InputStream getCompressionInputStream(final CompressionStrategy compressionFormat, final InputStream parentInputStream) throws IOException {
         return switch (compressionFormat) {
             case LZMA -> new LzmaInputStream(parentInputStream, new Decoder());
@@ -292,7 +304,7 @@ public class ModifyCompression extends AbstractProcessor {
 
     private OutputStream getCompressionOutputStream(
             final CompressionStrategy compressionFormat,
-            final int compressionLevel,
+            final Integer compressionLevel,
             final AtomicReference<String> mimeTypeRef,
             final OutputStream parentOutputStream
     ) throws IOException {

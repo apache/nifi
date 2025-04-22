@@ -41,25 +41,25 @@ class TestEvaluateJsonPath {
     private static final Path JSON_SNIPPET = Paths.get("src/test/resources/TestJson/json-sample.json");
     private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
 
+    private final TestRunner runner = TestRunners.newTestRunner(new EvaluateJsonPath());
+
     @Test
     void testInvalidJsonPath() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty("invalid.jsonPath", "$..");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty("invalid.jsonPath", "$..");
 
-        testRunner.assertNotValid();
+        runner.assertNotValid();
     }
 
     @Test
     void testUpgradeToJsonPath24() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
         List<String> badInputs = Arrays.asList("LoremIpsum []", "LoremIpsum[]", "$..", "$.xyz.");
         for (String bad : badInputs) {
-            testRunner.setProperty("DefinitelyNotJsonPath", bad);
+            runner.setProperty("DefinitelyNotJsonPath", bad);
 
-            testRunner.enqueue(JSON_SNIPPET);
-            testRunner.assertNotValid();
+            runner.enqueue(JSON_SNIPPET);
+            runner.assertNotValid();
         }
 
         /*
@@ -67,10 +67,10 @@ class TestEvaluateJsonPath {
          */
         List<String> testWhatUsedToPass = Arrays.asList("LoremIpsum@$Q#$^Q$%Q#", "TestTest['sdfadsf']#$%#$^#$^.xyz");
         for (String old : testWhatUsedToPass) {
-            testRunner.setProperty("DefinitelyNotJsonPath", old);
+            runner.setProperty("DefinitelyNotJsonPath", old);
 
-            testRunner.enqueue(JSON_SNIPPET);
-            testRunner.assertValid();
+            runner.enqueue(JSON_SNIPPET);
+            runner.assertValid();
         }
 
         /*
@@ -78,166 +78,157 @@ class TestEvaluateJsonPath {
          */
         List<String> goodStrings = Arrays.asList("$", "$.xyz", "$['xyz']", "$.*['xyz']");
         for (String good : goodStrings) {
-            testRunner.setProperty("DefinitelyNotJsonPath", good);
+            runner.setProperty("DefinitelyNotJsonPath", good);
 
-            testRunner.enqueue(JSON_SNIPPET);
-            testRunner.assertValid();
+            runner.enqueue(JSON_SNIPPET);
+            runner.assertValid();
         }
 
-        testRunner.setProperty("DefinitelyNotJsonPath", "   ");
-        testRunner.assertNotValid();
+        runner.setProperty("DefinitelyNotJsonPath", "   ");
+        runner.assertNotValid();
     }
 
     @Test
     void testInvalidJsonDocument() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
 
-        testRunner.enqueue(XML_SNIPPET);
-        testRunner.run();
+        runner.enqueue(XML_SNIPPET);
+        runner.run();
 
-        testRunner.assertAllFlowFilesTransferred(EvaluateJsonPath.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(EvaluateJsonPath.REL_FAILURE, 1);
     }
 
     @Test
     void testInvalidConfiguration_destinationContent_twoPaths() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty("JsonPath1", "$[0]._id");
-        testRunner.setProperty("JsonPath2", "$[0].name");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty("JsonPath1", "$[0]._id");
+        runner.setProperty("JsonPath2", "$[0].name");
 
-        testRunner.assertNotValid();
+        runner.assertNotValid();
     }
 
     @Test
     void testInvalidConfiguration_invalidJsonPath_space() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty("JsonPath1", "$[0]. _id");
-        testRunner.assertNotValid();
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty("JsonPath1", "$[0]. _id");
+        runner.assertNotValid();
     }
 
     @Test
     void testConfiguration_destinationAttributes_twoPaths() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty("JsonPath1", "$[0]._id");
-        testRunner.setProperty("JsonPath2", "$[0].name"); // cannot be converted to scalar
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty("JsonPath1", "$[0]._id");
+        runner.setProperty("JsonPath2", "$[0].name"); // cannot be converted to scalar
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
     }
 
     @Test
     void testExtractPath_destinationAttribute() throws Exception {
         String jsonPathAttrKey = "JsonPath";
 
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(jsonPathAttrKey, "$[0]._id");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(jsonPathAttrKey, "$[0]._id");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
         assertEquals("54df94072d5dbf7dc6340cc5", out.getAttribute(jsonPathAttrKey), "Transferred flow file did not have the correct result");
     }
 
     @Test
     void testExtractPath_destinationAttributes_twoPaths() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
 
         String jsonPathIdAttrKey = "evaluatejson.id";
         String jsonPathNameAttrKey = "evaluatejson.name";
 
-        testRunner.setProperty(jsonPathIdAttrKey, "$[0]._id");
-        testRunner.setProperty(jsonPathNameAttrKey, "$[0].name");
+        runner.setProperty(jsonPathIdAttrKey, "$[0]._id");
+        runner.setProperty(jsonPathNameAttrKey, "$[0].name");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
         assertEquals("54df94072d5dbf7dc6340cc5", out.getAttribute(jsonPathIdAttrKey), "Transferred flow file did not have the correct result for id attribute");
         assertEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}", out.getAttribute(jsonPathNameAttrKey), "Transferred flow file did not have the correct result for name attribute");
     }
 
     @Test
     void testExtractPath_destinationAttributes_twoPaths_notFound() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_WARN);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_WARN);
 
         String jsonPathIdAttrKey = "evaluatejson.id";
         String jsonPathNameAttrKey = "evaluatejson.name";
 
-        testRunner.setProperty(jsonPathIdAttrKey, "$[0]._id.nonexistent");
-        testRunner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
+        runner.setProperty(jsonPathIdAttrKey, "$[0]._id.nonexistent");
+        runner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
         assertEquals(StringUtils.EMPTY, out.getAttribute(jsonPathIdAttrKey), "Transferred flow file did not have the correct result for id attribute");
         assertEquals(StringUtils.EMPTY, out.getAttribute(jsonPathNameAttrKey), "Transferred flow file did not have the correct result for name attribute");
     }
 
     @Test
     void testExtractPath_destinationAttributes_twoPaths_oneFound() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_IGNORE);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_IGNORE);
 
         String jsonPathIdAttrKey = "evaluatejson.id";
         String jsonPathNameAttrKey = "evaluatejson.name";
 
-        testRunner.setProperty(jsonPathIdAttrKey, "$[0]._id");
-        testRunner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
+        runner.setProperty(jsonPathIdAttrKey, "$[0]._id");
+        runner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
         assertEquals("54df94072d5dbf7dc6340cc5", out.getAttribute(jsonPathIdAttrKey), "Transferred flow file did not have the correct result for id attribute");
         assertEquals(StringUtils.EMPTY, out.getAttribute(jsonPathNameAttrKey), "Transferred flow file did not have the correct result for name attribute");
     }
 
     @Test
     void testExtractPath_destinationAttributes_twoPaths_oneFound_skipMissing() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_SKIP);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_SKIP);
 
         String jsonPathIdAttrKey = "evaluatejson.id";
         String jsonPathNameAttrKey = "evaluatejson.name";
 
-        testRunner.setProperty(jsonPathIdAttrKey, "$[0]._id");
-        testRunner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
+        runner.setProperty(jsonPathIdAttrKey, "$[0]._id");
+        runner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
         assertEquals("54df94072d5dbf7dc6340cc5", out.getAttribute(jsonPathIdAttrKey), "Transferred flow file did not have the correct result for id attribute");
         out.assertAttributeNotExists(jsonPathNameAttrKey);
     }
@@ -246,96 +237,90 @@ class TestEvaluateJsonPath {
     void testExtractPath_destinationContent() throws Exception {
         String jsonPathAttrKey = "JsonPath";
 
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty(jsonPathAttrKey, "$[0]._id");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty(jsonPathAttrKey, "$[0]._id");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
     }
 
     @Test
     void testExtractPath_destinationContent_indefiniteResult() throws Exception {
         String jsonPathAttrKey = "friends.indefinite.id.list";
 
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty(jsonPathAttrKey, "$[0].friends.[*].id");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty(jsonPathAttrKey, "$[0].friends.[*].id");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
     }
 
     @Test
     void testExtractPath_destinationContent_indefiniteResult_operators() throws Exception {
         String jsonPathAttrKey = "friends.indefinite.id.list";
 
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
     }
 
     @Test
     void testRouteUnmatched_destinationContent_noMatch() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty("jsonPath", "$[0].nonexistent.key");
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty("jsonPath", "$[0].nonexistent.key");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_NO_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
     }
 
     @Test
     void testRouteFailure_returnTypeScalar_resultArray() throws Exception {
         String jsonPathAttrKey = "friends.indefinite.id.list";
 
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_SCALAR);
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
-        testRunner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
+        runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_SCALAR);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        runner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
 
-        testRunner.enqueue(JSON_SNIPPET);
-        testRunner.run();
+        runner.enqueue(JSON_SNIPPET);
+        runner.run();
 
         Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
     }
 
     @Test
     void testNullInput() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty("stringField", "$.stringField");
-        testRunner.setProperty("missingField", "$.missingField");
-        testRunner.setProperty("nullField", "$.nullField");
+        runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty("stringField", "$.stringField");
+        runner.setProperty("missingField", "$.missingField");
+        runner.setProperty("nullField", "$.nullField");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -344,12 +329,12 @@ class TestEvaluateJsonPath {
             }
         });
 
-        testRunner.enqueue(ff);
-        testRunner.run();
+        runner.enqueue(ff);
+        runner.run();
 
-        testRunner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
+        runner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
 
-        FlowFile output = testRunner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
+        FlowFile output = runner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
 
         String validFieldValue = output.getAttribute("stringField");
         assertEquals("String Value", validFieldValue);
@@ -363,15 +348,14 @@ class TestEvaluateJsonPath {
 
     @Test
     void testNullInput_nullStringRepresentation() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateJsonPath.NULL_VALUE_DEFAULT_REPRESENTATION, AbstractJsonPathProcessor.NULL_STRING_OPTION);
-        testRunner.setProperty("stringField", "$.stringField");
-        testRunner.setProperty("missingField", "$.missingField");
-        testRunner.setProperty("nullField", "$.nullField");
+        runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.NULL_VALUE_DEFAULT_REPRESENTATION, AbstractJsonPathProcessor.NULL_STRING_OPTION);
+        runner.setProperty("stringField", "$.stringField");
+        runner.setProperty("missingField", "$.missingField");
+        runner.setProperty("nullField", "$.nullField");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -380,12 +364,12 @@ class TestEvaluateJsonPath {
             }
         });
 
-        testRunner.enqueue(ff);
-        testRunner.run();
+        runner.enqueue(ff);
+        runner.run();
 
-        testRunner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
+        runner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
 
-        FlowFile output = testRunner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
+        FlowFile output = runner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
 
         String validFieldValue = output.getAttribute("stringField");
         assertEquals("String Value", validFieldValue);
@@ -399,21 +383,20 @@ class TestEvaluateJsonPath {
 
     @Test
     void testHandleAsciiControlCharacters() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
-        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+        runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
 
         final String jsonPathControlCharKey = "evaluatejson.controlcharacterpath";
 
-        testRunner.setProperty(jsonPathControlCharKey, "$.jinxing_json.object.property");
+        runner.setProperty(jsonPathControlCharKey, "$.jinxing_json.object.property");
 
-        testRunner.enqueue(Paths.get("src/test/resources/TestJson/control-characters.json"));
-        testRunner.run();
+        runner.enqueue(Paths.get("src/test/resources/TestJson/control-characters.json"));
+        runner.run();
 
         final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
-        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        runner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
         assertNotNull(out.getAttribute(jsonPathControlCharKey), "Transferred flow file did not have the correct result for id attribute");
     }
 }

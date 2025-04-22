@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.stream.Stream;
-
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.encoding.EncodingMode;
@@ -38,6 +31,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TestEncodeContent {
 

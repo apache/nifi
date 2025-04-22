@@ -146,8 +146,15 @@ public class EncodeContent extends AbstractProcessor {
 
         final boolean encode = context.getProperty(MODE).asAllowableValue(EncodingMode.class).equals(EncodingMode.ENCODE);
         final EncodingType encoding = context.getProperty(ENCODING).asAllowableValue(EncodingType.class);
-        final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).asAllowableValue(LineOutputMode.class).equals(LineOutputMode.SINGLE_LINE);
-        final int lineLength = singleLineOutput ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
+        final int lineLength;
+        if (encode && (encoding == EncodingType.BASE32 || encoding == EncodingType.BASE64)) {
+            final LineOutputMode lineOutputMode = context.getProperty(LINE_OUTPUT_MODE).asAllowableValue(LineOutputMode.class);
+
+            lineLength = lineOutputMode == LineOutputMode.SINGLE_LINE
+                    ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
+        } else {
+            lineLength = -1;
+        }
 
         final StreamCallback callback = getStreamCallback(encode, encoding, lineLength);
 

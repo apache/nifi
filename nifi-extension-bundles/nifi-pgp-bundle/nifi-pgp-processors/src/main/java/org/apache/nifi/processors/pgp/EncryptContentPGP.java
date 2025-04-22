@@ -282,11 +282,11 @@ public class EncryptContentPGP extends AbstractProcessor {
             generators.add(new JcePBEKeyEncryptionMethodGenerator(passphrase).setSecureRandom(secureRandom));
         }
 
-        final String publicKeySearch = context.getProperty(PUBLIC_KEY_SEARCH).evaluateAttributeExpressions(flowFile).getValue();
+        final PGPPublicKeyService publicKeyService = context.getProperty(PUBLIC_KEY_SERVICE).asControllerService(PGPPublicKeyService.class);
+        final String publicKeySearch = publicKeyService == null ? null : context.getProperty(PUBLIC_KEY_SEARCH).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isNotBlank(publicKeySearch)) {
             getLogger().debug("Public Key Search [{}]", publicKeySearch);
 
-            final PGPPublicKeyService publicKeyService = context.getProperty(PUBLIC_KEY_SERVICE).asControllerService(PGPPublicKeyService.class);
             final Optional<PGPPublicKey> optionalPublicKey = publicKeyService.findPublicKey(publicKeySearch);
             if (optionalPublicKey.isPresent()) {
                 final PGPPublicKey publicKey = optionalPublicKey.get();

@@ -43,7 +43,6 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StopWatch;
 
-import javax.net.ssl.SSLContext;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -277,11 +276,12 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         factory.setTimeout(Duration.ofMillis(timeout));
 
-        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
-        if (sslContextServiceProperty.isSet()) {
-            final SSLContextProvider sslContextProvider = sslContextServiceProperty.asControllerService(SSLContextProvider.class);
-            final SSLContext sslContext = sslContextProvider.createContext();
-            factory.setSslContext(sslContext);
+        if (protocol == TransportProtocol.TCP) {
+            final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+
+            if (sslContextProvider != null) {
+                factory.setSslContext(sslContextProvider.createContext());
+            }
         }
 
         return factory.getEventSender();

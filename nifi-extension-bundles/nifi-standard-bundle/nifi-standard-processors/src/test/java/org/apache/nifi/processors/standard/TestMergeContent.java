@@ -64,14 +64,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMergeContent {
 
+    private final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+
     /**
      * This test will verify that if we have a FlowFile larger than the Max Size for a Bin, it will go into its
      * own bin and immediately be processed as its own bin.
      */
     @Test
     public void testFlowFileLargerThanBin() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_BIN_PACK);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
         runner.setProperty(MergeContent.MIN_ENTRIES, "2");
         runner.setProperty(MergeContent.MAX_ENTRIES, "2");
         runner.setProperty(MergeContent.MIN_SIZE, "1 KB");
@@ -97,10 +98,9 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleAvroConcat() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.AVRO);
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
 
@@ -148,10 +148,9 @@ public class TestMergeContent {
 
     @Test
     public void testAvroConcatWithDifferentSchemas() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.AVRO);
 
         final Schema schema1 = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
         final Schema schema2 = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/place.avsc"));
@@ -201,11 +200,10 @@ public class TestMergeContent {
 
     @Test
     public void testAvroConcatWithDifferentMetadataDoNotMerge() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
-        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_DO_NOT_MERGE);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.MetadataStrategy.DO_NOT_MERGE);
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
 
@@ -254,11 +252,10 @@ public class TestMergeContent {
 
     @Test
     public void testAvroConcatWithDifferentMetadataIgnore() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
-        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_IGNORE);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.MetadataStrategy.IGNORE);
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
 
@@ -309,11 +306,10 @@ public class TestMergeContent {
 
     @Test
     public void testAvroConcatWithDifferentMetadataUseFirst() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
-        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_USE_FIRST);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.MetadataStrategy.USE_FIRST);
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
 
@@ -364,11 +360,10 @@ public class TestMergeContent {
 
     @Test
     public void testAvroConcatWithDifferentMetadataKeepCommon() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
-        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_ALL_COMMON);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.MetadataStrategy.ALL_COMMON);
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
 
@@ -449,9 +444,8 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleBinaryConcat() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
 
         createFlowFiles(runner);
         runner.run(2);
@@ -471,9 +465,8 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleBinaryConcatSingleBin() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "1");
 
         createFlowFiles(runner);
@@ -491,10 +484,9 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleBinaryConcatWithTextDelimiters() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_TEXT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DelimiterStrategy.TEXT);
         runner.setProperty(MergeContent.HEADER, "@");
         runner.setProperty(MergeContent.DEMARCATOR, "#");
         runner.setProperty(MergeContent.FOOTER, "$");
@@ -514,10 +506,9 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleBinaryConcatWithTextDelimitersHeaderOnly() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_TEXT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DelimiterStrategy.TEXT);
         runner.setProperty(MergeContent.HEADER, "@");
 
         createFlowFiles(runner);
@@ -535,10 +526,9 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleBinaryConcatWithFileDelimiters() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DelimiterStrategy.FILENAME);
         runner.setProperty(MergeContent.HEADER, "${header}");
         runner.setProperty(MergeContent.DEMARCATOR, "${demarcator}");
         runner.setProperty(MergeContent.FOOTER, "${footer}");
@@ -567,10 +557,9 @@ public class TestMergeContent {
 
     @Test
     void testSimpleBinaryConcatNoDelimiters() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_NONE);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DelimiterStrategy.NONE);
         // set dependent values to ensure they're not used; see NIFI-12561
         runner.setProperty(MergeContent.HEADER, "aHeader");
         runner.setProperty(MergeContent.DEMARCATOR, "; ");
@@ -596,10 +585,9 @@ public class TestMergeContent {
 
     @Test
     public void testTextDelimitersValidation() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_TEXT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DelimiterStrategy.TEXT);
         runner.setProperty(MergeContent.HEADER, "");
         runner.setProperty(MergeContent.DEMARCATOR, "");
         runner.setProperty(MergeContent.FOOTER, "");
@@ -619,10 +607,9 @@ public class TestMergeContent {
     @Test
     public void testFileDelimitersValidation() {
         final String doesNotExistFile = "src/test/resources/TestMergeContent/does_not_exist";
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DelimiterStrategy.FILENAME);
         runner.setProperty(MergeContent.HEADER, doesNotExistFile);
         runner.setProperty(MergeContent.DEMARCATOR, doesNotExistFile);
         runner.setProperty(MergeContent.FOOTER, doesNotExistFile);
@@ -642,9 +629,8 @@ public class TestMergeContent {
 
     @Test
     public void testMimeTypeIsOctetStreamIfConflictingWithBinaryConcat() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
 
         createFlowFiles(runner);
 
@@ -665,12 +651,11 @@ public class TestMergeContent {
 
     @Test
     public void testOldestBinIsExpired() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 day");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "50");
         runner.setProperty(MergeContent.MIN_ENTRIES, "10");
         runner.setProperty(MergeContent.MAX_ENTRIES, "10");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
         runner.setProperty(MergeContent.CORRELATION_ATTRIBUTE_NAME, "correlationId");
 
         final Map<String, String> attrs = new HashMap<>();
@@ -716,8 +701,7 @@ public class TestMergeContent {
 
     @Test
     public void testSimpleBinaryConcatWaitsForMin() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
         runner.setProperty(MergeContent.MIN_SIZE, "20 KB");
 
         createFlowFiles(runner);
@@ -730,9 +714,8 @@ public class TestMergeContent {
 
     @Test
     public void testZip() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.ZIP);
 
         createFlowFiles(runner);
         runner.run(2);
@@ -761,9 +744,8 @@ public class TestMergeContent {
 
     @Test
     public void testZipException() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.ZIP);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
@@ -782,9 +764,8 @@ public class TestMergeContent {
 
     @Test
     public void testTar() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_TAR);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.TAR);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
@@ -825,11 +806,10 @@ public class TestMergeContent {
 
     @Test
     public void testFlowFileStream() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MIN_ENTRIES, "2");
         runner.setProperty(MergeContent.MAX_ENTRIES, "2");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_FLOWFILE_STREAM_V3);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.FLOWFILE_STREAM_V3);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("path", "folder");
@@ -847,8 +827,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragment() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -873,8 +852,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentWithFragmentCountOnLastFragmentOnly() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -902,8 +880,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentWithFragmentCountOnMiddleFragment() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final String fragmentId = "Fragment Id";
@@ -925,8 +902,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentWithDifferentFragmentCounts() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final String fragmentId = "Fragment Id";
@@ -949,8 +925,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentDuplicateFragment() throws IOException, InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -984,8 +959,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentWithTooManyFragments() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1011,8 +985,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentWithTooFewFragments() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "2 secs");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1044,8 +1017,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentOutOfOrder() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1073,8 +1045,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentMultipleMingledSegments() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1111,8 +1082,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentOldStyleAttributes() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1139,8 +1109,7 @@ public class TestMergeContent {
 
     @Test
     public void testDefragmentMultipleOnTriggers() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
@@ -1168,8 +1137,7 @@ public class TestMergeContent {
 
     @Test
     public void testMergeBasedOnCorrelation() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_BIN_PACK);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
         runner.setProperty(MergeContent.CORRELATION_ATTRIBUTE_NAME, "attr");
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
@@ -1211,8 +1179,7 @@ public class TestMergeContent {
 
     @Test
     public void testMaxBinAge() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_BIN_PACK);
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "2 sec");
         runner.setProperty(MergeContent.CORRELATION_ATTRIBUTE_NAME, "attr");
         runner.setProperty(MergeContent.MAX_ENTRIES, "500");
@@ -1236,7 +1203,6 @@ public class TestMergeContent {
 
     @Test
     public void testUniqueAttributes() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_ALL_UNIQUE);
         runner.setProperty(MergeContent.MAX_SIZE, "2 B");
         runner.setProperty(MergeContent.MIN_SIZE, "2 B");
@@ -1266,7 +1232,6 @@ public class TestMergeContent {
 
     @Test
     public void testCommonAttributesOnly() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_ALL_COMMON);
         runner.setProperty(MergeContent.MAX_SIZE, "2 B");
         runner.setProperty(MergeContent.MIN_SIZE, "2 B");
@@ -1304,9 +1269,8 @@ public class TestMergeContent {
 
     @Test
     public void testCountAttribute() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
-        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);
 
         createFlowFiles(runner);
         runner.run(2);
@@ -1324,7 +1288,6 @@ public class TestMergeContent {
 
     @Test
     public void testLeavesSmallBinUnmerged() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MIN_ENTRIES, "5");
         runner.setProperty(MergeContent.MAX_ENTRIES, "5");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
@@ -1342,7 +1305,6 @@ public class TestMergeContent {
 
     @Test
     public void testBinTerminationTriggerStartOfBin() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MIN_ENTRIES, "10");
         runner.setProperty(MergeContent.MAX_ENTRIES, "25");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
@@ -1374,7 +1336,6 @@ public class TestMergeContent {
 
     @Test
     public void testBinTerminationTriggerEndOfBin() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MIN_ENTRIES, "10");
         runner.setProperty(MergeContent.MAX_ENTRIES, "25");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
@@ -1406,7 +1367,6 @@ public class TestMergeContent {
 
     @Test
     public void testBinTerminationTriggerIsolated() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MIN_ENTRIES, "10");
         runner.setProperty(MergeContent.MAX_ENTRIES, "25");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
@@ -1441,7 +1401,6 @@ public class TestMergeContent {
 
     @Test
     public void testTerminationTriggerWithCorrelationAttribute() {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MIN_ENTRIES, "10");
         runner.setProperty(MergeContent.MAX_ENTRIES, "25");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");

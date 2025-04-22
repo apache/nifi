@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -114,20 +115,6 @@ import java.util.regex.Pattern;
 )
 public class ControlRate extends AbstractProcessor {
 
-    public static final String DATA_RATE = "data rate";
-    public static final String FLOWFILE_RATE = "flowfile count";
-    public static final String ATTRIBUTE_RATE = "attribute value";
-    public static final String DATA_OR_FLOWFILE_RATE = "data rate or flowfile count";
-
-    public static final AllowableValue DATA_RATE_VALUE = new AllowableValue(DATA_RATE, DATA_RATE,
-            "Rate is controlled by counting bytes transferred per time duration.");
-    public static final AllowableValue FLOWFILE_RATE_VALUE = new AllowableValue(FLOWFILE_RATE, FLOWFILE_RATE,
-            "Rate is controlled by counting FlowFiles transferred per time duration");
-    public static final AllowableValue ATTRIBUTE_RATE_VALUE = new AllowableValue(ATTRIBUTE_RATE, ATTRIBUTE_RATE,
-            "Rate is controlled by accumulating the value of a specified attribute that is transferred per time duration");
-    public static final AllowableValue DATA_OR_FLOWFILE_RATE_VALUE = new AllowableValue(DATA_OR_FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE,
-            "Rate is controlled by counting bytes and FlowFiles transferred per time duration; if either threshold is met, throttling is enforced");
-
     static final AllowableValue HOLD_FLOWFILE = new AllowableValue("Hold FlowFile", "Hold FlowFile",
         "The FlowFile will be held in its input queue until the rate of data has fallen below the configured maximum and will then be allowed through.");
     static final AllowableValue ROUTE_TO_RATE_EXCEEDED = new AllowableValue("Route to 'rate exceeded'", "Route to 'rate exceeded'",
@@ -142,8 +129,8 @@ public class ControlRate extends AbstractProcessor {
             .displayName("Rate Control Criteria")
             .description("Indicates the criteria that is used to control the throughput rate. Changing this value resets the rate counters.")
             .required(true)
-            .allowableValues(DATA_RATE_VALUE, FLOWFILE_RATE_VALUE, ATTRIBUTE_RATE_VALUE, DATA_OR_FLOWFILE_RATE_VALUE)
-            .defaultValue(DATA_RATE)
+            .allowableValues(RateControlCriteria.class)
+            .defaultValue(RateControlCriteria.DATA_RATE)
             .build();
     public static final PropertyDescriptor MAX_RATE = new PropertyDescriptor.Builder()
             .name("Maximum Rate")
@@ -152,7 +139,7 @@ public class ControlRate extends AbstractProcessor {
                     + "positive integer, or a Data Size (such as '1 MB') if Rate Control Criteria is set to 'data rate'.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR) // validated in customValidate b/c dependent on Rate Control Criteria
-            .dependsOn(RATE_CONTROL_CRITERIA, DATA_RATE_VALUE, FLOWFILE_RATE_VALUE, ATTRIBUTE_RATE_VALUE)
+            .dependsOn(RATE_CONTROL_CRITERIA, RateControlCriteria.DATA_RATE, RateControlCriteria.FLOWFILE_RATE, RateControlCriteria.ATTRIBUTE_RATE)
             .build();
     public static final PropertyDescriptor MAX_DATA_RATE = new PropertyDescriptor.Builder()
             .name("Maximum Data Rate")
@@ -161,7 +148,7 @@ public class ControlRate extends AbstractProcessor {
                     + "Data Size (such as '1 MB') representing bytes per Time Duration.")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .dependsOn(RATE_CONTROL_CRITERIA, DATA_OR_FLOWFILE_RATE)
+            .dependsOn(RATE_CONTROL_CRITERIA, RateControlCriteria.DATA_OR_FLOWFILE_RATE)
             .build();
 
     public static final PropertyDescriptor MAX_COUNT_RATE = new PropertyDescriptor.Builder()
@@ -171,7 +158,7 @@ public class ControlRate extends AbstractProcessor {
                     + "positive integer representing FlowFiles count per Time Duration")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .dependsOn(RATE_CONTROL_CRITERIA, DATA_OR_FLOWFILE_RATE)
+            .dependsOn(RATE_CONTROL_CRITERIA, RateControlCriteria.DATA_OR_FLOWFILE_RATE)
             .build();
 
     public static final PropertyDescriptor RATE_EXCEEDED_STRATEGY = new PropertyDescriptor.Builder()
@@ -190,7 +177,7 @@ public class ControlRate extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(RATE_CONTROL_CRITERIA, ATTRIBUTE_RATE)
+            .dependsOn(RATE_CONTROL_CRITERIA, RateControlCriteria.ATTRIBUTE_RATE)
             .build();
     public static final PropertyDescriptor TIME_PERIOD = new PropertyDescriptor.Builder()
             .name("Time Duration")
@@ -251,7 +238,7 @@ public class ControlRate extends AbstractProcessor {
     private final ConcurrentMap<String, Throttle> dataThrottleMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Throttle> countThrottleMap = new ConcurrentHashMap<>();
     private final AtomicLong lastThrottleClearTime = new AtomicLong(getCurrentTimeMillis());
-    private volatile String rateControlCriteria = null;
+    private volatile RateControlCriteria rateControlCriteria = null;
     private volatile String rateControlAttribute = null;
     private volatile String maximumRateStr = null;
     private volatile String maximumCountRateStr = null;
@@ -273,7 +260,7 @@ public class ControlRate extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(context));
 
-        switch (context.getProperty(RATE_CONTROL_CRITERIA).getValue().toLowerCase()) {
+        switch (context.getProperty(RATE_CONTROL_CRITERIA).asAllowableValue(RateControlCriteria.class)) {
             case DATA_OR_FLOWFILE_RATE:
                 // enforce validators to be sure properties are configured; they are only required for DATA_OR_FLOWFILE_RATE criteria
                 validationResults.add(StandardValidators.DATA_SIZE_VALIDATOR.validate(MAX_DATA_RATE.getDisplayName(), context.getProperty(MAX_DATA_RATE).getValue(), context));
@@ -357,16 +344,18 @@ public class ControlRate extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        rateControlCriteria = context.getProperty(RATE_CONTROL_CRITERIA).getValue().toLowerCase();
-        rateControlAttribute = context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue();
+        rateControlCriteria = context.getProperty(RATE_CONTROL_CRITERIA).asAllowableValue(RateControlCriteria.class);
+        rateControlAttribute = rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE
+                ? context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue() : null;
+
         if (dataThrottleRequired()) {
             // Use MAX_DATA_RATE only for DATA_OR_FLOWFILE_RATE criteria
-            maximumRateStr = rateControlCriteria.equals(DATA_OR_FLOWFILE_RATE)
+            maximumRateStr = rateControlCriteria == RateControlCriteria.DATA_OR_FLOWFILE_RATE
                     ? context.getProperty(MAX_DATA_RATE).getValue().toUpperCase() : context.getProperty(MAX_RATE).getValue().toUpperCase();
         }
         if (countThrottleRequired()) {
             // Use MAX_COUNT_RATE only for DATA_OR_FLOWFILE_RATE criteria
-            maximumCountRateStr = rateControlCriteria.equals(DATA_OR_FLOWFILE_RATE)
+            maximumCountRateStr = rateControlCriteria == RateControlCriteria.DATA_OR_FLOWFILE_RATE
                     ? context.getProperty(MAX_COUNT_RATE).getValue() : context.getProperty(MAX_RATE).getValue();
         }
         groupingAttributeName = context.getProperty(GROUPING_ATTRIBUTE_NAME).getValue();
@@ -476,7 +465,7 @@ public class ControlRate extends AbstractProcessor {
      * flowfile attribute, the specified attribute must be present and must be a long integer.
      */
     private boolean isRateAttributeValid(FlowFile flowFile) {
-        if (rateControlCriteria.equals(ATTRIBUTE_RATE)) {
+        if (rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE) {
             final String attributeValue = flowFile.getAttribute(rateControlAttribute);
             return attributeValue != null && POSITIVE_LONG_PATTERN.matcher(attributeValue).matches();
         }
@@ -496,30 +485,65 @@ public class ControlRate extends AbstractProcessor {
      * This is applicable to counting accruals, flowfiles or attributes
      */
     private long getCountAccrual(FlowFile flowFile) {
-        long rateValue = DEFAULT_ACCRUAL_COUNT;
-        if (rateControlCriteria.equals(FLOWFILE_RATE) || rateControlCriteria.equals(DATA_OR_FLOWFILE_RATE)) {
-            rateValue = 1;
-        }
-        if (rateControlCriteria.equals(ATTRIBUTE_RATE)) {
-            final String attributeValue = flowFile.getAttribute(rateControlAttribute);
-            if (attributeValue == null) {
-                return DEFAULT_ACCRUAL_COUNT;
-            }
+        return switch (rateControlCriteria) {
+            case DATA_RATE -> DEFAULT_ACCRUAL_COUNT;
+            case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE -> 1;
+            case ATTRIBUTE_RATE -> {
+                final String attributeValue = flowFile.getAttribute(rateControlAttribute);
+                if (attributeValue == null) {
+                    yield DEFAULT_ACCRUAL_COUNT;
+                }
 
-            if (!POSITIVE_LONG_PATTERN.matcher(attributeValue).matches()) {
-                return DEFAULT_ACCRUAL_COUNT;
+                if (!POSITIVE_LONG_PATTERN.matcher(attributeValue).matches()) {
+                    yield DEFAULT_ACCRUAL_COUNT;
+                }
+                yield Long.parseLong(attributeValue);
             }
-            rateValue = Long.parseLong(attributeValue);
-        }
-        return rateValue;
+        };
     }
 
     private boolean dataThrottleRequired() {
-        return rateControlCriteria != null && (rateControlCriteria.equals(DATA_RATE) || rateControlCriteria.equals(DATA_OR_FLOWFILE_RATE));
+        return rateControlCriteria != null && switch (rateControlCriteria) {
+            case DATA_RATE, DATA_OR_FLOWFILE_RATE -> true;
+            default -> false;
+        };
     }
 
     private boolean countThrottleRequired() {
-        return rateControlCriteria != null && (rateControlCriteria.equals(FLOWFILE_RATE) || rateControlCriteria.equals(ATTRIBUTE_RATE) || rateControlCriteria.equals(DATA_OR_FLOWFILE_RATE));
+        return rateControlCriteria != null && switch (rateControlCriteria) {
+            case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE, ATTRIBUTE_RATE -> true;
+            default -> false;
+        };
+    }
+
+    enum RateControlCriteria implements DescribedValue {
+        DATA_RATE("data rate", "Rate is controlled by counting bytes transferred per time duration."),
+        FLOWFILE_RATE("flowfile count", "Rate is controlled by counting FlowFiles transferred per time duration"),
+        ATTRIBUTE_RATE("attribute value", "Rate is controlled by accumulating the value of a specified attribute that is transferred per time duration"),
+        DATA_OR_FLOWFILE_RATE("data rate or flowfile count", "Rate is controlled by counting bytes and FlowFiles transferred per time duration; if either threshold is met, throttling is enforced");
+
+        private final String value;
+        private final String description;
+
+        RateControlCriteria(final String value, final String description) {
+            this.value = value;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.value;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
     }
 
     private static class Throttle extends ReentrantLock {

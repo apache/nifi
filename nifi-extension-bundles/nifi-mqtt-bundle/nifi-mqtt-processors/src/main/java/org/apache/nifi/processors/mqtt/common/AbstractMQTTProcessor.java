@@ -38,6 +38,7 @@ import org.apache.nifi.ssl.SSLContextService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -369,11 +370,14 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         }
         clientProperties.setClientId(clientId);
 
-        clientProperties.setMqttVersion(MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger()));
+        final Boolean cleanSession = context.getProperty(PROP_CLEAN_SESSION).asBoolean();
+        final MqttVersion mqttVersion = MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger());
+        final Long sessionExpiryIntervalSeconds = mqttVersion == MqttVersion.MQTT_VERSION_5_0 && !cleanSession
+                ? context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asTimePeriod(TimeUnit.SECONDS) : Duration.ofHours(24).toSeconds();
 
-        clientProperties.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
-        clientProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
-
+        clientProperties.setMqttVersion(mqttVersion);
+        clientProperties.setCleanSession(cleanSession);
+        clientProperties.setSessionExpiryInterval(sessionExpiryIntervalSeconds);
         clientProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
         clientProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 

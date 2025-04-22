@@ -220,7 +220,7 @@ public class PutDynamoDBRecordTest {
     @Test
     public void testGeneratedSortKey() throws Exception {
         final TestRunner runner = getTestRunner();
-        runner.setProperty(PutDynamoDBRecord.SORT_KEY_STRATEGY, PutDynamoDBRecord.SORT_BY_SEQUENCE);
+        runner.setProperty(PutDynamoDBRecord.SORT_KEY_STRATEGY, PutDynamoDBRecord.SortKeyStrategy.BY_SEQUENCE);
         runner.setProperty(PutDynamoDBRecord.SORT_KEY_FIELD, "sort");
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"));
@@ -290,7 +290,7 @@ public class PutDynamoDBRecordTest {
         runner.setProperty(PutDynamoDBRecord.TABLE, TABLE_NAME);
         runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_STRATEGY, PutDynamoDBRecord.PARTITION_BY_FIELD);
         runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_FIELD, "partition");
-        runner.setProperty(PutDynamoDBRecord.SORT_KEY_FIELD, PutDynamoDBRecord.SORT_NONE);
+        runner.setProperty(PutDynamoDBRecord.SORT_KEY_FIELD, PutDynamoDBRecord.SortKeyStrategy.NONE);
         return runner;
     }
 

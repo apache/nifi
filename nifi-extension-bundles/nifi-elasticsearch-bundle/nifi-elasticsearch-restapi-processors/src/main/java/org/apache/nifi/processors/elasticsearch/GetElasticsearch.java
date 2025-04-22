@@ -240,7 +240,6 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
         final String type  = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
 
         final String destination = context.getProperty(DESTINATION).getValue();
-        final String attributeName = context.getProperty(ATTRIBUTE_NAME).evaluateAttributeExpressions(input).getValue();
 
         try {
             if (StringUtils.isBlank(id)) {
@@ -262,6 +261,8 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             if (FLOWFILE_CONTENT.getValue().equals(destination)) {
                 documentFlowFile = session.write(documentFlowFile, out -> out.write(json.getBytes()));
             } else {
+                final String attributeName = context.getProperty(ATTRIBUTE_NAME).evaluateAttributeExpressions(input).getValue();
+
                 attributes.put(attributeName, json);
             }
 

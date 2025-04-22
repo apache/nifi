@@ -160,7 +160,7 @@ public class DeduplicateRecord extends AbstractProcessor {
                     "duplicates across a single FlowFile operates in-memory, whereas detection spanning multiple FlowFiles " +
                     "utilises a distributed map cache.")
             .allowableValues(OPTION_SINGLE_FILE, OPTION_MULTIPLE_FILES)
-            .defaultValue(OPTION_SINGLE_FILE.getValue())
+            .defaultValue(OPTION_SINGLE_FILE)
             .required(true)
             .build();
 
@@ -371,35 +371,36 @@ public class DeduplicateRecord extends AbstractProcessor {
         dynamicProperties = context.getProperties().keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .collect(Collectors.toList());
-
         int cacheSize = dynamicProperties.size();
+
+        final String deduplicationStrategy = context.getProperty(DEDUPLICATION_STRATEGY).getValue();
 
         recordPathCache = new RecordPathCache(cacheSize);
 
-        if (context.getProperty(DISTRIBUTED_MAP_CACHE).isSet()) {
+        useInMemoryStrategy = deduplicationStrategy.equals(OPTION_SINGLE_FILE.getValue());
+
+        if (!useInMemoryStrategy) {
             mapCacheClient = context.getProperty(DISTRIBUTED_MAP_CACHE).asControllerService(DistributedMapCacheClient.class);
         }
 
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
-        String strategy = context.getProperty(DEDUPLICATION_STRATEGY).getValue();
-
-        useInMemoryStrategy = strategy.equals(OPTION_SINGLE_FILE.getValue());
     }
 
     private FilterWrapper getFilter(ProcessContext context) {
         if (useInMemoryStrategy) {
-            boolean useHashSet = context.getProperty(FILTER_TYPE).getValue()
-                    .equals(HASH_SET_VALUE.getValue());
-            final int filterCapacity = context.getProperty(FILTER_CAPACITY_HINT).asInteger();
-            return useHashSet
-                    ? new HashSetFilterWrapper(new HashSet<>(filterCapacity))
-                    : new BloomFilterWrapper(BloomFilter.create(
-                    Funnels.stringFunnel(Charset.defaultCharset()),
-                    filterCapacity,
-                    context.getProperty(BLOOM_FILTER_FPP).asDouble()
-            ));
+            final String filterType = context.getProperty(FILTER_TYPE).getValue();
+
+            if (filterType.equals(HASH_SET_VALUE.getValue())) {
+                return new HashSetFilterWrapper(new HashSet<>());
+            } else {
+                return new BloomFilterWrapper(
+                        BloomFilter.create(
+                                Funnels.stringFunnel(Charset.defaultCharset()),
+                                context.getProperty(FILTER_CAPACITY_HINT).asInteger(),
+                                context.getProperty(BLOOM_FILTER_FPP).asDouble())
+                );
+            }
         } else {
             return new DistributedMapCacheClientWrapper(mapCacheClient, context.getProperty(PUT_CACHE_IDENTIFIER).asBoolean());
         }
