@@ -64,7 +64,7 @@ public class GetAzureEventHubTest {
     private TestRunner testRunner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         partitionEvents = new ArrayList<>();
         testRunner = TestRunners.newTestRunner(new MockGetAzureEventHub());
     }

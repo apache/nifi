@@ -104,7 +104,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.TEMPLATE.getValue())
+            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.TEMPLATE)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -113,7 +113,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
                     "Required when Extraction Method is FIELDS.")
             .required(true)
             .identifiesControllerService(RecordReaderFactory.class)
-            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.FIELDS.getValue())
+            .dependsOn(EXTRACTION_METHOD, ExtractionMethod.FIELDS)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -180,7 +180,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final ExtractionMethod extractionMethod = ExtractionMethod.valueOf(context.getProperty(EXTRACTION_METHOD).getValue());
+        final ExtractionMethod extractionMethod = context.getProperty(EXTRACTION_METHOD).asAllowableValue(ExtractionMethod.class);
 
         try {
             final BoxAIExtractStructuredResponse result;

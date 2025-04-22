@@ -48,12 +48,12 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -63,12 +63,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
@@ -79,10 +81,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.io.InputStream;
 import java.util.stream.Stream;
 
-import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
@@ -157,7 +157,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
-            .defaultValue(FAIL_RESOLUTION_AV.getValue())
+            .defaultValue(FAIL_RESOLUTION_AV)
             .allowableValues(REPLACE_RESOLUTION_AV, IGNORE_RESOLUTION_AV, FAIL_RESOLUTION_AV, APPEND_RESOLUTION_AV)
             .build();
 
@@ -166,7 +166,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .displayName("Writing Strategy")
             .description("Defines the approach for writing the FlowFile data.")
             .required(true)
-            .defaultValue(WRITE_AND_RENAME_AV.getValue())
+            .defaultValue(WRITE_AND_RENAME_AV)
             .allowableValues(WRITE_AND_RENAME_AV, SIMPLE_WRITE_AV)
             .build();
 
@@ -436,9 +436,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                 }
                                 createdFile = actualCopyFile;
 
-                                final String appendMode = context.getProperty(APPEND_MODE).getValue();
                                 if (APPEND_RESOLUTION.equals(conflictResponse)
-                                        && AVRO_APPEND_MODE.equals(appendMode)
+                                        && context.getProperty(APPEND_MODE).getValue().equals(AVRO_APPEND_MODE)
                                         && destinationExists) {
                                     getLogger().info("Appending avro record to existing avro file");
                                     try (final DataFileStream<Object> reader = new DataFileStream<>(in, new GenericDatumReader<>());

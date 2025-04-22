@@ -27,6 +27,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -119,7 +120,14 @@ public final class AzureEventHubUtils {
      * @return {@link ProxyOptions proxy options}, null if Proxy is not set
      */
     public static Optional<ProxyOptions> getProxyOptions(final PropertyContext propertyContext) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
+        final AzureEventHubTransportType transportType =
+                propertyContext.getProperty(AzureEventHubComponent.TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class);
+
+        final ProxyConfiguration proxyConfiguration = switch (transportType) {
+            case AMQP -> ProxyConfiguration.DIRECT_CONFIGURATION;
+            case AMQP_WEB_SOCKETS -> ProxyConfiguration.getConfiguration(propertyContext);
+        };
+
         final ProxyOptions proxyOptions;
         if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
             final Proxy proxy = getProxy(proxyConfiguration);

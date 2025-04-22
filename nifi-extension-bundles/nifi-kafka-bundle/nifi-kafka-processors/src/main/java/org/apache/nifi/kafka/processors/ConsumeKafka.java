@@ -142,7 +142,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .description("Automatic offset configuration applied when no previous consumer offset found corresponding to Kafka auto.offset.reset property")
             .required(true)
             .allowableValues(AutoOffsetReset.class)
-            .defaultValue(AutoOffsetReset.LATEST.getValue())
+            .defaultValue(AutoOffsetReset.LATEST)
             .expressionLanguageSupported(NONE)
             .build();
 
@@ -185,7 +185,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .description("Strategy for processing Kafka Records and writing serialized output to FlowFiles")
             .required(true)
             .allowableValues(ProcessingStrategy.class)
-            .defaultValue(ProcessingStrategy.FLOW_FILE.getValue())
+            .defaultValue(ProcessingStrategy.FLOW_FILE)
             .expressionLanguageSupported(NONE)
             .build();
 
@@ -220,7 +220,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .required(true)
             .defaultValue(KeyEncoding.UTF8)
             .allowableValues(KeyEncoding.class)
-            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE)
             .build();
 
     static final PropertyDescriptor KEY_FORMAT = new PropertyDescriptor.Builder()
@@ -298,6 +297,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private volatile Charset headerEncoding;
     private volatile Pattern headerNamePattern;
+    private volatile ProcessingStrategy processingStrategy;
     private volatile KeyEncoding keyEncoding;
     private volatile OutputStrategy outputStrategy;
     private volatile KeyFormat keyFormat;
@@ -339,8 +339,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
-        outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
-        keyFormat = context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class);
+        processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
+        outputStrategy = processingStrategy == ProcessingStrategy.RECORD ? context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class) : null;
+        keyFormat = outputStrategy == OutputStrategy.USE_WRAPPER ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class) : KeyFormat.BYTE_ARRAY;
         brokerUri = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class).getBrokerUri();
     }
 
@@ -456,7 +457,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private void processConsumerRecords(final ProcessContext context, final ProcessSession session, final OffsetTracker offsetTracker,
             final Iterator<ByteRecord> consumerRecords) {
-        final ProcessingStrategy processingStrategy = ProcessingStrategy.valueOf(context.getProperty(PROCESSING_STRATEGY).getValue());
         switch (processingStrategy) {
             case RECORD -> processInputRecords(context, session, offsetTracker, consumerRecords);
             case FLOW_FILE -> processInputFlowFile(session, offsetTracker, consumerRecords);
@@ -483,17 +483,18 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final KafkaMessageConverter converter;
-        if (OutputStrategy.USE_VALUE.equals(outputStrategy)) {
-            converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory,
-                headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
-        } else if (OutputStrategy.USE_WRAPPER.equals(outputStrategy)) {
-            final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
-            converter = new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
-                headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
-        } else {
-            throw new ProcessException(String.format("Output Strategy not supported [%s]", outputStrategy));
-        }
+        final KafkaMessageConverter converter = switch (outputStrategy) {
+            case USE_VALUE -> new RecordStreamKafkaMessageConverter(readerFactory, writerFactory,
+                    headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
+
+            case USE_WRAPPER -> {
+                final RecordReaderFactory keyReaderFactory = keyFormat == KeyFormat.RECORD
+                        ? context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class) : null;
+
+                yield new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
+                        headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
+            }
+        };
 
         converter.toFlowFiles(session, consumerRecords);
     }

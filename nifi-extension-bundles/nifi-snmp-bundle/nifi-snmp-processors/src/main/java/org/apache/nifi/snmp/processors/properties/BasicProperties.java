@@ -39,7 +39,7 @@ public class BasicProperties {
                     "SNMPv2c and SNMPv3, feature improvements in performance, flexibility and security.")
             .required(true)
             .allowableValues(SNMP_V1, SNMP_V2C, SNMP_V3)
-            .defaultValue(SNMP_V1.getValue())
+            .defaultValue(SNMP_V1)
             .build();
 
     public static final PropertyDescriptor SNMP_COMMUNITY = new PropertyDescriptor.Builder()

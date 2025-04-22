@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.nio.charset.StandardCharsets;
 import net.lingala.zip4j.io.outputstream.ZipOutputStream;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,28 +53,29 @@ public class TestUnpackContent {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
 
+    private final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
+    private final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
+
     @Test
     public void testTar() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
-        unpackRunner.enqueue(dataPath.resolve("data.tar"));
-        unpackRunner.enqueue(dataPath.resolve("data.tar"));
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
+        runner.enqueue(dataPath.resolve("data.tar"));
+        runner.enqueue(dataPath.resolve("data.tar"));
         Map<String, String> attributes = new HashMap<>(1);
         Map<String, String> attributes2 = new HashMap<>(1);
         attributes.put("mime.type", UnpackContent.PackageFormat.TAR_FORMAT.getMimeType());
         attributes2.put("mime.type", UnpackContent.PackageFormat.X_TAR_FORMAT.getMimeType());
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes2);
-        unpackRunner.run(2);
+        runner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
@@ -82,7 +83,7 @@ public class TestUnpackContent {
         autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
 
         for (final MockFlowFile flowFile : unpacked) {
             assertTrue(flowFile.getAttributes().keySet().containsAll(List.of(UnpackContent.FRAGMENT_ID, UnpackContent.FRAGMENT_INDEX,
@@ -109,28 +110,26 @@ public class TestUnpackContent {
 
     @Test
     public void testTarWithFilter() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
+        runner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
-        unpackRunner.enqueue(dataPath.resolve("data.tar"));
-        unpackRunner.enqueue(dataPath.resolve("data.tar"));
+        runner.enqueue(dataPath.resolve("data.tar"));
+        runner.enqueue(dataPath.resolve("data.tar"));
         Map<String, String> attributes = new HashMap<>(1);
         Map<String, String> attributes2 = new HashMap<>(1);
         attributes.put("mime.type", "application/x-tar");
         attributes2.put("mime.type", "application/tar");
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes2);
-        unpackRunner.run(2);
+        runner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
@@ -138,7 +137,7 @@ public class TestUnpackContent {
         autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
@@ -160,25 +159,23 @@ public class TestUnpackContent {
 
     @Test
     public void testZip() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); //just forces this to be exercised
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
-        unpackRunner.enqueue(dataPath.resolve("data.zip"));
-        unpackRunner.enqueue(dataPath.resolve("data.zip"));
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); //just forces this to be exercised
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
+        runner.enqueue(dataPath.resolve("data.zip"));
+        runner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
-        unpackRunner.run(2);
+        runner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
@@ -186,7 +183,7 @@ public class TestUnpackContent {
         autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
 
         final List<String> expectedAttributeNames = List.of(
                 CoreAttributes.FILENAME.key(),
@@ -216,29 +213,27 @@ public class TestUnpackContent {
 
     @Test
     public void testInvalidZip() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
-        unpackRunner.enqueue(dataPath.resolve("invalid_data.zip"));
-        unpackRunner.enqueue(dataPath.resolve("invalid_data.zip"));
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
+        runner.enqueue(dataPath.resolve("invalid_data.zip"));
+        runner.enqueue(dataPath.resolve("invalid_data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("invalid_data.zip"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("invalid_data.zip"), attributes);
-        unpackRunner.run(2);
+        runner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 2);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 2);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_FAILURE);
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_FAILURE);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final Path path = dataPath.resolve(filename);
@@ -249,47 +244,44 @@ public class TestUnpackContent {
     }
     @Test
     public void testZipEncodingField() {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "invalid-encoding");
-        unpackRunner.assertNotValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "IBM437");
-        unpackRunner.assertValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
-        unpackRunner.assertValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, StandardCharsets.ISO_8859_1.name());
-        unpackRunner.assertValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, StandardCharsets.UTF_8.name());
-        unpackRunner.assertValid();
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "invalid-encoding");
+        runner.assertNotValid();
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "IBM437");
+        runner.assertValid();
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
+        runner.assertValid();
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, StandardCharsets.ISO_8859_1.name());
+        runner.assertValid();
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, StandardCharsets.UTF_8.name());
+        runner.assertValid();
 
     }
     @Test
     public void testZipWithCp437Encoding() throws IOException {
         String zipFilename = "windows-with-cp437.zip";
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
-        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); // just forces this to be exercised
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); // just forces this to be exercised
 
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
 
-        unpackRunner.enqueue(dataPath.resolve(zipFilename));
-        unpackRunner.enqueue(dataPath.resolve(zipFilename));
+        runner.enqueue(dataPath.resolve(zipFilename));
+        runner.enqueue(dataPath.resolve(zipFilename));
 
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve(zipFilename), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve(zipFilename), attributes);
-        unpackRunner.run(2);
+        runner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked =
-            unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+            runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             // In this test case only check for presence of `?` in filename and path for failure, since the zip was created on Windows,
@@ -303,12 +295,11 @@ public class TestUnpackContent {
     }
     @Test
     public void testEncryptedZipWithCp437Encoding() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
-        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        autoUnpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+        autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         final String password = String.class.getSimpleName();
-        runner.setProperty(UnpackContent.PASSWORD, password);
+        autoUnpackRunner.setProperty(UnpackContent.PASSWORD, password);
 
         final char[] streamPassword = password.toCharArray();
         final String contents = TestRunner.class.getCanonicalName();
@@ -316,14 +307,14 @@ public class TestUnpackContent {
         String pathInZip = "path_with_special_%s_char/".formatted(specialChar);
         String filename = "filename_with_special_char%s.txt".formatted(specialChar);
         final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents, pathInZip.concat(filename));
-        runner.enqueue(zipEncrypted);
-        runner.run();
+        autoUnpackRunner.enqueue(zipEncrypted);
+        autoUnpackRunner.run();
 
-        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
-        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
 
         final List<MockFlowFile> unpacked =
-            runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+            autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String outputFilename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             assertTrue(StringUtils.containsNone(outputFilename, "?"), "filename contains '?': " + outputFilename);
@@ -346,44 +337,41 @@ public class TestUnpackContent {
 
     @Test
     public void testZipEncryptionNoPasswordConfigured() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
         final String password = String.class.getSimpleName();
         final char[] streamPassword = password.toCharArray();
         final String contents = TestRunner.class.getCanonicalName();
 
         final byte[] zipEncrypted = createZipEncrypted(EncryptionMethod.AES, streamPassword, contents);
-        runner.enqueue(zipEncrypted);
-        runner.run();
+        autoUnpackRunner.enqueue(zipEncrypted);
+        autoUnpackRunner.run();
 
-        runner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
     }
 
     @Test
     public void testZipWithFilter() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+        runner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
-        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
-        unpackRunner.enqueue(dataPath.resolve("data.zip"));
-        unpackRunner.enqueue(dataPath.resolve("data.zip"));
+        runner.enqueue(dataPath.resolve("data.zip"));
+        runner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
-        unpackRunner.run(2);
+        runner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
@@ -391,7 +379,7 @@ public class TestUnpackContent {
         autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
@@ -413,20 +401,19 @@ public class TestUnpackContent {
 
     @Test
     public void testFlowFileStreamV3() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString());
-        runner.enqueue(dataPath.resolve("data.flowfilev3"));
-        runner.enqueue(dataPath.resolve("data.flowfilev3"));
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3);
+        autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev3"));
+        autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev3"));
 
-        runner.run(2);
+        autoUnpackRunner.run(2);
 
-        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
-        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
-        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
@@ -439,20 +426,19 @@ public class TestUnpackContent {
 
     @Test
     public void testFlowFileStreamV2() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString());
-        runner.enqueue(dataPath.resolve("data.flowfilev2"));
-        runner.enqueue(dataPath.resolve("data.flowfilev2"));
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V2);
+        autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev2"));
+        autoUnpackRunner.enqueue(dataPath.resolve("data.flowfilev2"));
 
-        runner.run(2);
+        autoUnpackRunner.run(2);
 
-        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
-        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
-        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
@@ -465,25 +451,24 @@ public class TestUnpackContent {
 
     @Test
     public void testTarThenMerge() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
 
-        unpackRunner.enqueue(dataPath.resolve("data.tar"));
-        unpackRunner.run();
+        runner.enqueue(dataPath.resolve("data.tar"));
+        runner.run();
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
-        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             assertEquals(flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_TAR);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.TAR);
+        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         mergeRunner.setProperty(MergeContent.KEEP_PATH, "true");
         mergeRunner.enqueue(unpacked.toArray(new MockFlowFile[0]));
         mergeRunner.run();
@@ -500,28 +485,27 @@ public class TestUnpackContent {
 
     @Test
     public void testZipThenMerge() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
-        unpackRunner.enqueue(dataPath.resolve("data.zip"));
-        unpackRunner.run();
+        runner.enqueue(dataPath.resolve("data.zip"));
+        runner.run();
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
-        final MockFlowFile originalFlowFile = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0);
         originalFlowFile.assertAttributeExists(FRAGMENT_ID);
         originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             assertEquals(flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.ZIP);
+        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
         mergeRunner.setProperty(MergeContent.KEEP_PATH, "true");
         mergeRunner.enqueue(unpacked.toArray(new MockFlowFile[0]));
         mergeRunner.run();
@@ -538,29 +522,27 @@ public class TestUnpackContent {
 
     @Test
     public void testZipHandlesBadData() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
-        unpackRunner.enqueue(dataPath.resolve("data.tar"));
-        unpackRunner.run();
+        runner.enqueue(dataPath.resolve("data.tar"));
+        runner.run();
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
     }
 
     @Test
     public void testTarHandlesBadData() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.TAR_FORMAT);
 
-        unpackRunner.enqueue(dataPath.resolve("data.zip"));
-        unpackRunner.run();
+        runner.enqueue(dataPath.resolve("data.zip"));
+        runner.run();
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
-        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
     }
 
     /*
@@ -570,8 +552,7 @@ public class TestUnpackContent {
      */
     @Test
     public void testThreadSafetyUsingAutoDetect() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
 
         Map<String, String> attrsTar = new HashMap<>(1);
         Map<String, String> attrsFFv3 = new HashMap<>(1);
@@ -595,8 +576,7 @@ public class TestUnpackContent {
     }
 
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
         final String password = String.class.getSimpleName();
         runner.setProperty(UnpackContent.PASSWORD, password);

@@ -71,7 +71,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -127,7 +126,7 @@ public class PutEmail extends AbstractProcessor {
             .description("How to authorize sending email on the user's behalf.")
             .required(true)
             .allowableValues(PASSWORD_BASED_AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
-            .defaultValue(PASSWORD_BASED_AUTHORIZATION_MODE.getValue())
+            .defaultValue(PASSWORD_BASED_AUTHORIZATION_MODE)
             .build();
 
     public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
@@ -389,21 +388,20 @@ public class PutEmail extends AbstractProcessor {
 
     private volatile Pattern attributeNamePattern = null;
 
-    private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
+    private volatile OAuth2AccessTokenProvider oauth2AccessTokenProvider;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String attributeNameRegex = context.getProperty(ATTRIBUTE_NAME_REGEX).getValue();
         this.attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
 
-        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
-            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+        if (context.getProperty(AUTHORIZATION_MODE).getValue().equals(OAUTH_AUTHORIZATION_MODE.getValue())) {
+            oauth2AccessTokenProvider =
+                    context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
             oauth2AccessTokenProvider.getAccessDetails();
-
-            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
         } else {
-            oauth2AccessTokenProviderOptional = Optional.empty();
+            oauth2AccessTokenProvider = null;
         }
     }
 
@@ -562,22 +560,29 @@ public class PutEmail extends AbstractProcessor {
         final Properties properties = new Properties();
 
         for (final Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
+            final String mailProperty = entry.getKey();
+            final PropertyDescriptor propertyDescriptor = entry.getValue();
+
+            if (propertyDescriptor == SMTP_PASSWORD
+                    && !context.getProperty(AUTHORIZATION_MODE).getValue().equals(PASSWORD_BASED_AUTHORIZATION_MODE.getValue())) {
+                continue; // password property is only available for password based authentication; skip evaluation otherwise
+            }
+
             // Evaluate the property descriptor against the flow file
-            final String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();
-            final String property = entry.getKey();
+            final String flowFileValue = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
 
             // Nullable values are not allowed, so filter out
             if (null != flowFileValue) {
-                properties.setProperty(property, flowFileValue);
+                properties.setProperty(mailProperty, flowFileValue);
             }
         }
 
-        oauth2AccessTokenProviderOptional.ifPresent(oAuth2AccessTokenProvider -> {
-            String accessToken = oAuth2AccessTokenProvider.getAccessDetails().getAccessToken();
+        if (oauth2AccessTokenProvider != null ) {
+            String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
 
             properties.setProperty("mail.smtp.password", accessToken);
             properties.put("mail.smtp.auth.mechanisms", "XOAUTH2");
-        });
+        }
 
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {

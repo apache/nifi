@@ -147,7 +147,7 @@ public class MonitorActivity extends AbstractProcessor {
                     " if it's 'cluster', NiFi logs a warning message and act as 'node' scope.")
             .required(true)
             .allowableValues(SCOPE_NODE, SCOPE_CLUSTER)
-            .defaultValue(SCOPE_NODE.getValue())
+            .defaultValue(SCOPE_NODE)
             .build();
     public static final PropertyDescriptor REPORTING_NODE = new PropertyDescriptor.Builder()
             .name("Reporting Node")
@@ -159,7 +159,7 @@ public class MonitorActivity extends AbstractProcessor {
             .required(true)
             .allowableValues(REPORT_NODE_ALL, REPORT_NODE_PRIMARY)
             .dependsOn(MONITORING_SCOPE, SCOPE_CLUSTER)
-            .defaultValue(REPORT_NODE_ALL.getValue())
+            .defaultValue(REPORT_NODE_ALL)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -440,8 +440,12 @@ public class MonitorActivity extends AbstractProcessor {
     }
 
     private boolean shouldThisNodeReport(final boolean isClusterScope, final ProcessContext context) {
-        final boolean shouldReportOnlyOnPrimary = shouldReportOnlyOnPrimary(isClusterScope, context);
-        return !isClusterScope || (!shouldReportOnlyOnPrimary || getNodeTypeProvider().isPrimary());
+        if (!isClusterScope) {
+            return true; // in monitoring mode 'node' activeness is examined at individual node separately
+        }
+
+        final String reportingNode = context.getProperty(REPORTING_NODE).getValue();
+        return reportingNode.equals(REPORT_NODE_ALL.getValue()) || getNodeTypeProvider().isPrimary();
     }
 
     private void sendInactivityMarker(ProcessContext context, ProcessSession session, long inactivityStartMillis,

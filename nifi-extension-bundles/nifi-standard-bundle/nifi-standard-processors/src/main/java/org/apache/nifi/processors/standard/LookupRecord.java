@@ -173,7 +173,7 @@ public class LookupRecord extends AbstractProcessor {
         .description("When a result is obtained that contains a Record, this property determines whether the Record itself is inserted at the configured "
             + "path or if the contents of the Record (i.e., the sub-fields) will be inserted at the configured path.")
         .allowableValues(RESULT_ENTIRE_RECORD, RESULT_RECORD_FIELDS)
-        .defaultValue(RESULT_ENTIRE_RECORD.getValue())
+        .defaultValue(RESULT_ENTIRE_RECORD)
         .required(true)
         .build();
 
@@ -183,7 +183,7 @@ public class LookupRecord extends AbstractProcessor {
         .description("Specifies how to route records after a Lookup has completed")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(ROUTE_TO_SUCCESS, ROUTE_TO_MATCHED_UNMATCHED)
-        .defaultValue(ROUTE_TO_SUCCESS.getValue())
+        .defaultValue(ROUTE_TO_SUCCESS)
         .required(true)
         .build();
 
@@ -193,7 +193,7 @@ public class LookupRecord extends AbstractProcessor {
         .description("This property defines the strategy to use when updating the record with the value returned by the Lookup Service.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(REPLACE_EXISTING_VALUES, USE_PROPERTY)
-        .defaultValue(USE_PROPERTY.getValue())
+        .defaultValue(USE_PROPERTY)
         .required(true)
         .build();
 
@@ -814,9 +814,9 @@ public class LookupRecord extends AbstractProcessor {
         }
 
         final RecordPath resultRecordPath;
-        if (context.getProperty(RESULT_RECORD_PATH).isSet()) {
+        if (context.getProperty(REPLACEMENT_STRATEGY).getValue().equals(USE_PROPERTY.getValue())) {
             final String resultPathText = context.getProperty(RESULT_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
-            resultRecordPath = recordPathCache.getCompiled(resultPathText);
+            resultRecordPath = resultPathText == null ? null : recordPathCache.getCompiled(resultPathText);
         } else {
             resultRecordPath = null;
         }

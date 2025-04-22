@@ -202,7 +202,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         attributeHeaderPattern = Pattern.compile(attributeHeaderRegex);
 
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        writerFactory = readerFactory == null ? null : context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
     }
 
     /**
