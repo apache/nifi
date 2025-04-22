@@ -41,6 +41,8 @@ import jakarta.ws.rs.core.Response;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
@@ -75,6 +77,8 @@ public class OcspCertificateValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(OcspCertificateValidator.class);
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(OcspCertificateValidator.class);
+
     private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
 
     private static final int CONNECT_TIMEOUT = 10000;
@@ -92,6 +96,8 @@ public class OcspCertificateValidator {
 
         // set properties when appropriate
         if (StringUtils.isNotBlank(rawValidationAuthorityUrl)) {
+            deprecationLogger.warn("OCSP Certificate Validation with Responder URL [{}] is deprecated for removal", NiFiProperties.SECURITY_OCSP_RESPONDER_URL);
+
             try {
                 // attempt to parse the specified va url
                 validationAuthorityURI = URI.create(rawValidationAuthorityUrl);
