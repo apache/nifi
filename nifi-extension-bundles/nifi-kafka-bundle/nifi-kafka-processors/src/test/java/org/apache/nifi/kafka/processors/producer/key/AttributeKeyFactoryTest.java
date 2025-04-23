@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.kafka.processors.producer.key;
 
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
@@ -31,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class AttributeKeyFactoryTest {
@@ -39,8 +43,9 @@ public class AttributeKeyFactoryTest {
     void testNullKeyAttribute() throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
         final Record record = fabricateRecord();
+        final PropertyValue propertyValue = new MockPropertyValue(null);
 
-        final AttributeKeyFactory attributeKeyFactory = new AttributeKeyFactory(null, null);
+        final AttributeKeyFactory attributeKeyFactory = new AttributeKeyFactory(null, propertyValue, null);
         assertNull(attributeKeyFactory.getKey(attributes, record));
     }
 
@@ -48,9 +53,12 @@ public class AttributeKeyFactoryTest {
     void testNullKeyAttributeValue() throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
         final Record record = fabricateRecord();
+        final MockFlowFile flowFile = new MockFlowFile(1L);
+        flowFile.putAttributes(attributes);
+        final PropertyValue propertyValue = new MockPropertyValue("${A}");
 
-        final AttributeKeyFactory attributeKeyFactory = new AttributeKeyFactory("A", null);
-        assertNull(attributeKeyFactory.getKey(attributes, record));
+        final AttributeKeyFactory attributeKeyFactory = new AttributeKeyFactory(flowFile, propertyValue, null);
+        assertEquals(0, attributeKeyFactory.getKey(attributes, record).length);
     }
 
     @Test
@@ -59,8 +67,11 @@ public class AttributeKeyFactoryTest {
         attributes.put("A", "valueA");
         attributes.put("B", "valueB");
         final Record record = fabricateRecord();
+        final MockFlowFile flowFile = new MockFlowFile(1L);
+        flowFile.putAttributes(attributes);
+        final PropertyValue propertyValue = new MockPropertyValue("${A}");
 
-        final AttributeKeyFactory attributeKeyFactory = new AttributeKeyFactory("A", null);
+        final AttributeKeyFactory attributeKeyFactory = new AttributeKeyFactory(flowFile, propertyValue, null);
         assertArrayEquals("valueA".getBytes(StandardCharsets.UTF_8), attributeKeyFactory.getKey(attributes, record));
     }
 
