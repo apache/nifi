@@ -46,6 +46,7 @@ public class PublishKafkaRecordIT extends AbstractPublishKafkaIT {
     private static final String TEST_RESOURCE = "org/apache/nifi/kafka/processors/publish/ff.json";
 
     private static final String KEY_ATTRIBUTE_KEY = "keyAttribute";
+    private static final String KEY_ATTRIBUTE_KEY_EL = "${keyAttribute}";
     private static final String KEY_ATTRIBUTE_VALUE = "keyAttributeValue";
 
     private static final int TEST_RECORD_COUNT = 3;
@@ -59,7 +60,7 @@ public class PublishKafkaRecordIT extends AbstractPublishKafkaIT {
         addRecordWriterService(runner);
 
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.KAFKA_KEY, KEY_ATTRIBUTE_KEY);
+        runner.setProperty(PublishKafka.KAFKA_KEY, KEY_ATTRIBUTE_KEY_EL);
         runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
 
         final Map<String, String> attributes = new HashMap<>();

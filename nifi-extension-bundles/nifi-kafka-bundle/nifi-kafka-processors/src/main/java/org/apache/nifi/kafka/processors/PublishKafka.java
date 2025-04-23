@@ -167,7 +167,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
     static final PropertyDescriptor TRANSACTIONAL_ID_PREFIX = new PropertyDescriptor.Builder()
             .name("Transactional ID Prefix")
             .description("Specifies the KafkaProducer config transactional.id will be a generated UUID and will be prefixed with the configured string.")
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .dependsOn(TRANSACTIONS_ENABLED, "true")
             .required(false)
@@ -249,6 +249,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .description("For any attribute that is added as a Kafka Record Header, this property indicates the Character Encoding to use for serializing the headers.")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(StandardCharsets.UTF_8.displayName())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .dependsOn(ATTRIBUTE_HEADER_PATTERN)
             .build();
@@ -559,13 +560,13 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         final RecordSetWriterFactory keyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final String kafkaKeyAttribute = context.getProperty(KAFKA_KEY).getValue();
+        final PropertyValue kafkaKeyAttribute = context.getProperty(KAFKA_KEY);
         final String keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
         final String messageKeyField = publishStrategy == PublishStrategy.USE_VALUE
                 ? context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue() : null;
         final KeyFactory keyFactory = messageKeyField != null
                 ? new MessageKeyFactory(flowFile, messageKeyField, keyWriterFactory, getLogger())
-                : new AttributeKeyFactory(kafkaKeyAttribute, keyAttributeEncoding);
+                : new AttributeKeyFactory(flowFile, kafkaKeyAttribute, keyAttributeEncoding);
 
         if (readerFactory != null && writerFactory != null) {
             return switch (publishStrategy) {

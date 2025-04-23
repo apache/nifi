@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.kafka.processors.producer.key;
 
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.serialization.record.Record;
 
@@ -25,18 +27,21 @@ import java.util.Map;
 import java.util.Optional;
 
 public class AttributeKeyFactory implements KeyFactory {
-    private final String keyAttribute;
+    private final FlowFile flowFile;
+    private final PropertyValue keyAttribute;
     private final String keyAttributeEncoding;
 
-    public AttributeKeyFactory(final String keyAttribute,
-                               final String keyAttributeEncoding) {
-        this.keyAttribute = (keyAttribute == null) ? KafkaFlowFileAttribute.KAFKA_KEY : keyAttribute;
+    public AttributeKeyFactory(final FlowFile flowFile, final PropertyValue keyAttribute, final String keyAttributeEncoding) {
+        this.flowFile = flowFile;
+        this.keyAttribute = keyAttribute;
         this.keyAttributeEncoding = Optional.ofNullable(keyAttributeEncoding).orElse(StandardCharsets.UTF_8.name());
     }
 
     @Override
     public byte[] getKey(final Map<String, String> attributes, final Record record) throws UnsupportedEncodingException {
-        final String keyAttributeValue = attributes.get(keyAttribute);
+        final String keyAttributeValue = keyAttribute.isSet()
+                ? keyAttribute.evaluateAttributeExpressions(flowFile).getValue()
+                : attributes.get(KafkaFlowFileAttribute.KAFKA_KEY);
         return (keyAttributeValue == null) ? null : keyAttributeValue.getBytes(keyAttributeEncoding);
     }
 }
