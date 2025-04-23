@@ -22,20 +22,40 @@
         <version>2.4.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-kafka-service-api-nar</artifactId>
-    <packaging>nar</packaging>
+    <artifactId>nifi-kafka-service-aws</artifactId>
+    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-service-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Kafka Service implementation required for extending the Controller Service class -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-3-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Controller Service API modules required for extending Kafka3ConnectionService -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-user-service-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-shared-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
-            <type>nar</type>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>3.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.msk</groupId>
+            <artifactId>aws-msk-iam-auth</artifactId>
+            <version>2.3.2</version>
         </dependency>
     </dependencies>
 </project>
