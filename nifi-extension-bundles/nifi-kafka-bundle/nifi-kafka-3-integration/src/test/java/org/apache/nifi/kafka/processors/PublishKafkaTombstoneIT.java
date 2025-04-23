@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class PublishKafkaTombstoneIT extends AbstractPublishKafkaIT {
     private static final String TEST_KEY_ATTRIBUTE = "my-key";
+    private static final String TEST_KEY_ATTRIBUTE_EL = "${my-key}";
     private static final String TEST_KEY_VALUE = "some-key-value";
     private static final byte[] TEST_RECORD_VALUE = new byte[0];
 
@@ -51,7 +52,7 @@ public class PublishKafkaTombstoneIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
-        runner.setProperty(PublishKafka.KAFKA_KEY, TEST_KEY_ATTRIBUTE);
+        runner.setProperty(PublishKafka.KAFKA_KEY, TEST_KEY_ATTRIBUTE_EL);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a1", "valueA1");
