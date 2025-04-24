@@ -120,6 +120,15 @@ class ObjectStringFieldConverterTest {
         assertEquals(dateTimeZoneOffsetExpected, string);
     }
 
+    @Test
+    void convertField_objectArray_withData() {
+        // the byte literals get auto-boxed to Byte, so this is an Object[]
+        Object[] arr = new Object[] {(byte) 0x48, (byte) 0x65, (byte) 0x6C, (byte) 0x6C, (byte) 0x6F};
+        String result = CONVERTER.convertField(arr, Optional.empty(), FIELD_NAME);
+        // "Hello" in ASCII/UTF-8
+        assertEquals("Hello", result);
+    }
+
     private String getDateTimeZoneOffset() {
         final Timestamp inputTimestamp = Timestamp.valueOf(DATE_TIME_DEFAULT);
         final LocalDateTime inputLocalDateTime = inputTimestamp.toLocalDateTime();
