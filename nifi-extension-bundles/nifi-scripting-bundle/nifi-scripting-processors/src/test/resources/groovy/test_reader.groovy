@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.apache.nifi.expression.ExpressionLanguageScope
+
 class GroovyProcessor implements Processor {
 
     def REL_TEST = new Relationship.Builder()
@@ -22,7 +24,10 @@ class GroovyProcessor implements Processor {
             .build();
 
     def descriptor = new PropertyDescriptor.Builder()
-            .name("test-attribute").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build()
+            .name("test-attribute")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build()
 
     def logger
 
