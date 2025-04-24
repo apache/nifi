@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record.field;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -44,6 +45,8 @@ class ObjectStringFieldConverterTest {
     private static final String DATE_TIME_NANOSECONDS = "2000-01-01 12:00:00.123456789";
 
     private static final String DATE_TIME_ZONE_OFFSET_PATTERN = "yyyy-MM-dd HH:mm:ssZZZZZ";
+
+    private static final String EMPTY_STRING = "";
 
     @Test
     void testConvertFieldNull() {
@@ -118,6 +121,28 @@ class ObjectStringFieldConverterTest {
 
         final String dateTimeZoneOffsetExpected = getDateTimeZoneOffset();
         assertEquals(dateTimeZoneOffsetExpected, string);
+    }
+
+    @Test
+    void testConvertFieldObjectArray() {
+        final String expected = String.class.getSimpleName();
+        final byte[] bytes = expected.getBytes(StandardCharsets.UTF_8);
+
+        final Object[] objectArray = new Object[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            objectArray[i] = bytes[i];
+        }
+
+        final String string = CONVERTER.convertField(objectArray, Optional.empty(), FIELD_NAME);
+        assertEquals(expected, string);
+    }
+
+    @Test
+    void testConvertFieldObjectArrayEmpty() {
+        final Object[] objectArray = new Object[0];
+
+        final String string = CONVERTER.convertField(objectArray, Optional.empty(), FIELD_NAME);
+        assertEquals(EMPTY_STRING, string);
     }
 
     private String getDateTimeZoneOffset() {

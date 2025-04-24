@@ -96,6 +96,18 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
                     throw new FieldConversionException(String.class, field, name, e);
                 }
             }
+            case Object[] objectArray -> {
+                if (objectArray.length > 0) {
+                    final byte[] converted = new byte[objectArray.length];
+                    for (int i = 0; i < objectArray.length; i++) {
+                        converted[i] = (byte) objectArray[i];
+                    }
+                    return new String(converted, StandardCharsets.UTF_8);
+                } else {
+                    // Handle an empty array as an empty string
+                    return "";
+                }
+            }
             default -> {
             }
         }
