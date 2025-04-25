@@ -1489,48 +1489,71 @@ export class CanvasUtils {
                 .attr('width', width)
                 .attr('xml:space', 'preserve'); // preserve leading spaces
 
+            // go through each word
             let word = words.pop();
 
             while (word) {
+                // add the current word
                 line.push(word);
+
+                // update the label text
                 tspan.text(line.join(''));
 
                 if (!lineCountCalculated) {
                     const bbox = tspan.node().getBoundingClientRect();
                     lineHeight = bbox.height / this.scale;
+
                     lineCount = Math.floor(height / lineHeight);
                     lineCountCalculated = true;
                 }
 
                 if (newLine) {
+                    // set the label height
                     tspan.attr('y', lineHeight * i++);
                     newLine = false;
                 }
 
+                // if this word caused us to go too far
                 if (tspan.node().getComputedTextLength() > width) {
-                    line.pop(); // remove word that caused overflow
+                    // remove the current word
+                    line.pop();
+
+                    // update the label text
                     tspan.text(line.join(''));
 
+                     // create the tspan for the next line
                     tspan = selection.append('tspan')
                         .attr('x', x)
                         .attr('dy', '1.2em')
                         .attr('width', width)
                         .attr('xml:space', 'preserve');
 
+                    // if we've reached the last line, use single line ellipsis
                     if (i++ >= lineCount) {
+                        // get the remainder using the current word and
+                        // reversing whats left
                         const remainder = [word].concat(words.reverse());
+
+                        // apply ellipsis to the last line
                         this.ellipsis(tspan, remainder.join(''), cacheName);
+
+                        // we've reached the line count
                         return;
                     } else {
                         tspan.text(word);
+
+                        // prep the line for the next iteration
                         line = [word];
                     }
                 }
 
+                // get the next word
                 word = words.pop();
             }
 
             if (newLine) {
+
+                // set the label height
                 tspan.attr('y', lineHeight * i++);
                 newLine = false;
             }
