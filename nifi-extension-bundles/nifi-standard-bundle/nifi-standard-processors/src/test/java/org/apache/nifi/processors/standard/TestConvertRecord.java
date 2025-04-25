@@ -435,9 +435,9 @@ public class TestConvertRecord {
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
-        final List<String> undefinedTopLevelKeys = List.of("undefinedKey", "undefinedObjectArray", "undefinedObject", "undefinedScalarArray");
 
-        // This covers all the keys which start with the word undefined
+        // This covers all the cases
+        // "undefinedKey", "undefinedObjectArray", "undefinedObject", "undefinedScalarArray"
         assertFalse(flowFile.getContent().contains("undefined"));
     }
 
