@@ -50,7 +50,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -437,7 +436,7 @@ public class TestConvertRecord {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
 
         // This covers all the cases
-        // "undefinedKey", "undefinedObjectArray", "undefinedObject", "undefinedScalarArray"
+        // "undefinedKeyInObject", "undefinedKey", "undefinedObjectArray", "undefinedObject", "undefinedScalarArray"
         assertFalse(flowFile.getContent().contains("undefined"));
     }
 
