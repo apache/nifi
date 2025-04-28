@@ -116,4 +116,22 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
         testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_JSON, "{}");
         testRunner.assertNotValid(testSubject);
     }
+
+    @Test
+    void validWhenCustomTimeoutsAreSet() {
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_ACTOR, BoxAppActor.SERVICE_ACCOUNT);
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_JSON, "{}");
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.CONNECT_TIMEOUT, "1 min");
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.READ_TIMEOUT, "10 sec");
+        testRunner.assertValid(testSubject);
+    }
+
+    @Test
+    void invalidWhenTimeoutsAreNotTimePeriods() {
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_ACTOR, BoxAppActor.SERVICE_ACCOUNT);
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_JSON, "{}");
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.CONNECT_TIMEOUT, "not_a_time_period");
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.READ_TIMEOUT, "1234");
+        testRunner.assertNotValid(testSubject);
+    }
 }
