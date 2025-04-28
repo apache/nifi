@@ -21,11 +21,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon } from '@nifi/shared';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
-import {
-    BoundProcessGroup,
-    ParameterContext,
-    ParameterContextEntity,
-} from '../../../../../state/shared';
+import { BoundProcessGroup, ParameterContext, ParameterContextEntity } from '../../../../../state/shared';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
@@ -94,13 +90,18 @@ export class ParameterContextTable {
         return this.canRead(entity) && entity.component ? this.getHighLevelProcessGroups(entity.component) : '';
     }
 
-    private getHighLevelProcessGroups(component: ParameterContext) : string {
-        const allowedProcessGroups: BoundProcessGroup[] = component.boundProcessGroups.filter(group => group.permissions.canRead);
-        const componentIds: string[] = allowedProcessGroups.map(group => group.component.id)
-        const boundProcessGroupNames: string[] =  allowedProcessGroups.filter(group => !componentIds.includes(group.component.parentGroupId))
-            .map(group => group.component.name);
+    private getHighLevelProcessGroups(component: ParameterContext): string {
+        const allowedProcessGroups: BoundProcessGroup[] = component.boundProcessGroups.filter(
+            (group) => group.permissions.canRead
+        );
+        const componentIds: string[] = allowedProcessGroups.map((group) => group.component.id);
+        const boundProcessGroupNames: string[] = allowedProcessGroups
+            .filter((group) => !componentIds.includes(group.component.parentGroupId))
+            .map((group) => group.component.name);
 
-        return boundProcessGroupNames.length <= 1 ? boundProcessGroupNames.toString() : boundProcessGroupNames.length.toString()
+        return boundProcessGroupNames.length <= 1
+            ? boundProcessGroupNames.toString()
+            : boundProcessGroupNames.length.toString();
     }
 
     editClicked(entity: ParameterContextEntity): void {
@@ -175,7 +176,7 @@ export class ParameterContextTable {
                     retVal = this.nifiCommon.compareString(this.formatDescription(a), this.formatDescription(b));
                     break;
                 case 'process groups':
-                    retVal = this.nifiCommon.compareString(this.formatProcessGroups(a), this.formatProcessGroups(b))
+                    retVal = this.nifiCommon.compareString(this.formatProcessGroups(a), this.formatProcessGroups(b));
                     break;
                 default:
                     return 0;
