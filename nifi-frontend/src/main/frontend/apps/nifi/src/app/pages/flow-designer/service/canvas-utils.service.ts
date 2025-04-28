@@ -1484,7 +1484,7 @@ export class CanvasUtils {
 
             // Split words normally, letting internal whitespace collapse
             const words = trimmedLine.split(/\s+/).reverse();
-            if (words.length > 0) {
+            if (leadingWhitespace.length > 0 && words.length > 0) {
                 words[words.length - 1] = leadingWhitespace + words[words.length - 1]; // Prepend leading space to the first word
             }
 
