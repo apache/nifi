@@ -21,7 +21,11 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon } from '@nifi/shared';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
-import {ParameterContext, ParameterContextEntity} from '../../../../../state/shared';
+import {
+    BoundProcessGroup,
+    ParameterContext,
+    ParameterContextEntity,
+} from '../../../../../state/shared';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
@@ -91,9 +95,9 @@ export class ParameterContextTable {
     }
 
     private getHighLevelProcessGroups(component: ParameterContext) : string {
-        const componentIds: string[] = component.boundProcessGroups.map(group => group.component.id)
-        const boundProcessGroupNames: string[] =  component.boundProcessGroups
-            .filter(group => !componentIds.includes(group.component.parentGroupId))
+        const allowedProcessGroups: BoundProcessGroup[] = component.boundProcessGroups.filter(group => group.permissions.canRead);
+        const componentIds: string[] = allowedProcessGroups.map(group => group.component.id)
+        const boundProcessGroupNames: string[] =  allowedProcessGroups.filter(group => !componentIds.includes(group.component.parentGroupId))
             .map(group => group.component.name);
 
         return boundProcessGroupNames.length <= 1 ? boundProcessGroupNames.toString() : boundProcessGroupNames.length.toString()
