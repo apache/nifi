@@ -218,8 +218,8 @@
                                                         @if (port.transmitting) {
                                                             <button mat-menu-item (click)="toggleTransmission(port)">
                                                                 <i
-                                                                    class="fa fa-bullseye transmitting primary-color mr-2"></i>
-                                                                Transmitting: click to toggle port transmission
+                                                                    class="not-transmitting icon icon-transmit-false primary-color mr-2"></i>
+                                                                Disable transmission
                                                             </button>
                                                         } @else {
                                                             @if (port.connected && port.exists) {
@@ -227,8 +227,8 @@
                                                                     mat-menu-item
                                                                     (click)="toggleTransmission(port)">
                                                                     <i
-                                                                        class="not-transmitting icon icon-transmit-false primary-color mr-2"></i>
-                                                                    Not Transmitting: click to toggle port transmission
+                                                                        class="fa fa-bullseye transmitting primary-color mr-2"></i>
+                                                                    Enable transmission
                                                                 </button>
                                                             }
                                                         }
