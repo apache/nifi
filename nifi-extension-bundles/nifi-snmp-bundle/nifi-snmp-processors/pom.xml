@@ -20,7 +20,7 @@ language governing permissions and limitations under the License. -->
     <packaging>jar</packaging>
 
     <properties>
-        <snmp4j.version>3.9.1</snmp4j.version>
+        <snmp4j.version>3.9.2</snmp4j.version>
         <snmp4j-agent.version>3.8.2</snmp4j-agent.version>
     </properties>
 
