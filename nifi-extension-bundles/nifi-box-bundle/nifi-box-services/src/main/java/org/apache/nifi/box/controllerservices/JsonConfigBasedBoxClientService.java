@@ -50,6 +50,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 
@@ -96,6 +97,22 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
+    static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Connect Timeout")
+        .description("Maximum amount of time to wait before failing during initial socket connection.")
+        .required(true)
+        .defaultValue("10 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
+    static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Read Timeout")
+        .description("Maximum amount of time to wait before failing while reading socket responses.")
+        .required(true)
+        .defaultValue("30 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -103,6 +120,8 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         ACCOUNT_ID,
         APP_CONFIG_FILE,
         APP_CONFIG_JSON,
+        CONNECT_TIMEOUT,
+        READ_TIMEOUT,
         ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
     );
 
@@ -227,6 +246,10 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
                 api.setProxyBasicAuthentication(proxyConfiguration.getProxyUserName(), proxyConfiguration.getProxyUserPassword());
             }
         }
+
+        api.setConnectTimeout(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(MILLISECONDS).intValue());
+        api.setReadTimeout(context.getProperty(READ_TIMEOUT).asTimePeriod(MILLISECONDS).intValue());
+
         return api;
     }
 }
