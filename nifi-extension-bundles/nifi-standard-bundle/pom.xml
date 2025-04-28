@@ -203,6 +203,12 @@
                 <artifactId>commons-compiler</artifactId>
                 <version>3.1.12</version>
             </dependency>
+            <!-- Override httpclient5 5.4.1 from calcite-core -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>5.4.4</version>
+            </dependency>
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
