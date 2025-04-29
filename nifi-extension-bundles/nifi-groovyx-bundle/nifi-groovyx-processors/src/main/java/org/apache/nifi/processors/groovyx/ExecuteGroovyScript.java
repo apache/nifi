@@ -33,6 +33,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -80,16 +81,15 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso(classNames = {"org.apache.nifi.processors.script.ExecuteScript"})
+@SupportsSensitiveDynamicProperties
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value. "
                 + "Use `CTL.` to access any controller services, `SQL.` to access any DBCPServices, `RecordReader.` to access RecordReaderFactory instances, or "
-                + "`RecordWriter.` to access any RecordSetWriterFactory instances. Use `SENSITIVE.` to mark the property as sensitive.")
+                + "`RecordWriter.` to access any RecordSetWriterFactory instances.")
 public class ExecuteGroovyScript extends AbstractProcessor {
     public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
-
-    protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
     private static final String PRELOADS = "import org.apache.nifi.components.*;" + "import org.apache.nifi.flowfile.FlowFile;" + "import org.apache.nifi.processor.*;"
             + "import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;" + "import org.apache.nifi.processor.exception.*;" + "import org.apache.nifi.processor.io.*;"
@@ -545,18 +545,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     .build();
         }
 
-        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
+        return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-                .dynamic(true);
-
-        if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
-            builder.sensitive(true);
-        }
-
-        return builder.build();
+                .dynamic(true)
+                .build();
     }
 
     /** simple HashMap with exception on access of non-existent key */

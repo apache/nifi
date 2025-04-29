@@ -19,9 +19,12 @@ package org.apache.nifi.processors.groovyx;
 import groovy.json.JsonOutput;
 import groovy.json.JsonSlurper;
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -556,9 +559,17 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_sensitive_dynamic_property() throws Exception {
-        runner.setProperty("SENSITIVE.password", "MyP@ssW0rd!");
+        new PropertyDescriptor.Builder()
+                .name("password")
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .dynamic(true)
+                .sensitive(true)
+                .build();
+        runner.setProperty("password", "MyP@ssW0rd!");
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY,
-                "assert context.getProperties().find {k,v -> k.name == 'SENSITIVE.password'}.key.sensitive");
+                "assert context.getProperties().find {k,v -> k.name == 'password'}.key.sensitive");
         runner.assertValid();
         runner.run();
     }
