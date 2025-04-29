@@ -35,6 +35,7 @@ import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { DropletsEffects } from './state/droplets/droplets.effects';
 import { ExplorerModule } from './pages/expolorer/feature/explorer.module';
 import { BucketsEffects } from './state/buckets/buckets.effects';
+import { ErrorEffects } from './state/error/error.effects';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations = '';
@@ -68,7 +69,7 @@ try {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(CurrentUserEffects, DropletsEffects, BucketsEffects)
+        EffectsModule.forRoot(CurrentUserEffects, DropletsEffects, BucketsEffects, ErrorEffects)
     ],
     providers: [
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),
