@@ -35,7 +35,7 @@ const routes: Routes = [
     },
     {
         path: '',
-        loadChildren: () => import('./pages/expolorer/feature/explorer.component').then((m) => m.ExplorerComponent)
+        loadComponent: () => import('./pages/expolorer/feature/explorer.component').then((m) => m.ExplorerComponent)
     }
 ];
 
