@@ -19,9 +19,12 @@ package org.apache.nifi.processors.groovyx;
 import groovy.json.JsonOutput;
 import groovy.json.JsonSlurper;
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -40,7 +43,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -553,6 +555,23 @@ public class ExecuteGroovyScriptTest {
 
         runner.run();
         assertEquals("testDB", ((DBCPServiceSimpleImpl) dbcp).getDatabaseName());
+    }
+
+    @Test
+    public void test_sensitive_dynamic_property() throws Exception {
+        new PropertyDescriptor.Builder()
+                .name("password")
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .dynamic(true)
+                .sensitive(true)
+                .build();
+        runner.setProperty("password", "MyP@ssW0rd!");
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY,
+                "assert context.getProperties().find {k,v -> k.name == 'password'}.key.sensitive");
+        runner.assertValid();
+        runner.run();
     }
 
 
