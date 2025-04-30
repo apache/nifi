@@ -49,6 +49,7 @@ import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import javax.net.ssl.SSLContext;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -220,7 +221,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         propertyConfiguration.renameProperty("websocket-uri", WS_URI.getName());
         propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
         propertyConfiguration.renameProperty("connection-timeout", CONNECTION_TIMEOUT.getName());
-        propertyConfiguration.renameProperty("connection-attempt-count", CONNECTION_ATTEMPT_COUNT.getName());
+        propertyConfiguration.renameProperty("connection-attempt-timeout", CONNECTION_ATTEMPT_COUNT.getName());
         propertyConfiguration.renameProperty("session-maintenance-interval", SESSION_MAINTENANCE_INTERVAL.getName());
         propertyConfiguration.renameProperty("user-name", USER_NAME.getName());
         propertyConfiguration.renameProperty("user-password", USER_PASSWORD.getName());
