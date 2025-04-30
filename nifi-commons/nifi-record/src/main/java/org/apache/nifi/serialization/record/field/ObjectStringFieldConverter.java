@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
 
@@ -98,14 +99,19 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
             }
             case Object[] objectArray -> {
                 if (objectArray.length > 0) {
-                    final byte[] converted = new byte[objectArray.length];
-                    for (int i = 0; i < objectArray.length; i++) {
-                        converted[i] = (byte) objectArray[i];
+                    final Object firstElement = objectArray[0];
+
+                    if (firstElement instanceof Byte) {
+                        final byte[] converted = new byte[objectArray.length];
+                        for (int i = 0; i < objectArray.length; i++) {
+                            converted[i] = (byte) objectArray[i];
+                        }
+                        return new String(converted, StandardCharsets.UTF_8);
+                    } else {
+                        return Arrays.toString(objectArray);
                     }
-                    return new String(converted, StandardCharsets.UTF_8);
                 } else {
-                    // Handle an empty array as an empty string
-                    return "";
+                    return Arrays.toString(objectArray);
                 }
             }
             default -> {
