@@ -119,9 +119,7 @@ export class QueueListing implements OnInit, OnDestroy {
         this.store.dispatch(
             viewFlowFileContent({
                 request: {
-                    uri: flowfileSummary.uri,
-                    mimeType: flowfileSummary.mimeType,
-                    clusterNodeId: flowfileSummary.clusterNodeId
+                    flowfileSummary: flowfileSummary
                 }
             })
         );

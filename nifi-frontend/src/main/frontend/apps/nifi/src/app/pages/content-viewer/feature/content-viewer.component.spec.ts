@@ -21,12 +21,14 @@ import { ContentViewerComponent } from './content-viewer.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { contentViewersFeatureKey } from '../state';
 import { viewerOptionsFeatureKey } from '../state/viewer-options';
-import { initialState } from '../state/viewer-options/viewer-options.reducer';
+import { initialState as viewerOptionsInitialState } from '../state/viewer-options/viewer-options.reducer';
 import { MatSelectModule } from '@angular/material/select';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { NifiTooltipDirective } from '@nifi/shared';
+import { contentFeatureKey } from '../state/content';
+import { initialState as contentInitialState } from '../state/content/content.reducer';
 
 describe('ContentViewerComponent', () => {
     let component: ContentViewerComponent;
@@ -40,7 +42,8 @@ describe('ContentViewerComponent', () => {
                 provideMockStore({
                     initialState: {
                         [contentViewersFeatureKey]: {
-                            [viewerOptionsFeatureKey]: initialState
+                            [viewerOptionsFeatureKey]: viewerOptionsInitialState,
+                            [contentFeatureKey]: contentInitialState
                         }
                     }
                 })
