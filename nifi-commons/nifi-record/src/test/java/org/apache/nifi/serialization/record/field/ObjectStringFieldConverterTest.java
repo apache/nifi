@@ -46,7 +46,11 @@ class ObjectStringFieldConverterTest {
 
     private static final String DATE_TIME_ZONE_OFFSET_PATTERN = "yyyy-MM-dd HH:mm:ssZZZZZ";
 
-    private static final String EMPTY_STRING = "";
+    private static final String EMPTY_ARRAY_STRING = "[]";
+
+    private static final String ARRAY_STRING_ELEMENT = String.class.getSimpleName();
+
+    private static final String ARRAY_STRING = "[String, String, String]";
 
     @Test
     void testConvertFieldNull() {
@@ -124,7 +128,7 @@ class ObjectStringFieldConverterTest {
     }
 
     @Test
-    void testConvertFieldObjectArray() {
+    void testConvertFieldObjectArrayOfBytes() {
         final String expected = String.class.getSimpleName();
         final byte[] bytes = expected.getBytes(StandardCharsets.UTF_8);
 
@@ -138,11 +142,20 @@ class ObjectStringFieldConverterTest {
     }
 
     @Test
+    void testConvertFieldObjectArrayOfStrings() {
+        final Object[] objectArray = new Object[]{ARRAY_STRING_ELEMENT, ARRAY_STRING_ELEMENT, ARRAY_STRING_ELEMENT};
+
+        final String string = CONVERTER.convertField(objectArray, Optional.empty(), FIELD_NAME);
+
+        assertEquals(ARRAY_STRING, string);
+    }
+
+    @Test
     void testConvertFieldObjectArrayEmpty() {
         final Object[] objectArray = new Object[0];
 
         final String string = CONVERTER.convertField(objectArray, Optional.empty(), FIELD_NAME);
-        assertEquals(EMPTY_STRING, string);
+        assertEquals(EMPTY_ARRAY_STRING, string);
     }
 
     private String getDateTimeZoneOffset() {
