@@ -760,6 +760,35 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
+    public void testArrayOfStringsToString() throws Exception {
+        final String inputJson = """
+            [{
+              "labels": [
+                "first", "second", "third"
+              ]
+            }]""";
+
+        final String labelsFieldName = "labels";
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField(labelsFieldName, RecordFieldType.STRING.getDataType())
+        ));
+
+        final StringBuilder labelsRead = new StringBuilder();
+        try (final InputStream in = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8));
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, recordSchema, dateFormat, timeFormat, timestampFormat,
+                     StartingFieldStrategy.ROOT_NODE, null, SchemaApplicationStrategy.SELECTED_PART, null, false, null)
+        ) {
+            final Record record = reader.nextRecord();
+            assertNotNull(record, "Record not found");
+
+            final String labels = record.getAsString(labelsFieldName);
+            labelsRead.append(labels);
+        }
+
+        assertEquals("[first, second, third]", labelsRead.toString());
+    }
+
+    @Test
     public void testMultipleInputRecordsWithStartingFieldSingleObject() throws Exception {
         final String inputJson = """
             {"book": {"id": 1,"title": "Book 1"}}
