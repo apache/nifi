@@ -29,6 +29,7 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.connection.PoolException;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -46,6 +47,7 @@ import org.springframework.lang.Nullable;
 import redis.clients.jedis.JedisPoolConfig;
 
 import javax.net.ssl.SSLContext;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -425,7 +427,12 @@ public class RedisUtils {
         }
 
         // need to call this to initialize the pool/connections
-        connectionFactory.afterPropertiesSet();
+        try {
+            connectionFactory.afterPropertiesSet();
+        } catch (PoolException e) {
+            LOGGER.warn("Could not pre-warm Redis pool (no Redis running?) – will connect lazily", e);
+        }
+
         return connectionFactory;
     }
 

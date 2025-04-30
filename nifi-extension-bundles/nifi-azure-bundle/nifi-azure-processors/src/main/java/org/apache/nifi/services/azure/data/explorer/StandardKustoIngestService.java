@@ -18,6 +18,7 @@ package org.apache.nifi.services.azure.data.explorer;
 
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultColumn;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -164,13 +165,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             }
         }
         if (this.executionClient != null) {
-            try {
-                this.executionClient.close();
-            } catch (IOException e) {
-                getLogger().error("Closing Azure Data Explorer Execution Client failed", e);
-            } finally {
-                this.executionClient = null;
-            }
+            this.executionClient = null;
         }
     }
 
@@ -319,14 +314,16 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
         KustoIngestQueryResponse kustoIngestQueryResponse;
         try {
-            KustoResultSetTable kustoResultSetTable = this.executionClient.execute(databaseName, query).getPrimaryResults();
-            Map<Integer, List<String>> response = new HashMap<>();
+            final KustoOperationResult kustoOperationResult = this.executionClient.executeQuery(databaseName, query);
+            final KustoResultSetTable kustoResultSetTable = kustoOperationResult.getPrimaryResults();
+
+            final Map<Integer, List<String>> response = new HashMap<>();
             int rowCount = 0;
 
             // Add the received values to the new ingestion resources
             while (kustoResultSetTable.hasNext()) {
                 kustoResultSetTable.next();
-                List<String> rowData = new ArrayList<>();
+                final List<String> rowData = new ArrayList<>();
                 for (KustoResultColumn columnName : kustoResultSetTable.getColumns()) {
                     String data = kustoResultSetTable.getString(columnName.getOrdinal());
                     rowData.add(data);
