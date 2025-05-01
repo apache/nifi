@@ -18,7 +18,7 @@
     <parent>
         <artifactId>nifi-system-tests</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.4.0-SNAPSHOT</version>
+        <version>2.4.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -136,7 +136,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-bom</artifactId>
-                <version>2.4.0-SNAPSHOT</version>
+                <version>2.4.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -146,31 +146,31 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-client-dto</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-components</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-cluster-protocol</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-toolkit-client</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -191,61 +191,61 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-utils</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-server-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-cert-builder</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-per-process-group-logging</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-framework-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -289,124 +289,124 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-bootstrap</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-xml-processing</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jetty-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-server-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-provenance-repository-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-shared-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-authorizer-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions-services-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions-services-api-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions2-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-alternate-config-extensions-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-flow-action-reporter-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-provider-assembly</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
         </dependency>
 
         <!-- Python dependencies not already provided for Lib -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-py4j-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-extension-api</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-framework</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-test-extensions</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-test-extensions-nar</artifactId>
-            <version>2.4.0-SNAPSHOT</version>
+            <version>2.4.0</version>
             <type>nar</type>
         </dependency>
     </dependencies>
