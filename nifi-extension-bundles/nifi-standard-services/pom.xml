@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services-api-bom</artifactId>
-        <version>2.4.0</version>
+        <version>2.5.0-SNAPSHOT</version>
         <relativePath>../nifi-standard-services-api-bom</relativePath>
     </parent>
     <artifactId>nifi-standard-services</artifactId>
