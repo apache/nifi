@@ -31,6 +31,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.serialization.record.MockCsvRecordWriter;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -178,6 +179,51 @@ public class TestExecuteSQLRecord {
     public void testAutoCommitTrue() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         runner.setProperty(ExecuteSQL.AUTO_COMMIT, "true");
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
+    }
+
+    @Test
+    public void testFlowFileAttributeResolution() throws InitializationException, SQLException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException ignored) {
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        for (int i = 0; i < 2; i++) {
+            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
+        }
+
+        MockRecordWriter recordWriter = MockCsvRecordWriter.builder()
+                .withHeader("foo|bar|baz")
+                .quoteValues(false)
+                .withSeparator(attr -> attr.getOrDefault("csv.separator", ","))
+                .build();
+
+        runner.addControllerService("writer", recordWriter);
+        runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.enableControllerService(recordWriter);
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.enqueue("", Map.of("csv.separator", "|"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
+        MockFlowFile out = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        out.assertContentEquals("""
+                foo|bar|baz
+                0|1|1
+                1|1|1
+                """);
     }
 
     @Test
@@ -463,7 +509,7 @@ public class TestExecuteSQLRecord {
             Object imageObj = avroRecord.get("IMAGE");
             assertNotNull(imageObj);
             assertInstanceOf(ByteBuffer.class, imageObj);
-            assertArrayEquals(new byte[] {(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
+            assertArrayEquals(new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
 
             Object wordsObj = avroRecord.get("WORDS");
             assertNotNull(wordsObj);
