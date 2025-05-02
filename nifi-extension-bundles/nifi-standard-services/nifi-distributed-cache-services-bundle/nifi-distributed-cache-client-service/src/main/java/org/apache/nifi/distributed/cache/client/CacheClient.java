@@ -20,6 +20,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.pool.ChannelPool;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.nifi.distributed.cache.client.adapter.InboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
@@ -60,7 +62,8 @@ public class CacheClient {
                           final VersionNegotiatorFactory factory,
                           final String identifier) {
         final String poolName = String.format("%s[%s]", getClass().getSimpleName(), identifier);
-        this.eventLoopGroup = new NioEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED));
+        this.eventLoopGroup = new MultiThreadIoEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED), NioIoHandler.newFactory());
+        //this.eventLoopGroup = new NioEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED));
         this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(
                 hostname, port, timeoutMillis, sslContextProvider, factory, eventLoopGroup);
     }

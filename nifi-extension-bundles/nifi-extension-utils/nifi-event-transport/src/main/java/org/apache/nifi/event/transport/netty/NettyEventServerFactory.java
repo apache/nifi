@@ -191,7 +191,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private void setChannelOptions(final AbstractBootstrap<?, ?> bootstrap) {
         if (socketReceiveBuffer != null) {
             bootstrap.option(ChannelOption.SO_RCVBUF, socketReceiveBuffer);
-            bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(socketReceiveBuffer));
+            bootstrap.option(ChannelOption.RECVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(socketReceiveBuffer));
         }
         if (socketKeepAlive != null) {
             bootstrap.option(ChannelOption.SO_KEEPALIVE, socketKeepAlive);
