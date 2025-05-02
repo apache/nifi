@@ -63,7 +63,6 @@ public class CacheClient {
                           final String identifier) {
         final String poolName = String.format("%s[%s]", getClass().getSimpleName(), identifier);
         this.eventLoopGroup = new MultiThreadIoEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED), NioIoHandler.newFactory());
-        //this.eventLoopGroup = new NioEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED));
         this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(
                 hostname, port, timeoutMillis, sslContextProvider, factory, eventLoopGroup);
     }
