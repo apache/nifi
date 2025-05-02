@@ -19,14 +19,7 @@ package org.apache.nifi.csv;
 
 import de.siegmar.fastcsv.writer.CsvWriter;
 import de.siegmar.fastcsv.writer.LineDelimiter;
-import de.siegmar.fastcsv.writer.QuoteStrategy;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import de.siegmar.fastcsv.writer.QuoteStrategies;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.QuoteMode;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -39,6 +32,14 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.apache.commons.csv.QuoteMode.MINIMAL;
 
 public class WriteFastCSVResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
@@ -48,18 +49,23 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
     private final String timeFormat;
     private final String timestampFormat;
 
-    CsvWriter csvWriter;
-
-    //Need to call flush() on the underlying writer
-    final OutputStreamWriter streamWriter;
+    private final CsvWriter csvWriter;
+    private final OutputStreamWriter streamWriter;
 
     private final String[] fieldValues;
     private final boolean includeHeaderLine;
     private boolean headerWritten = false;
     private String[] fieldNames;
 
-    public WriteFastCSVResult(final CSVFormat csvFormat, final RecordSchema recordSchema, final SchemaAccessWriter schemaWriter, final OutputStream out,
-                                 final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine, final String charSet) throws IOException {
+    public WriteFastCSVResult(final CSVFormat csvFormat,
+            final RecordSchema recordSchema,
+            final SchemaAccessWriter schemaWriter,
+            final OutputStream out,
+            final String dateFormat,
+            final String timeFormat,
+            final String timestampFormat,
+            final boolean includeHeaderLine,
+            final String charSet) throws IOException {
 
         super(out);
         this.recordSchema = recordSchema;
@@ -69,7 +75,8 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         this.timestampFormat = timestampFormat;
         this.includeHeaderLine = includeHeaderLine;
 
-        streamWriter = new OutputStreamWriter(out, charSet);
+        this.streamWriter = new OutputStreamWriter(out, charSet);
+
         CsvWriter.CsvWriterBuilder builder = CsvWriter.builder()
             .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter());
@@ -77,14 +84,15 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         QuoteMode quoteMode = (csvFormat.getQuoteMode() == null) ? MINIMAL : csvFormat.getQuoteMode();
         switch (quoteMode) {
             case ALL:
-                builder.quoteStrategy(QuoteStrategy.ALWAYS);
+                builder.quoteStrategy(QuoteStrategies.ALWAYS);
                 break;
+            case ALL_NON_NULL:
             case NON_NUMERIC:
-                builder.quoteStrategy(QuoteStrategy.NON_EMPTY);
+                builder.quoteStrategy(QuoteStrategies.NON_EMPTY);
                 break;
-            case MINIMAL:
-            case NONE:
-                builder.quoteStrategy(QuoteStrategy.REQUIRED);
+            default:
+                // MINIMAL or NONE → FastCSV's default (required)
+                break;
         }
 
         try {
@@ -95,22 +103,21 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         }
 
         if (csvFormat.getEscapeCharacter() != null && csvFormat.getEscapeCharacter() != '\"') {
-            throw new IOException("Escape character must be a double-quote character (\") per the FastCSV conformance to the RFC4180 specification");
+            throw new IOException("Escape character must be a double-quote character (\") per RFC-4180");
         }
 
-        csvWriter = builder.build(streamWriter);
-        fieldValues = new String[recordSchema.getFieldCount()];
+        this.csvWriter = builder.build(streamWriter);
+        this.fieldValues = new String[recordSchema.getFieldCount()];
     }
 
     private String getFormat(final RecordField field) {
         final DataType dataType = field.getDataType();
         return switch (dataType.getFieldType()) {
-            case DATE -> dateFormat;
-            case TIME -> timeFormat;
+        case DATE -> dateFormat;
+        case TIME -> timeFormat;
             case TIMESTAMP -> timestampFormat;
-            default -> dataType.getFormat();
+        default -> dataType.getFormat();
         };
-
     }
 
     @Override
@@ -120,7 +127,6 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
 
     @Override
     protected Map<String, String> onFinishRecordSet() throws IOException {
-        // If the header has not yet been written (but should be), write it out now
         includeHeaderIfNecessary(null, true);
         return schemaWriter.getAttributes(recordSchema);
     }
@@ -139,83 +145,63 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         if (fieldNames != null) {
             return fieldNames;
         }
-
-        final Set<String> allFields = new LinkedHashSet<>();
-        // The fields defined in the schema should be written first followed by extra ones.
+        Set<String> allFields = new LinkedHashSet<>();
         allFields.addAll(recordSchema.getFieldNames());
         allFields.addAll(record.getRawFieldNames());
         fieldNames = allFields.toArray(new String[0]);
         return fieldNames;
     }
 
-    private void includeHeaderIfNecessary(final Record record, final boolean includeOnlySchemaFields) throws IOException {
+    private void includeHeaderIfNecessary(final Record record, final boolean schemaOnly) throws IOException {
         if (headerWritten || !includeHeaderLine) {
             return;
         }
+        String[] names = schemaOnly
+                ? recordSchema.getFieldNames().toArray(new String[0])
+                : getFieldNames(record);
 
-        final String[] fieldNames;
-        if (includeOnlySchemaFields) {
-            fieldNames = recordSchema.getFieldNames().toArray(new String[0]);
-        } else {
-            fieldNames = getFieldNames(record);
-        }
-
-        csvWriter.writeRow(fieldNames);
+        csvWriter.writeRecord(names);
         headerWritten = true;
     }
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
-        // If we are not writing an active record set, then we need to ensure that we write the
-        // schema information.
         if (!isActiveRecordSet()) {
             schemaWriter.writeHeader(recordSchema, getOutputStream());
         }
-
         includeHeaderIfNecessary(record, true);
 
         int i = 0;
-        for (final RecordField recordField : recordSchema.getFields()) {
-            String fieldValue = getFieldValue(record, recordField);
-            fieldValues[i++] = fieldValue;
+        for (RecordField field : recordSchema.getFields()) {
+            fieldValues[i++] = record.getAsString(field, getFormat(field));
         }
 
-        csvWriter.writeRow(fieldValues);
+        csvWriter.writeRecord(fieldValues);
         return schemaWriter.getAttributes(recordSchema);
-    }
-
-    private String getFieldValue(final Record record, final RecordField recordField) {
-        return record.getAsString(recordField, getFormat(recordField));
     }
 
     @Override
     public WriteResult writeRawRecord(final Record record) throws IOException {
-        // If we are not writing an active record set, then we need to ensure that we write the
-        // schema information.
         if (!isActiveRecordSet()) {
             schemaWriter.writeHeader(recordSchema, getOutputStream());
         }
-
         includeHeaderIfNecessary(record, false);
 
-        final String[] fieldNames = getFieldNames(record);
-        // Avoid creating a new Object[] for every Record if we can. But if the record has a different number of columns than does our
-        // schema, we don't have a lot of options here, so we just create a new Object[] in that case.
-        final String[] recordFieldValues = (fieldNames.length == this.fieldValues.length) ? this.fieldValues : new String[fieldNames.length];
+        String[] names = getFieldNames(record);
+        String[] values = (names.length == fieldValues.length)
+                ? fieldValues
+                : new String[names.length];
 
         int i = 0;
-        for (final String fieldName : fieldNames) {
-            final Optional<RecordField> recordField = recordSchema.getField(fieldName);
-            if (recordField.isPresent()) {
-                recordFieldValues[i++] = record.getAsString(fieldName, getFormat(recordField.get()));
-            } else {
-                recordFieldValues[i++] = record.getAsString(fieldName);
-            }
+        for (String name : names) {
+            Optional<RecordField> rf = recordSchema.getField(name);
+            values[i++] = rf
+                    .map(f -> record.getAsString(f, getFormat(f)))
+                    .orElseGet(() -> record.getAsString(name));
         }
 
-        csvWriter.writeRow(recordFieldValues);
-        final Map<String, String> attributes = schemaWriter.getAttributes(recordSchema);
-        return WriteResult.of(incrementRecordCount(), attributes);
+        csvWriter.writeRecord(values);
+        return WriteResult.of(incrementRecordCount(), schemaWriter.getAttributes(recordSchema));
     }
 
     @Override
