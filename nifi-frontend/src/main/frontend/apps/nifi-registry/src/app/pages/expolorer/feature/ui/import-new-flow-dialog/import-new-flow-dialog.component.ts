@@ -28,8 +28,8 @@ import { Store } from '@ngrx/store';
 import { createNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
 
-interface Data {
-    activeBucket: any;
+export interface ImportNewFlowDialogData {
+    activeBucket?: any;
     buckets: any;
 }
 
@@ -64,7 +64,7 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
     description = '';
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public data: Data,
+        @Inject(MAT_DIALOG_DATA) public data: ImportNewFlowDialogData,
         private store: Store
     ) {
         super();
