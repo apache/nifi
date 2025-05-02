@@ -19,7 +19,17 @@ package org.apache.nifi.csv;
 
 import de.siegmar.fastcsv.reader.CommentStrategy;
 import de.siegmar.fastcsv.reader.CsvReader;
-import de.siegmar.fastcsv.reader.CsvRow;
+import de.siegmar.fastcsv.reader.CsvRecord;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,30 +43,30 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
 
 public class FastCSVRecordReader extends AbstractCSVRecordReader {
-    private final CsvReader csvReader;
-    private final Iterator<CsvRow> csvRowIterator;
+
+    private final CsvReader<CsvRecord> csvReader;
+    private final Iterator<CsvRecord> csvRecordIterator;
 
     private List<RecordField> recordFields;
-
     private Map<String, Integer> headerMap;
 
     private final boolean ignoreHeader;
     private final boolean trimDoubleQuote;
     private final CSVFormat csvFormat;
 
-    public FastCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                               final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
+    public FastCSVRecordReader(final InputStream in,
+            final ComponentLog logger,
+            final RecordSchema schema,
+            final CSVFormat csvFormat,
+            final boolean hasHeader,
+            final boolean ignoreHeader,
+            final String dateFormat,
+            final String timeFormat,
+            final String timestampFormat,
+            final String encoding,
+            final boolean trimDoubleQuote) throws IOException {
         super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
         this.ignoreHeader = ignoreHeader;
         this.trimDoubleQuote = trimDoubleQuote;
@@ -66,8 +76,8 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
             .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter())
                 .commentStrategy(CommentStrategy.SKIP)
-                .skipEmptyRows(csvFormat.getIgnoreEmptyLines())
-                .errorOnDifferentFieldCount(!csvFormat.getAllowMissingColumnNames());
+                .skipEmptyLines(csvFormat.getIgnoreEmptyLines())
+                .ignoreDifferentFieldCount(csvFormat.getAllowMissingColumnNames());
 
         if (csvFormat.getCommentMarker() != null) {
             builder.commentCharacter(csvFormat.getCommentMarker());
@@ -82,23 +92,26 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
             }
         }
 
-        csvReader = builder.build(new InputStreamReader(in, encoding));
-        csvRowIterator = csvReader.iterator();
+        this.csvReader = builder.ofCsvRecord(new InputStreamReader(in, encoding));
+        this.csvRecordIterator = csvReader.iterator();
     }
 
     @Override
-    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields)
+            throws IOException, MalformedRecordException {
 
         try {
             final RecordSchema schema = getSchema();
-
             final List<RecordField> recordFields = getRecordFields();
             final int numFieldNames = recordFields.size();
-            if (!csvRowIterator.hasNext()) {
+
+            if (!csvRecordIterator.hasNext()) {
                 return null;
             }
-            final CsvRow csvRecord = csvRowIterator.next();
+
+            final CsvRecord csvRecord = csvRecordIterator.next();
             final Map<String, Object> values = new LinkedHashMap<>(recordFields.size() * 2);
+
             for (int i = 0; i < csvRecord.getFieldCount(); i++) {
                 String rawValue = csvRecord.getField(i);
                 if (csvFormat.getTrim()) {
@@ -108,28 +121,20 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
                     rawValue = trim(rawValue);
                 }
 
-                final String rawFieldName;
-                final DataType dataType;
                 if (i >= numFieldNames) {
                     if (!dropUnknownFields) {
                         values.put("unknown_field_index_" + i, rawValue);
                     }
                     continue;
-                } else {
-                    final RecordField recordField = recordFields.get(i);
-                    rawFieldName = recordField.getFieldName();
-                    dataType = recordField.getDataType();
                 }
 
-                final Object value;
-                if (coerceTypes) {
-                    value = convert(rawValue, dataType, rawFieldName);
-                } else {
-                    // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
-                    // dictate a field type. As a result, we will use the schema that we have to attempt to convert
-                    // the value into the desired type if it's a simple type.
-                    value = convertSimpleIfPossible(rawValue, dataType, rawFieldName);
-                }
+                final RecordField recordField = recordFields.get(i);
+                final String rawFieldName = recordField.getFieldName();
+                final DataType dataType = recordField.getDataType();
+
+                final Object value = coerceTypes
+                        ? convert(rawValue, dataType, rawFieldName)
+                        : convertSimpleIfPossible(rawValue, dataType, rawFieldName);
 
                 values.putIfAbsent(rawFieldName, value);
             }
@@ -140,10 +145,9 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
         }
     }
 
-
     private List<RecordField> getRecordFields() {
-        if (this.recordFields != null) {
-            return this.recordFields;
+        if (recordFields != null) {
+            return recordFields;
         }
 
         if (ignoreHeader) {
@@ -152,39 +156,33 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
                     + "have the same number of fields, as this is not conformant to RFC-4180");
         }
 
-        // When getting the field names from the first record, it has to be read in
-        if (!csvRowIterator.hasNext()) {
+        if (!csvRecordIterator.hasNext()) {
             return Collections.emptyList();
         }
-        CsvRow headerRow = csvRowIterator.next();
+
+        // read header row
+        CsvRecord headerRecord = csvRecordIterator.next();
         headerMap = new HashMap<>();
-        for (int i = 0; i < headerRow.getFieldCount(); i++) {
-            String rawValue = headerRow.getField(i);
+        for (int i = 0; i < headerRecord.getFieldCount(); i++) {
+            String rawValue = headerRecord.getField(i);
             if (csvFormat.getTrim()) {
                 rawValue = rawValue.trim();
             }
-            if (this.trimDoubleQuote) {
+            if (trimDoubleQuote) {
                 rawValue = trim(rawValue);
             }
             headerMap.put(rawValue, i);
         }
 
-
-        // Use a SortedMap keyed by index of the field so that we can get a List of field names in the correct order
-        final SortedMap<Integer, String> sortedMap = new TreeMap<>();
-        for (final Map.Entry<String, Integer> entry : headerMap.entrySet()) {
+        SortedMap<Integer, String> sortedMap = new TreeMap<>();
+        for (Map.Entry<String, Integer> entry : headerMap.entrySet()) {
             sortedMap.put(entry.getValue(), entry.getKey());
         }
 
-        final List<RecordField> fields = new ArrayList<>();
-        final List<String> rawFieldNames = new ArrayList<>(sortedMap.values());
-        for (final String rawFieldName : rawFieldNames) {
-            final Optional<RecordField> option = schema.getField(rawFieldName);
-            if (option.isPresent()) {
-                fields.add(option.get());
-            } else {
-                fields.add(new RecordField(rawFieldName, RecordFieldType.STRING.getDataType()));
-            }
+        List<RecordField> fields = new ArrayList<>();
+        for (String rawFieldName : new ArrayList<>(sortedMap.values())) {
+            Optional<RecordField> optField = getSchema().getField(rawFieldName);
+            fields.add(optField.orElseGet(() -> new RecordField(rawFieldName, RecordFieldType.STRING.getDataType())));
         }
 
         this.recordFields = fields;
