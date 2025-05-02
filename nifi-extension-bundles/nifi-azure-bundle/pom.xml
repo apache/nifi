@@ -28,7 +28,7 @@
 
     <properties>
         <!-- when changing the Azure SDK version, also update msal4j to the version that is required by azure-identity -->
-        <azure.sdk.bom.version>1.2.33</azure.sdk.bom.version>
+        <azure.sdk.bom.version>1.2.34</azure.sdk.bom.version>
         <msal4j.version>1.19.1</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
