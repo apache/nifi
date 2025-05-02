@@ -112,11 +112,6 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
         if (this.kustoClient == null) {
             getLogger().debug("Kusto Client not configured");
         } else {
-            try {
-                this.kustoClient.close();
-            } catch (final Exception e) {
-                getLogger().error("Kusto Client close failed", e);
-            }
             this.kustoClient = null;
         }
     }
