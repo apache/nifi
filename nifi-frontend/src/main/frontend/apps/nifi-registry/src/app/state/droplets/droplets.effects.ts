@@ -28,8 +28,15 @@ import { DropletsService } from '../../service/droplets.service';
 import * as DropletsActions from './droplets.actions';
 import { DeleteDropletDialogComponent } from '../../pages/expolorer/feature/ui/delete-droplet-dialog/delete-droplet-dialog.component';
 import { ImportNewFlowDialogComponent } from '../../pages/expolorer/feature/ui/import-new-flow-dialog/import-new-flow-dialog.component';
-import { ImportNewFlowVersionDialogComponent } from '../../pages/expolorer/feature/ui/import-new-flow-version-dialog/import-new-flow-version-dialog.component';
-import { ExportFlowVersionDialogComponent } from '../../pages/expolorer/feature/ui/export-flow-version-dialog/export-flow-version-dialog.component';
+import { ImportNewFlowDialogData } from '../../pages/expolorer/feature/ui/import-new-flow-dialog/import-new-flow-dialog.component';
+import {
+    ImportNewFlowVersionDialogComponent,
+    ImportNewFlowVersionDialogData
+} from '../../pages/expolorer/feature/ui/import-new-flow-version-dialog/import-new-flow-version-dialog.component';
+import {
+    ExportFlowVersionDialogComponent,
+    ExportFlowVersionDialogData
+} from '../../pages/expolorer/feature/ui/export-flow-version-dialog/export-flow-version-dialog.component';
 import { FlowVersionsDialogComponent } from '../../pages/expolorer/feature/ui/flow-versions-dialog/flow-versions-dialog.component';
 import { ErrorHelper } from '../../service/error-helper.service';
 import * as ErrorActions from '../../state/error/error.actions';
@@ -74,11 +81,14 @@ export class DropletsEffects {
             this.actions$.pipe(
                 ofType(DropletsActions.openDeleteDropletDialog),
                 tap(({ request }) => {
-                    this.dialog.open(DeleteDropletDialogComponent, {
-                        ...SMALL_DIALOG,
-                        autoFocus: false,
-                        data: request
-                    });
+                    this.dialog.open<DeleteDropletDialogComponent, ExportFlowVersionDialogData>(
+                        DeleteDropletDialogComponent,
+                        {
+                            ...SMALL_DIALOG,
+                            autoFocus: false,
+                            data: request
+                        }
+                    );
                 })
             ),
         { dispatch: false }
@@ -112,14 +122,17 @@ export class DropletsEffects {
                 ofType(DropletsActions.openImportNewFlowDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    this.dialog.open(ImportNewFlowDialogComponent, {
-                        ...MEDIUM_DIALOG,
-                        autoFocus: false,
-                        data: {
-                            activeBucket: request.activeBucket,
-                            buckets: request.buckets
+                    this.dialog.open<ImportNewFlowDialogComponent, ImportNewFlowDialogData>(
+                        ImportNewFlowDialogComponent,
+                        {
+                            ...MEDIUM_DIALOG,
+                            autoFocus: false,
+                            data: {
+                                activeBucket: request.activeBucket,
+                                buckets: request.buckets
+                            }
                         }
-                    });
+                    );
                 })
             ),
         { dispatch: false }
@@ -164,7 +177,7 @@ export class DropletsEffects {
 
     importNewFlowSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(DropletsActions.deleteDropletSuccess),
+            ofType(DropletsActions.importNewFlowSuccess),
             switchMap(() => of(DropletsActions.loadDroplets()))
         )
     );
@@ -175,13 +188,16 @@ export class DropletsEffects {
                 ofType(DropletsActions.openImportNewFlowVersionDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    this.dialog.open(ImportNewFlowVersionDialogComponent, {
-                        ...MEDIUM_DIALOG,
-                        autoFocus: false,
-                        data: {
-                            droplet: request.droplet
+                    this.dialog.open<ImportNewFlowVersionDialogComponent, ImportNewFlowVersionDialogData>(
+                        ImportNewFlowVersionDialogComponent,
+                        {
+                            ...MEDIUM_DIALOG,
+                            autoFocus: false,
+                            data: {
+                                droplet: request.droplet
+                            }
                         }
-                    });
+                    );
                 })
             ),
         { dispatch: false }
@@ -193,13 +209,16 @@ export class DropletsEffects {
                 ofType(DropletsActions.openExportFlowVersionDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    this.dialog.open(ExportFlowVersionDialogComponent, {
-                        ...MEDIUM_DIALOG,
-                        autoFocus: false,
-                        data: {
-                            droplet: request.droplet
+                    this.dialog.open<ExportFlowVersionDialogComponent, ExportFlowVersionDialogData>(
+                        ExportFlowVersionDialogComponent,
+                        {
+                            ...MEDIUM_DIALOG,
+                            autoFocus: false,
+                            data: {
+                                droplet: request.droplet
+                            }
                         }
-                    });
+                    );
                 })
             ),
         { dispatch: false }
@@ -243,10 +262,7 @@ export class DropletsEffects {
     exportFlowVersionSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(DropletsActions.exportFlowVersionSuccess),
-            map((action) => action.response),
-            map(({ response }) => {
-                return response;
-            })
+            switchMap(() => of(DropletsActions.loadDroplets()))
         )
     );
 
