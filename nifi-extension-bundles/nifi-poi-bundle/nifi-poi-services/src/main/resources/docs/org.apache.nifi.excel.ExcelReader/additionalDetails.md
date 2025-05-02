@@ -36,7 +36,7 @@ type, an Exception will be thrown.
 
 The following rules apply when attempting to coerce a field value from one data type to another:
 
-* Any data type can be coerced into a String type. Please note Excel stores all numbers as a double. A large number coerced to a string will result in a string representation of the number in scientific notation. If this is not desired, then coerce the number to a long numeric type.
+* Any data type can be coerced into a String type. Please note Excel stores all numbers as a Double. A large number coerced to a String will result in a string representation of the number in scientific notation. If this is not desired, then coerce the number to a Long numeric type.
 * Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.
 * Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number
   of milliseconds since epoch (Midnight GMT, January 1, 1970).
