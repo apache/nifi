@@ -27,7 +27,7 @@ import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/dro
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { MatButtonModule } from '@angular/material/button';
 
-interface Data {
+export interface ExportFlowVersionDialogData {
     droplet: Droplets;
 }
 
@@ -43,7 +43,7 @@ export class ExportFlowVersionDialogComponent extends CloseOnEscapeDialog {
     selectedVersion: number;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public data: Data,
+        @Inject(MAT_DIALOG_DATA) public data: ExportFlowVersionDialogData,
         private store: Store
     ) {
         super();
