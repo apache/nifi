@@ -39,12 +39,12 @@
 
  html {
     @include app.generate-material-theme();
-     @include app-component.generate-theme();
-     @include header.generate-theme();
+    @include app-component.generate-theme();
+    @include header.generate-theme();
 
      .dark-theme {
-         @include app.generate-material-theme();
-         @include app-component.generate-theme();
-         @include header.generate-theme();
+        @include app.generate-material-theme();
+        @include app-component.generate-theme();
+        @include header.generate-theme();
      }
  }

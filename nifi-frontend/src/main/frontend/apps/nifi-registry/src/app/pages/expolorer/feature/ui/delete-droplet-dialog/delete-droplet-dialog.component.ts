@@ -24,7 +24,7 @@ import { deleteDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplet
 import { Droplets } from 'apps/nifi-registry/src/app/state/droplets';
 import { MatButtonModule } from '@angular/material/button';
 
-interface Data {
+interface DeleteDropletDialogData {
     droplet: Droplets;
 }
 
@@ -39,7 +39,7 @@ export class DeleteDropletDialogComponent extends CloseOnEscapeDialog {
     droplet: Droplets;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public data: Data,
+        @Inject(MAT_DIALOG_DATA) public data: DeleteDropletDialogData,
         private store: Store
     ) {
         super();
