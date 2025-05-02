@@ -361,8 +361,9 @@ public class TestExcelRecordReader {
         final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, workbook, logger);
         final List<Record> records = getRecords(recordReader, true, true);
         final Record firstRecord = records.getFirst();
+        final String scientificNotationNumber = "9.87654321E9";
 
-        assertEquals("9.87654321E9", firstRecord.getAsString(fieldName));
+        assertEquals(scientificNotationNumber, firstRecord.getAsString(fieldName));
     }
 
     private static InputStream createWorkbook(Object[][] data) throws Exception {
