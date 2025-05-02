@@ -27,8 +27,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
 
-interface Data {
+export interface ImportNewFlowVersionDialogData {
+    activeBucket?: Bucket;
     droplet: Droplets;
 }
 
@@ -66,7 +68,7 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
     comments = '';
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public data: Data,
+        @Inject(MAT_DIALOG_DATA) public data: ImportNewFlowVersionDialogData,
         private formBuilder: FormBuilder,
         private store: Store
     ) {
