@@ -23,6 +23,7 @@ import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFact
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.NiFiProperties;
+import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.server.HostHeaderCustomizer;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
@@ -56,6 +57,8 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
 
     private final Set<Integer> validPorts;
 
+    private final String httpCompliance;
+
     private SslContextFactory.Server sslContextFactory;
 
     /**
@@ -69,6 +72,7 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
 
         includeCipherSuites = properties.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE);
         excludeCipherSuites = properties.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE);
+        httpCompliance = properties.getProperty(NiFiProperties.WEB_HTTP_COMPLIANCE);
         headerSize = DataUnit.parseDataSize(properties.getWebMaxHeaderSize(), DataUnit.B).intValue();
         validPorts = getValidPorts(properties);
 
@@ -104,6 +108,9 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
 
         final HostPortValidatorCustomizer hostPortValidatorCustomizer = new HostPortValidatorCustomizer(validPorts);
         httpConfiguration.addCustomizer(hostPortValidatorCustomizer);
+        if (StringUtils.isNotEmpty(httpCompliance)) {
+            httpConfiguration.setHttpCompliance(HttpCompliance.from(httpCompliance));
+        }
 
         return httpConfiguration;
     }
