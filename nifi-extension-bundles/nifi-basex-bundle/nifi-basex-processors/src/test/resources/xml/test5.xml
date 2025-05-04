@@ -1,0 +1,14 @@
+<library>
+    <book>
+        <title>Everyday Italian</title>
+        <author>Giada De Laurentiis</author>
+    </book>
+    <book>
+        <title>Harry Potter</title>
+        <author>J.K. Rowling</author>
+    </book>
+    <book>
+        <title>Effective Java</title>
+        <author>Joshua Bloch</author>
+    </book>
+</library>
