@@ -349,6 +349,23 @@ public class TestExcelRecordReader {
         assertDoesNotThrow(() -> getRecords(recordReader, true, true));
     }
 
+    @Test
+    void testWhereLongSpecifiedInSchemaAsString() throws Exception {
+        final String fieldName = "Phone";
+        final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField(fieldName, RecordFieldType.STRING.getDataType())));
+        final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(schema)
+                .build();
+        final Object[][] data = {{9876543210L}};
+        final InputStream workbook = createWorkbook(data);
+        final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, workbook, logger);
+        final List<Record> records = getRecords(recordReader, true, true);
+        final Record firstRecord = records.getFirst();
+        final String scientificNotationNumber = "9.87654321E9";
+
+        assertEquals(scientificNotationNumber, firstRecord.getAsString(fieldName));
+    }
+
     private static InputStream createWorkbook(Object[][] data) throws Exception {
         final ByteArrayOutputStream workbookOutputStream = new ByteArrayOutputStream();
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
