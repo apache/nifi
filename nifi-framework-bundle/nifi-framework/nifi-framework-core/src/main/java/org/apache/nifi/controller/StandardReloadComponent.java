@@ -80,12 +80,8 @@ public class StandardReloadComponent implements ReloadComponent {
         final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(),
             stateManager, () -> false, flowController);
 
-        // call OnRemoved for the existing processor using the previous instance class loader
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
-        } finally {
-            extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
-        }
+        // Cleanup the URL ClassLoader for the existing processor instance.
+        extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
 
         // Ensure that we notify the Python Bridge that we're removing the old processor, if the Processor is Python based.
         // This way we can shutdown the Process if necessary before creating a new processor (which may then spawn a new process).
