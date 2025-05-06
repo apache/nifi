@@ -31,6 +31,7 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,11 +52,13 @@ class SmbjClientService implements SmbClientService {
     private final Session session;
     private final DiskShare share;
     private final URI serviceLocation;
+    private final ComponentLog logger;
 
-    SmbjClientService(final Session session, final DiskShare share, final URI serviceLocation) {
+    SmbjClientService(final Session session, final DiskShare share, final URI serviceLocation, final ComponentLog logger) {
         this.session = session;
         this.share = share;
         this.serviceLocation = serviceLocation;
+        this.logger = logger;
     }
 
     @Override
@@ -72,7 +75,22 @@ class SmbjClientService implements SmbClientService {
     @Override
     public Stream<SmbListableEntity> listFiles(final String directoryPath) {
         return Stream.of(directoryPath).flatMap(path -> {
-            final Directory directory = openDirectory(path);
+            final Directory directory;
+            try {
+                directory = openDirectory(path);
+            } catch (SMBApiException e) {
+                if (e.getStatus() == NtStatus.STATUS_ACCESS_DENIED) {
+                    logger.warn("Could not list directory [{}/{}] because the user does not have access to it.", serviceLocation, path, e);
+                    return Stream.empty();
+                } else if (e.getStatus() == NtStatus.STATUS_BAD_NETWORK_NAME) {
+                    // DFS resolution may return STATUS_BAD_NETWORK_NAME if the user does not have access at share level
+                    logger.warn("Could not list directory [{}/{}] because the share does not exist or the user does not have access to it.", serviceLocation, path, e);
+                    return Stream.empty();
+                } else {
+                    throw e;
+                }
+            }
+
             return stream(directory::spliterator, 0, false)
                     .map(entity -> buildSmbListableEntity(entity, path, serviceLocation))
                     .filter(entity -> !specialDirectory(entity))
