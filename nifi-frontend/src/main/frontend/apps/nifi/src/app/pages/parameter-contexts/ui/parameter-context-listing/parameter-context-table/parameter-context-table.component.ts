@@ -87,21 +87,29 @@ export class ParameterContextTable {
     }
 
     formatProcessGroups(entity: ParameterContextEntity): string {
-        return this.canRead(entity) && entity.component ? this.getHighLevelProcessGroups(entity.component) : '';
+        const highLevelProcessGroups = this.getHighLevelProcessGroups(entity);
+        return highLevelProcessGroups.length <= 1
+            ? highLevelProcessGroups.toString()
+            : highLevelProcessGroups.length.toString();
     }
 
-    private getHighLevelProcessGroups(component: ParameterContext): string {
+    formatProcessGroupNames(entity: ParameterContextEntity): string {
+        const highLevelProcessGroups = this.getHighLevelProcessGroups(entity);
+        return highLevelProcessGroups.sort((a, b) => this.nifiCommon.compareString(a, b)).join('\n');
+    }
+
+    private getHighLevelProcessGroups(entity: ParameterContextEntity): string[] {
+        if (!this.canRead(entity) || entity.component === undefined) {
+            return [];
+        }
+        const component: ParameterContext = entity.component;
         const allowedProcessGroups: BoundProcessGroup[] = component.boundProcessGroups.filter(
             (group) => group.permissions.canRead
         );
         const componentIds: string[] = allowedProcessGroups.map((group) => group.component.id);
-        const boundProcessGroupNames: string[] = allowedProcessGroups
+        return allowedProcessGroups
             .filter((group) => !componentIds.includes(group.component.parentGroupId))
             .map((group) => group.component.name);
-
-        return boundProcessGroupNames.length <= 1
-            ? boundProcessGroupNames.toString()
-            : boundProcessGroupNames.length.toString();
     }
 
     editClicked(entity: ParameterContextEntity): void {
