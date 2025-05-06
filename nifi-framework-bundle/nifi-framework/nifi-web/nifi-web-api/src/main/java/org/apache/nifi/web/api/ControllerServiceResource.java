@@ -77,6 +77,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupOptionEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupOptionsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
@@ -693,6 +694,10 @@ public class ControllerServiceResource extends ApplicationResource {
             throw new IllegalArgumentException("Controller service id must be specified.");
         }
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
         AtomicReference<List<ProcessGroupOptionEntity>> options = new AtomicReference<>();
         serviceFacade.authorizeAccess(lookup -> {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -710,7 +715,10 @@ public class ControllerServiceResource extends ApplicationResource {
             }
         });
 
-        return generateOkResponse(options.get()).build();
+        ProcessGroupOptionsEntity processGroupOptionsEntity = new ProcessGroupOptionsEntity();
+        processGroupOptionsEntity.setProcessGroupOptionEntities(options.get());
+
+        return generateOkResponse(processGroupOptionsEntity).build();
     }
 
     /**

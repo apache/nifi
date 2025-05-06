@@ -83,4 +83,20 @@ public class ProcessGroupOptionEntity extends Entity {
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        return ((ProcessGroupOptionEntity) o).getValue().equals(getValue());
+    }
+
+    @Override
+    public int hashCode() {
+        return getValue().hashCode();
+    }
 }

@@ -666,37 +666,13 @@ export class ControllerServicesEffects {
                 map((action) => action.request),
                 switchMap((request) =>
                     from(this.controllerServiceService.getMoveOptions(request.controllerService.id)).pipe(
-                        map((response: SelectOption[]) => {
-                            const moveDialogReference = this.dialog.open(MoveControllerService, {
-                                ...LARGE_DIALOG,
-                                data: {
-                                    controllerService: request.controllerService,
-                                    options: response
-                                }
-                            });
-
-                            moveDialogReference.componentInstance.goToReferencingComponent = (
-                                component: ControllerServiceReferencingComponent
-                            ) => {
-                                const route: string[] = this.getRouteForReference(component);
-                                this.router.navigate(route);
-                            };
-
-                            moveDialogReference.afterClosed().subscribe((response) => {
-                                if (response != 'ROUTED') {
-                                    this.store.dispatch(
-                                        ControllerServicesActions.loadControllerServices({
-                                            request: {
-                                                processGroupId: request.controllerService.parentGroupId!
-                                            }
-                                        })
-                                    );
-                                }
-                            });
+                        map((response) => {
+                            console.log(response);
+                            console.log(request);
+                            return { request, options: response.processGroupOptionEntities };
                         }),
                         tap({
                             error: (errorResponse: HttpErrorResponse) => {
-                                this.dialog.closeAll();
                                 this.store.dispatch(
                                     ErrorActions.snackBarError({
                                         error: this.errorHelper.getErrorString(errorResponse)
@@ -705,7 +681,33 @@ export class ControllerServicesEffects {
                             }
                         })
                     )
-                )
+                ),
+                tap(({ request, options }) => {
+                    const moveDialogReference = this.dialog.open(MoveControllerService, {
+                        ...LARGE_DIALOG,
+                        data: {
+                            controllerService: request.controllerService,
+                            options
+                        }
+                    });
+                    moveDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+                    moveDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(
+                                ControllerServicesActions.loadControllerServices({
+                                    request: {
+                                        processGroupId: request.controllerService.parentGroupId!
+                                    }
+                                })
+                            );
+                        }
+                    });
+                })
             ),
         { dispatch: false }
     );
