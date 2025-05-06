@@ -443,7 +443,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
-        final SmbClientService clientService = clientProviderService.getClient();
+        final SmbClientService clientService = clientProviderService.getClient(getLogger());
         return clientService.listFiles(directory).onClose(() -> {
             try {
                 clientService.close();
