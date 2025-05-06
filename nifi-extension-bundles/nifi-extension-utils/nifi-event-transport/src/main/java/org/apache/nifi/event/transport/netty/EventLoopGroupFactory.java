@@ -17,7 +17,8 @@
 package org.apache.nifi.event.transport.netty;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.Objects;
@@ -54,7 +55,7 @@ class EventLoopGroupFactory {
     }
 
     protected EventLoopGroup getEventLoopGroup() {
-        return new NioEventLoopGroup(workerThreads, getThreadFactory());
+        return new MultiThreadIoEventLoopGroup(workerThreads, getThreadFactory(), NioIoHandler.newFactory());
     }
 
     private ThreadFactory getThreadFactory() {
