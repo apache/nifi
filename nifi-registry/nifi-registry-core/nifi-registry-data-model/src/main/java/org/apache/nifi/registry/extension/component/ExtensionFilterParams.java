@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.extension;
+package org.apache.nifi.registry.extension.component;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.extension.manifest.ExtensionType;

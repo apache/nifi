@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.registry.web.link;
 
+import jakarta.ws.rs.core.Link;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;
@@ -33,8 +35,6 @@ import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;
 import org.springframework.stereotype.Service;
 
-import jakarta.ws.rs.core.Link;
-import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;

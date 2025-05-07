@@ -14,12 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.extension;
+package org.apache.nifi.registry.extension.component;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
 import jakarta.ws.rs.core.Link;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -31,6 +28,10 @@ import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.link.LinkAdapter;
 import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, Comparable<ExtensionMetadata> {
 

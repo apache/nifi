@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.service;
 
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntity;
 import org.apache.nifi.registry.db.entity.BundleEntity;
@@ -28,8 +29,7 @@ import org.apache.nifi.registry.db.entity.FlowSnapshotEntity;
 import org.apache.nifi.registry.db.entity.TagCountEntity;
 import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
 
 import java.util.List;
 import java.util.Set;
