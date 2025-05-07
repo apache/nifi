@@ -667,8 +667,6 @@ export class ControllerServicesEffects {
                 switchMap((request) =>
                     from(this.controllerServiceService.getMoveOptions(request.controllerService.id)).pipe(
                         map((response) => {
-                            console.log(response);
-                            console.log(request);
                             return { request, options: response.processGroupOptionEntities };
                         }),
                         tap({
