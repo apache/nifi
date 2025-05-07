@@ -644,6 +644,9 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             case ProcessGroup:
                 authorizable = getProcessGroup(componentId).getAuthorizable();
                 break;
+            case RegistryClient:
+                authorizable = getFlowRegistryClient(componentId).getAuthorizable();
+                break;
             case RemoteProcessGroup:
                 authorizable = getRemoteProcessGroup(componentId);
                 break;

@@ -99,7 +99,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public Resource getResource() {
-        return ResourceFactory.getComponentResource(ResourceType.Controller, getIdentifier(), getName());
+        return ResourceFactory.getComponentResource(ResourceType.RegistryClient, getIdentifier(), getName());
     }
 
     @Override
