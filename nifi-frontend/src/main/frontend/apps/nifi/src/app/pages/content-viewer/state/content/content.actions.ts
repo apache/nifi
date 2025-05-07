@@ -16,6 +16,8 @@
  */
 
 import { createAction, props } from '@ngrx/store';
+import { loadSideBarDataRequestSuccess } from './index';
+import { DownloadFlowFileContentRequest } from '../../../queue/state/queue-listing';
 
 export const setRef = createAction('[Content] Set Ref', props<{ ref: string }>());
 
@@ -25,3 +27,20 @@ export const navigateToBundledContentViewer = createAction(
 );
 
 export const resetContent = createAction('[Content] Reset Content');
+
+export const loadSideBarData = createAction('[Content] Load SideBar Data');
+
+export const loadSideBarDataSuccess = createAction(
+    '[Content] Load SideBar Data Success',
+    props<{ response: loadSideBarDataRequestSuccess }>()
+);
+
+export const downloadContentWithFlowFile = createAction(
+    '[Content] Download Content With FlowFile',
+    props<{ request: DownloadFlowFileContentRequest }>()
+);
+
+export const downloadContentWithEvent = createAction(
+    '[Content] Download Content With Event',
+    props<{ eventId: number; direction: string; clusterNodeId?: string }>()
+);
