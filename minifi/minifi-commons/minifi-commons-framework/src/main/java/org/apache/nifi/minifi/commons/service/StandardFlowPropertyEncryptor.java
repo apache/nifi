@@ -55,7 +55,7 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
     }
 
     @Override
-    public VersionedDataflow encryptSensitiveProperties(VersionedDataflow flow) {
+    public void encryptSensitiveProperties(VersionedDataflow flow) {
         encryptParameterContextsProperties(flow);
 
         Map<String, Set<String>> sensitivePropertiesByComponentType = Optional.of(flowProvidedSensitiveProperties(flow))
@@ -63,8 +63,6 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
             .orElseGet(this::runtimeManifestSensitiveProperties);
 
         encryptFlowComponentsProperties(flow, sensitivePropertiesByComponentType);
-
-        return flow;
     }
 
     private void encryptParameterContextsProperties(VersionedDataflow flow) {

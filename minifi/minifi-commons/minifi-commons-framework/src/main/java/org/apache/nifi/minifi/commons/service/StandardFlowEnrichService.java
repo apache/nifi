@@ -97,7 +97,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
     }
 
     @Override
-    public VersionedDataflow enrichFlow(VersionedDataflow versionedDataflow) {
+    public void enrichFlow(VersionedDataflow versionedDataflow) {
         versionedDataflow.setReportingTasks(ofNullable(versionedDataflow.getReportingTasks()).orElseGet(ArrayList::new));
         versionedDataflow.setRegistries(ofNullable(versionedDataflow.getRegistries()).orElseGet(ArrayList::new));
         versionedDataflow.setControllerServices(ofNullable(versionedDataflow.getControllerServices()).orElseGet(ArrayList::new));
@@ -147,8 +147,6 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             Map<String, String> idToInstanceIdMap = createIdToInstanceIdMap(rootGroup);
             setConnectableComponentsInstanceId(rootGroup, idToInstanceIdMap);
         }
-
-        return versionedDataflow;
     }
 
     private void createDefaultParameterContext(VersionedDataflow versionedDataflow) {

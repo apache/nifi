@@ -88,9 +88,9 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             backup(currentRawFlowConfigFile, backupRawFlowConfigFile);
 
             byte[] rawFlow = toByteArray(flowConfigInputStream);
-            VersionedDataflow rawDataFlow = flowSerDeService.deserialize(rawFlow);
-            VersionedDataflow enrichedFlow = flowEnrichService.enrichFlow(rawDataFlow);
-            byte[] serializedEnrichedFlow = flowSerDeService.serialize(enrichedFlow);
+            VersionedDataflow dataFlow = flowSerDeService.deserialize(rawFlow);
+            flowEnrichService.enrichFlow(dataFlow);
+            byte[] serializedEnrichedFlow = flowSerDeService.serialize(dataFlow);
             persist(serializedEnrichedFlow, currentFlowConfigFile, true);
             restartInstance();
             persist(rawFlow, currentRawFlowConfigFile, false);

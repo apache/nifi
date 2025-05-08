@@ -17,27 +17,16 @@
 
 package org.apache.nifi.minifi.c2.command.syncresource;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
-import org.apache.nifi.c2.protocol.api.ResourceItem;
+import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
+import java.util.Map;
 
-public interface ResourceRepository {
+public class SyncResourcePropertyProvider implements OperandPropertiesProvider {
 
-    ResourcesGlobalHash findResourcesGlobalHash();
+    private static final String RESOLVE_ASSET_REFERENCES = "resolveAssetReferences";
+    private static final Map<String, Object> PROPERTIES = Map.of(RESOLVE_ASSET_REFERENCES, Boolean.TRUE);
 
-    Optional<ResourcesGlobalHash> saveResourcesGlobalHash(ResourcesGlobalHash resourcesGlobalHash);
-
-    List<ResourceItem> findAllResourceItems();
-
-    boolean resourceItemBinaryPresent(ResourceItem resourceItem);
-
-    Optional<ResourceItem> addResourceItem(ResourceItem resourceItem);
-
-    Optional<ResourceItem> addResourceItem(ResourceItem resourceItem, Path source);
-
-    Optional<ResourceItem> deleteResourceItem(ResourceItem resourceItem);
-    Optional<Path> getAbsolutePath(String resourceId);
-
+    @Override
+    public Map<String, Object> getProperties() {
+        return PROPERTIES;
+    }
 }
