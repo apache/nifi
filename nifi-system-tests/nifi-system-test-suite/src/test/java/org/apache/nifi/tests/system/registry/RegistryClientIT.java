@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -369,4 +370,49 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("UP_TO_DATE", versionedFlowState);
     }
 
+    @Test
+    public void testStopVersionControlThenSetVersionControlInfo() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final ProcessGroupEntity group = getClientUtil().createProcessGroup("Test Set Version Control Info", "root");
+
+        final VersionControlInformationEntity vci = getClientUtil().startVersionControl(group, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
+
+        // Retrieve PG under version control and verify the PG's VCI
+        final ProcessGroupEntity groupAfterStartVersionControl = getNifiClient().getProcessGroupClient().getProcessGroup(group.getId());
+        assertNotNull(groupAfterStartVersionControl);
+        assertNotNull(groupAfterStartVersionControl.getComponent());
+        assertNotNull(groupAfterStartVersionControl.getComponent().getVersionControlInformation());
+        assertEquals(clientEntity.getId(), groupAfterStartVersionControl.getComponent().getVersionControlInformation().getRegistryId());
+        assertEquals(TEST_FLOWS_BUCKET, groupAfterStartVersionControl.getComponent().getVersionControlInformation().getBucketId());
+        assertEquals(vci.getVersionControlInformation().getFlowId(), groupAfterStartVersionControl.getComponent().getVersionControlInformation().getFlowId());
+        assertEquals(vci.getVersionControlInformation().getVersion(), groupAfterStartVersionControl.getComponent().getVersionControlInformation().getVersion());
+        assertEquals("UP_TO_DATE", groupAfterStartVersionControl.getComponent().getVersionControlInformation().getState());
+
+        // Stop version control
+        getNifiClient().getVersionsClient().stopVersionControl(groupAfterStartVersionControl);
+
+        // Retrieve PG again and verify no VCI present
+        final ProcessGroupEntity groupAfterStopVersionControl = getNifiClient().getProcessGroupClient().getProcessGroup(group.getId());
+        assertNotNull(groupAfterStopVersionControl);
+        assertNotNull(groupAfterStopVersionControl.getComponent());
+        assertNull(groupAfterStopVersionControl.getComponent().getVersionControlInformation());
+
+        // Submit PG update specifying VCI
+        final VersionControlInformationDTO setVersionInfo = new VersionControlInformationDTO();
+        setVersionInfo.setRegistryId(clientEntity.getId());
+        setVersionInfo.setBucketId(vci.getVersionControlInformation().getBucketId());
+        setVersionInfo.setFlowId(vci.getVersionControlInformation().getFlowId());
+        setVersionInfo.setVersion(vci.getVersionControlInformation().getVersion());
+        groupAfterStopVersionControl.getComponent().setVersionControlInformation(setVersionInfo);
+
+        final ProcessGroupEntity groupAfterSetVersionInfo = getNifiClient().getProcessGroupClient().updateProcessGroup(groupAfterStopVersionControl);
+        assertNotNull(groupAfterSetVersionInfo);
+        assertNotNull(groupAfterSetVersionInfo.getComponent());
+        assertNotNull(groupAfterSetVersionInfo.getComponent().getVersionControlInformation());
+        assertEquals(clientEntity.getId(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getRegistryId());
+        assertEquals(TEST_FLOWS_BUCKET, groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getBucketId());
+        assertEquals(vci.getVersionControlInformation().getFlowId(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getFlowId());
+        assertEquals(vci.getVersionControlInformation().getVersion(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getVersion());
+        assertEquals("UP_TO_DATE", groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getState());
+    }
 }

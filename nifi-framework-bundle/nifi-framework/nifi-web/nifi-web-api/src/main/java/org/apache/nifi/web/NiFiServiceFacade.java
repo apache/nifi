@@ -1279,6 +1279,16 @@ public interface NiFiServiceFacade {
     ProcessGroupEntity updateProcessGroup(Revision revision, ProcessGroupDTO processGroupDTO);
 
     /**
+     * Sets the version control info of an unversioned process group.
+     *
+     * @param revision Revision to compare with the current base version
+     * @param processGroupDTO The ProcessGroupDTO
+     * @param flowSnapshot The flow snapshot matching the given version control info
+     * @return the updated process group entity
+     */
+    ProcessGroupEntity setVersionControlInformation(Revision revision, ProcessGroupDTO processGroupDTO, RegisteredFlowSnapshot flowSnapshot);
+
+    /**
      * Verifies that the Process Group identified by the given DTO can be updated in the manner appropriate according
      * to the DTO
      *

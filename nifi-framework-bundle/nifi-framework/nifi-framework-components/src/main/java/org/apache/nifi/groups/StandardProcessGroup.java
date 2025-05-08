@@ -3642,15 +3642,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void disconnectVersionControl(final boolean removeVersionedComponentIds) {
+    public void disconnectVersionControl() {
         writeLock.lock();
         try {
             this.versionControlInfo.set(null);
-
-            if (removeVersionedComponentIds) {
-                // remove version component ids from each component (until another versioned PG is encountered)
-                applyVersionedComponentIds(this, id -> null);
-            }
         } finally {
             writeLock.unlock();
         }
