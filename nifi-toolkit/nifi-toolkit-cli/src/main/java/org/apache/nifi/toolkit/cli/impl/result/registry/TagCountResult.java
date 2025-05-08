@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
-import org.apache.nifi.extension.TagCount;
+import org.apache.nifi.registry.extension.component.TagCount;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;

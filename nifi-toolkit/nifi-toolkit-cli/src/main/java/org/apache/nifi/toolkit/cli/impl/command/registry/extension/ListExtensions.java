@@ -17,13 +17,13 @@
 package org.apache.nifi.toolkit.cli.impl.command.registry.extension;
 
 import org.apache.commons.cli.ParseException;
+import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.registry.client.ExtensionClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.ExtensionMetadataContainer;
-import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.ExtensionMetadataContainer;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
