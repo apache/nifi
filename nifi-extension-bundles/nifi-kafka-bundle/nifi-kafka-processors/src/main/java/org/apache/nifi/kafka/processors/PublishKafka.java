@@ -609,8 +609,8 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         @Override
         public void process(final InputStream in) {
-            try (final InputStream is = in) {
-                final Iterator<KafkaRecord> records = kafkaConverter.convert(attributes, is, inputLength);
+            try {
+                final Iterator<KafkaRecord> records = kafkaConverter.convert(attributes, in, inputLength);
                 producerService.send(records, publishContext);
             } catch (final Exception e) {
                 publishContext.setException(e); // on data pre-process failure, indicate this to controller service
