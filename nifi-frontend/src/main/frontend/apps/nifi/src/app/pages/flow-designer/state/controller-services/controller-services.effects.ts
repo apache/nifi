@@ -19,7 +19,21 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ControllerServicesActions from './controller-services.actions';
-import { catchError, combineLatest, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    combineLatest,
+    filter,
+    from,
+    interval,
+    map,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap,
+    throttleTime
+} from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -64,6 +78,8 @@ import { BackNavigation } from '../../../../state/navigation';
 import { ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, NiFiCommon, Storage } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
+import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
+import { DocumentVisibility } from '../../../../state/document-visibility';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -265,6 +281,37 @@ export class ControllerServicesEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    reloadControllerServices$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.reloadFlow),
+            throttleTime(1000),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, processGroupId]) => {
+                return of(
+                    ControllerServicesActions.loadControllerServices({
+                        request: {
+                            processGroupId: processGroupId
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    startControllerServicePolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.startControllerServicePolling),
+            switchMap(() =>
+                interval(30000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(ControllerServicesActions.stopControllerServicePolling)))
+                )
+            ),
+            concatLatestFrom(() => this.store.select(selectDocumentVisibilityState)),
+            filter(([, documentVisibility]) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
+            switchMap(() => of(ControllerServicesActions.reloadFlow()))
+        )
     );
 
     navigateToService$ = createEffect(

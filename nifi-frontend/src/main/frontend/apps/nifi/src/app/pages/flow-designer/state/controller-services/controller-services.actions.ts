@@ -127,6 +127,11 @@ export const deleteControllerServiceSuccess = createAction(
     '[Controller Services] Delete Controller Service Success',
     props<{ response: DeleteControllerServiceSuccess }>()
 );
+export const reloadFlow = createAction('[Controller Service] Reload Flow');
+
+export const startControllerServicePolling = createAction('[Controller Service] Start Controller Service Polling');
+
+export const stopControllerServicePolling = createAction('[Controller Service] Stop Controller Service Polling');
 
 export const selectControllerService = createAction(
     '[Controller Services] Select Controller Service',

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, Observable, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -40,7 +40,9 @@ import {
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
     resetControllerServicesState,
-    selectControllerService
+    selectControllerService,
+    startControllerServicePolling,
+    stopControllerServicePolling
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { ComponentType, isDefinedAndNotNull } from '@nifi/shared';
@@ -60,7 +62,7 @@ import { DocumentationRequest } from '../../../../state/documentation';
     styleUrls: ['./controller-services.component.scss'],
     standalone: false
 })
-export class ControllerServices implements OnDestroy {
+export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
@@ -323,7 +325,12 @@ export class ControllerServices implements OnDestroy {
         );
     }
 
+    ngOnInit(): void {
+        this.store.dispatch(startControllerServicePolling());
+    }
+
     ngOnDestroy(): void {
+        this.store.dispatch(stopControllerServicePolling());
         this.store.dispatch(resetControllerServicesState());
     }
 }
