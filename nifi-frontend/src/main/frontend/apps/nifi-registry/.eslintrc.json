@@ -1,9 +1,8 @@
 {
-    "extends": ["../../.eslintrc.json"],
+    "root": true,
     "ignorePatterns": ["!**/*"],
     "parserOptions": {
-        "ecmaVersion": "latest",
-        "sourceType": "module"
+        "ecmaVersion": "latest"
     },
     "overrides": [
         {
@@ -21,7 +20,7 @@
                     "error",
                     {
                         "type": "attribute",
-                        "prefix": "app",
+                        "prefix": "",
                         "style": "camelCase"
                     }
                 ],
@@ -39,13 +38,9 @@
                 "@typescript-eslint/no-non-null-assertion": "off",
                 "@typescript-eslint/no-this-alias": "warn",
                 "@typescript-eslint/no-unused-vars": "warn",
-                "no-useless-escape": "off"
+                "no-useless-escape": "off",
+                "@angular-eslint/prefer-standalone": "off"
             }
-        },
-        {
-            "files": ["*.html"],
-            "extends": ["plugin:@nx/angular-template"],
-            "rules": {}
         }
     ]
 }
