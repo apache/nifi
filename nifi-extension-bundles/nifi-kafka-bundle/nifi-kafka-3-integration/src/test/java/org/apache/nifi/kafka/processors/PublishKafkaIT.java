@@ -147,7 +147,7 @@ public class PublishKafkaIT extends AbstractPublishKafkaIT {
         }
     }
 
-    // Create 5MB of sample data with multiple records
+    // Create sample data with multiple records
     private static void populateSampleInput() {
         StringBuilder sb = new StringBuilder();
         int recordCount = EXPECTED_RECORD_COUNT;
