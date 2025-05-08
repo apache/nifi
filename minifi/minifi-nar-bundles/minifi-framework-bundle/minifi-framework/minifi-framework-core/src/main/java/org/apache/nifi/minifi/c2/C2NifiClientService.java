@@ -125,8 +125,10 @@ import org.apache.nifi.minifi.c2.command.syncresource.DefaultSyncResourceStrateg
 import org.apache.nifi.minifi.c2.command.syncresource.FileResourceRepository;
 import org.apache.nifi.minifi.c2.command.syncresource.ResourceRepository;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.commons.service.FlowPropertyAssetReferenceResolver;
 import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
 import org.apache.nifi.minifi.commons.service.StandardFlowEnrichService;
+import org.apache.nifi.minifi.commons.service.StandardFlowPropertyAssetReferenceResolverService;
 import org.apache.nifi.minifi.commons.service.StandardFlowPropertyEncryptor;
 import org.apache.nifi.minifi.commons.service.StandardFlowSerDeService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
@@ -248,14 +250,20 @@ public class C2NifiClientService {
         UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider = new UpdatePropertiesPropertyProvider(bootstrapConfigFileLocation);
         PropertiesPersister propertiesPersister = new PropertiesPersister(updatePropertiesPropertyProvider, bootstrapConfigFileLocation);
         FlowStateStrategy defaultFlowStateStrategy = new DefaultFlowStateStrategy(flowController);
+        FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver = new StandardFlowPropertyAssetReferenceResolverService(resourceRepository::getAbsolutePath);
 
         FlowPropertyEncryptor flowPropertyEncryptor = new StandardFlowPropertyEncryptor(
             new PropertyEncryptorBuilder(niFiProperties.getProperty(SENSITIVE_PROPS_KEY))
                 .setAlgorithm(niFiProperties.getProperty(SENSITIVE_PROPS_ALGORITHM)).build(),
             runtimeManifestService.getManifest());
-        UpdateConfigurationStrategy updateConfigurationStrategy = new DefaultUpdateConfigurationStrategy(flowController, flowService,
-            new StandardFlowEnrichService(niFiProperties), flowPropertyEncryptor,
-            StandardFlowSerDeService.defaultInstance(), niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
+        UpdateConfigurationStrategy updateConfigurationStrategy = new DefaultUpdateConfigurationStrategy(
+                flowController,
+                flowService,
+                flowPropertyAssetReferenceResolver,
+                new StandardFlowEnrichService(niFiProperties),
+                flowPropertyEncryptor,
+                StandardFlowSerDeService.defaultInstance(),
+                niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
         Supplier<RuntimeInfoWrapper> runtimeInfoWrapperSupplier = () -> generateRuntimeInfo(
                 parseInt(niFiProperties.getProperty(C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getKey(), C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getDefaultValue())),
                 parseBoolean(niFiProperties.getProperty(C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED.getKey(), C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED.getDefaultValue())));

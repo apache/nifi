@@ -19,16 +19,11 @@ package org.apache.nifi.minifi.commons.service;
 
 import org.apache.nifi.controller.flow.VersionedDataflow;
 
-/**
- * Defines interface methods used to implement a FlowEnrichService.
- * The purpose of a flow enrich service is to enrich a VersionedDataFlow with various additional components specific to the MiNiFi instance
- */
-public interface FlowEnrichService {
-
+public interface FlowPropertyAssetReferenceResolver {
     /**
-     * Responsible for enriching a VersionedDataflow instance
+     * Responsible for resolving asset reference properties in a VersionedDataflow instance
      *
-     * @param versionedDataflow a VersionedDataflow instance
+     * @param flow a VersionedDataflow instance to resolve its asset reference properties
      */
-    void enrichFlow(VersionedDataflow versionedDataflow);
+    void resolveAssetReferenceProperties(VersionedDataflow flow);
 }

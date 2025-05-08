@@ -61,10 +61,10 @@ public class StandardFlowEnrichServiceTest {
         VersionedDataflow testFlow = loadDefaultFlow();
 
         FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
-        VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
+        testFlowEnrichService.enrichFlow(testFlow);
 
         byte[] testFlowBytes = flowToString(testFlow).getBytes(UTF_8);
-        byte[] enrichedFlowBytes = flowToString(enrichedFlow).getBytes(UTF_8);
+        byte[] enrichedFlowBytes = flowToString(testFlow).getBytes(UTF_8);
         assertArrayEquals(testFlowBytes, enrichedFlowBytes);
     }
 
@@ -80,10 +80,10 @@ public class StandardFlowEnrichServiceTest {
             uuid.when(UUID::randomUUID).thenReturn(expectedIdentifier);
 
             FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
-            VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
+            testFlowEnrichService.enrichFlow(testFlow);
 
-            assertEquals(expectedIdentifier.toString(), enrichedFlow.getRootGroup().getIdentifier());
-            assertEquals(expectedIdentifier.toString(), enrichedFlow.getRootGroup().getInstanceIdentifier());
+            assertEquals(expectedIdentifier.toString(), testFlow.getRootGroup().getIdentifier());
+            assertEquals(expectedIdentifier.toString(), testFlow.getRootGroup().getInstanceIdentifier());
         }
     }
 
@@ -100,13 +100,13 @@ public class StandardFlowEnrichServiceTest {
             ));
 
         FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
-        VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
+        testFlowEnrichService.enrichFlow(testFlow);
 
-        assertEquals(1, enrichedFlow.getRootGroup().getControllerServices().size());
-        VersionedControllerService sslControllerService = enrichedFlow.getRootGroup().getControllerServices().iterator().next();
+        assertEquals(1, testFlow.getRootGroup().getControllerServices().size());
+        VersionedControllerService sslControllerService = testFlow.getRootGroup().getControllerServices().iterator().next();
         assertEquals(PARENT_SSL_CONTEXT_SERVICE_NAME, sslControllerService.getName());
         assertEquals(StringUtils.EMPTY, sslControllerService.getBundle().getVersion());
-        Set<VersionedProcessor> processors = enrichedFlow.getRootGroup().getProcessors();
+        Set<VersionedProcessor> processors = testFlow.getRootGroup().getProcessors();
         assertEquals(2, processors.size());
         assertTrue(
             processors.stream()
@@ -132,9 +132,9 @@ public class StandardFlowEnrichServiceTest {
         VersionedDataflow testFlow = loadDefaultFlow();
 
         FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
-        VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
+        testFlowEnrichService.enrichFlow(testFlow);
 
-        List<VersionedReportingTask> reportingTasks = enrichedFlow.getReportingTasks();
+        List<VersionedReportingTask> reportingTasks = testFlow.getReportingTasks();
         assertEquals(1, reportingTasks.size());
         VersionedReportingTask provenanceReportingTask = reportingTasks.get(0);
         assertEquals(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME, provenanceReportingTask.getName());
