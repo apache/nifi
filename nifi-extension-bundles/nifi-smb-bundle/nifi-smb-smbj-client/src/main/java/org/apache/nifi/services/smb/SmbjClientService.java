@@ -40,6 +40,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 class SmbjClientService implements SmbClientService {
@@ -85,6 +86,19 @@ class SmbjClientService implements SmbClientService {
                 } else if (e.getStatus() == NtStatus.STATUS_BAD_NETWORK_NAME) {
                     // DFS resolution may return STATUS_BAD_NETWORK_NAME if the user does not have access at share level
                     logger.warn("Could not list directory [{}/{}] because the share does not exist or the user does not have access to it.", serviceLocation, path, e);
+                    return Stream.empty();
+                } else {
+                    throw e;
+                }
+            } catch (NullPointerException e) {
+                // workaround for https://github.com/hierynomus/smbj/issues/869
+                final boolean isNpeFromGetDiskEntry = Optional.ofNullable(e.getStackTrace())
+                        .filter(st -> st.length > 0)
+                        .map(st -> st[0])
+                        .map(ste -> ste.getClassName().equals(DiskShare.class.getName()) && ste.getMethodName().equals("getDiskEntry"))
+                        .orElse(false);
+                if (isNpeFromGetDiskEntry) {
+                    logger.warn("Could not list directory [{}/{}] because possibly no target is mapped to the directory in the DFS namespace", serviceLocation, directoryPath, e);
                     return Stream.empty();
                 } else {
                     throw e;
