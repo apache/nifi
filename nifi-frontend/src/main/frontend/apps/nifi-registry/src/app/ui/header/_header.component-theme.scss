@@ -21,5 +21,6 @@
  @mixin generate-theme() {
     .registry-header {
         background-color: var(--mat-sys-secondary);
+        @extend .secondary-contrast;
     }
 }
