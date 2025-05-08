@@ -48,7 +48,8 @@
                             "maximumError": "4kb"
                         }
                     ],
-                    "outputHashing": "all"
+                    "outputHashing": "all",
+                    "optimization": true
                 },
                 "development": {
                     "optimization": false,
@@ -59,7 +60,7 @@
                     "outputHashing": "none",
                     "assets": [
                         {
-                            "glob": "**/*.svg",
+                            "glob": "**/*",
                             "input": "libs/shared/src/assets/",
                             "output": "./assets"
                         }
@@ -99,7 +100,27 @@
             }
         },
         "lint": {
-            "executor": "@nx/eslint:lint"
+            "executor": "@nx/eslint:lint",
+            "outputs": ["{options.outputFile}"]
+        },
+        "lint:fix": {
+            "executor": "@nx/eslint:lint",
+            "options": {
+                "fix": true
+            },
+            "outputs": ["{options.outputFile}"]
+        },
+        "prettier": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier"
+            }
+        },
+        "prettier:format": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier-format"
+            }
         },
         "test": {
             "executor": "@nx/jest:jest",

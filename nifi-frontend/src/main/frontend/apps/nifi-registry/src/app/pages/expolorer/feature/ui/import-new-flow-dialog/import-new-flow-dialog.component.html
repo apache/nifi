@@ -13,12 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<div class="pad-bottom-md flex justify-between items-center">
-    <h2 mat-dialog-title>
-        <div class="flex justify-between items-baseline">
-            <div>Import New Flow</div>
-        </div>
-    </h2>
+<div class="mb-2 flex justify-between items-center">
+    <h2 mat-dialog-title>Import New Flow</h2>
 </div>
 <mat-dialog-content>
     <div class="dialog-content flex flex-col h-full gap-y-2">
@@ -27,7 +23,7 @@ limitations under the License.
                 <div class="w-full flex flex-1 items-center">
                     <mat-form-field class="flex-1">
                         <mat-label>Flow Name</mat-label>
-                        <input #flowName id="new-flow-name-input-field" class="pad-bottom-md w-full" matInput
+                        <input #flowName id="new-flow-name-input-field" class="mb-2 w-full" matInput
                             type="text" placeholder="Create a unique name" [(ngModel)]="name" />
                     </mat-form-field>
                     <div class="version-count ml-2">
@@ -39,7 +35,7 @@ limitations under the License.
         <div class="w-full flex flex-1">
             <mat-form-field class="w-full">
                 <mat-label class="mb-2">Flow Description</mat-label>
-                <textarea matInput class="pb-2 w-full" [(ngModel)]="description"></textarea>
+                <textarea matInput class="mb-2 w-full" [(ngModel)]="description"></textarea>
             </mat-form-field>
         </div>
         <div class="w-full flex flex-col">
@@ -54,7 +50,7 @@ limitations under the License.
             </mat-form-field>
         </div>
 
-        <div class="w-full flex flex-col justify-between pb-2" (click)="selectFile()"
+        <div class="w-full flex flex-col justify-between mb-2" (click)="selectFile()"
             (dragenter)="fileDragHandler($event, extensions)" (dragover)="fileDragHandler($event, extensions)"
             (dragend)="fileDragEndHandler()" (dragleave)="fileDragEndHandler()" (drop)="fileDropHandler($event)">
             <div class="flex justify-between">
@@ -98,7 +94,7 @@ limitations under the License.
     <button mat-button mat-dialog-close type="button">
         Cancel
     </button>
-    <button [disabled]="!fileToUpload || !flowName.value || !bucketSelect.value" class="pl-2"
+    <button [disabled]="!fileToUpload || !flowName.value || !bucketSelect.value" class="ml-2"
         data-automation-id="import-new-versioned-flow-button" (click)="importNewFlow()" type="button"
         mat-flat-button mat-dialog-close>
         Import
