@@ -15,17 +15,21 @@
 ~  limitations under the License.
 -->
 
-<div class="pb-5 px-5 flex-1 flex flex-col">
+<div class="pb-5 px-5 flex-1 flex flex-col h-screen">
     <div class="h-full flex flex-col">
         <h3 class="primary-color">Flows</h3>
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-baseline">
             <droplet-table-filter [buckets]="buckets" [filterTerm]="filterTerm" [filterBucket]="filterBucket"
                 [filterColumn]="filterColumn" [filteredCount]="dataSource.filteredData.length" [totalCount]="dataSource.data.length" (filterChanged)="applyFilter($event)"></droplet-table-filter>
-            <button mat-flat-button (click)="openImportNewFlowDialog()">Import New Flow</button>
+            <div class="flex justify-end">
+                <button mat-icon-button class="primary-icon-button" (click)="openImportNewFlowDialog()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
         </div>
         @if (droplets$; as droplets) {
-        <div class="flex-1 relative">
-            <div class="flows-table overflow-y-auto absolute inset-0">
+        <div class="listing-table select-none flex-1 relative">
+            <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                 <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
                     (matSortChange)="sortData($event)" [matSortActive]="sort.active"
                     [matSortDirection]="sort.direction">
@@ -90,14 +94,11 @@
                         <th mat-header-cell *matHeaderCellDef></th>
                         <td mat-cell *matCellDef="let item">
                             <div class="flex items-center justify-end gap-x-2">
-                                <!-- @if (canRemove()) { -->
                                 <button mat-icon-button type="button" [matMenuTriggerFor]="actionMenu"
                                     class="h-16 w-16 flex items-center justify-center icon global-menu">
                                     <i class="fa fa-ellipsis-v"></i>
                                 </button>
-                                <!-- } -->
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
-                                    <!-- @if (canRemove()) { -->
                                     <button mat-menu-item (click)="openFlowVersionsDialog(item)">
                                         <i class="fa fa-list primary-color mr-2"></i>
                                         See Versions
@@ -115,7 +116,6 @@
                                         <i class="fa fa-trash primary-color mr-2"></i>
                                         Delete flow
                                     </button>
-                                    <!-- } -->
                                 </mat-menu>
                             </div>
                         </td>
@@ -123,9 +123,6 @@
                     <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                     <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns"></tr>
                 </table>
-                <div class="py-5" *ngIf="dataSource.filteredData.length === 0 && buckets.length !== 0 && filterTerm">
-                    <p class="text-center">No results match this query.</p>
-                </div>
                 <div class="py-5" *ngIf="dataSource.data.length === 0 && buckets.length === 0">
                     <p class="text-center">There are no buckets to display.</p>
                 </div>
