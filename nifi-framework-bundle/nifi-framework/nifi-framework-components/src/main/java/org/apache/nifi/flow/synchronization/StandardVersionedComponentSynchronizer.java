@@ -486,7 +486,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {
-            group.disconnectVersionControl(false);
+            group.disconnectVersionControl();
         } else {
             final String registryId = determineRegistryId(remoteCoordinates);
             final String branch = remoteCoordinates.getBranch();

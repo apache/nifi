@@ -39,8 +39,10 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -124,19 +126,30 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyUpdate(final ProcessGroupDTO processGroup) {
+        final ProcessGroup group = locateProcessGroup(flowController, processGroup.getId());
+        verifyCanSetParameterContext(processGroup, group);
+
+        final String executionEngine = processGroup.getExecutionEngine();
+        if (executionEngine != null) {
+            group.verifyCanSetExecutionEngine(ExecutionEngine.valueOf(executionEngine));
+        }
+
+        final VersionControlInformationDTO versionControlInfoDTO = processGroup.getVersionControlInformation();
+        final VersionControlInformation versionControlInformation = group.getVersionControlInformation();
+        if (versionControlInfoDTO != null && versionControlInformation != null) {
+            throw new IllegalStateException("Cannot set Version Control Info because process group is already under version control");
+        }
+    }
+
+    private void verifyCanSetParameterContext(final ProcessGroupDTO processGroup, final ProcessGroup group) {
         final ParameterContextReferenceEntity parameterContextReference = processGroup.getParameterContext();
         if (parameterContextReference == null) {
             return;
         }
 
         final ParameterContext parameterContext = locateParameterContext(parameterContextReference.getId());
-        final ProcessGroup group = locateProcessGroup(flowController, processGroup.getId());
-        group.verifyCanSetParameterContext(parameterContext);
 
-        final String executionEngine = processGroup.getExecutionEngine();
-        if (executionEngine != null) {
-            group.verifyCanSetExecutionEngine(ExecutionEngine.valueOf(executionEngine));
-        }
+        group.verifyCanSetParameterContext(parameterContext);
     }
 
     private ParameterContext locateParameterContext(final String id) {
@@ -482,16 +495,34 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
+    public ProcessGroup setVersionControlInformation(final ProcessGroupDTO processGroup, final RegisteredFlowSnapshot flowSnapshot) {
+        final ProcessGroup group = locateProcessGroup(flowController, processGroup.getId());
+        final VersionControlInformationDTO versionControlInfo = processGroup.getVersionControlInformation();
+        final VersionedProcessGroup versionedProcessGroup = flowSnapshot.getFlowContents();
+        updateVersionControlInformation(group, versionedProcessGroup, versionControlInfo, Collections.emptyMap());
+        return group;
+    }
+
+    @Override
     public ProcessGroup updateVersionControlInformation(final VersionControlInformationDTO versionControlInformation, final Map<String, String> versionedComponentMapping) {
         final String groupId = versionControlInformation.getGroupId();
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
+        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
+        final InstantiatedVersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowManager(), false);
+
+        updateVersionControlInformation(group, flowSnapshot, versionControlInformation, versionedComponentMapping);
+        group.onComponentModified();
+
+        return group;
+    }
+
+    private void updateVersionControlInformation(final ProcessGroup group, final VersionedProcessGroup flowSnapshot,
+        final VersionControlInformationDTO versionControlInformation, final Map<String, String> versionedComponentMapping) {
+
         final String registryId = versionControlInformation.getRegistryId();
         final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
         final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
-
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
-        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowManager(), false);
 
         final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .registryName(registryName)
@@ -499,15 +530,12 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .build();
 
         group.setVersionControlInformation(vci, versionedComponentMapping);
-        group.onComponentModified();
-
-        return group;
     }
 
     @Override
     public ProcessGroup disconnectVersionControl(final String groupId) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        group.disconnectVersionControl(true);
+        group.disconnectVersionControl();
         group.onComponentModified();
         return group;
     }
