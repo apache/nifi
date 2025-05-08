@@ -610,7 +610,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         @Override
         public void process(final InputStream in) {
-            try (final InputStream is = new BufferedInputStream(in)) {
+            try (final InputStream is = in) {
                 final Iterator<KafkaRecord> records = kafkaConverter.convert(attributes, is, inputLength);
                 producerService.send(records, publishContext);
             } catch (final Exception e) {
