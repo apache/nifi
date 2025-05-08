@@ -120,9 +120,9 @@ public class StandardFlowPropertyEncryptorTest {
     public void shouldEncryptParameterContextsSensitiveVariables() {
         VersionedDataflow testFlow = flowWithParameterContexts();
 
-        VersionedDataflow encryptedFlow = testEncryptor.encryptSensitiveProperties(testFlow);
+        testEncryptor.encryptSensitiveProperties(testFlow);
 
-        encryptedFlow.getParameterContexts().stream()
+        testFlow.getParameterContexts().stream()
             .flatMap(context -> context.getParameters().stream())
             .forEach(parameter -> {
                 if (parameter.isSensitive()) {
@@ -137,10 +137,10 @@ public class StandardFlowPropertyEncryptorTest {
     public void shouldEncryptPropertiesUsingDescriptorsFromFlow() {
         VersionedDataflow testFlow = flowWithPropertyDescriptors();
 
-        VersionedDataflow encryptedFlow = testEncryptor.encryptSensitiveProperties(testFlow);
+        testEncryptor.encryptSensitiveProperties(testFlow);
 
         verify(mockRunTimeManifest, never()).getBundles();
-        assertSensitiveFlowComponentPropertiesAreEncoded(encryptedFlow);
+        assertSensitiveFlowComponentPropertiesAreEncoded(testFlow);
     }
 
     @Test
@@ -148,9 +148,9 @@ public class StandardFlowPropertyEncryptorTest {
         VersionedDataflow testFlow = flowWithoutPropertyDescriptors();
         when(mockRunTimeManifest.getBundles()).thenReturn(runTimeManifestBundles());
 
-        VersionedDataflow encryptedFlow = testEncryptor.encryptSensitiveProperties(testFlow);
+        testEncryptor.encryptSensitiveProperties(testFlow);
 
-        assertSensitiveFlowComponentPropertiesAreEncoded(encryptedFlow);
+        assertSensitiveFlowComponentPropertiesAreEncoded(testFlow);
     }
 
     private VersionedDataflow flowWithParameterContexts() {

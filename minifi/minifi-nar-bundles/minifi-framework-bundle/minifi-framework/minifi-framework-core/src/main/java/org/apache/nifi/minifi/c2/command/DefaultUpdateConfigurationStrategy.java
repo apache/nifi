@@ -52,6 +52,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.minifi.commons.service.FlowEnrichService;
+import org.apache.nifi.minifi.commons.service.FlowPropertyAssetReferenceResolver;
 import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
 import org.apache.nifi.minifi.commons.service.FlowSerDeService;
 import org.apache.nifi.minifi.validator.ValidationException;
@@ -68,6 +69,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
 
     private final FlowController flowController;
     private final FlowService flowService;
+    private final FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver;
     private final FlowEnrichService flowEnrichService;
     private final FlowPropertyEncryptor flowPropertyEncryptor;
     private final FlowSerDeService flowSerDeService;
@@ -76,10 +78,17 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     private final Path rawFlowConfigurationFile;
     private final Path backupRawFlowConfigurationFile;
 
-    public DefaultUpdateConfigurationStrategy(FlowController flowController, FlowService flowService, FlowEnrichService flowEnrichService,
-                                              FlowPropertyEncryptor flowPropertyEncryptor, FlowSerDeService flowSerDeService, String flowConfigurationFile) {
+    public DefaultUpdateConfigurationStrategy(
+            FlowController flowController,
+            FlowService flowService,
+            FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver,
+            FlowEnrichService flowEnrichService,
+            FlowPropertyEncryptor flowPropertyEncryptor,
+            FlowSerDeService flowSerDeService,
+            String flowConfigurationFile) {
         this.flowController = flowController;
         this.flowService = flowService;
+        this.flowPropertyAssetReferenceResolver = flowPropertyAssetReferenceResolver;
         this.flowEnrichService = flowEnrichService;
         this.flowPropertyEncryptor = flowPropertyEncryptor;
         this.flowSerDeService = flowSerDeService;
@@ -102,12 +111,13 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
                 .stream()
                 .map(Connection::getIdentifier)
                 .collect(Collectors.toSet());
-            VersionedDataflow rawDataFlow = flowSerDeService.deserialize(rawFlow);
+            VersionedDataflow dataFlow = flowSerDeService.deserialize(rawFlow);
 
-            VersionedDataflow propertyEncryptedRawDataFlow = flowPropertyEncryptor.encryptSensitiveProperties(rawDataFlow);
-            byte[] serializedPropertyEncryptedRawDataFlow = flowSerDeService.serialize(propertyEncryptedRawDataFlow);
-            VersionedDataflow enrichedFlowCandidate = flowEnrichService.enrichFlow(propertyEncryptedRawDataFlow);
-            byte[] serializedEnrichedFlowCandidate = flowSerDeService.serialize(enrichedFlowCandidate);
+            flowPropertyAssetReferenceResolver.resolveAssetReferenceProperties(dataFlow);
+            flowPropertyEncryptor.encryptSensitiveProperties(dataFlow);
+            byte[] serializedPropertyEncryptedRawDataFlow = flowSerDeService.serialize(dataFlow);
+            flowEnrichService.enrichFlow(dataFlow);
+            byte[] serializedEnrichedFlowCandidate = flowSerDeService.serialize(dataFlow);
 
             backup(flowConfigurationFile, backupFlowConfigurationFile);
             backup(rawFlowConfigurationFile, backupRawFlowConfigurationFile);
@@ -115,7 +125,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
             persist(serializedPropertyEncryptedRawDataFlow, rawFlowConfigurationFile, false);
             persist(serializedEnrichedFlowCandidate, flowConfigurationFile, true);
 
-            reloadFlow(findAllProposedConnectionIds(enrichedFlowCandidate.getRootGroup()));
+            reloadFlow(findAllProposedConnectionIds(dataFlow.getRootGroup()));
 
         } catch (IllegalStateException e) {
             LOGGER.error("Configuration update failed. Reverting and reloading previous flow", e);
