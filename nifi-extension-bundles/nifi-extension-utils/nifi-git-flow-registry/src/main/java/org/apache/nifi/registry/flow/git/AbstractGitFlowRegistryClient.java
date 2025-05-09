@@ -93,6 +93,15 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
+    public static final PropertyDescriptor EMPTY_PARAMETERS = new PropertyDescriptor.Builder()
+            .name("Remove Parameter Values")
+            .description("If true, the values of all parameters will be removed from the flow before storing it.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -121,6 +130,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(REPOSITORY_BRANCH);
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
+        combinedPropertyDescriptors.add(EMPTY_PARAMETERS);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();
@@ -346,6 +356,14 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setVersion(null);
         flowSnapshot.getSnapshotMetadata().setComments(null);
         flowSnapshot.getSnapshotMetadata().setTimestamp(0);
+
+        // remove all parameter values if configured to do so
+        final boolean emptyParameters = context.getProperty(EMPTY_PARAMETERS).asBoolean();
+        if (emptyParameters) {
+            flowSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
+                parameterContext.getParameters().forEach(parameter -> parameter.setValue(null));
+            });
+        }
 
         // replace the id of the top level group and all of its references with a constant value prior to serializing to avoid
         // unnecessary diffs when different instances of the same flow are imported and have different top-level PG ids
