@@ -2676,6 +2676,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             @FormDataParam("clientId") final String clientId,
             @Parameter(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
             @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @FormDataParam("parameterContextHandlingStrategy")
+            @DefaultValue("KEEP_EXISTING") final ParameterContextHandlingStrategy parameterContextHandlingStrategy,
             @FormDataParam("file") final InputStream in) throws InterruptedException {
 
         // ensure the group name is specified
@@ -2711,6 +2713,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // clear Registry info
         sanitizeRegistryInfo(deserializedSnapshot.getFlowContents());
+
+        // replace parameter contexts if necessary
+        if (ParameterContextHandlingStrategy.REPLACE.equals(parameterContextHandlingStrategy)) {
+            parameterContextReplacer.replaceParameterContexts(deserializedSnapshot, serviceFacade.getParameterContexts());
+        }
 
         // resolve Bundle info
         serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
