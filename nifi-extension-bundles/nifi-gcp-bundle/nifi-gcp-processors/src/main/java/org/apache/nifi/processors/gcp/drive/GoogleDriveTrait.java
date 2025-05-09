@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
@@ -123,5 +124,71 @@ public interface GoogleDriveTrait {
                 .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
                 .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
                 .mimeType(file.getMimeType());
+    }
+
+    default FolderDetails getFolderDetails(final Drive driveService, final String folderId) {
+        try {
+            final File folder = driveService
+                    .files()
+                    .get(folderId)
+                    .setSupportsAllDrives(true)
+                    .setFields("name, driveId")
+                    .execute();
+
+            final String sharedDriveId = folder.getDriveId();
+            final String sharedDriveName;
+            if (sharedDriveId != null) {
+                sharedDriveName = driveService
+                        .drives()
+                        .get(sharedDriveId)
+                        .setFields("name")
+                        .execute()
+                        .getName();
+            } else {
+                sharedDriveName = null;
+            }
+
+            final String folderName;
+            if (folderId.equals(sharedDriveId)) {
+                // if folderId points to a Shared Drive root, files() returns "Drive" for the name and the result of drives() contains the real name
+                folderName = sharedDriveName;
+            } else {
+                folderName = folder.getName();
+            }
+
+            return new FolderDetails(folderId, folderName, sharedDriveId, sharedDriveName);
+        } catch (IOException ioe) {
+            throw new ProcessException("Error while retrieving folder metadata", ioe);
+        }
+    }
+
+    class FolderDetails {
+        private final String folderId;
+        private final String folderName;
+        private final String sharedDriveId;
+        private final String sharedDriveName;
+
+        FolderDetails(String folderId, String folderName, String sharedDriveId, String sharedDriveName) {
+            this.folderId = folderId;
+            this.folderName = folderName;
+            this.sharedDriveId = sharedDriveId;
+            this.sharedDriveName = sharedDriveName;
+        }
+
+        public String getFolderId() {
+            return folderId;
+        }
+
+        public String getFolderName() {
+            return folderName;
+        }
+
+        public String getSharedDriveId() {
+            return sharedDriveId;
+        }
+
+        public String getSharedDriveName() {
+            return sharedDriveName;
+        }
     }
 }

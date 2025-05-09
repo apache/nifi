@@ -72,7 +72,9 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LAST_MODIFYING_USER_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_ID_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_NAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.LISTED_FOLDER_NAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MODIFIED_TIME_DESC;
@@ -84,6 +86,10 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_NAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_NAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_NAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE_DESC;
@@ -122,8 +128,10 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIE
         @WritesAttribute(attribute = WEB_CONTENT_LINK, description = WEB_CONTENT_LINK_DESC),
         @WritesAttribute(attribute = PARENT_FOLDER_ID, description = PARENT_FOLDER_ID_DESC),
         @WritesAttribute(attribute = PARENT_FOLDER_NAME, description = PARENT_FOLDER_NAME_DESC),
-        @WritesAttribute(attribute = LISTED_FOLDER_ID, description = WEB_CONTENT_LINK_DESC),
-        @WritesAttribute(attribute = LISTED_FOLDER_NAME, description = WEB_CONTENT_LINK_DESC)})
+        @WritesAttribute(attribute = LISTED_FOLDER_ID, description = LISTED_FOLDER_ID_DESC),
+        @WritesAttribute(attribute = LISTED_FOLDER_NAME, description = LISTED_FOLDER_NAME_DESC),
+        @WritesAttribute(attribute = SHARED_DRIVE_ID, description = SHARED_DRIVE_ID_DESC),
+        @WritesAttribute(attribute = SHARED_DRIVE_NAME, description = SHARED_DRIVE_NAME_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
@@ -199,9 +207,6 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
     private volatile Drive driveService;
 
-    private volatile String listedFolderId;
-    private volatile String listedFolderName;
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -220,15 +225,12 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
         driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY);
-
-        listedFolderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
-        listedFolderName = getFolderName(listedFolderId);
     }
 
     @Override
@@ -271,6 +273,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     ) throws IOException {
         final List<GoogleDriveFileInfo> listing = new ArrayList<>();
 
+        final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
@@ -298,9 +301,10 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         final String queryTemplate = queryTemplateBuilder.toString();
 
-        final String listedFolderPath = urlEncode(listedFolderName);
+        final FolderDetails folderDetails = getFolderDetails(driveService, folderId);
+        final String folderPath = urlEncode(folderDetails.getFolderName());
 
-        queryFolder(listedFolderId, listedFolderName, listedFolderPath, queryTemplate, recursive, listing);
+        queryFolder(folderDetails.getFolderId(), folderDetails.getFolderName(), folderPath, queryTemplate, recursive, folderDetails, listing);
 
         return listing;
     }
@@ -310,33 +314,13 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
     }
 
-    private String getFolderName(final String folderId) throws IOException {
-        final File folder = driveService
-                .files()
-                .get(folderId)
-                .setSupportsAllDrives(true)
-                .setFields("name, driveId")
-                .execute();
-
-        if (folderId.equals(folder.getDriveId())) {
-            // if folderId points to a Shared Drive root, files() returns "Drive" for the name and drives() needs to be used to get the real name
-            return driveService
-                    .drives()
-                    .get(folderId)
-                    .setFields("name")
-                    .execute()
-                    .getName();
-        } else {
-            return folder.getName();
-        }
-    }
-
     private void queryFolder(
             final String folderId,
             final String folderName,
             final String folderPath,
             final String queryTemplate,
             final boolean recursive,
+            final FolderDetails listedFolderDetails,
             final List<GoogleDriveFileInfo> listing
     ) throws IOException {
         final List<File> subfolders = new ArrayList<>();
@@ -366,8 +350,10 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                             .webContentLink(file.getWebContentLink())
                             .parentFolderId(folderId)
                             .parentFolderName(folderName)
-                            .listedFolderId(listedFolderId)
-                            .listedFolderName(listedFolderName);
+                            .listedFolderId(listedFolderDetails.getFolderId())
+                            .listedFolderName(listedFolderDetails.getFolderName())
+                            .sharedDriveId(listedFolderDetails.getSharedDriveId())
+                            .sharedDriveName(listedFolderDetails.getSharedDriveName());
 
                     listing.add(builder.build());
                 }
@@ -378,7 +364,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         for (final File subfolder : subfolders) {
             final String subfolderPath = folderPath + "/" + urlEncode(subfolder.getName());
-            queryFolder(subfolder.getId(), subfolder.getName(), subfolderPath, queryTemplate, true, listing);
+            queryFolder(subfolder.getId(), subfolder.getName(), subfolderPath, queryTemplate, true, listedFolderDetails, listing);
         }
     }
 
