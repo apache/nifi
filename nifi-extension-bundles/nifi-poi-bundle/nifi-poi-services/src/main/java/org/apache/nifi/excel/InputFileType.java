@@ -19,15 +19,13 @@ package org.apache.nifi.excel;
 import org.apache.nifi.components.DescribedValue;
 
 public enum InputFileType implements DescribedValue {
-    XLS("XLS", "XLS 1997-2007 file format"),
-    XLSX("XLSX", "XLSX 2007-present OOXML file format");
+    XLS("XLS 1997-2007 file format"),
+    XLSX("XLSX 2007-present OOXML file format");
 
-    InputFileType(String displayName, String description) {
-        this.displayName = displayName;
+    InputFileType(String description) {
         this.description = description;
     }
 
-    private final String displayName;
     private final String description;
 
     @Override
@@ -37,7 +35,7 @@ public enum InputFileType implements DescribedValue {
 
     @Override
     public String getDisplayName() {
-        return displayName;
+        return name();
     }
 
     @Override
