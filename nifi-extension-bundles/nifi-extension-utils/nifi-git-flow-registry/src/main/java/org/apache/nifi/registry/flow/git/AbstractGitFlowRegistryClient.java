@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.git;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -93,12 +94,14 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
-    public static final PropertyDescriptor EMPTY_PARAMETERS = new PropertyDescriptor.Builder()
-            .name("Remove Parameter Values")
-            .description("If true, the values of all parameters will be removed from the flow before storing it.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("false")
+    static final AllowableValue RETAIN = new AllowableValue("retain", "Retain", "Will not modify the parameter values");
+    static final AllowableValue REMOVE = new AllowableValue("remove", "Remove", "Will remove the parameter values");
+
+    public static final PropertyDescriptor PARAMETER_CONTEXT_VALUES = new PropertyDescriptor.Builder()
+            .name("Parameter Context Values")
+            .description("Specifies what to do with parameter values when storing the versioned flow.")
+            .allowableValues(RETAIN, REMOVE)
+            .defaultValue(RETAIN)
             .required(true)
             .build();
 
@@ -130,7 +133,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(REPOSITORY_BRANCH);
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
-        combinedPropertyDescriptors.add(EMPTY_PARAMETERS);
+        combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();
@@ -358,8 +361,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setTimestamp(0);
 
         // remove all parameter values if configured to do so
-        final boolean emptyParameters = context.getProperty(EMPTY_PARAMETERS).asBoolean();
-        if (emptyParameters) {
+        if (REMOVE.getValue().equals(context.getProperty(PARAMETER_CONTEXT_VALUES).getValue())) {
             flowSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
                 parameterContext.getParameters().forEach(parameter -> parameter.setValue(null));
             });
