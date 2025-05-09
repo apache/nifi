@@ -29,7 +29,6 @@ public interface FlowPropertyEncryptor {
      * Responsible for encrypting sensitive properties in a VersionedDataflow instance
      *
      * @param flow a VersionedDataflow instance to encrypt its sensitive properties
-     * @return VersionedDataflow the flow instance with encrypted sensitive properties
      */
-    VersionedDataflow encryptSensitiveProperties(VersionedDataflow flow);
+    void encryptSensitiveProperties(VersionedDataflow flow);
 }

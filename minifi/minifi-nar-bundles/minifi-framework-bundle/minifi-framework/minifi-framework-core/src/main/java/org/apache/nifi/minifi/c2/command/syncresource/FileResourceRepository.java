@@ -161,6 +161,16 @@ public class FileResourceRepository implements ResourceRepository {
         return Optional.of(resourceItem);
     }
 
+    @Override
+    public Optional<Path> getAbsolutePath(String resourceId) {
+        return resourceRepositoryDescriptor.resourceItems.stream()
+                .filter(resourceItem -> resourceItem.getResourceId().equals(resourceId))
+                .map(this::resourcePath)
+                .map(Path::toAbsolutePath)
+                .findFirst();
+    }
+
+
     private void initialize() {
         try {
             createDirectories(assetRepositoryDirectory);

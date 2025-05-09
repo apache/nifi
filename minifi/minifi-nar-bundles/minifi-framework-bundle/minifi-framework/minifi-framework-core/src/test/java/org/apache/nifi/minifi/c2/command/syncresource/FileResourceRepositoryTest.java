@@ -378,6 +378,28 @@ public class FileResourceRepositoryTest {
         assertTrue(result.isEmpty());
     }
 
+    @Test
+    public void testGetRelativePathReturnsEmptyInCaseOfResourceNotAvailable() throws IOException {
+        FileResourceRepository testRepository = createTestRepository();
+
+        Optional<Path> relativePath = testRepository.getAbsolutePath("non_existing_resource_id");
+
+        assertTrue(relativePath.isEmpty());
+    }
+
+    @Test
+    public void testGetRelativePath() throws IOException {
+        FileResourceRepository testRepository = createTestRepository();
+        ResourceItem resourceItem = resourceItem("resource1", "subfolder", ASSET);
+        Path resourceItemPath = createResourceBinary(resourceItem, RESOURCE_BINARY_CONTENT);
+        testRepository.addResourceItem(resourceItem);
+
+        Optional<Path> relativePath = testRepository.getAbsolutePath("resource1");
+
+        assertTrue(relativePath.isPresent());
+        assertEquals(resourceItemPath.toString(), relativePath.get().toString());
+    }
+
     private ResourceRepositoryDescriptor loadRepository() throws IOException {
         return c2Serializer.deserialize(readString(repositoryFile), ResourceRepositoryDescriptor.class).orElse(null);
     }

@@ -38,4 +38,6 @@ public interface ResourceRepository {
     Optional<ResourceItem> addResourceItem(ResourceItem resourceItem, Path source);
 
     Optional<ResourceItem> deleteResourceItem(ResourceItem resourceItem);
+    Optional<Path> getAbsolutePath(String resourceId);
+
 }
