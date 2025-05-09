@@ -30,7 +30,6 @@ public class FlowSynchronizationOptions {
     private final boolean ignoreLocalModifications;
     private final boolean updateSettings;
     private final boolean updateDescendantVersionedFlows;
-    private final boolean updateGroupVersionControlSnapshot;
     private final boolean updateRpgUrls;
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
@@ -45,7 +44,6 @@ public class FlowSynchronizationOptions {
         this.ignoreLocalModifications = builder.ignoreLocalModifications;
         this.updateSettings = builder.updateSettings;
         this.updateDescendantVersionedFlows = builder.updateDescendantVersionedFlows;
-        this.updateGroupVersionControlSnapshot = builder.updateGroupVersionControlSnapshot;
         this.updateRpgUrls = builder.updateRpgUrls;
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
@@ -75,10 +73,6 @@ public class FlowSynchronizationOptions {
 
     public boolean isUpdateDescendantVersionedFlows() {
         return updateDescendantVersionedFlows;
-    }
-
-    public boolean isUpdateGroupVersionControlSnapshot() {
-        return updateGroupVersionControlSnapshot;
     }
 
     public boolean isUpdateRpgUrls() {
@@ -112,7 +106,6 @@ public class FlowSynchronizationOptions {
         private boolean ignoreLocalModifications = false;
         private boolean updateSettings = true;
         private boolean updateDescendantVersionedFlows = true;
-        private boolean updateGroupVersionControlSnapshot = true;
         private boolean updateRpgUrls = false;
         private ScheduledStateChangeListener scheduledStateChangeListener;
         private PropertyDecryptor propertyDecryptor = value -> value;
@@ -180,20 +173,6 @@ public class FlowSynchronizationOptions {
          */
         public Builder updateDescendantVersionedFlows(final boolean updateDescendantVersionedFlows) {
             this.updateDescendantVersionedFlows = updateDescendantVersionedFlows;
-            return this;
-        }
-
-        /**
-         * When a Process Group is version controlled, it tracks whether or not there are any local modifications by comparing the current dataflow
-         * to a snapshot of what the Versioned Flow looks like. If this value is set to <code>true</code>, when the Process Group is synchronized
-         * with a VersionedProcessGroup, that VersionedProcessGroup will become the snapshot of what the Versioned Flow looks like. If <code>false</code>,
-         * the snapshot is not updated.
-         *
-         * @param updateGroupVersionControlSnapshot <code>true</code> to update the snapshot, <code>false</code> otherwise
-         * @return the builder
-         */
-        public Builder updateGroupVersionControlSnapshot(final boolean updateGroupVersionControlSnapshot) {
-            this.updateGroupVersionControlSnapshot = updateGroupVersionControlSnapshot;
             return this;
         }
 
@@ -285,7 +264,6 @@ public class FlowSynchronizationOptions {
             builder.ignoreLocalModifications = options.isIgnoreLocalModifications();
             builder.updateSettings = options.isUpdateSettings();
             builder.updateDescendantVersionedFlows = options.isUpdateDescendantVersionedFlows();
-            builder.updateGroupVersionControlSnapshot = options.isUpdateGroupVersionControlSnapshot();
             builder.updateRpgUrls = options.isUpdateRpgUrls();
             builder.propertyDecryptor = options.getPropertyDecryptor();
             builder.componentStopTimeout = options.getComponentStopTimeout();
