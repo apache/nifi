@@ -516,6 +516,26 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             updateStrategy = ProcessGroupRecursivity.valueOf(processGroupUpdateStrategy);
         }
 
+        final VersionControlInformationDTO versionControlInfo = requestProcessGroupDTO.getVersionControlInformation();
+        if (versionControlInfo != null) {
+            if (updateStrategy == ProcessGroupRecursivity.ALL_DESCENDANTS) {
+                throw new IllegalArgumentException("Version Control Information cannot be specified when applying updates recursively");
+            }
+
+            final FlowSnapshotContainer flowSnapshotContainer = getFlowFromRegistry(versionControlInfo);
+            final RegisteredFlowSnapshot flowSnapshot = flowSnapshotContainer.getFlowSnapshot();
+            if (flowSnapshot.getFlowContents() != null) {
+                final VersionedFlowCoordinates versionedFlowCoordinates = flowSnapshot.getFlowContents().getVersionedFlowCoordinates();
+                if (versionedFlowCoordinates != null) {
+                    versionControlInfo.setStorageLocation(versionedFlowCoordinates.getStorageLocation());
+                }
+            }
+            if (flowSnapshot.getSnapshotMetadata() != null && flowSnapshot.getSnapshotMetadata().getBranch() != null && versionControlInfo.getBranch() == null) {
+                versionControlInfo.setBranch(flowSnapshot.getSnapshotMetadata().getBranch());
+            }
+            versionControlInfo.setGroupId(requestProcessGroupDTO.getId());
+        }
+
         final String executionEngine = requestProcessGroupDTO.getExecutionEngine();
         if (executionEngine != null) {
             try {
