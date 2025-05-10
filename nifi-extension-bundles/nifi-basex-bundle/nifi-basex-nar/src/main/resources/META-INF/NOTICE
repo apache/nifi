@@ -1,0 +1,13 @@
+nifi-basex-nar
+Copyright 2014-2024 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/)
+and incorporates BaseX code under the BSD-3-Clause License.
+******************
+BSD-3-Clause License
+******************
+The following binary components are provided under the BSD-3-Clause License:
+  (BSD-3-Clause) BaseX
+      The following NOTICE information applies:
+        Copyright BaseX Team (https://basex.org/)
