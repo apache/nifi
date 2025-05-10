@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.service.extension;
 
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
@@ -23,11 +25,9 @@ import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.manifest.Extension;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.TagCount;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.TagCount;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoGroup;

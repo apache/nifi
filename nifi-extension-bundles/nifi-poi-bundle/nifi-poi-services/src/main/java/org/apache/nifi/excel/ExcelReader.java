@@ -53,13 +53,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Tags({"excel", "spreadsheet", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
+@Tags({"excel", "spreadsheet", "xls", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
 @CapabilityDescription("Parses a Microsoft Excel document returning each row in each sheet as a separate record. "
         + "This reader allows for inferring a schema from all the required sheets "
         + "or providing an explicit schema for interpreting the values."
         + "See Controller Service's Usage for further documentation. "
-        + "This reader is currently only capable of processing .xlsx "
-        + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
+        + "This reader is capable of processing both password and non password protected .xlsx (XSSF 2007 OOXML file format) "
+        + "and older .xls (HSSF '97(-2007) file format) Excel documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
@@ -83,6 +83,15 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor INPUT_FILE_TYPE = new PropertyDescriptor
+            .Builder().name("Input File Type")
+            .displayName("Input File Type")
+            .description("Specifies type of Excel input file.")
+            .required(true)
+            .allowableValues(InputFileType.class)
+            .defaultValue(InputFileType.XLSX)
             .build();
 
     public static final PropertyDescriptor PROTECTION_TYPE = new PropertyDescriptor
@@ -128,6 +137,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         final List<String> requiredSheets = getRequiredSheets(variables);
         final int firstRow = getStartingRow(variables);
         final String password = configurationContext.getProperty(PASSWORD).getValue();
+        final InputFileType inputFileType = configurationContext.getProperty(INPUT_FILE_TYPE).asAllowableValue(InputFileType.class);
         final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat(dateFormat)
                 .withRequiredSheets(requiredSheets)
@@ -136,6 +146,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
                 .withTimeFormat(timeFormat)
                 .withTimestampFormat(timestampFormat)
                 .withPassword(password)
+                .withInputFileType(inputFileType)
                 .build();
 
         return new ExcelRecordReader(configuration, in, logger);

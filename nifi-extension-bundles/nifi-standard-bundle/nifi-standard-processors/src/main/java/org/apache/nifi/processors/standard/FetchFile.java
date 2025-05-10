@@ -170,7 +170,7 @@ public class FetchFile extends AbstractProcessor {
         .build();
     static final PropertyDescriptor PERM_DENIED_LOG_LEVEL = new PropertyDescriptor.Builder()
         .name("Log level when permission denied")
-        .description("Log level to use in case user " + System.getProperty("user.name") + " does not have sufficient permissions to read the file")
+        .description("Log level to use if the current application user does not have sufficient permissions to read the file")
         .allowableValues(LogLevel.values())
         .defaultValue(LogLevel.ERROR.toString())
         .required(true)

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.db;
 
+import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntityType;
@@ -32,9 +34,7 @@ import org.apache.nifi.registry.db.entity.TagCountEntity;
 import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.manifest.ExtensionType;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
 import org.apache.nifi.registry.service.MetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

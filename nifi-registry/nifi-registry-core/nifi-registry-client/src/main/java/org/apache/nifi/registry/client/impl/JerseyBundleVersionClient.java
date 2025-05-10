@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.registry.client.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.registry.client.BundleVersionClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.RequestConfig;
@@ -24,16 +29,11 @@ import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.file.FileDataBodyPart;
 import org.glassfish.jersey.media.multipart.file.StreamDataBodyPart;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

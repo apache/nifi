@@ -17,14 +17,15 @@
 package org.apache.nifi.registry.extension.repo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Comparator;
 import jakarta.ws.rs.core.Link;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.extension.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.apache.nifi.registry.link.LinkAdapter;
 import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;
+
+import java.util.Comparator;
 
 public class ExtensionRepoExtensionMetadata extends LinkableEntity implements LinkableDocs, Comparable<ExtensionRepoExtensionMetadata> {
 

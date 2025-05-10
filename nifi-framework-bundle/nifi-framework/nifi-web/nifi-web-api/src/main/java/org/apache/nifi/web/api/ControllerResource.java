@@ -1443,7 +1443,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Read - /flow")
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     public Response getFlowRegistryClients() {
@@ -1481,6 +1481,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
+                    @SecurityRequirement(name = "Read - /controller"),
                     @SecurityRequirement(name = "Write - /controller")
             }
     )
@@ -1569,7 +1570,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Read - /controller")
+                    @SecurityRequirement(name = "Read - /controller/registry-clients/{id}")
             }
     )
     public Response getFlowRegistryClient(
@@ -1584,7 +1585,10 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // authorize access
-        authorizeController(RequestAction.READ);
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+            authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
 
         // get the flow registry client
         final FlowRegistryClientEntity entity = serviceFacade.getRegistryClient(id);
@@ -1613,7 +1617,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /controller")
+                    @SecurityRequirement(name = "Write - /controller/registry-clients/{id}")
             }
     )
     public Response updateFlowRegistryClient(
@@ -1635,8 +1639,11 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
-        // authorize access
-        authorizeController(RequestAction.WRITE);
+        // Authorize Read before Write Action
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+            authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
 
         // ensure the ids are the same
         final FlowRegistryClientDTO requestRegistryClient = requestFlowRegistryClientEntity.getComponent();
@@ -1662,7 +1669,8 @@ public class ControllerResource extends ApplicationResource {
                 requestFlowRegistryClientEntity,
                 requestRevision,
                 lookup -> {
-                    authorizeController(RequestAction.WRITE);
+                    final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 (revision, registryClientEntity) -> {
@@ -1702,7 +1710,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /controller")
+                    @SecurityRequirement(name = "Write - /controller/registry-clients/{id}")
             }
     )
     public Response deleteFlowRegistryClient(
@@ -1731,7 +1739,10 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // authorize access
-        authorizeController(RequestAction.WRITE);
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+            authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
 
         final FlowRegistryClientEntity requestFlowRegistryClientEntity = new FlowRegistryClientEntity();
         requestFlowRegistryClientEntity.setId(id);
@@ -1743,7 +1754,8 @@ public class ControllerResource extends ApplicationResource {
                 requestFlowRegistryClientEntity,
                 requestRevision,
                 lookup -> {
-                    authorizeController(RequestAction.WRITE);
+                    final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteRegistry(id),
                 (revision, registryClientEntity) -> {
@@ -1776,7 +1788,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Read - /controller/registry-clients/{uuid}")
+                    @SecurityRequirement(name = "Read - /controller/registry-clients/{id}")
             }
     )
     public Response getPropertyDescriptor(
@@ -1804,7 +1816,10 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // authorize access
-        authorizeController(RequestAction.READ);
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+            authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getRegistryClientPropertyDescriptor(id, propertyName, sensitive);
@@ -1837,7 +1852,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Read - /flow")
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     public Response getRegistryClientTypes() {

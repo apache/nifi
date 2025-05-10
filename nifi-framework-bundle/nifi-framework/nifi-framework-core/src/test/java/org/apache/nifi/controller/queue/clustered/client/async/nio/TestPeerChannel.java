@@ -26,9 +26,10 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
@@ -174,7 +175,7 @@ public class TestPeerChannel {
     }
 
     private void processChannel(final String enabledProtocol, final Consumer<PeerChannel> channelConsumer) throws IOException {
-        final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
+        final EventLoopGroup group = new MultiThreadIoEventLoopGroup(GROUP_THREADS, NioIoHandler.newFactory());
 
         try (final SocketChannel socketChannel = SocketChannel.open()) {
             final Socket socket = socketChannel.socket();

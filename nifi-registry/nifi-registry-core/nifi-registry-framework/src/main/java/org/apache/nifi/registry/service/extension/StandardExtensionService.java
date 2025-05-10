@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.registry.service.extension;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
 import org.apache.nifi.registry.bundle.model.BundleDetails;
@@ -44,11 +49,9 @@ import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionDependency;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.TagCount;
-import org.apache.nifi.extension.manifest.Extension;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.TagCount;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoGroup;
@@ -70,9 +73,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Validator;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;

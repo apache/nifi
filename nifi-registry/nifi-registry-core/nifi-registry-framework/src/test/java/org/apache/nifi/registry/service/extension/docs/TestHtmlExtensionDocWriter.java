@@ -17,10 +17,10 @@
 package org.apache.nifi.registry.service.extension.docs;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.registry.db.entity.ExtensionEntity;
 import org.apache.nifi.registry.extension.bundle.BundleType;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.apache.nifi.registry.serialization.ExtensionSerializer;
 import org.apache.nifi.registry.serialization.Serializer;
 import org.apache.nifi.registry.serialization.jackson.ObjectMapperProvider;

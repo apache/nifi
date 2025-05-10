@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.registry.web.link;
 
-import org.apache.nifi.extension.ExtensionMetadata;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.bucket.BucketItemType;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;
@@ -33,7 +34,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;

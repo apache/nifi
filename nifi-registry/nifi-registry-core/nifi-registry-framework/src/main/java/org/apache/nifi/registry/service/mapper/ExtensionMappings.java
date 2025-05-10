@@ -17,6 +17,9 @@
 package org.apache.nifi.registry.service.mapper;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.manifest.Restriction;
 import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntityType;
 import org.apache.nifi.registry.db.entity.BundleEntity;
@@ -31,11 +34,8 @@ import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.extension.bundle.BundleVersionDependency;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.TagCount;
-import org.apache.nifi.extension.manifest.Extension;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
-import org.apache.nifi.extension.manifest.Restriction;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.TagCount;
 import org.apache.nifi.registry.serialization.SerializationException;
 import org.apache.nifi.registry.serialization.Serializer;
 
