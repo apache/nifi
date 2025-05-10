@@ -401,7 +401,6 @@ public class IPLookupService extends AbstractControllerService implements Record
 
         final Location location = city.getLocation();
         values.put(CitySchema.ACCURACY.getFieldName(), location.getAccuracyRadius());
-        values.put(CitySchema.METRO_CODE.getFieldName(), location.getMetroCode());
         values.put(CitySchema.TIMEZONE.getFieldName(), location.getTimeZone());
         values.put(CitySchema.LATITUDE.getFieldName(), location.getLatitude());
         values.put(CitySchema.LONGITUDE.getFieldName(), location.getLongitude());
