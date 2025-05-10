@@ -17,8 +17,6 @@
 package org.apache.nifi.registry.service.extension.docs;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.registry.extension.bundle.BundleInfo;
-import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.extension.manifest.AllowableValue;
 import org.apache.nifi.extension.manifest.ControllerServiceDefinition;
 import org.apache.nifi.extension.manifest.DeprecationNotice;
@@ -32,12 +30,15 @@ import org.apache.nifi.extension.manifest.Restricted;
 import org.apache.nifi.extension.manifest.Restriction;
 import org.apache.nifi.extension.manifest.Stateful;
 import org.apache.nifi.extension.manifest.SystemResourceConsideration;
+import org.apache.nifi.registry.extension.bundle.BundleInfo;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.springframework.stereotype.Service;
 
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;

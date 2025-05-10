@@ -74,6 +74,8 @@ public class ConsumeBoxEnterpriseEvents extends AbstractProcessor {
 
     private static final int LIMIT = 500;
 
+    static final String COUNTER_RECORDS_PROCESSED = "Records Processed";
+
     static final PropertyDescriptor EVENT_TYPES = new PropertyDescriptor.Builder()
             .name("Event Types")
             .description("A comma separated list of Enterprise Events to consume. If not set, all Events are consumed." +
@@ -220,6 +222,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractProcessor {
             throw new ProcessException("Failed to write Box Event into a FlowFile", e);
         }
 
+        session.adjustCounter(COUNTER_RECORDS_PROCESSED, eventLog.getSize(), false);
         session.putAttribute(flowFile, "record.count", String.valueOf(eventLog.getSize()));
         session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(flowFile, REL_SUCCESS);

@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 
 import java.io.IOException;
 import java.net.URI;
@@ -149,7 +150,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     }
 
     @Override
-    public SmbClientService getClient() throws IOException {
+    public SmbClientService getClient(final ComponentLog logger) throws IOException {
         final Connection connection = smbClient.connect(hostname, port);
 
         final Session session;
@@ -173,7 +174,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             throw new IllegalArgumentException("DiskShare not found. Share " + share.getClass().getSimpleName() + " found on " + getServiceLocation());
         }
 
-        return new SmbjClientService(session, (DiskShare) share, getServiceLocation());
+        return new SmbjClientService(session, (DiskShare) share, getServiceLocation(), logger);
     }
 
     private void closeSession(final Session session) {

@@ -14,24 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.service.extension.docs;
+package org.apache.nifi.excel;
 
-import org.apache.nifi.extension.manifest.Extension;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.components.DescribedValue;
 
-import java.io.IOException;
-import java.io.OutputStream;
+public enum InputFileType implements DescribedValue {
+    XLS("XLS 1997-2007 file format"),
+    XLSX("XLSX 2007-present OOXML file format");
 
-public interface ExtensionDocWriter {
+    InputFileType(String description) {
+        this.description = description;
+    }
 
-    /**
-     * Generates the documentation for the given Extension and writes it to the given OutputStream.
-     *
-     * @param extensionMetadata the metadata for the extension
-     * @param extension the extension descriptor
-     * @param outputStream the output stream to write the docs to
-     * @throws IOException if an error occurs writing the documentation to the given output stream
-     */
-    void write(ExtensionMetadata extensionMetadata, Extension extension, OutputStream outputStream) throws IOException;
+    private final String description;
 
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return name();
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 }

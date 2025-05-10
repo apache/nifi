@@ -17,7 +17,6 @@
 package org.apache.nifi.registry.web.api;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
@@ -35,6 +34,7 @@ import org.apache.nifi.registry.client.UserClient;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;

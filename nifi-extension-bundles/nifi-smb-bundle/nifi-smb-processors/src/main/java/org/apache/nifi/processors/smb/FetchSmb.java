@@ -150,7 +150,7 @@ public class FetchSmb extends AbstractProcessor {
 
         final SmbClientProviderService clientProviderService = context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
 
-        try (SmbClientService client = clientProviderService.getClient()) {
+        try (SmbClientService client = clientProviderService.getClient(getLogger())) {
             flowFile = session.write(flowFile, outputStream -> client.readFile(filePath, outputStream));
 
             session.transfer(flowFile, REL_SUCCESS);
@@ -183,7 +183,7 @@ public class FetchSmb extends AbstractProcessor {
 
         final SmbClientProviderService clientProviderService = context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
 
-        try (SmbClientService client = clientProviderService.getClient()) {
+        try (SmbClientService client = clientProviderService.getClient(getLogger())) {
             if (completionStrategy == CompletionStrategy.MOVE) {
                 final String destinationDirectory = context.getProperty(DESTINATION_DIRECTORY).evaluateAttributeExpressions(attributes).getValue();
                 final boolean createDestinationDirectory = context.getProperty(CREATE_DESTINATION_DIRECTORY).asBoolean();

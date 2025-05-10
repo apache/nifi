@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbException;
@@ -62,7 +63,7 @@ class FetchSmbTest {
     @BeforeEach
     public void beforeEach() throws Exception {
         mockCloseable = MockitoAnnotations.openMocks(this);
-        when(clientProviderService.getClient()).thenReturn(mockNifiSmbClientService);
+        when(clientProviderService.getClient(any(ComponentLog.class))).thenReturn(mockNifiSmbClientService);
         when(clientProviderService.getIdentifier()).thenReturn(CLIENT_SERVICE_PROVIDER_ID);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
     }

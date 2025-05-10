@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.registry.web.service;
 
+import jakarta.ws.rs.core.StreamingOutput;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.RegistryConfiguration;
 import org.apache.nifi.registry.authorization.AccessPolicy;
 import org.apache.nifi.registry.authorization.CurrentUser;
@@ -31,11 +34,9 @@ import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.TagCount;
-import org.apache.nifi.extension.manifest.Extension;
-import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.TagCount;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;
@@ -48,7 +49,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.apache.nifi.registry.security.authorization.RequestAction;
 
-import jakarta.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;

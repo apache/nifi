@@ -30,14 +30,14 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.apache.nifi.extension.ExtensionFilterParams;
-import org.apache.nifi.extension.ExtensionMetadata;
-import org.apache.nifi.extension.ExtensionMetadataContainer;
-import org.apache.nifi.extension.TagCount;
 import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.extension.bundle.BundleType;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
+import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.registry.extension.component.ExtensionMetadataContainer;
+import org.apache.nifi.registry.extension.component.TagCount;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.springframework.stereotype.Component;
 

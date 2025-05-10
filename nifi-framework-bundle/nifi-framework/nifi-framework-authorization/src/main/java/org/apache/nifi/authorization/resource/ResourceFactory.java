@@ -553,6 +553,7 @@ public final class ResourceFactory {
                     case InputPort -> "Input Port";
                     case OutputPort -> "Output Port";
                     case Processor -> "Processor";
+                    case RegistryClient -> "Registry Client";
                     case RemoteProcessGroup -> "Remote Process Group";
                     case ReportingTask -> "Reporting Task";
                     case FlowAnalysisRule -> "Flow Analysis Rule";

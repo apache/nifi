@@ -16,18 +16,7 @@
  */
 package org.apache.nifi.registry.db;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.extension.ExtensionFilterParams;
 import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.db.entity.BucketEntity;
@@ -55,11 +44,23 @@ import org.apache.nifi.registry.db.mapper.TagCountEntityMapper;
 import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
+import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
 import org.apache.nifi.registry.service.MetadataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public class DatabaseMetadataService implements MetadataService {
