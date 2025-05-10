@@ -36,10 +36,12 @@ public class ExcelRecordSource implements RecordSource<Row> {
         final int firstRow = rawFirstRow == null ? NumberUtils.toInt(ExcelReader.STARTING_ROW.getDefaultValue()) : rawFirstRow;
         final int zeroBasedFirstRow = ExcelReader.getZeroBasedIndex(firstRow);
         final String password = context.getProperty(ExcelReader.PASSWORD).getValue();
+        final InputFileType inputFileType = context.getProperty(ExcelReader.INPUT_FILE_TYPE).asAllowableValue(InputFileType.class);
         final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withRequiredSheets(requiredSheets)
                 .withFirstRow(zeroBasedFirstRow)
                 .withPassword(password)
+                .withInputFileType(inputFileType)
                 .build();
         this.rowIterator = new RowIterator(in, configuration, logger);
     }

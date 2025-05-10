@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.excel;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -25,7 +24,8 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import com.github.pjfanning.xlsx.exceptions.ReadException;
+import org.apache.poi.hssf.record.crypto.Biff8EncryptionKey;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
 import org.apache.poi.poifs.crypt.EncryptionMode;
@@ -33,13 +33,15 @@ import org.apache.poi.poifs.crypt.Encryptor;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -53,9 +55,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static java.nio.file.Files.newDirectoryStream;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -71,6 +73,7 @@ public class TestExcelRecordReader {
     private static final String MULTI_SHEET_FILE = "twoSheets.xlsx";
     private static final String PASSWORD = "nifi";
     private static final ByteArrayOutputStream PASSWORD_PROTECTED = new ByteArrayOutputStream();
+    private static final ByteArrayOutputStream PASSWORD_PROTECTED_OLDER_EXCEL = new ByteArrayOutputStream();
     private static final Object[][] DATA = {
             {"ID", "Name"},
             {1, "Manny"},
@@ -98,21 +101,8 @@ public class TestExcelRecordReader {
 
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
-        //Generate an Excel file and populate it with data
-        final InputStream workbook = createWorkbook(DATA);
-
-        //Protect the Excel file with a password
-        try (POIFSFileSystem poifsFileSystem = new POIFSFileSystem()) {
-            EncryptionInfo encryptionInfo = new EncryptionInfo(EncryptionMode.agile);
-            Encryptor encryptor = encryptionInfo.getEncryptor();
-            encryptor.confirmPassword(PASSWORD);
-
-            try (OPCPackage opc = OPCPackage.open(workbook);
-                 OutputStream os = encryptor.getDataStream(poifsFileSystem)) {
-                opc.save(os);
-            }
-            poifsFileSystem.writeFilesystem(PASSWORD_PROTECTED);
-        }
+        createPasswordProtectedWorkbook();
+        createPasswordProtectedOlderExcelWorkbook();
     }
 
     @Test
@@ -122,20 +112,32 @@ public class TestExcelRecordReader {
 
         MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("notExcel.txt"), logger));
         final Throwable cause = mre.getCause();
-        assertInstanceOf(ReadException.class, cause);
+        assertInstanceOf(ProcessException.class, cause);
     }
 
     @Test
-    public void testOlderExcelFormatFile() {
-        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder().build();
-        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("olderFormat.xls"), logger));
-        assertTrue(ExceptionUtils.getStackTrace(mre).contains("data appears to be in the OLE2 Format"));
+    public void testOlderExcelFormatFile() throws MalformedRecordException {
+        final List<RecordField> fields = List.of(
+                new RecordField("A", RecordFieldType.STRING.getDataType()),
+                new RecordField("B", RecordFieldType.STRING.getDataType()),
+                new RecordField("C", RecordFieldType.STRING.getDataType()));
+
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(new SimpleRecordSchema(fields))
+                .withInputFileType(InputFileType.XLS)
+                .build();
+
+        final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream("olderFormat.xls"), logger);
+        final List<Record> records = getRecords(recordReader, false, false);
+
+        assertEquals(4, records.size());
     }
 
     @Test
     public void testMultipleRecordsSingleSheet() throws MalformedRecordException {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(getDataFormattingSchema())
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
@@ -145,7 +147,7 @@ public class TestExcelRecordReader {
     }
 
     private RecordSchema getDataFormattingSchema() {
-        final List<RecordField> fields = Arrays.asList(
+        final List<RecordField> fields = List.of(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()),
                 new RecordField("Money", RecordFieldType.DOUBLE.getDataType()),
@@ -176,12 +178,13 @@ public class TestExcelRecordReader {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void testDropUnknownFields(boolean dropUnknownFields) throws MalformedRecordException {
-        final List<RecordField> fields = Arrays.asList(
+        final List<RecordField> fields = List.of(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()));
 
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(new SimpleRecordSchema(fields))
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
@@ -203,6 +206,7 @@ public class TestExcelRecordReader {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withFirstRow(5)
                 .withSchema(getDataFormattingSchema())
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
@@ -221,6 +225,7 @@ public class TestExcelRecordReader {
                 .withTimeFormat(RecordFieldType.TIME.getDefaultFormat())
                 .withTimestampFormat(RecordFieldType.TIMESTAMP.getDefaultFormat())
                 .withSchema(schema)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream("dates.xlsx"), logger);
@@ -238,6 +243,7 @@ public class TestExcelRecordReader {
                 .withSchema(schema)
                 .withFirstRow(1)
                 .withRequiredSheets(requiredSheets)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
@@ -247,7 +253,7 @@ public class TestExcelRecordReader {
     }
 
     private RecordSchema getSpecificSheetSchema() {
-        return  new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+        return  new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType()),
                 new RecordField("third", RecordFieldType.STRING.getDataType())));
     }
@@ -260,6 +266,7 @@ public class TestExcelRecordReader {
                 .withSchema(schema)
                 .withFirstRow(1)
                 .withRequiredSheets(requiredSheets)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         MalformedRecordException mre = assertThrows(MalformedRecordException.class,
@@ -270,10 +277,11 @@ public class TestExcelRecordReader {
 
     @Test
     public void testSelectAllSheets() throws MalformedRecordException {
-        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+        RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
@@ -284,13 +292,14 @@ public class TestExcelRecordReader {
 
     @Test
     void testWhereCellValueDoesNotMatchSchemaType()  {
-        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+        RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.FLOAT.getDataType())));
         List<String> requiredSheets = Collections.singletonList("TestSheetA");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
                 .withFirstRow(2)
                 .withRequiredSheets(requiredSheets)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->  {
@@ -302,48 +311,55 @@ public class TestExcelRecordReader {
         assertTrue(mre.getMessage().contains("on row") && mre.getMessage().contains("in sheet"));
     }
 
-    @Test
-    void testPasswordProtected() throws Exception {
-        RecordSchema schema = getPasswordProtectedSchema();
-        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+    @ParameterizedTest
+    @EnumSource(InputFileType.class)
+    void testPasswordProtected(InputFileType inputFileType) throws Exception {
+        final RecordSchema schema = getPasswordProtectedSchema();
+        final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
                 .withPassword(PASSWORD)
                 .withAvoidTempFiles(true)
+                .withInputFileType(inputFileType)
                 .build();
 
-        InputStream inputStream = new ByteArrayInputStream(PASSWORD_PROTECTED.toByteArray());
-        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, inputStream, logger);
-        List<Record> records = getRecords(recordReader, false, false);
+        final ByteArrayOutputStream fileStream = inputFileType == InputFileType.XLSX ? PASSWORD_PROTECTED : PASSWORD_PROTECTED_OLDER_EXCEL;
+        final InputStream inputStream = new ByteArrayInputStream(fileStream.toByteArray());
+        final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, inputStream, logger);
+        final List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(DATA.length, records.size());
     }
 
-    @Test
-    void testPasswordProtectedWithoutPassword() {
-        RecordSchema schema = getPasswordProtectedSchema();
-        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+    @ParameterizedTest
+    @EnumSource(InputFileType.class)
+    void testPasswordProtectedWithoutPassword(InputFileType inputFileType) {
+        final RecordSchema schema = getPasswordProtectedSchema();
+        final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
+                .withInputFileType(inputFileType)
                 .build();
 
-        InputStream inputStream = new ByteArrayInputStream(PASSWORD_PROTECTED.toByteArray());
+        final ByteArrayOutputStream fileStream = inputFileType == InputFileType.XLSX ? PASSWORD_PROTECTED : PASSWORD_PROTECTED_OLDER_EXCEL;
+        final InputStream inputStream = new ByteArrayInputStream(fileStream.toByteArray());
         assertThrows(Exception.class, () -> new ExcelRecordReader(configuration, inputStream, logger));
     }
 
     private RecordSchema getPasswordProtectedSchema() {
-        return new SimpleRecordSchema(Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
+        return new SimpleRecordSchema(List.of(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType())));
     }
 
     @Test
     void testWithNumberColumnWhoseValueIsEmptyString() throws Exception {
-        final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+        final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.LONG.getDataType())));
         final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
 
         final Object[][] data = {{"Manny", ""}};
-        final InputStream workbook = createWorkbook(data);
+        final InputStream workbook = createWorkbook(data, XSSFWorkbook::new);
         final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, workbook, logger);
 
         assertDoesNotThrow(() -> getRecords(recordReader, true, true));
@@ -355,9 +371,10 @@ public class TestExcelRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField(fieldName, RecordFieldType.STRING.getDataType())));
         final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
+                .withInputFileType(InputFileType.XLSX)
                 .build();
         final Object[][] data = {{9876543210L}};
-        final InputStream workbook = createWorkbook(data);
+        final InputStream workbook = createWorkbook(data, XSSFWorkbook::new);
         final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, workbook, logger);
         final List<Record> records = getRecords(recordReader, true, true);
         final Record firstRecord = records.getFirst();
@@ -366,10 +383,10 @@ public class TestExcelRecordReader {
         assertEquals(scientificNotationNumber, firstRecord.getAsString(fieldName));
     }
 
-    private static InputStream createWorkbook(Object[][] data) throws Exception {
+    private static InputStream createWorkbook(Object[][] data, Supplier<Workbook> workbookSupplier) throws Exception {
         final ByteArrayOutputStream workbookOutputStream = new ByteArrayOutputStream();
-        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            final XSSFSheet sheet = workbook.createSheet("SomeSheetName");
+        try (Workbook workbook = workbookSupplier.get()) {
+            final Sheet sheet = workbook.createSheet("SomeSheetName");
             populateSheet(sheet, data);
             workbook.write(workbookOutputStream);
         }
@@ -377,7 +394,34 @@ public class TestExcelRecordReader {
         return new ByteArrayInputStream(workbookOutputStream.toByteArray());
     }
 
-    private static void populateSheet(XSSFSheet sheet, Object[][] data) {
+    private static void createPasswordProtectedWorkbook() throws Exception {
+        // Generate an Excel file and populate it with data
+        final InputStream workbook = createWorkbook(DATA, XSSFWorkbook::new);
+
+        // Protect the Excel file with a password
+        try (POIFSFileSystem poifsFileSystem = new POIFSFileSystem()) {
+            EncryptionInfo encryptionInfo = new EncryptionInfo(EncryptionMode.agile);
+            Encryptor encryptor = encryptionInfo.getEncryptor();
+            encryptor.confirmPassword(PASSWORD);
+
+            try (OPCPackage opc = OPCPackage.open(workbook);
+                 OutputStream os = encryptor.getDataStream(poifsFileSystem)) {
+                opc.save(os);
+            }
+            poifsFileSystem.writeFilesystem(PASSWORD_PROTECTED);
+        }
+    }
+
+    private static void createPasswordProtectedOlderExcelWorkbook() throws Exception {
+        Biff8EncryptionKey.setCurrentUserPassword(PASSWORD);
+        try (final InputStream inputStream = createWorkbook(DATA, HSSFWorkbook::new)) {
+            inputStream.transferTo(PASSWORD_PROTECTED_OLDER_EXCEL);
+        } finally {
+            Biff8EncryptionKey.setCurrentUserPassword(null);
+        }
+    }
+
+    private static void populateSheet(Sheet sheet, Object[][] data) {
         //Adding the data to the Excel worksheet
         int rowCount = 0;
         for (Object[] dataRow : data) {

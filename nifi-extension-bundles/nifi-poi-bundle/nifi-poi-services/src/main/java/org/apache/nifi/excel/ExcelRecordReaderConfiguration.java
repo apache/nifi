@@ -30,6 +30,7 @@ public class ExcelRecordReaderConfiguration {
     private String timestampFormat;
     private String password;
     private boolean avoidTempFiles;
+    private InputFileType inputFileType;
 
     private ExcelRecordReaderConfiguration() {
     }
@@ -66,6 +67,10 @@ public class ExcelRecordReaderConfiguration {
         return avoidTempFiles;
     }
 
+    public InputFileType getInputFileType() {
+        return inputFileType;
+    }
+
     public static final class Builder {
         private RecordSchema schema;
         private List<String> requiredSheets;
@@ -75,6 +80,7 @@ public class ExcelRecordReaderConfiguration {
         private String timestampFormat;
         private String password;
         private boolean avoidTempFiles;
+        private InputFileType inputFileType;
 
         public Builder withSchema(RecordSchema schema) {
             this.schema = schema;
@@ -116,6 +122,11 @@ public class ExcelRecordReaderConfiguration {
             return this;
         }
 
+        public Builder withInputFileType(InputFileType inputFileType) {
+            this.inputFileType = inputFileType;
+            return this;
+        }
+
         public ExcelRecordReaderConfiguration build() {
             ExcelRecordReaderConfiguration excelRecordReaderConfiguration = new ExcelRecordReaderConfiguration();
             excelRecordReaderConfiguration.schema = this.schema;
@@ -126,6 +137,7 @@ public class ExcelRecordReaderConfiguration {
             excelRecordReaderConfiguration.firstRow = this.firstRow;
             excelRecordReaderConfiguration.password = password;
             excelRecordReaderConfiguration.avoidTempFiles = avoidTempFiles;
+            excelRecordReaderConfiguration.inputFileType = inputFileType;
 
             return excelRecordReaderConfiguration;
         }
