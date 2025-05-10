@@ -180,6 +180,9 @@ public class GitHubFlowRegistryClientTest {
 
         final PropertyValue filterPropertyValue = createMockPropertyValue(DEFAULT_FILTER);
         when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.DIRECTORY_FILTER_EXCLUDE)).thenReturn(filterPropertyValue);
+
+        final PropertyValue parametersPropertyValue = createMockPropertyValue("Retain");
+        when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.PARAMETER_CONTEXT_VALUES)).thenReturn(parametersPropertyValue);
     }
 
     private void setupClientConfigurationContextWithDefaults() {

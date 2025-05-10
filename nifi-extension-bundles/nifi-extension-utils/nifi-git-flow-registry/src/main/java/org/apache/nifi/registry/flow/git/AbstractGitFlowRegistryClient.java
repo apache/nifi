@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.git;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -93,6 +94,17 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
+    static final AllowableValue RETAIN = new AllowableValue("retain", "Retain", "Will not modify the parameter values");
+    static final AllowableValue REMOVE = new AllowableValue("remove", "Remove", "Will remove the parameter values");
+
+    public static final PropertyDescriptor PARAMETER_CONTEXT_VALUES = new PropertyDescriptor.Builder()
+            .name("Parameter Context Values")
+            .description("Specifies what to do with parameter values when storing the versioned flow.")
+            .allowableValues(RETAIN, REMOVE)
+            .defaultValue(RETAIN)
+            .required(true)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -121,6 +133,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(REPOSITORY_BRANCH);
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
+        combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();
@@ -346,6 +359,13 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setVersion(null);
         flowSnapshot.getSnapshotMetadata().setComments(null);
         flowSnapshot.getSnapshotMetadata().setTimestamp(0);
+
+        // remove all parameter values if configured to do so
+        if (REMOVE.getValue().equals(context.getProperty(PARAMETER_CONTEXT_VALUES).getValue())) {
+            flowSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
+                parameterContext.getParameters().forEach(parameter -> parameter.setValue(null));
+            });
+        }
 
         // replace the id of the top level group and all of its references with a constant value prior to serializing to avoid
         // unnecessary diffs when different instances of the same flow are imported and have different top-level PG ids
