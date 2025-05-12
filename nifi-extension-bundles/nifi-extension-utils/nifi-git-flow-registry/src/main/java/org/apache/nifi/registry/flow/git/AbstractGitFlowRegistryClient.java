@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.git;
 
-import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -94,14 +94,11 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
-    static final AllowableValue RETAIN = new AllowableValue("retain", "Retain", "Will not modify the parameter values");
-    static final AllowableValue REMOVE = new AllowableValue("remove", "Remove", "Will remove the parameter values");
-
     public static final PropertyDescriptor PARAMETER_CONTEXT_VALUES = new PropertyDescriptor.Builder()
             .name("Parameter Context Values")
             .description("Specifies what to do with parameter values when storing the versioned flow.")
-            .allowableValues(RETAIN, REMOVE)
-            .defaultValue(RETAIN)
+            .allowableValues(ParameterContextValuesStrategy.class)
+            .defaultValue(ParameterContextValuesStrategy.RETAIN)
             .required(true)
             .build();
 
@@ -361,7 +358,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setTimestamp(0);
 
         // remove all parameter values if configured to do so
-        if (REMOVE.getValue().equals(context.getProperty(PARAMETER_CONTEXT_VALUES).getValue())) {
+        if (ParameterContextValuesStrategy.REMOVE.equals(context.getProperty(PARAMETER_CONTEXT_VALUES).asAllowableValue(ParameterContextValuesStrategy.class))) {
             flowSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
                 parameterContext.getParameters().forEach(parameter -> parameter.setValue(null));
             });
@@ -675,5 +672,35 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     // protected to allow for overriding from tests
     protected FlowSnapshotSerializer createFlowSnapshotSerializer() {
         return new JacksonFlowSnapshotSerializer();
+    }
+
+    enum ParameterContextValuesStrategy implements DescribedValue {
+        RETAIN("retain", "Retain", "Will not modify the parameter values"),
+        REMOVE("remove", "Remove", "Will remove the parameter values");
+
+        private final String value;
+        private final String displayName;
+        private final String description;
+
+        ParameterContextValuesStrategy(final String value, final String displayName, final String description) {
+            this.value = value;
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
     }
 }
