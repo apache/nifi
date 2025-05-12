@@ -34,7 +34,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.basex.core.Context;
-import org.basex.core.Prop;
 import org.basex.io.IOContent;
 import org.basex.query.QueryException;
 import org.basex.query.QueryProcessor;
@@ -156,7 +155,6 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
                 session.transfer(transformed, REL_FAILURE);
                 continue;
             }
-            Prop prop = new Prop();
             String query = context.getProperty(XQUERY_SCRIPT).getValue();
             final String attrMappingStrategy = String.valueOf(context.getProperty(ATTR_MAPPING_STRATEGY));
 
@@ -171,7 +169,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
 
             Value result = null;
             try {
-                Item node = new DBNode(new IOContent(input.get()), prop);
+                Item node = new DBNode(new IOContent(input.get()));
                 queryProcessor.context(node);
                 result = queryProcessor.value();
             } catch (Exception e) {
@@ -184,7 +182,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             String finalResultSerialized = null;
             try {
                  finalResultSerialized = finalResult.serialize().toString();
-            } catch (QueryException e) {
+            } catch (Exception e) {
                 logger.error("Failed during serializing output: ", transformed, e);
                 session.transfer(transformed, REL_FAILURE);
                 continue;
@@ -219,7 +217,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
         flowFile.getAttributes().forEach((key, value) -> {
             try {
                 if (mappedAttributes.contains(key)) {
-                    queryProcessor.bind(key, value);
+                    queryProcessor.variable(key, value);
                 }
             } catch (Exception e) {
                 logger.error("Query failed while processing attribute: {}", flowFile, e);
@@ -233,7 +231,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
     {
         flowFile.getAttributes().forEach((key, value) -> {
             try {
-                queryProcessor.bind(key, value);
+                queryProcessor.variable(key, value);
 
             } catch (Exception e) {
                 logger.error("Query failed while processing attribute: {}", flowFile, e);

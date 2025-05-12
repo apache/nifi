@@ -30,18 +30,11 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <repositories>
-        <repository>
-            <id>basex</id>
-            <name>BaseX Maven Repository</name>
-            <url>https://files.basex.org/maven</url>
-        </repository>
-    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.basex</groupId>
             <artifactId>basex</artifactId>
-            <version>7.6</version>
+            <version>11.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
