@@ -21,11 +21,11 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { deleteDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
-import { Droplets } from 'apps/nifi-registry/src/app/state/droplets';
+import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MatButtonModule } from '@angular/material/button';
 
 interface DeleteDropletDialogData {
-    droplet: Droplets;
+    droplet: Droplet;
 }
 
 @Component({
@@ -36,7 +36,7 @@ interface DeleteDropletDialogData {
     styleUrl: './delete-droplet-dialog.component.scss'
 })
 export class DeleteDropletDialogComponent extends CloseOnEscapeDialog {
-    droplet: Droplets;
+    droplet: Droplet;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public data: DeleteDropletDialogData,
@@ -46,7 +46,7 @@ export class DeleteDropletDialogComponent extends CloseOnEscapeDialog {
         this.droplet = data.droplet;
     }
 
-    deleteDroplet(droplet: Droplets) {
+    deleteDroplet(droplet: Droplet) {
         this.store.dispatch(deleteDroplet({ request: { droplet } }));
     }
 }
