@@ -41,6 +41,7 @@ import { FlowVersionsDialogComponent } from '../../pages/expolorer/feature/ui/fl
 import { ErrorHelper } from '../../service/error-helper.service';
 import * as ErrorActions from '../../state/error/error.actions';
 import { selectStatus } from './droplets.selectors';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class DropletsEffects {
@@ -48,7 +49,8 @@ export class DropletsEffects {
         private store: Store<NiFiState>,
         private dropletsService: DropletsService,
         private dialog: MatDialog,
-        private errorHelper: ErrorHelper
+        private errorHelper: ErrorHelper,
+        private router: Router
     ) {}
 
     actions$ = inject(Actions);
@@ -290,6 +292,18 @@ export class DropletsEffects {
                         })
                     )
                 )
+            ),
+        { dispatch: false }
+    );
+
+    selectDroplet$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(DropletsActions.selectDroplet),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/explorer', request.id]);
+                })
             ),
         { dispatch: false }
     );

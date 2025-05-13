@@ -24,7 +24,6 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatMenuModule } from '@angular/material/menu';
 import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-table-filter.component';
 import { MatButtonModule } from '@angular/material/button';
-import { DeleteDropletDialogComponent } from './ui/delete-droplet-dialog/delete-droplet-dialog.component';
 import { RouterModule } from '@angular/router';
 
 describe('ExplorerComponent', () => {
@@ -34,6 +33,7 @@ describe('ExplorerComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
+                ExplorerComponent,
                 CommonModule,
                 MatTableModule,
                 MatSortModule,
@@ -44,7 +44,6 @@ describe('ExplorerComponent', () => {
                 MatButtonModule,
                 RouterModule.forRoot([])
             ],
-            declarations: [ExplorerComponent],
             providers: [provideMockStore({})]
         }).compileComponents();
 
