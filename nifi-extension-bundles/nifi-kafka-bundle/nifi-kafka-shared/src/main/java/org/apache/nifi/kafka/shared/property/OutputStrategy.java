@@ -23,7 +23,9 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum OutputStrategy implements DescribedValue {
     USE_VALUE("USE_VALUE", "Use Content as Value", "Write only the Kafka Record value to the FlowFile record."),
-    USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the FlowFile record. (See processor usage for more information.)");
+    USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the FlowFile record. (See processor's additional details for more information.)"),
+    INJECT_METADATA("INJECT_METADATA", "Inject Metadata",
+            "Write the Kafka Record value to the FlowFile record and add a sub-record to it with key, headers, and metadata. (See processor's additional details for more information.)");
 
     private final String value;
     private final String displayName;
