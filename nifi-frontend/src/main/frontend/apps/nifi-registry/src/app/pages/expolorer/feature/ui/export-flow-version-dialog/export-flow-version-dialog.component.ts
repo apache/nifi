@@ -21,14 +21,14 @@ import { MatFormField } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { Droplets } from 'apps/nifi-registry/src/app/state/droplets';
+import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { Store } from '@ngrx/store';
 import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { MatButtonModule } from '@angular/material/button';
 
 export interface ExportFlowVersionDialogData {
-    droplet: Droplets;
+    droplet: Droplet;
 }
 
 @Component({
@@ -39,7 +39,7 @@ export interface ExportFlowVersionDialogData {
     styleUrl: './export-flow-version-dialog.component.scss'
 })
 export class ExportFlowVersionDialogComponent extends CloseOnEscapeDialog {
-    droplet: Droplets;
+    droplet: Droplet;
     selectedVersion: number;
 
     constructor(
