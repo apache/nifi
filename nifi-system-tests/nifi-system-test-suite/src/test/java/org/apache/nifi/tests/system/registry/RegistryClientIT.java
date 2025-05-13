@@ -414,10 +414,5 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals(vci.getVersionControlInformation().getFlowId(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getFlowId());
         assertEquals(vci.getVersionControlInformation().getVersion(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getVersion());
         assertEquals("UP_TO_DATE", groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getState());
-
-        waitFor(() -> {
-            final ProcessGroupEntity syncedGroup = getNifiClient().getProcessGroupClient().getProcessGroup(group.getId());
-            return syncedGroup.getComponent().getVersionControlInformation().getState().equals("UP_TO_DATE");
-        });
     }
 }

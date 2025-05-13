@@ -136,8 +136,25 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final VersionControlInformationDTO versionControlInfoDTO = processGroup.getVersionControlInformation();
         final VersionControlInformation versionControlInformation = group.getVersionControlInformation();
-        if (versionControlInfoDTO != null && versionControlInformation != null) {
-            throw new IllegalStateException("Cannot set Version Control Info because process group is already under version control");
+        if (versionControlInfoDTO != null) {
+            if (versionControlInformation != null) {
+                throw new IllegalStateException("Cannot set Version Control Info because process group is already under version control");
+            }
+            verifyChildProcessGroupsNotUnderVersionControl(group.getProcessGroups());
+        }
+    }
+
+    private void verifyChildProcessGroupsNotUnderVersionControl(final Set<ProcessGroup> childGroups) {
+        if (childGroups == null || childGroups.isEmpty()) {
+            return;
+        }
+
+        for (final ProcessGroup childGroup : childGroups) {
+            final VersionControlInformation versionControlInformation = childGroup.getVersionControlInformation();
+            if (versionControlInformation != null) {
+                throw new IllegalStateException("Cannot set Version Control Info because a child process group is already under version control");
+            }
+            verifyChildProcessGroupsNotUnderVersionControl(childGroup.getProcessGroups());
         }
     }
 
