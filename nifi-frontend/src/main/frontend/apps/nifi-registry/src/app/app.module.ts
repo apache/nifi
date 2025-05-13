@@ -33,9 +33,9 @@ import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
 import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { DropletsEffects } from './state/droplets/droplets.effects';
-import { ExplorerModule } from './pages/expolorer/feature/explorer.module';
 import { BucketsEffects } from './state/buckets/buckets.effects';
 import { ErrorEffects } from './state/error/error.effects';
+import { ExplorerComponent } from './pages/expolorer/feature/explorer.component';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations = '';
@@ -63,7 +63,7 @@ try {
         AppRoutingModule,
         BrowserAnimationsModule,
         HeaderComponent,
-        ExplorerModule,
+        ExplorerComponent,
         StoreModule.forRoot(rootReducers),
         StoreRouterConnectingModule.forRoot({
             routerState: RouterState.Minimal,
