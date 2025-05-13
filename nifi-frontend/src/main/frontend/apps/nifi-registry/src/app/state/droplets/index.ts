@@ -20,7 +20,7 @@ import { Bucket } from '../../state/buckets';
 export const dropletsFeatureKey = 'droplets';
 
 export interface LoadDropletsResponse {
-    droplets: Droplets[];
+    droplets: Droplet[];
 }
 
 export interface Params {
@@ -41,7 +41,7 @@ export interface Permissions {
     canWrite: boolean;
 }
 
-export interface Droplets {
+export interface Droplet {
     bucketIdentifier: string;
     bucketName: string;
     createdTimestamp: number;
@@ -57,17 +57,17 @@ export interface Droplets {
 }
 
 export interface DropletsState {
-    droplets: Droplets[];
+    droplets: Droplet[];
     status: 'pending' | 'loading' | 'success';
     saving: boolean;
 }
 
 export interface DeleteDropletRequest {
-    droplet: Droplets;
+    droplet: Droplet;
 }
 
 export interface DeleteDropletResponse {
-    droplet: Droplets;
+    droplet: Droplet;
 }
 
 export interface ImportDropletDialog {

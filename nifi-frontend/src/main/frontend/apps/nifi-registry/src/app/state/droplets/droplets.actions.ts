@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { DeleteDropletRequest, Droplets, ImportDropletDialog, ImportDropletRequest, LoadDropletsResponse } from '.';
+import { DeleteDropletRequest, Droplet, ImportDropletDialog, ImportDropletRequest, LoadDropletsResponse } from '.';
 
 export const loadDroplets = createAction('[Droplets] Load Droplets');
 
@@ -32,7 +32,7 @@ export const openDeleteDropletDialog = createAction(
 
 export const deleteDroplet = createAction('[Droplets] Delete Droplet', props<{ request: DeleteDropletRequest }>());
 
-export const deleteDropletSuccess = createAction('[Droplets] Delete Droplet Success', props<{ response: Droplets }>());
+export const deleteDropletSuccess = createAction('[Droplets] Delete Droplet Success', props<{ response: Droplet }>());
 
 export const openImportNewFlowDialog = createAction(
     '[Droplets] Open Import New Flow Dialog',
@@ -50,7 +50,7 @@ export const importNewFlowSuccess = createAction('[Droplets] Import New Flow Suc
 
 export const openImportNewFlowVersionDialog = createAction(
     '[Droplets] Open Import New Flow Version Dialog',
-    props<{ request: { droplet: Droplets } }>()
+    props<{ request: { droplet: Droplet } }>()
 );
 
 export const importNewFlowVersion = createAction(
@@ -60,12 +60,12 @@ export const importNewFlowVersion = createAction(
 
 export const openExportFlowVersionDialog = createAction(
     `[Droplets] Open Export Flow Version Dialog`,
-    props<{ request: { droplet: Droplets } }>()
+    props<{ request: { droplet: Droplet } }>()
 );
 
 export const exportFlowVersion = createAction(
     `[Droplets] Export Flow Version`,
-    props<{ request: { droplet: Droplets; version: number } }>()
+    props<{ request: { droplet: Droplet; version: number } }>()
 );
 
 export const exportFlowVersionSuccess = createAction(
@@ -75,5 +75,7 @@ export const exportFlowVersionSuccess = createAction(
 
 export const openFlowVersionsDialog = createAction(
     `[Droplets] Open Flow Versions Dialog`,
-    props<{ request: { droplet: Droplets } }>()
+    props<{ request: { droplet: Droplet } }>()
 );
+
+export const selectDroplet = createAction(`[Droplets] Select Droplet`, props<{ request: { id: string } }>());
