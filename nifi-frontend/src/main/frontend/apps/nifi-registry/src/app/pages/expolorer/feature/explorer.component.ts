@@ -16,16 +16,21 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { selectDroplets } from '../../../state/droplets/droplets.selectors';
+import {
+    selectDropletIdFromRoute,
+    selectDroplets,
+    selectDropletState
+} from '../../../state/droplets/droplets.selectors';
 import {
     loadDroplets,
     openDeleteDropletDialog,
     openExportFlowVersionDialog,
     openFlowVersionsDialog,
     openImportNewFlowDialog,
-    openImportNewFlowVersionDialog
+    openImportNewFlowVersionDialog,
+    selectDroplet
 } from '../../../state/droplets/droplets.actions';
-import { Droplets } from '../../../state/droplets';
+import { Droplet } from '../../../state/droplets';
 import { Store } from '@ngrx/store';
 import { MatTableDataSource } from '@angular/material/table';
 import { Observable } from 'rxjs';
@@ -38,17 +43,35 @@ import { DropletTableFilterContext } from './ui/droplet-table-filter/droplet-tab
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 
+import { CommonModule } from '@angular/common';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
+import { MatMenuModule } from '@angular/material/menu';
+import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-table-filter.component';
+import { MatButtonModule } from '@angular/material/button';
+import { DropletTableComponent } from './ui/droplet-table/droplet-table.component';
+
 @Component({
     selector: 'explorer',
+    imports: [
+        CommonModule,
+        MatTableModule,
+        MatSortModule,
+        MatMenuModule,
+        DropletTableFilterComponent,
+        MatButtonModule,
+        MatButtonModule,
+        DropletTableComponent
+    ],
     templateUrl: './explorer.component.html',
     styleUrl: './explorer.component.scss',
-    standalone: false
+    standalone: true
 })
 export class ExplorerComponent implements OnInit {
-    droplets$: Observable<Droplets[]>;
+    droplets$: Observable<Droplet[]>;
     buckets$: Observable<Bucket[]>;
     buckets: Bucket[] = [];
-    dataSource: MatTableDataSource<Droplets> = new MatTableDataSource<Droplets>();
+    dataSource: MatTableDataSource<Droplet> = new MatTableDataSource<Droplet>();
     displayedColumns: string[] = [
         'name',
         'type',
@@ -65,6 +88,8 @@ export class ExplorerComponent implements OnInit {
     filterTerm = '';
     filterBucket = 'All';
     filterColumn = '';
+    dropletsState$ = this.store.select(selectDropletState);
+    selectedDropletId$ = this.store.select(selectDropletIdFromRoute);
 
     constructor(
         private store: Store,
@@ -91,14 +116,14 @@ export class ExplorerComponent implements OnInit {
         this.store.dispatch(loadDroplets());
         this.store.dispatch(loadBuckets());
         this.droplets$.subscribe((droplets) => {
-            this.dataSource.data = droplets;
+            this.dataSource.data = [...droplets];
             this.sortData(this.sort);
         });
         this.buckets$.subscribe((buckets) => {
-            this.buckets = buckets;
+            this.buckets = [...buckets];
         });
 
-        this.dataSource.filterPredicate = (data: Droplets, filter: string) => {
+        this.dataSource.filterPredicate = (data: Droplet, filter: string) => {
             const { filterTerm, filterColumn, filterBucket } = JSON.parse(filter);
             const matchBucket: boolean = filterBucket !== 'All';
 
@@ -125,7 +150,7 @@ export class ExplorerComponent implements OnInit {
         this.dataSource.data = this.sortVersions(this.dataSource.data, sort);
     }
 
-    sortVersions(data: Droplets[], sort: Sort): Droplets[] {
+    sortVersions(data: Droplet[], sort: Sort): Droplet[] {
         if (!data) {
             return [];
         }
@@ -160,19 +185,19 @@ export class ExplorerComponent implements OnInit {
         this.store.dispatch(openImportNewFlowDialog({ request: { buckets: this.buckets, activeBucket: null } }));
     }
 
-    openImportNewFlowVersionDialog(droplet: Droplets) {
+    openImportNewFlowVersionDialog(droplet: Droplet) {
         this.store.dispatch(openImportNewFlowVersionDialog({ request: { droplet } }));
     }
 
-    openExportFlowVersionDialog(droplet: Droplets) {
+    openExportFlowVersionDialog(droplet: Droplet) {
         this.store.dispatch(openExportFlowVersionDialog({ request: { droplet } }));
     }
 
-    openDeleteDialog(droplet: Droplets) {
+    openDeleteDialog(droplet: Droplet) {
         this.store.dispatch(openDeleteDropletDialog({ request: { droplet } }));
     }
 
-    openFlowVersionsDialog(droplet: Droplets) {
+    openFlowVersionsDialog(droplet: Droplet) {
         this.store.dispatch(openFlowVersionsDialog({ request: { droplet } }));
     }
 
@@ -189,5 +214,20 @@ export class ExplorerComponent implements OnInit {
             queryParams: { filterTerm, filterColumn, filterBucket },
             queryParamsHandling: 'merge'
         });
+    }
+
+    refreshDropletsListing() {
+        this.store.dispatch(loadDroplets());
+        this.store.dispatch(loadBuckets());
+    }
+
+    selectDroplet(droplet: Droplet): void {
+        this.store.dispatch(
+            selectDroplet({
+                request: {
+                    id: droplet.identifier
+                }
+            })
+        );
     }
 }

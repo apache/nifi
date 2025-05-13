@@ -22,7 +22,7 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { importNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
-import { Droplets } from 'apps/nifi-registry/src/app/state/droplets';
+import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
@@ -31,7 +31,7 @@ import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
 
 export interface ImportNewFlowVersionDialogData {
     activeBucket?: Bucket;
-    droplet: Droplets;
+    droplet: Droplet;
 }
 
 @Component({

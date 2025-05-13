@@ -22,7 +22,13 @@ import { ExplorerComponent } from './pages/expolorer/feature/explorer.component'
 const routes: Routes = [
     {
         path: 'explorer',
-        component: ExplorerComponent
+        component: ExplorerComponent,
+        children: [
+            {
+                path: ':id',
+                component: ExplorerComponent
+            }
+        ]
     },
     {
         path: 'nifi-registry',

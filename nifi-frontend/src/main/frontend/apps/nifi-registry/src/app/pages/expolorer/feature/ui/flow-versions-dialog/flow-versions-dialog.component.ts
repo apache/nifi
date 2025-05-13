@@ -17,7 +17,7 @@
 
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Droplets } from 'apps/nifi-registry/src/app/state/droplets';
+import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -28,7 +28,7 @@ import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/dro
 import { MatButtonModule } from '@angular/material/button';
 
 interface Data {
-    droplet: Droplets;
+    droplet: Droplet;
     versions: any;
 }
 
