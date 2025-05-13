@@ -358,10 +358,11 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setTimestamp(0);
 
         // remove all parameter values if configured to do so
-        if (ParameterContextValuesStrategy.REMOVE.equals(context.getProperty(PARAMETER_CONTEXT_VALUES).asAllowableValue(ParameterContextValuesStrategy.class))) {
-            flowSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
-                parameterContext.getParameters().forEach(parameter -> parameter.setValue(null));
-            });
+        final ParameterContextValuesStrategy parameterContextValuesStrategy = context.getProperty(PARAMETER_CONTEXT_VALUES).asAllowableValue(ParameterContextValuesStrategy.class);
+        if (ParameterContextValuesStrategy.REMOVE.equals(parameterContextValuesStrategy)) {
+            flowSnapshot.getParameterContexts().forEach((name, parameterContext) ->
+                parameterContext.getParameters().forEach(parameter -> parameter.setValue(null))
+            );
         }
 
         // replace the id of the top level group and all of its references with a constant value prior to serializing to avoid
@@ -675,22 +676,20 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     }
 
     enum ParameterContextValuesStrategy implements DescribedValue {
-        RETAIN("retain", "Retain", "Will not modify the parameter values"),
-        REMOVE("remove", "Remove", "Will remove the parameter values");
+        RETAIN("Retain", "Retain Values in Parameter Contexts without modifications"),
+        REMOVE("Remove", "Remove Values from Parameter Context");
 
-        private final String value;
         private final String displayName;
         private final String description;
 
-        ParameterContextValuesStrategy(final String value, final String displayName, final String description) {
-            this.value = value;
+        ParameterContextValuesStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
 
         @Override
         public String getValue() {
-            return value;
+            return name();
         }
 
         @Override
