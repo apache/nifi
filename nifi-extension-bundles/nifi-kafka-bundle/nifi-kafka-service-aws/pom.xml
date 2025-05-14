@@ -50,7 +50,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>${kafka3.version}</version>
+            <version>${kafka-clients.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.msk</groupId>
