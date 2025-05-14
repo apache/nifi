@@ -25,6 +25,8 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.nifi.questdb.Client;
 import org.apache.nifi.questdb.DatabaseException;
 import org.apache.nifi.questdb.DatabaseManager;
+import org.apache.nifi.questdb.QueryResultProcessor;
+import org.apache.nifi.questdb.QueryRowContext;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,7 +185,17 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                         metadata.close();
                     }
 
-                    client.execute(String.format("SELECT * FROM %S LIMIT 1", tableDefinition.getName()));
+                    client.query(String.format("SELECT * FROM %S LIMIT 1", tableDefinition.getName()), new QueryResultProcessor<>() {
+                        @Override
+                        public void processRow(final QueryRowContext context) {
+                            // Nothing to do, checking for successful execution
+                        }
+
+                        @Override
+                        public Object getResult() {
+                            return null;
+                        }
+                    });
                 } catch (final Exception e) {
                     throw new CorruptedDatabaseException(e);
                 }
