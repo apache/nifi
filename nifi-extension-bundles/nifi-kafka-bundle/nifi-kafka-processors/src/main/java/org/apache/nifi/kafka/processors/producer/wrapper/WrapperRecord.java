@@ -95,6 +95,8 @@ public class WrapperRecord extends MapRecord {
 
     public static RecordSchema toWrapperSchema(final RecordField fieldKey, final RecordSchema recordSchema) {
         final RecordField fieldValue = new RecordField(VALUE, RecordFieldType.RECORD.getRecordDataType(recordSchema));
-        return new SimpleRecordSchema(Arrays.asList(FIELD_METADATA, FIELD_HEADERS, fieldKey, fieldValue));
+        return fieldKey == null
+                ? new SimpleRecordSchema(Arrays.asList(FIELD_METADATA, FIELD_HEADERS, fieldValue))
+                : new SimpleRecordSchema(Arrays.asList(FIELD_METADATA, FIELD_HEADERS, fieldKey, fieldValue));
     }
 }

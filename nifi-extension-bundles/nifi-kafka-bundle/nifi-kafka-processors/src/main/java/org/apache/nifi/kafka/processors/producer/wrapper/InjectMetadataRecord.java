@@ -28,7 +28,6 @@ import org.apache.nifi.util.Tuple;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,7 @@ public class InjectMetadataRecord extends MapRecord {
     public static final String OFFSET = "offset";
     public static final String TIMESTAMP = "timestamp";
 
-    public static final String METADATA = "kafka_metadata";
+    public static final String METADATA = "kafkaMetadata";
     public static final String HEADERS = "headers";
     public static final String KEY = "key";
 
@@ -56,10 +55,10 @@ public class InjectMetadataRecord extends MapRecord {
 
     private static RecordSchema toRecordSchema(final Record record, final String messageKeyField) {
         final Record recordKey = (Record) record.getValue(messageKeyField);
-        final RecordSchema recordSchemaKey = ((recordKey == null) ? null : recordKey.getSchema());
+        final RecordSchema recordSchemaKey = recordKey == null ? null : recordKey.getSchema();
         final RecordField fieldKey = new RecordField(KEY, RecordFieldType.RECORD.getRecordDataType(recordSchemaKey));
 
-        final RecordSchema metadataRecordSchema = new SimpleRecordSchema(Arrays.asList(FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP, fieldKey, FIELD_HEADERS));
+        final RecordSchema metadataRecordSchema = new SimpleRecordSchema(List.of(FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP, fieldKey, FIELD_HEADERS));
         final RecordField metadataField = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(metadataRecordSchema));
 
         final RecordSchema valueSchema = record.getSchema();
@@ -99,7 +98,9 @@ public class InjectMetadataRecord extends MapRecord {
     }
 
     public static RecordSchema toWrapperSchema(final RecordField fieldKey, final RecordSchema recordSchema) {
-        final RecordSchema metadataRecordSchema = new SimpleRecordSchema(Arrays.asList(FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP, fieldKey, FIELD_HEADERS));
+        final RecordSchema metadataRecordSchema = fieldKey == null
+                ? new SimpleRecordSchema(List.of(FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP, FIELD_HEADERS))
+                : new SimpleRecordSchema(List.of(FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP, fieldKey, FIELD_HEADERS));
         final RecordField metadataField = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(metadataRecordSchema));
         final List<RecordField> valueFields = recordSchema.getFields();
         final List<RecordField> valueFieldsWithInjectedMetadata = new ArrayList<>(valueFields);
@@ -116,7 +117,9 @@ public class InjectMetadataRecord extends MapRecord {
         valuesMetadata.put(InjectMetadataRecord.PARTITION, consumerRecord.getPartition());
         valuesMetadata.put(InjectMetadataRecord.OFFSET, consumerRecord.getOffset());
         valuesMetadata.put(InjectMetadataRecord.TIMESTAMP, consumerRecord.getTimestamp());
-        valuesMetadata.put(InjectMetadataRecord.KEY, tupleKey.getValue());
+        if (tupleKey.getKey() != null) {
+            valuesMetadata.put(InjectMetadataRecord.KEY, tupleKey.getValue());
+        }
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
         for (RecordHeader header : consumerRecord.getHeaders()) {

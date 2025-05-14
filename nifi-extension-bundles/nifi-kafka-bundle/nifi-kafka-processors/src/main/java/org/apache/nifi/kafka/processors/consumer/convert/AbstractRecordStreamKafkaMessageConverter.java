@@ -103,12 +103,8 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
             try (final InputStream in = new ByteArrayInputStream(value);
                     final RecordReader reader = readerFactory.createRecordReader(attributes, in, value.length, logger)) {
 
-                int recordCount = 0;
-                while (true) {
-                    final Record record = reader.nextRecord();
-                    if (recordCount++ > 0 && record == null) {
-                        break;
-                    }
+                Record record;
+                while ((record = reader.nextRecord()) != null) {
                     // delegate the actual grouping & writing
                     processSingleRecord(session, recordGroups, consumerRecord, record, attributes, extraAttrs, topic, partition);
                 }

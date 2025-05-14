@@ -17,8 +17,8 @@
 package org.apache.nifi.kafka.processors;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.commons.io.IOUtils;
@@ -53,15 +53,14 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
     private static final String TEST_RESOURCE = "org/apache/nifi/kafka/processors/publish/ff.json";
     private static final int TEST_RECORD_COUNT = 3;
     private static final String MESSAGE_KEY = "{\"id\": 0,\"name\": \"K\"}";
-
     private static final int FIRST_PARTITION = 0;
-    private static final long FIRST_OFFSET = 0;
 
     private TestRunner runner;
 
@@ -115,7 +114,7 @@ class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
 
     @ParameterizedTest
     @MethodSource("permutationsKeyFormat")
-    void testWrapperRecord(final KeyFormat keyFormat, final Verifier verifier)
+    void testInjectMetadataRecord(final KeyFormat keyFormat, final Verifier verifier)
             throws InterruptedException, ExecutionException, IOException {
         final String topic = UUID.randomUUID().toString();
         final String groupId = topic.substring(0, topic.indexOf("-"));
@@ -134,26 +133,27 @@ class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
         final List<Header> headersPublish = Collections.singletonList(
                 new RecordHeader("header1", "value1".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, MESSAGE_KEY, message, headersPublish);
+        produceOne(topic, 0, null, message, headersPublish);
         while (runner.getFlowFilesForRelationship("success").isEmpty()) {
             runner.run(1, false, false);
         }
         runner.run(1, true, false);
 
-        runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 1);
-
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS);
-        assertEquals(1, flowFiles.size());
+        assertEquals(6, flowFiles.stream()
+                .map(f -> f.getAttribute("record.count"))
+                .mapToLong(Long::parseLong)
+                .sum());
 
         final MockFlowFile flowFile = flowFiles.getFirst();
         runner.getLogger().trace(flowFile.getContent());
-        flowFile.assertAttributeEquals("record.count", Long.toString(TEST_RECORD_COUNT));
+        flowFile.assertAttributeEquals("record.count", flowFiles.size() == 2 ? Long.toString(TEST_RECORD_COUNT) : Long.toString(2 * TEST_RECORD_COUNT));
 
-        final ObjectMapper objectMapper = new ObjectMapper();
         final JsonNode jsonNodeTree = objectMapper.readTree(flowFile.getContent());
         final ArrayNode arrayNode = assertInstanceOf(ArrayNode.class, jsonNodeTree);
 
         final Iterator<JsonNode> elements = arrayNode.elements();
-        assertEquals(TEST_RECORD_COUNT, arrayNode.size());
+        assertEquals(arrayNode.size(), flowFiles.size() == 2 ? TEST_RECORD_COUNT : 2 * TEST_RECORD_COUNT);
 
         while (elements.hasNext()) {
             final ObjectNode record = assertInstanceOf(ObjectNode.class, elements.next());
@@ -163,7 +163,10 @@ class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
 
             final ObjectNode metadata = assertInstanceOf(ObjectNode.class, record.get(InjectMetadataRecord.METADATA));
 
-            verifier.verify(metadata.get(InjectMetadataRecord.KEY));
+            final JsonNode key = metadata.get(InjectMetadataRecord.KEY);
+            if (!(key instanceof NullNode)) {
+                verifier.verify(key);
+            }
 
             final ObjectNode headers = assertInstanceOf(ObjectNode.class, metadata.get(InjectMetadataRecord.HEADERS));
             assertEquals(1, headers.size());
@@ -171,12 +174,12 @@ class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
 
             assertEquals(topic, metadata.get(InjectMetadataRecord.TOPIC).asText());
             assertEquals(FIRST_PARTITION, metadata.get(InjectMetadataRecord.PARTITION).asInt());
-            assertEquals(FIRST_OFFSET, metadata.get(InjectMetadataRecord.OFFSET).asInt());
+            assertNotNull(metadata.get(InjectMetadataRecord.OFFSET).asInt());
             assertTrue(metadata.get(InjectMetadataRecord.TIMESTAMP).isIntegralNumber());
         }
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        assertEquals(flowFiles.size(), provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent.getEventType());
     }

@@ -81,7 +81,7 @@ The record schema that is used when "Inject Metadata" is selected is as follows 
   "fields": [
       < Fields as determined by the Record Reader for the Kafka message >,
     {
-      "name": "kafka_metadata",
+      "name": "kafkaMetadata",
       "type": [
         {
           "type": "record",
@@ -158,7 +158,7 @@ Here is an example of FlowFile content that is emitted by JsonRecordSetWriter wh
       "name": "Acme",
       "number": "AC1234"
     },
-    "kafka_metadata": {
+    "kafkaMetadata": {
       "topic": "accounts",
       "partition": 0,
       "offset": 0,
