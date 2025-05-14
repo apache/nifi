@@ -53,6 +53,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static net.snowflake.client.core.SFSessionProperty.AUTHENTICATOR;
+import static net.snowflake.client.core.SFSessionProperty.TOKEN;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
@@ -137,9 +139,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .description("The password for the Snowflake user.")
             .build();
 
-    public static final PropertyDescriptor TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
             .name("OAuth2 Access Token Provider")
-            .displayName("OAuth2 Access Token Provider")
             .description("Service providing OAuth2 Access Tokens for authenticating using the HTTP Authorization Header")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .build();
@@ -152,7 +153,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private volatile OAuth2AccessTokenProvider oauthService;
+    private volatile OAuth2AccessTokenProvider accessTokenProvider;
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECTION_URL_FORMAT,
@@ -167,7 +168,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             SnowflakeProperties.DATABASE,
             SnowflakeProperties.SCHEMA,
             SNOWFLAKE_WAREHOUSE,
-            TOKEN_PROVIDER,
+            ACCESS_TOKEN_PROVIDER,
             ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
             VALIDATION_QUERY,
             MAX_WAIT_TIME,
@@ -206,12 +207,12 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         super.onConfigured(context);
-        oauthService = context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+        accessTokenProvider = context.getProperty(ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
     }
 
-    private void refreshOauthToken() {
-        if (oauthService != null) {
-            dataSource.addConnectionProperty("token", oauthService.getAccessDetails().getAccessToken());
+    private void refreshAccessToken() {
+        if (accessTokenProvider != null) {
+            dataSource.addConnectionProperty(TOKEN.getPropertyKey(), accessTokenProvider.getAccessDetails().getAccessToken());
         }
     }
 
@@ -266,7 +267,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         final String database = context.getProperty(SnowflakeProperties.DATABASE).evaluateAttributeExpressions().getValue();
         final String schema = context.getProperty(SnowflakeProperties.SCHEMA).evaluateAttributeExpressions().getValue();
         final String warehouse = context.getProperty(SNOWFLAKE_WAREHOUSE).evaluateAttributeExpressions().getValue();
-        final OAuth2AccessTokenProvider tokenProvider = context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+        final OAuth2AccessTokenProvider tokenProvider = context.getProperty(ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
         final Map<String, String> connectionProperties = super.getConnectionProperties(context);
         if (database != null) {
@@ -279,8 +280,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             connectionProperties.put("warehouse", warehouse);
         }
         if (tokenProvider != null) {
-            connectionProperties.put("authenticator", "oauth");
-            connectionProperties.put("token", tokenProvider.getAccessDetails().getAccessToken());
+            connectionProperties.put(AUTHENTICATOR.getPropertyKey(), "oauth");
+            connectionProperties.put(TOKEN.getPropertyKey(), tokenProvider.getAccessDetails().getAccessToken());
         }
 
         final ProxyConfigurationService proxyConfigurationService = context
@@ -310,7 +311,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
 
     @Override
     public SnowflakeConnectionWrapper getSnowflakeConnection() {
-        refreshOauthToken();
+        refreshAccessToken();
         return new SnowflakeConnectionWrapper(getConnection());
     }
 
