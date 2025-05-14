@@ -250,7 +250,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     private static final String CONNECTION_STEP = "Kafka Broker Connection";
     private static final String TOPIC_LISTING_STEP = "Kafka Topic Listing";
 
-    private volatile Properties clientProperties;
     private volatile ServiceConfiguration serviceConfiguration;
     private volatile Properties producerProperties;
     private volatile Properties consumerProperties;
@@ -258,7 +257,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext configurationContext) {
-        clientProperties = getClientProperties(configurationContext);
+        final Properties clientProperties = getClientProperties(configurationContext);
         serviceConfiguration = getServiceConfiguration(configurationContext);
         producerProperties = getProducerProperties(configurationContext, clientProperties);
         consumerProperties = getConsumerProperties(configurationContext, clientProperties);
@@ -312,8 +311,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
 
-        final Kafka3ConsumerService consumerService = new Kafka3ConsumerService(getLogger(), consumer, subscription);
-        return consumerService;
+        return new Kafka3ConsumerService(getLogger(), consumer, subscription);
     }
 
     private Subscription createSubscription(final PollingContext pollingContext) {
@@ -360,9 +358,11 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     public List<ConfigVerificationResult> verify(final ConfigurationContext configurationContext, final ComponentLog verificationLogger, final Map<String, String> variables) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
+        // Build Admin Client Properties based on configured values and defaults from Consumer Properties
         final Properties clientProperties = getClientProperties(configurationContext);
-        clientProperties.putAll(variables);
-        try (final Admin admin = Admin.create(clientProperties)) {
+        final Properties consumerProperties = getConsumerProperties(configurationContext, clientProperties);
+        consumerProperties.putAll(variables);
+        try (final Admin admin = Admin.create(consumerProperties)) {
             final ListTopicsResult listTopicsResult = admin.listTopics();
 
             final KafkaFuture<Collection<TopicListing>> requestedListings = listTopicsResult.listings();
