@@ -22,30 +22,48 @@
         <version>2.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-kafka-service-aws</artifactId>
+    <artifactId>nifi-kafka-service-shared</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-service-api</artifactId>
-            <version>${project.version}</version>
+            <version>2.5.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Kafka Service implementation required for extending the Controller Service class -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-service-shared</artifactId>
-            <version>${project.version}</version>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
         </dependency>
-        <!-- Controller Service API modules required for extending Kafka3ConnectionService -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-user-service-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-api</artifactId>
+            <artifactId>nifi-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-shared</artifactId>
+            <version>2.5.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -53,9 +71,16 @@
             <version>${kafka3.version}</version>
         </dependency>
         <dependency>
-            <groupId>software.amazon.msk</groupId>
-            <artifactId>aws-msk-iam-auth</artifactId>
-            <version>2.3.2</version>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-cert-builder</artifactId>
+            <version>2.5.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-ssl</artifactId>
+            <version>2.5.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

@@ -27,7 +27,6 @@
         <skip.integration.tests>false</skip.integration.tests>
         <skip.unit.tests>false</skip.unit.tests>
         <kafka3.version>3.9.0</kafka3.version>
-        <kafka4.version>4.0.0</kafka4.version>
     </properties>
 
     <modules>
@@ -41,6 +40,7 @@
         <module>nifi-kafka-service-api</module>
         <module>nifi-kafka-service-aws</module>
         <module>nifi-kafka-service-aws-nar</module>
+        <module>nifi-kafka-service-shared</module>
         <module>nifi-kafka-shared</module>
     </modules>
 
