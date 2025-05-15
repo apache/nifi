@@ -2928,7 +2928,6 @@ public final class DtoFactory {
        return mapping;
    }
 
-
    /**
     * Creates a ProcessGroupContentDTO from the specified ProcessGroup.
     *

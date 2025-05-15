@@ -1822,6 +1822,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ProcessGroupEntity setVersionControlInformation(final Revision revision, final ProcessGroupDTO processGroupDTO, final RegisteredFlowSnapshot flowSnapshot) {
+        final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(processGroupDTO.getId());
+        final RevisionUpdate<ProcessGroupDTO> snapshot = updateComponent(revision,
+            processGroupNode,
+            () -> processGroupDAO.setVersionControlInformation(processGroupDTO, flowSnapshot),
+            processGroup -> dtoFactory.createProcessGroupDto(processGroup));
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
+        final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
+        final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroupNode.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = getProcessGroupBulletins(processGroupNode);
+        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, bulletinEntities);
+    }
+
+    @Override
     public void verifyUpdateProcessGroup(ProcessGroupDTO processGroupDTO) {
         if (processGroupDAO.hasProcessGroup(processGroupDTO.getId())) {
             processGroupDAO.verifyUpdate(processGroupDTO);

@@ -23,6 +23,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.VersionedComponentAdditions;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -135,6 +136,15 @@ public interface ProcessGroupDAO {
      * @return The process group
      */
     ProcessGroup updateProcessGroup(ProcessGroupDTO processGroup);
+
+    /**
+     * Sets the version control info on an unversioned process group.
+     *
+     * @param processGroup the process group with the version control info specified
+     * @param flowSnapshot the flow snapshot for the given version control info
+     * @return the updated process group
+     */
+    ProcessGroup setVersionControlInformation(ProcessGroupDTO processGroup, RegisteredFlowSnapshot flowSnapshot);
 
     /**
      * Updates the process group so that it matches the proposed flow

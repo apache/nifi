@@ -38,13 +38,10 @@ public class ProxyConfiguration {
 
     public static final ProxyConfiguration DIRECT_CONFIGURATION = new ProxyConfiguration();
 
-    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final ProxySpec... _specs) {
-
-        final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
+    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final ProxySpec... supportedProxySpecs) {
+        final Set<ProxySpec> specs = getUniqueProxySpecs(supportedProxySpecs);
 
         final StringBuilder description = new StringBuilder("Specifies the Proxy Configuration Controller Service to proxy network requests.");
-        description.append(" Supported proxies: ");
-        description.append(specs.stream().map(ProxySpec::getDisplayName).collect(Collectors.joining(", ")));
 
         if (specs.contains(SOCKS)) {
             description.append(" In case of SOCKS, it is not guaranteed that the selected SOCKS Version will be used by the processor.");

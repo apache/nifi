@@ -75,7 +75,9 @@ public class WrapperRecordKeyReader {
     private Tuple<RecordField, Object> toKeyRecord(final byte[] key, final Map<String, String> attributes)
             throws IOException, SchemaNotFoundException, MalformedRecordException {
         final Tuple<RecordField, Object> keyRecord;
-        if (key.length == 0) {
+        if (key == null) {
+            keyRecord = new Tuple<>(null, null);
+        } else if (key.length == 0) {
             keyRecord = new Tuple<>(EMPTY_SCHEMA_KEY_RECORD_FIELD, null);
         } else {
             try (final InputStream is = new ByteArrayInputStream(key);

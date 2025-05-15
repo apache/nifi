@@ -56,11 +56,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
+class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
     private static final String TEST_RESOURCE = "org/apache/nifi/kafka/processors/publish/ff.json";
     private static final int TEST_RECORD_COUNT = 3;
     private static final String MESSAGE_KEY = "{\"id\": 0,\"name\": \"K\"}";
-
     private static final int FIRST_PARTITION = 0;
 
     private TestRunner runner;
@@ -115,7 +114,7 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
 
     @ParameterizedTest
     @MethodSource("permutationsKeyFormat")
-    void testWrapperRecord(final KeyFormat keyFormat, final Verifier verifier)
+    void testInjectMetadataRecord(final KeyFormat keyFormat, final Verifier verifier)
             throws InterruptedException, ExecutionException, IOException {
         final String topic = UUID.randomUUID().toString();
         final String groupId = topic.substring(0, topic.indexOf("-"));
@@ -124,8 +123,9 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
         runner.setProperty(ConsumeKafka.TOPICS, topic);
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.RECORD);
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, AutoOffsetReset.EARLIEST);
-        runner.setProperty(ConsumeKafka.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER);
+        runner.setProperty(ConsumeKafka.OUTPUT_STRATEGY, OutputStrategy.INJECT_METADATA);
         runner.setProperty(ConsumeKafka.KEY_FORMAT, keyFormat);
+        runner.setProperty(ConsumeKafka.HEADER_NAME_PATTERN, "header*");
 
         runner.run(1, false, true);
         final String message = new String(IOUtils.toByteArray(Objects.requireNonNull(
@@ -156,26 +156,26 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
         assertEquals(arrayNode.size(), flowFiles.size() == 2 ? TEST_RECORD_COUNT : 2 * TEST_RECORD_COUNT);
 
         while (elements.hasNext()) {
-            final ObjectNode wrapper = assertInstanceOf(ObjectNode.class, elements.next());
+            final ObjectNode record = assertInstanceOf(ObjectNode.class, elements.next());
 
-            final JsonNode key = wrapper.get(InjectMetadataRecord.KEY);
-            if (key != null && !(key instanceof NullNode)) {
+            assertTrue(Arrays.asList(1, 2, 3).contains(record.get("id").asInt()));
+            assertTrue(Arrays.asList("A", "B", "C").contains(record.get("name").asText()));
+
+            final ObjectNode metadata = assertInstanceOf(ObjectNode.class, record.get(InjectMetadataRecord.METADATA));
+
+            final JsonNode key = metadata.get(InjectMetadataRecord.KEY);
+            if (!(key instanceof NullNode)) {
                 verifier.verify(key);
             }
 
-            final ObjectNode value = assertInstanceOf(ObjectNode.class, wrapper.get("value"));
-            assertTrue(Arrays.asList(1, 2, 3).contains(value.get("id").asInt()));
-            assertTrue(Arrays.asList("A", "B", "C").contains(value.get("name").asText()));
-
-            final ObjectNode headers = assertInstanceOf(ObjectNode.class, wrapper.get("headers"));
+            final ObjectNode headers = assertInstanceOf(ObjectNode.class, metadata.get(InjectMetadataRecord.HEADERS));
             assertEquals(1, headers.size());
             assertEquals("value1", headers.get("header1").asText());
 
-            final ObjectNode metadata = assertInstanceOf(ObjectNode.class, wrapper.get("metadata"));
-            assertEquals(topic, metadata.get("topic").asText());
-            assertEquals(FIRST_PARTITION, metadata.get("partition").asInt());
+            assertEquals(topic, metadata.get(InjectMetadataRecord.TOPIC).asText());
+            assertEquals(FIRST_PARTITION, metadata.get(InjectMetadataRecord.PARTITION).asInt());
             assertNotNull(metadata.get(InjectMetadataRecord.OFFSET).asInt());
-            assertTrue(metadata.get("timestamp").isIntegralNumber());
+            assertTrue(metadata.get(InjectMetadataRecord.TIMESTAMP).isIntegralNumber());
         }
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();

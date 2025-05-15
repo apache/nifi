@@ -22,6 +22,7 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.KeyFormat;
+import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -82,7 +83,8 @@ class WrapperRecordStreamKafkaMessageConverterTest {
                 true,
                 offsetTracker,
                 logger,
-                "brokerUri"
+                "brokerUri",
+                OutputStrategy.USE_WRAPPER
         );
 
         // Create ByteRecords

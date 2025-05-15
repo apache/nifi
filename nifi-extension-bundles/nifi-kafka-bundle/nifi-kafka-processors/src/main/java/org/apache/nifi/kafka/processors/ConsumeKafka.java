@@ -228,7 +228,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .required(true)
             .defaultValue(KeyFormat.BYTE_ARRAY)
             .allowableValues(KeyFormat.class)
-            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER)
+            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER, OutputStrategy.INJECT_METADATA)
             .build();
 
     static final PropertyDescriptor KEY_RECORD_READER = new PropertyDescriptor.Builder()
@@ -341,7 +341,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
         processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
         outputStrategy = processingStrategy == ProcessingStrategy.RECORD ? context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class) : null;
-        keyFormat = outputStrategy == OutputStrategy.USE_WRAPPER ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class) : KeyFormat.BYTE_ARRAY;
+        keyFormat = (outputStrategy == OutputStrategy.USE_WRAPPER || outputStrategy == OutputStrategy.INJECT_METADATA)
+                ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
+                : KeyFormat.BYTE_ARRAY;
         brokerUri = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class).getBrokerUri();
     }
 
@@ -487,12 +489,12 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             case USE_VALUE -> new RecordStreamKafkaMessageConverter(readerFactory, writerFactory,
                     headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
 
-            case USE_WRAPPER -> {
+        case USE_WRAPPER, INJECT_METADATA -> {
                 final RecordReaderFactory keyReaderFactory = keyFormat == KeyFormat.RECORD
                         ? context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class) : null;
 
                 yield new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
-                        headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
+                    headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy);
             }
         };
 

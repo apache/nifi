@@ -14,37 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.shared.property;
+package org.apache.nifi.excel;
 
 import org.apache.nifi.components.DescribedValue;
 
-/**
- * Enumeration of supported Kafka Output Strategies
- */
-public enum OutputStrategy implements DescribedValue {
-    USE_VALUE("USE_VALUE", "Use Content as Value", "Write only the Kafka Record value to the FlowFile record."),
-    USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the FlowFile record. (See processor's additional details for more information.)"),
-    INJECT_METADATA("INJECT_METADATA", "Inject Metadata",
-            "Write the Kafka Record value to the FlowFile record and add a sub-record to it with key, headers, and metadata. (See processor's additional details for more information.)");
+public enum InputFileType implements DescribedValue {
+    XLS("XLS 1997-2007 file format"),
+    XLSX("XLSX 2007-present OOXML file format");
 
-    private final String value;
-    private final String displayName;
-    private final String description;
-
-    OutputStrategy(final String value, final String displayName, final String description) {
-        this.value = value;
-        this.displayName = displayName;
+    InputFileType(String description) {
         this.description = description;
     }
 
+    private final String description;
+
     @Override
     public String getValue() {
-        return value;
+        return name();
     }
 
     @Override
     public String getDisplayName() {
-        return displayName;
+        return name();
     }
 
     @Override

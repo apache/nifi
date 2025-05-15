@@ -54,10 +54,9 @@ final class EmbeddedClient implements Client {
     public void execute(final String query) throws DatabaseException {
         checkConnectionState();
 
-        try (final SqlCompiler compiler = getCompiler()) {
-            final CompiledQuery compile = compiler.compile(query, getSqlExecutionContext());
-            compile.execute(new SCSequence(new TimeoutBlockingWaitStrategy(5, TimeUnit.SECONDS)));
-        } catch (final SqlException | CairoError e) {
+        try {
+            engine.get().execute(query, getSqlExecutionContext(), new SCSequence(new TimeoutBlockingWaitStrategy(5, TimeUnit.SECONDS)));
+        } catch (SqlException e) {
             throw new DatabaseException(e);
         }
     }
