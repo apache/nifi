@@ -89,7 +89,11 @@ public class JacksonFlowSnapshotSerializer implements FlowSnapshotSerializer {
             return out;
 
         } else if (node.isArray()) {
+            // we are in an array of components (e.g. processors, controller services,
+            // etc.), and we want to sort them based on the identifier field.
+
             ArrayNode in = (ArrayNode) node;
+
             // recursively normalize all elements
             List<JsonNode> elems = StreamSupport.stream(in.spliterator(), false)
                     .map(JacksonFlowSnapshotSerializer::normalize)
@@ -98,12 +102,23 @@ public class JacksonFlowSnapshotSerializer implements FlowSnapshotSerializer {
             if (!elems.isEmpty()) {
                 JsonNode first = elems.get(0);
                 if (first.isObject() && first.has("identifier")) {
+                    // if the node has an identifier, sort by that
+                    // we only check the first element of the array to see if there is an
+                    // identifier. If there is, we know that all the elements will have the same
+                    // field.
+
+                    // we know that the identifier is not going to change even if having many
+                    // instances of the versioned flow in the same NiFi instance. If that is the
+                    // case, the instanceIdentifier would be different while identifier would remain
+                    // the same. So sorting by identifier will make sure that we keep the ordering
+                    // (modulo addition/removal of components)
                     elems.sort(Comparator.comparing(n -> n.get("identifier").textValue()));
                 } else if (first.isTextual()) {
                     elems.sort(Comparator.comparing(JsonNode::textValue));
                 }
             }
 
+            // create a new array node to hold the sorted elements
             ArrayNode out = JsonNodeFactory.instance.arrayNode();
             elems.forEach(out::add);
             return out;
