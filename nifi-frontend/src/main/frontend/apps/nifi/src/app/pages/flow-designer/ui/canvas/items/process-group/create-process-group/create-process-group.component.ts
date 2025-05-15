@@ -24,6 +24,7 @@ import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flo
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
@@ -50,6 +51,7 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
     imports: [
         AsyncPipe,
         MatButtonModule,
+        MatCheckbox,
         MatDialogModule,
         MatFormFieldModule,
         MatInputModule,
@@ -130,6 +132,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
 
         this.createProcessGroupForm = this.formBuilder.group({
             newProcessGroupName: new FormControl('', Validators.required),
+            keepParameterContexts: new FormControl(true),
             newProcessGroupParameterContext: new FormControl(null)
         });
     }
@@ -163,6 +166,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
                     request: {
                         ...this.dialogRequest.request,
                         name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
+                        keepExistingParameterContext: this.createProcessGroupForm.get("keepParameterContexts")?.value,
                         flowDefinition: this.flowDefinition
                     }
                 })
