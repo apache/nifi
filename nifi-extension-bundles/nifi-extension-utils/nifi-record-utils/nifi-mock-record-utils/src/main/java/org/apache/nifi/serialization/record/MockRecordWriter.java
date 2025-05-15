@@ -32,14 +32,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class MockRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
+    static final String DEFAULT_SEPARATOR = ",";
+
     private final String header;
     private final int failAfterN;
     private final boolean quoteValues;
     private final boolean bufferOutput;
-
     private final RecordSchema writeSchema;
+    private final Function<Map<String, String>, String> mapToSeparator;
 
     public MockRecordWriter() {
         this(null);
@@ -61,28 +64,47 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
         this(header, quoteValues, -1, bufferOutput, null);
     }
 
-    public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN, final boolean bufferOutput, final RecordSchema writeSchema) {
+    public MockRecordWriter(final String header,
+                            final boolean quoteValues,
+                            final int failAfterN,
+                            final boolean bufferOutput,
+                            final RecordSchema writeSchema) {
+        this(header, quoteValues, failAfterN, bufferOutput, writeSchema, variables -> DEFAULT_SEPARATOR);
+    }
+
+    protected MockRecordWriter(final String header,
+                               final boolean quoteValues,
+                               final int failAfterN,
+                               final boolean bufferOutput,
+                               final RecordSchema writeSchema,
+                               final Function<Map<String, String>, String> mapToSeparator) {
         this.header = header;
         this.quoteValues = quoteValues;
         this.failAfterN = failAfterN;
         this.bufferOutput = bufferOutput;
         this.writeSchema = writeSchema;
+        this.mapToSeparator = mapToSeparator;
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema)
+            throws SchemaNotFoundException, IOException {
         return (writeSchema != null) ? writeSchema : new SimpleRecordSchema(Collections.emptyList());
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream rawOut, Map<String, String> variables) {
+    public RecordSetWriter createWriter(
+            final ComponentLog logger,
+            final RecordSchema schema,
+            final OutputStream rawOut,
+            final Map<String, String> variables) {
+        final String separator = mapToSeparator.apply(variables);
         final OutputStream out = bufferOutput ? new BufferedOutputStream(rawOut) : rawOut;
 
         return new RecordSetWriter() {
             private int recordCount = 0;
             private boolean headerWritten = false;
-
-            private RecordSchema writerSchema = schema;
+            private final RecordSchema writerSchema = schema;
 
             @Override
             public void flush() throws IOException {
@@ -98,7 +120,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                 }
 
                 int recordCount = 0;
-                Record record = null;
+                Record record;
                 while ((record = rs.next()) != null) {
                     if (++recordCount > failAfterN && failAfterN > -1) {
                         throw new IOException("Unit Test intentionally throwing IOException after " + failAfterN + " records were written");
@@ -128,7 +150,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                         }
 
                         if (i++ < numCols - 1) {
-                            out.write(",".getBytes());
+                            out.write(separator.getBytes());
                         }
                     }
                     out.write("\n".getBytes());
@@ -177,7 +199,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                     }
 
                     if (i++ < numCols - 1) {
-                        out.write(",".getBytes());
+                        out.write(separator.getBytes());
                     }
                 }
                 out.write("\n".getBytes());
@@ -191,11 +213,11 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             }
 
             @Override
-            public void beginRecordSet() throws IOException {
+            public void beginRecordSet() {
             }
 
             @Override
-            public WriteResult finishRecordSet() throws IOException {
+            public WriteResult finishRecordSet() {
                 return WriteResult.of(recordCount, Collections.emptyMap());
             }
         };
