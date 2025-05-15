@@ -3036,6 +3036,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
 set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
+Alternatively, to disable provenance event storage entirely and reduce resource usage, set this property to `org.apache.nifi.provenance.NoOpProvenanceRepository`.
 
 |`nifi.provenance.repository.rollover.events`| The maximum number of events that should be written to a single event file before the file is rolled over. The default value is `Integer.MAX_VALUE`
 |====

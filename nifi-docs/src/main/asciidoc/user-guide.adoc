@@ -3011,6 +3011,29 @@ Once these property changes have been made, restart NiFi.
 
 **Note:** Detailed descriptions for each of these properties can be found in <<administration-guide.adoc#system_properties,System Properties>>.
 
+[[noOp-provenance]]
+=== NoOp Provenance Repository
+
+The NoOp Provenance Repository does not store any provenance events.
+This is useful when provenance tracking is disabled or minimized, such as during testing or in resource-constrained environments.
+When using this implementation, no provenance data is persisted, and all query and lineage requests return empty results.
+
+The `NoOp Provenance Repository` implementation:
+
+* Saves no events or indexes.
+* Always returns empty results for queries.
+* Does not perform lineage computations.
+* Is designed for testing or when provenance is not needed.
+
+To configure NiFi to use the `NoOp Provenance Repository`, set in `nifi.properties`:
+
+[source,properties]
+----
+nifi.provenance.repository.implementation=org.apache.nifi.provenance.NoOpProvenanceRepository
+----
+
+**Note:** Disabling provenance storage will disable features relying on provenance data, such as lineage queries and event searches.
+
 [[experimental_warning]]
 == Experimental Warning
 
