@@ -36,10 +36,15 @@ public class VersionedComponentModule extends SimpleModule {
 
     private static final Set<String> EXCLUDE_JSON_FIELDS = Set.of("instanceIdentifier", "instanceGroupId");
 
+    public VersionedComponentModule() {
+        super("VersionedComponentModule");
+        addSerializer(new VersionedComponentCollectionSerializer());
+    }
+
     @Override
     public void setupModule(final SetupContext context) {
-        super.setupModule(context);
         context.addBeanSerializerModifier(new VersionedComponentBeanSerializerModifier());
+        super.setupModule(context);
     }
 
     private static class VersionedComponentBeanSerializerModifier extends BeanSerializerModifier {
