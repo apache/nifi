@@ -3029,6 +3029,8 @@ For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` 
 
 The Provenance Repository contains the information related to Data Provenance. The next four sections are for Provenance Repository properties.
 
+NOTE: NiFi also supports a `NoOpProvenanceRepository` implementation that does not persist any provenance events. This implementation is useful for testing or when provenance tracking is disabled to minimize resource usage. To use it, set the property:
+
 |====
 |*Property*|*Description*
 |`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is
@@ -3036,6 +3038,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
 set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
+Alternatively, to disable event storage entirely, set this property to `org.apache.nifi.provenance.NoOpProvenanceRepository`.
 
 |`nifi.provenance.repository.rollover.events`| The maximum number of events that should be written to a single event file before the file is rolled over. The default value is `Integer.MAX_VALUE`
 |====
