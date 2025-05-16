@@ -30,6 +30,7 @@ import { ImageViewer } from '../ui/image-viewer/image-viewer.component';
 import { ContentEffects } from '../state/content/content.effects';
 import { ExternalViewerEffects } from '../state/external-viewer/external-viewer.effects';
 import { NifiTooltipDirective } from '@nifi/shared';
+import { ContentDetails } from '../ui/content-details/content-details.component';
 
 @NgModule({
     declarations: [ContentViewerComponent],
@@ -45,7 +46,8 @@ import { NifiTooltipDirective } from '@nifi/shared';
         HexViewer,
         ImageViewer,
         NgOptimizedImage,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContentDetails
     ]
 })
 export class ContentViewerModule {}

@@ -96,9 +96,7 @@ export interface DownloadFlowFileContentRequest {
 }
 
 export interface ViewFlowFileContentRequest {
-    uri: string;
-    mimeType?: string;
-    clusterNodeId?: string;
+    flowfileSummary: FlowFileSummary;
 }
 
 export interface FlowFileDialogRequest {
