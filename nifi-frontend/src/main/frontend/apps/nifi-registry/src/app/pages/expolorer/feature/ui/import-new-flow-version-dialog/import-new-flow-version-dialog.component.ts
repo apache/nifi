@@ -28,6 +28,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
+import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/header/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 export interface ImportNewFlowVersionDialogData {
     activeBucket?: Bucket;
@@ -45,7 +47,8 @@ export interface ImportNewFlowVersionDialogData {
         MatFormFieldModule,
         MatSelectModule,
         MatInputModule,
-        MatButtonModule
+        MatButtonModule,
+        ContextErrorBanner
     ],
     templateUrl: './import-new-flow-version-dialog.component.html',
     styleUrl: './import-new-flow-version-dialog.component.scss'
@@ -53,6 +56,7 @@ export interface ImportNewFlowVersionDialogData {
 export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
     @ViewChild('uploadFlowFileField') uploadFlowFileFieldRef!: ElementRef;
 
+    protected readonly ErrorContextKey = ErrorContextKey;
     extensions = 'application/json';
     fileName: string | null = null;
     hoverValidity = '';
