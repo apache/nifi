@@ -42,6 +42,7 @@ import { ErrorHelper } from '../../service/error-helper.service';
 import * as ErrorActions from '../../state/error/error.actions';
 import { selectStatus } from './droplets.selectors';
 import { Router } from '@angular/router';
+import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class DropletsEffects {
@@ -167,9 +168,12 @@ export class DropletsEffects {
                 from(this.dropletsService.uploadFlow(href, request.file)).pipe(
                     map((res) => DropletsActions.importNewFlowSuccess({ response: res })),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        this.dialog.closeAll();
+                        // this.dialog.closeAll();
                         return of(
-                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            ErrorActions.addBannerError({
+                                errorContext: { context: ErrorContextKey.DROPLETS, errors: [errorResponse.message] }
+                            })
+                            // ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
                         );
                     })
                 )
@@ -180,6 +184,7 @@ export class DropletsEffects {
     importNewFlowSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(DropletsActions.importNewFlowSuccess),
+            tap(() => this.dialog.closeAll()),
             switchMap(() => of(DropletsActions.loadDroplets()))
         )
     );
