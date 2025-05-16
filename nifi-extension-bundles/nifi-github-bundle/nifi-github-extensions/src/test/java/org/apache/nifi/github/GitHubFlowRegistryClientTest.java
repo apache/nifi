@@ -116,11 +116,13 @@ public class GitHubFlowRegistryClientTest {
 
         final RegisteredFlow incomingFlow = createIncomingRegisteredFlow();
 
+        final long timestamp = System.currentTimeMillis();
         final RegisteredFlowSnapshotMetadata incomingMetadata = new RegisteredFlowSnapshotMetadata();
         incomingMetadata.setBranch(incomingFlow.getBranch());
         incomingMetadata.setBucketIdentifier(incomingFlow.getBucketIdentifier());
         incomingMetadata.setFlowIdentifier(incomingFlow.getIdentifier());
         incomingMetadata.setComments("Unit test");
+        incomingMetadata.setTimestamp(timestamp);
 
         final RegisteredFlowSnapshot incomingSnapshot = new RegisteredFlowSnapshot();
         incomingSnapshot.setFlow(incomingFlow);
@@ -154,6 +156,7 @@ public class GitHubFlowRegistryClientTest {
         assertEquals(incomingMetadata.getBucketIdentifier(), resultMetadata.getBucketIdentifier());
         assertEquals(incomingMetadata.getFlowIdentifier(), resultMetadata.getFlowIdentifier());
         assertEquals(incomingMetadata.getComments(), resultMetadata.getComments());
+        assertEquals(timestamp, resultMetadata.getTimestamp());
 
         final FlowRegistryBucket resultBucket = resultSnapshot.getBucket();
         assertNotNull(resultBucket);

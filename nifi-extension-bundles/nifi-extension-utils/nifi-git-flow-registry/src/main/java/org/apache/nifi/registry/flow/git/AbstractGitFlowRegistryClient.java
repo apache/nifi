@@ -355,7 +355,6 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setBranch(null);
         flowSnapshot.getSnapshotMetadata().setVersion(null);
         flowSnapshot.getSnapshotMetadata().setComments(null);
-        flowSnapshot.getSnapshotMetadata().setTimestamp(0);
 
         // remove all parameter values if configured to do so
         final ParameterContextValuesStrategy parameterContextValuesStrategy = context.getProperty(PARAMETER_CONTEXT_VALUES).asAllowableValue(ParameterContextValuesStrategy.class);
