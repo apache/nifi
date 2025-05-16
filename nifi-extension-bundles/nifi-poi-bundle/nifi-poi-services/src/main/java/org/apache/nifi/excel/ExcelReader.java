@@ -159,6 +159,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         properties.add(REQUIRED_SHEETS);
         properties.add(PROTECTION_TYPE);
         properties.add(PASSWORD);
+        properties.add(INPUT_FILE_TYPE);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
