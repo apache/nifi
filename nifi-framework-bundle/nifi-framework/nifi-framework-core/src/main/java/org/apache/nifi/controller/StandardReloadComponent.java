@@ -113,6 +113,7 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.onConfigurationRestored(processContext);
 
         logger.debug("Triggering async validation of {} due to processor reload", existingNode);
+        existingNode.resetValidationState();
         flowController.getValidationTrigger().trigger(existingNode);
     }
 
@@ -171,6 +172,7 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Triggering async validation of {} due to controller service reload", existingNode);
+        existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
     }
 
@@ -219,6 +221,7 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Triggering async validation of {} due to reporting task reload", existingNode);
+        existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
     }
 
@@ -268,6 +271,7 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Triggering async validation of {} due to flow analysis rule reload", existingNode);
+        existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
     }
 
@@ -316,6 +320,7 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Triggering async validation of {} due to parameter provider reload", existingNode);
+        existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
     }
 
@@ -357,6 +362,7 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Triggering async validation of {} due to flow registry client reload", existingNode);
+        existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
 
     }
