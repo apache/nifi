@@ -95,5 +95,6 @@
         <module>nifi-github-bundle</module>
         <module>nifi-gitlab-bundle</module>
         <module>nifi-atlassian-bundle</module>
+        <module>nifi-basex-bundle</module>
     </modules>
 </project>
