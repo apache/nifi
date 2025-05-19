@@ -16,69 +16,71 @@
 -->
 
 <h2 mat-dialog-title>Flow Versions</h2>
-<mat-dialog-content>
-    <div class="listing-table flex-1 relative dialog-tab-content">
-        <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
-            <table
-                mat-table
-                [dataSource]="dataSource"
-                matSort
-                matSortDisableClear
-                (matSortChange)="sortData($event)"
-                [matSortActive]="sort.active" [matSortDirection]="sort.direction">
-                <!-- Version Column -->
-                <ng-container matColumnDef="version">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
-                            {{ item.version }}
-                        </div>
-                    </td>
-                </ng-container>
-                <!-- Create Column -->
-                <ng-container matColumnDef="created">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
-                    <td mat-cell *matCellDef="let item">
-                        {{ formatTimestamp(item) }}
-                    </td>
-                </ng-container>
-                <!-- Comments Column -->
-                <ng-container matColumnDef="comments">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.comments">
-                            {{ item.comments }}
-                        </div>
-                    </td>
-                </ng-container>
-                <!-- Actions Column -->
-                <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="flex items-center justify-end gap-x-2">
-                                <button
-                                    data-test-id="exportMenuBtn"
-                                    mat-icon-button
-                                    type="button"
-                                    [matMenuTriggerFor]="actionMenu"
-                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
-                                    <i class="fa fa-ellipsis-v"></i>
-                                </button>
-                            <mat-menu #actionMenu="matMenu" xPosition="before">
-                                    <button mat-menu-item (click)="exportVersion(item.version)" data-test-id="exportBtn">
-                                        <i class="fa fa-download primary-color mr-2"></i>
-                                        Export flow version
+<div class="flow-versions-dialog">
+    <mat-dialog-content>
+        <div class="listing-table flex-1 relative dialog-tab-content">
+            <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                <table
+                    mat-table
+                    [dataSource]="dataSource"
+                    matSort
+                    matSortDisableClear
+                    (matSortChange)="sortData($event)"
+                    [matSortActive]="sort.active" [matSortDirection]="sort.direction">
+                    <!-- Version Column -->
+                    <ng-container matColumnDef="version">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
+                        <td mat-cell *matCellDef="let item">
+                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
+                                {{ item.version }}
+                            </div>
+                        </td>
+                    </ng-container>
+                    <!-- Create Column -->
+                    <ng-container matColumnDef="created">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+                        <td mat-cell *matCellDef="let item">
+                            {{ formatTimestamp(item) }}
+                        </td>
+                    </ng-container>
+                    <!-- Comments Column -->
+                    <ng-container matColumnDef="comments">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
+                        <td mat-cell *matCellDef="let item">
+                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.comments">
+                                {{ item.comments }}
+                            </div>
+                        </td>
+                    </ng-container>
+                    <!-- Actions Column -->
+                    <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef></th>
+                        <td mat-cell *matCellDef="let item">
+                            <div class="flex items-center justify-end gap-x-2">
+                                    <button
+                                        data-test-id="exportMenuBtn"
+                                        mat-icon-button
+                                        type="button"
+                                        [matMenuTriggerFor]="actionMenu"
+                                        class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                        <i class="fa fa-ellipsis-v"></i>
                                     </button>
-                            </mat-menu>
-                        </div>
-                    </td>
-                </ng-container>
-                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns" [class.even]="even"></tr>
-            </table>
+                                <mat-menu #actionMenu="matMenu" xPosition="before">
+                                        <button mat-menu-item (click)="exportVersion(item.version)" data-test-id="exportBtn">
+                                            <i class="fa fa-download primary-color mr-2"></i>
+                                            Export flow version
+                                        </button>
+                                </mat-menu>
+                            </div>
+                        </td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                    <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns" [class.even]="even"></tr>
+                </table>
+            </div>
         </div>
-    </div>
-</mat-dialog-content>
-<mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Close</button>
-</mat-dialog-actions>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Close</button>
+    </mat-dialog-actions>
+</div>
