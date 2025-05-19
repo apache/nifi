@@ -18,8 +18,8 @@
 import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { CloseOnEscapeDialog } from '@nifi/shared';
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
+import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { importNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
@@ -54,83 +54,57 @@ export interface ImportNewFlowVersionDialogData {
     styleUrl: './import-new-flow-version-dialog.component.scss'
 })
 export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
-    @ViewChild('uploadFlowFileField') uploadFlowFileFieldRef!: ElementRef;
+    @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
     protected readonly ErrorContextKey = ErrorContextKey;
     extensions = 'application/json';
     fileName: string | null = null;
-    hoverValidity = '';
     fileToUpload: File | null = null;
-    multiple = false;
     activeBucket: string | null = null;
-    buckets = null;
     name = '';
     description = '';
 
     keepDialogOpen = false;
     droplet: any;
     comments = '';
+    importNewFlowVersionForm: FormGroup;
+    fileNameAttached: string | null = '';
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public data: ImportNewFlowVersionDialogData,
         private formBuilder: FormBuilder,
-        private store: Store
+        private store: Store,
+        private nifiCommon: NiFiCommon
     ) {
         super();
         this.droplet = data.droplet;
+
+        this.importNewFlowVersionForm = this.formBuilder.group({
+            newFlowVersionDefinition: new FormControl('', Validators.required),
+            newFlowVersionComments: new FormControl(null)
+        });
     }
 
-    selectFile() {
-        this.uploadFlowFileFieldRef.nativeElement.click();
-    }
-
-    fileDragHandler(event: DragEvent, extensions: any) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        this.extensions = extensions;
-
-        const items = event.dataTransfer?.items;
-        this.hoverValidity = this.isFileInvalid(items) ? 'invalid' : 'valid';
-    }
-
-    fileDragEndHandler() {
-        this.hoverValidity = '';
-    }
-
-    fileDropHandler(event: DragEvent) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const { files } = event.dataTransfer!;
-
-        if (files && !this.isFileInvalid(Array.from(files))) {
-            this.handleFileInput(files);
+    attachFlowDefinition(event: Event): void {
+        const target = event.target as HTMLInputElement;
+        const files = target.files as FileList;
+        const file = files.item(0);
+        if (file) {
+            this.importNewFlowVersionForm
+                .get('newFlowVersionDefinition')
+                ?.setValue(this.nifiCommon.substringBeforeLast(file.name, '.'));
+            this.importNewFlowVersionForm.get('newFlowVersionDefinition')?.markAsDirty();
+            this.importNewFlowVersionForm.get('newFlowVersionComments')?.setValue(null);
+            this.fileNameAttached = file.name;
+            this.fileToUpload = file;
         }
-
-        this.hoverValidity = '';
     }
 
-    handleFileInput(files: FileList): void {
-        if (!files || !files.length) {
-            return;
-        }
-        // get the file
-        this.fileToUpload = files![0];
-
-        // get the filename
-        const fileName = this.fileToUpload.name;
-
-        // trim off the file extension
-        this.fileName = fileName.replace(/\..*/, '');
-    }
-
-    isFileInvalid(items: any) {
-        return (
-            items.length > 1 ||
-            (this.extensions !== '' && items[0].type === '') ||
-            this.extensions.indexOf(items[0].type) === -1
-        );
+    removeAttachedFlowDefinition() {
+        this.importNewFlowVersionForm.get('newFlowVersionDefinition')?.setValue('');
+        this.flowUploadControl.nativeElement.value = '';
+        this.fileNameAttached = null;
+        this.fileToUpload = null;
     }
 
     importNewFlowVersion() {
@@ -139,8 +113,8 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
                 request: {
                     bucket: this.droplet.bucket,
                     file: this.fileToUpload!,
-                    name: this.name,
-                    description: this.description
+                    name: this.importNewFlowVersionForm.get('newFlowVersionDefinition')?.value,
+                    description: this.importNewFlowVersionForm.get('newFlowVersionComments')?.value || null
                 },
                 href: this.droplet.link.href
             })
