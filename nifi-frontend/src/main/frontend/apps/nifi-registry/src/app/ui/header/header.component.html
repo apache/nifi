@@ -15,17 +15,16 @@
 ~  limitations under the License.
 -->
 
-<header class="mb-5 registry-header flex items-center">
-    <div class="h-16 pl-4 relative">
-        <div class="flex items-center h-16 w-28 px-5">
-            <img
-                ngSrc="assets/icons/registry-logo-web-app.svg"
-                fill
-                priority
-                alt="NiFi Registry Logo"
-                class="pointer py-1"
-                [routerLink]="'/explorer'" />
-        </div>
+<header class="mb-5 h-16 registry-header flex items-center">
+    <div class="flex items-center ml-2 mr-2 logo-container relative rounded-full">
+        <img
+            ngSrc="assets/icons/registry-logo-web-app.svg"
+            fill
+            priority
+            alt="NiFi Registry Logo"
+            class="pointer p-3"
+            style="left: 9px"
+            [routerLink]="'/explorer'" />
     </div>
     <h1 class="text-3xl">NiFi Registry</h1>
 </header>

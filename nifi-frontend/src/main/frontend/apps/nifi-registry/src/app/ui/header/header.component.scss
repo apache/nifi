@@ -15,3 +15,8 @@
  * limitations under the License.
  */
 
+.logo-container {
+    background-color: #2c3e44; // legacy registry header background color not part of theme
+    height: calc(4rem - 4px);
+    width: calc(4rem - 4px);
+}
