@@ -168,12 +168,10 @@ export class DropletsEffects {
                 from(this.dropletsService.uploadFlow(href, request.file)).pipe(
                     map((res) => DropletsActions.importNewFlowSuccess({ response: res })),
                     catchError((errorResponse: HttpErrorResponse) => {
-                        // this.dialog.closeAll();
                         return of(
                             ErrorActions.addBannerError({
                                 errorContext: { context: ErrorContextKey.DROPLETS, errors: [errorResponse.message] }
                             })
-                            // ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
                         );
                     })
                 )
