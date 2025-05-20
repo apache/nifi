@@ -42,6 +42,7 @@ import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
+import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
@@ -454,7 +455,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        return connectionService.getConsumerService(pollingContext);
+        final KafkaConsumerService newConsumer = connectionService.getConsumerService(pollingContext);
+        return new SynchronizedKafkaConsumerService(newConsumer);
     }
 
     private void processConsumerRecords(final ProcessContext context, final ProcessSession session, final OffsetTracker offsetTracker,
@@ -526,5 +528,48 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         return pollingContext;
+    }
+
+    /**
+     * A thread-safe wrapper around the KafkaConsumerService. Allows data polling and offset management
+     * from multiple threads, which is necessary for Stateless Engine.
+     */
+    private static class SynchronizedKafkaConsumerService implements KafkaConsumerService {
+
+        private final KafkaConsumerService delegate;
+
+        SynchronizedKafkaConsumerService(final KafkaConsumerService delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public synchronized void commit(final PollingSummary pollingSummary) {
+            delegate.commit(pollingSummary);
+        }
+
+        @Override
+        public synchronized void rollback() {
+            delegate.rollback();
+        }
+
+        @Override
+        public synchronized boolean isClosed() {
+            return delegate.isClosed();
+        }
+
+        @Override
+        public synchronized Iterable<ByteRecord> poll(final Duration maxWaitDuration) {
+            return delegate.poll(maxWaitDuration);
+        }
+
+        @Override
+        public synchronized List<PartitionState> getPartitionStates() {
+            return delegate.getPartitionStates();
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
+            delegate.close();
+        }
     }
 }
