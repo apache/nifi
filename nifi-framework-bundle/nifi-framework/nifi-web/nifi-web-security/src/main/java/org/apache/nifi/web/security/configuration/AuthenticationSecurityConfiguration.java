@@ -48,20 +48,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 })
 public class AuthenticationSecurityConfiguration {
     private final NiFiProperties niFiProperties;
-
     private final ExtensionManager extensionManager;
-
-    private final Authorizer authorizer;
 
     @Autowired
     public AuthenticationSecurityConfiguration(
             final NiFiProperties niFiProperties,
-            final ExtensionManager extensionManager,
-            final Authorizer authorizer
+            final ExtensionManager extensionManager
     ) {
         this.niFiProperties = niFiProperties;
         this.extensionManager = extensionManager;
-        this.authorizer = authorizer;
     }
 
     @Bean
@@ -92,7 +87,7 @@ public class AuthenticationSecurityConfiguration {
     }
 
     @Bean
-    public NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider() {
+    public NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider(final Authorizer authorizer) {
         return new NiFiAnonymousAuthenticationProvider(niFiProperties, authorizer);
     }
 
