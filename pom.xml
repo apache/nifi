@@ -110,7 +110,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.783</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.31.44</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.31.46</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.3.0</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.21</kotlin.version>
@@ -157,7 +157,7 @@
         <netty.4.version>4.2.1.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.version>6.2.7</spring.version>
-        <spring.security.version>6.4.5</spring.security.version>
+        <spring.security.version>6.5.0</spring.security.version>
         <swagger.annotations.version>2.2.32</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
@@ -166,6 +166,7 @@
         <commons.dbcp2.version>2.13.0</commons.dbcp2.version>
         <prometheus.version>0.16.0</prometheus.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
+        <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
     </properties>
     <dependencyManagement>
         <dependencies>
