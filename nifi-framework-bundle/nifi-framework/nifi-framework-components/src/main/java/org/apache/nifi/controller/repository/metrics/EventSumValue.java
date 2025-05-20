@@ -150,6 +150,7 @@ public class EventSumValue {
             this.contentReadNanos += other.contentReadNanos;
             this.contentWriteNanos += other.contentWriteNanos;
             this.sessionCommitNanos += other.sessionCommitNanos;
+            this.gcMillis += other.gcMillis;
 
             final Map<String, Long> eventCounters = other.counters;
             if (eventCounters != null) {
@@ -192,6 +193,7 @@ public class EventSumValue {
             this.contentReadNanos -= other.contentReadNanos;
             this.contentWriteNanos -= other.contentWriteNanos;
             this.sessionCommitNanos -= other.sessionCommitNanos;
+            this.gcMillis -= other.gcMillis;
 
             final Map<String, Long> eventCounters = other.counters;
             if (eventCounters != null) {
