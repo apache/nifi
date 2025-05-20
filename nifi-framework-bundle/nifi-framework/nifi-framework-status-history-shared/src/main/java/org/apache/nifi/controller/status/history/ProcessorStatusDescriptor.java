@@ -17,11 +17,13 @@
 
 package org.apache.nifi.controller.status.history;
 
+import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public enum ProcessorStatusDescriptor {
     BYTES_READ(
@@ -164,8 +166,176 @@ public enum ProcessorStatusDescriptor {
                 }
             },
         true
+    ),
+
+    CPU_MILLIS(
+        "cpuTime",
+        "CPU Time (5 mins)",
+        "The total amount of time that the Processor has used the CPU in the past 5 minutes. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.DURATION,
+        status -> nanosToMillis(status, ProcessingPerformanceStatus::getCpuDuration)
+    ),
+
+    CPU_PERCENTAGE(
+        "cpuPercentage",
+        "CPU Percentage (5 mins)",
+        "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor was using the CPU. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.COUNT,
+        status -> nanosValue(status, ProcessingPerformanceStatus::getCpuDuration) * 100 / Math.max(1, status.getProcessingNanos()),
+        processingPercentage(CPU_MILLIS.getDescriptor()),
+        true
+    ),
+
+    CONTENT_REPO_READ_MILLIS(
+        "contentRepoReadTime",
+        "Content Repo Read Time (5 mins)",
+        "The amount of time that the Processor has spent reading from the Content Repository in the past 5 minutes. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.DURATION,
+        status -> nanosToMillis(status, ProcessingPerformanceStatus::getContentReadDuration)
+    ),
+
+    CONTENT_REPO_READ_PERCENTAGE(
+        "contentRepoReadPercentage",
+        "Content Repo Read Percentage (5 mins)",
+        "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor was reading from the Content Repository. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.COUNT,
+        status -> nanosValue(status, ProcessingPerformanceStatus::getContentReadDuration) * 100 / Math.max(1, status.getProcessingNanos()),
+        processingPercentage(CONTENT_REPO_READ_MILLIS.getDescriptor()),
+        true
+    ),
+
+    CONTENT_REPO_WRITE_MILLIS(
+        "contentRepoWriteTime",
+        "Content Repo Write Time (5 mins)",
+        "The total amount of time that the Processor has spent writing to the Content Repository in the past 5 minutes. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.DURATION,
+        status -> nanosToMillis(status, ProcessingPerformanceStatus::getContentWriteDuration)
+    ),
+
+    CONTENT_REPO_WRITE_PERCENTAGE(
+        "contentRepoWritePercentage",
+        "Content Repo Write Percentage (5 mins)",
+        "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor was writing to the Content Repository. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.COUNT,
+        status -> nanosValue(status, ProcessingPerformanceStatus::getContentWriteDuration) * 100 / Math.max(1, status.getProcessingNanos()),
+        processingPercentage(CONTENT_REPO_WRITE_MILLIS.getDescriptor()),
+        true
+    ),
+
+    SESSION_COMMIT_MILLIS(
+        "sessionCommitTime",
+        "Session Commit Time (5 mins)",
+        "The total amount of time that the Processor has spent waiting for the framework to commit its ProcessSession in the past 5 minutes. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.DURATION,
+        status -> nanosToMillis(status, ProcessingPerformanceStatus::getSessionCommitDuration)
+    ),
+
+    SESSION_COMMIT_PERCENTAGE(
+        "sessionCommitPercentage",
+        "Session Commit Percentage (5 mins)",
+        "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor was waiting for hte framework to commit its ProcessSession. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.COUNT,
+        status -> nanosValue(status, ProcessingPerformanceStatus::getSessionCommitDuration) * 100 / Math.max(1, status.getProcessingNanos()),
+        processingPercentage(SESSION_COMMIT_MILLIS.getDescriptor()),
+        true
+    ),
+
+    GARBAGE_COLLECTION_MILLIS(
+        "garbageCollectionTime",
+        "Garbage Collection Time (5 mins)",
+        "The total amount of time that the Processor has spent blocked on Garbage Collection in the past 5 minutes. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.DURATION,
+        status -> {
+            final ProcessingPerformanceStatus perfStatus = status.getProcessingPerformanceStatus();
+            if (perfStatus == null) {
+                return 0L;
+            }
+            // Garbage Collection is reported in milliseconds rather than nanos.
+            return perfStatus.getGarbageCollectionDuration();
+        }
+    ),
+
+    GARBAGE_COLLECTION_PERCENTAGE(
+        "garbageCollectionPercentage",
+        "Garbage Collection Percentage (5 mins)",
+        "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor spent blocked on Garbage Collection. " +
+        "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
+        Formatter.COUNT,
+        status -> {
+            final ProcessingPerformanceStatus perfStatus = status.getProcessingPerformanceStatus();
+            if (perfStatus == null) {
+                return 0L;
+            }
+            // Garbage Collection is reported in milliseconds rather than nanos.
+            final long percentage = perfStatus.getGarbageCollectionDuration() * 100 / Math.max(1, status.getProcessingNanos());
+            if (percentage == 0 && perfStatus.getGarbageCollectionDuration() > 0) {
+                // If the value is non-zero but less than 1%, we want to return 1%.
+                return 1L;
+            }
+            return percentage;
+        },
+        processingPercentage(GARBAGE_COLLECTION_MILLIS.getDescriptor()),
+        true
     );
 
+    private static long nanosToMillis(final ProcessorStatus procStatus, final Function<ProcessingPerformanceStatus, Long> metricTransform) {
+        final ProcessingPerformanceStatus perfStatus = procStatus.getProcessingPerformanceStatus();
+        if (perfStatus == null) {
+            return 0;
+        }
+
+        final long nanos = metricTransform.apply(perfStatus);
+        final long millis = TimeUnit.MILLISECONDS.convert(nanos, TimeUnit.NANOSECONDS);
+        if (millis == 0 && nanos > 0) {
+            // If the value is non-zero but less than 1ms, we want to return 1ms.
+            return 1;
+        }
+
+        return millis;
+    }
+
+    private static ValueReducer<StatusSnapshot, Long> processingPercentage(final MetricDescriptor<?> metricDescriptor) {
+        return new ValueReducer<>() {
+            @Override
+            public Long reduce(final List<StatusSnapshot> values) {
+                long procNanos = 0L;
+                long metricMillis = 0L;
+
+                for (final StatusSnapshot snapshot : values) {
+                    final long millis = snapshot.getStatusMetric(metricDescriptor);
+                    metricMillis += millis;
+
+                    final long taskNanos = snapshot.getStatusMetric(ProcessorStatusDescriptor.TASK_NANOS.getDescriptor());
+                    procNanos += taskNanos;
+                }
+
+                if (procNanos == 0) {
+                    return 0L;
+                }
+
+                final long procMillis = TimeUnit.MILLISECONDS.convert(procNanos, TimeUnit.NANOSECONDS);
+                return metricMillis * 100 / procMillis;
+            }
+        };
+    }
+
+    private static long nanosValue(final ProcessorStatus procStatus, final Function<ProcessingPerformanceStatus, Long> metricTransform) {
+        final ProcessingPerformanceStatus perfStatus = procStatus.getProcessingPerformanceStatus();
+        if (perfStatus == null) {
+            return 0;
+        }
+
+        return metricTransform.apply(perfStatus);
+    }
 
 
     private final MetricDescriptor<ProcessorStatus> descriptor;
