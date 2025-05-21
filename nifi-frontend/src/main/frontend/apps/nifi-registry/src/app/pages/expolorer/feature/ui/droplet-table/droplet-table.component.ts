@@ -117,7 +117,12 @@ export class DropletTableComponent implements OnInit {
     }
 
     openImportNewFlowVersionDialog(droplet: Droplet) {
-        this.store.dispatch(openImportNewFlowVersionDialog({ request: { droplet } }));
+        const bucket = this.buckets.find((b) => b.identifier === droplet.bucketIdentifier);
+        this.store.dispatch(
+            openImportNewFlowVersionDialog({
+                request: { bucket: bucket!, droplet }
+            })
+        );
     }
 
     openExportFlowVersionDialog(droplet: Droplet) {

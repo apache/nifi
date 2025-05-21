@@ -17,12 +17,13 @@
 
 <h2 mat-dialog-title>Delete Flow?</h2>
 <div class="delete-droplet-dialog">
+    <context-error-banner [context]="ErrorContextKey.DROPLETS"></context-error-banner>
     <mat-dialog-content>
         <p class="test">This action will delete all versions of {{droplet.name}}</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>No</button>
-        <button mat-flat-button (click)="deleteDroplet(droplet)" mat-dialog-close class="ml-2" data-test-id="delete-btn">
+        <button mat-flat-button (click)="deleteDroplet(droplet)" class="ml-2" data-test-id="delete-btn">
             Yes
         </button>
     </mat-dialog-actions>

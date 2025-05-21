@@ -32,7 +32,7 @@ export class DropletsService {
         return this.httpClient.get(`${DropletsService.API}/items`);
     }
 
-    deleteDroplet(href: any): Observable<any> {
+    deleteDroplet(href: string): Observable<any> {
         return this.httpClient.delete(`${DropletsService.API}/${href}?version=0`);
     }
 

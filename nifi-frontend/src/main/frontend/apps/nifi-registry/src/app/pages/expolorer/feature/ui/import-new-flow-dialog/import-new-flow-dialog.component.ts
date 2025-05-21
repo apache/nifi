@@ -27,10 +27,12 @@ import { MatInputModule } from '@angular/material/input';
 import { Store } from '@ngrx/store';
 import { createNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
+import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/header/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 export interface ImportNewFlowDialogData {
-    activeBucket?: any;
-    buckets: any;
+    activeBucket?: Bucket;
+    buckets: Bucket[];
 }
 
 @Component({
@@ -44,7 +46,8 @@ export interface ImportNewFlowDialogData {
         MatFormFieldModule,
         MatSelectModule,
         MatInputModule,
-        MatButtonModule
+        MatButtonModule,
+        ContextErrorBanner
     ],
     templateUrl: './import-new-flow-dialog.component.html',
     styleUrl: './import-new-flow-dialog.component.scss'
@@ -52,14 +55,15 @@ export interface ImportNewFlowDialogData {
 export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements OnInit {
     @ViewChild('uploadFlowFileField') uploadFlowFileFieldRef!: ElementRef;
 
+    protected readonly ErrorContextKey = ErrorContextKey;
     extensions = 'application/json';
     fileName: string | null = null;
     hoverValidity = '';
     fileToUpload: File | null = null;
     multiple = false;
     writableBuckets: Bucket[] = [];
-    activeBucket: string | null = null;
-    buckets = null;
+    activeBucket: string | undefined;
+    buckets: Bucket[] = [];
     name = '';
     description = '';
 
@@ -85,7 +89,7 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
         }
     }
 
-    filterWritableBuckets(buckets: any) {
+    filterWritableBuckets(buckets: Bucket[]) {
         const filteredWritableBuckets: Bucket[] = [];
         buckets.forEach(function (b: Bucket) {
             if (b.permissions.canWrite) {

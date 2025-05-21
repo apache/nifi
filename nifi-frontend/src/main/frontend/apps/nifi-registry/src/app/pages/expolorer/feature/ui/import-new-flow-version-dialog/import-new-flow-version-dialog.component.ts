@@ -60,12 +60,12 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
     extensions = 'application/json';
     fileName: string | null = null;
     fileToUpload: File | null = null;
-    activeBucket: string | null = null;
+    activeBucket: Bucket | null = null;
     name = '';
     description = '';
 
     keepDialogOpen = false;
-    droplet: any;
+    droplet: Droplet;
     comments = '';
     importNewFlowVersionForm: FormGroup;
     fileNameAttached: string | null = '';
@@ -111,7 +111,7 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
         this.store.dispatch(
             importNewFlow({
                 request: {
-                    bucket: this.droplet.bucket,
+                    bucket: this.activeBucket!,
                     file: this.fileToUpload!,
                     name: this.importNewFlowVersionForm.get('newFlowVersionDefinition')?.value,
                     description: this.importNewFlowVersionForm.get('newFlowVersionComments')?.value || null
