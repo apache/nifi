@@ -429,7 +429,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .ignoreLocalModifications(true)
                     .updateGroupSettings(true)
                     .updateDescendantVersionedFlows(true)
-                    .updateGroupVersionControlSnapshot(false)
                     .updateRpgUrls(true)
                     .propertyDecryptor(encryptor::decrypt)
                     .build();
