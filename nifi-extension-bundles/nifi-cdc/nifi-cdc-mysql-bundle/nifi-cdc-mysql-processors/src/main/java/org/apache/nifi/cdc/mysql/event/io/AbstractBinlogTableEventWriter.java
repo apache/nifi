@@ -16,36 +16,44 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.mysql.event.BinlogTableEventInfo;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * An abstract base class for writing MYSQL table-related binlog events into flow file(s), e.g.
  */
 public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventInfo> extends AbstractBinlogEventWriter<T> {
 
-    protected Object getWritableObject(Integer type, Serializable value) {
+    private final static Map<Integer, Function<Number, String>> UNSIGNED_SQLTYPE_MAP = new HashMap<>(Map.of(
+            java.sql.Types.BIGINT, (z) ->  Long.toUnsignedString(z.longValue()),
+            java.sql.Types.INTEGER, (z) -> String.valueOf(Integer.toUnsignedLong(z.intValue())),
+            java.sql.Types.SMALLINT, (z) -> String.valueOf(Short.toUnsignedInt(z.shortValue())),
+            java.sql.Types.TINYINT, (z) -> String.valueOf(Byte.toUnsignedInt(z.byteValue()))
+    ));
+
+    protected void writeObjectAsValueField(JsonGenerator jg, String fieldName, ColumnDefinition columnDefinition,
+                                           Serializable value) throws IOException {
         if (value == null) {
-            return null;
-        }
-        if (type == null) {
-            if (value instanceof byte[]) {
-                return new String((byte[]) value);
-            } else if (value instanceof Number) {
-                return value;
+            jg.writeNullField(fieldName);
+        } else if (value instanceof Number)  {
+            if (columnDefinition != null && Boolean.FALSE.equals(columnDefinition.getIsSigned())
+                    && UNSIGNED_SQLTYPE_MAP.containsKey(columnDefinition.getType())) {
+                jg.writeFieldName(fieldName);
+                jg.writeRawValue(UNSIGNED_SQLTYPE_MAP.get(columnDefinition.getType()).apply((Number) value));
             } else {
-                return null;
+                jg.writeObjectField(fieldName, value);
             }
+        } else if (value instanceof byte[]) {
+            jg.writeObjectField(fieldName, new String((byte[]) value));
         } else {
-            if (value instanceof byte[]) {
-                return new String((byte[]) value);
-            } else if (value instanceof Number) {
-                return value;
-            } else {
-                return value.toString();
-            }
+            jg.writeObjectField(fieldName, value.toString());
         }
     }
 
