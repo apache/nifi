@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedParameter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,6 +48,8 @@ public class VersionedComponentCollectionSerializer extends StdSerializer<Collec
         List<?> list = new ArrayList<>(value);
         if (list.get(0) instanceof VersionedComponent) {
             list.sort(Comparator.comparing(c -> ((VersionedComponent) c).getIdentifier()));
+        } else if (list.get(0) instanceof VersionedParameter) {
+            list.sort(Comparator.comparing(c -> ((VersionedParameter) c).getName()));
         }
 
         // now write the (possibly sorted) list
