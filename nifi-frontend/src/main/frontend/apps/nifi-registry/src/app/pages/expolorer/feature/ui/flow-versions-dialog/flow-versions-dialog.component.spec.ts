@@ -17,7 +17,6 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowVersionsDialogComponent } from './flow-versions-dialog.component';
-import { DebugElement } from '@angular/core';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Subject } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -30,7 +29,6 @@ import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/dro
 describe('FlowVersionsDialogComponent', () => {
     let component: FlowVersionsDialogComponent;
     let fixture: ComponentFixture<FlowVersionsDialogComponent>;
-    let debug: DebugElement;
     let store: MockStore;
     const mockDroplet = {
         bucketIdentifier: '1234',
@@ -84,7 +82,6 @@ describe('FlowVersionsDialogComponent', () => {
         store = TestBed.inject(MockStore);
         fixture = TestBed.createComponent(FlowVersionsDialogComponent);
         component = fixture.componentInstance;
-        debug = fixture.debugElement;
         fixture.detectChanges();
     });
 
