@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -46,6 +47,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
 
+import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.util.Collection;
@@ -210,6 +212,11 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         accessTokenProvider = context.getProperty(ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
     }
 
+    @OnDisabled
+    public void onDisabled() {
+        accessTokenProvider = null;
+    }
+
     private void refreshAccessToken() {
         if (accessTokenProvider != null) {
             dataSource.addConnectionProperty(TOKEN.getPropertyKey(), accessTokenProvider.getAccessDetails().getAccessToken());
@@ -310,8 +317,13 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     @Override
-    public SnowflakeConnectionWrapper getSnowflakeConnection() {
+    public Connection getConnection() throws ProcessException {
         refreshAccessToken();
+        return super.getConnection();
+    }
+
+    @Override
+    public SnowflakeConnectionWrapper getSnowflakeConnection() {
         return new SnowflakeConnectionWrapper(getConnection());
     }
 
