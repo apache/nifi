@@ -17,9 +17,9 @@
 
 import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
@@ -53,39 +53,40 @@ export interface ImportNewFlowDialogData {
     styleUrl: './import-new-flow-dialog.component.scss'
 })
 export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements OnInit {
-    @ViewChild('uploadFlowFileField') uploadFlowFileFieldRef!: ElementRef;
+    @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
     protected readonly ErrorContextKey = ErrorContextKey;
-    extensions = 'application/json';
-    fileName: string | null = null;
-    hoverValidity = '';
+    private activeBucket: string | undefined;
     fileToUpload: File | null = null;
-    multiple = false;
     writableBuckets: Bucket[] = [];
-    activeBucket: string | undefined;
     buckets: Bucket[] = [];
-    name = '';
-    description = '';
+    importNewFlowForm: FormGroup;
+    fileNameAttached: string | null = '';
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public data: ImportNewFlowDialogData,
-        private store: Store
+        private store: Store,
+        private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon
     ) {
         super();
-        this.activeBucket = this.data.activeBucket?.identifier;
+        // this.activeBucket = this.data.activeBucket?.identifier;
         this.buckets = data.buckets;
+        this.importNewFlowForm = this.formBuilder.group({
+            name: new FormControl('', Validators.required),
+            description: new FormControl(null),
+            bucket: new FormControl('', Validators.required),
+            definition: new FormControl('', Validators.required)
+        });
     }
 
     ngOnInit() {
         this.writableBuckets = this.filterWritableBuckets(this.buckets);
 
         // if there's only 1 writable bucket, always set as the initial value in the bucket dropdown
-        // if opening the dialog from the explorer/grid-list, there is no active bucket
-        if (this.activeBucket === undefined) {
-            if (this.writableBuckets.length === 1) {
-                // set the active bucket
-                this.activeBucket = this.writableBuckets[0].identifier;
-            }
+        if (this.writableBuckets.length === 1) {
+            const autoSelectedBucket = this.buckets.find((b) => b.identifier === this.writableBuckets[0].identifier);
+            this.importNewFlowForm.get('bucket')?.setValue(autoSelectedBucket?.identifier);
         }
     }
 
@@ -99,62 +100,9 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
         return filteredWritableBuckets;
     }
 
-    selectFile() {
-        this.uploadFlowFileFieldRef.nativeElement.click();
-    }
-
-    fileDragHandler(event: DragEvent, extensions: any) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        this.extensions = extensions;
-
-        const items = event.dataTransfer?.items;
-        this.hoverValidity = this.isFileInvalid(items) ? 'invalid' : 'valid';
-    }
-
-    fileDragEndHandler() {
-        this.hoverValidity = '';
-    }
-
-    fileDropHandler(event: DragEvent) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const { files } = event.dataTransfer!;
-
-        if (files && !this.isFileInvalid(Array.from(files))) {
-            this.handleFileInput(files);
-        }
-
-        this.hoverValidity = '';
-    }
-
-    handleFileInput(files: FileList): void {
-        if (!files || !files.length) {
-            return;
-        }
-        // get the file
-        this.fileToUpload = files![0];
-
-        // get the filename
-        const fileName = this.fileToUpload.name;
-
-        // trim off the file extension
-        this.fileName = fileName.replace(/\..*/, '');
-    }
-
-    isFileInvalid(items: any) {
-        return (
-            items.length > 1 ||
-            (this.extensions !== '' && items[0].type === '') ||
-            this.extensions.indexOf(items[0].type) === -1
-        );
-    }
-
     importNewFlow() {
         const selectedBucket: Bucket = this.writableBuckets.find((b) => {
-            return b.identifier === this.activeBucket;
+            return b.identifier === this.importNewFlowForm.get('bucket')?.value;
         })!;
 
         this.store.dispatch(
@@ -162,10 +110,30 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
                 request: {
                     bucket: selectedBucket,
                     file: this.fileToUpload!,
-                    name: this.name,
-                    description: this.description
+                    name: this.importNewFlowForm.get('name')?.value,
+                    description: this.importNewFlowForm.get('description')?.value || null
                 }
             })
         );
+    }
+
+    attachFlowDefinition(event: Event): void {
+        const target = event.target as HTMLInputElement;
+        const files = target.files as FileList;
+        const file = files.item(0);
+        if (file) {
+            this.importNewFlowForm.get('definition')?.setValue(this.nifiCommon.substringBeforeLast(file.name, '.'));
+            this.importNewFlowForm.get('definition')?.markAsDirty();
+            this.importNewFlowForm.get('description')?.setValue(null);
+            this.fileNameAttached = file.name;
+            this.fileToUpload = file;
+        }
+    }
+
+    removeAttachedFlowDefinition() {
+        this.importNewFlowForm.get('definition')?.setValue('');
+        this.flowUploadControl.nativeElement.value = '';
+        this.fileNameAttached = null;
+        this.fileToUpload = null;
     }
 }

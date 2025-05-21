@@ -57,10 +57,10 @@ export class ImportNewFlowVersionDialogComponent extends CloseOnEscapeDialog {
     @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
     protected readonly ErrorContextKey = ErrorContextKey;
+    private activeBucket: Bucket | null = null;
     extensions = 'application/json';
     fileName: string | null = null;
     fileToUpload: File | null = null;
-    activeBucket: Bucket | null = null;
     name = '';
     description = '';
 
