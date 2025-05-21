@@ -182,7 +182,7 @@ export class ExplorerComponent implements OnInit {
     }
 
     openImportNewFlowDialog() {
-        this.store.dispatch(openImportNewFlowDialog({ request: { buckets: this.buckets, activeBucket: undefined } }));
+        this.store.dispatch(openImportNewFlowDialog({ request: { buckets: this.buckets } }));
     }
 
     openImportNewFlowVersionDialog(droplet: Droplet) {

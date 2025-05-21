@@ -20,26 +20,34 @@ limitations under the License.
     <form class="import-new-flow-version-form" [formGroup]="importNewFlowVersionForm">
         <context-error-banner [context]="ErrorContextKey.DROPLETS"></context-error-banner>
         <mat-dialog-content>
-            <div class="w-full mb-5">
-                <mat-label>Flow Name</mat-label>
+            <div>
+                <mat-label class="mb-2">Flow Name</mat-label>
                 <div class="flex justify-between items-center mb-2">
                     <div class="w-full tertiary-color font-medium">
                             {{droplet.name}} v.{{droplet.versionCount + 1}}
                     </div>
                 </div>
             </div>
-            <mat-form-field class="w-full">
-                <mat-label>Flow Def</mat-label>
-                <input (click)="flowUploadControl.click()" matInput formControlName="newFlowVersionDefinition" type="text" [readonly]="true"/>
-                <button
-                    matSuffix
-                    type="button"
-                    class="upload-flow-definition tertiary-color icon icon-template-import mr-2.5 pointer"
-                    title="Browse"
-                    (click)="flowUploadControl.click()">
-                    <input type="file" #flowUploadControl class="hidden" (change)="attachFlowDefinition($event)" />
-                </button>
-            </mat-form-field>
+            <div>
+                <mat-label class="flex mb-2">Flow Definition</mat-label>
+                <mat-form-field class="w-full">
+                    <input class="pointer"
+                           (click)="flowUploadControl.click()"
+                           matInput
+                           formControlName="newFlowVersionDefinition"
+                           type="text"
+                           placeholder="Choose a file"
+                           [readonly]="true" />
+                    <button
+                        matSuffix
+                        type="button"
+                        class="upload-flow-definition tertiary-color icon icon-template-import mr-2.5 pointer"
+                        title="Browse"
+                        (click)="flowUploadControl.click()">
+                        <input type="file" #flowUploadControl class="hidden" (change)="attachFlowDefinition($event)" />
+                    </button>
+                </mat-form-field>
+            </div>
             @if (fileToUpload) {
                 <div>
                     <div class="flex flex-col gap-y-3 mb-3">
@@ -47,7 +55,7 @@ limitations under the License.
                             <div>File to upload</div>
                             <div class="flex justify-between items-center">
                                 <div class="tertiary-color font-medium">{{ fileNameAttached }}</div>
-                                <button class="pointer" aria-label="Remove attached flow definition" (click)="removeAttachedFlowDefinition()">X</button>
+                                <button aria-label="Remove attached flow definition" (click)="removeAttachedFlowDefinition()">X</button>
                             </div>
                         </div>
                     </div>

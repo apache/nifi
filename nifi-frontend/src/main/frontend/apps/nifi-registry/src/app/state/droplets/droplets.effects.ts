@@ -143,7 +143,6 @@ export class DropletsEffects {
                             ...MEDIUM_DIALOG,
                             autoFocus: false,
                             data: {
-                                activeBucket: request.activeBucket,
                                 buckets: request.buckets
                             }
                         }
