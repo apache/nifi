@@ -17,6 +17,8 @@
 
 import { createAction, props } from '@ngrx/store';
 import { DeleteDropletRequest, Droplet, ImportDropletDialog, ImportDropletRequest, LoadDropletsResponse } from '.';
+import { ErrorContext } from '../error';
+import { Bucket } from '../buckets';
 
 export const loadDroplets = createAction('[Droplets] Load Droplets');
 
@@ -46,11 +48,16 @@ export const importNewFlow = createAction(
     props<{ href: string; request: ImportDropletRequest }>()
 );
 
+export const createNewFlowSuccess = createAction(
+    `[Droplets] Create New Flow Success`,
+    props<{ href: string; request: ImportDropletRequest }>()
+);
+
 export const importNewFlowSuccess = createAction('[Droplets] Import New Flow Success', props<{ response: any }>());
 
 export const openImportNewFlowVersionDialog = createAction(
     '[Droplets] Open Import New Flow Version Dialog',
-    props<{ request: { droplet: Droplet } }>()
+    props<{ request: { bucket: Bucket; droplet: Droplet } }>()
 );
 
 export const importNewFlowVersion = createAction(
@@ -79,3 +86,7 @@ export const openFlowVersionsDialog = createAction(
 );
 
 export const selectDroplet = createAction(`[Droplets] Select Droplet`, props<{ request: { id: string } }>());
+
+export const dropletsSnackbarError = createAction(`[Droplets] Snackbar Error`, props<{ error: string }>());
+
+export const dropletsBannerError = createAction(`[Droplets] Banner Error`, props<{ errorContext: ErrorContext }>());

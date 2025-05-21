@@ -23,6 +23,8 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { deleteDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MatButtonModule } from '@angular/material/button';
+import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/header/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 interface DeleteDropletDialogData {
     droplet: Droplet;
@@ -31,11 +33,12 @@ interface DeleteDropletDialogData {
 @Component({
     selector: 'app-delete-droplet-dialog',
     standalone: true,
-    imports: [CommonModule, MatDialogModule, MatButtonModule],
+    imports: [CommonModule, MatDialogModule, MatButtonModule, ContextErrorBanner],
     templateUrl: './delete-droplet-dialog.component.html',
     styleUrl: './delete-droplet-dialog.component.scss'
 })
 export class DeleteDropletDialogComponent extends CloseOnEscapeDialog {
+    protected readonly ErrorContextKey = ErrorContextKey;
     droplet: Droplet;
 
     constructor(
