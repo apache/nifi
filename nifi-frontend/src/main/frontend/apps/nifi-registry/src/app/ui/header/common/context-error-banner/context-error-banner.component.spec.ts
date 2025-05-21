@@ -19,9 +19,9 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ContextErrorBanner } from './context-error-banner.component';
-import { ErrorContextKey, errorFeatureKey } from '../../../state/error';
+import { errorFeatureKey } from '../../../../state/error';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
 
 describe('ContextErrorBanner', () => {
     let component: ContextErrorBanner;
@@ -41,7 +41,6 @@ describe('ContextErrorBanner', () => {
 
         fixture = TestBed.createComponent(ContextErrorBanner);
         component = fixture.componentInstance;
-        component.context = ErrorContextKey.ACCESS_POLICIES;
         fixture.detectChanges();
     });
 

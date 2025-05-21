@@ -29,7 +29,7 @@ import { MatButtonModule } from '@angular/material/button';
 
 interface Data {
     droplet: Droplet;
-    versions: any;
+    versions: VersionedFlowSnapshotMetadata[];
 }
 
 interface VersionedFlowSnapshotMetadata {

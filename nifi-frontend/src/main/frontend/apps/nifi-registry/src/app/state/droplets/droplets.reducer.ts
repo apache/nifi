@@ -19,12 +19,14 @@ import { createReducer, on } from '@ngrx/store';
 import {
     deleteDroplet,
     deleteDropletSuccess,
+    dropletsSnackbarError,
     importNewFlow,
     importNewFlowSuccess,
     loadDroplets,
-    loadDropletsSuccess
+    loadDropletsSuccess,
+    dropletsBannerError
 } from './droplets.actions';
-import { DropletsState } from '.';
+import { Droplet, DropletsState } from '.';
 import { produce } from 'immer';
 
 export const initialState: DropletsState = {
@@ -51,7 +53,7 @@ export const dropletsReducer = createReducer(
     on(deleteDropletSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.droplets.findIndex(
-                (f: any) => response.identifier === f.identifier
+                (f: Droplet) => response.identifier === f.identifier
             );
             if (componentIndex > -1) {
                 draftState.droplets.splice(componentIndex, 1);
@@ -66,7 +68,7 @@ export const dropletsReducer = createReducer(
     on(importNewFlowSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.droplets.findIndex(
-                (f: any) => response.flow.identifier === f.identifier
+                (f: Droplet) => response.flow.identifier === f.identifier
             );
             if (componentIndex === -1) {
                 draftState.droplets.push(response.flow);
@@ -75,5 +77,9 @@ export const dropletsReducer = createReducer(
             }
             draftState.saving = false;
         });
-    })
+    }),
+    on(dropletsBannerError, dropletsSnackbarError, (state) => ({
+        ...state,
+        saving: false
+    }))
 );

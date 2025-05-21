@@ -17,6 +17,7 @@ limitations under the License.
 <h2 mat-dialog-title>Import New Flow</h2>
 <div class="import-new-flow-dialog">
     <mat-dialog-content>
+        <context-error-banner [context]="ErrorContextKey.DROPLETS"></context-error-banner>
         <div class="dialog-content flex flex-col h-full gap-y-2">
             <div class="w-full">
                 <div class="flex justify-between items-center">
@@ -53,22 +54,7 @@ limitations under the License.
             <div class="w-full flex flex-col justify-between mb-2" (click)="selectFile()"
                 (dragenter)="fileDragHandler($event, extensions)" (dragover)="fileDragHandler($event, extensions)"
                 (dragend)="fileDragEndHandler()" (dragleave)="fileDragEndHandler()" (drop)="fileDropHandler($event)">
-                <div class="flex justify-between">
-                    <mat-label>Flow Definition</mat-label>
-                    <div class="flex justify-between items-center">
-                        <ng-container *ngIf="fileToUpload !== null && !hoverValidity || hoverValidity === 'valid'">
-                            <span class="file-upload-message">
-                                Looks good!
-                                <i class="fa fa-check-circle-o success-color-default" aria-hidden="true"></i>
-                            </span>
-                        </ng-container>
-                        <ng-container *ngIf="hoverValidity === 'invalid'">
-                            <span class="file-upload-message">
-                                File format is not valid
-                                <i class="fa fa-times-circle error-color" aria-hidden="true"></i></span>
-                        </ng-container>
-                    </div>
-                </div>
+                <mat-label>Flow Definition</mat-label>
                 <mat-form-field class="w-full">
                     <div class="flex items-center justify-between w-full">
                         <input matInput class="ellipsis" type="text" autocomplete="off" class="flex-1"
@@ -96,7 +82,7 @@ limitations under the License.
         </button>
         <button [disabled]="!fileToUpload || !flowName.value || !bucketSelect.value" class="ml-2"
             data-automation-id="import-new-versioned-flow-button" (click)="importNewFlow()" type="button"
-            mat-flat-button mat-dialog-close>
+            mat-flat-button>
             Import
         </button>
     </mat-dialog-actions>
