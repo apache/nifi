@@ -21,7 +21,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { Subject } from 'rxjs';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
@@ -32,6 +32,7 @@ describe('ImportNewFlowDialogComponent', () => {
     let component: ImportNewFlowDialogComponent;
     let fixture: ComponentFixture<ImportNewFlowDialogComponent>;
     let store: MockStore;
+    let form: FormGroup;
     const buckets = [
         {
             allowBundleRedeploy: false,
@@ -93,7 +94,7 @@ describe('ImportNewFlowDialogComponent', () => {
                 MatButtonModule
             ],
             providers: [
-                { provide: MAT_DIALOG_DATA, useValue: { activeBucket: '', buckets } },
+                { provide: MAT_DIALOG_DATA, useValue: { buckets } },
                 {
                     provide: MatDialogRef,
                     useValue: {
@@ -108,6 +109,7 @@ describe('ImportNewFlowDialogComponent', () => {
         fixture = TestBed.createComponent(ImportNewFlowDialogComponent);
         store = TestBed.inject(MockStore);
         component = fixture.componentInstance;
+        form = component.importNewFlowForm;
         fixture.detectChanges();
     });
 
@@ -122,18 +124,18 @@ describe('ImportNewFlowDialogComponent', () => {
     it('should import a new flow', () => {
         const dispatchSpy = jest.spyOn(store, 'dispatch');
         const file = new File([''], 'testFile');
-        component.activeBucket = buckets[0].identifier;
+        form.get('name')?.setValue('Flow Import 1');
+        form.get('description')?.setValue('test description');
+        form.get('bucket')?.setValue('311c6295-d8b6-47bd-806e-b5ee27dd8187');
         component.fileToUpload = file;
-        component.name = 'testName';
-        component.description = 'testDescription';
         component.importNewFlow();
         expect(dispatchSpy).toHaveBeenCalledWith(
             createNewFlow({
                 request: {
                     bucket: buckets[0],
                     file: file,
-                    name: component.name,
-                    description: component.description
+                    name: 'Flow Import 1',
+                    description: 'test description'
                 }
             })
         );
