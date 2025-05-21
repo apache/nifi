@@ -99,18 +99,16 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     ControllerServiceState getState();
 
      /**
-     * Will enable this service. Enabling of the service typically means
-     * invoking it's operation that is annotated with @OnEnabled.
+     * Enables this service, calling any method annotated with @OnEnabled and updating the state of the service
      *
-     * @param scheduler
-     *            implementation of {@link ScheduledExecutorService} used to
-     *            initiate service enabling task as well as its re-tries
-     * @param administrativeYieldMillis
-     *            the amount of milliseconds to wait for administrative yield
+     * @param scheduler implementation of {@link ScheduledExecutorService} used to initiate service enabling task as well as its retries
+     * @param administrativeYieldMillis the amount of milliseconds to wait for administrative yield
+     * @param completeExceptionallyOnFailure if the Controller Service cannot be enabled because it is invalid or throws an Exception from the @OnEnabled lifecycle method,
+     *                                       dictates whether the CompletableFuture should be completed exceptionally or not
      *
      * @return a CompletableFuture that can be used to wait for the service to finish enabling
      */
-    CompletableFuture<Void> enable(ScheduledExecutorService scheduler, long administrativeYieldMillis);
+    CompletableFuture<Void> enable(ScheduledExecutorService scheduler, long administrativeYieldMillis, boolean completeExceptionallyOnFailure);
 
     /**
      * Will disable this service. Disabling of the service typically means
