@@ -84,7 +84,7 @@ export class DropletsEffects {
             this.actions$.pipe(
                 ofType(DropletsActions.openDeleteDropletDialog),
                 tap(({ request }) => {
-                    this.dialog.open<DeleteDropletDialogComponent, ExportFlowVersionDialogData>(
+                    const dialogRef = this.dialog.open<DeleteDropletDialogComponent, ExportFlowVersionDialogData>(
                         DeleteDropletDialogComponent,
                         {
                             ...SMALL_DIALOG,
@@ -92,6 +92,8 @@ export class DropletsEffects {
                             data: request
                         }
                     );
+
+                    dialogRef.afterClosed().subscribe(() => this.store.dispatch(DropletsActions.loadDroplets()));
                 })
             ),
         { dispatch: false }
@@ -104,9 +106,18 @@ export class DropletsEffects {
             switchMap((request) =>
                 from(this.dropletsService.deleteDroplet(request.droplet.link.href)).pipe(
                     map((res) => DropletsActions.deleteDropletSuccess({ response: res })),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
-                    )
+                    tap({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(
+                                DropletsActions.dropletsBannerError({
+                                    errorContext: {
+                                        context: ErrorContextKey.DROPLETS,
+                                        errors: [this.errorHelper.getErrorString(errorResponse)]
+                                    }
+                                })
+                            );
+                        }
+                    })
                 )
             )
         )
@@ -115,6 +126,7 @@ export class DropletsEffects {
     deleteDropletSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(DropletsActions.deleteDropletSuccess),
+            tap(() => this.dialog.closeAll()),
             switchMap(() => of(DropletsActions.loadDroplets()))
         )
     );
@@ -149,15 +161,29 @@ export class DropletsEffects {
                 from(
                     this.dropletsService.createNewFlow(request.bucket.link.href, request.name, request.description)
                 ).pipe(
-                    map((res) => DropletsActions.importNewFlow({ href: res.link.href, request: request })),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        this.dialog.closeAll();
-                        return of(
-                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
-                        );
+                    map((res) => DropletsActions.createNewFlowSuccess({ href: res.link.href, request: request })),
+                    tap({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(
+                                DropletsActions.dropletsBannerError({
+                                    errorContext: {
+                                        context: ErrorContextKey.DROPLETS,
+                                        errors: [this.errorHelper.getErrorString(errorResponse)]
+                                    }
+                                })
+                            );
+                        }
                     })
                 )
             )
+        )
+    );
+
+    createNewFlowSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(DropletsActions.createNewFlowSuccess),
+            tap(() => this.store.dispatch(DropletsActions.loadDroplets())),
+            map(({ href, request }) => DropletsActions.importNewFlow({ href, request }))
         )
     );
 
@@ -167,12 +193,17 @@ export class DropletsEffects {
             switchMap(({ href, request }) =>
                 from(this.dropletsService.uploadFlow(href, request.file)).pipe(
                     map((res) => DropletsActions.importNewFlowSuccess({ response: res })),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        return of(
-                            ErrorActions.addBannerError({
-                                errorContext: { context: ErrorContextKey.DROPLETS, errors: [errorResponse.message] }
-                            })
-                        );
+                    tap({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(
+                                DropletsActions.dropletsBannerError({
+                                    errorContext: {
+                                        context: ErrorContextKey.DROPLETS,
+                                        errors: [this.errorHelper.getErrorString(errorResponse)]
+                                    }
+                                })
+                            );
+                        }
                     })
                 )
             )
@@ -199,6 +230,7 @@ export class DropletsEffects {
                             ...MEDIUM_DIALOG,
                             autoFocus: false,
                             data: {
+                                activeBucket: request.bucket,
                                 droplet: request.droplet
                             }
                         }
@@ -256,7 +288,9 @@ export class DropletsEffects {
                     catchError((errorResponse: HttpErrorResponse) => {
                         this.dialog.closeAll();
                         return of(
-                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            DropletsActions.dropletsSnackbarError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
                         );
                     })
                 )
@@ -290,7 +324,9 @@ export class DropletsEffects {
                         }),
                         catchError((errorResponse: HttpErrorResponse) => {
                             return of(
-                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                                DropletsActions.dropletsSnackbarError({
+                                    error: this.errorHelper.getErrorString(errorResponse)
+                                })
                             );
                         })
                     )
@@ -309,5 +345,24 @@ export class DropletsEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    dropletsBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(DropletsActions.dropletsBannerError),
+            map((action) => action.errorContext),
+            switchMap((errorContext) => of(ErrorActions.addBannerError({ errorContext })))
+        )
+    );
+
+    dropletsSnackbarError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(DropletsActions.dropletsSnackbarError),
+            map((action) => action.error),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
     );
 }
