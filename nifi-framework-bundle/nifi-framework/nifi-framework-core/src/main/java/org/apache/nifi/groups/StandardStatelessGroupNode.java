@@ -148,7 +148,6 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
                 return;
             }
 
-            desiredState = ScheduledState.RUNNING;
             currentState = ScheduledState.STARTING;
             logger.info("Starting {}", this);
         } finally {
@@ -369,7 +368,12 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             }
         };
 
-        dataflow.initialize(initializationContext);
+        try {
+            dataflow.initialize(initializationContext);
+        } catch (final Exception e) {
+            dataflow.shutdown(true, true);
+            throw e;
+        }
 
         return dataflow;
     }
@@ -518,6 +522,11 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     @Override
     public ScheduledState getDesiredState() {
         return desiredState;
+    }
+
+    @Override
+    public void setDesiredState(final ScheduledState desiredState) {
+        this.desiredState = desiredState;
     }
 
     @Override
