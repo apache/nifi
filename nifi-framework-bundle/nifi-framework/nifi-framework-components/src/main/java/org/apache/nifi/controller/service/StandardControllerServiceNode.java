@@ -603,8 +603,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
-            // In this case, we cannot transition to ENABLING state and we will not retry. As a result, we complete the future Exceptionally, regardless of the argument.
-            future.completeExceptionally(new IllegalStateException("Cannot enable " + this + " because it is not disabled; state is " + getState()));
+            future.complete(null);
             return future;
         }
 
