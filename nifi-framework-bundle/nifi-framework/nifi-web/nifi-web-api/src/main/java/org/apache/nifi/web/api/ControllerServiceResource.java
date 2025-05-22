@@ -43,6 +43,7 @@ import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
@@ -75,6 +76,8 @@ import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupOptionEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupOptionsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
@@ -91,6 +94,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -659,6 +663,155 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerService);
                     populateRemainingControllerServiceEntityContent(entity);
 
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/move-options")
+    @Operation(
+            summary = "Gets the move options for a controller service",
+            responses = {
+                    @ApiResponse(content = @Content(schema = @Schema(implementation = ProcessGroupOptionEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response getProcessGroupOptions(
+            @Parameter(description = "The controller service id.")
+            @PathParam("id") final String controllerServiceId) {
+
+        if (controllerServiceId == null) {
+            throw new IllegalArgumentException("Controller service id must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        AtomicReference<List<ProcessGroupOptionEntity>> options = new AtomicReference<>();
+        serviceFacade.authorizeAccess(lookup -> {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            final ComponentAuthorizable authorizableControllerService = lookup.getControllerService(controllerServiceId);
+            boolean authorized = authorizableControllerService.getAuthorizable().isAuthorized(authorizer, RequestAction.WRITE, user);
+
+            final ControllerServiceDTO controllerServiceDTO = serviceFacade.getControllerService(controllerServiceId, true).getComponent();
+
+            final ProcessGroupAuthorizable authorizableProcessGroupCurrent = lookup.getProcessGroup(controllerServiceDTO.getParentGroupId());
+            authorized = authorized && authorizableProcessGroupCurrent.getAuthorizable().isAuthorized(authorizer, RequestAction.WRITE, user);
+
+            if (authorized) {
+                options.set(serviceFacade.getAllProcessGroupOptions(controllerServiceId));
+            }
+        });
+
+        ProcessGroupOptionsEntity processGroupOptionsEntity = new ProcessGroupOptionsEntity();
+        processGroupOptionsEntity.setProcessGroupOptionEntities(options.get());
+
+        return generateOkResponse(processGroupOptionsEntity).build();
+    }
+
+    /**
+     * Moves the specified Controller Service to parent/child process groups.
+     *
+     * @param id The id of the controller service to update.
+     * @param requestControllerServiceEntity A controllerServiceEntity.
+     * @return A controllerServiceEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/move")
+    @Operation(
+            summary = "Move Controller Service to the specified Process Group.",
+            responses = {
+                    @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServiceEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                @SecurityRequirement(name = "Write - /controller-services/{uuid}"),
+                @SecurityRequirement(name = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}"),
+                @SecurityRequirement(name = "Write - Controller if scoped by Controller - /controller"),
+                @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
+            })
+    public Response moveControllerServices(
+            @Parameter(
+                    description = "The controller service id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The controller service entity",
+                    required = true
+            )
+            final ControllerServiceEntity requestControllerServiceEntity) {
+
+        if (requestControllerServiceEntity == null) {
+            throw new IllegalArgumentException("Controller service must be specified.");
+        }
+
+        if (requestControllerServiceEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        if (requestControllerServiceEntity.getParentGroupId() == null) {
+            throw new IllegalArgumentException("ParentGroupId must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestControllerServiceEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestControllerServiceEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        final Revision requestRevision = getRevision(requestControllerServiceEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                serviceFacade.getControllerService(id, true),
+                requestRevision,
+                lookup -> {
+                    NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    // authorize the service
+                    final ComponentAuthorizable authorizableControllerService = lookup.getControllerService(id);
+
+                    authorizableControllerService.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+                    final ControllerServiceDTO requestControllerServiceDTO = serviceFacade.getControllerService(id, true).getComponent();
+
+                    // authorize the current and new process groups
+                    final ProcessGroupAuthorizable authorizableProcessGroupNew = lookup.getProcessGroup(requestControllerServiceEntity.getParentGroupId());
+                    authorizableProcessGroupNew.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+                    final ProcessGroupAuthorizable authorizableProcessGroupOld = lookup.getProcessGroup(requestControllerServiceDTO.getParentGroupId());
+                    authorizableProcessGroupOld.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+                    // Verify all referencing and referenced components are still within scope
+                    List<String> conflictingComponents = serviceFacade.getConflictingComponents(requestControllerServiceDTO, authorizableProcessGroupNew);
+
+                    if (!conflictingComponents.isEmpty()) {
+                        String errorMessage = "Could not move controller service because the following components would be out of scope: ";
+                        errorMessage += String.join(" ", conflictingComponents);
+                        throw new IllegalStateException(errorMessage);
+                    }
+                },
+                null,
+                (revision, controllerServiceEntity) -> {
+                    final ControllerServiceDTO controllerService = controllerServiceEntity.getComponent();
+                    final ControllerServiceEntity entity = serviceFacade.moveControllerService(revision, controllerService, requestControllerServiceEntity.getParentGroupId());
+                    populateRemainingControllerServiceEntityContent(entity);
                     return generateOkResponse(entity).build();
                 }
         );
