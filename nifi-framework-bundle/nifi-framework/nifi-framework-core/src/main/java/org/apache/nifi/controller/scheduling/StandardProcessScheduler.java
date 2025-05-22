@@ -415,6 +415,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         return future;
     }
 
+    @SuppressWarnings("PMD.EmptyCatchBlock")
     public synchronized CompletableFuture<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(groupNode), true, true);
         lifecycleState.setScheduled(true);
