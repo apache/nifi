@@ -110,9 +110,9 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.783</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.31.46</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.31.48</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
-        <io.fabric8.kubernetes.client.version>7.3.0</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>7.3.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.21</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
         <okio.version>3.11.0</okio.version>
@@ -151,7 +151,7 @@
         <jersey.bom.version>3.1.10</jersey.bom.version>
         <log4j2.version>2.24.3</log4j2.version>
         <logback.version>1.5.18</logback.version>
-        <mockito.version>5.17.0</mockito.version>
+        <mockito.version>5.18.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.4</snakeyaml.version>
         <netty.4.version>4.2.1.Final</netty.4.version>
