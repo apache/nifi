@@ -1,0 +1,95 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.registry.flow.git.serialize;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class JacksonFlowSnapshotSerializerTest {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Test
+    public void testOrdering() throws IOException {
+        final JacksonFlowSnapshotSerializer serializer = new JacksonFlowSnapshotSerializer();
+
+        final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setIdentifier("myParamContext");
+
+        VersionedParameter parameter1 = new VersionedParameter();
+        parameter1.setName("name1");
+        VersionedParameter parameter2 = new VersionedParameter();
+        parameter2.setName("name2");
+        VersionedParameter parameter3 = new VersionedParameter();
+        parameter3.setName("name3");
+
+        versionedParameterContext.setParameters(Set.of(parameter2, parameter1, parameter3));
+
+        final VersionedProcessor processor1 = new VersionedProcessor();
+        processor1.setIdentifier("proc1");
+        final VersionedProcessor processor2 = new VersionedProcessor();
+        processor2.setIdentifier("proc2");
+        final VersionedProcessor processor3 = new VersionedProcessor();
+        processor3.setIdentifier("proc3");
+
+        versionedProcessGroup.setIdentifier("pg1");
+        versionedProcessGroup.setName("Process Group 1");
+        versionedProcessGroup.setProcessors(Set.of(processor2, processor1, processor3));
+
+        flowSnapshot.setFlowContents(versionedProcessGroup);
+        flowSnapshot.setParameterContexts(Map.of("myParamContext", versionedParameterContext));
+
+        final String jsonString = serializer.serialize(flowSnapshot);
+
+        final JsonNode flow = OBJECT_MAPPER.readTree(jsonString);
+
+        final JsonNode processGroup = flow.get("flowContents");
+        final ArrayNode processors = (ArrayNode) processGroup.get("processors");
+
+        final JsonNode parameterContexts = flow.get("parameterContexts");
+        final JsonNode parameterContext = parameterContexts.get("myParamContext");
+        final ArrayNode parameters = (ArrayNode) parameterContext.get("parameters");
+
+        assertEquals(3, processors.size());
+        assertEquals("proc1", processors.get(0).get("identifier").asText());
+        assertEquals("proc2", processors.get(1).get("identifier").asText());
+        assertEquals("proc3", processors.get(2).get("identifier").asText());
+
+        assertEquals(1, parameterContexts.size());
+        assertEquals(3, parameters.size());
+        assertEquals("name1", parameters.get(0).get("name").asText());
+        assertEquals("name2", parameters.get(1).get("name").asText());
+        assertEquals("name3", parameters.get(2).get("name").asText());
+    }
+
+}
