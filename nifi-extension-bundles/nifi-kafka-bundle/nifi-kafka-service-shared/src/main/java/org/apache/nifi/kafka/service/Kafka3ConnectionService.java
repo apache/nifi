@@ -307,6 +307,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         properties.putAll(consumerProperties);
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, subscription.getGroupId());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, subscription.getAutoOffsetReset().getValue());
+        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);

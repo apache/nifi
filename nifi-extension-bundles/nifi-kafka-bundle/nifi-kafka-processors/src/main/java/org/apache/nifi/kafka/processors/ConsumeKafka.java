@@ -72,6 +72,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
@@ -305,8 +306,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private volatile boolean useReader;
     private volatile String brokerUri;
     private volatile PollingContext pollingContext;
+    private volatile int maxConsumerCount;
 
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
+    private final AtomicInteger activeConsumerCount = new AtomicInteger();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -345,6 +348,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
                 : KeyFormat.BYTE_ARRAY;
         brokerUri = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class).getBrokerUri();
+        maxConsumerCount = context.getMaxConcurrentTasks();
+        activeConsumerCount.set(0);
     }
 
     @OnStopped
@@ -353,11 +358,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         KafkaConsumerService service;
 
         while ((service = consumerServices.poll()) != null) {
-            try {
-                service.close();
-            } catch (IOException e) {
-                getLogger().warn("Failed to close Kafka Consumer Service", e);
-            }
+            close(service);
         }
     }
 
@@ -365,58 +366,90 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final KafkaConsumerService consumerService = getConsumerService(context);
+        if (consumerService == null) {
+            getLogger().debug("No Kafka Consumer Service available; will yield and return immediately");
+            context.yield();
+            return;
+        }
 
         final long maxUncommittedMillis = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final long stopTime = System.currentTimeMillis() + maxUncommittedMillis;
         final OffsetTracker offsetTracker = new OffsetTracker();
+        boolean recordsReceived = false;
 
-        try {
-            while (System.currentTimeMillis() < stopTime) {
-                try {
-                    final Duration maxWaitDuration = Duration.ofMillis(stopTime - System.currentTimeMillis());
-                    final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
-                    if (!consumerRecords.hasNext()) {
-                        getLogger().debug("No Kafka Records consumed: {}", pollingContext);
-                        continue;
-                    }
-
-                    processConsumerRecords(context, session, offsetTracker, consumerRecords);
-                } catch (final Exception e) {
-                    getLogger().error("Failed to consume Kafka Records", e);
-                    consumerService.rollback();
-
-                    try {
-                        consumerService.close();
-                    } catch (final IOException ex) {
-                        getLogger().warn("Failed to close Kafka Consumer Service", ex);
-                    }
+        while (System.currentTimeMillis() < stopTime) {
+            try {
+                final Duration maxWaitDuration = Duration.ofMillis(stopTime - System.currentTimeMillis());
+                if (maxWaitDuration.toMillis() <= 0) {
                     break;
                 }
+
+                final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
+                if (!consumerRecords.hasNext()) {
+                    getLogger().trace("No Kafka Records consumed: {}", pollingContext);
+                    continue;
+                }
+
+                recordsReceived = true;
+                processConsumerRecords(context, session, offsetTracker, consumerRecords);
+            } catch (final Exception e) {
+                getLogger().error("Failed to consume Kafka Records", e);
+                consumerService.rollback();
+                close(consumerService);
+                context.yield();
+                break;
             }
+        }
 
-            session.commitAsync(
-                    () -> {
-                        if (commitOffsets) {
-                            consumerService.commit(offsetTracker.getPollingSummary(pollingContext));
-                        }
-                    },
-                    throwable -> {
-                        getLogger().error("Failed to commit session; will roll back any uncommitted records", throwable);
+        if (!recordsReceived) {
+            getLogger().trace("No Kafka Records consumed, re-queuing consumer");
+            consumerServices.offer(consumerService);
+            return;
+        }
 
-                        if (!consumerService.isClosed()) {
-                            consumerService.rollback();
+        session.commitAsync(
+            () -> commit(consumerService, offsetTracker, pollingContext),
+            throwable -> {
+                getLogger().error("Failed to commit session; will roll back any uncommitted records", throwable);
+                rollback(consumerService);
+                context.yield();
+            });
+    }
 
-                            try {
-                                consumerService.close();
-                            } catch (final IOException e) {
-                                getLogger().warn("Failed to close Kafka Consumer Service", e);
-                            }
-                        }
-                    });
-        } finally {
-            if (!consumerService.isClosed()) {
+    private void commit(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext) {
+        if (!commitOffsets) {
+            return;
+        }
+
+        try {
+            consumerService.commit(offsetTracker.getPollingSummary(pollingContext));
+            consumerServices.offer(consumerService);
+            getLogger().debug("Committed offsets for Kafka Consumer Service");
+        } catch (final Exception e) {
+            close(consumerService);
+            getLogger().error("Failed to commit offsets for Kafka Consumer Service", e);
+        }
+    }
+
+    private void rollback(final KafkaConsumerService consumerService) {
+        if (!consumerService.isClosed()) {
+            try {
+                consumerService.rollback();
                 consumerServices.offer(consumerService);
+                getLogger().debug("Rolled back offsets for Kafka Consumer Service");
+            } catch (final Exception e) {
+                getLogger().warn("Failed to rollback offsets for Kafka Consumer", e);
+                close(consumerService);
             }
+        }
+    }
+
+    private void close(final KafkaConsumerService consumerService) {
+        try {
+            consumerService.close();
+            activeConsumerCount.decrementAndGet();
+        } catch (final IOException ioe) {
+            getLogger().warn("Failed to close Kafka Consumer Service", ioe);
         }
     }
 
@@ -453,8 +486,20 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             return consumerService;
         }
 
+        final int activeCount = activeConsumerCount.incrementAndGet();
+        if (activeCount > getMaxConsumerCount()) {
+            getLogger().trace("No Kafka Consumer Service available; have already reached max count of {} so will not create a new one", getMaxConsumerCount());
+            activeConsumerCount.decrementAndGet();
+            return null;
+        }
+
+        getLogger().debug("No Kafka Consumer Service available; creating a new one");
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
         return connectionService.getConsumerService(pollingContext);
+    }
+
+    private int getMaxConsumerCount() {
+        return maxConsumerCount;
     }
 
     private void processConsumerRecords(final ProcessContext context, final ProcessSession session, final OffsetTracker offsetTracker,
