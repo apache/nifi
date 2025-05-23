@@ -1197,7 +1197,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     protected synchronized void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("{} session rollback called, FlowFile records are {} {}",
+            LOG.debug("{} session rollback called, FlowFile records are {}",
                     this, loggableFlowfileInfo(), new Throwable("Stack Trace on rollback"));
         }
 
