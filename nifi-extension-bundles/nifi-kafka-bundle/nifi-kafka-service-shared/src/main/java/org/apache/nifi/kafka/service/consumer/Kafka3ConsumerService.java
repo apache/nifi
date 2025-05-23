@@ -36,9 +36,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -164,7 +164,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     }
 
     private Map<TopicPartition, OffsetAndMetadata> getOffsets(final PollingSummary pollingSummary) {
-        final Map<TopicPartition, OffsetAndMetadata> offsets = new LinkedHashMap<>();
+        final Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
 
         final Map<TopicPartitionSummary, OffsetSummary> summaryOffsets = pollingSummary.getOffsets();
         for (final Map.Entry<TopicPartitionSummary, OffsetSummary> offsetEntry : summaryOffsets.entrySet()) {
@@ -172,7 +172,8 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
             final TopicPartition topicPartition = new TopicPartition(topicPartitionSummary.getTopic(), topicPartitionSummary.getPartition());
 
             final OffsetSummary offsetSummary = offsetEntry.getValue();
-            final OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(offsetSummary.getOffset());
+            // Offset should indicate the offset that we want to consume from next. This will be 1 more than the most recently obtained offset.
+            final OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(offsetSummary.getOffset() + 1);
             offsets.put(topicPartition, offsetAndMetadata);
         }
 

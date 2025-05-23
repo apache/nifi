@@ -85,7 +85,7 @@ class ConsumeKafkaOffsetsIT extends AbstractConsumeKafkaIT {
             assertEquals(1, committedOffsets.entrySet().size());
             Map.Entry<TopicPartition, OffsetAndMetadata> entry = committedOffsets.entrySet().iterator().next();
             assertEquals(topic, entry.getKey().topic());
-            assertEquals(values.length - 1, entry.getValue().offset());
+            assertEquals(values.length, entry.getValue().offset());
         }
     }
 
