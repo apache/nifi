@@ -25,3 +25,5 @@ export const selectContentState = createSelector(
 );
 
 export const selectRef = createSelector(selectContentState, (state: ContentState) => state.ref);
+
+export const selectSideBarData = createSelector(selectContentState, (state: ContentState) => state.data);
