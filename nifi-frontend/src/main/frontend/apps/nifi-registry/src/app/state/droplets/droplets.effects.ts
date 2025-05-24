@@ -160,7 +160,15 @@ export class DropletsEffects {
                 from(
                     this.dropletsService.createNewFlow(request.bucket.link.href, request.name, request.description)
                 ).pipe(
-                    map((res) => DropletsActions.createNewFlowSuccess({ href: res.link.href, request: request })),
+                    map((res) =>
+                        DropletsActions.createNewFlowSuccess({
+                            request: {
+                                href: res.link.href,
+                                file: request.file,
+                                description: request.description
+                            }
+                        })
+                    ),
                     tap({
                         error: (errorResponse: HttpErrorResponse) => {
                             this.store.dispatch(
@@ -182,15 +190,19 @@ export class DropletsEffects {
         this.actions$.pipe(
             ofType(DropletsActions.createNewFlowSuccess),
             tap(() => this.store.dispatch(DropletsActions.loadDroplets())),
-            map(({ href, request }) => DropletsActions.importNewFlow({ href, request }))
+            map((action) => action.request),
+            map(({ href, file, description }) =>
+                DropletsActions.importNewFlow({ request: { href, file, description } })
+            )
         )
     );
 
     importNewFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(DropletsActions.importNewFlow),
-            switchMap(({ href, request }) =>
-                from(this.dropletsService.uploadFlow(href, request.file)).pipe(
+            map((action) => action.request),
+            switchMap(({ href, file, description }) =>
+                from(this.dropletsService.uploadFlow(href, file, description)).pipe(
                     map((res) => DropletsActions.importNewFlowSuccess({ response: res })),
                     tap({
                         error: (errorResponse: HttpErrorResponse) => {
@@ -229,7 +241,6 @@ export class DropletsEffects {
                             ...MEDIUM_DIALOG,
                             autoFocus: false,
                             data: {
-                                activeBucket: request.bucket,
                                 droplet: request.droplet
                             }
                         }
