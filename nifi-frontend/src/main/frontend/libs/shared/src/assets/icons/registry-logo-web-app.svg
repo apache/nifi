@@ -1,0 +1,17 @@
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<svg id="registryl-logo-mini" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 37.49 48"><defs><style>.cls-1{fill:url(#linear-gradient);}.cls-2{fill:#acbbbf;}.cls-3{fill:#899ea3;}.cls-4{fill:#678289;}</style><linearGradient id="linear-gradient" x1="20.82" y1="33.66" x2="20.82" y2="20.7" gradientUnits="userSpaceOnUse"><stop offset="0.3" stop-color="#678289" stop-opacity="0.9"/><stop offset="1" stop-color="#678289" stop-opacity="0"/></linearGradient></defs><title>registry-logo-web-app</title><polygon class="cls-1" points="14.34 33.66 14.34 20.7 27.3 20.7 14.34 33.66"/><polygon class="cls-2" points="0 48 0 35.05 12.95 35.05 0 48"/><rect class="cls-2" y="20.7" width="12.95" height="12.95" transform="translate(33.66 20.7) rotate(90)"/><path class="cls-2" d="M9.79,16.32a9.7,9.7,0,0,1-2.13.24,11.47,11.47,0,0,1-5.33-1.41c-.22-.11-.55-.29-.46-.63l0-.2.23-.1h.13a2.16,2.16,0,0,1,.62.14,15.94,15.94,0,0,0,2,.66,8.59,8.59,0,0,0,2,.23A8.34,8.34,0,0,0,9,15a19.33,19.33,0,0,0,3.46-1.41l.47-.22v-7H0v13H13V15.23A19.51,19.51,0,0,1,9.79,16.32Z"/><path class="cls-3" d="M12.48,13.54a16.71,16.71,0,0,1,4.38-1.64,10.29,10.29,0,0,1,1.77-.15,11.14,11.14,0,0,1,4.42.94l1.82-.77L19.81,0,7.89,5.06l3.77,8.88Z"/><path class="cls-3" d="M13,16.95c.21-1.13,1.9-1.8,2.82-2.16a9.72,9.72,0,0,1,2.15-.62c.45-.06,1.06,0,1.13-.18s-1.55-.25-3.12.14a28.83,28.83,0,0,0-3.61,1.35A9.11,9.11,0,0,0,13,16.95Z"/><path class="cls-4" d="M27.24,16a9.89,9.89,0,0,1,1.42,3.3l8.82-8.82L28.33,1.35l-9.16,9.16L20.62,12A10.26,10.26,0,0,1,27.24,16Z"/></svg>
