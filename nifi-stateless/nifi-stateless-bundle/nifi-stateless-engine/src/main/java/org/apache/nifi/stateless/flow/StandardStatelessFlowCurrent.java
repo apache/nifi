@@ -148,12 +148,39 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
         // If we weren't able to pull in any FlowFiles from outside the Stateless Flow, go ahead and trigger the root connectables.
         if (!flowFileSupplied) {
+            boolean allYielded = true;
             for (final Connectable connectable : rootConnectables) {
                 if (!transactionThresholdsMet || connectable.hasIncomingConnection()) {
+                    if (isYielded(connectable)) {
+                        continue;
+                    }
+
+                    allYielded = false;
                     triggerRootConnectable(connectable);
                 }
             }
+
+            // If all source processors are yielded, sleep for 10 milliseconds before returning so that as this
+            // is called in a loop, we don't consume 100% CPU accomplishing nothing.
+            if (allYielded) {
+                try {
+                    Thread.sleep(10L);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
+    }
+
+    private boolean isYielded(final Connectable connectable) {
+        final long yieldExpiration = connectable.getYieldExpiration();
+
+        // If yield expiration <= 0, don't bother making system call to get current time
+        if (yieldExpiration > 0) {
+            return yieldExpiration > System.currentTimeMillis();
+        }
+
+        return false;
     }
 
     private boolean triggerFlowFileSupplier() {
@@ -247,7 +274,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                     return NextConnectable.NEXT_READY;
                 }
 
-                // Check if we've reached out threshold for how much data we are willing to bring into a single transaction. If so, we will not drop back to
+                // Check if we've reached our threshold for how much data we are willing to bring into a single transaction. If so, we will not drop back to
                 // triggering source components
                 final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
                 if (thresholdMet) {
