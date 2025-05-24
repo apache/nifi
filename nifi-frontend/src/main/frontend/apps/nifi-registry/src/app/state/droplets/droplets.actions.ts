@@ -16,9 +16,15 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { DeleteDropletRequest, Droplet, ImportDropletDialog, ImportDropletRequest, LoadDropletsResponse } from '.';
+import {
+    DeleteDropletRequest,
+    Droplet,
+    ImportDropletDialog,
+    ImportDropletRequest,
+    ImportFlowRequest,
+    LoadDropletsResponse
+} from '.';
 import { ErrorContext } from '../error';
-import { Bucket } from '../buckets';
 
 export const loadDroplets = createAction('[Droplets] Load Droplets');
 
@@ -43,21 +49,18 @@ export const openImportNewFlowDialog = createAction(
 
 export const createNewFlow = createAction('[Droplets] Create New Flow', props<{ request: ImportDropletRequest }>());
 
-export const importNewFlow = createAction(
-    '[Droplets] Import New Flow',
-    props<{ href: string; request: ImportDropletRequest }>()
-);
+export const importNewFlow = createAction('[Droplets] Import New Flow', props<{ request: ImportFlowRequest }>());
 
 export const createNewFlowSuccess = createAction(
     `[Droplets] Create New Flow Success`,
-    props<{ href: string; request: ImportDropletRequest }>()
+    props<{ request: ImportFlowRequest }>()
 );
 
 export const importNewFlowSuccess = createAction('[Droplets] Import New Flow Success', props<{ response: any }>());
 
 export const openImportNewFlowVersionDialog = createAction(
     '[Droplets] Open Import New Flow Version Dialog',
-    props<{ request: { bucket: Bucket; droplet: Droplet } }>()
+    props<{ request: { droplet: Droplet } }>()
 );
 
 export const importNewFlowVersion = createAction(
