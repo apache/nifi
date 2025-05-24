@@ -72,12 +72,21 @@ export interface DeleteDropletResponse {
 
 export interface ImportDropletDialog {
     buckets: Bucket[];
-    // activeBucket?: Bucket | undefined;
 }
 
 export interface ImportDropletRequest {
     bucket: Bucket;
+    description: string;
     file: File;
     name: string;
+}
+
+export interface ImportFlowRequest {
+    href: string;
+    file: File;
     description: string;
+}
+
+export interface ImportDropletVersionRequest {
+    file: File;
 }

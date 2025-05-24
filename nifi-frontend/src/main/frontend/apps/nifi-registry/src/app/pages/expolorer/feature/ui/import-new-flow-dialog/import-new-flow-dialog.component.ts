@@ -31,7 +31,6 @@ import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/header/common/
 import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 export interface ImportNewFlowDialogData {
-    activeBucket?: Bucket;
     buckets: Bucket[];
 }
 
@@ -56,7 +55,6 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
     @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
     protected readonly ErrorContextKey = ErrorContextKey;
-    private activeBucket: string | undefined;
     fileToUpload: File | null = null;
     writableBuckets: Bucket[] = [];
     buckets: Bucket[] = [];
@@ -70,7 +68,6 @@ export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements
         private nifiCommon: NiFiCommon
     ) {
         super();
-        // this.activeBucket = this.data.activeBucket?.identifier;
         this.buckets = data.buckets;
         this.importNewFlowForm = this.formBuilder.group({
             name: new FormControl('', Validators.required),

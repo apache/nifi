@@ -186,10 +186,9 @@ export class ExplorerComponent implements OnInit {
     }
 
     openImportNewFlowVersionDialog(droplet: Droplet) {
-        const bucket = this.buckets.find((b) => b.identifier === droplet.bucketIdentifier);
         this.store.dispatch(
             openImportNewFlowVersionDialog({
-                request: { bucket: bucket!, droplet }
+                request: { droplet }
             })
         );
     }
