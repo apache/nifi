@@ -519,6 +519,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     }
                 }
 
+                statelessGroupNode.setDesiredState(ScheduledState.RUNNING);
                 if (getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
                     LOG.info("Triggered to start {} but it is already running", this);
                     return;
@@ -572,6 +573,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 LOG.info("Stopping {} from running", this);
 
+                statelessGroupNode.setDesiredState(ScheduledState.STOPPED);
                 final CompletableFuture<Void> future = scheduler.stopStatelessGroup(statelessGroupNode);
                 return future;
             } finally {
@@ -3642,15 +3644,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void disconnectVersionControl(final boolean removeVersionedComponentIds) {
+    public void disconnectVersionControl() {
         writeLock.lock();
         try {
             this.versionControlInfo.set(null);
-
-            if (removeVersionedComponentIds) {
-                // remove version component ids from each component (until another versioned PG is encountered)
-                applyVersionedComponentIds(this, id -> null);
-            }
         } finally {
             writeLock.unlock();
         }

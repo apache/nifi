@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.gcp.drive;
 
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,9 +46,7 @@ public class AbstractGoogleDriveTest {
     public static final String CONTENT = "1234567890";
     public static final String TEST_FILENAME = "testFile";
     public static final String TEST_FILE_ID = "fileId";
-    public static final String SUBFOLDER_NAME = "subFolderName";
     public static final String SHARED_FOLDER_ID = "sharedFolderId";
-    public static final String SUBFOLDER_ID = "subFolderId";
     public static final long TEST_SIZE = 42;
     public static final long CREATED_TIME = 1659707000;
     public static final long MODIFIED_TIME = 1659708000;
@@ -98,18 +95,12 @@ public class AbstractGoogleDriveTest {
     }
 
     protected File createFile() {
-        return createFile(TEST_FILE_ID, TEST_FILENAME, SUBFOLDER_ID, TEXT_TYPE);
-    }
-
-    protected File createFile(String id, String name, String parentId, String mimeType) {
-        File file = new File();
-        file.setId(id);
-        file.setName(name);
-        file.setParents(singletonList(parentId));
-        file.setCreatedTime(new DateTime(CREATED_TIME));
-        file.setModifiedTime(new DateTime(MODIFIED_TIME));
-        file.setSize(TEST_SIZE);
-        file.setMimeType(mimeType);
-        return file;
+        return new File()
+                .setId(TEST_FILE_ID)
+                .setName(TEST_FILENAME)
+                .setCreatedTime(new DateTime(CREATED_TIME))
+                .setModifiedTime(new DateTime(MODIFIED_TIME))
+                .setSize(TEST_SIZE)
+                .setMimeType(TEXT_TYPE);
     }
 }

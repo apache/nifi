@@ -43,6 +43,8 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
@@ -72,6 +74,8 @@ public class GoogleDriveFileInfo implements ListableEntity {
         recordFields.add(new RecordField(PARENT_FOLDER_NAME, RecordFieldType.STRING.getDataType(), true));
         recordFields.add(new RecordField(LISTED_FOLDER_ID, RecordFieldType.STRING.getDataType(), true));
         recordFields.add(new RecordField(LISTED_FOLDER_NAME, RecordFieldType.STRING.getDataType(), true));
+        recordFields.add(new RecordField(SHARED_DRIVE_ID, RecordFieldType.STRING.getDataType(), true));
+        recordFields.add(new RecordField(SHARED_DRIVE_NAME, RecordFieldType.STRING.getDataType(), true));
 
         SCHEMA = new SimpleRecordSchema(recordFields);
     }
@@ -94,6 +98,8 @@ public class GoogleDriveFileInfo implements ListableEntity {
     private final String parentFolderName;
     private final String listedFolderId;
     private final String listedFolderName;
+    private final String sharedDriveId;
+    private final String sharedDriveName;
 
     public String getId() {
         return id;
@@ -155,6 +161,14 @@ public class GoogleDriveFileInfo implements ListableEntity {
         return listedFolderName;
     }
 
+    public String getSharedDriveId() {
+        return sharedDriveId;
+    }
+
+    public String getSharedDriveName() {
+        return sharedDriveName;
+    }
+
     @Override
     public Record toRecord() {
         return new MapRecord(SCHEMA, toMap());
@@ -180,6 +194,8 @@ public class GoogleDriveFileInfo implements ListableEntity {
         values.put(PARENT_FOLDER_NAME, getParentFolderName());
         values.put(LISTED_FOLDER_ID, getListedFolderId());
         values.put(LISTED_FOLDER_NAME, getListedFolderName());
+        values.put(SHARED_DRIVE_ID, getSharedDriveId());
+        values.put(SHARED_DRIVE_NAME, getSharedDriveName());
 
         return values;
     }
@@ -214,6 +230,8 @@ public class GoogleDriveFileInfo implements ListableEntity {
         private String parentFolderName;
         private String listedFolderId;
         private String listedFolderName;
+        private String sharedDriveId;
+        private String sharedDriveName;
 
         public Builder id(String id) {
             this.id = id;
@@ -295,6 +313,16 @@ public class GoogleDriveFileInfo implements ListableEntity {
             return this;
         }
 
+        public Builder sharedDriveId(String sharedDriveId) {
+            this.sharedDriveId = sharedDriveId;
+            return this;
+        }
+
+        public Builder sharedDriveName(String sharedDriveName) {
+            this.sharedDriveName = sharedDriveName;
+            return this;
+        }
+
         public GoogleDriveFileInfo build() {
             return new GoogleDriveFileInfo(this);
         }
@@ -348,6 +376,8 @@ public class GoogleDriveFileInfo implements ListableEntity {
         this.parentFolderName = builder.parentFolderName;
         this.listedFolderId = builder.listedFolderId;
         this.listedFolderName = builder.listedFolderName;
+        this.sharedDriveId = builder.sharedDriveId;
+        this.sharedDriveName = builder.sharedDriveName;
     }
 
     @Override

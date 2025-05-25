@@ -110,17 +110,17 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.783</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.31.37</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.31.48</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
-        <io.fabric8.kubernetes.client.version>7.2.0</io.fabric8.kubernetes.client.version>
-        <kotlin.version>2.1.20</kotlin.version>
+        <io.fabric8.kubernetes.client.version>7.3.1</io.fabric8.kubernetes.client.version>
+        <kotlin.version>2.1.21</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
         <okio.version>3.11.0</okio.version>
         <org.apache.commons.cli.version>1.9.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.18.0</org.apache.commons.codec.version>
         <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
         <org.apache.commons.compress.version>1.27.1</org.apache.commons.compress.version>
-        <com.github.luben.zstd-jni.version>1.5.7-2</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-3</com.github.luben.zstd-jni.version>
         <org.apache.commons.configuration.version>2.12.0</org.apache.commons.configuration.version>
         <org.apache.commons.lang3.version>3.17.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.11.1</org.apache.commons.net.version>
@@ -134,7 +134,7 @@
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <jetty.version>12.0.20</jetty.version>
+        <jetty.version>12.0.21</jetty.version>
         <jackson.bom.version>2.18.4</jackson.bom.version>
         <avro.version>1.11.4</avro.version>
         <jaxb.runtime.version>4.0.5</jaxb.runtime.version>
@@ -151,14 +151,14 @@
         <jersey.bom.version>3.1.10</jersey.bom.version>
         <log4j2.version>2.24.3</log4j2.version>
         <logback.version>1.5.18</logback.version>
-        <mockito.version>5.17.0</mockito.version>
+        <mockito.version>5.18.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.4</snakeyaml.version>
         <netty.4.version>4.2.1.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.version>6.2.6</spring.version>
-        <spring.security.version>6.4.5</spring.security.version>
-        <swagger.annotations.version>2.2.30</swagger.annotations.version>
+        <spring.version>6.2.7</spring.version>
+        <spring.security.version>6.4.6</spring.security.version>
+        <swagger.annotations.version>2.2.32</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.2.0</caffeine.version>
@@ -166,6 +166,7 @@
         <commons.dbcp2.version>2.13.0</commons.dbcp2.version>
         <prometheus.version>0.16.0</prometheus.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
+        <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -784,7 +785,7 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.30</version>
+                    <version>2.2.32</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>

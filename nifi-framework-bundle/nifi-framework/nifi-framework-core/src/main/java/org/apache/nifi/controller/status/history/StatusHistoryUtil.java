@@ -23,16 +23,16 @@ import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class StatusHistoryUtil {
 
@@ -79,7 +79,7 @@ public class StatusHistoryUtil {
 
     public static List<StatusDescriptorDTO> createFieldDescriptorDtos(final Collection<MetricDescriptor<?>> metricDescriptors) {
         final StatusDescriptorDTO[] standardMetricDescriptors = new StatusDescriptorDTO[metricDescriptors.size()];
-        final List<StatusDescriptorDTO> counterMetricDescriptors = new LinkedList<>();
+        final List<StatusDescriptorDTO> counterMetricDescriptors = new ArrayList<>();
 
         for (final MetricDescriptor<?> metricDescriptor : metricDescriptors) {
             if (metricDescriptor instanceof StandardMetricDescriptor) {
@@ -91,9 +91,10 @@ public class StatusHistoryUtil {
             }
         }
 
-        // Ordered standard metric descriptors are added first than counter metric descriptors in the order of appearance.
+        // Ordered standard metric descriptors are added first, then counter metric descriptors in lexicographical order of their label.
+        counterMetricDescriptors.sort(Comparator.comparing(StatusDescriptorDTO::getLabel));
         final List<StatusDescriptorDTO> result = new ArrayList<>(metricDescriptors.size());
-        result.addAll(Arrays.asList(standardMetricDescriptors).stream().filter(i -> i != null).collect(Collectors.toList()));
+        result.addAll(Arrays.stream(standardMetricDescriptors).filter(Objects::nonNull).toList());
         result.addAll(counterMetricDescriptors);
         return result;
     }

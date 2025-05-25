@@ -599,93 +599,100 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
      * as it reached ENABLED state.
      */
     @Override
-    public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis) {
+    public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (this.stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
-            synchronized (active) {
-                this.active.set(true);
-            }
+        if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
+            future.complete(null);
+            return future;
+        }
 
-            final ControllerServiceProvider controllerServiceProvider = this.serviceProvider;
-            final StandardControllerServiceNode service = this;
-            AtomicLong enablingAttemptCount = new AtomicLong(0);
-            scheduler.execute(new Runnable() {
-                @Override
-                public void run() {
-                    final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null);
+        synchronized (active) {
+            this.active.set(true);
+        }
 
-                    if (!isActive()) {
-                        LOG.warn("Enabling {} stopped: no active status", StandardControllerServiceNode.this);
-                        stateTransition.disable();
-                        future.complete(null);
-                        return;
-                    }
+        final ControllerServiceProvider controllerServiceProvider = this.serviceProvider;
+        final StandardControllerServiceNode service = this;
+        AtomicLong enablingAttemptCount = new AtomicLong(0);
+        scheduler.execute(new Runnable() {
+            @Override
+            public void run() {
+                final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null);
 
-                    final ValidationStatus validationStatus = getValidationStatus();
-                    if (validationStatus != ValidationStatus.VALID) {
-                        final ValidationState validationState = getValidationState();
-                        LOG.debug("Enabling {} failed: Validation Status [{}] Errors {} Attempt [{}] Retrying...",
-                            StandardControllerServiceNode.this, validationStatus, validationState.getValidationErrors(), enablingAttemptCount.get());
+                if (!isActive()) {
+                    LOG.warn("Enabling {} stopped: no active status", StandardControllerServiceNode.this);
+                    stateTransition.disable();
+                    future.complete(null);
+                    return;
+                }
 
-                        enablingAttemptCount.incrementAndGet();
-                        if (enablingAttemptCount.get() == 120 || enablingAttemptCount.get() % 3600 == 0) {
-                            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
-                                    new StandardLoggingContext(StandardControllerServiceNode.this));
-                            componentLog.error("Enabling {} failed: Validation Status [{}] Errors {}",
-                                    service, validationStatus, validationState.getValidationErrors());
-                        }
+                final ValidationStatus validationStatus = getValidationStatus();
+                if (validationStatus != ValidationStatus.VALID) {
+                    final ValidationState validationState = getValidationState();
+                    LOG.debug("Enabling {} failed: Validation Status [{}] Errors {} Attempt [{}] Retrying...",
+                        StandardControllerServiceNode.this, validationStatus, validationState.getValidationErrors(), enablingAttemptCount.get());
 
-                        try {
-                            scheduler.schedule(this, 1, TimeUnit.SECONDS);
-                        } catch (RejectedExecutionException rejectedExecutionException) {
-                            LOG.error("Enabling {} failed: Validation Status [{}] Errors {}", StandardControllerServiceNode.this, validationStatus, validationState.getValidationErrors(),
-                                    rejectedExecutionException);
-                        }
-                        future.complete(null);
-                        return;
+                    enablingAttemptCount.incrementAndGet();
+                    if (enablingAttemptCount.get() == 120 || enablingAttemptCount.get() % 3600 == 0) {
+                        final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
+                                new StandardLoggingContext(StandardControllerServiceNode.this));
+                        componentLog.error("Enabling {} failed: Validation Status [{}] Errors {}",
+                                service, validationStatus, validationState.getValidationErrors());
                     }
 
                     try {
-                        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
-                        }
+                        scheduler.schedule(this, 1, TimeUnit.SECONDS);
+                    } catch (final RejectedExecutionException rejectedExecutionException) {
+                        LOG.error("Enabling {} failed: Validation Status [{}] Errors {}", StandardControllerServiceNode.this, validationStatus, validationState.getValidationErrors(),
+                                rejectedExecutionException);
+                    }
 
-                        boolean shouldEnable;
-                        synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable(getReferences()); // Transitioning the state to ENABLED will complete our future.
-                        }
+                    if (completeExceptionallyOnFailure) {
+                        future.completeExceptionally(new IllegalStateException("Cannot enable " + this + " because it is not valid"));
+                    }
 
-                        if (!shouldEnable) {
-                            LOG.info("Disabling {} after enabled due to disable action initiated", service);
-                            // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
-                            // set to DISABLING (see disable() operation)
-                            invokeDisable(configContext);
-                            stateTransition.disable();
-                            future.complete(null);
-                        } else {
-                            LOG.info("Enabled {}", service);
-                        }
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
+                    return;
+                }
 
-                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
-                                new StandardLoggingContext(StandardControllerServiceNode.this));
-                        componentLog.error("Failed to invoke @OnEnabled method", cause);
+                try {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
+                    }
+
+                    boolean shouldEnable;
+                    synchronized (active) {
+                        shouldEnable = active.get() && stateTransition.enable(getReferences()); // Transitioning the state to ENABLED will complete our future.
+                    }
+
+                    if (!shouldEnable) {
+                        LOG.info("Disabling {} after enabled due to disable action initiated", service);
+                        // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
+                        // set to DISABLING (see disable() operation)
                         invokeDisable(configContext);
+                        stateTransition.disable();
+                        future.complete(null);
+                    } else {
+                        LOG.info("Enabled {}", service);
+                    }
+                } catch (final Exception e) {
+                    if (completeExceptionallyOnFailure) {
+                        future.completeExceptionally(e);
+                    }
 
-                        if (isActive()) {
-                            scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
-                        } else {
-                            stateTransition.disable();
-                        }
+                    final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                    final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
+                            new StandardLoggingContext(StandardControllerServiceNode.this));
+                    componentLog.error("Failed to invoke @OnEnabled method", cause);
+                    invokeDisable(configContext);
+
+                    if (isActive()) {
+                        scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
+                    } else {
+                        stateTransition.disable();
                     }
                 }
-            });
-        } else {
-            future.complete(null);
-        }
+            }
+        });
 
         return future;
     }
@@ -699,14 +706,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
      * If such transition doesn't succeed (the service is still in ENABLING state)
      * then the service will still be transitioned to DISABLING state to ensure that
      * no other transition could happen on this service. However in such event
-     * (e.g., its @OnEnabled finally succeeded), the {@link #enable(ScheduledExecutorService, long)}
-     * operation will initiate service disabling javadoc for (see {@link #enable(ScheduledExecutorService, long)}
+     * (e.g., its @OnEnabled finally succeeded), the {@link #enable(ScheduledExecutorService, long, boolean)}
+     * operation will initiate service disabling javadoc for (see {@link #enable(ScheduledExecutorService, long, boolean)}
      * <br>
      * Upon successful invocation of @OnDisabled this service will be transitioned to
      * DISABLED state.
      */
     @Override
-    public CompletableFuture<Void> disable(ScheduledExecutorService scheduler) {
+    public CompletableFuture<Void> disable(final ScheduledExecutorService scheduler) {
         /*
          * The reason for synchronization is to ensure consistency of the
          * service state when another thread is in the middle of enabling this

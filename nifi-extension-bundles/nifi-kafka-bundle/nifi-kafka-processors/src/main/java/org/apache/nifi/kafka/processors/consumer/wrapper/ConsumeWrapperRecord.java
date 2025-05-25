@@ -28,7 +28,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
 
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,11 +48,14 @@ public class ConsumeWrapperRecord {
         final Tuple<RecordField, Object> tupleValue = toWrapperRecordValue(record);
         final Tuple<RecordField, Object> tupleHeaders = toWrapperRecordHeaders(consumerRecord);
         final Tuple<RecordField, Object> tupleMetadata = toWrapperRecordMetadata(consumerRecord);
-        final RecordSchema rootRecordSchema = new SimpleRecordSchema(Arrays.asList(
-                tupleKey.getKey(), tupleValue.getKey(), tupleHeaders.getKey(), tupleMetadata.getKey()));
+        final RecordSchema rootRecordSchema = tupleKey.getKey() == null
+                ? new SimpleRecordSchema(List.of(tupleValue.getKey(), tupleHeaders.getKey(), tupleMetadata.getKey()))
+                : new SimpleRecordSchema(List.of(tupleKey.getKey(), tupleValue.getKey(), tupleHeaders.getKey(), tupleMetadata.getKey()));
 
         final Map<String, Object> recordValues = new HashMap<>();
-        recordValues.put(tupleKey.getKey().getFieldName(), tupleKey.getValue());
+        if (tupleKey.getKey() != null) {
+            recordValues.put(tupleKey.getKey().getFieldName(), tupleKey.getValue());
+        }
         recordValues.put(tupleValue.getKey().getFieldName(), tupleValue.getValue());
         recordValues.put(tupleHeaders.getKey().getFieldName(), tupleHeaders.getValue());
         recordValues.put(tupleMetadata.getKey().getFieldName(), tupleMetadata.getValue());
@@ -79,7 +81,7 @@ public class ConsumeWrapperRecord {
     private static final RecordField FIELD_PARTITION = new RecordField(WrapperRecord.PARTITION, RecordFieldType.INT.getDataType());
     private static final RecordField FIELD_OFFSET = new RecordField(WrapperRecord.OFFSET, RecordFieldType.LONG.getDataType());
     private static final RecordField FIELD_TIMESTAMP = new RecordField(WrapperRecord.TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType());
-    private static final RecordSchema SCHEMA_WRAPPER = new SimpleRecordSchema(Arrays.asList(
+    private static final RecordSchema SCHEMA_WRAPPER = new SimpleRecordSchema(List.of(
             FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP));
 
     private Tuple<RecordField, Object> toWrapperRecordMetadata(final ByteRecord consumerRecord) {

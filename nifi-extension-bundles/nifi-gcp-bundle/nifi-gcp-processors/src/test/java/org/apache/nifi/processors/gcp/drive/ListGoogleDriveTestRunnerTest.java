@@ -30,6 +30,8 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.OWNER;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PARENT_FOLDER_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.PATH;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SHARED_DRIVE_NAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_AVAILABLE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
@@ -74,6 +76,9 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     private final String folderId = "folderId";
     private final String folderName = "folderName";
 
+    private final String driveId = "drive_id";
+    private final String driveName = "drive_name";
+
     @BeforeEach
     void setUp() throws Exception {
         mockDriverService = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
@@ -85,7 +90,15 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                 .execute()
         ).thenReturn(new File()
                 .setName(folderName)
+                .setDriveId(driveId)
         );
+
+        when(mockDriverService.drives()
+                .get(driveId)
+                .setFields("name")
+                .execute()
+                .getName()
+        ).thenReturn(driveName);
 
         testSubject = new ListGoogleDrive() {
             @Override
@@ -197,7 +210,9 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                         "\"drive.parent.folder.id\":\"" + folderId + "\"," +
                         "\"drive.parent.folder.name\":\"" + folderName + "\"," +
                         "\"drive.listed.folder.id\":\"" + folderId + "\"," +
-                        "\"drive.listed.folder.name\":\"" + folderName + "\"" +
+                        "\"drive.listed.folder.name\":\"" + folderName + "\"," +
+                        "\"drive.shared.drive.id\":\"" + driveId + "\"," +
+                        "\"drive.shared.drive.name\":\"" + driveName + "\"" +
                         "}" +
                         "]");
 
@@ -262,6 +277,8 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         inputFlowFileAttributes.put(GoogleDriveAttributes.PARENT_FOLDER_NAME, folderName);
         inputFlowFileAttributes.put(GoogleDriveAttributes.LISTED_FOLDER_ID, folderId);
         inputFlowFileAttributes.put(GoogleDriveAttributes.LISTED_FOLDER_NAME, folderName);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_ID, driveId);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_NAME, driveName);
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
 
@@ -307,6 +324,6 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     @Override
     public Set<String> getCheckedAttributeNames() {
         return Set.of(ID, FILENAME, SIZE, SIZE_AVAILABLE, TIMESTAMP, CREATED_TIME, MODIFIED_TIME, MIME_TYPE, PATH, OWNER, LAST_MODIFYING_USER, WEB_VIEW_LINK, WEB_CONTENT_LINK,
-                PARENT_FOLDER_ID, PARENT_FOLDER_NAME, LISTED_FOLDER_ID, LISTED_FOLDER_NAME);
+                PARENT_FOLDER_ID, PARENT_FOLDER_NAME, LISTED_FOLDER_ID, LISTED_FOLDER_NAME, SHARED_DRIVE_ID, SHARED_DRIVE_NAME);
     }
 }

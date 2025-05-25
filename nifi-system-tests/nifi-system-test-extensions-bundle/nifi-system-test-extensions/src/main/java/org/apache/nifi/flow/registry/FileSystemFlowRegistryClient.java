@@ -238,6 +238,9 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
             populateBucket(snapshot, bucketId);
             populateFlow(snapshot, bucketId, flowId, versionFiles == null ? 0 : versionFiles.length);
 
+            final String latestVersion = getLatestVersion(context, flowVersionLocation).orElse(null);
+            snapshot.setLatest(version.equals(latestVersion));
+
             return snapshot;
         }
     }

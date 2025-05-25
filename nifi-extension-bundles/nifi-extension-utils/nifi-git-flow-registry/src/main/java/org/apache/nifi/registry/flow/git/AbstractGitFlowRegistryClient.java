@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.git;
 
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -93,6 +94,14 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
+    public static final PropertyDescriptor PARAMETER_CONTEXT_VALUES = new PropertyDescriptor.Builder()
+            .name("Parameter Context Values")
+            .description("Specifies what to do with parameter values when storing the versioned flow.")
+            .allowableValues(ParameterContextValuesStrategy.class)
+            .defaultValue(ParameterContextValuesStrategy.RETAIN)
+            .required(true)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -121,6 +130,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(REPOSITORY_BRANCH);
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
+        combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();
@@ -345,7 +355,14 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setBranch(null);
         flowSnapshot.getSnapshotMetadata().setVersion(null);
         flowSnapshot.getSnapshotMetadata().setComments(null);
-        flowSnapshot.getSnapshotMetadata().setTimestamp(0);
+
+        // remove all parameter values if configured to do so
+        final ParameterContextValuesStrategy parameterContextValuesStrategy = context.getProperty(PARAMETER_CONTEXT_VALUES).asAllowableValue(ParameterContextValuesStrategy.class);
+        if (ParameterContextValuesStrategy.REMOVE.equals(parameterContextValuesStrategy)) {
+            flowSnapshot.getParameterContexts().forEach((name, parameterContext) ->
+                parameterContext.getParameters().forEach(parameter -> parameter.setValue(null))
+            );
+        }
 
         // replace the id of the top level group and all of its references with a constant value prior to serializing to avoid
         // unnecessary diffs when different instances of the same flow are imported and have different top-level PG ids
@@ -655,5 +672,33 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     // protected to allow for overriding from tests
     protected FlowSnapshotSerializer createFlowSnapshotSerializer() {
         return new JacksonFlowSnapshotSerializer();
+    }
+
+    enum ParameterContextValuesStrategy implements DescribedValue {
+        RETAIN("Retain", "Retain Values in Parameter Contexts without modifications"),
+        REMOVE("Remove", "Remove Values from Parameter Context");
+
+        private final String displayName;
+        private final String description;
+
+        ParameterContextValuesStrategy(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
     }
 }

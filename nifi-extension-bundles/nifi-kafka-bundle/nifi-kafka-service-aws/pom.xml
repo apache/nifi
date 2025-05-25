@@ -35,7 +35,7 @@
         <!-- Kafka Service implementation required for extending the Controller Service class -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-3-service</artifactId>
+            <artifactId>nifi-kafka-service-shared</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Controller Service API modules required for extending Kafka3ConnectionService -->
@@ -50,7 +50,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>${kafka4.version}</version>
+            <version>${kafka-clients.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.msk</groupId>
