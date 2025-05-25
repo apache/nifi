@@ -19,7 +19,6 @@
 package org.apache.nifi.processors.basex;
 
 
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -89,7 +88,6 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             .build();
 
 
-
     public static final String MAP_ALL = "Map all";
     public static final String MAP_LIST = "Map list";
     public static final String DO_NOT_MAP = "Do not map";
@@ -121,6 +119,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             REL_FAILURE,
             REL_ORIGINAL
     );
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -172,7 +171,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             query = processQuery(attrMappingStrategy, context.getProperty(XQUERY_SCRIPT).getValue(), flowFile);
             queryProcessor = new QueryProcessor(query, basexContext);
             processAttributes(queryProcessor, flowFile, logger, session);
-        }else{
+        } else {
             query = context.getProperty(XQUERY_SCRIPT).getValue();
             queryProcessor = new QueryProcessor(query, basexContext);
         }
@@ -228,6 +227,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             }
         });
     }
+
     private void processAttributes(QueryProcessor queryProcessor,
                                    FlowFile flowFile,
                                    ComponentLog logger, ProcessSession session) {
@@ -243,7 +243,8 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             }
         });
     }
-    private String processQuery(String attributeMappingStrategy, String query, List<String> mappedAttributes, FlowFile flowFile, ComponentLog logger){
+
+    private String processQuery(String attributeMappingStrategy, String query, List<String> mappedAttributes, FlowFile flowFile, ComponentLog logger) {
         StringBuilder sb = new StringBuilder();
         if (attributeMappingStrategy.equals(MAP_LIST)) {
             flowFile.getAttributes().forEach((key, value) -> {
@@ -256,6 +257,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
         }
         return sb.toString() + query;
     }
+
     private String processQuery(String attributeMappingStrategy, String query, List<String> mappedAttributes, FlowFile flowFile) {
         StringBuilder sb = new StringBuilder();
         flowFile.getAttributes().forEach((key, value) -> {
@@ -266,7 +268,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
         return sb.toString() + query;
     }
 
-    private String processQuery(String attributeMappingStrategy, String query, FlowFile flowFile){
+    private String processQuery(String attributeMappingStrategy, String query, FlowFile flowFile) {
         StringBuilder sb = new StringBuilder();
         flowFile.getAttributes().forEach((key, value) -> {
             sb.append(String.format("declare variable $%s external; ", key));
@@ -274,7 +276,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
         return sb.toString() + query;
     }
 
-    private void route(FlowFile flowFileCloneOriginal, FlowFile flowFile, ProcessSession session){
+    private void route(FlowFile flowFileCloneOriginal, FlowFile flowFile, ProcessSession session) {
         if (flowFileCloneOriginal != null) {
             session.transfer(flowFileCloneOriginal, REL_ORIGINAL);
         }

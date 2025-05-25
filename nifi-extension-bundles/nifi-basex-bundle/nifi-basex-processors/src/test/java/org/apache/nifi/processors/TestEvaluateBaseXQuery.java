@@ -144,7 +144,7 @@ public class TestEvaluateBaseXQuery {
         testRunner.setProperty(EvaluateBaseXQuery.MAPPING_LIST, "targetId");
         Map<String, String> attributes = new HashMap<>();
         attributes.put("targetId", "1");
-        testRunner.enqueue(Paths.get("src/test/resources/xml/products.xml"),attributes);
+        testRunner.enqueue(Paths.get("src/test/resources/xml/products.xml"), attributes);
 
         testRunner.run();
         MockFlowFile successOut = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
@@ -182,7 +182,7 @@ public class TestEvaluateBaseXQuery {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("targetId", "1");
         attributes.put("targetName", "Keyboard");
-        testRunner.enqueue(Paths.get("src/test/resources/xml/products.xml"),attributes);
+        testRunner.enqueue(Paths.get("src/test/resources/xml/products.xml"), attributes);
         testRunner.run();
         MockFlowFile successOut = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
         successOut.assertContentEquals("<product><id>1</id><name>Keyboard</name></product>");
