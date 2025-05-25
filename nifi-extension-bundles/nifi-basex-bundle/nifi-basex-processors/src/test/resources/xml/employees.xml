@@ -1,0 +1,26 @@
+<company>
+    <employee>
+        <id>100</id>
+        <name>Employee A</name>
+        <department>Department 1</department>
+        <hoursWorked>160</hoursWorked>
+    </employee>
+    <employee>
+        <id>101</id>
+        <name>Employee B</name>
+        <department>Department 2</department>
+        <hoursWorked>120</hoursWorked>
+    </employee>
+    <employee>
+        <id>102</id>
+        <name>Employee C</name>
+        <department>Department 1</department>
+        <hoursWorked>180</hoursWorked>
+    </employee>
+    <employee>
+        <id>103</id>
+        <name>Employee D</name>
+        <department>Department 3</department>
+        <hoursWorked>100</hoursWorked>
+    </employee>
+</company>

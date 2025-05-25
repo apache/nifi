@@ -54,7 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
+import java.util.regex.Pattern;
 
 @SideEffectFree
 @Tags({"XML", "evaluate", "XPath", "XQuery", "basex"})
@@ -64,21 +64,22 @@ import java.util.concurrent.atomic.AtomicReference;
                 + "An XQuery script must be provided for the processor to run. Users can choose how FlowFile attributes are mapped "
                 + "to external variables: map all attributes, map only a specific list, or ignore attributes altogether. "
                 + "The output of the query can be written to a specified FlowFile attribute (similarly to the InvokeHTTP processor) "
-                + "or used to replace the content of the flowFileCloneOriginal FlowFile. The processor defines the following relationships: "
+                + "or used to replace the content of the original FlowFile. The processor defines the following relationships: "
                 + "'success' (on successful execution), 'failure' (if the script fails), and 'flowFileCloneOriginal' (preserves the unmodified FlowFile)."
 )
 @SystemResourceConsideration(
         resource = SystemResource.MEMORY,
-        description = "Entire FlowFile content is fully loaded into memory, potentially multiple times during processing and serialization. This can lead to very high memory usage, especially with large XML documents. Users should avoid large FlowFiles or ensure ample heap memory is available."
+        description = "Entire FlowFile content is fully loaded into memory, potentially multiple times during processing and serialization." +
+                " This can lead to very high memory usage, especially with large XML documents. Users should avoid large FlowFiles or ensure ample " +
+                "heap memory is available."
 )
 public class EvaluateBaseXQuery extends AbstractProcessor {
-
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Content extraction failed").build();
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("flowFileCloneOriginal")
-            .description("Success for flowFileCloneOriginal input FlowFiles").build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
+            .description("Success for original input FlowFiles").build();
 
     public static final PropertyDescriptor XQUERY_SCRIPT = new PropertyDescriptor.Builder()
             .name("XQuery Script")
@@ -110,7 +111,7 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
 
     public static final PropertyDescriptor OUTPUT_BODY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("Response Body Attribute Name")
-            .description("FlowFile attribute name used to write an xquery output body for FlowFiles transferred to the flowFileCloneOriginal relationship.")
+            .description("FlowFile attribute name used to write an xquery output body for FlowFiles transferred to the original relationship.")
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -141,79 +142,85 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
         Context basexContext = new Context();
         FlowFile flowFile = session.get();
         final ComponentLog logger = getLogger();
-
-            if (!isScheduled()) {
-                session.rollback();
-                return;
-            }
-            final AtomicReference<String> input = new AtomicReference<>(null);
-            try {
-                session.read(flowFile, rawIn -> {
-                    final InputStream in = new BufferedInputStream(rawIn);
-                    input.set(new String(in.readAllBytes(), StandardCharsets.UTF_8));
-                });
-            } catch (final Exception e) {
-                logger.error("Input reading failed {}", flowFile, e);
-                session.transfer(flowFile, REL_FAILURE);
-
-            }
-            String query = context.getProperty(XQUERY_SCRIPT).getValue();
-            final String attrMappingStrategy = String.valueOf(context.getProperty(ATTR_MAPPING_STRATEGY));
-
-            QueryProcessor queryProcessor = new QueryProcessor(query, basexContext);
-            if (attrMappingStrategy.equals(MAP_LIST)) {
-                String mappingList = context.getProperty(MAPPING_LIST).getValue();
-                List<String> mappedAttributes = List.of(mappingList.split(","));
-                processAttributes(queryProcessor, flowFile, mappedAttributes, logger, session);
-            } else if (attrMappingStrategy.equals(MAP_ALL)) {
-                processAttributes(queryProcessor, flowFile, logger, session);
-            }
-
-            Value result = null;
-            try {
-                Item node = new DBNode(new IOContent(input.get()));
-                queryProcessor.context(node);
-                result = queryProcessor.value();
-            } catch (Exception e) {
-                logger.error("Query failed: ", flowFile, e);
-                session.transfer(flowFile, REL_FAILURE);
-            }
-
-            Value finalResult = result;
-            String finalResultSerialized = null;
-            try {
-                 finalResultSerialized = finalResult.serialize().toString();
-            } catch (Exception e) {
-                logger.error("Failed during serializing output: ", flowFile, e);
-                session.transfer(flowFile, REL_FAILURE);
-
-            }
-            FlowFile flowFileCloneOriginal = session.clone(flowFile);
-            if (context.getProperty(OUTPUT_BODY_ATTRIBUTE_NAME).isSet()) {
-                String attributeKey = context.getProperty(OUTPUT_BODY_ATTRIBUTE_NAME).getValue();
-                flowFileCloneOriginal = session.putAttribute(flowFileCloneOriginal, attributeKey, finalResultSerialized);
-            }
-
-            String finalResultSerializedClone = finalResultSerialized;
-
-            flowFile = session.write(flowFile, out -> {
-                    out.write(finalResultSerializedClone.getBytes(StandardCharsets.UTF_8));
-
+        if (!isScheduled()) {
+            session.rollback();
+            return;
+        }
+        final AtomicReference<String> input = new AtomicReference<>(null);
+        try {
+            session.read(flowFile, rawIn -> {
+                final InputStream in = new BufferedInputStream(rawIn);
+                String output = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                input.set(output);
             });
+        } catch (final Exception e) {
+            logger.error("Input reading failed {}", flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
 
-            route(flowFileCloneOriginal, flowFile, session);
+        }
+        final String attrMappingStrategy = String.valueOf(context.getProperty(ATTR_MAPPING_STRATEGY));
+        String query = null;
+        QueryProcessor queryProcessor = null;
+        if (attrMappingStrategy.equals(MAP_LIST)) {
+            String mappingList = context.getProperty(MAPPING_LIST).getValue();
+            List<String> mappedAttributes = List.of(mappingList.split(","));
+            query = processQuery(attrMappingStrategy, context.getProperty(XQUERY_SCRIPT).getValue(), mappedAttributes, flowFile);
+            queryProcessor = new QueryProcessor(query, basexContext);
+            processAttributes(queryProcessor, flowFile, mappedAttributes, logger, session);
+        } else if (attrMappingStrategy.equals(MAP_ALL)) {
+            query = processQuery(attrMappingStrategy, context.getProperty(XQUERY_SCRIPT).getValue(), flowFile);
+            queryProcessor = new QueryProcessor(query, basexContext);
+            processAttributes(queryProcessor, flowFile, logger, session);
+        }else{
+            query = context.getProperty(XQUERY_SCRIPT).getValue();
+            queryProcessor = new QueryProcessor(query, basexContext);
+        }
 
+        Value result = null;
+        try {
+            Item node = new DBNode(new IOContent(input.get()));
+            queryProcessor.context(node);
+            result = queryProcessor.value();
+        } catch (Exception e) {
+            logger.error("Query failed: ", flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+        Value finalResult = result;
+        String finalResultSerialized = null;
+        try {
+            finalResultSerialized = finalResult.serialize().toString();
+        } catch (Exception e) {
+            logger.error("Failed during serializing output: ", flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+
+        }
+        FlowFile flowFileCloneOriginal = session.clone(flowFile);
+        if (context.getProperty(OUTPUT_BODY_ATTRIBUTE_NAME).isSet()) {
+            String attributeKey = context.getProperty(OUTPUT_BODY_ATTRIBUTE_NAME).getValue();
+            flowFileCloneOriginal = session.putAttribute(flowFileCloneOriginal, attributeKey, finalResultSerialized);
+        }
+        String finalResultSerializedClone = finalResultSerialized;
+        flowFile = session.write(flowFile, out -> {
+            out.write(finalResultSerializedClone.getBytes(StandardCharsets.UTF_8));
+
+        });
+        route(flowFileCloneOriginal, flowFile, session);
     }
 
 
     private void processAttributes(QueryProcessor queryProcessor,
-                                                  FlowFile flowFile,
-                                                  List<String> mappedAttributes,
-                                                  ComponentLog logger, ProcessSession session) {
+                                   FlowFile flowFile,
+                                   List<String> mappedAttributes,
+                                   ComponentLog logger, ProcessSession session) {
+        StringBuilder sb = new StringBuilder();
         flowFile.getAttributes().forEach((key, value) -> {
             try {
                 if (mappedAttributes.contains(key)) {
-                    queryProcessor.variable(key, value);
+                    sb.append(String.format("declare variable $%s external; ", key));
+                    queryProcessor.variable(key, value, null);
                 }
             } catch (Exception e) {
                 logger.error("Query failed while processing attribute: {}", flowFile, e);
@@ -222,11 +229,13 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
         });
     }
     private void processAttributes(QueryProcessor queryProcessor,
-                                                     FlowFile flowFile,
-                                                     ComponentLog logger, ProcessSession session) {
+                                   FlowFile flowFile,
+                                   ComponentLog logger, ProcessSession session) {
+        StringBuilder sb = new StringBuilder();
         flowFile.getAttributes().forEach((key, value) -> {
             try {
-                queryProcessor.variable(key, value);
+                sb.append(String.format("declare variable $%s external; ", key));
+                queryProcessor.variable(key, value, null);
 
             } catch (Exception e) {
                 logger.error("Query failed while processing attribute: {}", flowFile, e);
@@ -234,6 +243,37 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
             }
         });
     }
+    private String processQuery(String attributeMappingStrategy, String query, List<String> mappedAttributes, FlowFile flowFile, ComponentLog logger){
+        StringBuilder sb = new StringBuilder();
+        if (attributeMappingStrategy.equals(MAP_LIST)) {
+            flowFile.getAttributes().forEach((key, value) -> {
+                if (mappedAttributes.contains(key)) {
+                    sb.append(String.format("declare variable $%s external; ", key));
+                } else if (attributeMappingStrategy.equals(MAP_ALL)) {
+                    sb.append(String.format("declare variable $%s external; ", key));
+                }
+            });
+        }
+        return sb.toString() + query;
+    }
+    private String processQuery(String attributeMappingStrategy, String query, List<String> mappedAttributes, FlowFile flowFile) {
+        StringBuilder sb = new StringBuilder();
+        flowFile.getAttributes().forEach((key, value) -> {
+            if (mappedAttributes.contains(key)) {
+                sb.append(String.format("declare variable $%s external; ", key));
+            }
+        });
+        return sb.toString() + query;
+    }
+
+    private String processQuery(String attributeMappingStrategy, String query, FlowFile flowFile){
+        StringBuilder sb = new StringBuilder();
+        flowFile.getAttributes().forEach((key, value) -> {
+            sb.append(String.format("declare variable $%s external; ", key));
+        });
+        return sb.toString() + query;
+    }
+
     private void route(FlowFile flowFileCloneOriginal, FlowFile flowFile, ProcessSession session){
         if (flowFileCloneOriginal != null) {
             session.transfer(flowFileCloneOriginal, REL_ORIGINAL);
@@ -245,22 +285,44 @@ public class EvaluateBaseXQuery extends AbstractProcessor {
 
     private static class BaseXqueryValidator implements Validator {
 
+        private static final Pattern UNDEFINED_VARIABLE_PATTERN = Pattern.compile("\\bvariable\\b", Pattern.CASE_INSENSITIVE);
+
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
+            String errorExplanation = null;
+
             try {
                 Context context = new Context();
-                final QueryProcessor proc = new QueryProcessor(input, context);
-                String error = null;
+                QueryProcessor proc = new QueryProcessor(input, context);
+
                 try {
                     proc.compile();
                 } catch (final Exception e) {
-                    error = e.toString().contains("variable") ? null : e.toString();
+                    if (!isUndefinedVariableError(e)) {
+                        errorExplanation = e.getMessage();
+                    }
                 }
-                return new ValidationResult.Builder().input(input).subject(subject).valid(error == null).explanation(error).build();
+
             } catch (final Exception e) {
-                return new ValidationResult.Builder().input(input).subject(subject).valid(false)
-                        .explanation("Unable to initialize XQuery engine due to " + e).build();
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation("Failed to initialize or validate XQuery: " + e.getMessage())
+                        .build();
             }
+
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(errorExplanation == null)
+                    .explanation(errorExplanation)
+                    .build();
+        }
+
+        private boolean isUndefinedVariableError(Exception e) {
+            String message = e.getMessage();
+            return message != null && UNDEFINED_VARIABLE_PATTERN.matcher(message).find();
         }
     }
 

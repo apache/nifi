@@ -1,0 +1,26 @@
+<warehouse>
+    <section id="A">
+        <product>
+            <id>001</id>
+            <name>Product 1</name>
+            <quantity>10</quantity>
+        </product>
+        <product>
+            <id>002</id>
+            <name>Product 2</name>
+            <quantity>25</quantity>
+        </product>
+    </section>
+    <section id="B">
+        <product>
+            <id>003</id>
+            <name>Product 3</name>
+            <quantity>5</quantity>
+        </product>
+        <product>
+            <id>004</id>
+            <name>Product 4</name>
+            <quantity>12</quantity>
+        </product>
+    </section>
+</warehouse>
