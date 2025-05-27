@@ -397,7 +397,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 consumerService.rollback();
                 close(consumerService);
                 context.yield();
-                break;
+                // If there are any FlowFiles already created and transferred, roll them back because we're rolling back offsets and
+                // because we will consume the data again, we don't want to transfer out the FlowFiles.
+                session.rollback();
+                return;
             }
         }
 
@@ -408,7 +411,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         session.commitAsync(
-            () -> commit(consumerService, offsetTracker, pollingContext),
+            () -> commitOffsets(consumerService, offsetTracker, pollingContext),
             throwable -> {
                 getLogger().error("Failed to commit session; will roll back any uncommitted records", throwable);
                 rollback(consumerService);
@@ -416,7 +419,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             });
     }
 
-    private void commit(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext) {
+    private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext) {
         if (!commitOffsets) {
             return;
         }
@@ -445,6 +448,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private void close(final KafkaConsumerService consumerService) {
+        if (consumerService.isClosed()) {
+            getLogger().debug("Asked to close Kafka Consumer Service but consumer already closed");
+            return;
+        }
+
         try {
             consumerService.close();
             activeConsumerCount.decrementAndGet();
