@@ -63,13 +63,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
      * Initializes the repository but does not actually store events.
-     *
-     * @param eventReporter used to report initialization messages
-     * @param authorizer unused in this implementation
-     * @param factory the resource factory to use for generating Provenance Resource objects for authorization purposes, unused in this implementation
-     * @param identifierLookup a mechanism for looking up identifiers in the flow, unused in this implementation
      */
     @Override
     public void initialize(EventReporter eventReporter, Authorizer authorizer,
@@ -95,9 +89,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
     /**
      * Returns null since no events are stored.
-     *
-     * @param id event ID
-     * @return null
      */
     @Override
     public ProvenanceEventRecord getEvent(long id) {
@@ -106,10 +97,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
     /**
      * Returns null since no events are stored.
-     *
-     * @param id to lookup
-     * @param user The NiFi user that the event should be authorized against.
-     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      * @return null
      */
     @Override
@@ -126,12 +113,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param firstRecordId id of the first record to retrieve
-     * @param maxRecords    maximum number of records to retrieve
-     * @param user          The NiFi user that the events should be authorized against.
-     *                      It can be {@code null} if called by NiFi components internally
-     *                      where authorization is not required.
      * @return an empty list since no events are stored
      */
     @Override
@@ -170,11 +151,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param query to submit
-     * @param user The NiFi User to authorize the events against.
-     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
-     *
      * @return a stub query submission that returns an empty result
      */
     @Override
@@ -183,9 +159,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param componentId the ID of the component
-     * @param eventLimit the maximum number of events to return
      * @return an empty list
      */
     @Override
@@ -194,12 +167,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param queryIdentifier of the query
-     * @param user The user who is retrieving the query.
-     *             It can be {@code null} if the request was made by NiFi components internally where authorization is not required.
-     *             If the queried user and the retrieved user do not match, AccessDeniedException will be thrown.
-     *
      * @return a stub query submission with an empty result
      */
     @Override
@@ -208,12 +175,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param s the UUID of the FlowFile for which the Lineage should
-     *            be calculated
-     * @param user The NiFi User to authorize the events against.
-     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
-     *
      * @return a stub lineage computation result with no events
      */
     @Override
@@ -222,11 +183,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param eventId the numeric ID of the event that the lineage is for
-     * @param user The NiFi User to authorize the events against.
-     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
-     *
      * @return a stub lineage computation result with an error message
      */
     @Override
@@ -237,12 +193,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param lineageIdentifier identifier of lineage to compute
-     * @param user The user who is retrieving the lineage submission.
-     *             It can be {@code null} if the request was made by NiFi components internally where authorization is not required.
-     *             If the queried user and the retrieved user do not match, AccessDeniedException will be thrown.
-     *
      * @return a stub lineage submission with no event
      */
     @Override
@@ -251,7 +201,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
      * @return an empty list of searchable fields
      */
     @Override
@@ -260,7 +209,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
      * @return an empty list of searchable attributes
      */
     @Override
@@ -268,6 +216,9 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
         return emptyList();
     }
 
+    /**
+     * @return a singleton set containing the string "noOp"
+     */
     @Override
     public Set<String> getContainerNames() {
         return singleton("noOp");
@@ -282,8 +233,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param containerName the name of the container
      * @return "noOp" as the file store name
      */
     @Override
@@ -292,8 +241,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param containerName to check space on
      * @return Long.MAX_VALUE to indicate unlimited space
      */
     @Override
@@ -302,10 +249,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param eventId the one-up id of the Event to expand
-     * @param user The NiFi user to authorize events against.
-     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      * @return a no-op stub lineage submission for expanding parents
      */
     @Override
@@ -314,11 +257,6 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     *
-     * @param eventId the one-up id of the Event
-     * @param user The NiFi user to authorize events against.
-     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
-     *
      * @return a stub no-op lineage submission for expanding children
      */
     @Override
