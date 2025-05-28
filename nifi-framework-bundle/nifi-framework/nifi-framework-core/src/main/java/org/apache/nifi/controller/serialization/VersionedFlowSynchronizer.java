@@ -220,21 +220,37 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
             synchronizeFlow(controller, existingDataFlow, proposedFlow, affectedComponents);
         } finally {
-            // We have to call toExistingSet() here because some of the components that existed in the active set may no longer exist,
-            // so attempting to start them will fail.
-
             if (!existingFlowEmpty) {
-                final AffectedComponentSet startable = activeSet.toExistingSet().toStartableSet();
-
-                final ComponentSetFilter runningComponentFilter = new RunningComponentSetFilter(proposedFlow.getVersionedDataflow());
-                final ComponentSetFilter stoppedComponentFilter = runningComponentFilter.reverse();
-                startable.removeComponents(stoppedComponentFilter);
-                startable.start();
+                restart(activeSet, proposedFlow.getVersionedDataflow());
             }
         }
 
         final long millis = System.currentTimeMillis() - start;
         logger.info("Successfully synchronized dataflow with the proposed flow in {} millis", millis);
+    }
+
+    private void restart(final AffectedComponentSet activeSet, final VersionedDataflow versionedDataflow) {
+        final AffectedComponentSet existing = activeSet.toExistingSet();
+        final AffectedComponentSet noLongerExisting = activeSet.minus(existing);
+        if (!noLongerExisting.isEmpty()) {
+            logger.info("After synchronizing flow, the followinging components will not be restarted because they no longer exist: {}", noLongerExisting);
+        }
+
+        final AffectedComponentSet startable = existing.toStartableSet();
+        final AffectedComponentSet notStartable = existing.minus(startable);
+        if (!notStartable.isEmpty()) {
+            logger.info("After synchronizing flow, the following components will not be restarted because they are not in a startable state: {}", notStartable);
+        }
+
+        final ComponentSetFilter runningComponentFilter = new RunningComponentSetFilter(versionedDataflow);
+        final ComponentSetFilter stoppedComponentFilter = runningComponentFilter.invert();
+        final AffectedComponentSet stoppedComponents = startable.removeComponents(stoppedComponentFilter);
+        if (!stoppedComponents.isEmpty()) {
+            logger.info("After synchronizing flow, the following components will not be restarted because the proposed flow indicates that they are not running: {}", stoppedComponents);
+        }
+
+        logger.info("After synchronizing flow, restarting {} components", startable.getComponentCount());
+        startable.start();
     }
 
     private void verifyNoConnectionsWithDataRemoved(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController controller, final FlowComparison flowComparison) {
