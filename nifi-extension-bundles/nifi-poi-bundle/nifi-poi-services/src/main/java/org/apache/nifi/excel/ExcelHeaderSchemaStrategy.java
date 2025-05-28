@@ -35,6 +35,7 @@ import org.apache.poi.ss.usermodel.Row;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +48,11 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
     static final int NUM_ROWS_TO_DETERMINE_TYPES = 10; // NOTE: This number is arbitrary.
     static final AllowableValue USE_STARTING_ROW = new AllowableValue("Use Starting Row", "Use Starting Row",
             "The configured first row of the Excel file is a header line that contains the names of the columns. The schema will be derived by using the "
-                    + "column names in the header of the first sheet and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column " +
-                      "while the configured header rows of subsequent sheets are skipped.");
+                    + "column names in the header of the first sheet and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column "
+                    + "while the configured header rows of subsequent sheets are skipped. "
+                    + "NOTE: If there are duplicate column names then each subsequent duplicate column name is given a one up number. "
+                    + "For example, column names \"Frequency\", \"Intervals\", \"Frequency\" \"Name\", \"Frequency\", \"Intervals\" will be "
+                    + "changed to \"Frequency\", \"Intervals\", \"Frequency_2\" \"Name\", \"Frequency_3\", \"Intervals_2\".");
 
     private final PropertyContext context;
     private final ComponentLog logger;
@@ -126,8 +130,26 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
                 fieldNames.add(fieldName);
             }
         }
+        final List<String> renamedDuplicateFieldNames = renameDuplicateFieldNames(fieldNames);
 
-        return fieldNames;
+        return renamedDuplicateFieldNames;
+    }
+
+    private List<String> renameDuplicateFieldNames(List<String> fieldNames) {
+        final Map<String, Integer> fieldNameCounts = new HashMap<>();
+        final List<String> renamedDuplicateFieldNames = new ArrayList<>();
+
+        for (String fieldName : fieldNames) {
+            if (fieldNameCounts.containsKey(fieldName)) {
+                int count = fieldNameCounts.get(fieldName) + 1;
+                fieldNameCounts.put(fieldName, count);
+                renamedDuplicateFieldNames.add(fieldName + "_" + count);
+            } else {
+                fieldNameCounts.put(fieldName, 1);
+                renamedDuplicateFieldNames.add(fieldName);
+            }
+        }
+        return renamedDuplicateFieldNames;
     }
 
     private void inferSchema(final Row row, final List<String> fieldNames, final Map<String, FieldTypeInference> typeMap) throws SchemaNotFoundException {
