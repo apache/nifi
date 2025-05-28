@@ -40,7 +40,7 @@ public class TestEvaluateBaseXQuery {
 
     @Test
     public void testSelectAllProductNamesFromWarehouse() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "//product/name");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "string-join(//product/name, '')");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_ALL);
 
         testRunner.enqueue(Paths.get("src/test/resources/xml/warehouses.xml"));
@@ -48,13 +48,12 @@ public class TestEvaluateBaseXQuery {
 
         testRunner.assertTransferCount(EvaluateBaseXQuery.REL_SUCCESS, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
-        out.assertContentEquals("<name>Product 1</name>\n<name>Product 2</name>\n<name>Product 3</name>\n<name>Product 4</name>");
+        out.assertContentEquals("Product 1Product 2Product 3Product 4");
     }
 
     @Test
     public void testFilterProductsByQuantity() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "for $p in //product where xs:integer($p/quantity) > 10 return $p/name/text()");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "string-join(for $p in //product where xs:integer($p/quantity) > 10 return $p/name/text(), \" \")");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_ALL);
 
         testRunner.enqueue(Paths.get("src/test/resources/xml/warehouses.xml"));
@@ -62,13 +61,12 @@ public class TestEvaluateBaseXQuery {
 
         testRunner.assertTransferCount(EvaluateBaseXQuery.REL_SUCCESS, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
-        out.assertContentEquals("Product 2\nProduct 4");
+        out.assertContentEquals("Product 2 Product 4");
     }
 
     @Test
     public void testGetEmployeesFromDepartment1() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "for $e in //employee where $e/department = 'Department 1' return $e/name/text()");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "string-join(for $e in //employee where $e/department = 'Department 1' return $e/name/text(), \" \")");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_ALL);
 
         testRunner.enqueue(Paths.get("src/test/resources/xml/employees.xml"));
@@ -76,13 +74,12 @@ public class TestEvaluateBaseXQuery {
 
         testRunner.assertTransferCount(EvaluateBaseXQuery.REL_SUCCESS, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
-        out.assertContentEquals("Employee A\nEmployee C");
+        out.assertContentEquals("Employee A Employee C");
     }
 
     @Test
     public void testGetTotalHoursWorked() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "sum(//employee/hoursWorked)");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "sum(//employee/hoursWorked)");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_ALL);
 
         testRunner.enqueue(Paths.get("src/test/resources/xml/employees.xml"));
@@ -108,8 +105,7 @@ public class TestEvaluateBaseXQuery {
 
     @Test
     public void testOutputToAttribute() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "sum(//employee/hoursWorked)");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "sum(//employee/hoursWorked)");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_ALL);
         testRunner.setProperty(EvaluateBaseXQuery.OUTPUT_BODY_ATTRIBUTE_NAME, "totalHoursWorked");
         testRunner.setValidateExpressionUsage(false);
@@ -125,21 +121,19 @@ public class TestEvaluateBaseXQuery {
 
     @Test
     public void testDoNotMapStrategy() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "for $p in //product return $p/name/text()");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "string-join(for $p in //product return $p/name/text(), \" \")");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.DO_NOT_MAP);
         testRunner.enqueue(Paths.get("src/test/resources/xml/products_static.xml"));
         testRunner.run();
 
         testRunner.assertTransferCount(EvaluateBaseXQuery.REL_SUCCESS, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
-        out.assertContentEquals("Table\nChair");
+        out.assertContentEquals("Table Chair");
     }
 
     @Test
     public void testMappedVariable() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "for $p in //product where $p/id = $targetId return $p/name/text()");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "for $p in //product where $p/id = $targetId return $p/name/text()");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_LIST);
         testRunner.setProperty(EvaluateBaseXQuery.MAPPING_LIST, "targetId");
         Map<String, String> attributes = new HashMap<>();
@@ -150,16 +144,18 @@ public class TestEvaluateBaseXQuery {
         MockFlowFile successOut = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
         successOut.assertContentEquals("Keyboard");
     }
+
     @Test
     public void testEmptyInput() {
         testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "//product/name");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_ALL);
 
-        testRunner.enqueue(new byte[0]); // pusty plik
+        testRunner.enqueue(new byte[0]);
         testRunner.run();
 
         testRunner.assertTransferCount(EvaluateBaseXQuery.REL_FAILURE, 1);
     }
+
     @Test
     public void testMissingElementQuery() throws IOException {
         testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "//nonexistent");
@@ -175,8 +171,7 @@ public class TestEvaluateBaseXQuery {
 
     @Test
     public void testMappedVariableTwoAttributes() throws IOException {
-        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT,
-                "for $p in //product where $p/id = $targetId and $p/name/text() = $targetName return $p");
+        testRunner.setProperty(EvaluateBaseXQuery.XQUERY_SCRIPT, "for $p in //product where $p/id = $targetId and $p/name/text() = $targetName return $p");
         testRunner.setProperty(EvaluateBaseXQuery.ATTR_MAPPING_STRATEGY, EvaluateBaseXQuery.MAP_LIST);
         testRunner.setProperty(EvaluateBaseXQuery.MAPPING_LIST, "targetId,targetName");
         Map<String, String> attributes = new HashMap<>();
@@ -187,6 +182,4 @@ public class TestEvaluateBaseXQuery {
         MockFlowFile successOut = testRunner.getFlowFilesForRelationship(EvaluateBaseXQuery.REL_SUCCESS).get(0);
         successOut.assertContentEquals("<product><id>1</id><name>Keyboard</name></product>");
     }
-
-
 }
