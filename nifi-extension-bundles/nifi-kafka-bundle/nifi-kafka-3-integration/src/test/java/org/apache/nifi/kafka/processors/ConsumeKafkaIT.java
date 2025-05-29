@@ -159,4 +159,44 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         runner.run(1, true, false);
         runner.assertTransferCount("success", 1);
     }
+
+    @Test
+    public void testConsumesAllRecordsWithoutDuplicates() throws ExecutionException, InterruptedException {
+        final String topic = "testConsumesAllRecordsWithoutDuplicates";
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, "testConsumesAllRecordsWithoutDuplicates");
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
+
+        produceOne(topic, 0, null, "1", null);
+
+        // Initialize processor
+        runner.run(1, false, true);
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
+            runner.run(1, false, false);
+        }
+
+        // Ensure that we have exactly 1 FlowFile output
+        runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 1);
+        runner.clearTransferState();
+
+        // Add another record and ensure that we get exactly 1 more
+        produceOne(topic, 0, null, "1", null);
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
+            runner.run(1, false, false);
+        }
+
+        runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 1);
+        runner.clearTransferState();
+
+        // Stop processor, add another, and then ensure that we consume exactly 1 more.
+        runner.stop();
+        produceOne(topic, 0, null, "1", null);
+        runner.run(1, false, true);
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
+            runner.run(1, false, false);
+        }
+
+        runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 1);
+    }
 }
