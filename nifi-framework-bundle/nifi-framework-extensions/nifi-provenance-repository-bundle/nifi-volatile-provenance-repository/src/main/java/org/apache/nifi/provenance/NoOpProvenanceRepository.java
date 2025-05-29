@@ -241,11 +241,11 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     /**
-     * @return Long.MAX_VALUE to indicate unlimited space
+     * @return 0 as this implementation does not store data
      */
     @Override
     public long getContainerUsableSpace(String containerName) {
-        return Long.MAX_VALUE;
+        return 0;
     }
 
     /**
