@@ -84,6 +84,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @SupportsSensitiveDynamicProperties
@@ -292,7 +293,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     private volatile String audience;
     private volatile String algorithmName;
     private volatile String scope;
-    private volatile String jti;
+    private volatile Supplier<String> jti;
     private volatile String kid;
     private volatile String grantType;
     private volatile String assertion;
@@ -472,7 +473,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
 
         if (jti != null) {
-            claimsSetBuilder.jwtID(jti);
+            claimsSetBuilder.jwtID(jti.get());
         }
 
         customClaims.forEach(claimsSetBuilder::claim);
@@ -601,7 +602,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
 
         if (context.getProperty(JTI).isSet()) {
-            jti = context.getProperty(JTI).evaluateAttributeExpressions().getValue();
+            jti = () -> context.getProperty(JTI).evaluateAttributeExpressions().getValue();
         } else {
             jti = null;
         }
