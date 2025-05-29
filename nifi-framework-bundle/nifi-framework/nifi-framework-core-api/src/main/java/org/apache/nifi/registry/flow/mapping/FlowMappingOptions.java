@@ -177,6 +177,7 @@ public class FlowMappingOptions {
 
         /**
          * Specifies whether or not the identifier of a Flow Registry Client should be included in the VersionedFlowCoordinates of a Versioned Process Group
+         *
          * @param mapFlowRegistryClientId <code>true</code> if the Registry ID of the Flow Registry Client should be mapped, <code>false</code> otherwise
          * @return the builder
          */
@@ -195,8 +196,8 @@ public class FlowMappingOptions {
          *
          * @return the FlowMappingOptions
          * @throws NullPointerException if the {@link #stateLookup(VersionedComponentStateLookup) StateLookup} is not set, the
-         * {@link #componentIdLookup(ComponentIdLookup) ComponentIdLookup} is not set, or if {@link #mapSensitiveConfiguration(boolean) mapSensitiveConfiguration}
-         * is set to true but the {@link #sensitiveValueEncryptor(SensitiveValueEncryptor) SensitiveValueEncryptor} has not been set
+         *                              {@link #componentIdLookup(ComponentIdLookup) ComponentIdLookup} is not set, or if {@link #mapSensitiveConfiguration(boolean) mapSensitiveConfiguration}
+         *                              is set to true but the {@link #sensitiveValueEncryptor(SensitiveValueEncryptor) SensitiveValueEncryptor} has not been set
          */
         public FlowMappingOptions build() {
             requireNonNull(stateLookup, "State Lookup must be set");

@@ -1380,7 +1380,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void enable() {
-        desiredState = ScheduledState.STOPPED;
+        setDesiredState(ScheduledState.STOPPED);
         final boolean updated = scheduledState.compareAndSet(ScheduledState.DISABLED, ScheduledState.STOPPED);
 
         if (updated) {
@@ -1392,7 +1392,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void disable() {
-        desiredState = ScheduledState.DISABLED;
+        setDesiredState(ScheduledState.DISABLED);
         final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
 
         if (updated) {
@@ -1402,6 +1402,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    private void setDesiredState(final ScheduledState desiredState) {
+        this.desiredState = desiredState;
+        LOG.info("Desired State for {} now set to {}", this, desiredState);
+    }
 
     /**
      * Will idempotently start the processor using the following sequence: <i>
@@ -1480,10 +1484,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             if (currentState == ScheduledState.STOPPED) {
                 starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
                 if (starting) {
-                    this.desiredState = desiredState;
+                    setDesiredState(desiredState);
                 }
             } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
-                this.desiredState = desiredState;
+                setDesiredState(desiredState);
                 return;
             } else {
                 starting = false;
@@ -1800,7 +1804,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         final Processor processor = processorRef.get().getProcessor();
         LOG.debug("Stopping processor: {}", this);
-        desiredState = ScheduledState.STOPPED;
+        setDesiredState(ScheduledState.STOPPED);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
