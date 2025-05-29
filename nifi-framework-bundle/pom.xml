@@ -309,7 +309,7 @@
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>4.2.30</version>
+                <version>4.2.32</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
@@ -358,7 +358,7 @@
             <dependency>
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
-                <version>1.10.1</version>
+                <version>1.11.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>commons-logging</groupId>

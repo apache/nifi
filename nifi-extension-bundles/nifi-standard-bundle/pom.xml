@@ -35,7 +35,7 @@
     </modules>
     <properties>
         <org.apache.sshd.version>2.15.0</org.apache.sshd.version>
-        <tika.version>3.1.0</tika.version>
+        <tika.version>3.2.0</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -185,7 +185,7 @@
             <dependency>
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-core</artifactId>
-                <version>1.39.0</version>
+                <version>1.40.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>log4j</groupId>
@@ -232,7 +232,7 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.6</version>
+                <version>1.5.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
