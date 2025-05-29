@@ -160,7 +160,7 @@ class TestIdentifyMimeType {
     private static Stream<Arguments> replaceWithConfigBodyData() {
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/octet-stream");
-        expectedMimeTypes.put("1.mdb", "application/octet-stream");
+        expectedMimeTypes.put("1.accdb", "application/octet-stream");
         expectedMimeTypes.put("1.txt", "text/plain");
         expectedMimeTypes.put("1.csv", "text/plain");
         expectedMimeTypes.put("1.txt.bz2", "application/octet-stream");
@@ -184,7 +184,7 @@ class TestIdentifyMimeType {
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", "");
-        expectedExtensions.put("1.mdb", "");
+        expectedExtensions.put("1.accdb", "");
         expectedExtensions.put("1.txt", "");
         expectedExtensions.put("1.csv", "");
         expectedExtensions.put("1.txt.bz2", "");
@@ -234,7 +234,7 @@ class TestIdentifyMimeType {
     private static Stream<Arguments> replaceWithConfigFileData() {
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/octet-stream");
-        expectedMimeTypes.put("1.mdb", "application/octet-stream");
+        expectedMimeTypes.put("1.accdb", "application/octet-stream");
         expectedMimeTypes.put("1.txt", "text/plain");
         expectedMimeTypes.put("1.csv", "text/plain");
         expectedMimeTypes.put("1.txt.bz2", "application/octet-stream");
@@ -258,7 +258,7 @@ class TestIdentifyMimeType {
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", "");
-        expectedExtensions.put("1.mdb", "");
+        expectedExtensions.put("1.accdb", "");
         expectedExtensions.put("1.txt", "");
         expectedExtensions.put("1.csv", "");
         expectedExtensions.put("1.txt.bz2", "");
@@ -388,7 +388,7 @@ class TestIdentifyMimeType {
         Map<String, String> expectedMimeTypes = new HashMap<>();
 
         expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
-        expectedMimeTypes.put("1.mdb", "application/x-msaccess");
+        expectedMimeTypes.put("1.accdb", "application/x-msaccess");
         expectedMimeTypes.put("1.txt", "text/plain");
         expectedMimeTypes.put("1.csv", "text/csv");
         expectedMimeTypes.put("1.txt.bz2", "application/x-bzip2");
@@ -413,7 +413,7 @@ class TestIdentifyMimeType {
         Map<String, String> expectedExtensions = new HashMap<>();
 
         expectedExtensions.put("1.7z", ".7z");
-        expectedExtensions.put("1.mdb", ".mdb");
+        expectedExtensions.put("1.accdb", ".accdb");
         expectedExtensions.put("1.txt", ".txt");
         expectedExtensions.put("1.csv", ".csv");
         expectedExtensions.put("1.txt.bz2", ".bz2");
@@ -437,7 +437,7 @@ class TestIdentifyMimeType {
     private static Map<String, String> getCommonExpectedCharsets() {
         final Map<String, String> expectedCharsets = new HashMap<>();
         expectedCharsets.put("1.7z", null);
-        expectedCharsets.put("1.mdb", null);
+        expectedCharsets.put("1.accdb", null);
         expectedCharsets.put("1.txt", "ISO-8859-1");
         expectedCharsets.put("1.csv", "ISO-8859-1");
         expectedCharsets.put("1.txt.bz2", null);
