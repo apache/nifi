@@ -30,7 +30,8 @@ public enum SaslMechanism implements DescribedValue {
     SCRAM_SHA_256("SCRAM-SHA-256", "SCRAM-SHA-256", "Salted Challenge Response Authentication Mechanism using SHA-512 with username and password"),
     SCRAM_SHA_512("SCRAM-SHA-512", "SCRAM-SHA-512", "Salted Challenge Response Authentication Mechanism using SHA-256 with username and password"),
     AWS_MSK_IAM("AWS_MSK_IAM", "AWS_MSK_IAM", "Allows to use AWS IAM for authentication and authorization against Amazon MSK clusters that have AWS IAM enabled " +
-            "as an authentication mechanism. The IAM credentials will be found using the AWS Default Credentials Provider Chain.");
+            "as an authentication mechanism. The IAM credentials will be found using the AWS Default Credentials Provider Chain."),
+    OAUTHBEARER("OAUTHBEARER", "OAUTHBEARER", "Token-based authentication using OAuth 2.0 access tokens.");
 
     private final String value;
     private final String displayName;
