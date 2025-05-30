@@ -168,6 +168,8 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
         flowFile.assertContentEquals(flowFileString);
         flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_TOPIC, topic);
         flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_PARTITION, Integer.toString(FIRST_PARTITION));
+        flowFile.assertAttributeExists(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET);
+
         flowFile.assertAttributeEquals("record.count", Long.toString(TEST_RECORD_COUNT));
         flowFile.assertAttributeEquals("aaa", "value");
         flowFile.assertAttributeNotExists("bbb");
