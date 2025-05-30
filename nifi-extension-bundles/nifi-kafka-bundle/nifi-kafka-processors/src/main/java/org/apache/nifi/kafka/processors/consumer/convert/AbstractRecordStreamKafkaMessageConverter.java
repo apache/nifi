@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 public abstract class AbstractRecordStreamKafkaMessageConverter implements KafkaMessageConverter {
@@ -153,8 +154,16 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
                 throw ex;
             }
 
-            group = new RecordGroup(ff, writer);
+            final long offset = consumerRecord.getOffset();
+            final AtomicLong maxOffset = new AtomicLong(offset);
+            group = new RecordGroup(ff, writer, maxOffset);
             recordGroups.put(criteria, group);
+        } else {
+            final long recordOffset = consumerRecord.getOffset();
+            final AtomicLong maxOffset = group.maxOffset();
+            if (recordOffset > maxOffset.get()) {
+                maxOffset.set(recordOffset);
+            }
         }
 
         // let subclass convert into the thing to write
@@ -176,6 +185,10 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
                 resultAttrs.putAll(wr.getAttributes());
                 resultAttrs.put("record.count", String.valueOf(wr.getRecordCount()));
                 resultAttrs.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+
+                final long maxOffset = group.maxOffset().get();
+                resultAttrs.put(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, Long.toString(maxOffset));
+
                 // add any extra header‐derived attributes
                 resultAttrs.putAll(criteria.extraAttributes());
                 resultAttrs.put(KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
@@ -212,9 +225,9 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
 
     protected abstract Record convertRecord(ByteRecord consumerRecord, Record record, Map<String, String> attributes) throws IOException;
 
-    private static record RecordGroupCriteria(RecordSchema schema, Map<String, String> extraAttributes, String topic, int partition) {
+    private record RecordGroupCriteria(RecordSchema schema, Map<String, String> extraAttributes, String topic, int partition) {
     }
 
-    private static record RecordGroup(FlowFile flowFile, RecordSetWriter writer) {
+    private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, AtomicLong maxOffset) {
     }
 }
