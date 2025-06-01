@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.authorization;
 
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -46,11 +51,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBElement;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -114,6 +114,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     static final String PROP_USER_GROUP_PROVIDER = "User Group Provider";
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
+    static final String PROP_INITIAL_ADMIN_GROUP = "Initial Admin Group";
     static final Pattern NODE_IDENTITY_PATTERN = Pattern.compile(PROP_NODE_IDENTITY_PREFIX + "\\S+");
 
     private Schema authorizationsSchema;
@@ -122,6 +123,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private File restoreAuthorizationsFile;
     private String rootGroupId;
     private String initialAdminIdentity;
+    private String initialAdminGroup;
     private Set<String> nodeIdentities;
     private String nodeGroupIdentifier;
 
@@ -197,6 +199,10 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             // get the value of the initial admin identity
             final PropertyValue initialAdminIdentityProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_IDENTITY);
             initialAdminIdentity = initialAdminIdentityProp.isSet() ? IdentityMappingUtil.mapIdentity(initialAdminIdentityProp.getValue(), identityMappings) : null;
+
+            // get the value of the initial admin group
+            final PropertyValue initialAdminGroupProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_GROUP);
+            initialAdminGroup = initialAdminGroupProp.isSet() ? IdentityMappingUtil.mapIdentity(initialAdminGroupProp.getValue(), identityMappings) : null;
 
             // extract any node identities
             nodeIdentities = new HashSet<>();
@@ -566,14 +572,19 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations);
         final boolean emptyAuthorizations = authorizationsHolder.getAllPolicies().isEmpty();
         final boolean hasInitialAdminIdentity = (initialAdminIdentity != null && !StringUtils.isBlank(initialAdminIdentity));
+        final boolean hasInitialAdminGroup = (initialAdminGroup != null && !StringUtils.isBlank(initialAdminGroup));
 
-        // if we are starting fresh then we might need to populate an initial admin or convert legacy users
+        // if we are starting fresh then we might need to populate an initial admin, admin group or convert legacy users
         if (emptyAuthorizations) {
             parseFlow();
 
             if (hasInitialAdminIdentity) {
                 logger.info("Populating authorizations for Initial Admin: {}", initialAdminIdentity);
                 populateInitialAdmin(authorizations);
+            }
+            if (hasInitialAdminGroup) {
+                logger.info("Populating authorizations for Initial Admin Group: {}", initialAdminGroup);
+                populateInitialAdminGroup(authorizations);
             }
 
             populateNodes(authorizations);
@@ -659,6 +670,43 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         // grant the user read/write access to the /controller resource
         addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), READ_CODE);
         addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
+    }
+
+    /**
+     *  Creates the initial admin user and policies for access the flow and managing users and policies.
+     */
+    private void populateInitialAdminGroup(final Authorizations authorizations) {
+        final Group initialAdminGroup = userGroupProvider.getGroupByName(this.initialAdminGroup);
+        if (initialAdminGroup == null) {
+            throw new AuthorizerCreationException("Unable to locate initial admin " + this.initialAdminGroup + " to seed policies");
+        }
+
+        // grant the group read access to the /flow resource
+        addGroupToAccessPolicy(authorizations, ResourceType.Flow.getValue(), initialAdminGroup.getIdentifier(), READ_CODE);
+
+        // grant the group read access to the root process group resource
+        if (rootGroupId != null) {
+            addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdminGroup.getIdentifier(), READ_CODE);
+            addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdminGroup.getIdentifier(), WRITE_CODE);
+
+            addGroupToAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdminGroup.getIdentifier(), READ_CODE);
+            addGroupToAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdminGroup.getIdentifier(), WRITE_CODE);
+        }
+
+        // grant the group write to restricted components
+        addGroupToAccessPolicy(authorizations, ResourceType.RestrictedComponents.getValue(), initialAdminGroup.getIdentifier(), WRITE_CODE);
+
+        // grant the group read/write access to the /tenants resource
+        addGroupToAccessPolicy(authorizations, ResourceType.Tenant.getValue(), initialAdminGroup.getIdentifier(), READ_CODE);
+        addGroupToAccessPolicy(authorizations, ResourceType.Tenant.getValue(), initialAdminGroup.getIdentifier(), WRITE_CODE);
+
+        // grant the group read/write access to the /policies resource
+        addGroupToAccessPolicy(authorizations, ResourceType.Policy.getValue(), initialAdminGroup.getIdentifier(), READ_CODE);
+        addGroupToAccessPolicy(authorizations, ResourceType.Policy.getValue(), initialAdminGroup.getIdentifier(), WRITE_CODE);
+
+        // grant the group read/write access to the /controller resource
+        addGroupToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdminGroup.getIdentifier(), READ_CODE);
+        addGroupToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdminGroup.getIdentifier(), WRITE_CODE);
     }
 
     /**
