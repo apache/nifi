@@ -3833,7 +3833,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             .ignoreLocalModifications(!verifyNotDirty)
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
             .updateGroupSettings(updateSettings)
-            .updateGroupVersionControlSnapshot(true)
             .updateRpgUrls(false)
             .propertyDecryptor(value -> null)
             .build();
