@@ -55,11 +55,19 @@
             </div>
         </form>
     </div>
-    <div class="p-2 flex-1 flex border overflow-y-auto">
-        @if (viewerSelected) {
-            <router-outlet></router-outlet>
-        } @else {
-            <div class="unset">No data reference specified</div>
-        }
+    <div class="p-2 flex-1 flex overflow-y-auto">
+        <div class="p-2 flex-1 flex border overflow-y-auto" [ngClass]="{ 'cv-iframe': resizing }">
+            @if (viewerSelected) {
+                <router-outlet></router-outlet>
+            } @else {
+                <div class="unset">No data reference specified</div>
+            }
+        </div>
+        <div *ngIf="data.flowFile || data.provEvent">
+            <content-details
+                [data]="data"
+                (downloadContent)="downloadContent($event)"
+                (resizeEvent)="setResizing($event)"></content-details>
+        </div>
     </div>
 </div>

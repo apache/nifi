@@ -17,10 +17,14 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { ContentState } from './index';
-import { resetContent, setRef } from './content.actions';
+import { loadSideBarDataSuccess, resetContent, setRef } from './content.actions';
 
 export const initialState: ContentState = {
-    ref: null
+    ref: null,
+    data: {
+        provEvent: undefined,
+        flowFile: undefined
+    }
 };
 
 export const contentReducer = createReducer(
@@ -31,5 +35,9 @@ export const contentReducer = createReducer(
     })),
     on(resetContent, () => ({
         ...initialState
+    })),
+    on(loadSideBarDataSuccess, (state, { response }) => ({
+        ...state,
+        data: response.data
     }))
 );
