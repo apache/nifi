@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -59,6 +61,8 @@ import java.util.Set;
 /**
  * Verify Content using Open Pretty Good Privacy Public Keys
  */
+@SideEffectFree
+@SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "Signing", "RFC 4880"})
 @CapabilityDescription("Verify signatures using OpenPGP Public Keys")
@@ -197,23 +201,23 @@ public class VerifyContentPGP extends AbstractProcessor {
                 final Object object = objects.next();
                 getLogger().debug("PGP Object Read [{}]", object.getClass().getSimpleName());
 
-                if (object instanceof PGPCompressedData) {
-                    final PGPCompressedData compressedData = (PGPCompressedData) object;
-                    try {
-                        final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
-                        processObjectFactory(compressedObjectFactory.iterator(), outputStream);
-                    } catch (final PGPException e) {
-                        throw new PGPProcessException("Read Compressed Data Failed", e);
+                switch (object) {
+                    case PGPCompressedData compressedData -> {
+                        try {
+                            final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
+                            processObjectFactory(compressedObjectFactory.iterator(), outputStream);
+                        } catch (final PGPException e) {
+                            throw new PGPProcessException("Read Compressed Data Failed", e);
+                        }
                     }
-                } else if (object instanceof PGPOnePassSignatureList) {
-                    final PGPOnePassSignatureList onePassSignatureList = (PGPOnePassSignatureList) object;
-                    onePassSignature = processOnePassSignatures(onePassSignatureList);
-                } else if (object instanceof PGPLiteralData) {
-                    final PGPLiteralData literalData = (PGPLiteralData) object;
-                    processLiteralData(literalData, outputStream, onePassSignature);
-                } else if (object instanceof PGPSignatureList) {
-                    final PGPSignatureList signatureList = (PGPSignatureList) object;
-                    processSignatures(signatureList, onePassSignature);
+                    case PGPOnePassSignatureList onePassSignatureList ->
+                            onePassSignature = processOnePassSignatures(onePassSignatureList);
+                    case PGPLiteralData literalData ->
+                            processLiteralData(literalData, outputStream, onePassSignature);
+                    case PGPSignatureList signatureList ->
+                            processSignatures(signatureList, onePassSignature);
+                    default -> {
+                    }
                 }
             }
         }

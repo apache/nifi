@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -77,6 +79,8 @@ import java.util.Set;
 /**
  * Decrypt Content using Open Pretty Good Privacy decryption methods
  */
+@SideEffectFree
+@SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
 @CapabilityDescription("Decrypt contents of OpenPGP messages. Using the Packaged Decryption Strategy preserves OpenPGP encoding to support subsequent signature verification.")
@@ -359,8 +363,7 @@ public class DecryptContentPGP extends AbstractProcessor {
             PGPLiteralData literalData = null;
 
             for (final Object object : objectFactory) {
-                if (object instanceof PGPCompressedData) {
-                    final PGPCompressedData compressedData = (PGPCompressedData) object;
+                if (object instanceof PGPCompressedData compressedData) {
                     getLogger().debug("PGP Compressed Data Algorithm [{}] Found", compressedData.getAlgorithm());
                     final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
                     literalData = getLiteralData(compressedObjectFactory);

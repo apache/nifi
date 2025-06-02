@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -66,6 +68,8 @@ import java.util.Set;
 /**
  * Sign Content using Open Pretty Good Privacy Private Keys
  */
+@SideEffectFree
+@SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "Signing", "RFC 4880"})
 @CapabilityDescription("Sign content using OpenPGP Private Keys")

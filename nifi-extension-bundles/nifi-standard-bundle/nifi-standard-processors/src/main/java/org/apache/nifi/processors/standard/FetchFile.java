@@ -58,6 +58,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+// Note: we do not use @SupportsBatching annotation here because session commits must happen before files are deleted/moved.
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input", "fetch"})
 @CapabilityDescription("Reads the contents of a file from disk and streams it into the contents of an incoming FlowFile. Once this is done, the file is optionally moved elsewhere or deleted "
