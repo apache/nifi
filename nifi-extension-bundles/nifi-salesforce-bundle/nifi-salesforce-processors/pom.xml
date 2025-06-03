@@ -42,7 +42,7 @@
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-salesforce</artifactId>
-            <version>4.11.0</version>
+            <version>4.12.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
