@@ -181,11 +181,6 @@ public class NiFiRegistryFlowMapper {
 
         final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
         final String registryId = versionControlInfo.getRegistryIdentifier();
-        final FlowRegistryClientNode registry = flowManager.getFlowRegistryClient(registryId);
-        if (registry == null) {
-            throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
-        }
-
         if (flowMappingOptions.isMapFlowRegistryClientId()) {
             coordinates.setRegistryId(registryId);
         }
