@@ -49,7 +49,6 @@ import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.consumer.Subscription;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
-import org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler;
 import org.apache.nifi.kafka.shared.property.IsolationLevel;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
@@ -58,7 +57,6 @@ import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -75,10 +73,7 @@ import java.util.regex.Pattern;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
-import static org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler.PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_SERVICE_NAME;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CALLBACK_HANDLER_CLASS;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_PASSWORD;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_TYPE;
@@ -241,7 +236,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             SASL_MECHANISM,
             SASL_USERNAME,
             SASL_PASSWORD,
-            OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE,
             SELF_CONTAINED_KERBEROS_USER_SERVICE,
             KERBEROS_SERVICE_NAME,
             SSL_CONTEXT_SERVICE,
@@ -430,8 +424,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final String configuredBootstrapServers = propertyContext.getProperty(BOOTSTRAP_SERVERS).getValue();
         properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, configuredBootstrapServers);
 
-        setOAuthProperties(properties, propertyContext);
-
         setSslProperties(properties, propertyContext);
 
         final int defaultApiTimeoutMs = getDefaultApiTimeoutMs(propertyContext);
@@ -441,18 +433,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         properties.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeoutMs);
 
         return properties;
-    }
-
-    private void setOAuthProperties(Properties properties, PropertyContext propertyContext) {
-        final SecurityProtocol securityProtocol = propertyContext.getProperty(SECURITY_PROTOCOL).asAllowableValue(SecurityProtocol.class);
-        if (securityProtocol == SecurityProtocol.SASL_PLAINTEXT || securityProtocol == SecurityProtocol.SASL_SSL) {
-            final SaslMechanism saslMechanism = propertyContext.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
-            if (saslMechanism == SaslMechanism.OAUTHBEARER) {
-                properties.put(SASL_LOGIN_CALLBACK_HANDLER_CLASS.getProperty(), OAuthBearerLoginCallbackHandler.class.getName());
-                final OAuth2AccessTokenProvider accessTokenProvider = propertyContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE).asControllerService(OAuth2AccessTokenProvider.class);
-                properties.put(PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER, accessTokenProvider);
-            }
-        }
     }
 
     private void setSslProperties(final Properties properties, final PropertyContext context) {

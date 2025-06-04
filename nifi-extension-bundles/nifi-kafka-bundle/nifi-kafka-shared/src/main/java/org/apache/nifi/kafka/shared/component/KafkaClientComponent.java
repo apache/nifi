@@ -21,7 +21,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
-import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -141,14 +140,5 @@ public interface KafkaClientComponent {
             .description("Service supporting user authentication with Kerberos")
             .identifiesControllerService(SelfContainedKerberosUserService.class)
             .required(false)
-            .build();
-
-    PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider-service")
-            .displayName("OAuth2 Access Token Provider Service")
-            .description("Service providing OAuth2 Access Tokens for authentication")
-            .identifiesControllerService(OAuth2AccessTokenProvider.class)
-            .required(true)
-            .dependsOn(SASL_MECHANISM, SaslMechanism.OAUTHBEARER)
             .build();
 }
