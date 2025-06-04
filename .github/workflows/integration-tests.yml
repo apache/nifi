@@ -26,6 +26,7 @@ on:
       - '**/test/**/*ITCase.java'
       - '**/test/**/IT*.java'
       - 'nifi-mock/**'
+      - 'nifi-extension-bundles/nifi-kafka-bundle/**'
   pull_request:
     paths:
       - '.github/workflows/integration-tests.yml'
@@ -36,6 +37,7 @@ on:
       - '**/test/**/*ITCase.java'
       - '**/test/**/IT*.java'
       - 'nifi-mock/**'
+      - 'nifi-extension-bundles/nifi-kafka-bundle/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
