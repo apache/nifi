@@ -19,6 +19,8 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -55,6 +57,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@SideEffectFree
+@SupportsBatching
 @Tags({ "record", "stats", "metrics" })
 @CapabilityDescription("Counts the number of Records in a record set, optionally counting the number of elements per category, where the categories are " +
         "defined by user-defined properties.")
