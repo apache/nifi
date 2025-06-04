@@ -32,11 +32,14 @@ import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Properties;
 
 public abstract class AbstractKafkaBaseIT {
 
     protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0"; // December 2024
+
+    protected static final Integer MESSAGE_MAX_BYTES = 2097152;
 
     private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
     private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
@@ -53,8 +56,15 @@ public abstract class AbstractKafkaBaseIT {
 
     // NIFI-11259 - single testcontainers Kafka instance needed for all module integration tests
     static {
-        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME))
+                .withEnv(getEnvironmentIntegration());
         kafkaContainer.start();
+    }
+
+    private static Map<String, String> getEnvironmentIntegration() {
+        return Map.of(
+                "KAFKA_MESSAGE_MAX_BYTES", Integer.toString(MESSAGE_MAX_BYTES)
+        );
     }
 
     protected static ObjectMapper objectMapper;
