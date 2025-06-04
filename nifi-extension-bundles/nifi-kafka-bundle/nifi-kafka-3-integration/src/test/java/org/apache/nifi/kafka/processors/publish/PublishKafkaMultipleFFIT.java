@@ -70,7 +70,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
 
-        runner.enqueue(new byte[1024 * 1280]);  // by default, NiFi maximum is 1MB per record
+        runner.enqueue(new byte[MESSAGE_MAX_BYTES * 6 / 5]);
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_FAILURE, 1);
     }
@@ -86,9 +86,9 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.TRANSACTIONS_ENABLED, transactionality.toString());
-        runner.setProperty(PublishKafka.MAX_REQUEST_SIZE, "2 MB");
+        runner.setProperty(PublishKafka.MAX_REQUEST_SIZE, "3 MB");
 
-        runner.enqueue(new byte[1024 * 1280]);  // by default, Kafka maximum is 1MB per record
+        runner.enqueue(new byte[MESSAGE_MAX_BYTES * 6 / 5]);
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_FAILURE, 1);
     }
@@ -104,7 +104,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
 
         runner.enqueue(TEST_RECORD_VALUE);
-        runner.enqueue(new byte[1024 * 1280]);  // by default, max 1MB per record
+        runner.enqueue(new byte[MESSAGE_MAX_BYTES * 6 / 5]);
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_SUCCESS, 1);
     }
@@ -120,7 +120,7 @@ public class PublishKafkaMultipleFFIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.FAILURE_STRATEGY, FailureStrategy.ROUTE_TO_FAILURE);
 
         runner.enqueue(TEST_RECORD_VALUE);
-        runner.enqueue(new byte[1024 * 1280]);  // by default, max 1MB per record
+        runner.enqueue(new byte[MESSAGE_MAX_BYTES * 6 / 5]);
         runner.run(2);
         runner.assertTransferCount(PublishKafka.REL_SUCCESS, 1);
         runner.assertTransferCount(PublishKafka.REL_FAILURE, 1);

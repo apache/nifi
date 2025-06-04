@@ -352,6 +352,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
                 && !partitionClass.equals("org.apache.kafka.clients.producer.internals.DefaultPartitioner")) {
             properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
         }
+        // because this property is always set from the processor properties, and has a default, we set it here unconditionally
+        properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, producerConfiguration.getMaxRequestSize());
 
         return new Kafka3ProducerService(properties, serviceConfiguration, producerConfiguration);
     }
