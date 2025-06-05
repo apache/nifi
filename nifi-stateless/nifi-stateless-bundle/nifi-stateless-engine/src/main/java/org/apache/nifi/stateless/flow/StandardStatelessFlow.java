@@ -87,6 +87,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -353,7 +354,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public void shutdown(final boolean triggerComponentShutdown, final boolean interruptProcessors) {
+    public void shutdown(final boolean triggerComponentShutdown, final boolean interruptProcessors, final Duration gracefulShutdownDuration) {
         if (shutdown) {
             return;
         }
@@ -362,18 +363,36 @@ public class StandardStatelessFlow implements StatelessDataflow {
         logger.info("Shutting down dataflow {}", rootGroup.getName());
 
         if (runDataflowExecutor != null) {
-            if (interruptProcessors) {
-                runDataflowExecutor.shutdownNow();
-            } else {
-                runDataflowExecutor.shutdown();
-            }
+            runDataflowExecutor.shutdown();
         }
         if (backgroundTaskExecutor != null) {
             backgroundTaskExecutor.shutdown();
         }
 
         logger.info("Stopping all components");
-        rootGroup.stopComponents().join();
+        final CompletableFuture<Void> stopComponentsFuture = rootGroup.stopComponents();
+
+        // Wait for the graceful shutdown period for all processors to stop. If the processors do not stop within this time,
+        // then interrupt them.
+        if (runDataflowExecutor != null && interruptProcessors) {
+            if (gracefulShutdownDuration.isZero()) {
+                logger.info("Shutting down all components immediately without waiting for graceful shutdown period");
+                runDataflowExecutor.shutdownNow();
+            } else {
+                try {
+                    stopComponentsFuture.get(gracefulShutdownDuration.toMillis(), TimeUnit.MILLISECONDS);
+                } catch (final Exception e) {
+                    logger.warn("Stateless flow failed to stop all components gracefully after {} millis. Interrupting all running components.", gracefulShutdownDuration.toMillis(), e);
+                    if (e instanceof InterruptedException) {
+                        Thread.interrupted();
+                    }
+
+                    runDataflowExecutor.shutdownNow();
+                }
+            }
+        }
+
+        stopComponentsFuture.join();
         rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::shutdown);
 
         if (triggerComponentShutdown) {

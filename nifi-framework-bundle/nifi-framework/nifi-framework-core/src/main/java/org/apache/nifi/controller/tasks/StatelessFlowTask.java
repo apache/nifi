@@ -56,6 +56,7 @@ import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -71,6 +72,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class StatelessFlowTask {
+    // The amount of time after a user stops a Stateless Group that we will wait before we disable the ProcessSession,
+    // throwing Exceptions on all ProcessSession access (effectively performing the same functionality as Terminating a processor).
+    private static final Duration GRACEFUL_STOP_DURATION = Duration.ofSeconds(10);
+
     private static final Set<ProvenanceEventType> eventTypesToKeepOnFailure = EnumSet.of(ProvenanceEventType.SEND, ProvenanceEventType.REMOTE_INVOCATION);
     private final StatelessGroupNode statelessGroupNode;
     private final StatelessDataflow flow;
@@ -88,6 +93,8 @@ public class StatelessFlowTask {
     private List<RepositoryRecord> outputRepositoryRecords;
     private List<ProvenanceEventRecord> cloneProvenanceEvents;
 
+    // State that is updated during invocation but do not need to be guarded by synchronized block
+    private volatile long shutdownInitiationTime = 0L;
 
     private StatelessFlowTask(final Builder builder) {
         this.statelessGroupNode = builder.statelessGroupNode;
@@ -147,12 +154,24 @@ public class StatelessFlowTask {
     }
 
     public void shutdown() {
-        this.flow.shutdown(false, true);
+        this.shutdownInitiationTime = System.nanoTime();
+        this.flow.shutdown(false, true, GRACEFUL_STOP_DURATION);
     }
 
     private boolean isAbort() {
         final ScheduledState desiredState = statelessGroupNode.getDesiredState();
-        return desiredState != ScheduledState.RUNNING && desiredState != ScheduledState.RUN_ONCE;
+        final boolean stopped = desiredState != ScheduledState.RUNNING && desiredState != ScheduledState.RUN_ONCE;
+        if (!stopped) {
+            return false;
+        }
+
+        final long shutdownTime = shutdownInitiationTime;
+        if (shutdownTime == 0) {
+            return false;
+        }
+
+        final long abortTime = shutdownTime + GRACEFUL_STOP_DURATION.toNanos();
+        return System.nanoTime() >= abortTime;
     }
 
 
