@@ -54,7 +54,6 @@ import org.apache.nifi.kafka.service.api.producer.PublishContext;
 import org.apache.nifi.kafka.service.api.producer.RecordSummary;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
-import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
 import org.apache.nifi.kafka.shared.property.FailureStrategy;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.PublishStrategy;
@@ -104,7 +103,7 @@ import java.util.stream.Collectors;
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
 @SeeAlso({ConsumeKafka.class})
-public class PublishKafka extends AbstractProcessor implements KafkaPublishComponent, VerifiableProcessor {
+public class PublishKafka extends AbstractProcessor implements VerifiableProcessor {
     protected static final String MSG_COUNT = "msg.count";
 
     public static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
@@ -121,6 +120,15 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor FAILURE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Failure Strategy")
+            .displayName("Failure Strategy")
+            .description("Specifies how the processor handles a FlowFile if it is unable to publish the data to Kafka")
+            .required(true)
+            .allowableValues(FailureStrategy.class)
+            .defaultValue(FailureStrategy.ROUTE_TO_FAILURE)
             .build();
 
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()

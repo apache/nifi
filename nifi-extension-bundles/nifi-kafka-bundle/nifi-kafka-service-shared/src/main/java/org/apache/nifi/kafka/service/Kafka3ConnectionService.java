@@ -50,13 +50,13 @@ import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.consumer.Subscription;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
 import org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler;
+import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.IsolationLevel;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
-import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -76,8 +76,6 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler.PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_SERVICE_NAME;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CALLBACK_HANDLER_CLASS;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_PASSWORD;
@@ -94,85 +92,7 @@ import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUS
                 + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.",
         expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @CapabilityDescription("Provides and manages connections to Kafka Brokers for producer or consumer operations.")
-public class Kafka3ConnectionService extends AbstractControllerService implements KafkaConnectionService, VerifiableControllerService {
-
-    public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
-            .name("bootstrap.servers")
-            .displayName("Bootstrap Servers")
-            .description("Comma-separated list of Kafka Bootstrap Servers in the format host:port. Corresponds to Kafka bootstrap.servers property")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-
-    public static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
-            .name("security.protocol")
-            .displayName("Security Protocol")
-            .description("Security protocol used to communicate with brokers. Corresponds to Kafka Client security.protocol property")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(SecurityProtocol.values())
-            .defaultValue(SecurityProtocol.PLAINTEXT.name())
-            .build();
-
-    public static final PropertyDescriptor SASL_MECHANISM = new PropertyDescriptor.Builder()
-            .name("sasl.mechanism")
-            .displayName("SASL Mechanism")
-            .description("SASL mechanism used for authentication. Corresponds to Kafka Client sasl.mechanism property")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(SaslMechanism.getAvailableSaslMechanisms())
-            .defaultValue(SaslMechanism.GSSAPI.getValue())
-            .dependsOn(SECURITY_PROTOCOL,
-                    SecurityProtocol.SASL_PLAINTEXT.name(),
-                    SecurityProtocol.SASL_SSL.name())
-            .build();
-
-    public static final PropertyDescriptor SASL_USERNAME = new PropertyDescriptor.Builder()
-            .name("sasl.username")
-            .displayName("SASL Username")
-            .description("Username provided with configured password when using PLAIN or SCRAM SASL Mechanisms")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(
-                    SASL_MECHANISM,
-                    SaslMechanism.PLAIN.getValue(),
-                    SaslMechanism.SCRAM_SHA_256.getValue(),
-                    SaslMechanism.SCRAM_SHA_512.getValue()
-            )
-            .build();
-
-    public static final PropertyDescriptor SASL_PASSWORD = new PropertyDescriptor.Builder()
-            .name("sasl.password")
-            .displayName("SASL Password")
-            .description("Password provided with configured username when using PLAIN or SCRAM SASL Mechanisms")
-            .required(true)
-            .sensitive(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(
-                    SASL_MECHANISM,
-                    SaslMechanism.PLAIN.getValue(),
-                    SaslMechanism.SCRAM_SHA_256.getValue(),
-                    SaslMechanism.SCRAM_SHA_512.getValue()
-            )
-            .build();
-
-    public static final PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-user-service")
-            .displayName("Kerberos User Service")
-            .description("Service supporting user authentication with Kerberos")
-            .identifiesControllerService(SelfContainedKerberosUserService.class)
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("Service supporting SSL communication with Kafka brokers")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
+public class Kafka3ConnectionService extends AbstractControllerService implements KafkaConnectionService, VerifiableControllerService, KafkaClientComponent {
 
     public static final PropertyDescriptor TRANSACTION_ISOLATION_LEVEL = new PropertyDescriptor.Builder()
             .name("isolation.level")
