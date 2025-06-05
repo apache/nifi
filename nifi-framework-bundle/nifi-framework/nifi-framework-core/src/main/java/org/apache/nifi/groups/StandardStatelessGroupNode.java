@@ -234,7 +234,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             } catch (final Exception e) {
                 for (final StandardStatelessFlow flow : createdFlows) {
                     try {
-                        flow.shutdown(false, true);
+                        flow.shutdown(false, true, Duration.ofMillis(0));
                     } catch (final Exception ex) {
                         logger.error("Failed to shutdown Stateless Flow {}", flow, ex);
                     }
@@ -371,7 +371,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
         try {
             dataflow.initialize(initializationContext);
         } catch (final Exception e) {
-            dataflow.shutdown(true, true);
+            dataflow.shutdown(true, true, Duration.ofMillis(0));
             throw e;
         }
 
