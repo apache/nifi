@@ -864,7 +864,7 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <version>3.9.6</version>
+                                    <version>3.9.10</version>
                                 </requireMavenVersion>
                                 <requireReleaseDeps>
                                     <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
