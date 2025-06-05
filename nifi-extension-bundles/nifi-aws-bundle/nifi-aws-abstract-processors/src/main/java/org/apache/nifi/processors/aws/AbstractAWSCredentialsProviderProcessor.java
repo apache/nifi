@@ -137,6 +137,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
             REL_FAILURE
     );
 
+    private static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
 
     // Member variables
     private final Cache<String, ClientType> clientCache = Caffeine.newBuilder()
@@ -256,10 +257,32 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         }
 
         final String endpointOverride = overrideValue.evaluateAttributeExpressions().getValue();
-        return new AwsClientBuilder.EndpointConfiguration(endpointOverride, region.getName());
+
+        final String signingRegion;
+        if (isVpceEndpoint(endpointOverride)) {
+            // AWS VPCE endpoints contain the region but the AWS library cannot extract it from the URL
+            // e.g. https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
+            signingRegion = region.getName();
+        } else if (isCustomSignerConfigured(context)) {
+            // custom endpoints containing no region info
+            signingRegion = region.getName();
+        } else {
+            // endpoints where the AWS library can parse the region out
+            // including S3 compatible service endpoints with non-AWS regions
+            // e.g. https://s3.{region}.io.cloud.ovh.net
+            signingRegion = null;
+        }
+
+        return new AwsClientBuilder.EndpointConfiguration(endpointOverride, signingRegion);
     }
 
+    private boolean isVpceEndpoint(final String endpoint) {
+        return endpoint.endsWith(VPCE_ENDPOINT_SUFFIX);
+    }
 
+    protected boolean isCustomSignerConfigured(final ProcessContext context) {
+        return false;
+    }
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {

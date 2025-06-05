@@ -324,6 +324,12 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
+    @Override
+    protected boolean isCustomSignerConfigured(final ProcessContext context) {
+        final AwsSignerType signerType = context.getProperty(SIGNER_OVERRIDE).asAllowableValue(AwsSignerType.class);
+        return signerType == CUSTOM_SIGNER;
+    }
+
 
     protected Grantee createGrantee(final String value) {
         if (StringUtils.isEmpty(value)) {
