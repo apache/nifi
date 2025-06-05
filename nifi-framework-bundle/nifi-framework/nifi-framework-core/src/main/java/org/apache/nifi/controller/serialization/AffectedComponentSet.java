@@ -403,7 +403,8 @@ public class AffectedComponentSet {
 
     private void addComponentsForInheritedParameterContextChange(final FlowDifference difference) {
         // If the inherited parameter contexts have changed, any component referencing a parameter in that context is affected.
-        final String parameterContextId = difference.getComponentA().getInstanceIdentifier();
+        final VersionedComponent vc = difference.getComponentA() == null ? difference.getComponentB() : difference.getComponentA();
+        final String parameterContextId = vc.getInstanceIdentifier();
         final ParameterContext context = flowManager.getParameterContextManager().getParameterContext(parameterContextId);
         if (context == null) {
             return;
@@ -429,7 +430,8 @@ public class AffectedComponentSet {
 
     private void addComponentsForParameterContextChange(final FlowDifference difference) {
         // When the parameter context that a PG is bound to is updated, any component referencing a parameter is affected.
-        final String groupId = difference.getComponentA().getInstanceIdentifier();
+        final VersionedComponent vc = difference.getComponentA() == null ? difference.getComponentB() : difference.getComponentA();
+        final String groupId = vc.getInstanceIdentifier();
         final ProcessGroup group = flowManager.getGroup(groupId);
         if (group == null) {
             return;

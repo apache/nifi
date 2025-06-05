@@ -25,6 +25,7 @@ on:
       - 'nifi-framework-api/**'
       - 'nifi-framework-bundle/**'
       - 'nifi-extension-bundles/nifi-py4j-extension-bundle/**'
+      - 'nifi-registry/nifi-registry-core/nifi-registry-flow-diff/**'
       - 'nifi-stateless/**'
       - 'nifi-mock/**'
   pull_request:
@@ -36,6 +37,7 @@ on:
       - 'nifi-framework-api/**'
       - 'nifi-framework-bundle/**'
       - 'nifi-extension-bundles/nifi-py4j-extension-bundle/**'
+      - 'nifi-registry/nifi-registry-core/nifi-registry-flow-diff/**'
       - 'nifi-stateless/**'
       - 'nifi-mock/**'
 
