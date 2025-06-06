@@ -130,7 +130,7 @@
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.80</org.bouncycastle.version>
         <pmd.version>7.10.0</pmd.version>
-        <testcontainers.version>1.21.0</testcontainers.version>
+        <testcontainers.version>1.21.1</testcontainers.version>
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
