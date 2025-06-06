@@ -24,6 +24,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -96,9 +97,18 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         }
 
         try {
-            final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+            String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
             final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
             final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+
+            // we need to create a new URI string that contains the user and password
+            // if not the creation of the connection string will fail for some
+            // authentication methods when calling the constructor of ConnectionString
+            if (user != null && passw != null && !uri.contains("@")) {
+                final String beforeInstance = StringUtils.substringBefore(uri, "://");
+                final String afterInstance = StringUtils.substringAfter(uri, "://");
+                uri = beforeInstance + "://" + user + ":" + passw + "@" + afterInstance;
+            }
 
             final MongoClientSettings.Builder builder = MongoClientSettings.builder();
             final ConnectionString cs = new ConnectionString(uri);
