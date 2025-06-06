@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
@@ -265,7 +266,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
 
     private void updateStorageLocation(final VersionedProcessGroup group, final String registryUrl) {
         final  VersionedFlowCoordinates flowCoordinates = group.getVersionedFlowCoordinates();
-        if (flowCoordinates != null && !flowCoordinates.getStorageLocation().startsWith(registryUrl)) {
+        if (flowCoordinates != null &&  !StringUtils.startsWith(flowCoordinates.getStorageLocation(), registryUrl)) {
             final String updatedStorageLocation = String.format(STORAGE_LOCATION_URL, registryUrl, flowCoordinates.getBucketId(),
                     flowCoordinates.getFlowId(), flowCoordinates.getVersion());
 
