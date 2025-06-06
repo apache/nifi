@@ -17,6 +17,7 @@
 
 package org.apache.nifi.mongodb;
 
+import com.mongodb.AuthenticationMechanism;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
@@ -42,6 +43,8 @@ import javax.net.ssl.SSLContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
@@ -49,6 +52,8 @@ import java.util.Map;
                 "other Mongo-related components."
 )
 public class MongoDBControllerService extends AbstractControllerService implements MongoDBClientService {
+    // Regex to find authMechanism value (case-insensitive)
+    private static final Pattern AUTH_MECHANISM_PATTERN = Pattern.compile("(?i)(?:[?&])authmechanism=([^&]*)");
     private String uri;
 
     @OnEnabled
@@ -96,27 +101,50 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         }
 
         try {
-            final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+            String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
             final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
             final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
 
             final MongoClientSettings.Builder builder = MongoClientSettings.builder();
-            final ConnectionString cs = new ConnectionString(uri);
 
-            if (user != null && passw != null) {
-                final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
+            final Matcher authMechanismMatcher = AUTH_MECHANISM_PATTERN.matcher(uri);
+            final String authMechanism;
+            if (authMechanismMatcher.find()) {
+                authMechanism = authMechanismMatcher.group(1);
+                uri = authMechanismMatcher.replaceFirst(uri.contains("?") ? "?" : "");
+                // If trailing & or ? is left, clean up
+                uri = uri.replaceAll("[&?]+$", "");
+            } else {
+                authMechanism = null;
+            }
+
+            final ConnectionString cs = new ConnectionString(uri);
+            final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
+
+            if (authMechanism != null && user != null && passw != null) {
+                final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(authMechanism.toUpperCase());
+
+                switch (mechanism) {
+                    case SCRAM_SHA_1 -> builder.credential(MongoCredential.createScramSha1Credential(user, database, passw.toCharArray()));
+                    case SCRAM_SHA_256 -> builder.credential(MongoCredential.createScramSha256Credential(user, database, passw.toCharArray()));
+                    case MONGODB_AWS -> builder.credential(MongoCredential.createAwsCredential(user, passw.toCharArray()));
+                    case PLAIN -> builder.credential(MongoCredential.createPlainCredential(user, database, passw.toCharArray()));
+                    default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username and password: " + mechanism);
+                }
+            } else if (user != null && passw != null) {
                 final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
                 builder.credential(credential);
             }
+
+            builder.applyConnectionString(cs);
 
             if (sslContext != null) {
                 builder.applyToSslSettings(sslBuilder -> sslBuilder.enabled(true).context(sslContext));
             }
 
-            builder.applyConnectionString(cs);
-
             final MongoClientSettings clientSettings = builder.build();
             return MongoClients.create(clientSettings);
+
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", this.getClass().getName(), e, e);
             throw e;
