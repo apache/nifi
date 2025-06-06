@@ -16,57 +16,135 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStandardRecordProcessorBlocker {
 
-    @Test
-    public void testBlockAndUnblock() {
-        final TestThreadInspector blockerInspector = new TestThreadInspector();
+    @Nested
+    class ExplicitBlock {
 
-        final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
+        @Test
+        public void testBlockAndUnblock() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
 
-        recordProcessorBlocker.block();
-        final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
-        thread.start();
+            final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
 
-        blockerInspector.awaitBlockAwaited();
-        assertTrue(thread.isAlive());
+            recordProcessorBlocker.block();
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
 
-        recordProcessorBlocker.unblock();
-        blockerInspector.awaitBlockExited();
+            blockerInspector.awaitBlockAwaited();
+            assertTrue(thread.isAlive());
+
+            recordProcessorBlocker.unblock();
+            blockerInspector.awaitBlockExited();
+        }
+
+        @Test
+        public void testNoBlock() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
+
+            final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
+
+            recordProcessorBlocker.unblock();
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
+
+            blockerInspector.awaitBlockExited();
+        }
+
+        @Test
+        public void testBlock() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
+
+            final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
+            recordProcessorBlocker.block();
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
+
+            blockerInspector.awaitBlockAwaited();
+            assertTrue(thread.isAlive());
+
+            recordProcessorBlocker.unblock();
+        }
     }
 
-    @Test
-    public void testNoBlock() {
-        final TestThreadInspector blockerInspector = new TestThreadInspector();
+    @Nested
+    class TimeoutBlock {
 
-        final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
+        final AtomicLong currentTimeMillis = new AtomicLong();
 
-        recordProcessorBlocker.unblock();
-        final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
-        thread.start();
+        @Test
+        public void testBlockAndUnblock() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
 
-        blockerInspector.awaitBlockExited();
-    }
+            final StandardRecordProcessorBlocker recordProcessorBlocker = new StandardRecordProcessorBlocker(currentTimeMillis::get);
 
-    @Test
-    public void testBlock() {
-        final TestThreadInspector blockerInspector = new TestThreadInspector();
+            currentTimeMillis.set(0L);
+            recordProcessorBlocker.unblock();
+            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_TIMEOUT_MILLIS + 1);
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
 
-        final StandardRecordProcessorBlocker recordProcessorBlocker = StandardRecordProcessorBlocker.create();
-        recordProcessorBlocker.block();
-        final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
-        thread.start();
+            blockerInspector.awaitBlockAwaited();
+            assertTrue(thread.isAlive());
 
-        blockerInspector.awaitBlockAwaited();
-        assertTrue(thread.isAlive());
+            recordProcessorBlocker.unblock();
+            blockerInspector.awaitBlockExited();
+        }
 
-        recordProcessorBlocker.unblock();
+        @Test
+        public void testNoBlock() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
+
+            final StandardRecordProcessorBlocker recordProcessorBlocker = new StandardRecordProcessorBlocker(currentTimeMillis::get);
+
+            currentTimeMillis.set(0L);
+            recordProcessorBlocker.unblock();
+            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_TIMEOUT_MILLIS);
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
+
+            blockerInspector.awaitBlockExited();
+        }
+
+        @Test
+        public void testNoBlockAfterClose() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
+
+            final StandardRecordProcessorBlocker recordProcessorBlocker = new StandardRecordProcessorBlocker(currentTimeMillis::get);
+
+            recordProcessorBlocker.unblock();
+            recordProcessorBlocker.unblockAndDisableTimeout();
+            currentTimeMillis.set(Long.MAX_VALUE);
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
+
+            blockerInspector.awaitBlockExited();
+        }
+
+        @Test
+        public void testBlock() {
+            final TestThreadInspector blockerInspector = new TestThreadInspector();
+
+            final StandardRecordProcessorBlocker recordProcessorBlocker = new StandardRecordProcessorBlocker(currentTimeMillis::get);
+            currentTimeMillis.set(0L);
+            recordProcessorBlocker.unblock();
+            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_TIMEOUT_MILLIS + 1);
+            final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
+            thread.start();
+
+            blockerInspector.awaitBlockAwaited();
+            assertTrue(thread.isAlive());
+
+            recordProcessorBlocker.unblock();
+        }
     }
 
     private static Runnable createRunnableWithInspector(final StandardRecordProcessorBlocker recordProcessorBlocker, TestThreadInspector blockerInspector) {
