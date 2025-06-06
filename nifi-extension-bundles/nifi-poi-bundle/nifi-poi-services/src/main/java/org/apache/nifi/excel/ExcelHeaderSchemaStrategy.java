@@ -51,8 +51,7 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
                     + "column names in the header of the first sheet and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column "
                     + "while the configured header rows of subsequent sheets are skipped. "
                     + "NOTE: If there are duplicate column names then each subsequent duplicate column name is given a one up number. "
-                    + "For example, column names \"Frequency\", \"Intervals\", \"Frequency\" \"Name\", \"Frequency\", \"Intervals\" will be "
-                    + "changed to \"Frequency\", \"Intervals\", \"Frequency_2\" \"Name\", \"Frequency_3\", \"Intervals_2\".");
+                    + "For example, column names \"Name\", \"Name\" will be changed to \"Name\", \"Name_1\"");
 
     private final PropertyContext context;
     private final ComponentLog logger;
@@ -135,15 +134,15 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         return renamedDuplicateFieldNames;
     }
 
-    private List<String> renameDuplicateFieldNames(List<String> fieldNames) {
+    private List<String> renameDuplicateFieldNames(final List<String> fieldNames) {
         final Map<String, Integer> fieldNameCounts = new HashMap<>();
         final List<String> renamedDuplicateFieldNames = new ArrayList<>();
 
         for (String fieldName : fieldNames) {
             if (fieldNameCounts.containsKey(fieldName)) {
-                int count = fieldNameCounts.get(fieldName) + 1;
-                fieldNameCounts.put(fieldName, count);
-                renamedDuplicateFieldNames.add(fieldName + "_" + count);
+                final int count = fieldNameCounts.get(fieldName);
+                renamedDuplicateFieldNames.add("%s_%d".formatted(fieldName, count));
+                fieldNameCounts.put(fieldName, count + 1);
             } else {
                 fieldNameCounts.put(fieldName, 1);
                 renamedDuplicateFieldNames.add(fieldName);

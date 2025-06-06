@@ -215,7 +215,7 @@ public class TestExcelHeaderSchemaStrategy {
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             RecordSchema recordSchema = schemaStrategy.getSchema(null, inputStream, null);
             assertEquals(6, recordSchema.getFieldNames().size());
-            assertEquals(List.of("Frequency", "Intervals", "Frequency_2", "Name", "Frequency_3", "Intervals_2"), recordSchema.getFieldNames());
+            assertEquals(List.of("Frequency", "Intervals", "Frequency_1", "Name", "Frequency_2", "Intervals_1"), recordSchema.getFieldNames());
         }
     }
 
