@@ -26,12 +26,14 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import software.amazon.awssdk.services.glue.GlueClient;
+import software.amazon.awssdk.services.glue.model.DataFormat;
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionRequest;
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse;
 import software.amazon.awssdk.services.glue.model.SchemaId;
 import software.amazon.awssdk.services.glue.model.SchemaVersionNumber;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class GlueSchemaRegistryClient implements SchemaRegistryClient {
 
@@ -68,6 +70,17 @@ public class GlueSchemaRegistryClient implements SchemaRegistryClient {
         return createRecordSchema(schemaVersionResponse);
     }
 
+    @Override
+    public RecordSchema getSchema(UUID schemaVersionId) throws SchemaNotFoundException {
+        final GetSchemaVersionResponse schemaVersionResponse = client.getSchemaVersion(
+                GetSchemaVersionRequest.builder()
+                        .schemaVersionId(schemaVersionId.toString())
+                        .build()
+        );
+
+        return createRecordSchemaFromSchemaVersionId(schemaVersionResponse);
+    }
+
     private GetSchemaVersionResponse getSchemaVersionResponse(final String schemaName, final SchemaVersionNumber schemaVersionNumber) {
         final SchemaId schemaId = buildSchemaId(schemaName);
         final GetSchemaVersionRequest request = buildSchemaVersionRequest(schemaVersionNumber, schemaId);
@@ -95,15 +108,42 @@ public class GlueSchemaRegistryClient implements SchemaRegistryClient {
         final String schemaText = schemaVersionResponse.schemaDefinition();
 
         try {
-            final Schema avroSchema = new Schema.Parser().parse(schemaText);
             final SchemaIdentifier schemaId = SchemaIdentifier.builder()
                     .name(namespace)
                     .version(version)
                     .build();
-            return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
+            return parseSchema(schemaVersionResponse.dataFormat(), schemaText, schemaId);
         } catch (final SchemaParseException spe) {
             throw new SchemaNotFoundException("Obtained Schema with name " + namespace
                     + " from Glue Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
         }
+    }
+
+    private RecordSchema createRecordSchemaFromSchemaVersionId(final GetSchemaVersionResponse schemaVersionResponse) throws SchemaNotFoundException {
+        final int schemaVersionId = schemaVersionResponse.versionNumber().intValue();
+
+        try {
+            final SchemaIdentifier schemaId = SchemaIdentifier.builder()
+                    .name(schemaVersionResponse.schemaArn())
+                    .version(schemaVersionId)
+                    .build();
+            return parseSchema(schemaVersionResponse.dataFormat(), schemaVersionResponse.schemaDefinition(), schemaId);
+        } catch (final SchemaParseException spe) {
+            throw new SchemaNotFoundException("Obtained Schema for ARN: " + schemaVersionResponse.schemaArn()
+                    + " and Version ID: " + schemaVersionResponse.schemaVersionId()
+                    + " from Glue Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+        }
+    }
+
+    private RecordSchema parseSchema(final DataFormat dataFormat, final String schemaText, final SchemaIdentifier schemaId) throws SchemaParseException {
+        return switch (dataFormat) {
+            case AVRO -> {
+                final Schema avroSchema = new Schema.Parser().parse(schemaText);
+                yield AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
+            }
+            case JSON -> throw new UnsupportedOperationException("JSON schema parsing is not yet supported");
+            case PROTOBUF -> throw new UnsupportedOperationException("Protobuf schema parsing is not yet supported");
+            default -> throw new UnsupportedOperationException("Unsupported data format: " + dataFormat);
+        };
     }
 }
