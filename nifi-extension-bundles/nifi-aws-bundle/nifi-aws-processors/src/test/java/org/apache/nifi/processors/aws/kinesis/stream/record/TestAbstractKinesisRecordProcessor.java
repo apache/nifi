@@ -56,6 +56,7 @@ import static org.mockito.Mockito.when;
 
 public class TestAbstractKinesisRecordProcessor {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    private static final StandardRecordProcessorBlocker NOOP_RECORD_PROCESSOR_BLOCKER = StandardRecordProcessorBlocker.create();
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
@@ -69,11 +70,12 @@ public class TestAbstractKinesisRecordProcessor {
 
     @BeforeEach
     public void setUp() {
+        NOOP_RECORD_PROCESSOR_BLOCKER.unblockIndefinitely();
         when(processSessionFactory.createSession()).thenReturn(session);
 
         // default test fixture will try operations twice with very little wait in between
         fixture = new AbstractKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
-                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, StandardRecordProcessorBlocker.create()) {
+                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, NOOP_RECORD_PROCESSOR_BLOCKER) {
             @Override
             void processRecord(List<FlowFile> flowFiles, KinesisClientRecord kinesisRecord, boolean lastRecord, ProcessSession session, StopWatch stopWatch) {
                 // intentionally blank

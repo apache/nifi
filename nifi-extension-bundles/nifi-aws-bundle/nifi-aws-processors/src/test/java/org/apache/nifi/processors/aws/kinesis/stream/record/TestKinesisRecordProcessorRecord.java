@@ -70,6 +70,7 @@ import static org.mockito.Mockito.when;
 
 public class TestKinesisRecordProcessorRecord {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    private static final StandardRecordProcessorBlocker NOOP_RECORD_PROCESSOR_BLOCKER = StandardRecordProcessorBlocker.create();
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
@@ -90,6 +91,8 @@ public class TestKinesisRecordProcessorRecord {
 
     @BeforeEach
     public void setUp() throws InitializationException {
+        NOOP_RECORD_PROCESSOR_BLOCKER.unblockIndefinitely();
+
         runner.addControllerService("record-reader", reader);
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
         runner.enableControllerService(reader);
@@ -104,7 +107,7 @@ public class TestKinesisRecordProcessorRecord {
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
-                reader, writer, new RecordConverterIdentity(), StandardRecordProcessorBlocker.create());
+                reader, writer, new RecordConverterIdentity(), NOOP_RECORD_PROCESSOR_BLOCKER);
     }
 
     @AfterEach
@@ -186,7 +189,7 @@ public class TestKinesisRecordProcessorRecord {
         final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
         fixture = new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", transitUriPrefix, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
-                reader, writer, useWrapper ? new RecordConverterWrapper() : new RecordConverterIdentity(), StandardRecordProcessorBlocker.create());
+                reader, writer, useWrapper ? new RecordConverterWrapper() : new RecordConverterIdentity(), NOOP_RECORD_PROCESSOR_BLOCKER);
 
         // skip checkpoint
         fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);

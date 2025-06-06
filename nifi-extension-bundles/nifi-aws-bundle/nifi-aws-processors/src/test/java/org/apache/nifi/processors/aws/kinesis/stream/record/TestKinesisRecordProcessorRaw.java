@@ -59,6 +59,7 @@ import static org.mockito.Mockito.when;
 
 public class TestKinesisRecordProcessorRaw {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    private static final StandardRecordProcessorBlocker NOOP_RECORD_PROCESSOR_BLOCKER = StandardRecordProcessorBlocker.create();
 
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
@@ -77,9 +78,10 @@ public class TestKinesisRecordProcessorRaw {
 
     @BeforeEach
     public void setUp() {
+        NOOP_RECORD_PROCESSOR_BLOCKER.unblockIndefinitely();
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
-                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, StandardRecordProcessorBlocker.create());
+                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, NOOP_RECORD_PROCESSOR_BLOCKER);
     }
 
     @AfterEach
@@ -150,7 +152,7 @@ public class TestKinesisRecordProcessorRaw {
         final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
         if (endpointOverridden) {
             fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
-                    "endpoint-prefix", "https://another-endpoint.com:8443", 10_000L, 1L, 2, DATE_TIME_FORMATTER, StandardRecordProcessorBlocker.create());
+                    "endpoint-prefix", "https://another-endpoint.com:8443", 10_000L, 1L, 2, DATE_TIME_FORMATTER, NOOP_RECORD_PROCESSOR_BLOCKER);
         }
 
         // skip checkpoint
