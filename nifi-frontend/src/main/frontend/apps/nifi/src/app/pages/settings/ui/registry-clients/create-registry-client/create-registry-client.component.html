@@ -17,6 +17,7 @@
 
 <extension-creation
     [componentType]="'Registry Client'"
-    [documentedTypes]="registryClientTypes"
+    [documentedTypes]="(registryClientTypes$ | async)!"
+    [extensionTypesLoadingStatus]="(registryClientTypesLoadingStatus$ | async)!"
     [saving]="(saving$ | async)!"
     (extensionTypeSelected)="registryClientTypeSelected($event)"></extension-creation>

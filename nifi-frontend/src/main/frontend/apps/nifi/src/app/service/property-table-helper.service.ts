@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { catchError, EMPTY, map, Observable, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, EMPTY, map, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import {
     ComponentHistoryEntity,
     ControllerServiceCreator,
@@ -153,11 +153,14 @@ export class PropertyTableHelperService {
                     switchMap((implementingTypesResponse) => {
                         // show the create controller service dialog with the types that implemented the interface
                         const createServiceDialogReference = this.dialog.open(CreateControllerService, {
-                            ...LARGE_DIALOG,
-                            data: {
-                                controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
-                            }
+                            ...LARGE_DIALOG
                         });
+
+                        createServiceDialogReference.componentInstance.controllerServiceTypes$ = of(
+                            implementingTypesResponse.controllerServiceTypes
+                        );
+                        createServiceDialogReference.componentInstance.controllerServiceTypesLoadingStatus$ =
+                            of('success');
 
                         return createServiceDialogReference.componentInstance.createControllerService.pipe(
                             takeUntil(createServiceDialogReference.afterClosed()),

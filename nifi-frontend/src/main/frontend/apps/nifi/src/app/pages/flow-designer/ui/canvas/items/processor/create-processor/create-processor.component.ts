@@ -25,6 +25,10 @@ import { ExtensionCreation } from '../../../../../../../ui/common/extension-crea
 import { DocumentedType } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectProcessorTypes
+} from '../../../../../../../state/extension-types/extension-types.selectors';
 
 @Component({
     selector: 'create-processor',
@@ -33,15 +37,14 @@ import { AsyncPipe } from '@angular/common';
     styleUrls: ['./create-processor.component.scss']
 })
 export class CreateProcessor {
-    processorTypes: DocumentedType[];
+    processorTypes$ = this.store.select(selectProcessorTypes);
+    processorTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
     saving$ = this.store.select(selectSaving);
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateProcessorDialogRequest,
         private store: Store<CanvasState>
-    ) {
-        this.processorTypes = dialogRequest.processorTypes;
-    }
+    ) {}
 
     createProcessor(processorType: DocumentedType): void {
         this.store.dispatch(

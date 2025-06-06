@@ -17,36 +17,42 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CreateRegistryClient } from './create-registry-client.component';
-import { CreateRegistryClientDialogRequest } from '../../../state/registry-clients';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { DocumentedType } from '../../../../../state/shared';
+import { MatIconTestingModule } from '@angular/material/icon/testing';
+import { MockComponent } from 'ng-mocks';
+import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
+import { of } from 'rxjs';
 
 describe('CreateRegistryClient', () => {
     let component: CreateRegistryClient;
     let fixture: ComponentFixture<CreateRegistryClient>;
 
-    const data: CreateRegistryClientDialogRequest = {
-        registryClientTypes: [
-            {
-                type: 'org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient',
-                bundle: {
-                    group: 'org.apache.nifi',
-                    artifact: 'nifi-flow-registry-client-nar',
-                    version: '2.0.0-SNAPSHOT'
-                },
-                restricted: false,
-                tags: []
-            }
-        ]
-    };
+    const registryClientTypes: DocumentedType[] = [
+        {
+            type: 'org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient',
+            bundle: {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-flow-registry-client-nar',
+                version: '2.0.0-SNAPSHOT'
+            },
+            restricted: false,
+            tags: []
+        }
+    ];
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateRegistryClient, NoopAnimationsModule],
+            imports: [
+                CreateRegistryClient,
+                NoopAnimationsModule,
+                MatIconTestingModule,
+                MockComponent(ExtensionCreation)
+            ],
             providers: [
-                { provide: MAT_DIALOG_DATA, useValue: data },
                 {
                     provide: ClusterConnectionService,
                     useValue: {
@@ -58,6 +64,8 @@ describe('CreateRegistryClient', () => {
         });
         fixture = TestBed.createComponent(CreateRegistryClient);
         component = fixture.componentInstance;
+        component.registryClientTypes$ = of(registryClientTypes);
+        component.registryClientTypesLoadingStatus$ = of('success');
         fixture.detectChanges();
     });
 

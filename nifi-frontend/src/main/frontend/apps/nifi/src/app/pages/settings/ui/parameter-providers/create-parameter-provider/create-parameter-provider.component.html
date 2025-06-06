@@ -17,6 +17,7 @@
 
 <extension-creation
     [componentType]="'Parameter Provider'"
-    [documentedTypes]="parameterProviderTypes"
+    [documentedTypes]="(parameterProviderTypes$ | async)!"
+    [extensionTypesLoadingStatus]="(parameterProviderTypesLoadingStatus$ | async)!"
     [saving]="(saving$ | async)!"
     (extensionTypeSelected)="parameterProviderTypeSelected($event)"></extension-creation>

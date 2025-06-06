@@ -17,6 +17,7 @@
 
 <extension-creation
     [componentType]="'Reporting Task'"
-    [documentedTypes]="reportingTasks"
+    [documentedTypes]="(reportingTaskTypes$ | async)!"
+    [extensionTypesLoadingStatus]="(reportingTaskTypesLoadingStatus$ | async)!"
     [saving]="(saving$ | async)!"
     (extensionTypeSelected)="createReportingTask($event)"></extension-creation>

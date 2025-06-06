@@ -31,6 +31,9 @@ import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
 import { anyOf, onLowerCaseFilter } from './filter-predicate/extensions';
 import { matchesCamelCaseSearch } from './filter-predicate/camel-case.search';
+import { ExtensionTypesLoadingStatus } from '../../../state/extension-types';
+import { initialExtensionsTypesState } from '../../../state/extension-types/extension-types.reducer';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 
 @Component({
     selector: 'extension-creation',
@@ -44,7 +47,8 @@ import { matchesCamelCaseSearch } from './filter-predicate/camel-case.search';
         NifiSpinnerDirective,
         MatFormFieldModule,
         MatInputModule,
-        ReactiveFormsModule
+        ReactiveFormsModule,
+        NgxSkeletonLoaderComponent
     ],
     styleUrls: ['./extension-creation.component.scss']
 })
@@ -59,6 +63,7 @@ export class ExtensionCreation extends CloseOnEscapeDialog {
 
     @Input() componentType!: string;
     @Input() saving!: boolean;
+    @Input() extensionTypesLoadingStatus: ExtensionTypesLoadingStatus = initialExtensionsTypesState.status;
     @Input() initialSortColumn: 'type' | 'version' | 'tags' = 'type';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {

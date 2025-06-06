@@ -18,14 +18,18 @@
 import { createReducer, on } from '@ngrx/store';
 import { ExtensionTypesState } from './index';
 import {
+    extensionTypesApiError,
     loadExtensionTypesForCanvas,
     loadExtensionTypesForCanvasSuccess,
+    loadExtensionTypesForDocumentation,
     loadExtensionTypesForDocumentationSuccess,
+    loadExtensionTypesForPolicies,
     loadExtensionTypesForPoliciesSuccess,
+    loadExtensionTypesForSettings,
     loadExtensionTypesForSettingsSuccess
 } from './extension-types.actions';
 
-export const initialState: ExtensionTypesState = {
+export const initialExtensionsTypesState: ExtensionTypesState = {
     processorTypes: [],
     controllerServiceTypes: [],
     prioritizerTypes: [],
@@ -37,11 +41,24 @@ export const initialState: ExtensionTypesState = {
 };
 
 export const extensionTypesReducer = createReducer(
-    initialState,
-    on(loadExtensionTypesForCanvas, (state) => ({
-        ...state,
-        status: 'loading' as const
-    })),
+    initialExtensionsTypesState,
+    on(
+        loadExtensionTypesForCanvas,
+        loadExtensionTypesForSettings,
+        loadExtensionTypesForPolicies,
+        loadExtensionTypesForDocumentation,
+        (state) => ({
+            ...state,
+            processorTypes: [],
+            controllerServiceTypes: [],
+            prioritizerTypes: [],
+            reportingTaskTypes: [],
+            registryClientTypes: [],
+            parameterProviderTypes: [],
+            flowAnalysisRuleTypes: [],
+            status: 'loading' as const
+        })
+    ),
     on(loadExtensionTypesForCanvasSuccess, (state, { response }) => ({
         ...state,
         processorTypes: response.processorTypes,
@@ -75,5 +92,9 @@ export const extensionTypesReducer = createReducer(
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
         status: 'success' as const
+    })),
+    on(extensionTypesApiError, (state) => ({
+        ...state,
+        status: 'error' as const
     }))
 );

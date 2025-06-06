@@ -25,7 +25,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectControllerServiceTypes } from '../../../../state/extension-types/extension-types.selectors';
+import {
+    selectControllerServiceTypes,
+    selectExtensionTypesLoadingStatus
+} from '../../../../state/extension-types/extension-types.selectors';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { Client } from '../../../../service/client.service';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
@@ -97,16 +100,17 @@ export class ManagementControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openNewControllerServiceDialog),
-                concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
-                tap(([, controllerServiceTypes]) => {
+                tap(() => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...LARGE_DIALOG,
-                        data: {
-                            controllerServiceTypes
-                        }
+                        ...LARGE_DIALOG
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    dialogReference.componentInstance.controllerServiceTypes$ =
+                        this.store.select(selectControllerServiceTypes);
+                    dialogReference.componentInstance.controllerServiceTypesLoadingStatus$ = this.store.select(
+                        selectExtensionTypesLoadingStatus
+                    );
                     dialogReference.componentInstance.createControllerService
                         .pipe(take(1))
                         .subscribe((controllerServiceType) => {
