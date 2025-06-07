@@ -45,6 +45,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import static java.nio.file.Files.newDirectoryStream;
@@ -198,6 +199,23 @@ public class TestExcelHeaderSchemaStrategy {
             assertNotNull(dateRecordField);
             assertEquals(RecordFieldType.DATE, dateRecordField.getDataType().getFieldType(), String.format("Expected record field type to be %s but it was type %s",
                     RecordFieldType.DATE, dateRecordField.getDataType().getFieldType()));
+        }
+    }
+
+    @Test
+    void testDuplicateColumnNames() throws Exception {
+        Object[][] singleSheet = {{"Frequency", "Intervals", "Frequency", "Name", "Frequency", "Intervals"},
+                {6, "0-9", 13, "John", 15, 2}, {4, "10-19", 15, "Sue", 13, 3}};
+
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+        final Map<PropertyDescriptor, String> properties = Map.of();
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            RecordSchema recordSchema = schemaStrategy.getSchema(null, inputStream, null);
+            assertEquals(6, recordSchema.getFieldNames().size());
+            assertEquals(List.of("Frequency", "Intervals", "Frequency_1", "Name", "Frequency_2", "Intervals_1"), recordSchema.getFieldNames());
         }
     }
 
