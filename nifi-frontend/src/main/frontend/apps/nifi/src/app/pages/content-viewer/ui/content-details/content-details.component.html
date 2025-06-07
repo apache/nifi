@@ -1,0 +1,698 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<mat-drawer-container class="sidebar-container" [style.width.px]="drawerWidth">
+    <mat-drawer #drawer class="sidebar-content" mode="side" position="end" [style.width.px]="contentWidth">
+        <div class="content">
+            <mat-tab-group
+                class="tab-group"
+                [(selectedIndex)]="selectedIndex"
+                (selectedIndexChange)="tabChanged($event)">
+                <mat-tab label="Details">
+                    <div class="flex gap-x-4 pt-2">
+                        <div *ngIf="data.flowFile" class="pr-2 flex flex-col gap-y-3 tab-content">
+                            <div class="flex flex-col">
+                                <div class="font-bold primary-color"><h2>FlowFile Details</h2></div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>UUID</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatCopyableValue;
+                                        context: { $implicit: data.flowFile.uuid, title: data.flowFile.uuid }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Filename</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatCopyableValue;
+                                        context: {
+                                            $implicit: data.flowFile.filename,
+                                            title: data.flowFile.filename
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>File Size</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.flowFile.size,
+                                            title: data.flowFile.size + ' bytes'
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Queue Position</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.flowFile.position,
+                                            title: data.flowFile.position
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Queued Duration</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatDuration;
+                                        context: { $implicit: data.flowFile.queuedDuration }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Lineage Duration</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatDuration;
+                                        context: { $implicit: data.flowFile.lineageDuration }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Penalized</div>
+                                <div class="tertiary-color font-medium">
+                                    {{ data.flowFile.penalized ? 'Yes' : 'No' }}
+                                </div>
+                            </div>
+                            <ng-container *ngIf="data.flowFile.clusterNodeId">
+                                <div class="flex flex-col">
+                                    <div>Node Address</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.flowFile.clusterNodeAddress,
+                                                title: data.flowFile.clusterNodeAddress
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <ng-template #formatDuration let-duration>
+                                <ng-container *ngIf="duration != null; else noDuration">
+                                    <div class="tertiary-color font-medium">
+                                        {{ formatDurationValue(duration) }}
+                                    </div>
+                                </ng-container>
+                                <ng-template #noDuration>
+                                    <div class="unset neutral-color">No value set</div>
+                                </ng-template>
+                            </ng-template>
+                            <div class="flex flex-col">
+                                <div class="font-bold primary-color"><h2>Content Claim</h2></div>
+                            </div>
+                            <div
+                                class="flex flex-col gap-y-3"
+                                *ngIf="data.flowFile.contentClaimContainer != null; else noContent">
+                                <div>
+                                    <div>Container</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.flowFile.contentClaimContainer,
+                                                title: data.flowFile.contentClaimContainer
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Section</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.flowFile.contentClaimSection,
+                                                title: data.flowFile.contentClaimSection
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Identifier</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatCopyableContentValue;
+                                            context: {
+                                                $implicit: data.flowFile.contentClaimIdentifier,
+                                                title: data.flowFile.contentClaimIdentifier
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Offset</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.flowFile.contentClaimOffset,
+                                                title: data.flowFile.contentClaimOffset
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Size</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.flowFile.contentClaimFileSize,
+                                                title: data.flowFile.contentClaimFileSizeBytes + ' bytes'
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </div>
+                            <div class="flex pb-2">
+                                <button mat-stroked-button (click)="downloadContentClicked()">
+                                    <i class="fa fa-download"></i>
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                        <div *ngIf="data.provEvent" class="pr-2 flex flex-col gap-y-3 tab-content">
+                            <div class="flex flex-col">
+                                <div class="font-bold primary-color"><h2>Event Details</h2></div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Time</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.provEvent.eventTime,
+                                            title: data.provEvent.eventTime
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Event Duration</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatDuration;
+                                        context: { $implicit: data.provEvent.eventDuration }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Lineage Duration</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatDuration;
+                                        context: { $implicit: data.provEvent.lineageDuration }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Type</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.provEvent.eventType,
+                                            title: data.provEvent.eventType
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>FlowFile UUID</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatCopyableValue;
+                                        context: {
+                                            $implicit: data.provEvent.flowFileUuid,
+                                            title: data.provEvent.flowFileUuid
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>File Size</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.provEvent.fileSize,
+                                            title: data.provEvent.fileSizeBytes + ' bytes'
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Component Id</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatCopyableValue;
+                                        context: {
+                                            $implicit: data.provEvent.componentId,
+                                            title: data.provEvent.componentId
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Component Name</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.provEvent.componentName,
+                                            title: data.provEvent.componentName
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Component Type</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: {
+                                            $implicit: data.provEvent.componentType,
+                                            title: data.provEvent.componentType
+                                        }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Details</div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatValue;
+                                        context: { $implicit: data.provEvent.details, title: data.provEvent.details }
+                                    "></ng-container>
+                            </div>
+                            <ng-container *ngIf="data.provEvent.eventType === 'RECEIVE'">
+                                <div class="flex flex-col">
+                                    <div>Source FlowFile Id</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatCopyableValue;
+                                            context: {
+                                                $implicit: data.provEvent.sourceSystemFlowFileId,
+                                                title: data.provEvent.sourceSystemFlowFileId
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div class="flex flex-col">
+                                    <div>Transit Uri</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.provEvent.transitUri,
+                                                title: data.provEvent.transitUri
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="data.provEvent.eventType === 'SEND'">
+                                <div class="flex flex-col">
+                                    <div>Transit Uri</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.provEvent.transitUri,
+                                                title: data.provEvent.transitUri
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="data.provEvent.eventType === 'ADDINFO'">
+                                <div class="flex flex-col">
+                                    <div>Alternate Identifier Uri</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.provEvent.alternateIdentifierUri,
+                                                title: data.provEvent.alternateIdentifierUri
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="data.provEvent.eventType === 'ROUTE'">
+                                <div class="flex flex-col">
+                                    <div>Relationship</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.provEvent.relationship,
+                                                title: data.provEvent.relationship
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="data.provEvent.eventType === 'FETCH'">
+                                <div class="flex flex-col" *ngIf="data.provEvent.eventType === 'FETCH'">
+                                    <div>Transit Uri</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.provEvent.transitUri,
+                                                title: data.provEvent.transitUri
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="data.provEvent.clusterNodeId">
+                                <div class="flex flex-col">
+                                    <div>Node Address</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: {
+                                                $implicit: data.provEvent.clusterNodeAddress,
+                                                title: data.provEvent.clusterNodeAddress
+                                            }
+                                        "></ng-container>
+                                </div>
+                            </ng-container>
+                            <div class="flex flex-col">
+                                <div class="font-bold primary-color">
+                                    Parent FlowFiles ({{ data.provEvent.parentUuids.length }})
+                                </div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatUuids;
+                                        context: { $implicit: data.provEvent.parentUuids, emptyMessage: 'No parents' }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="font-bold primary-color">
+                                    Child FlowFiles ({{ data.provEvent.childUuids.length }})
+                                </div>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        formatUuids;
+                                        context: { $implicit: data.provEvent.childUuids, emptyMessage: 'No children' }
+                                    "></ng-container>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="font-bold primary-color"><h2>Content Claim</h2></div>
+                            </div>
+                            <div class="font-bold primary-color">Input Claim</div>
+                            <div class="flex flex-col gap-y-3">
+                                <div>
+                                    <div>Container</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.provEvent.inputContentClaimContainer,
+                                                title: data.provEvent.inputContentClaimContainer
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Section</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.provEvent.inputContentClaimSection,
+                                                title: data.provEvent.inputContentClaimContainer
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Identifier</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatCopyableContentValue;
+                                            context: {
+                                                $implicit: data.provEvent.inputContentClaimIdentifier,
+                                                title: data.provEvent.inputContentClaimIdentifier
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Offset</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.provEvent.inputContentClaimOffset,
+                                                title: data.provEvent.inputContentClaimOffset
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div>
+                                    <div>Size</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatContentValue;
+                                            context: {
+                                                $implicit: data.provEvent.inputContentClaimFileSize,
+                                                title: data.provEvent.inputContentClaimFileSizeBytes + ' bytes'
+                                            }
+                                        "></ng-container>
+                                </div>
+                                <div *ngIf="data.provEvent.inputContentAvailable" class="flex pb-2">
+                                    <button mat-stroked-button (click)="downloadContentClicked('input')">
+                                        <i class="fa fa-download"></i>
+                                        Download
+                                    </button>
+                                </div>
+                                <div class="font-bold primary-color">Output Claim</div>
+                                <div class="flex flex-col gap-y-3">
+                                    <div>
+                                        <div>Container</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: data.provEvent.outputContentClaimContainer,
+                                                    title: data.provEvent.outputContentClaimContainer
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Section</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: data.provEvent.outputContentClaimSection,
+                                                    title: data.provEvent.outputContentClaimSection
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Identifier</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatCopyableContentValue;
+                                                context: {
+                                                    $implicit: data.provEvent.outputContentClaimIdentifier,
+                                                    title: data.provEvent.outputContentClaimIdentifier
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Offset</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: data.provEvent.outputContentClaimOffset,
+                                                    title: data.provEvent.outputContentClaimOffset
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Size</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: data.provEvent.outputContentClaimFileSize,
+                                                    title: data.provEvent.outputContentClaimFileSizeBytes + ' bytes'
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div *ngIf="data.provEvent.outputContentAvailable" class="flex pb-2">
+                                        <button mat-stroked-button (click)="downloadContentClicked('output')">
+                                            <i class="fa fa-download"></i>
+                                            Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <ng-template #formatUuids let-uuids let-emptyMessage="emptyMessage">
+                            <ng-container *ngIf="uuids.length > 0; else noUuids">
+                                <div class="tertiary-color font-medium">
+                                    <div *ngFor="let uuid of uuids">{{ uuid }}</div>
+                                </div>
+                            </ng-container>
+                            <ng-template #noUuids>
+                                <div class="unset neutral-color">{{ emptyMessage }}</div>
+                            </ng-template>
+                        </ng-template>
+                        <ng-template #noContent>
+                            <div class="unset neutral-color">No Content Available</div>
+                        </ng-template>
+                    </div>
+                </mat-tab>
+                <mat-tab label="Attributes">
+                    <div class="flex flex-col gap-y-4 pt-2 tab-content">
+                        <div class="flex">
+                            <div class="font-bold primary-color"><h2>Attribute Values</h2></div>
+                        </div>
+                        <div *ngIf="data.flowFile" class="flex flex-col">
+                            <div *ngFor="let attribute of data.flowFile.attributes | keyvalue">
+                                <div class="mb-4 flex flex-col">
+                                    <div>{{ attribute.key }}</div>
+                                    <ng-container
+                                        *ngTemplateOutlet="
+                                            formatValue;
+                                            context: { $implicit: attribute.value, title: attribute.value }
+                                        "></ng-container>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="data.provEvent">
+                            <div class="flex flex-col">
+                                @for (attribute of data.provEvent.attributes; track attribute.name) {
+                                    <div class="mb-4 flex flex-col">
+                                        <div>{{ attribute.name }}</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatValue;
+                                                context: { $implicit: attribute.value, title: attribute.value }
+                                            "></ng-container>
+                                        <ng-container *ngIf="attributeValueChanged(attribute)">
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    formatValue;
+                                                    context: {
+                                                        $implicit: attribute.previousValue,
+                                                        title: attribute.previousValue
+                                                    }
+                                                "></ng-container>
+                                        </ng-container>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </mat-tab>
+            </mat-tab-group>
+            <ng-template #formatDuration let-duration>
+                <ng-container *ngIf="duration != null; else noDuration">
+                    <div class="tertiary-color font-medium">
+                        {{ formatDurationValue(duration) }}
+                    </div>
+                </ng-container>
+                <ng-template #noDuration>
+                    <div class="unset neutral-color">No value set</div>
+                </ng-template>
+            </ng-template>
+            <ng-template #formatValue let-value let-title="title">
+                <ng-container *ngIf="value != null; else nullValue">
+                    <ng-container *ngIf="value === ''; else nonEmptyValue">
+                        <div class="unset neutral-color">Empty string set</div>
+                    </ng-container>
+                    <ng-template #nonEmptyValue>
+                        <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
+                            {{ value }}
+                        </div>
+                        <ng-template #valueWithTitle>
+                            <div class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
+                        </ng-template>
+                    </ng-template>
+                </ng-container>
+                <ng-template #nullValue>
+                    <div class="unset neutral-color">No value set</div>
+                </ng-template>
+            </ng-template>
+            <ng-template #formatCopyableValue let-value let-title="title">
+                <ng-container *ngIf="value != null; else nullValue">
+                    <ng-container *ngIf="value === ''; else nonEmptyValue">
+                        <div class="unset neutral-color">Empty string set</div>
+                    </ng-container>
+                    <ng-template #nonEmptyValue>
+                        <div
+                            [copy]="value"
+                            class="tertiary-color font-medium"
+                            *ngIf="title == null; else valueWithTitle">
+                            {{ value }}
+                        </div>
+                        <ng-template #valueWithTitle>
+                            <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">
+                                {{ value }}
+                            </div>
+                        </ng-template>
+                    </ng-template>
+                </ng-container>
+                <ng-template #nullValue>
+                    <div class="unset neutral-color">No value set</div>
+                </ng-template>
+            </ng-template>
+
+            <ng-template #formatContentValue let-value let-title="title">
+                <ng-container *ngIf="value != null; else nullValue">
+                    <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
+                        {{ value }}
+                    </div>
+                    <ng-template #valueWithTitle>
+                        <div class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
+                    </ng-template>
+                </ng-container>
+                <ng-template #nullValue>
+                    <div class="unset neutral-color">No value previously set</div>
+                </ng-template>
+            </ng-template>
+            <ng-template #formatCopyableContentValue let-value let-title="title">
+                <ng-container *ngIf="value != null; else nullValue">
+                    <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
+                        {{ value }}
+                    </div>
+                    <ng-template #valueWithTitle>
+                        <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">
+                            {{ value }}
+                        </div>
+                    </ng-template>
+                </ng-container>
+                <ng-template #nullValue>
+                    <div class="unset neutral-color">No value previously set</div>
+                </ng-template>
+            </ng-template>
+        </div>
+    </mat-drawer>
+
+    <div class="flex flex-row sidebar">
+        <div
+            class="resize-edge"
+            [ngClass]="{ 'sidebar-toggle-collapsed': showDetails }"
+            (mousedown)="startResize($event)"></div>
+        <div class="flex flex-col">
+            <button mat-icon-button class="toggle-button" (click)="toggleDetails()" [matTooltip]="getToolTip()">
+                <div class="sidebar-toggle-icon" *ngIf="!showDetails; else detailsOpen">
+                    <i class="fa fa-angle-double-left arrow-icon"></i>
+                </div>
+
+                <ng-template #detailsOpen>
+                    <div class="sidebar-toggle-icon">
+                        <i class="fa fa-angle-double-right arrow-icon"></i>
+                    </div>
+                </ng-template>
+            </button>
+
+            <div class="sidebar-toggle">
+                <div class="sidebar-title sidebar-title-collapsed">
+                    <h2>Details & Attributes</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</mat-drawer-container>
