@@ -119,10 +119,6 @@ export interface EditTenantResponse {
     userGroup?: any;
 }
 
-export interface CreateControllerServiceDialogRequest {
-    controllerServiceTypes: DocumentedType[];
-}
-
 export interface EditControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;

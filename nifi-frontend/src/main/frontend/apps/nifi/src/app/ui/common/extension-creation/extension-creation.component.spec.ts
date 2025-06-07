@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ExtensionCreation } from './extension-creation.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialogRef } from '@angular/material/dialog';
+import { By } from '@angular/platform-browser';
 
 describe('ExtensionCreation', () => {
     let component: ExtensionCreation;
@@ -37,5 +38,52 @@ describe('ExtensionCreation', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    describe('extensionTypesLoadingStatus', () => {
+        it('should show error', () => {
+            component.extensionTypesLoadingStatus = 'error';
+            fixture.detectChanges();
+
+            const errorLoadingTypes = fixture.debugElement.query(By.css('div[data-qa="error-loading-types"]'));
+            const extensionTypesListing = fixture.debugElement.query(By.css('div[data-qa="extension-types-listing"]'));
+            const extensionTypesSkeleton = fixture.debugElement.query(
+                By.css('ngx-skeleton-loader[data-qa="extension-types-skeleton"]')
+            );
+
+            expect(errorLoadingTypes).toBeTruthy();
+            expect(extensionTypesListing).toBeFalsy();
+            expect(extensionTypesSkeleton).toBeFalsy();
+        });
+
+        it('should show skeleton', () => {
+            component.extensionTypesLoadingStatus = 'loading';
+            fixture.detectChanges();
+
+            const errorLoadingTypes = fixture.debugElement.query(By.css('div[data-qa="error-loading-types"]'));
+            const extensionTypesListing = fixture.debugElement.query(By.css('div[data-qa="extension-types-listing"]'));
+            const extensionTypesSkeleton = fixture.debugElement.query(
+                By.css('ngx-skeleton-loader[data-qa="extension-types-skeleton"]')
+            );
+
+            expect(errorLoadingTypes).toBeFalsy();
+            expect(extensionTypesListing).toBeFalsy();
+            expect(extensionTypesSkeleton).toBeTruthy();
+        });
+
+        it('should show listing', () => {
+            component.extensionTypesLoadingStatus = 'success';
+            fixture.detectChanges();
+
+            const errorLoadingTypes = fixture.debugElement.query(By.css('div[data-qa="error-loading-types"]'));
+            const extensionTypesListing = fixture.debugElement.query(By.css('div[data-qa="extension-types-listing"]'));
+            const extensionTypesSkeleton = fixture.debugElement.query(
+                By.css('ngx-skeleton-loader[data-qa="extension-types-skeleton"]')
+            );
+
+            expect(errorLoadingTypes).toBeFalsy();
+            expect(extensionTypesListing).toBeTruthy();
+            expect(extensionTypesSkeleton).toBeFalsy();
+        });
     });
 });

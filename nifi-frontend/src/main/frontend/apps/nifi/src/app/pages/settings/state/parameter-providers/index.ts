@@ -15,13 +15,7 @@
  * limitations under the License.
  */
 
-import {
-    Bundle,
-    ComponentHistory,
-    DocumentedType,
-    ParameterEntity,
-    PropertyDescriptor
-} from '../../../../state/shared';
+import { Bundle, ComponentHistory, ParameterEntity, PropertyDescriptor } from '../../../../state/shared';
 import { AffectedComponentEntity, ParameterContextReferenceEntity, Permissions, Revision } from '@nifi/shared';
 
 export const parameterProvidersFeatureKey = 'parameterProviders';
@@ -129,10 +123,6 @@ export interface LoadParameterProvidersResponse {
 
 export interface SelectParameterProviderRequest {
     id: string;
-}
-
-export interface CreateParameterProviderDialogRequest {
-    parameterProviderTypes: DocumentedType[];
 }
 
 export interface CreateParameterProviderRequest {

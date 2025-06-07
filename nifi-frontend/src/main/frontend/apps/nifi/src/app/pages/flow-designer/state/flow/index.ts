@@ -19,7 +19,6 @@ import { BreadcrumbEntity, Position } from '../shared';
 import {
     Bundle,
     ComponentHistory,
-    DocumentedType,
     ParameterContextEntity,
     RegistryClientEntity,
     SparseVersionedFlow,
@@ -293,7 +292,6 @@ export interface GroupComponentsSuccess extends CreateComponentResponse {
 
 export interface CreateProcessorDialogRequest {
     request: CreateComponentRequest;
-    processorTypes: DocumentedType[];
 }
 
 export interface GoToRemoteProcessGroupRequest {

@@ -18,56 +18,61 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateControllerService } from './create-controller-service.component';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../state/extension-types/extension-types.reducer';
+import { initialExtensionsTypesState } from '../../../../state/extension-types/extension-types.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CreateControllerServiceDialogRequest } from '../../../../state/shared';
+import { MatIconTestingModule } from '@angular/material/icon/testing';
+import { MockComponent } from 'ng-mocks';
+import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
+import { DocumentedType } from '../../../../state/shared';
+import { of } from 'rxjs';
 
 describe('CreateControllerService', () => {
     let component: CreateControllerService;
     let fixture: ComponentFixture<CreateControllerService>;
 
-    const data: CreateControllerServiceDialogRequest = {
-        controllerServiceTypes: [
-            {
-                type: 'org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService',
-                bundle: {
-                    group: 'org.apache.nifi',
-                    artifact: 'nifi-azure-nar',
-                    version: '2.0.0-SNAPSHOT'
-                },
-                controllerServiceApis: [
-                    {
-                        type: 'org.apache.nifi.services.azure.storage.ADLSCredentialsService',
-                        bundle: {
-                            group: 'org.apache.nifi',
-                            artifact: 'nifi-azure-services-api-nar',
-                            version: '2.0.0-SNAPSHOT'
-                        }
+    const controllerServiceTypes: DocumentedType[] = [
+        {
+            type: 'org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService',
+            bundle: {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-azure-nar',
+                version: '2.0.0-SNAPSHOT'
+            },
+            controllerServiceApis: [
+                {
+                    type: 'org.apache.nifi.services.azure.storage.ADLSCredentialsService',
+                    bundle: {
+                        group: 'org.apache.nifi',
+                        artifact: 'nifi-azure-services-api-nar',
+                        version: '2.0.0-SNAPSHOT'
                     }
-                ],
-                description: 'Defines credentials for ADLS processors.',
-                restricted: false,
-                tags: ['cloud', 'credentials', 'adls', 'storage', 'microsoft', 'azure']
-            }
-        ]
-    };
+                }
+            ],
+            description: 'Defines credentials for ADLS processors.',
+            restricted: false,
+            tags: ['cloud', 'credentials', 'adls', 'storage', 'microsoft', 'azure']
+        }
+    ];
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateControllerService, NoopAnimationsModule],
+            imports: [
+                CreateControllerService,
+                NoopAnimationsModule,
+                MatIconTestingModule,
+                MockComponent(ExtensionCreation)
+            ],
             providers: [
-                {
-                    provide: MAT_DIALOG_DATA,
-                    useValue: data
-                },
-                provideMockStore({ initialState }),
+                provideMockStore({ initialState: initialExtensionsTypesState }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(CreateControllerService);
         component = fixture.componentInstance;
+        component.controllerServiceTypes$ = of(controllerServiceTypes);
+        component.controllerServiceTypesLoadingStatus$ = of('success');
         fixture.detectChanges();
     });
 

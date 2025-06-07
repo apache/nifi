@@ -15,14 +15,10 @@
  * limitations under the License.
  */
 
-import { Bundle, ComponentHistory, DocumentedType } from '../../../../state/shared';
+import { Bundle, ComponentHistory } from '../../../../state/shared';
 import { BulletinEntity, Permissions, Revision } from '@nifi/shared';
 
 export const reportingTasksFeatureKey = 'reportingTasks';
-
-export interface CreateReportingTaskDialogRequest {
-    reportingTaskTypes: DocumentedType[];
-}
 
 export interface LoadReportingTasksResponse {
     reportingTasks: ReportingTaskEntity[];

@@ -23,7 +23,10 @@ import { catchError, combineLatest, from, map, of, switchMap, take, takeUntil, t
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectControllerServiceTypes } from '../../../../state/extension-types/extension-types.selectors';
+import {
+    selectControllerServiceTypes,
+    selectExtensionTypesLoadingStatus
+} from '../../../../state/extension-types/extension-types.selectors';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { Client } from '../../../../service/client.service';
 import { YesNoDialog } from '@nifi/shared';
@@ -115,19 +118,18 @@ export class ControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openNewControllerServiceDialog),
-                concatLatestFrom(() => [
-                    this.store.select(selectControllerServiceTypes),
-                    this.store.select(selectCurrentProcessGroupId)
-                ]),
-                tap(([, controllerServiceTypes, processGroupId]) => {
+                concatLatestFrom(() => [this.store.select(selectCurrentProcessGroupId)]),
+                tap(([, processGroupId]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...LARGE_DIALOG,
-                        data: {
-                            controllerServiceTypes
-                        }
+                        ...LARGE_DIALOG
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    dialogReference.componentInstance.controllerServiceTypes$ =
+                        this.store.select(selectControllerServiceTypes);
+                    dialogReference.componentInstance.controllerServiceTypesLoadingStatus$ = this.store.select(
+                        selectExtensionTypesLoadingStatus
+                    );
 
                     dialogReference.componentInstance.createControllerService
                         .pipe(take(1))

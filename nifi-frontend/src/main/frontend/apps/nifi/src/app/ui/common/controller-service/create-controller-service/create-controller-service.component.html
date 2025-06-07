@@ -17,6 +17,7 @@
 
 <extension-creation
     [componentType]="'Controller Service'"
-    [documentedTypes]="controllerServiceTypes"
+    [documentedTypes]="(controllerServiceTypes$ | async)!"
+    [extensionTypesLoadingStatus]="(controllerServiceTypesLoadingStatus$ | async)!"
     [saving]="(saving$ | async)!"
     (extensionTypeSelected)="controllerServiceTypeSelected($event)"></extension-creation>

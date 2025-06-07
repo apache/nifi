@@ -17,6 +17,7 @@
 
 <extension-creation
     [componentType]="'Flow Analysis Rule'"
-    [documentedTypes]="flowAnalysisRules"
+    [documentedTypes]="(flowAnalysisRulesTypes$ | async)!"
+    [extensionTypesLoadingStatus]="(flowAnalysisRulesTypesLoadingStatus$ | async)!"
     [saving]="(saving$ | async)!"
     (extensionTypeSelected)="createFlowAnalysisRule($event)"></extension-creation>
