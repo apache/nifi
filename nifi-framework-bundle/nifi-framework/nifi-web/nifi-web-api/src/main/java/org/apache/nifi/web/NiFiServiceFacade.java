@@ -18,6 +18,7 @@ package org.apache.nifi.web;
 
 import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.authorization.AuthorizeAccess;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -134,6 +135,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupOptionEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
@@ -2204,6 +2206,42 @@ public interface NiFiServiceFacade {
      * @return The controller service DTO
      */
     ControllerServiceEntity updateControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+
+    /**
+     * Moves the specified controller service.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceDTO The controller service DTO
+     * @param newProcessGroupID The id of the process group the controller service is being moved to
+     * @return The controller service DTO
+     */
+    ControllerServiceEntity moveControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO, final String newProcessGroupID);
+
+    /**
+     * Gets all available process group move options
+     *
+     * @param controllerServiceId id
+     * @return A list of all process group move options
+     */
+    List<ProcessGroupOptionEntity> getAllProcessGroupOptions(String controllerServiceId);
+
+    /**
+     * Generated a process group move option
+     *
+     * @param controllerServiceDTO The controller service DTO
+     * @param processGroup The authorizable process group
+     * @return A process group move option
+     */
+    ProcessGroupOptionEntity generateProcessGroupOption(ControllerServiceDTO controllerServiceDTO, ProcessGroupAuthorizable processGroup);
+
+    /**
+     * Gets all conflicting components preventing a move operation
+     *
+     * @param controllerServiceDTO The controller service DTO
+     * @param processGroup The authorizable process group
+     * @return A list of all conflicting components
+     */
+    List<String> getConflictingComponents(ControllerServiceDTO controllerServiceDTO, ProcessGroupAuthorizable processGroup);
 
     /**
      * Performs verification of the given Configuration for the Controller Service with the given ID
