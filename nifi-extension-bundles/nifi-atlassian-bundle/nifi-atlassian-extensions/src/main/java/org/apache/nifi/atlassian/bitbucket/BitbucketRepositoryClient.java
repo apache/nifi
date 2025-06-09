@@ -350,7 +350,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final URI uri = getUriBuilder().addPathSegment("src").addPathSegment(lastCommit.get()).addPathSegment(resolvedPath).build();
         final String errorMessage = String.format("Error while listing content for repository [%s] on branch %s at path %s", repoName, branch, resolvedPath);
 
-        return paginateAndCollect(uri.toString(), errorMessage);
+        return getPagedResponseValues(uri, errorMessage);
     }
 
     private Iterator<JsonNode> getListCommits(final String branch, final String path) throws FlowRegistryException {
@@ -359,28 +359,30 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final URI uri = getUriBuilder().addPathSegment("commits").addPathSegment(branch).addQueryParameter("path", path).build();
         final String errorMessage = String.format("Error while listing commits for repository [%s] on branch %s", repoName, branch);
 
-        return paginateAndCollect(uri.toString(), errorMessage);
+        return getPagedResponseValues(uri, errorMessage);
     }
 
-    private Iterator<JsonNode> paginateAndCollect(final String url, final String errorMessage) throws FlowRegistryException {
+    private Iterator<JsonNode> getPagedResponseValues(final URI uri, final String errorMessage) throws FlowRegistryException {
         final List<JsonNode> allValues = new ArrayList<>();
-        String newUrl = url;
-        while (newUrl != null) {
-            HttpResponseEntity response = webClient.getWebClientService()
+        URI nextUri = uri;
+        while (nextUri != null) {
+            final HttpResponseEntity response = webClient.getWebClientService()
                     .get()
-                    .uri(URI.create(newUrl))
+                    .uri(nextUri)
                     .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                     .retrieve();
 
             if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-                throw new FlowRegistryException(String.format(errorMessage + ": %s", getErrorMessage(response)));
+                final String responseErrorMessage = getErrorMessage(response);
+                final String errorMessageFormat = errorMessage + ": %s";
+                throw new FlowRegistryException(errorMessageFormat.formatted(responseErrorMessage));
             }
 
             JsonNode root;
             try {
                 root = objectMapper.readTree(response.body());
-            } catch (IOException e) {
-                throw new FlowRegistryException("Could not parse Bitbucket API response", e);
+            } catch (final IOException e) {
+                throw new FlowRegistryException(String.format("Could not parse Bitbucket API response at %s", nextUri), e);
             }
 
             // collect this page’s values
@@ -391,7 +393,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
             // prepare next iteration
             JsonNode next = root.get("next");
-            newUrl = (next != null && next.isTextual()) ? next.asText() : null;
+            nextUri = (next != null && next.isTextual()) ? URI.create(next.asText()) : null;
         }
 
         return allValues.iterator();
