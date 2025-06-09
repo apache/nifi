@@ -105,9 +105,9 @@ public class MongoDBControllerService extends AbstractControllerService implemen
             // if not the creation of the connection string will fail for some
             // authentication methods when calling the constructor of ConnectionString
             if (user != null && passw != null && !uri.contains("@")) {
-                final String beforeInstance = StringUtils.substringBefore(uri, "://");
-                final String afterInstance = StringUtils.substringAfter(uri, "://");
-                uri = beforeInstance + "://" + user + ":" + passw + "@" + afterInstance;
+                final String scheme = StringUtils.substringBefore(uri, "://");
+                final String hostPortPath = StringUtils.substringAfter(uri, "://");
+                uri = "%s://%s:%s@%s".formatted(scheme, user, passw, hostPortPath);
             }
 
             final MongoClientSettings.Builder builder = MongoClientSettings.builder();
