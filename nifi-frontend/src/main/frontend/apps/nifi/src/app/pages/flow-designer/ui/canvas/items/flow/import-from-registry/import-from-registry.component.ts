@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject, Input, OnInit } from '@angular/core';
+import { Component, Inject, Input, OnInit, signal, WritableSignal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { ImportFromRegistryDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
@@ -39,7 +39,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { Observable, of, take } from 'rxjs';
+import { catchError, EMPTY, Observable, of, take } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -58,6 +58,9 @@ import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorHelper } from '../../../../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 
 @Component({
     selector: 'import-from-registry',
@@ -78,7 +81,8 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         MatCheckboxModule,
         MatSortModule,
         MatTableModule,
-        ContextErrorBanner
+        ContextErrorBanner,
+        NgxSkeletonLoaderComponent
     ],
     templateUrl: './import-from-registry.component.html',
     styleUrls: ['./import-from-registry.component.scss']
@@ -123,13 +127,20 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
     selectedFlowVersion: string | null = null;
 
+    loadingBranches: WritableSignal<boolean> = signal(false);
+    loadingBuckets: WritableSignal<boolean> = signal(false);
+    loadingFlows: WritableSignal<boolean> = signal(false);
+    loadingVersions: WritableSignal<boolean> = signal(false);
+    loadingVersionsError: WritableSignal<string | null> = signal(null);
+
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: ImportFromRegistryDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
         private nifiCommon: NiFiCommon,
         private client: Client,
-        private clusterConnectionService: ClusterConnectionService
+        private clusterConnectionService: ClusterConnectionService,
+        private errorHelper: ErrorHelper
     ) {
         super();
         this.store
@@ -230,12 +241,47 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         this.loadVersions(registryId, bucketId, flowId, branch);
     }
 
+    private setLoading(resourceType: string, loading: boolean): void {
+        let formControl;
+        switch (resourceType) {
+            case 'branch':
+                this.loadingBranches.set(loading);
+                formControl = this.importFromRegistryForm.get('branch');
+                break;
+            case 'bucket':
+                this.loadingBuckets.set(loading);
+                formControl = this.importFromRegistryForm.get('bucket');
+                break;
+            case 'flow':
+                this.loadingFlows.set(loading);
+                formControl = this.importFromRegistryForm.get('flow');
+                break;
+            case 'version':
+                this.loadingVersions.set(loading);
+                break;
+        }
+        if (formControl) {
+            if (loading) {
+                formControl.disable();
+            } else {
+                formControl.enable();
+            }
+        }
+    }
+
     loadBranches(registryId: string): void {
         if (registryId) {
+            this.setLoading('branch', true);
             this.branchOptions = [];
 
             this.getBranches(registryId)
-                .pipe(take(1))
+                .pipe(
+                    take(1),
+                    catchError(() => {
+                        this.setLoading('branch', false);
+                        return EMPTY;
+                    })
+                )
                 .subscribe((branches: BranchEntity[]) => {
                     if (branches.length > 0) {
                         branches.forEach((entity: BranchEntity) => {
@@ -251,15 +297,23 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
                             this.loadBuckets(registryId, branchId);
                         }
                     }
+                    this.setLoading('branch', false);
                 });
         }
     }
 
     loadBuckets(registryId: string, branch?: string | null): void {
+        this.setLoading('bucket', true);
         this.bucketOptions = [];
 
         this.getBuckets(registryId, branch)
-            .pipe(take(1))
+            .pipe(
+                take(1),
+                catchError(() => {
+                    this.setLoading('bucket', false);
+                    return EMPTY;
+                })
+            )
             .subscribe((buckets: BucketEntity[]) => {
                 if (buckets.length > 0) {
                     buckets.forEach((entity: BucketEntity) => {
@@ -278,15 +332,23 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
                         this.loadFlows(registryId, bucketId, branch);
                     }
                 }
+                this.setLoading('bucket', false);
             });
     }
 
     loadFlows(registryId: string, bucketId: string, branch?: string | null): void {
+        this.setLoading('flow', true);
         this.flowOptions = [];
         this.flowLookup.clear();
 
         this.getFlows(registryId, bucketId, branch)
-            .pipe(take(1))
+            .pipe(
+                take(1),
+                catchError(() => {
+                    this.setLoading('flow', false);
+                    return EMPTY;
+                })
+            )
             .subscribe((versionedFlows: VersionedFlowEntity[]) => {
                 if (versionedFlows.length > 0) {
                     versionedFlows.forEach((entity: VersionedFlowEntity) => {
@@ -305,16 +367,25 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
                         this.loadVersions(registryId, bucketId, flowId, branch);
                     }
                 }
+                this.setLoading('flow', false);
             });
     }
 
     loadVersions(registryId: string, bucketId: string, flowId: string, branch?: string | null): void {
+        this.setLoading('version', true);
         this.dataSource.data = [];
         this.selectedFlowVersion = null;
         this.selectedFlowDescription = this.flowLookup.get(flowId)?.description;
 
         this.getFlowVersions(registryId, bucketId, flowId, branch)
-            .pipe(take(1))
+            .pipe(
+                take(1),
+                catchError((errorResponse: HttpErrorResponse) => {
+                    this.setLoading('version', false);
+                    this.loadingVersionsError.set(this.errorHelper.getErrorString(errorResponse));
+                    return EMPTY;
+                })
+            )
             .subscribe((metadataEntities: VersionedFlowSnapshotMetadataEntity[]) => {
                 if (metadataEntities.length > 0) {
                     const flowVersions = metadataEntities.map(
@@ -326,6 +397,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
 
                     this.dataSource.data = sortedFlowVersions;
                 }
+                this.setLoading('version', false);
             });
     }
 

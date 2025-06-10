@@ -119,57 +119,74 @@
                     </div>
                 </div>
             </div>
-            <div class="listing-table flex-1 relative min-h-48">
-                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
-                    <table
-                        mat-table
-                        [dataSource]="dataSource"
-                        matSort
-                        matSortDisableClear
-                        (matSortChange)="sortData($event)"
-                        [matSortActive]="sort.active"
-                        [matSortDirection]="sort.direction">
-                        <!-- Version Column -->
-                        <ng-container matColumnDef="version">
-                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
-                            <td mat-cell *matCellDef="let item">
-                                <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
-                                    {{ item.version }}
-                                </div>
-                            </td>
-                        </ng-container>
 
-                        <!-- Create Column -->
-                        <ng-container matColumnDef="created">
-                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
-                            <td mat-cell *matCellDef="let item">
-                                {{ formatTimestamp(item) }}
-                            </td>
-                        </ng-container>
-
-                        <!-- Comments Column -->
-                        <ng-container matColumnDef="comments">
-                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
-                            <td mat-cell *matCellDef="let item">
-                                <div
-                                    class="overflow-ellipsis overflow-hidden whitespace-nowrap"
-                                    [title]="item.comments">
-                                    {{ item.comments }}
-                                </div>
-                            </td>
-                        </ng-container>
-
-                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                        <tr
-                            mat-row
-                            *matRowDef="let row; let even = even; columns: displayedColumns"
-                            (click)="select(row)"
-                            (dblclick)="importFromRegistry()"
-                            [class.selected]="isSelected(row)"
-                            [class.even]="even"></tr>
-                    </table>
+            @if (loadingVersions()) {
+                <div data-qa="skeleton-loader-versions" class="w-full">
+                    <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
                 </div>
-            </div>
+            } @else if (loadingVersionsError()) {
+                <div
+                    class="flex flex-1 flex-col gap-y-4 justify-center items-center tertiary-color pb-4"
+                    data-qa="loading-versions-error">
+                    <i class="fa fa-exclamation-circle error-color fa-4x"></i>
+                    <div class="text-lg font-semibold">Something went wrong</div>
+                    <div class="text-center">{{ loadingVersionsError() }}</div>
+                </div>
+            } @else {
+                <div class="listing-table flex-1 relative min-h-48" data-qa="versions-listing-table">
+                    <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                        <table
+                            mat-table
+                            [dataSource]="dataSource"
+                            matSort
+                            matSortDisableClear
+                            (matSortChange)="sortData($event)"
+                            [matSortActive]="sort.active"
+                            [matSortDirection]="sort.direction">
+                            <!-- Version Column -->
+                            <ng-container matColumnDef="version">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div
+                                        class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                        [title]="item.version">
+                                        {{ item.version }}
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <!-- Create Column -->
+                            <ng-container matColumnDef="created">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+                                <td mat-cell *matCellDef="let item">
+                                    {{ formatTimestamp(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Comments Column -->
+                            <ng-container matColumnDef="comments">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div
+                                        class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                        [title]="item.comments">
+                                        {{ item.comments }}
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                            <tr
+                                mat-row
+                                *matRowDef="let row; let even = even; columns: displayedColumns"
+                                (click)="select(row)"
+                                (dblclick)="importFromRegistry()"
+                                [class.selected]="isSelected(row)"
+                                [class.even]="even"></tr>
+                        </table>
+                    </div>
+                </div>
+            }
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">

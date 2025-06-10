@@ -26,6 +26,7 @@ import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { By } from '@angular/platform-browser';
 
 describe('ImportFromRegistry', () => {
     let component: ImportFromRegistry;
@@ -143,5 +144,37 @@ describe('ImportFromRegistry', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should show the skeleton loader for versions', () => {
+        component.loadingVersions.set(true);
+        fixture.detectChanges();
+        const skeleton = fixture.debugElement.query(By.css('div[data-qa="skeleton-loader-versions"]'));
+        const error = fixture.debugElement.query(By.css('div[data-qa="loading-versions-error"]'));
+        expect(skeleton).toBeTruthy();
+        expect(error).toBeFalsy();
+    });
+
+    it('should show the loading error panel if there is an error', () => {
+        component.loadingVersions.set(false);
+        component.loadingVersionsError.set('some error happened');
+        fixture.detectChanges();
+        const skeleton = fixture.debugElement.query(By.css('div[data-qa="skeleton-loader-versions"]'));
+        const error = fixture.debugElement.query(By.css('div[data-qa="loading-versions-error"]'));
+        const versions = fixture.debugElement.query(By.css('div[data-qa="versions-listing-table"]'));
+        expect(skeleton).toBeFalsy();
+        expect(error).toBeTruthy();
+        expect(versions).toBeFalsy();
+    });
+
+    it('should show the versions', () => {
+        component.loadingVersions.set(false);
+        fixture.detectChanges();
+        const skeleton = fixture.debugElement.query(By.css('div[data-qa="skeleton-loader-versions"]'));
+        const error = fixture.debugElement.query(By.css('div[data-qa="loading-versions-error"]'));
+        const versions = fixture.debugElement.query(By.css('div[data-qa="versions-listing-table"]'));
+        expect(skeleton).toBeFalsy();
+        expect(error).toBeFalsy();
+        expect(versions).toBeTruthy();
     });
 });
