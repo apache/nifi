@@ -70,7 +70,6 @@ import org.apache.nifi.stateless.engine.StatelessFlowManager;
 import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
-import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
 
 import java.time.Duration;
@@ -119,7 +118,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
         final FlowFileRepository underlyingFlowFileRepository = flowController.getRepositoryContextFactory().getFlowFileRepository();
         final StatelessFlowFileRepository flowFileRepository = new StatelessBridgeFlowFileRepository(underlyingFlowFileRepository, resourceClaimManager);
 
-        final StatelessProvenanceRepository statelessProvenanceRepository = new StatelessProvenanceRepository(1_000);
         flowFileRepository.initialize(resourceClaimManager);
 
         final ContentRepository contentRepository = new NonPurgeableContentRepository(flowController.getRepositoryContextFactory().getContentRepository());
@@ -128,7 +126,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             flowFileRepository,
             flowController.getFlowFileEventRepository(),
             flowController.getCounterRepository(),
-            statelessProvenanceRepository,
             flowController.getStateManagerProvider());
 
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
@@ -226,7 +223,8 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             }
         };
 
-        final StatelessProcessScheduler statelessScheduler = new StatelessProcessScheduler(flowController.getExtensionManager(), Duration.of(10, ChronoUnit.SECONDS));
+        final StatelessProcessScheduler statelessScheduler = new StatelessProcessScheduler(flowController.getExtensionManager(),
+            flowController.getLifecycleStateManager(), Duration.of(10, ChronoUnit.SECONDS));
 
         final StatelessStateManagerProvider stateManagerProvider = new StatelessStateManagerProvider();
         final StatelessEngine statelessEngine = new StandardStatelessEngine.Builder()
@@ -242,6 +240,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .stateManagerProvider(stateManagerProvider)
             .kerberosConfiguration(kerberosConfig)
             .statusTaskInterval(null)
+            .lifecycleStateManager(flowController.getLifecycleStateManager())
             .build();
 
         final BulletinRepository bulletinRepository = flowController.getBulletinRepository();

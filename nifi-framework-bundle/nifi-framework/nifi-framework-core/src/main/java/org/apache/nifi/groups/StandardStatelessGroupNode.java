@@ -43,6 +43,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.tasks.StatelessFlowTask;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
@@ -329,7 +330,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             .transactionThresholds(TransactionThresholds.UNLIMITED)
             .build();
 
-        final ProcessScheduler processScheduler = new StatelessProcessScheduler(extensionManager, Duration.of(10, ChronoUnit.SECONDS)) {
+        final ProcessScheduler processScheduler = new StatelessProcessScheduler(extensionManager, lifecycleStateManager, Duration.of(10, ChronoUnit.SECONDS)) {
             @Override
             public void yield(final ProcessorNode procNode) {
                 if (isSourceProcessor(procNode)) {
@@ -461,7 +462,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
         final List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (final ProcessorNode procNode : getProcessGroup().findAllProcessors()) {
-            final CompletableFuture<Void> stopProcessorFuture = scheduler.stopProcessor(procNode);
+            final CompletableFuture<Void> stopProcessorFuture = scheduler.stopProcessor(procNode, ProcessorStopLifecycleMethods.TRIGGER_NONE);
             futures.add(stopProcessorFuture);
         }
 
@@ -480,7 +481,6 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
         return allStoppedFuture;
     }
-
 
 
     private void stopPorts() {

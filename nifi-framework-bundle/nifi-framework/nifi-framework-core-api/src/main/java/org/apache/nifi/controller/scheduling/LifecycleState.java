@@ -19,6 +19,8 @@ package org.apache.nifi.controller.scheduling;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LifecycleState {
+    private static final Logger logger = LoggerFactory.getLogger(LifecycleState.class);
 
     private final Object componentId;
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
@@ -74,7 +77,12 @@ public class LifecycleState {
             activeProcessSessionFactories.put(sessionFactory, null);
         }
 
-        return activeThreadCount.incrementAndGet();
+        final int updatedThreadCount = activeThreadCount.incrementAndGet();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Active Thread Count for {} incremented to {}", componentId, updatedThreadCount, new RuntimeException("Stack Trace for Debugging"));
+        }
+
+        return updatedThreadCount;
     }
 
     public synchronized int decrementActiveThreadCount() {
@@ -82,7 +90,12 @@ public class LifecycleState {
             return activeThreadCount.get();
         }
 
-        return activeThreadCount.decrementAndGet();
+        final int updatedThreadCount = activeThreadCount.decrementAndGet();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Active Thread Count for {} decremented to {}", componentId, updatedThreadCount, new RuntimeException("Stack Trace for Debugging"));
+        }
+
+        return updatedThreadCount;
     }
 
     public int getActiveThreadCount() {

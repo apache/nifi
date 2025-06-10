@@ -52,6 +52,7 @@ import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
@@ -272,7 +273,7 @@ public class TestStandardProcessScheduler {
 
         Thread.sleep(25L);
 
-        scheduler.stopProcessor(procNode);
+        scheduler.stopProcessor(procNode, ProcessorStopLifecycleMethods.TRIGGER_ALL);
         assertTrue(service.isActive());
         assertSame(ControllerServiceState.ENABLING, service.getState());
         scheduler.disableControllerService(service).get();

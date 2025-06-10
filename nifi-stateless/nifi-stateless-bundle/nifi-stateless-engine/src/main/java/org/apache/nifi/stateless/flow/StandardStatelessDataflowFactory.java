@@ -33,6 +33,8 @@ import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.scheduling.LifecycleStateManager;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
 import org.apache.nifi.controller.scheduling.StatelessProcessSchedulerInitializationContext;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -156,8 +158,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessStateManagerProvider stateManagerProvider = new StatelessStateManagerProvider();
 
             final ParameterContextManager parameterContextManager = new StandardParameterContextManager();
+            final LifecycleStateManager lifecycleStateManager = new StandardLifecycleStateManager();
             final Duration processorStartTimeoutDuration = Duration.ofSeconds((long) FormatUtils.getPreciseTimeDuration(engineConfiguration.getProcessorStartTimeout(), TimeUnit.SECONDS));
-            processScheduler = new StatelessProcessScheduler(extensionManager, processorStartTimeoutDuration);
+            processScheduler = new StatelessProcessScheduler(extensionManager, lifecycleStateManager, processorStartTimeoutDuration);
             provenanceRepo = new StatelessProvenanceRepository(1_000);
             provenanceRepo.initialize(EventReporter.NO_OP, new StatelessAuthorizer(), new StatelessProvenanceAuthorizableFactory(), IdentifierLookup.EMPTY);
 
@@ -226,6 +229,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .counterRepository(counterRepo)
                     .statusTaskInterval(engineConfiguration.getStatusTaskInterval())
                     .componentEnableTimeout(engineConfiguration.getComponentEnableTimeout())
+                    .lifecycleStateManager(lifecycleStateManager)
                     .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);
@@ -240,7 +244,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             flowFileRepo = new StatelessFlowFileRepository();
 
             final RepositoryContextFactory repositoryContextFactory = new StatelessRepositoryContextFactory(contentRepo, flowFileRepo, flowFileEventRepo,
-                counterRepo, provenanceRepo, stateManagerProvider);
+                counterRepo, stateManagerProvider);
             final StatelessEngineInitializationContext statelessEngineInitializationContext = new StatelessEngineInitializationContext(controllerServiceProvider, flowManager, processContextFactory,
                 repositoryContextFactory);
 

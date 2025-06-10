@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.cs.tests.system.SleepService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -31,7 +32,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +73,32 @@ public class Sleep extends AbstractProcessor {
         .required(false)
         .identifiesControllerService(SleepService.class)
         .build();
+    static final PropertyDescriptor IGNORE_INTERRUPTS = new Builder()
+        .name("Ignore Interrupts")
+        .description("If true, the processor will not respond to interrupts while sleeping.")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+    static final PropertyDescriptor STOP_SLEEPING_WHEN_UNSCHEDULED = new Builder()
+        .name("Stop Sleeping When Unscheduled")
+        .description("If true, the processor will stop sleeping whenever the processor is unscheduled. " +
+            "If false, the processor will continue sleeping until the sleep time has elapsed. This property only applies to the " +
+            "onTrigger Sleep Time.")
+        .required(false)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+
+    private static final List<PropertyDescriptor> properties = List.of(
+        VALIDATE_SLEEP_TIME,
+        ON_SCHEDULED_SLEEP_TIME,
+        ON_TRIGGER_SLEEP_TIME,
+        ON_STOPPED_SLEEP_TIME,
+        SLEEP_SERVICE,
+        IGNORE_INTERRUPTS,
+        STOP_SLEEPING_WHEN_UNSCHEDULED
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -80,46 +106,61 @@ public class Sleep extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(VALIDATE_SLEEP_TIME);
-        properties.add(ON_SCHEDULED_SLEEP_TIME);
-        properties.add(ON_TRIGGER_SLEEP_TIME);
-        properties.add(ON_STOPPED_SLEEP_TIME);
-        properties.add(SLEEP_SERVICE);
         return properties;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return Set.of(REL_SUCCESS);
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final long sleepMillis = validationContext.getProperty(VALIDATE_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        sleep(sleepMillis);
+        sleep(sleepMillis, isIgnoreInterrupt(validationContext), false);
 
         return Collections.emptyList();
     }
 
-    private void sleep(final long millis) {
-        if (millis > 0L) {
+    private void sleep(final long millis, final boolean ignoreInterrupts, final boolean stopSleepOnUnscheduled) {
+        if (millis == 0L) {
+            return;
+        }
+
+        final long stopTime = System.currentTimeMillis() + millis;
+        while (System.currentTimeMillis() < stopTime) {
+            if (stopSleepOnUnscheduled && !isScheduled()) {
+                return;
+            }
+
+            // Sleep for up to the stopTime but no more than 50 milliseconds at a time. This gives us a chance
+            // to periodically check if the processor is still scheduled
+            final long sleepMillis = Math.min(stopTime - System.currentTimeMillis(), 50L);
             try {
-                Thread.sleep(millis);
-            } catch (final InterruptedException ie) {
+                Thread.sleep(sleepMillis);
+            } catch (final InterruptedException e) {
+                if (ignoreInterrupts) {
+                    continue;
+                }
+
                 Thread.currentThread().interrupt();
+                return;
             }
         }
     }
 
     @OnScheduled
     public void onEnabled(final ProcessContext context) {
-        sleep(context.getProperty(ON_SCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        sleep(context.getProperty(ON_SCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS), isIgnoreInterrupt(context), false);
+    }
+
+    private boolean isIgnoreInterrupt(final PropertyContext context) {
+        return context.getProperty(IGNORE_INTERRUPTS).asBoolean();
     }
 
     @OnStopped
     public void onDisabled(final ProcessContext context) {
-        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS), isIgnoreInterrupt(context), false);
     }
 
 
@@ -131,13 +172,16 @@ public class Sleep extends AbstractProcessor {
         }
 
         final long sleepMillis = context.getProperty(ON_TRIGGER_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        sleep(sleepMillis);
+        final boolean ignoreInterrupts = isIgnoreInterrupt(context);
+        final boolean stopSleepOnUnscheduled = context.getProperty(STOP_SLEEPING_WHEN_UNSCHEDULED).asBoolean();
+        sleep(sleepMillis, ignoreInterrupts, stopSleepOnUnscheduled);
 
         final SleepService service = context.getProperty(SLEEP_SERVICE).asControllerService(SleepService.class);
         if (service != null) {
             service.sleep();
         }
 
+        getLogger().info("Finished onTrigger sleep");
         session.transfer(flowFile, REL_SUCCESS);
     }
 }
