@@ -145,8 +145,9 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
         final String registryId = existingVersionControlDTO.getRegistryId();
         final String bucketId = existingVersionControlDTO.getBucketId();
         final String flowId = existingVersionControlDTO.getFlowId();
+        final String branch = existingVersionControlDTO.getBranch();
 
-        final VersionedFlowSnapshotMetadataSetEntity versions = flowClient.getVersions(registryId, bucketId, flowId);
+        final VersionedFlowSnapshotMetadataSetEntity versions = flowClient.getVersions(registryId, bucketId, flowId, branch);
         if (versions.getVersionedFlowSnapshotMetadataSet() == null || versions.getVersionedFlowSnapshotMetadataSet().isEmpty()) {
             throw new NiFiClientException("No versions available");
         }

@@ -52,6 +52,7 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
     @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.PG_ID.createOption());
+        addOption(CommandOption.RECURSIVE.createOption());
     }
 
     @Override
@@ -59,6 +60,7 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
             throws NiFiClientException, IOException {
 
         final FlowClient flowClient = client.getFlowClient();
+        final boolean recursive = properties.containsKey(CommandOption.RECURSIVE.getLongName());
 
         // get the optional id of the parent PG, otherwise fallback to the root group
         String parentPgId = getArg(properties, CommandOption.PG_ID);
@@ -66,7 +68,21 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
             parentPgId = flowClient.getRootGroupId();
         }
 
-        return getList(client, properties, parentPgId);
+        if (recursive) {
+            final List<ProcessGroupDTO> pgList = new ArrayList<>();
+            recursivePGList(pgList, client, properties, parentPgId);
+            return new ProcessGroupsResult(getResultType(properties), pgList);
+        } else {
+            return getList(client, properties, parentPgId);
+        }
+    }
+
+    private void recursivePGList(final List<ProcessGroupDTO> pgList, final NiFiClient client, final Properties properties, final String pgId) throws NiFiClientException, IOException {
+        final ProcessGroupsResult result = getList(client, properties, pgId);
+        for (ProcessGroupDTO pgDTO : result.getResult()) {
+            pgList.add(pgDTO);
+            recursivePGList(pgList, client, properties, pgDTO.getId());
+        }
     }
 
     public ProcessGroupsResult getList(final NiFiClient client, final Properties properties, final String pgID)

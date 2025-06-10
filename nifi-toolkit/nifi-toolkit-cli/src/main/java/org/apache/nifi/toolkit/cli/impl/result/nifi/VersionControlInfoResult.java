@@ -56,6 +56,7 @@ public class VersionControlInfoResult extends AbstractWritableResult<VersionCont
                 .column("Registry", 20, 30, true)
                 .column("Bucket", 20, 30, true)
                 .column("Flow", 20, 30, true)
+                .column("Branch", 20, 30, true)
                 .column("Ver", 3, 3, false)
                 .build();
 
@@ -63,6 +64,7 @@ public class VersionControlInfoResult extends AbstractWritableResult<VersionCont
                 dto.getRegistryName(),
                 dto.getBucketName(),
                 dto.getFlowName(),
+                dto.getBranch(),
                 String.valueOf(dto.getVersion())
         );
 
