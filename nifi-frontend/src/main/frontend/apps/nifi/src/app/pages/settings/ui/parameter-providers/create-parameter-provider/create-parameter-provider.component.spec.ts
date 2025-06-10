@@ -18,58 +18,64 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateParameterProvider } from './create-parameter-provider.component';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
-import { CreateParameterProviderDialogRequest } from '../../../state/parameter-providers';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { DocumentedType } from '../../../../../state/shared';
+import { MatIconTestingModule } from '@angular/material/icon/testing';
+import { MockComponent } from 'ng-mocks';
+import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
+import { of } from 'rxjs';
 
 describe('CreateParameterProvider', () => {
     let component: CreateParameterProvider;
     let fixture: ComponentFixture<CreateParameterProvider>;
-    const data: CreateParameterProviderDialogRequest = {
-        parameterProviderTypes: [
-            {
-                type: 'org.apache.nifi.parameter.aws.AwsSecretsManagerParameterProvider',
-                bundle: {
-                    group: 'org.apache.nifi',
-                    artifact: 'nifi-aws-nar',
-                    version: '2.0.0-SNAPSHOT'
-                },
-                description:
-                    'Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with key/value pairs in the secret mapping to Parameters in the group.',
-                restricted: false,
-                tags: ['secretsmanager', 'manager', 'aws', 'secrets']
+
+    const parameterProviderTypes: DocumentedType[] = [
+        {
+            type: 'org.apache.nifi.parameter.aws.AwsSecretsManagerParameterProvider',
+            bundle: {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-aws-nar',
+                version: '2.0.0-SNAPSHOT'
             },
-            {
-                type: 'org.apache.nifi.parameter.azure.AzureKeyVaultSecretsParameterProvider',
-                bundle: {
-                    group: 'org.apache.nifi',
-                    artifact: 'nifi-azure-nar',
-                    version: '2.0.0-SNAPSHOT'
-                },
-                description:
-                    "Fetches parameters from Azure Key Vault Secrets.  Each secret becomes a Parameter, which map to a Parameter Group byadding a secret tag named 'group-name'.",
-                restricted: false,
-                tags: ['keyvault', 'secrets', 'key', 'vault', 'azure']
-            }
-        ]
-    };
+            description:
+                'Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with key/value pairs in the secret mapping to Parameters in the group.',
+            restricted: false,
+            tags: ['secretsmanager', 'manager', 'aws', 'secrets']
+        },
+        {
+            type: 'org.apache.nifi.parameter.azure.AzureKeyVaultSecretsParameterProvider',
+            bundle: {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-azure-nar',
+                version: '2.0.0-SNAPSHOT'
+            },
+            description:
+                "Fetches parameters from Azure Key Vault Secrets.  Each secret becomes a Parameter, which map to a Parameter Group byadding a secret tag named 'group-name'.",
+            restricted: false,
+            tags: ['keyvault', 'secrets', 'key', 'vault', 'azure']
+        }
+    ];
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateParameterProvider, NoopAnimationsModule],
+            imports: [
+                CreateParameterProvider,
+                NoopAnimationsModule,
+                MatIconTestingModule,
+                MockComponent(ExtensionCreation)
+            ],
             providers: [
-                {
-                    provide: MAT_DIALOG_DATA,
-                    useValue: data
-                },
                 provideMockStore({ initialState: initialParameterProvidersState }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(CreateParameterProvider);
         component = fixture.componentInstance;
+        component.parameterProviderTypes$ = of(parameterProviderTypes);
+        component.parameterProviderTypesLoadingStatus$ = of('success');
         fixture.detectChanges();
     });
 

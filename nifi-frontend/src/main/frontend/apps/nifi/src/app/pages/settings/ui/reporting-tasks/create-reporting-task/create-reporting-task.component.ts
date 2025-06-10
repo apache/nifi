@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
-import { CreateReportingTaskDialogRequest, ReportingTasksState } from '../../../state/reporting-tasks';
+import { ReportingTasksState } from '../../../state/reporting-tasks';
 import { createReportingTask } from '../../../state/reporting-tasks/reporting-tasks.actions';
 import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
 import { selectSaving } from '../../../state/reporting-tasks/reporting-tasks.selectors';
 import { AsyncPipe } from '@angular/common';
 import { CloseOnEscapeDialog } from '@nifi/shared';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectReportingTaskTypes
+} from '../../../../../state/extension-types/extension-types.selectors';
 
 @Component({
     selector: 'create-reporting-task',
@@ -34,16 +37,15 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
     styleUrls: ['./create-reporting-task.component.scss']
 })
 export class CreateReportingTask extends CloseOnEscapeDialog {
-    reportingTasks: DocumentedType[];
+    reportingTaskTypes$ = this.store.select(selectReportingTaskTypes);
+    reportingTaskTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
     saving$ = this.store.select(selectSaving);
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateReportingTaskDialogRequest,
         private store: Store<ReportingTasksState>,
         private client: Client
     ) {
         super();
-        this.reportingTasks = dialogRequest.reportingTaskTypes;
     }
 
     createReportingTask(reportingTaskType: DocumentedType): void {

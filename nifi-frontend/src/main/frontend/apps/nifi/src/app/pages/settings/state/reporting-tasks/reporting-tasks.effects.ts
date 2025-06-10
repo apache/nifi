@@ -23,7 +23,6 @@ import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectReportingTaskTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { ReportingTaskService } from '../../service/reporting-task.service';
 import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
@@ -92,13 +91,9 @@ export class ReportingTasksEffects {
         () =>
             this.actions$.pipe(
                 ofType(ReportingTaskActions.openNewReportingTaskDialog),
-                concatLatestFrom(() => this.store.select(selectReportingTaskTypes)),
-                tap(([, reportingTaskTypes]) => {
+                tap(() => {
                     this.dialog.open(CreateReportingTask, {
-                        ...LARGE_DIALOG,
-                        data: {
-                            reportingTaskTypes
-                        }
+                        ...LARGE_DIALOG
                     });
                 })
             ),

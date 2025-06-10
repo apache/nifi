@@ -23,7 +23,7 @@ import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { Documentation } from './documentation.component';
 import { extensionTypesFeatureKey } from '../../../state/extension-types';
-import { initialState } from '../../../state/extension-types/extension-types.reducer';
+import { initialExtensionsTypesState } from '../../../state/extension-types/extension-types.reducer';
 import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -55,7 +55,7 @@ describe('Documentation', () => {
             providers: [
                 provideMockStore({
                     initialState: {
-                        [extensionTypesFeatureKey]: initialState
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState
                     }
                 })
             ]

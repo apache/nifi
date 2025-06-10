@@ -20,7 +20,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { StatusHistory } from './status-history.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/extension-types/extension-types.reducer';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 describe('StatusHistory', () => {
@@ -32,7 +31,7 @@ describe('StatusHistory', () => {
             imports: [HttpClientTestingModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: {} },
-                provideMockStore({ initialState }),
+                provideMockStore({}),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

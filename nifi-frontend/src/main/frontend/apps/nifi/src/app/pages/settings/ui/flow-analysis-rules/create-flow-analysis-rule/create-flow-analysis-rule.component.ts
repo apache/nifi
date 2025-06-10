@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
-import { CreateFlowAnalysisRuleDialogRequest, FlowAnalysisRulesState } from '../../../state/flow-analysis-rules';
+import { FlowAnalysisRulesState } from '../../../state/flow-analysis-rules';
 import { createFlowAnalysisRule } from '../../../state/flow-analysis-rules/flow-analysis-rules.actions';
 import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
 import { selectSaving } from '../../../state/flow-analysis-rules/flow-analysis-rules.selectors';
 import { AsyncPipe } from '@angular/common';
 import { CloseOnEscapeDialog } from '@nifi/shared';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectFlowAnalysisRuleTypes
+} from '../../../../../state/extension-types/extension-types.selectors';
 
 @Component({
     selector: 'create-flow-analysis-rule',
@@ -34,16 +37,15 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
     styleUrls: ['./create-flow-analysis-rule.component.scss']
 })
 export class CreateFlowAnalysisRule extends CloseOnEscapeDialog {
-    flowAnalysisRules: DocumentedType[];
+    flowAnalysisRulesTypes$ = this.store.select(selectFlowAnalysisRuleTypes);
+    flowAnalysisRulesTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
     saving$ = this.store.select(selectSaving);
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateFlowAnalysisRuleDialogRequest,
         private store: Store<FlowAnalysisRulesState>,
         private client: Client
     ) {
         super();
-        this.flowAnalysisRules = dialogRequest.flowAnalysisRuleTypes;
     }
 
     createFlowAnalysisRule(flowAnalysisRuleType: DocumentedType): void {

@@ -18,47 +18,52 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateFlowAnalysisRule } from './create-flow-analysis-rule.component';
-import { CreateFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-rules';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { initialState } from '../../../state/flow-analysis-rules/flow-analysis-rules.reducer';
+import { DocumentedType } from '../../../../../state/shared';
+import { initialExtensionsTypesState } from '../../../../../state/extension-types/extension-types.reducer';
+import { MatIconTestingModule } from '@angular/material/icon/testing';
+import { MockComponent } from 'ng-mocks';
+import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
+import { of } from 'rxjs';
 
 describe('CreateFlowAnalysisRule', () => {
     let component: CreateFlowAnalysisRule;
     let fixture: ComponentFixture<CreateFlowAnalysisRule>;
 
-    const data: CreateFlowAnalysisRuleDialogRequest = {
-        flowAnalysisRuleTypes: [
-            {
-                type: 'org.apache.nifi.flowanalysis.rules.DisallowComponentType',
-                bundle: {
-                    group: 'org.apache.nifi',
-                    artifact: 'nifi-standard-nar',
-                    version: '2.0.0-SNAPSHOT'
-                },
-                description:
-                    'Produces rule violations for each component (i.e. processors or controller services) of a given type.',
-                restricted: false,
-                tags: ['component', 'controller service', 'type', 'processor']
-            }
-        ]
-    };
+    const flowAnalysisRulesTaskTypes: DocumentedType[] = [
+        {
+            type: 'org.apache.nifi.flowanalysis.rules.DisallowComponentType',
+            bundle: {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-standard-nar',
+                version: '2.0.0-SNAPSHOT'
+            },
+            description:
+                'Produces rule violations for each component (i.e. processors or controller services) of a given type.',
+            restricted: false,
+            tags: ['component', 'controller service', 'type', 'processor']
+        }
+    ];
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateFlowAnalysisRule, NoopAnimationsModule],
+            imports: [
+                CreateFlowAnalysisRule,
+                NoopAnimationsModule,
+                MatIconTestingModule,
+                MockComponent(ExtensionCreation)
+            ],
             providers: [
-                {
-                    provide: MAT_DIALOG_DATA,
-                    useValue: data
-                },
-                provideMockStore({ initialState }),
+                provideMockStore({ initialState: initialExtensionsTypesState }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });
         fixture = TestBed.createComponent(CreateFlowAnalysisRule);
         component = fixture.componentInstance;
+        component.flowAnalysisRulesTypes$ = of(flowAnalysisRulesTaskTypes);
+        component.flowAnalysisRulesTypesLoadingStatus$ = of('success');
         fixture.detectChanges();
     });
 
