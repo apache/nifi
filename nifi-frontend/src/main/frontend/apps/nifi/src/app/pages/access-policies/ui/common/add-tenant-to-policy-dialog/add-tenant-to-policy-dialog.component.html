@@ -49,7 +49,10 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
-            <button mat-flat-button [disabled]="addTenantsForm.invalid || saving.value" (click)="addClicked()">
+            <button
+                mat-flat-button
+                [disabled]="addTenantsForm.invalid || saving.value || addTenantsForm.pending"
+                (click)="addClicked()">
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

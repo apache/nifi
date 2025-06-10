@@ -76,7 +76,12 @@
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
             <button
-                [disabled]="!editRegistryClientForm.dirty || editRegistryClientForm.invalid || saving.value"
+                [disabled]="
+                    !editRegistryClientForm.dirty ||
+                    editRegistryClientForm.invalid ||
+                    saving.value ||
+                    editRegistryClientForm.pending
+                "
                 type="button"
                 (click)="submitForm()"
                 mat-flat-button>

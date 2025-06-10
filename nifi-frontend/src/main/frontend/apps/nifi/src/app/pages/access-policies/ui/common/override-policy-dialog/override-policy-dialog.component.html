@@ -26,6 +26,11 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-flat-button [disabled]="overridePolicyForm.invalid" (click)="overrideClicked()">Override</button>
+        <button
+            mat-flat-button
+            [disabled]="overridePolicyForm.invalid || overridePolicyForm.pending"
+            (click)="overrideClicked()">
+            Override
+        </button>
     </mat-dialog-actions>
 </form>

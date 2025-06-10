@@ -67,7 +67,7 @@
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
+                    [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value || editPortForm.pending"
                     type="button"
                     (click)="editPort()"
                     mat-flat-button>

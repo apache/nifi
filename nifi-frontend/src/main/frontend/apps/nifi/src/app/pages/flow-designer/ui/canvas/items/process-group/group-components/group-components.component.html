@@ -46,7 +46,12 @@
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
             <button
-                [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
+                [disabled]="
+                    !createProcessGroupForm.dirty ||
+                    createProcessGroupForm.invalid ||
+                    saving.value ||
+                    createProcessGroupForm.pending
+                "
                 type="button"
                 (click)="createProcessGroup()"
                 mat-flat-button>

@@ -189,7 +189,12 @@
                 } @else {
                     <button mat-button mat-dialog-close>Cancel</button>
                     <button
-                        [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
+                        [disabled]="
+                            !editParameterContextForm.dirty ||
+                            editParameterContextForm.invalid ||
+                            saving.value ||
+                            editParameterContextForm.pending
+                        "
                         type="button"
                         (click)="submitForm()"
                         mat-flat-button>

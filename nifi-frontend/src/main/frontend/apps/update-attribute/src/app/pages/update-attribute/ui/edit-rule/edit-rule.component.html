@@ -55,7 +55,7 @@
                 <button type="button" (click)="cancelClicked()" mat-button>Cancel</button>
                 @if (id) {
                     <button
-                        [disabled]="!editRuleForm.dirty || editRuleForm.invalid || saving"
+                        [disabled]="!editRuleForm.dirty || editRuleForm.invalid || saving || editRuleForm.pending"
                         type="button"
                         (click)="saveClicked()"
                         mat-flat-button>
@@ -63,7 +63,7 @@
                     </button>
                 } @else {
                     <button
-                        [disabled]="editRuleForm.invalid || saving"
+                        [disabled]="editRuleForm.invalid || saving || editRuleForm.pending"
                         type="button"
                         (click)="saveClicked()"
                         mat-flat-button>

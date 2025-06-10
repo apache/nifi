@@ -154,7 +154,12 @@
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
             <button
-                [disabled]="!createRemoteProcessGroupForm.dirty || createRemoteProcessGroupForm.invalid || saving.value"
+                [disabled]="
+                    !createRemoteProcessGroupForm.dirty ||
+                    createRemoteProcessGroupForm.invalid ||
+                    saving.value ||
+                    createRemoteProcessGroupForm.pending
+                "
                 type="button"
                 (click)="createRemoteProcessGroup()"
                 mat-flat-button>
