@@ -348,39 +348,55 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         // retrieve source data
         // https://api.bitbucket.org/2.0/repositories/{workspace}/{repoName}/src/{commit}/{path}
         final URI uri = getUriBuilder().addPathSegment("src").addPathSegment(lastCommit.get()).addPathSegment(resolvedPath).build();
-        final HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
+        final String errorMessage = String.format("Error while listing content for repository [%s] on branch %s at path %s", repoName, branch, resolvedPath);
 
-        if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-            throw new FlowRegistryException(
-                    String.format("Error while listing content for repository [%s] on branch %s at path %s: %s", repoName, branch, resolvedPath, getErrorMessage(response)));
-        }
-
-        final JsonNode jsonResponse;
-        try {
-            jsonResponse = this.objectMapper.readTree(response.body());
-        } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
-        }
-        return jsonResponse.get("values").elements();
+        return getPagedResponseValues(uri, errorMessage);
     }
 
     private Iterator<JsonNode> getListCommits(final String branch, final String path) throws FlowRegistryException {
         // retrieve latest commit for that branch
         // https://api.bitbucket.org/2.0/repositories/{workspace}/{repoName}/commits/{branch}
         final URI uri = getUriBuilder().addPathSegment("commits").addPathSegment(branch).addQueryParameter("path", path).build();
-        final HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
+        final String errorMessage = String.format("Error while listing commits for repository [%s] on branch %s", repoName, branch);
 
-        if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-            throw new FlowRegistryException(String.format("Error while listing commits for repository [%s] on branch %s: %s", repoName, branch, getErrorMessage(response)));
+        return getPagedResponseValues(uri, errorMessage);
+    }
+
+    private Iterator<JsonNode> getPagedResponseValues(final URI uri, final String errorMessage) throws FlowRegistryException {
+        final List<JsonNode> allValues = new ArrayList<>();
+        URI nextUri = uri;
+        while (nextUri != null) {
+            final HttpResponseEntity response = webClient.getWebClientService()
+                    .get()
+                    .uri(nextUri)
+                    .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                    .retrieve();
+
+            if (response.statusCode() != HttpURLConnection.HTTP_OK) {
+                final String responseErrorMessage = getErrorMessage(response);
+                final String errorMessageFormat = errorMessage + ": %s";
+                throw new FlowRegistryException(errorMessageFormat.formatted(responseErrorMessage));
+            }
+
+            JsonNode root;
+            try {
+                root = objectMapper.readTree(response.body());
+            } catch (final IOException e) {
+                throw new FlowRegistryException(String.format("Could not parse Bitbucket API response at %s", nextUri), e);
+            }
+
+            // collect this page’s values
+            JsonNode values = root.get("values");
+            if (values != null && values.isArray()) {
+                values.forEach(allValues::add);
+            }
+
+            // prepare next iteration
+            JsonNode next = root.get("next");
+            nextUri = (next != null && next.isTextual()) ? URI.create(next.asText()) : null;
         }
 
-        final JsonNode jsonResponse;
-        try {
-            jsonResponse = this.objectMapper.readTree(response.body());
-        } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
-        }
-        return jsonResponse.get("values").elements();
+        return allValues.iterator();
     }
 
     private Optional<String> getLatestCommit(final String branch, final String path) throws FlowRegistryException {
