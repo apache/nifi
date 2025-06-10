@@ -31,6 +31,7 @@ import org.apache.nifi.kafka.service.api.record.KafkaRecord;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaNonTransactionalProducerWrapper;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaProducerWrapper;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaTransactionalProducerWrapper;
+import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.UncheckedIOException;
 import java.time.Duration;
@@ -53,14 +54,29 @@ public class Kafka3ProducerService implements KafkaProducerService {
                                  final ServiceConfiguration serviceConfiguration,
                                  final ProducerConfiguration producerConfiguration) {
         final ByteArraySerializer serializer = new ByteArraySerializer();
-        this.producer = new KafkaProducer<>(properties, serializer, serializer);
+
+        try {
+            this.producer = new KafkaProducer<>(properties, serializer, serializer);
+        } catch (final Exception e) {
+            throw new ProcessException("Failed to create Kafka Producer", e);
+        }
+
         this.callbacks = new ArrayList<>();
 
         this.serviceConfiguration = serviceConfiguration;
 
-        this.wrapper = producerConfiguration.getTransactionsEnabled()
-                ? new KafkaTransactionalProducerWrapper(producer)
-                : new KafkaNonTransactionalProducerWrapper(producer);
+        try {
+            this.wrapper = producerConfiguration.getTransactionsEnabled()
+                    ? new KafkaTransactionalProducerWrapper(producer)
+                    : new KafkaNonTransactionalProducerWrapper(producer);
+        } catch (final Exception e) {
+            try {
+                close();
+            } catch (final Exception closeEx) {
+                e.addSuppressed(closeEx);
+            }
+            throw new ProcessException("Failed to initialize Kafka Producer", e);
+        }
     }
 
     @Override
