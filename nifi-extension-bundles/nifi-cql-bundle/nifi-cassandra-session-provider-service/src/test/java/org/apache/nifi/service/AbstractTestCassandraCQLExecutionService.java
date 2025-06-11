@@ -277,7 +277,7 @@ public abstract class AbstractTestCassandraCQLExecutionService {
     }
 
     private static Path writeCertificateEncoded(final String certificateEncoded) throws IOException {
-        final Path certificateFile = Files.createTempFile(TestCassandraCQLExecutionServiceV3.class.getSimpleName(), ".crt");
+        final Path certificateFile = Files.createTempFile(AbstractTestCassandraCQLExecutionService.class.getSimpleName(), ".crt");
         Files.write(certificateFile, certificateEncoded.getBytes(StandardCharsets.UTF_8));
         certificateFile.toFile().deleteOnExit();
         return certificateFile;

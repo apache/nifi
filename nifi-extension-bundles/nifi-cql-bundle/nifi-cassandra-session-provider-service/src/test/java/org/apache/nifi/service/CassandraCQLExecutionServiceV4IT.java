@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.service;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class TestCassandraCQLExecutionServiceV5 extends AbstractTestCassandraCQLExecutionService {
-    public static final String CASSANDRA_IMAGE = "cassandra:5.0";
+public class CassandraCQLExecutionServiceV4IT extends AbstractTestCassandraCQLExecutionService {
+    public static String CASSANDRA_IMAGE = "cassandra:4.1";
 
     @BeforeAll
-    public static void beforeAll() throws Exception {
+    public static void beforAll() throws Exception {
         setup(CASSANDRA_IMAGE);
     }
 }

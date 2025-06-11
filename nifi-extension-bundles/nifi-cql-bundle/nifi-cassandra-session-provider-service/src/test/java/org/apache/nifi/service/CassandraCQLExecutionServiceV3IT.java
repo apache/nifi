@@ -20,7 +20,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class TestCassandraCQLExecutionServiceV3 extends AbstractTestCassandraCQLExecutionService {
+public class CassandraCQLExecutionServiceV3IT extends AbstractTestCassandraCQLExecutionService {
     public static final String CASSANDRA_IMAGE = "cassandra:3.11";
 
     @BeforeAll

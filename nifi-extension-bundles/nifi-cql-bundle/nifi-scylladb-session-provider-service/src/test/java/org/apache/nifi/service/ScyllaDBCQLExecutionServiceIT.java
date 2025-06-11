@@ -65,7 +65,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @Testcontainers
-public class TestScyllaDBCQLExecutionservice {
+public class ScyllaDBCQLExecutionServiceIT {
     public static final String CASSANDRA_IMAGE = "scylladb/scylla:6.2";
 
     public static final String adminPassword = UUID.randomUUID().toString();
@@ -326,7 +326,7 @@ public class TestScyllaDBCQLExecutionservice {
     }
 
     private static Path writeCertificateEncoded(final String certificateEncoded, String extension) throws IOException {
-        final Path certificateFile = Files.createTempFile(TestScyllaDBCQLExecutionservice.class.getSimpleName(), extension);
+        final Path certificateFile = Files.createTempFile(ScyllaDBCQLExecutionServiceIT.class.getSimpleName(), extension);
         Files.write(certificateFile, certificateEncoded.getBytes(StandardCharsets.UTF_8));
         certificateFile.toFile().deleteOnExit();
         return certificateFile;
