@@ -36,9 +36,9 @@
         in principle be usable with ScyllaDB's drivers
         -->
         <dependency>
-            <groupId>com.datastax.oss</groupId>
+            <groupId>org.apache.cassandra</groupId>
             <artifactId>java-driver-query-builder</artifactId>
-            <version>4.17.0</version>
+            <version>4.19.0</version>
         </dependency>
 
         <dependency>
@@ -47,9 +47,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.datastax.oss</groupId>
+            <groupId>org.apache.cassandra</groupId>
             <artifactId>java-driver-core</artifactId>
-            <version>4.17.0</version>
+            <version>4.19.0</version>
             <scope>provided</scope>
         </dependency>
 
