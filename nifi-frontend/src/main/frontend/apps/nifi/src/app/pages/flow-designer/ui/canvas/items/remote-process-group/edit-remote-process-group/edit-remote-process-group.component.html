@@ -172,7 +172,12 @@
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="!editRemoteProcessGroupForm.dirty || editRemoteProcessGroupForm.invalid || saving.value"
+                    [disabled]="
+                        !editRemoteProcessGroupForm.dirty ||
+                        editRemoteProcessGroupForm.invalid ||
+                        saving.value ||
+                        editRemoteProcessGroupForm.pending
+                    "
                     type="button"
                     (click)="submitForm()"
                     mat-flat-button>

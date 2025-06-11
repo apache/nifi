@@ -90,7 +90,7 @@
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
             <button
-                [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
+                [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value || editPortForm.pending"
                 type="button"
                 (click)="editRemotePort()"
                 mat-flat-button>

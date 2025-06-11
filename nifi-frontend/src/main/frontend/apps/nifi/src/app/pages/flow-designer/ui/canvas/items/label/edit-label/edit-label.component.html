@@ -45,7 +45,7 @@
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="!editLabelForm.dirty || editLabelForm.invalid || saving.value"
+                    [disabled]="!editLabelForm.dirty || editLabelForm.invalid || saving.value || editLabelForm.pending"
                     type="button"
                     (click)="editLabel()"
                     mat-flat-button>

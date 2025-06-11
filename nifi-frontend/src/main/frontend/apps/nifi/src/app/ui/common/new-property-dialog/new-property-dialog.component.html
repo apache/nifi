@@ -37,7 +37,10 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-flat-button [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid" (click)="addProperty()">
+        <button
+            mat-flat-button
+            [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid || newPropertyForm.pending"
+            (click)="addProperty()">
             Ok
         </button>
     </mat-dialog-actions>

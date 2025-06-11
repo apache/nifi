@@ -267,7 +267,12 @@
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
+                    [disabled]="
+                        !editProcessGroupForm.dirty ||
+                        editProcessGroupForm.invalid ||
+                        saving.value ||
+                        editProcessGroupForm.pending
+                    "
                     class="h-8"
                     type="button"
                     (click)="submitForm()"

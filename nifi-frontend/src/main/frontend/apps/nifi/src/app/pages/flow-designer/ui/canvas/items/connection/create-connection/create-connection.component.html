@@ -226,7 +226,7 @@
             <mat-dialog-actions align="end">
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="createConnectionForm.invalid || saving.value"
+                    [disabled]="createConnectionForm.invalid || saving.value || createConnectionForm.pending"
                     type="button"
                     (click)="createConnection(breadcrumbs.id)"
                     mat-flat-button>

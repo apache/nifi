@@ -73,7 +73,7 @@
                 <mat-dialog-actions align="end">
                     <button mat-button mat-dialog-close>Cancel</button>
                     <button
-                        [disabled]="enableControllerServiceForm.invalid"
+                        [disabled]="enableControllerServiceForm.invalid || enableControllerServiceForm.pending"
                         type="button"
                         (click)="submitForm()"
                         mat-flat-button>
