@@ -26,6 +26,7 @@ import { ParameterContextListingEffects } from '../state/parameter-context-listi
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { ParameterContextListing } from '../ui/parameter-context-listing/parameter-context-listing.component';
+import { ProcessGroupReferences } from '../ui/parameter-context-listing/process-group-references/process-group-references.component';
 
 @NgModule({
     declarations: [ParameterContexts],
@@ -37,7 +38,8 @@ import { ParameterContextListing } from '../ui/parameter-context-listing/paramet
         EffectsModule.forFeature(ParameterContextListingEffects),
         ParameterContextListing,
         Navigation,
-        BannerText
+        BannerText,
+        ProcessGroupReferences
     ]
 })
 export class ParameterContextsModule {}

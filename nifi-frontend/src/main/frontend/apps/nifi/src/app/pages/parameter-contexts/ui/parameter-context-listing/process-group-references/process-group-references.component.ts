@@ -35,6 +35,7 @@ export class ProcessGroupReferences {
         this.authorizedProcessGroupReferences = this.getAuthorized(processGroupReferences);
         this.unauthorizedProcessGroupReferences = this.getUnauthorized(processGroupReferences);
     }
+    @Input() disabledLinks = false;
 
     authorizedProcessGroupReferences: BoundProcessGroup[] = [];
     unauthorizedProcessGroupReferences: BoundProcessGroup[] = [];

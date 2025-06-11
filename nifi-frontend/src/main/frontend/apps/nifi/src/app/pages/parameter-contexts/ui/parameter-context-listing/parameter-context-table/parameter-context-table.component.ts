@@ -18,20 +18,31 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
-import { BoundProcessGroup, ParameterContext, ParameterContextEntity } from '../../../../../state/shared';
+import { BoundProcessGroup, ParameterContextEntity } from '../../../../../state/shared';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { ProcessGroupTip } from '../../../../../ui/common/tooltips/process-group-tip/process-group-tip.component';
 
 @Component({
     selector: 'parameter-context-table',
     templateUrl: './parameter-context-table.component.html',
     styleUrls: ['./parameter-context-table.component.scss'],
-    imports: [MatTableModule, MatSortModule, MatIconButton, MatMenuTrigger, MatMenu, MatMenuItem, RouterLink, NgClass]
+    imports: [
+        MatTableModule,
+        MatSortModule,
+        MatIconButton,
+        MatMenuTrigger,
+        MatMenu,
+        MatMenuItem,
+        RouterLink,
+        NgClass,
+        NifiTooltipDirective
+    ]
 })
 export class ParameterContextTable {
     @Input() initialSortColumn: 'name' | 'provider' | 'description' | 'process groups' = 'name';
@@ -87,29 +98,29 @@ export class ParameterContextTable {
     }
 
     formatProcessGroups(entity: ParameterContextEntity): string {
-        const highLevelProcessGroups = this.getHighLevelProcessGroups(entity);
-        return highLevelProcessGroups.length <= 1
-            ? highLevelProcessGroups.toString()
-            : highLevelProcessGroups.length.toString();
+        const boundedProcessGroups = this.getBoundedProcessGroups(entity);
+        return boundedProcessGroups.length <= 1
+            ? this.getAllowedProcessGroupName(boundedProcessGroups)
+            : boundedProcessGroups.length.toString() + ' referencing Process Groups';
     }
 
-    formatProcessGroupNames(entity: ParameterContextEntity): string {
-        const highLevelProcessGroups = this.getHighLevelProcessGroups(entity);
-        return highLevelProcessGroups.sort((a, b) => this.nifiCommon.compareString(a, b)).join('\n');
+    hasMultipleProcessGroups(entity: ParameterContextEntity): boolean {
+        const boundedProcessGroups = this.getBoundedProcessGroups(entity);
+        return boundedProcessGroups.length > 1;
     }
 
-    private getHighLevelProcessGroups(entity: ParameterContextEntity): string[] {
+    getBoundedProcessGroups(entity: ParameterContextEntity): BoundProcessGroup[] {
         if (!this.canRead(entity) || entity.component === undefined) {
             return [];
         }
-        const component: ParameterContext = entity.component;
-        const allowedProcessGroups: BoundProcessGroup[] = component.boundProcessGroups.filter(
-            (group) => group.permissions.canRead
-        );
-        const componentIds: string[] = allowedProcessGroups.map((group) => group.component.id);
-        return allowedProcessGroups
-            .filter((group) => !componentIds.includes(group.component.parentGroupId))
-            .map((group) => group.component.name);
+        return entity.component.boundProcessGroups;
+    }
+
+    private getAllowedProcessGroupName(groups: BoundProcessGroup[]): string {
+        if (groups.length === 0) {
+            return '';
+        }
+        return groups[0].permissions.canRead ? groups[0].component.name : '1 referencing Process Group';
     }
 
     editClicked(entity: ParameterContextEntity): void {
@@ -192,4 +203,6 @@ export class ParameterContextTable {
             return retVal * (isAsc ? 1 : -1);
         });
     }
+
+    protected readonly ProcessGroupTip = ProcessGroupTip;
 }

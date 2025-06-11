@@ -57,8 +57,20 @@
             <!-- Process Group Column -->
             <ng-container matColumnDef="process groups">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Process Groups</th>
-                <td mat-cell *matCellDef="let item" [title]="formatProcessGroupNames(item)">
-                    {{ formatProcessGroups(item) }}
+                <td mat-cell *matCellDef="let item">
+                    <div class="flex justify-start gap-x-2 items-center">
+                        @let hasMultipleGroups = hasMultipleProcessGroups(item);
+                        <div [class.unset]="hasMultipleGroups">
+                            {{ formatProcessGroups(item) }}
+                        </div>
+                        @if (hasMultipleGroups) {
+                            <i
+                                class="fa fa-info-circle primary-color"
+                                nifiTooltip
+                                [tooltipComponentType]="ProcessGroupTip"
+                                [tooltipInputData]="getBoundedProcessGroups(item)"></i>
+                        }
+                    </div>
                 </td>
             </ng-container>
 
