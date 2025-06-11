@@ -51,10 +51,12 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
     public String getDescription() {
         return "Changes the version for all of the controlled process group instances for a given flow ID. "
                 + "This can be used to upgrade all the instances of a versioned flow to a new version, or "
-                + "revert to a previous version. If no version is specified, the latest version will be used. "
-                + "If no process group ID is provided, the root process group will be used to recursively "
-                + "search for all instances of the Flow ID. It is possible to force the recursive operation "
-                + "and not stop the operation in case the upgrade of a process group fails.";
+                + "revert to a previous version. If no flow ID is specified, all versioned process groups will "
+                + "be upgraded to the latest version. If a flow ID is specified and if no version is specified, "
+                + "the latest version will be used. If no process group ID is provided, the root process group "
+                + "will be used to recursively search for all instances of the Flow ID (or any process group "
+                + "with versioned control information). It is possible to force the recursive operation and not "
+                + "stop the operation in case the upgrade of a process group fails.";
     }
 
     @Override
@@ -70,7 +72,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final FlowClient flowClient = client.getFlowClient();
-        final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
+        final String flowId = getArg(properties, CommandOption.FLOW_ID);
 
         // get the optional id of the parent PG, otherwise fallback to the root group
         String parentPgId = getArg(properties, CommandOption.PG_ID);
@@ -86,6 +88,9 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
 
         // new version, if specified in the arguments
         String newVersion = getArg(properties, CommandOption.FLOW_VERSION);
+        if (newVersion != null && flowId == null) {
+            throw new CommandException("If a version is specified, then a flow ID must also be specified.");
+        }
 
         // force operation, if specified in the arguments
         final boolean forceOperation = properties.containsKey(CommandOption.FORCE.getLongName());
@@ -96,21 +101,38 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         for (final ProcessGroupDTO pgDTO : pgList) {
             final VersionControlInformationEntity entity = client.getVersionsClient().getVersionControlInfo(pgDTO.getId());
 
-            if (entity.getVersionControlInformation() == null || !entity.getVersionControlInformation().getFlowId().equals(flowId)) {
-                continue; // the process group is not version controlled or does not match the provided
-                          // Flow ID
+            if (entity.getVersionControlInformation() == null || (flowId != null && !entity.getVersionControlInformation().getFlowId().equals(flowId))) {
+                // the process group is not version controlled or does not match the provided
+                // Flow ID
+                continue;
             }
-
-            if (newVersion == null) {
-                newVersion = doPGChangeVersion.getLatestVersion(client, entity.getVersionControlInformation());
-            }
-
-            processGroups.add(pgDTO);
 
             final String previousVersion = pgDTO.getVersionControlInformation().getVersion();
+            processGroups.add(pgDTO);
+
+            if (newVersion == null || flowId == null) {
+                try {
+                    newVersion = doPGChangeVersion.getLatestVersion(client, entity.getVersionControlInformation());
+                } catch (Exception e) {
+                    changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, null, e.getMessage()));
+                    if (forceOperation) {
+                        continue;
+                    } else {
+                        e.printStackTrace();
+                        break;
+                    }
+                }
+            }
+
             if (previousVersion.equals(newVersion)) {
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(newVersion, newVersion, "Process group already at desired version"));
-                continue; // Process group already at desired version
+                continue;
+            }
+
+            final String currentState = entity.getVersionControlInformation().getState();
+            if (!"STALE".equals(currentState)) {
+                changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, newVersion, "Process group cannot be upgraded because current state is " + currentState));
+                continue;
             }
 
             try {

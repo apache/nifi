@@ -65,6 +65,7 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
                 .column("Stopped", 7, 7, false)
                 .column("Disabled", 8, 8, false)
                 .column("Invalid", 7, 7, false)
+                .column("Version Control", 36, 36, false)
                 .build();
 
         for (int i = 0; i < processGroups.size(); i++) {
@@ -76,7 +77,8 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
                     String.valueOf(dto.getRunningCount()),
                     String.valueOf(dto.getStoppedCount()),
                     String.valueOf(dto.getDisabledCount()),
-                    String.valueOf(dto.getInvalidCount())
+                    String.valueOf(dto.getInvalidCount()),
+                    dto.getVersionControlInformation() != null ? dto.getVersionControlInformation().getState() : "N/A"
             );
         }
 
