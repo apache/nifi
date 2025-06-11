@@ -26,67 +26,51 @@ import java.util.function.Supplier;
  *     <li>explicit call to {@link #block()}</li>
  *     <li>timeout since last call to {@link #unblock()}</li>
  * </ul>
- * Unblocking is done by calling {@link #unblock()} or {@link #unblockAndDisableTimeout()}. The latter is used to disable the timeout mechanism to allow shutdown of background threads that could
+ * Unblocking is done by calling {@link #unblock()} or {@link #unblockInfinitely()}. The latter is used to disable the timeout mechanism to allow shutdown of background threads that could
  * otherwise block indefinitely due to no calls to {@link #unblock()}.
  */
 public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
 
-    private CountDownLatch blocker = new CountDownLatch(0);
-
     static final long BLOCK_AFTER_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(2);
-    private final Supplier<Long> timestampProvider;
-    private long timeoutAnchor = 0L;
-    private CountDownLatch timeoutBlocker = new CountDownLatch(0);
+
+    private final TimeoutActivationLatch timeoutActivationLatch;
+    private CountDownLatch countDownLatch = new CountDownLatch(0);
 
     public static StandardRecordProcessorBlocker create() {
         return new StandardRecordProcessorBlocker(System::currentTimeMillis);
     }
 
     protected StandardRecordProcessorBlocker(final Supplier<Long> timestampProvider) {
-        this.timestampProvider = timestampProvider;
+        timeoutActivationLatch = new TimeoutActivationLatch(timestampProvider, TimeUnit.SECONDS, TimeUnit.MILLISECONDS.toSeconds(BLOCK_AFTER_TIMEOUT_MILLIS));
     }
 
     public void await() throws InterruptedException {
-        blocker.await();
-        awaitDueToTimeoutIfNeeded();
+        countDownLatch.await();
+        timeoutActivationLatch.await();
     }
 
-    private void awaitDueToTimeoutIfNeeded() throws InterruptedException {
-        final long nowTimestamp = timestampProvider.get();
-        if (!shouldBlockDueToTimeout(nowTimestamp)) {
-            return;
-        }
-        synchronized (this) {
-            final CountDownLatch localTimeoutBlocker = timeoutBlocker;
-            if (shouldBlockDueToTimeout(nowTimestamp) && localTimeoutBlocker.getCount() == 0) {
-                localTimeoutBlocker.countDown();
-                timeoutBlocker = new CountDownLatch(1);
-            }
-        }
-        timeoutBlocker.await();
-    }
-
-    private boolean shouldBlockDueToTimeout(final long nowMillis) {
-        return nowMillis - timeoutAnchor > BLOCK_AFTER_TIMEOUT_MILLIS;
-    }
-
+    /**
+     * Blocks subsequent calls to {@link #await()} until {@link #unblock()} or {@link #unblockInfinitely()} is called.
+     */
     public synchronized void block() {
-        blocker = blocker.getCount() > 0
-                ? blocker
+        countDownLatch = countDownLatch.getCount() > 0
+                ? countDownLatch
                 : new CountDownLatch(1);
     }
 
+    /**
+     * Unblocks the blocker and enables the timeout mechanism.
+     */
     public void unblock() {
-        unblockPrivate(timestampProvider.get());
+        countDownLatch.countDown();
+        timeoutActivationLatch.pushback();
     }
 
-    public void unblockAndDisableTimeout() {
-        unblockPrivate(Long.MAX_VALUE);
-    }
-
-    private synchronized void unblockPrivate(final long newTimeoutAnchor) {
-        blocker.countDown();
-        timeoutAnchor = newTimeoutAnchor;
-        timeoutBlocker.countDown();
+    /**
+     * Unblocks the blocker and disables the timeout mechanism. Subsequent calls to {@link #unblock()} will re-enable the timeout mechanism.
+     */
+    public void unblockInfinitely() {
+        countDownLatch.countDown();
+        timeoutActivationLatch.disable();
     }
 }

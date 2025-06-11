@@ -121,7 +121,7 @@ public class TestStandardRecordProcessorBlocker {
             final StandardRecordProcessorBlocker recordProcessorBlocker = new StandardRecordProcessorBlocker(currentTimeMillis::get);
 
             recordProcessorBlocker.unblock();
-            recordProcessorBlocker.unblockAndDisableTimeout();
+            recordProcessorBlocker.unblockInfinitely();
             currentTimeMillis.set(Long.MAX_VALUE);
             final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
             thread.start();

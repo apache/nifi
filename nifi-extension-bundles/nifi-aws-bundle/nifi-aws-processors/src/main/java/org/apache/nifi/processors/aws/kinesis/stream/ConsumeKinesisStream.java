@@ -787,7 +787,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             if (!scheduler.hasGracefulShutdownStarted()) {
                 getLogger().info("Requesting Kinesis Worker shutdown");
                 final Future<Boolean> shutdown = scheduler.startGracefulShutdown();
-                recordProcessorBlocker.unblockAndDisableTimeout();
+                recordProcessorBlocker.unblockInfinitely();
                 // allow 2 seconds longer than the graceful period for shutdown before cancelling the task
                 if (Boolean.FALSE.equals(shutdown.get(getGracefulShutdownMillis(context) + 2_000L, TimeUnit.MILLISECONDS))) {
                     getLogger().warn("Kinesis Worker shutdown did not complete in time, cancelling");
