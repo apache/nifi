@@ -16,17 +16,21 @@
  */
 package org.apache.nifi.toolkit.client.impl.request;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Form;
 import org.apache.nifi.toolkit.client.NiFiClientConfig;
 import org.apache.nifi.toolkit.client.RequestConfig;
+import org.apache.nifi.toolkit.client.impl.request.util.AccessToken;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -39,7 +43,15 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String BEARER = "Bearer";
 
-    private final String token;
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+    private AccessToken token;
+    private final NiFiClientConfig niFiClientConfig;
+    private final String oidcTokenUrl;
+    private final String oidcClientId;
+    private final String oidcClientSecret;
 
     public OIDCClientCredentialsRequestConfig(NiFiClientConfig niFiClientConfig, final String oidcTokenUrl, final String oidcClientId, final String oidcClientSecret) {
         Objects.requireNonNull(oidcTokenUrl);
@@ -47,6 +59,24 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
         Objects.requireNonNull(oidcClientSecret);
         Objects.requireNonNull(niFiClientConfig);
 
+        this.niFiClientConfig = niFiClientConfig;
+        this.oidcTokenUrl = oidcTokenUrl;
+        this.oidcClientId = oidcClientId;
+        this.oidcClientSecret = oidcClientSecret;
+        setNewToken();
+    }
+
+    @Override
+    public Map<String, String> getHeaders() {
+        if (isRefreshRequired()) {
+            setNewToken();
+        }
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(AUTHORIZATION_HEADER, BEARER + " " + token.getAccessToken());
+        return headers;
+    }
+
+    private void setNewToken() {
         final SSLContext sslContext = niFiClientConfig.getSslContext();
         final HostnameVerifier hostnameVerifier = niFiClientConfig.getHostnameVerifier();
 
@@ -66,18 +96,17 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
         final WebTarget target = clientBuilder.build().target(oidcTokenUrl);
         final String response = target.request().post(Entity.form(form), String.class);
 
-        ObjectMapper mapper = new ObjectMapper();
         try {
-            this.token = mapper.readTree(response).get("access_token").textValue();
+            this.token = OBJECT_MAPPER.readValue(response, AccessToken.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override
-    public Map<String, String> getHeaders() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(AUTHORIZATION_HEADER, BEARER + " " + token);
-        return headers;
+    private boolean isRefreshRequired() {
+        final Instant expirationRefreshTime = token.getFetchTime()
+                .plusSeconds(token.getExpiresIn())
+                .minusSeconds(60); // Refresh 60 seconds before expiration
+        return Instant.now().isAfter(expirationRefreshTime);
     }
 }
