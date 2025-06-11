@@ -561,7 +561,7 @@ export class FetchParameterProviderParameters extends CloseOnEscapeDialog implem
         // if a fetched parameter is new, removed, missing but referenced, or has a changed value... consider the form dirty.
         const isDirty = anyParametersChangedInProvider || this.fetchParametersForm.dirty;
 
-        return isDirty && !this.fetchParametersForm.invalid;
+        return isDirty && !this.fetchParametersForm.invalid && !this.fetchParametersForm.pending;
     }
 
     private getFormData(): ParameterProviderParameterApplicationEntity {
