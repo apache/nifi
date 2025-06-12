@@ -34,8 +34,8 @@ public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
     static final Duration BLOCK_AFTER_DURATION = Duration.ofSeconds(2);
 
     private final Supplier<Long> timestampProvider;
-    private long timeoutBase = 0L;
-    private CountDownLatch latch = new CountDownLatch(0);
+    private long timeoutBase;
+    private CountDownLatch blocker = new CountDownLatch(0);
 
     public static StandardRecordProcessorBlocker create() {
         return new StandardRecordProcessorBlocker(System::currentTimeMillis);
@@ -43,6 +43,7 @@ public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
 
     protected StandardRecordProcessorBlocker(final Supplier<Long> timestampProvider) {
         this.timestampProvider = timestampProvider;
+        this.timeoutBase = timestampProvider.get();
     }
 
     public void await() throws InterruptedException {
@@ -51,13 +52,13 @@ public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
             return;
         }
         synchronized (this) {
-            final CountDownLatch localTimeoutBlocker = latch;
+            final CountDownLatch localTimeoutBlocker = blocker;
             if (isAfterTimeout(nowTimestamp) && localTimeoutBlocker.getCount() == 0) {
                 localTimeoutBlocker.countDown();
-                latch = new CountDownLatch(1);
+                blocker = new CountDownLatch(1);
             }
         }
-        latch.await();
+        blocker.await();
     }
 
     private boolean isAfterTimeout(final long nowMillis) {
@@ -76,7 +77,7 @@ public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
      */
     public void unblock() {
         timeoutBase = timestampProvider.get();
-        latch.countDown();
+        blocker.countDown();
     }
 
     /**
@@ -84,6 +85,6 @@ public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
      */
     public void unblockInfinitely() {
         timeoutBase = Long.MAX_VALUE;
-        latch.countDown();
+        blocker.countDown();
     }
 }
