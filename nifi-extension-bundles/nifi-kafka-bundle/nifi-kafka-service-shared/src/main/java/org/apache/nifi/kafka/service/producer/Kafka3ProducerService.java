@@ -69,16 +69,13 @@ public class Kafka3ProducerService implements KafkaProducerService {
             this.wrapper = producerConfiguration.getTransactionsEnabled()
                     ? new KafkaTransactionalProducerWrapper(producer)
                     : new KafkaNonTransactionalProducerWrapper(producer);
-        } catch (Exception e) {
-            boolean success;
+        } catch (final Exception e) {
             try {
                 close();
-                success = true;
-            } catch (Exception e2) {
-                success = false;
+            } catch (final Exception closeEx) {
+                e.addSuppressed(closeEx);
             }
-            throw new ProcessException(String.format("Failed to initialize Kafka Producer (%s)",
-                    success ? "closed producer cleanly after failure" : "also failed to close producer after failure"), e);
+            throw new ProcessException("Failed to initialize Kafka Producer", e);
         }
     }
 
