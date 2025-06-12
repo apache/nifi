@@ -18,6 +18,7 @@ package org.apache.nifi.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.avro.Conversions;
@@ -35,9 +36,6 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -47,14 +45,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 
-@RestController()
-@RequestMapping("/api")
-public class StandardContentViewerController {
+public class StandardContentViewerController extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardContentViewerController.class);
 
-    @GetMapping("/content")
-    public void getContent(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
+    @Override
+    public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         final ContentRequestContext requestContext = new HttpServletContentRequestContext(request);
 
         // get the content
