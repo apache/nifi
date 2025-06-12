@@ -288,7 +288,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .topLevelGroupId(group.getIdentifier())
             .updateDescendantVersionedFlows(true)
             .updateGroupSettings(true)
-            .updateGroupVersionControlSnapshot(false)
             .updateRpgUrls(true)
             .ignoreLocalModifications(true)
             .build();
