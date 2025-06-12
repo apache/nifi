@@ -40,6 +40,8 @@ import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.LogComponentStatuses;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.repository.metrics.tracking.StandardStatsTracker;
+import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
@@ -198,8 +200,10 @@ public class StandardStatelessEngine implements StatelessEngine {
         overrideParameters(parameterContextMap, parameterValueProvider);
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
+        final StatsTracker statsTracker = new StandardStatsTracker(() -> 0, 0);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository, lifecycleStateManager, componentEnableTimeout);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository, lifecycleStateManager, componentEnableTimeout,
+            statsTracker);
 
         if (statusTaskInterval != null) {
             final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);

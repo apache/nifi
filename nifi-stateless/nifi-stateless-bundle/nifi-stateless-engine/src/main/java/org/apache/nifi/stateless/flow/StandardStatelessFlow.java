@@ -45,6 +45,7 @@ import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -129,6 +130,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final LifecycleStateManager lifecycleStateManager;
     private final long componentEnableTimeoutMillis;
     private final List<Port> inputPorts;
+    private final StatsTracker statsTracker;
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile ScheduledExecutorService backgroundTaskExecutor;
@@ -139,7 +141,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
                                  final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository,
-                                 final LifecycleStateManager lifecycleStateManager, final Duration componentEnableTimeout) {
+                                 final LifecycleStateManager lifecycleStateManager, final Duration componentEnableTimeout, final StatsTracker statsTracker) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
@@ -155,6 +157,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.tracker = new AsynchronousCommitTracker(rootGroup);
         this.lifecycleStateManager = lifecycleStateManager;
         this.inputPorts = new ArrayList<>(rootGroup.getInputPorts());
+        this.statsTracker = statsTracker;
 
         rootConnectables = new HashSet<>();
         inputPortsByName = mapInputPortsToName(rootGroup);
@@ -370,9 +373,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         shutdown = true;
         logger.info("Shutting down dataflow {}", rootGroup.getName());
 
-        if (runDataflowExecutor != null) {
-            runDataflowExecutor.shutdown();
-        }
         if (backgroundTaskExecutor != null) {
             backgroundTaskExecutor.shutdown();
         }
@@ -384,11 +384,12 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         // Wait for the graceful shutdown period for all processors to stop. If the processors do not stop within this time,
         // then interrupt them.
-        if (runDataflowExecutor != null && interruptProcessors) {
+        boolean interrupt = false;
+        if (interruptProcessors) {
             if (gracefulShutdownDuration.isZero()) {
                 logger.info("Shutting down all components immediately without waiting for graceful shutdown period");
                 tracker.triggerFailureCallbacks(new TerminatedTaskException());
-                runDataflowExecutor.shutdownNow();
+                interrupt = true;
             } else {
                 final boolean gracefullyStopped = waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
                 if (gracefullyStopped) {
@@ -398,12 +399,20 @@ public class StandardStatelessFlow implements StatelessDataflow {
                     logger.warn("{} Processors did not finish running within the graceful shutdown period of {} millis. Interrupting all running components. Processors still running: {}",
                         runningProcessors.size(), gracefulShutdownDuration.toMillis(), runningProcessors);
                     tracker.triggerFailureCallbacks(new TerminatedTaskException());
-                    runDataflowExecutor.shutdownNow();
+                    interrupt = true;
                 }
             }
-        } else if (runDataflowExecutor != null) {
+        } else {
             waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
             tracker.triggerCallbacks();
+        }
+
+        if (runDataflowExecutor != null) {
+            if (interrupt) {
+                runDataflowExecutor.shutdownNow();
+            } else {
+                runDataflowExecutor.shutdown();
+            }
         }
 
         // Stop components but do not trigger @OnUnscheduled because those were already triggered.
@@ -662,6 +671,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         final StatelessFlowCurrent current = new StandardStatelessFlowCurrent.Builder()
             .commitTracker(tracker)
+            .statsTracker(statsTracker)
             .executionProgress(executionProgress)
             .processContextFactory(processContextFactory)
             .repositoryContextFactory(repositoryContextFactory)
