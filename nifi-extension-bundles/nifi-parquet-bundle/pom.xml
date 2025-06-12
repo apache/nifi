@@ -25,8 +25,10 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>nifi-parquet-content-viewer</module>
         <module>nifi-parquet-processors</module>
         <module>nifi-parquet-nar</module>
+        <module>nifi-parquet-content-viewer-nar</module>
     </modules>
     <dependencyManagement>
         <dependencies>
