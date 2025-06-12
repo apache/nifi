@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.pause;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -31,46 +31,59 @@ import java.util.function.Supplier;
  */
 public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
 
-    static final long BLOCK_AFTER_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(2);
+    static final Duration BLOCK_AFTER_DURATION = Duration.ofSeconds(2);
 
-    private final TimeoutActivationLatch timeoutActivationLatch;
-    private CountDownLatch countDownLatch = new CountDownLatch(0);
+    private final Supplier<Long> timestampProvider;
+    private long timeoutBase = 0L;
+    private CountDownLatch latch = new CountDownLatch(0);
 
     public static StandardRecordProcessorBlocker create() {
         return new StandardRecordProcessorBlocker(System::currentTimeMillis);
     }
 
     protected StandardRecordProcessorBlocker(final Supplier<Long> timestampProvider) {
-        timeoutActivationLatch = new TimeoutActivationLatch(timestampProvider, TimeUnit.SECONDS, TimeUnit.MILLISECONDS.toSeconds(BLOCK_AFTER_TIMEOUT_MILLIS));
+        this.timestampProvider = timestampProvider;
     }
 
     public void await() throws InterruptedException {
-        countDownLatch.await();
-        timeoutActivationLatch.await();
+        final long nowTimestamp = timestampProvider.get();
+        if (!isAfterTimeout(nowTimestamp)) {
+            return;
+        }
+        synchronized (this) {
+            final CountDownLatch localTimeoutBlocker = latch;
+            if (isAfterTimeout(nowTimestamp) && localTimeoutBlocker.getCount() == 0) {
+                localTimeoutBlocker.countDown();
+                latch = new CountDownLatch(1);
+            }
+        }
+        latch.await();
+    }
+
+    private boolean isAfterTimeout(final long nowMillis) {
+        return nowMillis - timeoutBase > BLOCK_AFTER_DURATION.toMillis();
     }
 
     /**
      * Blocks subsequent calls to {@link #await()} until {@link #unblock()} or {@link #unblockInfinitely()} is called.
      */
     public synchronized void block() {
-        countDownLatch = countDownLatch.getCount() > 0
-                ? countDownLatch
-                : new CountDownLatch(1);
+        timeoutBase = 0;
     }
 
     /**
      * Unblocks the blocker and enables the timeout mechanism.
      */
     public void unblock() {
-        countDownLatch.countDown();
-        timeoutActivationLatch.pushback();
+        timeoutBase = timestampProvider.get();
+        latch.countDown();
     }
 
     /**
      * Unblocks the blocker and disables the timeout mechanism. Subsequent calls to {@link #unblock()} will re-enable the timeout mechanism.
      */
     public void unblockInfinitely() {
-        countDownLatch.countDown();
-        timeoutActivationLatch.disable();
+        timeoutBase = Long.MAX_VALUE;
+        latch.countDown();
     }
 }

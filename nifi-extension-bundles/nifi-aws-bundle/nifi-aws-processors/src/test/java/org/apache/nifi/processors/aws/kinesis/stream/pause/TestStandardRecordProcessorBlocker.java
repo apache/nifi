@@ -88,7 +88,7 @@ public class TestStandardRecordProcessorBlocker {
 
             currentTimeMillis.set(0L);
             recordProcessorBlocker.unblock();
-            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_TIMEOUT_MILLIS + 1);
+            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_DURATION.toMillis() + 1);
             final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
             thread.start();
 
@@ -107,7 +107,7 @@ public class TestStandardRecordProcessorBlocker {
 
             currentTimeMillis.set(0L);
             recordProcessorBlocker.unblock();
-            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_TIMEOUT_MILLIS);
+            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_DURATION.toMillis());
             final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
             thread.start();
 
@@ -136,7 +136,7 @@ public class TestStandardRecordProcessorBlocker {
             final StandardRecordProcessorBlocker recordProcessorBlocker = new StandardRecordProcessorBlocker(currentTimeMillis::get);
             currentTimeMillis.set(0L);
             recordProcessorBlocker.unblock();
-            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_TIMEOUT_MILLIS + 1);
+            currentTimeMillis.addAndGet(StandardRecordProcessorBlocker.BLOCK_AFTER_DURATION.toMillis() + 1);
             final Thread thread = new Thread(createRunnableWithInspector(recordProcessorBlocker, blockerInspector));
             thread.start();
 
