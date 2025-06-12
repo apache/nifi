@@ -36,8 +36,6 @@ import java.util.EnumSet;
  */
 @WebListener
 public class StandardServletContextListener implements ServletContextListener {
-    private static final String ALL_URLS = "/*";
-
     private static final String API_CONTENT_MAPPING = "/api/content";
 
     private static final int LOAD_ON_STARTUP_ENABLED = 1;
@@ -48,7 +46,7 @@ public class StandardServletContextListener implements ServletContextListener {
 
     private static final String BASE_RESOURCE_DIRECTORY = "WEB-INF/classes/static";
 
-    private static final String FILTER_URL = "";
+    private static final String DEFAULT_MAPPING = "/";
 
     private static final Logger logger = LoggerFactory.getLogger(StandardServletContextListener.class);
 
@@ -56,14 +54,14 @@ public class StandardServletContextListener implements ServletContextListener {
     public void contextInitialized(final ServletContextEvent sce) {
         final ServletContext servletContext = sce.getServletContext();
         final FilterRegistration.Dynamic filter = servletContext.addFilter(QueryStringToFragmentFilter.class.getSimpleName(), QueryStringToFragmentFilter.class);
-        filter.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, FILTER_URL);
+        filter.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, DEFAULT_MAPPING);
 
         final ServletRegistration.Dynamic servlet = servletContext.addServlet(StandardContentViewerController.class.getSimpleName(), StandardContentViewerController.class);
         servlet.addMapping(API_CONTENT_MAPPING);
         servlet.setLoadOnStartup(LOAD_ON_STARTUP_ENABLED);
 
         final ServletRegistration.Dynamic defaultServlet = servletContext.addServlet(DefaultServlet.class.getSimpleName(), DefaultServlet.class);
-        defaultServlet.addMapping(ALL_URLS);
+        defaultServlet.addMapping(DEFAULT_MAPPING);
         defaultServlet.setInitParameter(DIR_ALLOWED_PARAMETER, Boolean.FALSE.toString());
         defaultServlet.setInitParameter(BASE_RESOURCE_PARAMETER, BASE_RESOURCE_DIRECTORY);
         defaultServlet.setLoadOnStartup(LOAD_ON_STARTUP_ENABLED);
