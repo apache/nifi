@@ -37,11 +37,15 @@ message Proto3Message {
 
 message NestedMessage {
   TestEnum testEnum = 20;
-  map<string, int32> testMap = 21;
+  repeated NestedMessage2 nestedMessage2 = 21;
+}
+
+message NestedMessage2 {
+  map<string, int32> testMap = 30;
   oneof oneOfField {
-    string stringOption = 22;
-    bool booleanOption = 23;
-    int32 int32Option = 24;
+    string stringOption = 31;
+    bool booleanOption = 32;
+    int32 int32Option = 33;
   }
 }
 
