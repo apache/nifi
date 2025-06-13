@@ -20,6 +20,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.GarbageCollectionLog;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.reporting.ReportingTask;
@@ -33,6 +34,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,6 +88,7 @@ class CronSchedulingAgentTest {
         when(connectable.getIdentifier()).thenReturn(componentId);
         when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
         when(stateManagerProvider.getStateManager(eq(componentId))).thenReturn(stateManager);
+        when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
 
         schedulingAgent.doSchedule(connectable, lifecycleState);
     }

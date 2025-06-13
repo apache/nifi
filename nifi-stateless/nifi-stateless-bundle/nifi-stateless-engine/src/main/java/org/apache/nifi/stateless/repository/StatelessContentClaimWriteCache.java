@@ -21,6 +21,8 @@ import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.PerformanceTrackingOutputStream;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.IOException;
@@ -30,10 +32,12 @@ import java.util.List;
 
 public class StatelessContentClaimWriteCache implements ContentClaimWriteCache {
     private final ContentRepository contentRepository;
+    private final PerformanceTracker performanceTracker;
     private final List<OutputStream> writtenTo = new ArrayList<>();
 
-    public StatelessContentClaimWriteCache(final ContentRepository contentRepository) {
+    public StatelessContentClaimWriteCache(final ContentRepository contentRepository, final PerformanceTracker performanceTracker) {
         this.contentRepository = contentRepository;
+        this.performanceTracker = performanceTracker;
     }
 
     @Override
@@ -56,7 +60,8 @@ public class StatelessContentClaimWriteCache implements ContentClaimWriteCache {
 
     @Override
     public OutputStream write(final ContentClaim claim) throws IOException {
-        final OutputStream out = contentRepository.write(claim);
+        final OutputStream rawOut = contentRepository.write(claim);
+        final OutputStream out = new PerformanceTrackingOutputStream(rawOut, performanceTracker);
         writtenTo.add(out);
         return out;
     }

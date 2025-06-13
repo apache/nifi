@@ -21,6 +21,7 @@ public class NanoTimePerformanceTracker implements PerformanceTracker {
     private final Timer contentReadTimer = new Timer();
     private final Timer contentWriteTimer = new Timer();
     private final Timer sessionCommitTimer = new Timer();
+    private int writeDepth = 0;
 
     @Override
     public void beginContentRead() {
@@ -39,12 +40,21 @@ public class NanoTimePerformanceTracker implements PerformanceTracker {
 
     @Override
     public void beginContentWrite() {
-        contentWriteTimer.start();
+        // Increase the write depth by 1 and start timer if the depth becomes 1.
+        // We do this because in many cases, we may call .beginContentWrite() multiple times, then .endContentWrite().
+        // For example, if an OutputStream is used, calls to close() or write() may then call flush(), so we don't want to
+        writeDepth++;
+        if (writeDepth == 1) {
+            contentWriteTimer.start();
+        }
     }
 
     @Override
     public void endContentWrite() {
-        contentWriteTimer.stop();
+        writeDepth--;
+        if (writeDepth == 0) {
+            contentWriteTimer.stop();
+        }
     }
 
     @Override

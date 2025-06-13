@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.session;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
@@ -32,24 +33,27 @@ public class StatelessProcessSessionFactory implements ProcessSessionFactory {
     private final ProcessContextFactory processContextFactory;
     private final ExecutionProgress executionProgress;
     private final boolean requireSynchronousCommits;
-    private final AsynchronousCommitTracker tracker;
+    private final AsynchronousCommitTracker commitTracker;
+    private final PerformanceTracker performanceTracker;
 
     public StatelessProcessSessionFactory(final Connectable connectable, final RepositoryContextFactory contextFactory,
                                           final ProvenanceEventRepository provenanceEventRepository, final ProcessContextFactory processContextFactory,
-                                          final ExecutionProgress executionProgress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
+                                          final ExecutionProgress executionProgress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker commitTracker,
+                                          final PerformanceTracker performanceTracker) {
         this.connectable = connectable;
         this.contextFactory = contextFactory;
         this.provenanceEventRepository = provenanceEventRepository;
         this.processContextFactory = processContextFactory;
         this.executionProgress = executionProgress;
         this.requireSynchronousCommits = requireSynchronousCommits;
-        this.tracker = tracker;
+        this.commitTracker = commitTracker;
+        this.performanceTracker = performanceTracker;
     }
 
     @Override
     public ProcessSession createSession() {
         final StatelessProcessSession session = new StatelessProcessSession(connectable, contextFactory, provenanceEventRepository, processContextFactory, executionProgress,
-            requireSynchronousCommits, tracker);
+            requireSynchronousCommits, commitTracker, performanceTracker);
         executionProgress.registerCreatedSession(session);
         return session;
     }

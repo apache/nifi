@@ -28,6 +28,8 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.NonPurgeableContentRepository;
 import org.apache.nifi.controller.repository.StatelessBridgeFlowFileRepository;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.metrics.tracking.StandardStatsTracker;
+import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
 import org.apache.nifi.controller.scheduling.StatelessProcessSchedulerInitializationContext;
 import org.apache.nifi.engine.FlowEngine;
@@ -151,6 +153,9 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             }
         };
 
+        final StatsTracker statsTracker = new StandardStatsTracker(flowController.getGarbageCollectionLog()::getTotalGarbageCollectionMillis,
+            flowController.getPerformanceTrackingPercentage());
+
         final LogRepository logRepository = LogRepositoryFactory.getRepository(group.getIdentifier());
         final StatelessGroupNode statelessGroupNode = new StandardStatelessGroupNode.Builder()
             .rootGroup(group)
@@ -165,6 +170,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .bulletinRepository(flowController.getBulletinRepository())
             .statelessGroupFactory(statelessGroupFactory)
             .lifecycleStateManager(flowController.getLifecycleStateManager())
+            .statsTracker(statsTracker)
             .boredYieldDuration(flowController.getBoredYieldDuration(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
             .build();
 

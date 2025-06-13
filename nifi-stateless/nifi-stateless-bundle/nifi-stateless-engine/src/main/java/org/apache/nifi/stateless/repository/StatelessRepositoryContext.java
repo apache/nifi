@@ -32,17 +32,17 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class StatelessRepositoryContext extends AbstractRepositoryContext implements RepositoryContext {
-    private final ContentClaimWriteCache writeCache;
+    private final ContentRepository contentRepository;
 
     public StatelessRepositoryContext(final Connectable connectable, final AtomicLong connectionIndex, final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
                                       final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository,
                                       final StateManager stateManager) {
         super(connectable, connectionIndex, contentRepository, flowFileRepository, flowFileEventRepository, counterRepository, provenanceRepository, stateManager);
-        writeCache = new StatelessContentClaimWriteCache(contentRepository);
+        this.contentRepository = contentRepository;
     }
 
     @Override
     public ContentClaimWriteCache createContentClaimWriteCache(final PerformanceTracker performanceTracker) {
-        return writeCache;
+        return new StatelessContentClaimWriteCache(contentRepository, performanceTracker);
     }
 }

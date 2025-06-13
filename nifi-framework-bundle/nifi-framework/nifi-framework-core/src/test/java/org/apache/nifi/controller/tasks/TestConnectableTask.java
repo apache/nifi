@@ -23,6 +23,7 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.GarbageCollectionLog;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
@@ -55,6 +57,8 @@ public class TestConnectableTask {
 
         final RepositoryContext repoContext = Mockito.mock(StandardRepositoryContext.class);
         Mockito.when(repoContext.getFlowFileEventRepository()).thenReturn(Mockito.mock(FlowFileEventRepository.class));
+
+        when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
 
         final RepositoryContextFactory contextFactory = Mockito.mock(RepositoryContextFactory.class);
         Mockito.when(contextFactory.newProcessContext(Mockito.any(Connectable.class), Mockito.any(AtomicLong.class))).thenReturn(repoContext);

@@ -24,7 +24,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.StandardProcessSession;
-import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
@@ -53,22 +53,25 @@ public class StatelessProcessSession extends StandardProcessSession {
     private final ProcessContextFactory processContextFactory;
     private final ProvenanceEventRepository provenanceEventRepository;
     private final ExecutionProgress executionProgress;
-    private final AsynchronousCommitTracker tracker;
+    private final AsynchronousCommitTracker commitTracker;
+    private final PerformanceTracker performanceTracker;
 
     private boolean requireSynchronousCommits;
 
     public StatelessProcessSession(final Connectable connectable, final RepositoryContextFactory repositoryContextFactory,
                                    final ProvenanceEventRepository provenanceEventRepository, final ProcessContextFactory processContextFactory,
-                                   final ExecutionProgress progress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
+                                   final ExecutionProgress progress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker commitTracker,
+                                   final PerformanceTracker performanceTracker) {
 
-        super(repositoryContextFactory.createRepositoryContext(connectable, provenanceEventRepository), progress::isCanceled, new NopPerformanceTracker());
+        super(repositoryContextFactory.createRepositoryContext(connectable, provenanceEventRepository), progress::isCanceled, performanceTracker);
         this.connectable = connectable;
         this.repositoryContextFactory = repositoryContextFactory;
         this.provenanceEventRepository = provenanceEventRepository;
         this.processContextFactory = processContextFactory;
         this.executionProgress = progress;
         this.requireSynchronousCommits = requireSynchronousCommits;
-        this.tracker = tracker;
+        this.commitTracker = commitTracker;
+        this.performanceTracker = performanceTracker;
     }
 
     @Override
@@ -94,7 +97,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         // If we don't require synchronous commits, we can trigger the async commit, but we can't call the callback yet, because we only can call the success callback when we've completed the
         // dataflow in order to ensure that we don't destroy data in a way that it can't be replayed if the downstream processors fail.
         if (!requireSynchronousCommits) {
-            tracker.addCallback(connectable, onSuccess, onFailure, this);
+            commitTracker.addCallback(connectable, onSuccess, onFailure, this);
             super.commitAsync();
             return;
         }
@@ -132,7 +135,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         // Check if the Processor made any progress or not. If so, record this fact so that the framework knows that this was the case.
         final int flowFileCounts = checkpoint.getFlowFilesIn() + checkpoint.getFlowFilesOut() + checkpoint.getFlowFilesRemoved();
         if (flowFileCounts > 0) {
-            tracker.recordProgress(checkpoint.getFlowFilesOut() + checkpoint.getFlowFilesRemoved(), checkpoint.getBytesOut() + checkpoint.getBytesRemoved());
+            commitTracker.recordProgress(checkpoint.getFlowFilesOut() + checkpoint.getFlowFilesRemoved(), checkpoint.getBytesOut() + checkpoint.getBytesRemoved());
         }
 
         // Commit the session
@@ -216,7 +219,7 @@ public class StatelessProcessSession extends StandardProcessSession {
                 continue;
             }
 
-            tracker.addConnectable(connectable);
+            commitTracker.addConnectable(connectable);
         }
     }
 
@@ -252,7 +255,8 @@ public class StatelessProcessSession extends StandardProcessSession {
 
         final ProcessContext connectableContext = processContextFactory.createProcessContext(connectable);
         final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, provenanceEventRepository,
-            processContextFactory, executionProgress, requireSynchronousCommits, new AsynchronousCommitTracker(tracker.getRootGroup()));
+            processContextFactory, executionProgress, requireSynchronousCommits,
+            new AsynchronousCommitTracker(commitTracker.getRootGroup()), performanceTracker);
 
         logger.debug("Triggering {}", connectable);
         final long start = System.nanoTime();
