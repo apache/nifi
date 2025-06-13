@@ -97,7 +97,7 @@ public class GenerateAndCountCallbacks extends AbstractProcessor {
         while (System.currentTimeMillis() < endTime) {
             try {
                 Thread.sleep(endTime - System.currentTimeMillis());
-            } catch (final InterruptedException e) {
+            } catch (final InterruptedException ignored) {
                 // Ignore interruption and continue sleeping until the specified duration has elapsed
             }
         }
