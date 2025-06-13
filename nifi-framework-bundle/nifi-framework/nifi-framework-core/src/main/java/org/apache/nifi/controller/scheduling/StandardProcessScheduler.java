@@ -45,6 +45,7 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.StatelessGroupNode;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.NarCloseable;
@@ -544,21 +545,20 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Stops the given {@link Processor} by invoking its
-     * {@link ProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState, boolean)}
+     * {@link ProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState, ProcessorStopLifecycleMethods)}
      * method.
      *
-     * @see StandardProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState, boolean)
+     * @see StandardProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState, ProcessorStopLifecycleMethods)
      */
     @Override
-    public synchronized CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
+    public synchronized CompletableFuture<Void> stopProcessor(final ProcessorNode procNode, final ProcessorStopLifecycleMethods lifecycleMethods) {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false, false);
 
-        StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
             getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
-        final boolean triggerLifecycleMethods = procNode.getProcessGroup().resolveExecutionEngine() != ExecutionEngine.STATELESS;
         LOG.info("Stopping {}", procNode);
-        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState, triggerLifecycleMethods);
+        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState, lifecycleMethods);
     }
 
     @Override
@@ -844,8 +844,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     private CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final boolean completeFutureExceptionally) {
+        if (service.isActive()) {
+            LOG.debug("{} is already active, so not enabling it again", service);
+            return CompletableFuture.completedFuture(null);
+        }
+
         LOG.info("Enabling {}", service);
-        return service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, completeFutureExceptionally);
+
+        final List<CompletableFuture<Void>> futures = new ArrayList<>();
+        final List<ControllerServiceNode> dependentServices = service.getRequiredControllerServices();
+        for (final ControllerServiceNode dependentService : dependentServices) {
+            // Enable Controller Service but if it fails, do not complete the future Exceptionally. This allows us to wait up until the
+            // timeout for the service to enable, even if it needs to retry in order to do so.
+            futures.add(enableControllerService(dependentService, completeFutureExceptionally));
+        }
+
+        futures.add(service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, completeFutureExceptionally));
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
     @Override

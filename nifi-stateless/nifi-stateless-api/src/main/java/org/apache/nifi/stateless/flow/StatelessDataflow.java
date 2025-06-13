@@ -24,7 +24,9 @@ import org.apache.nifi.reporting.BulletinRepository;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public interface StatelessDataflow {
     /**
@@ -92,22 +94,13 @@ public interface StatelessDataflow {
 
     boolean isFlowFileQueued();
 
-    /**
-     *
-     * @return True if there are any processors in the dataflow with the {@link org.apache.nifi.annotation.behavior.Stateful} annotation
-     */
-    boolean isStateful();
-
     void purge();
 
     Map<String, String> getComponentStates(Scope scope);
 
-    void setComponentStates(Map<String, String> componentStates, Scope scope);
-
-    boolean isSourcePrimaryNodeOnly();
-
-    long getSourceYieldExpiration();
-
     BulletinRepository getBulletinRepository();
 
+    OptionalLong getCounter(String componentId, String counterName);
+
+    Map<String, Long> getCounters(Pattern counterNamePattern);
 }

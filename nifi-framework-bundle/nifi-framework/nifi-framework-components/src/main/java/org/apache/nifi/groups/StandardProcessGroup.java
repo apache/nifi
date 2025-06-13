@@ -69,6 +69,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer;
 import org.apache.nifi.flow.synchronization.VersionedFlowSynchronizationContext;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
@@ -588,14 +589,15 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public CompletableFuture<Void> stopComponents() {
+    public CompletableFuture<Void> stopComponents(final ProcessorStopLifecycleMethods processorStopLifecycleMethods) {
         readLock.lock();
         try {
             final List<CompletableFuture<Void>> futures = new ArrayList<>();
 
             getProcessors().stream().filter(STOP_PROCESSORS_FILTER).forEach(node -> {
                 try {
-                    futures.add(node.getProcessGroup().stopProcessor(node));
+                    final StandardProcessGroup immediateGroup = (StandardProcessGroup) node.getProcessGroup();
+                    futures.add(immediateGroup.stopProcessor(node, processorStopLifecycleMethods));
                 } catch (final Throwable t) {
                     LOG.error("Unable to stop processor {}", node.getIdentifier(), t);
                 }
@@ -1752,7 +1754,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.runProcessorOnce(processor, stopCallback);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             processor.getLogger().error("Error while running processor {} once.", processor, e);
             return stopProcessor(processor);
         } finally {
@@ -1826,6 +1828,17 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public CompletableFuture<Void> stopProcessor(final ProcessorNode processor) {
+        // When using Stateless Engine, we do not want to trigger lifecycle methods because the Stateless engine will create N
+        // ProcessorNode's, one for each Concurrent Task and use those. Therefore, we do not want to trigger any lifecycle events
+        // on this ProcessorNode object, but we do need to call stopProcessor() to ensure that we keep appropriate state
+        // about whether the Processor is scheduled, etc.
+        final ProcessorStopLifecycleMethods lifecycleMethods = resolveExecutionEngine() == ExecutionEngine.STATELESS
+            ? ProcessorStopLifecycleMethods.TRIGGER_NONE : ProcessorStopLifecycleMethods.TRIGGER_ALL;
+
+        return stopProcessor(processor, lifecycleMethods);
+    }
+
+    private CompletableFuture<Void> stopProcessor(final ProcessorNode processor, final ProcessorStopLifecycleMethods lifecycleMethods) {
         readLock.lock();
         try {
             if (!processors.containsKey(processor.getIdentifier())) {
@@ -1837,7 +1850,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("Processor is disabled");
             }
 
-            return scheduler.stopProcessor(processor);
+            return scheduler.stopProcessor(processor, lifecycleMethods);
         } finally {
             readLock.unlock();
         }

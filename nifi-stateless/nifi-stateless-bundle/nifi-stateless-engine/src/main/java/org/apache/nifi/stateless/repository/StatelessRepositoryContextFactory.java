@@ -42,7 +42,7 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     private final StateManagerProvider stateManagerProvider;
 
     public StatelessRepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
-                                             final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository, final StateManagerProvider stateManagerProvider) {
+                                             final CounterRepository counterRepository, final StateManagerProvider stateManagerProvider) {
         this.contentRepository = contentRepository;
         this.flowFileRepository = flowFileRepository;
         this.flowFileEventRepository = flowFileEventRepository;
@@ -69,6 +69,11 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     @Override
     public FlowFileEventRepository getFlowFileEventRepository() {
         return flowFileEventRepository;
+    }
+
+    @Override
+    public CounterRepository getCounterRepository() {
+        return counterRepository;
     }
 
     @Override

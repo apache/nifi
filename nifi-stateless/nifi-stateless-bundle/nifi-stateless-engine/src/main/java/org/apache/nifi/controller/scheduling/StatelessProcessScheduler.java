@@ -21,19 +21,20 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.StatelessGroupNode;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
@@ -48,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -65,6 +67,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     private final SchedulingAgent schedulingAgent;
     private final ExtensionManager extensionManager;
+    private final LifecycleStateManager lifecycleStateManager;
 
     private FlowEngine componentLifeCycleThreadPool;
     private ScheduledExecutorService componentMonitoringThreadPool;
@@ -74,8 +77,9 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     private final long processorStartTimeoutMillis;
 
-    public StatelessProcessScheduler(final ExtensionManager extensionManager, final Duration processorStartTimeout) {
+    public StatelessProcessScheduler(final ExtensionManager extensionManager, final LifecycleStateManager lifecycleStateManager, final Duration processorStartTimeout) {
         this.extensionManager = extensionManager;
+        this.lifecycleStateManager = lifecycleStateManager;
         this.processorStartTimeoutMillis = processorStartTimeout.toMillis();
         schedulingAgent = new StatelessSchedulingAgent(extensionManager);
     }
@@ -155,17 +159,31 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
+    public CompletableFuture<Void> stopProcessor(final ProcessorNode procNode, final ProcessorStopLifecycleMethods lifecycleMethods) {
         logger.info("Stopping {}", procNode);
         final ProcessContext processContext = processContextFactory.createProcessContext(procNode);
-        final LifecycleState lifecycleState = new LifecycleState(procNode.getIdentifier());
-        final boolean scheduled = procNode.getScheduledState() == ScheduledState.RUNNING || procNode.getActiveThreadCount() > 0;
-        lifecycleState.setScheduled(scheduled);
-        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, schedulingAgent, lifecycleState, true);
+        final LifecycleState lifecycleState = lifecycleStateManager.getOrRegisterLifecycleState(procNode.getIdentifier(), false, false);
+        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, schedulingAgent, lifecycleState, lifecycleMethods);
     }
 
     @Override
     public void terminateProcessor(final ProcessorNode procNode) {
+        final Optional<LifecycleState> optionalLifecycleState = lifecycleStateManager.getLifecycleState(procNode.getIdentifier());
+        if (optionalLifecycleState.isEmpty()) {
+            logger.debug("No Lifecycle State registered for {} so will not terminate", procNode);
+            return;
+        }
+
+        final LifecycleState lifecycleState = optionalLifecycleState.get();
+        final int activeThreadCount = lifecycleState.getActiveThreadCount();
+        if (activeThreadCount == 0) {
+            logger.debug("No active threads registered for {} so will not terminate", procNode);
+            return;
+        }
+
+        lifecycleState.terminate();
+        final int terminationCounts = procNode.terminate();
+        logger.info("Terminated {} with {} active threads", procNode, terminationCounts);
     }
 
     @Override
@@ -243,7 +261,12 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     @Override
     public int getActiveThreadCount(final Object scheduled) {
-        return 0;
+        if (!(scheduled instanceof final Connectable connectable)) {
+            return 0;
+        }
+
+        final Optional<LifecycleState> optionalLifecycleState = lifecycleStateManager.getLifecycleState(connectable.getIdentifier());
+        return optionalLifecycleState.map(LifecycleState::getActiveThreadCount).orElse(0);
     }
 
     @Override
