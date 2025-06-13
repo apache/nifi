@@ -55,6 +55,9 @@ if %RUN_COMMAND% == "set-single-user-credentials" (
 ) else if %RUN_COMMAND% == "start" (
   rem Start bootstrap process in new minimized window
   call start /MIN "Apache NiFi" "%JAVA_EXE%" %JAVA_MEMORY% %JAVA_PARAMS% org.apache.nifi.bootstrap.BootstrapProcess %RUN_COMMAND%
+) else if %RUN_COMMAND% == "run" (
+  rem Start bootstrap process in the foreground
+  call "%JAVA_EXE%" %JAVA_MEMORY% %JAVA_PARAMS% org.apache.nifi.bootstrap.BootstrapProcess start
 ) else (
   call "%JAVA_EXE%" %JAVA_MEMORY% %JAVA_PARAMS% org.apache.nifi.bootstrap.BootstrapProcess %RUN_COMMAND%
 )
