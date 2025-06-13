@@ -44,8 +44,8 @@ public class TestProtobufDataConverter {
         final Schema schema = loadProto3TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto3Message");
 
-        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "Proto3Message", recordSchema, false, false);
-        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto3());
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, false, false);
+        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto3(), recordSchema, "Proto3Message");
 
         assertEquals(true, record.getValue("booleanField"));
         assertEquals("Test text", record.getValue("stringField"));
@@ -66,12 +66,14 @@ public class TestProtobufDataConverter {
         final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
         assertEquals("ENUM_VALUE_3", nestedRecord.getValue("testEnum"));
 
-        assertEquals(Map.of("test_key_entry1", 101, "test_key_entry2", 202), nestedRecord.getValue("testMap"));
+        final MapRecord nestedRecord2 = (MapRecord) nestedRecord.getValue("nestedMessage2");
+
+        assertEquals(Map.of("test_key_entry1", 101, "test_key_entry2", 202), nestedRecord2.getValue("testMap"));
 
         // assert only one field is set in the OneOf field
-        assertNull(nestedRecord.getValue("stringOption"));
-        assertNull(nestedRecord.getValue("booleanOption"));
-        assertEquals(3, nestedRecord.getValue("int32Option"));
+        assertNull(nestedRecord2.getValue("stringOption"));
+        assertNull(nestedRecord2.getValue("booleanOption"));
+        assertEquals(3, nestedRecord2.getValue("int32Option"));
     }
 
     @Test
@@ -79,8 +81,8 @@ public class TestProtobufDataConverter {
         final Schema schema = loadRepeatedProto3TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("RootMessage");
 
-        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "RootMessage", recordSchema, false, false);
-        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForRepeatedProto3());
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, false, false);
+        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForRepeatedProto3(), recordSchema, "RootMessage");
 
         final Object[] repeatedMessage = (Object[]) record.getValue("repeatedMessage");
         final MapRecord record1 = (MapRecord) repeatedMessage[0];
@@ -117,8 +119,8 @@ public class TestProtobufDataConverter {
         final Schema schema = loadProto2TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto2Message");
 
-        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "Proto2Message", recordSchema, false, false);
-        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto2());
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, false, false);
+        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto2(), recordSchema, "Proto2Message");
 
         assertEquals(true, record.getValue("booleanField"));
         assertEquals("Missing field", record.getValue("stringField"));
@@ -134,9 +136,9 @@ public class TestProtobufDataConverter {
         final Schema schema = loadProto3TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto3Message");
 
-        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "MissingMessage", recordSchema, false, false);
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, false, false);
 
-        NullPointerException e = assertThrows(NullPointerException.class, () -> dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto2()));
+        NullPointerException e = assertThrows(NullPointerException.class, () -> dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto2(), recordSchema, "MissingMessage"));
         assertTrue(e.getMessage().contains("Message with name [MissingMessage] not found in the provided proto files"), e.getMessage());
     }
 }
