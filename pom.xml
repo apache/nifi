@@ -109,13 +109,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <com.amazonaws.version>1.12.785</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.31.59</software.amazon.awssdk.version>
+        <com.amazonaws.version>1.12.787</com.amazonaws.version>
+        <software.amazon.awssdk.version>2.31.63</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.3.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.21</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <okio.version>3.12.0</okio.version>
+        <okio.version>3.13.0</okio.version>
         <org.apache.commons.cli.version>1.9.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.18.0</org.apache.commons.codec.version>
         <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
@@ -156,9 +156,9 @@
         <snakeyaml.version>2.4</snakeyaml.version>
         <netty.4.version>4.2.2.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.version>6.2.7</spring.version>
+        <spring.version>6.2.8</spring.version>
         <spring.security.version>6.5.0</spring.security.version>
-        <swagger.annotations.version>2.2.32</swagger.annotations.version>
+        <swagger.annotations.version>2.2.33</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.2.1</caffeine.version>
@@ -785,7 +785,7 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.32</version>
+                    <version>2.2.33</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
