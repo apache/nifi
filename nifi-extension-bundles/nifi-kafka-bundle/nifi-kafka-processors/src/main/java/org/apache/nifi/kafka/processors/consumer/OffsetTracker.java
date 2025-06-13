@@ -22,21 +22,23 @@ import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 public class OffsetTracker {
-    private final Map<TopicPartitionSummary, OffsetSummary> offsets;
-
-    public OffsetTracker() {
-        offsets = new LinkedHashMap<>();
-    }
+    private final Map<TopicPartitionSummary, OffsetSummary> offsets = new HashMap<>();
+    private final Map<String, Long> recordCounts = new HashMap<>();
 
     public void update(final ByteRecord consumerRecord) {
         final TopicPartitionSummary topicPartitionSummary = new TopicPartitionSummary(consumerRecord.getTopic(), consumerRecord.getPartition());
         final long offset = consumerRecord.getOffset();
         final OffsetSummary offsetSummary = offsets.computeIfAbsent(topicPartitionSummary, (summary) -> new OffsetSummary(offset));
         offsetSummary.setOffset(offset);
+        recordCounts.merge(consumerRecord.getTopic(), consumerRecord.getBundledCount(), Long::sum);
+    }
+
+    public Map<String, Long> getRecordCounts() {
+        return recordCounts;
     }
 
     public PollingSummary getPollingSummary(final PollingContext pollingContext) {

@@ -412,21 +412,24 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         session.commitAsync(
-            () -> commitOffsets(consumerService, offsetTracker, pollingContext),
+            () -> commitOffsets(consumerService, offsetTracker, pollingContext, session),
             throwable -> {
                 getLogger().error("Failed to commit session; will roll back any uncommitted records", throwable);
-                rollback(consumerService);
+                rollback(consumerService, offsetTracker, session);
                 context.yield();
             });
     }
 
-    private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext) {
-        if (!commitOffsets) {
-            return;
-        }
-
+    private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext, final ProcessSession session) {
         try {
-            consumerService.commit(offsetTracker.getPollingSummary(pollingContext));
+            if (commitOffsets) {
+                consumerService.commit(offsetTracker.getPollingSummary(pollingContext));
+
+                offsetTracker.getRecordCounts().forEach((topic, count) -> {
+                    session.adjustCounter("Records Acknowledged for " + topic, count, true);
+                });
+            }
+
             consumerServices.offer(consumerService);
             getLogger().debug("Committed offsets for Kafka Consumer Service");
         } catch (final Exception e) {
@@ -435,8 +438,12 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
     }
 
-    private void rollback(final KafkaConsumerService consumerService) {
+    private void rollback(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final ProcessSession session) {
         if (!consumerService.isClosed()) {
+            offsetTracker.getRecordCounts().forEach((topic, count) -> {
+                session.adjustCounter("Records Rolled Back for " + topic, count, true);
+            });
+
             try {
                 consumerService.rollback();
                 consumerServices.offer(consumerService);
@@ -539,18 +546,17 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final KafkaMessageConverter converter = switch (outputStrategy) {
-            case USE_VALUE -> new RecordStreamKafkaMessageConverter(readerFactory, writerFactory,
-                    headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
+        final KafkaMessageConverter converter;
+        if (outputStrategy == OutputStrategy.USE_VALUE) {
+            converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory, headerEncoding, headerNamePattern,
+                keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
+        } else {
+            final RecordReaderFactory keyReaderFactory = keyFormat == KeyFormat.RECORD
+                ? context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class) : null;
 
-        case USE_WRAPPER, INJECT_METADATA -> {
-                final RecordReaderFactory keyReaderFactory = keyFormat == KeyFormat.RECORD
-                        ? context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class) : null;
-
-                yield new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
-                    headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy);
-            }
-        };
+            converter = new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
+                headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy);
+        }
 
         converter.toFlowFiles(session, consumerRecords);
     }
