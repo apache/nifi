@@ -21,7 +21,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon } from '@nifi/shared';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
-import { ParameterContextEntity } from '../../../../../state/shared';
+import { BoundProcessGroup, ParameterContext, ParameterContextEntity } from '../../../../../state/shared';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
@@ -34,7 +34,7 @@ import { NgClass } from '@angular/common';
     imports: [MatTableModule, MatSortModule, MatIconButton, MatMenuTrigger, MatMenu, MatMenuItem, RouterLink, NgClass]
 })
 export class ParameterContextTable {
-    @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';
+    @Input() initialSortColumn: 'name' | 'provider' | 'description' | 'process groups' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
         active: this.initialSortColumn,
@@ -54,7 +54,7 @@ export class ParameterContextTable {
     @Output() deleteParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
     @Output() manageAccessPolicies: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
 
-    displayedColumns: string[] = ['name', 'provider', 'description', 'actions'];
+    displayedColumns: string[] = ['name', 'provider', 'description', 'process groups', 'actions'];
     dataSource: MatTableDataSource<ParameterContextEntity> = new MatTableDataSource<ParameterContextEntity>();
 
     constructor(private nifiCommon: NiFiCommon) {}
@@ -84,6 +84,32 @@ export class ParameterContextTable {
 
     formatDescription(entity: ParameterContextEntity): string {
         return this.canRead(entity) && entity.component ? entity.component.description : '';
+    }
+
+    formatProcessGroups(entity: ParameterContextEntity): string {
+        const highLevelProcessGroups = this.getHighLevelProcessGroups(entity);
+        return highLevelProcessGroups.length <= 1
+            ? highLevelProcessGroups.toString()
+            : highLevelProcessGroups.length.toString();
+    }
+
+    formatProcessGroupNames(entity: ParameterContextEntity): string {
+        const highLevelProcessGroups = this.getHighLevelProcessGroups(entity);
+        return highLevelProcessGroups.sort((a, b) => this.nifiCommon.compareString(a, b)).join('\n');
+    }
+
+    private getHighLevelProcessGroups(entity: ParameterContextEntity): string[] {
+        if (!this.canRead(entity) || entity.component === undefined) {
+            return [];
+        }
+        const component: ParameterContext = entity.component;
+        const allowedProcessGroups: BoundProcessGroup[] = component.boundProcessGroups.filter(
+            (group) => group.permissions.canRead
+        );
+        const componentIds: string[] = allowedProcessGroups.map((group) => group.component.id);
+        return allowedProcessGroups
+            .filter((group) => !componentIds.includes(group.component.parentGroupId))
+            .map((group) => group.component.name);
     }
 
     editClicked(entity: ParameterContextEntity): void {
@@ -156,6 +182,9 @@ export class ParameterContextTable {
                     break;
                 case 'description':
                     retVal = this.nifiCommon.compareString(this.formatDescription(a), this.formatDescription(b));
+                    break;
+                case 'process groups':
+                    retVal = this.nifiCommon.compareString(this.formatProcessGroups(a), this.formatProcessGroups(b));
                     break;
                 default:
                     return 0;
