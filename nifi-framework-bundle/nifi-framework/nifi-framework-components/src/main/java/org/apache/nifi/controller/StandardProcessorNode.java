@@ -918,8 +918,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isRunning() {
-        final ScheduledState state = getScheduledState();
-        return state == ScheduledState.RUNNING || state == ScheduledState.STARTING || hasActiveThreads;
+        final ScheduledState state = getPhysicalScheduledState();
+        return state == ScheduledState.RUNNING || state == ScheduledState.STARTING
+               || state == ScheduledState.STOPPING || state == ScheduledState.RUN_ONCE
+               || hasActiveThreads;
     }
 
     @Override
