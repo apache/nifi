@@ -65,7 +65,7 @@ public class TestUnpackContent {
         Map<String, String> attributes = new HashMap<>(1);
         Map<String, String> attributes2 = new HashMap<>(1);
         attributes.put("mime.type", UnpackContent.PackageFormat.TAR_FORMAT.getMimeType());
-        attributes2.put("mime.type", UnpackContent.PackageFormat.X_TAR_FORMAT.getMimeType());
+        attributes2.put("mime.type", "application/tar");
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes2);
         runner.run(2);

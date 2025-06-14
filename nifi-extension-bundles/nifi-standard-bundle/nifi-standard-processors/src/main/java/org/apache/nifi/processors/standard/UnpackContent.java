@@ -257,7 +257,7 @@ public class UnpackContent extends AbstractProcessor {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
 
             tarUnpacker = switch (packageFormat) {
-                case AUTO_DETECT_FORMAT, TAR_FORMAT, X_TAR_FORMAT -> new TarUnpacker(fileFilter);
+                case AUTO_DETECT_FORMAT, TAR_FORMAT -> new TarUnpacker(fileFilter);
                 default -> null;
             };
 
@@ -303,16 +303,20 @@ public class UnpackContent extends AbstractProcessor {
                 }
             }
             if (packagingFormat == null) {
-                logger.info("Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked; routing to 'success'", flowFile, mimeType);
-                session.transfer(flowFile, REL_SUCCESS);
-                return;
+                if (mimeType.toLowerCase().contains(TAR_FORMAT_NAME)) {
+                    packagingFormat = PackageFormat.TAR_FORMAT;
+                } else {
+                    logger.info("Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked; routing to 'success'", flowFile, mimeType);
+                    session.transfer(flowFile, REL_SUCCESS);
+                    return;
+                }
             }
         }
 
         // set the Unpacker to use for this FlowFile.  FlowFileUnpackager objects maintain state and are not reusable.
         final Unpacker unpacker;
         final boolean addFragmentAttrs = switch (packagingFormat) {
-          case TAR_FORMAT, X_TAR_FORMAT -> {
+          case TAR_FORMAT -> {
             unpacker = tarUnpacker;
             yield true;
           }
@@ -716,8 +720,7 @@ public class UnpackContent extends AbstractProcessor {
 
     protected enum PackageFormat implements DescribedValue {
         AUTO_DETECT_FORMAT(AUTO_DETECT_FORMAT_NAME, null, null),
-        TAR_FORMAT(TAR_FORMAT_NAME, null, "application/tar"),
-        X_TAR_FORMAT(TAR_FORMAT_NAME, null, "application/x-tar"),
+        TAR_FORMAT(TAR_FORMAT_NAME, null, "application/x-tar"),
         ZIP_FORMAT(ZIP_FORMAT_NAME, null, "application/zip"),
         FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, null, StandardFlowFileMediaType.VERSION_3.getMediaType()),
         FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, null, StandardFlowFileMediaType.VERSION_2.getMediaType()),
