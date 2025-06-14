@@ -70,8 +70,9 @@ public class ProtoTestUtil {
 
         Descriptors.Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("Proto3Message");
         Descriptors.Descriptor nestedMessageDescriptor = fileDescriptor.findMessageTypeByName("NestedMessage");
+        Descriptors.Descriptor nestedMessageDescriptor2 = fileDescriptor.findMessageTypeByName("NestedMessage2");
         Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
-        Descriptors.Descriptor mapDescriptor = nestedMessageDescriptor.findNestedTypeByName("TestMapEntry");
+        Descriptors.Descriptor mapDescriptor = nestedMessageDescriptor2.findNestedTypeByName("TestMapEntry");
 
         DynamicMessage mapEntry1 = DynamicMessage
                 .newBuilder(mapDescriptor)
@@ -85,13 +86,18 @@ public class ProtoTestUtil {
                 .setField(mapDescriptor.findFieldByName(MAP_VALUE_FIELD_NAME), 202)
                 .build();
 
+        DynamicMessage nestedMessage2 = DynamicMessage
+                .newBuilder(nestedMessageDescriptor2)
+                .setField(nestedMessageDescriptor2.findFieldByNumber(30), Arrays.asList(mapEntry1, mapEntry2))
+                .setField(nestedMessageDescriptor2.findFieldByNumber(31), "One Of Option")
+                .setField(nestedMessageDescriptor2.findFieldByNumber(32), true)
+                .setField(nestedMessageDescriptor2.findFieldByNumber(33), 3)
+                .build();
+
         DynamicMessage nestedMessage = DynamicMessage
                 .newBuilder(nestedMessageDescriptor)
                 .setField(nestedMessageDescriptor.findFieldByNumber(20), enumValueDescriptor.findValueByNumber(2))
-                .setField(nestedMessageDescriptor.findFieldByNumber(21), Arrays.asList(mapEntry1, mapEntry2))
-                .setField(nestedMessageDescriptor.findFieldByNumber(22), "One Of Option")
-                .setField(nestedMessageDescriptor.findFieldByNumber(23), true)
-                .setField(nestedMessageDescriptor.findFieldByNumber(24), 3)
+                .setField(nestedMessageDescriptor.findFieldByNumber(21), nestedMessage2)
                 .build();
 
         DynamicMessage message = DynamicMessage

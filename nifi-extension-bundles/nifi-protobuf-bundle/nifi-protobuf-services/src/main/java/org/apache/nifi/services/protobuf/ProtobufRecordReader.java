@@ -43,8 +43,8 @@ public class ProtobufRecordReader implements RecordReader {
     @Override
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException {
         if (!inputProcessed) {
-            final ProtobufDataConverter dataConverter = new ProtobufDataConverter(protoSchema, messageType, recordSchema, coerceTypes, dropUnknownFields);
-            final Record record = dataConverter.createRecord(inputStream);
+            final ProtobufDataConverter dataConverter = new ProtobufDataConverter(protoSchema, coerceTypes, dropUnknownFields);
+            final Record record = dataConverter.createRecord(inputStream, recordSchema, messageType);
             inputProcessed = true;
             recordSchema = record.getSchema();
             return record;
