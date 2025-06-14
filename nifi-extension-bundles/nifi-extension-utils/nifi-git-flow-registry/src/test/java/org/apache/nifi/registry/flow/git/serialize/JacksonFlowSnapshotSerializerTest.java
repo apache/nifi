@@ -23,10 +23,14 @@ import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedResourceDefinition;
+import org.apache.nifi.flow.VersionedResourceType;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,6 +49,7 @@ public class JacksonFlowSnapshotSerializerTest {
 
         final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
         versionedParameterContext.setIdentifier("myParamContext");
+        versionedParameterContext.setInheritedParameterContexts(List.of("inheritedContext2", "inheritedContext3", "inheritedContext1"));
 
         VersionedParameter parameter1 = new VersionedParameter();
         parameter1.setName("name1");
@@ -55,8 +60,15 @@ public class JacksonFlowSnapshotSerializerTest {
 
         versionedParameterContext.setParameters(Set.of(parameter2, parameter1, parameter3));
 
+        final VersionedPropertyDescriptor descriptor = new VersionedPropertyDescriptor();
+        final VersionedResourceDefinition resourceDefinition = new VersionedResourceDefinition();
+        resourceDefinition.setResourceTypes(Set.of(VersionedResourceType.TEXT, VersionedResourceType.URL, VersionedResourceType.FILE));
+        descriptor.setResourceDefinition(resourceDefinition);
+
         final VersionedProcessor processor1 = new VersionedProcessor();
         processor1.setIdentifier("proc1");
+        processor1.setAutoTerminatedRelationships(Set.of("success", "failure"));
+        processor1.setPropertyDescriptors(Map.of("prop1", descriptor));
         final VersionedProcessor processor2 = new VersionedProcessor();
         processor2.setIdentifier("proc2");
         final VersionedProcessor processor3 = new VersionedProcessor();
@@ -82,10 +94,15 @@ public class JacksonFlowSnapshotSerializerTest {
 
         assertEquals(3, processors.size());
         assertEquals("proc1", processors.get(0).get("identifier").asText());
+        assertEquals("[ \"failure\", \"success\" ]", processors.get(0).get("autoTerminatedRelationships").toPrettyString());
+        assertEquals("[ \"FILE\", \"TEXT\", \"URL\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("resourceDefinition").get("resourceTypes").toPrettyString());
+
         assertEquals("proc2", processors.get(1).get("identifier").asText());
         assertEquals("proc3", processors.get(2).get("identifier").asText());
 
         assertEquals(1, parameterContexts.size());
+        assertEquals("[ \"inheritedContext2\", \"inheritedContext3\", \"inheritedContext1\" ]", parameterContext.get("inheritedParameterContexts").toPrettyString());
+
         assertEquals(3, parameters.size());
         assertEquals("name1", parameters.get(0).get("name").asText());
         assertEquals("name2", parameters.get(1).get("name").asText());
