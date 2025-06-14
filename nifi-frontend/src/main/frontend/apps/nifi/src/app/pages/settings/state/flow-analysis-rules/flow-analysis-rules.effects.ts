@@ -23,7 +23,6 @@ import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectFlowAnalysisRuleTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { FlowAnalysisRuleService } from '../../service/flow-analysis-rule.service';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
@@ -96,13 +95,9 @@ export class FlowAnalysisRulesEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowAnalysisRuleActions.openNewFlowAnalysisRuleDialog),
-                concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
-                tap(([, flowAnalysisRuleTypes]) => {
+                tap(() => {
                     this.dialog.open(CreateFlowAnalysisRule, {
-                        ...LARGE_DIALOG,
-                        data: {
-                            flowAnalysisRuleTypes
-                        }
+                        ...LARGE_DIALOG
                     });
                 })
             ),

@@ -165,7 +165,12 @@
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
+                    [disabled]="
+                        !editControllerServiceForm.dirty ||
+                        editControllerServiceForm.invalid ||
+                        saving.value ||
+                        editControllerServiceForm.pending
+                    "
                     type="button"
                     (click)="submitForm()"
                     mat-flat-button>

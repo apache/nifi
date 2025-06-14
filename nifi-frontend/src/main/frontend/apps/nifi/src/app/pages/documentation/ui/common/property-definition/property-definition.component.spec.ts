@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PropertyDefinitionComponent } from './property-definition.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { extensionTypesFeatureKey } from '../../../../../state/extension-types';
-import { initialState } from '../../../../../state/extension-types/extension-types.reducer';
+import { initialExtensionsTypesState } from '../../../../../state/extension-types/extension-types.reducer';
 
 describe('PropertyDefinitionComponent', () => {
     let component: PropertyDefinitionComponent;
@@ -32,7 +32,7 @@ describe('PropertyDefinitionComponent', () => {
             providers: [
                 provideMockStore({
                     initialState: {
-                        [extensionTypesFeatureKey]: initialState
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState
                     }
                 })
             ]

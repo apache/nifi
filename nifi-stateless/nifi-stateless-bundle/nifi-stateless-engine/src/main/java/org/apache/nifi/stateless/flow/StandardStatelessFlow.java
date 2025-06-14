@@ -31,12 +31,14 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.RepositoryRecord;
@@ -46,11 +48,12 @@ import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -84,7 +87,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -95,6 +100,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StandardStatelessFlow implements StatelessDataflow {
@@ -126,8 +133,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private volatile ExecutorService runDataflowExecutor;
     private volatile ScheduledExecutorService backgroundTaskExecutor;
     private volatile boolean initialized = false;
-    private volatile Boolean stateful = null;
     private volatile boolean shutdown = false;
+    private volatile boolean manageControllerServices = true;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
@@ -236,6 +243,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         initialized = true;
+        manageControllerServices = initializationContext.isEnableControllerServices();
 
         // Trigger validation to occur so that components can be enabled/started.
         performValidation();
@@ -370,29 +378,48 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         logger.info("Stopping all components");
-        final CompletableFuture<Void> stopComponentsFuture = rootGroup.stopComponents();
+
+        final Set<ProcessorNode> runningProcessors = new HashSet<>(rootGroup.findAllProcessors());
+        unscheduleProcessors(runningProcessors);
 
         // Wait for the graceful shutdown period for all processors to stop. If the processors do not stop within this time,
         // then interrupt them.
         if (runDataflowExecutor != null && interruptProcessors) {
             if (gracefulShutdownDuration.isZero()) {
                 logger.info("Shutting down all components immediately without waiting for graceful shutdown period");
+                tracker.triggerFailureCallbacks(new TerminatedTaskException());
                 runDataflowExecutor.shutdownNow();
             } else {
-                try {
-                    stopComponentsFuture.get(gracefulShutdownDuration.toMillis(), TimeUnit.MILLISECONDS);
-                } catch (final Exception e) {
-                    logger.warn("Stateless flow failed to stop all components gracefully after {} millis. Interrupting all running components.", gracefulShutdownDuration.toMillis(), e);
-                    if (e instanceof InterruptedException) {
-                        Thread.interrupted();
-                    }
-
+                final boolean gracefullyStopped = waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
+                if (gracefullyStopped) {
+                    logger.info("All Processors have finished running; triggering session callbacks");
+                    tracker.triggerCallbacks();
+                } else {
+                    logger.warn("{} Processors did not finish running within the graceful shutdown period of {} millis. Interrupting all running components. Processors still running: {}",
+                        runningProcessors.size(), gracefulShutdownDuration.toMillis(), runningProcessors);
+                    tracker.triggerFailureCallbacks(new TerminatedTaskException());
                     runDataflowExecutor.shutdownNow();
                 }
             }
+        } else if (runDataflowExecutor != null) {
+            waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
+            tracker.triggerCallbacks();
         }
 
-        stopComponentsFuture.join();
+        // Stop components but do not trigger @OnUnscheduled because those were already triggered.
+        final CompletableFuture<Void> stopFuture = rootGroup.stopComponents(ProcessorStopLifecycleMethods.TRIGGER_ONSTOPPED);
+        try {
+            stopFuture.get(gracefulShutdownDuration.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        } catch (final Exception ignored) {
+            // Whether the Processors stopped gracefully or not doesn't matter, we will continue to terminate any active processor.
+        }
+
+        for (final ProcessorNode processorNode : rootGroup.findAllProcessors()) {
+            processScheduler.terminateProcessor(processorNode);
+        }
+
         rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::shutdown);
 
         if (triggerComponentShutdown) {
@@ -402,23 +429,32 @@ public class StandardStatelessFlow implements StatelessDataflow {
         reportingTasks.forEach(processScheduler::unschedule);
 
         final Set<ControllerServiceNode> allControllerServices = rootGroup.findAllControllerServices();
-        logger.info("Disabling {} Controller Services", allControllerServices.size());
 
-        try {
-            controllerServiceProvider.disableControllerServicesAsync(allControllerServices).get();
-        } catch (final InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            logger.error("Failed to properly disable one or more of the following Controller Services: {} due to being interrupted while waiting for them to disable", allControllerServices, ie);
-        } catch (final Exception e) {
-            logger.error("Failed to properly disable one or more of the following Controller Services: {}", allControllerServices, e);
+        if (manageControllerServices) {
+            logger.info("Disabling {} Controller Services", allControllerServices.size());
+
+            if (!allControllerServices.isEmpty()) {
+                try {
+                    controllerServiceProvider.disableControllerServicesAsync(allControllerServices).get();
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Failed to properly disable one or more of the following Controller Services due to being interrupted while waiting for them to disable: {}",
+                        allControllerServices, ie);
+                } catch (final Exception e) {
+                    logger.error("Failed to properly disable one or more of the following Controller Services: {}", allControllerServices, e);
+                }
+
+                logger.info("Finished disabling all Controller Services");
+            }
         }
 
-        logger.info("Finished disabling all Controller Services");
         stateManagerProvider.shutdown();
 
         // invoke any methods annotated with @OnShutdown on Controller Services
         if (triggerComponentShutdown) {
-            allControllerServices.forEach(cs -> processScheduler.shutdownControllerService(cs, controllerServiceProvider));
+            if (manageControllerServices) {
+                allControllerServices.forEach(cs -> processScheduler.shutdownControllerService(cs, controllerServiceProvider));
+            }
 
             // invoke any methods annotated with @OnShutdown on Reporting Tasks
             reportingTasks.forEach(processScheduler::shutdownReportingTask);
@@ -428,6 +464,51 @@ public class StandardStatelessFlow implements StatelessDataflow {
         repositoryContextFactory.shutdown();
 
         logger.info("Finished shutting down dataflow");
+    }
+
+    private void unscheduleProcessors(final Set<ProcessorNode> runningProcessors) {
+        for (final ProcessorNode processor : runningProcessors) {
+            if (!processor.isRunning()) {
+                continue;
+            }
+
+            final ProcessContext processContext = processContextFactory.createProcessContext(processor);
+            processor.triggerOnUnscheduled(processContext);
+        }
+    }
+
+    private boolean waitForProcessorThreadsToComplete(final Set<ProcessorNode> runningProcessors, final Duration gracefulShutdownDuration) {
+        final long maxEndTime = System.currentTimeMillis() + gracefulShutdownDuration.toMillis();
+
+        // While there are still elements in the runningProcessors set, we will continue to check if they have stopped.
+        while (!runningProcessors.isEmpty()) {
+            // Get a list of all stopped processors so that we can remove them. We must convert to a List and then remove
+            // in order to avoid a ConcurrentModificationException.
+            final List<ProcessorNode> stopped = runningProcessors.stream()
+                .filter(proc -> proc.getActiveThreadCount() == 0)
+                .toList();
+
+            stopped.forEach(runningProcessors::remove);
+
+            // If there are no running processors left, then we can return true. Otherwise, if we've reached out max time,
+            // we return false. If neither stopping condition is met, sleep for a bit and check again.
+            if (runningProcessors.isEmpty()) {
+                return true;
+            }
+
+            if (System.currentTimeMillis() > maxEndTime) {
+                return false;
+            }
+
+            try {
+                Thread.sleep(10);
+            } catch (final InterruptedException e) {
+                Thread.interrupted();
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -465,15 +546,26 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     private void enableControllerServices(final ProcessGroup processGroup) {
         final Set<ControllerServiceNode> services = processGroup.getControllerServices(false);
-        for (final ControllerServiceNode serviceNode : services) {
-            final Future<?> future = controllerServiceProvider.enableControllerServiceAndDependencies(serviceNode);
+        final Future<Void> future = controllerServiceProvider.enableControllerServicesAsync(services);
 
-            try {
-                future.get(this.componentEnableTimeoutMillis, TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-                throw new IllegalStateException("Controller Service " + serviceNode + " has not fully enabled. Current Validation Status is "
-                    + serviceNode.getValidationStatus() + " with validation Errors: " + serviceNode.getValidationErrors(), e);
+        try {
+            future.get(this.componentEnableTimeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            final StringBuilder validationMessage = new StringBuilder("The following Controller Services have not fully enabled:\n");
+            for (final ControllerServiceNode serviceNode : services) {
+                if (serviceNode.getState() == ControllerServiceState.ENABLED) {
+                    continue;
+                }
+
+                validationMessage.append("Controller Service ").append(serviceNode)
+                    .append(" has Validation Status ")
+                    .append(serviceNode.getValidationStatus())
+                    .append(" with validation Errors: ")
+                    .append(serviceNode.getValidationErrors())
+                    .append("\n");
             }
+
+            throw new IllegalStateException(validationMessage.toString().trim(), e);
         }
 
         processGroup.getProcessGroups().forEach(this::enableControllerServices);
@@ -609,17 +701,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
-    @Override
-    public boolean isStateful() {
-        if (stateful == null) {
-            final boolean hasStatefulReportingTask = reportingTasks.stream().anyMatch(this::isStateful);
-            if (hasStatefulReportingTask) {
-                return true;
-            }
-            stateful = isStateful(rootGroup);
-        }
-        return stateful;
-    }
 
     private boolean isStateful(final ProcessGroup processGroup) {
         final boolean hasStatefulProcessor = processGroup.getProcessors().stream().anyMatch(this::isStateful);
@@ -783,63 +864,38 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public void setComponentStates(final Map<String, String> componentStates, final Scope scope) {
-        final Map<String, StateMap> stateMaps = deserializeStateMaps(componentStates);
-        stateManagerProvider.updateComponentsStates(stateMaps, scope);
-    }
-
-    private Map<String, StateMap> deserializeStateMaps(final Map<String, String> componentStates) {
-        if (componentStates == null) {
-            return Collections.emptyMap();
-        }
-
-        final Map<String, StateMap> deserializedStateMaps = new HashMap<>();
-
-        for (final Map.Entry<String, String> entry : componentStates.entrySet()) {
-            final String componentId = entry.getKey();
-            final String serialized = entry.getValue();
-
-            final SerializableStateMap deserialized;
-            try {
-                deserialized = objectMapper.readValue(serialized, SerializableStateMap.class);
-            } catch (final Exception e) {
-                // We want to avoid throwing an Exception here because if we do, we may never be able to run the flow again, at least not without
-                // destroying all state that exists for the component. Would be better to simply skip the state for this component
-                logger.error("Failed to deserialized components' state for component with ID {}. State will be reset to empty", componentId, e);
-                continue;
-            }
-
-            final StateMap stateMap = new StandardStateMap(deserialized.getStateValues(), Optional.ofNullable(deserialized.getVersion()));
-            deserializedStateMaps.put(componentId, stateMap);
-        }
-
-        return deserializedStateMaps;
-    }
-
-    @Override
-    public boolean isSourcePrimaryNodeOnly() {
-        for (final Connectable connectable : rootConnectables) {
-            if (connectable.isIsolated()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    @Override
-    public long getSourceYieldExpiration() {
-        long latest = 0L;
-        for (final Connectable connectable : rootConnectables) {
-            latest = Math.max(latest, connectable.getYieldExpiration());
-        }
-
-        return latest;
-    }
-
-    @Override
     public BulletinRepository getBulletinRepository() {
         return bulletinRepository;
+    }
+
+    @Override
+    public OptionalLong getCounter(final String componentId, final String counterName) {
+        final String instanceId = findInstanceId(componentId);
+        return findCounter(counter -> counter.getContext().endsWith(" (" + instanceId + ")") && counter.getName().equals(counterName));
+    }
+
+    @Override
+    public Map<String, Long> getCounters(final Pattern counterNamePattern) {
+        final CounterRepository counterRepository = repositoryContextFactory.getCounterRepository();
+        return counterRepository.getCounters().stream()
+            .filter(counter -> !counter.getContext().startsWith("All ") && counterNamePattern.matcher(counter.getName()).matches())
+            .collect(Collectors.toMap(Counter::getName, Counter::getValue));
+    }
+
+    private String findInstanceId(final String componentId) {
+        return rootGroup.findAllProcessors().stream()
+            .filter(processor -> Objects.equals(processor.getIdentifier(), componentId) || Objects.equals(processor.getVersionedComponentId().orElse(""), componentId))
+            .findFirst()
+            .map(ProcessorNode::getIdentifier)
+            .orElse(null);
+    }
+
+    private OptionalLong findCounter(final Predicate<Counter> predicate) {
+        final CounterRepository counterRepository = repositoryContextFactory.getCounterRepository();
+        return counterRepository.getCounters().stream()
+            .filter(predicate)
+            .mapToLong(Counter::getValue)
+            .findFirst();
     }
 
     @SuppressWarnings("unused")

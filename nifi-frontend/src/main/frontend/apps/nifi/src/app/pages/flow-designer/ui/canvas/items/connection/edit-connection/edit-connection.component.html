@@ -257,7 +257,12 @@
             } @else {
                 <button mat-button mat-dialog-close="CANCELLED">Cancel</button>
                 <button
-                    [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
+                    [disabled]="
+                        !editConnectionForm.dirty ||
+                        editConnectionForm.invalid ||
+                        saving.value ||
+                        editConnectionForm.pending
+                    "
                     type="button"
                     (click)="editConnection()"
                     mat-flat-button>

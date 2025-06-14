@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.processors.consumer.convert;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -39,7 +40,7 @@ public class RecordStreamKafkaMessageConverter extends AbstractRecordStreamKafka
             final RecordSetWriterFactory writerFactory,
             final Charset headerEncoding,
             final Pattern headerNamePattern,
-            final org.apache.nifi.kafka.shared.property.KeyEncoding keyEncoding,
+            final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
             final ComponentLog logger,

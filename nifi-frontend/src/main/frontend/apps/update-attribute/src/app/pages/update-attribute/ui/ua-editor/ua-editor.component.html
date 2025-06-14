@@ -44,7 +44,7 @@
                         Cancel
                     </button>
                     <button
-                        [disabled]="!uaEditorForm.dirty || uaEditorForm.invalid"
+                        [disabled]="!uaEditorForm.dirty || uaEditorForm.invalid || uaEditorForm.pending"
                         (mousedown)="preventDrag($event)"
                         type="button"
                         (click)="okClicked()"

@@ -175,7 +175,9 @@
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
         <button mat-button mat-dialog-close>Cancel</button>
         <button
-            [disabled]="importFromRegistryForm.invalid || saving.value || !selectedFlowVersion"
+            [disabled]="
+                importFromRegistryForm.invalid || saving.value || !selectedFlowVersion || importFromRegistryForm.pending
+            "
             type="button"
             (click)="importFromRegistry()"
             mat-flat-button>

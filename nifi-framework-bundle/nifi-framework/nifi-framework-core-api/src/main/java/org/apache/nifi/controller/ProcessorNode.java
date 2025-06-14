@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -25,6 +26,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.migration.ControllerServiceFactory;
@@ -240,11 +242,20 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @param scheduleState
      *            the ScheduleState that can be used to ensure that the running state (STOPPED, RUNNING, etc.)
      *            as well as the active thread counts are kept in sync
-     * @param triggerLifecycleMethods
-     *            whether or not to trigger lifecycle methods such as @OnScheduled, @OnStopped, etc.
+     * @param lifecycleMethods
+     *            Indicates which lifecycle methods should be triggered to run
      */
     public abstract CompletableFuture<Void> stop(ProcessScheduler processScheduler, ScheduledExecutorService executor,
-        ProcessContext processContext, SchedulingAgent schedulingAgent, LifecycleState scheduleState, boolean triggerLifecycleMethods);
+        ProcessContext processContext, SchedulingAgent schedulingAgent, LifecycleState scheduleState, ProcessorStopLifecycleMethods lifecycleMethods);
+
+    /**
+     * Triggers any method with the {@link OnUnscheduled} annotation on the Processor. This does not stop scheduling the Processor, change any state
+     * of the ProcessorNode, or invoke any other lifecycle methods. This method should be used only in order to signal to a Processor that it may
+     * perform any necessary duties that are associated with no longer being scheduled, such as proactively ending an onTrigger cycle.
+     *
+     * @param processContext the ProcessContext that may be provided to the methods annotated with {@link OnUnscheduled}.
+     */
+    public abstract void triggerOnUnscheduled(ProcessContext processContext);
 
     /**
      * Marks all active tasks as terminated and interrupts all active threads

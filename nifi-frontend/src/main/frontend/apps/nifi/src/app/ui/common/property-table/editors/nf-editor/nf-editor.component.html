@@ -55,7 +55,7 @@
                         Cancel
                     </button>
                     <button
-                        [disabled]="!nfEditorForm.dirty || nfEditorForm.invalid"
+                        [disabled]="!nfEditorForm.dirty || nfEditorForm.invalid || nfEditorForm.pending"
                         (mousedown)="preventDrag($event)"
                         type="button"
                         (click)="okClicked()"

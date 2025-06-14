@@ -113,7 +113,7 @@
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
         <button
-            [disabled]="provenanceOptionsForm.invalid"
+            [disabled]="provenanceOptionsForm.invalid || provenanceOptionsForm.pending"
             type="button"
             (click)="searchClicked()"
             mat-flat-button

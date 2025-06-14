@@ -2,13 +2,13 @@
     "name": "standard-content-viewer",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "projectType": "application",
+    "sourceRoot": "apps/standard-content-viewer/src",
+    "prefix": "app",
     "generators": {
         "@schematics/angular:component": {
             "style": "scss"
         }
     },
-    "sourceRoot": "apps/standard-content-viewer/src",
-    "prefix": "app",
     "targets": {
         "build": {
             "executor": "@nx/angular:application",
@@ -92,7 +92,8 @@
                     "servePath": "/nifi-standard-content-viewer-2.1.0-SNAPSHOT/"
                 }
             },
-            "defaultConfiguration": "development"
+            "defaultConfiguration": "development",
+            "continuous": true
         },
         "test": {
             "executor": "@nx/jest:jest",

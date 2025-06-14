@@ -129,7 +129,12 @@
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
-                    [disabled]="!editFlowAnalysisRuleForm.dirty || editFlowAnalysisRuleForm.invalid || saving.value"
+                    [disabled]="
+                        !editFlowAnalysisRuleForm.dirty ||
+                        editFlowAnalysisRuleForm.invalid ||
+                        saving.value ||
+                        editFlowAnalysisRuleForm.pending
+                    "
                     type="button"
                     (click)="submitForm()"
                     mat-flat-button>

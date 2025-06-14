@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.engine;
 
+import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -89,8 +90,12 @@ public class StandardExecutionProgress implements ExecutionProgress {
     }
 
     @Override
-    public boolean isFailurePort(final String portName) {
-        return failurePortNames.contains(portName);
+    public boolean isFailurePort(final Connectable connectable) {
+        if (connectable instanceof Port && ((Port) connectable).getPortFunction() == PortFunction.FAILURE) {
+            return true;
+        }
+
+        return failurePortNames.contains(connectable.getName());
     }
 
     @Override

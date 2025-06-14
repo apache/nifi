@@ -15,14 +15,10 @@
  * limitations under the License.
  */
 
-import { Bundle, ComponentHistory, DocumentedType } from '../../../../state/shared';
+import { Bundle, ComponentHistory } from '../../../../state/shared';
 import { BulletinEntity, Permissions, Revision } from '@nifi/shared';
 
 export const flowAnalysisRulesFeatureKey = 'flowAnalysisRules';
-
-export interface CreateFlowAnalysisRuleDialogRequest {
-    flowAnalysisRuleTypes: DocumentedType[];
-}
 
 export interface LoadFlowAnalysisRulesResponse {
     flowAnalysisRules: FlowAnalysisRuleEntity[];

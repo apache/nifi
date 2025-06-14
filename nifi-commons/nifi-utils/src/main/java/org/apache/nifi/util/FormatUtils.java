@@ -21,15 +21,15 @@ import org.apache.nifi.time.DurationFormat;
 
 import java.text.NumberFormat;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.Year;
-import java.time.YearMonth;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalQueries;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -39,9 +39,6 @@ public class FormatUtils {
     // 'public static final' members defined for backward compatibility, since they were moved to TimeFormat.
     public static final String TIME_DURATION_REGEX = DurationFormat.TIME_DURATION_REGEX;
     public static final Pattern TIME_DURATION_PATTERN = DurationFormat.TIME_DURATION_PATTERN;
-
-    private static final LocalDate EPOCH_INITIAL_DATE = LocalDate.of(1970, 1, 1);
-
     /**
      * Formats the specified count by adding commas.
      *
@@ -234,29 +231,73 @@ public class FormatUtils {
     }
 
     /**
-     * Parse text to Instant - support different formats like: zoned date time, date time, date, time
-     * @param formatter configured formatter
+     * Parse text and build Instant based on chronological fields found
+     *
+     * @param formatter DateTimeFormatter responsible for parsing
      * @param text      text which will be parsed
      * @return parsed Instant
      */
-    public static Instant parseToInstant(DateTimeFormatter formatter, String text) {
+    public static Instant parseToInstant(final DateTimeFormatter formatter, final String text) {
         if (text == null) {
             throw new IllegalArgumentException("Text cannot be null");
         }
 
-        TemporalAccessor parsed = formatter.parseBest(text, Instant::from, LocalDateTime::from, LocalDate::from, YearMonth::from, Year::from, LocalTime::from);
-        return switch (parsed) {
-            case Instant instant -> instant;
-            case LocalDateTime localDateTime -> toInstantInSystemDefaultTimeZone(localDateTime);
-            case LocalDate localDate -> toInstantInSystemDefaultTimeZone(localDate.atTime(0, 0));
-            case YearMonth yearMonth -> toInstantInSystemDefaultTimeZone(yearMonth.atDay(1).atTime(0, 0));
-            case Year year -> toInstantInSystemDefaultTimeZone(year.atDay(1).atTime(0, 0));
-            case null, default -> toInstantInSystemDefaultTimeZone(((LocalTime) parsed).atDate(EPOCH_INITIAL_DATE));
-        };
-    }
+        final TemporalAccessor parsed = formatter.parse(text);
 
-    private static Instant toInstantInSystemDefaultTimeZone(LocalDateTime dateTime) {
-        return dateTime.atZone(ZoneId.systemDefault()).toInstant();
-    }
+        // Default to 1970 as start of epoch
+        int year = 1970;
+        if (parsed.isSupported(ChronoField.YEAR)) {
+            year = parsed.get(ChronoField.YEAR);
+        }
 
+        int month = 1;
+        if (parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
+            month = parsed.get(ChronoField.MONTH_OF_YEAR);
+        }
+
+        int day = 1;
+        if (parsed.isSupported(ChronoField.DAY_OF_MONTH)) {
+            day = parsed.get(ChronoField.DAY_OF_MONTH);
+        }
+
+        int hour = 0;
+        if (parsed.isSupported(ChronoField.HOUR_OF_DAY)) {
+            hour = parsed.get(ChronoField.HOUR_OF_DAY);
+        }
+
+        int minute = 0;
+        if (parsed.isSupported(ChronoField.MINUTE_OF_HOUR)) {
+            minute = parsed.get(ChronoField.MINUTE_OF_HOUR);
+        }
+
+        int second = 0;
+        if (parsed.isSupported(ChronoField.SECOND_OF_MINUTE)) {
+            second = parsed.get(ChronoField.SECOND_OF_MINUTE);
+        }
+
+        int nano = 0;
+        if (parsed.isSupported(ChronoField.MILLI_OF_SECOND)) {
+            // Get nanoseconds for maximum resolution
+            nano = parsed.get(ChronoField.NANO_OF_SECOND);
+        }
+
+        final LocalDateTime localDateTime = LocalDateTime.of(year, month, day, hour, minute, second, nano);
+
+        ZoneId zoneId = parsed.query(TemporalQueries.zoneId());
+        if (zoneId == null) {
+            zoneId = ZoneId.systemDefault();
+        }
+
+        final ZoneOffset zoneOffset;
+        if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
+            final int offsetSeconds = parsed.get(ChronoField.OFFSET_SECONDS);
+            zoneOffset = ZoneOffset.ofTotalSeconds(offsetSeconds);
+        } else {
+            // Get Zone Offset from provided Zone ID and parsed Local Date Time
+            zoneOffset = zoneId.getRules().getOffset(localDateTime);
+        }
+
+        final OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, zoneOffset);
+        return offsetDateTime.toInstant();
+    }
 }

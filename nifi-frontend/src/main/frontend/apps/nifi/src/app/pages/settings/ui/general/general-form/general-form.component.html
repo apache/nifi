@@ -39,7 +39,7 @@
                 <div>
                     @if ({ value: (saving$ | async)! }; as saving) {
                         <button
-                            [disabled]="!controllerForm.dirty || controllerForm.invalid"
+                            [disabled]="!controllerForm.dirty || controllerForm.invalid || controllerForm.pending"
                             type="button"
                             (click)="apply()"
                             mat-flat-button>

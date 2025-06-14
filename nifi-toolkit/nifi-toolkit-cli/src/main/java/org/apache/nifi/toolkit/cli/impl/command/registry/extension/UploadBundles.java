@@ -66,7 +66,7 @@ public class UploadBundles extends AbstractNiFiRegistryCommand<StringResult> {
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String bundleDir = getRequiredArg(properties, CommandOption.EXT_BUNDLE_DIR);
         final String fileExtension = getArg(properties, CommandOption.FILE_EXTENSION);
-        final boolean recursive = properties.containsKey(CommandOption.RECURSIVE);
+        final boolean recursive = properties.containsKey(CommandOption.RECURSIVE.getLongName());
         final boolean skipSha256 = properties.containsKey(CommandOption.SKIP_SHA_256.getLongName());
         final boolean verbose = isVerbose(properties);
 

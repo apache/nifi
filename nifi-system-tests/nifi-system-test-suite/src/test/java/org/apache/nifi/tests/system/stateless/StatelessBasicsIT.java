@@ -533,7 +533,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
 
     @Test
     public void testStopGroupMakesFlowFileAvailable() throws NiFiClientException, IOException, InterruptedException {
-        createFlowShell();
+        createFlowShell("3 sec");
 
         // Add a sleep for 1 min
         final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep", statelessGroup.getId());

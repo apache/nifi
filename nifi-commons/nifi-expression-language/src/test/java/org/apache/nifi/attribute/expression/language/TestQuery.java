@@ -1012,6 +1012,29 @@ public class TestQuery {
     }
 
     @Test
+    public void testToDateAdjustedWithTimeZone() {
+        final String dateFormat = "yyyy-MM-dd";
+        final String created = "2025-06-01";
+        final String timeZoneId = "UTC";
+        final TimeZone timeZone = TimeZone.getTimeZone(timeZoneId);
+
+        // Build Calendar for java.util.Date to match expected result of toDate() function
+        final Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        calendar.set(Calendar.YEAR, 2025);
+        calendar.set(Calendar.MONTH, Calendar.JUNE);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        calendar.setTimeZone(timeZone);
+
+        // Expected Date with System Default Time Zone and hours adjusted based on Time Zone specified
+        final Date expected = calendar.getTime();
+
+        final String expression = "${created:toDate('%s', '%s')}".formatted(dateFormat, timeZoneId);
+        final Map<String, String> attributes = Map.of("created", created);
+        verifyEquals(expression, attributes, expected);
+    }
+
+    @Test
     public void testInstantConversion() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("instant", "1403620278642");
@@ -2591,6 +2614,8 @@ public class TestQuery {
             }
         } else if (expectedResult instanceof Boolean) {
             assertEquals(ResultType.BOOLEAN, result.getResultType());
+        } else if (expectedResult instanceof Date) {
+            assertEquals(ResultType.DATE, result.getResultType());
         } else {
             assertEquals(ResultType.STRING, result.getResultType());
         }

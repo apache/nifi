@@ -45,7 +45,10 @@ import {
     selectSaving,
     selectStatus
 } from './parameter-providers.selectors';
-import { selectParameterProviderTypes } from '../../../../state/extension-types/extension-types.selectors';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectParameterProviderTypes
+} from '../../../../state/extension-types/extension-types.selectors';
 import { CreateParameterProvider } from '../../ui/parameter-providers/create-parameter-provider/create-parameter-provider.component';
 import { EditParameterProvider } from '../../ui/parameter-providers/edit-parameter-provider/edit-parameter-provider.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
@@ -118,16 +121,17 @@ export class ParameterProvidersEffects {
         () =>
             this.actions$.pipe(
                 ofType(ParameterProviderActions.openNewParameterProviderDialog),
-                concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
-                tap(([, parameterProviderTypes]) => {
+                tap(() => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
-                        ...LARGE_DIALOG,
-                        data: {
-                            parameterProviderTypes
-                        }
+                        ...LARGE_DIALOG
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    dialogReference.componentInstance.parameterProviderTypes$ =
+                        this.store.select(selectParameterProviderTypes);
+                    dialogReference.componentInstance.parameterProviderTypesLoadingStatus$ = this.store.select(
+                        selectExtensionTypesLoadingStatus
+                    );
 
                     dialogReference.componentInstance.createParameterProvider
                         .pipe(take(1))

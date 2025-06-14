@@ -60,7 +60,7 @@
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
             <button
-                [disabled]="!createPortForm.dirty || createPortForm.invalid || saving.value"
+                [disabled]="!createPortForm.dirty || createPortForm.invalid || saving.value || createPortForm.pending"
                 type="submit"
                 (click)="createPort()"
                 mat-flat-button>

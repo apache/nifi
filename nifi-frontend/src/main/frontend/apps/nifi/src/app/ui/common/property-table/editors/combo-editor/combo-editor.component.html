@@ -114,7 +114,7 @@
                         Cancel
                     </button>
                     <button
-                        [disabled]="!comboEditorForm.dirty || comboEditorForm.invalid"
+                        [disabled]="!comboEditorForm.dirty || comboEditorForm.invalid || comboEditorForm.pending"
                         (mousedown)="preventDrag($event)"
                         type="button"
                         (click)="okClicked()"

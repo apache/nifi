@@ -58,6 +58,11 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-flat-button [disabled]="changeColorForm.invalid" (click)="applyClicked()">Apply</button>
+        <button
+            mat-flat-button
+            [disabled]="changeColorForm.invalid || changeColorForm.pending"
+            (click)="applyClicked()">
+            Apply
+        </button>
     </mat-dialog-actions>
 </form>

@@ -2,13 +2,13 @@
     "name": "nifi",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "projectType": "application",
+    "sourceRoot": "apps/nifi/src",
+    "prefix": "app",
     "generators": {
         "@schematics/angular:component": {
             "style": "scss"
         }
     },
-    "sourceRoot": "apps/nifi/src",
-    "prefix": "app",
     "targets": {
         "build": {
             "executor": "@nx/angular:application",
@@ -100,7 +100,8 @@
                     "servePath": "/nifi"
                 }
             },
-            "defaultConfiguration": "development"
+            "defaultConfiguration": "development",
+            "continuous": true
         },
         "extract-i18n": {
             "executor": "@angular-devkit/build-angular:extract-i18n",

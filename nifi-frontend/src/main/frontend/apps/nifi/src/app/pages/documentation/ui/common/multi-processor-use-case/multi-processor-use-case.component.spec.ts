@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MultiProcessorUseCaseComponent } from './multi-processor-use-case.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { extensionTypesFeatureKey } from '../../../../../state/extension-types';
-import { initialState } from '../../../../../state/extension-types/extension-types.reducer';
+import { initialExtensionsTypesState } from '../../../../../state/extension-types/extension-types.reducer';
 
 describe('MultiProcessorUseCaseComponent', () => {
     let component: MultiProcessorUseCaseComponent;
@@ -32,7 +32,7 @@ describe('MultiProcessorUseCaseComponent', () => {
             providers: [
                 provideMockStore({
                     initialState: {
-                        [extensionTypesFeatureKey]: initialState
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState
                     }
                 })
             ]

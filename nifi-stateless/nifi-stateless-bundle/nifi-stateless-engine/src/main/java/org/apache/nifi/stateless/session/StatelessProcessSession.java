@@ -17,9 +17,11 @@
 
 package org.apache.nifi.stateless.session;
 
+import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
@@ -92,8 +94,8 @@ public class StatelessProcessSession extends StandardProcessSession {
         // If we don't require synchronous commits, we can trigger the async commit, but we can't call the callback yet, because we only can call the success callback when we've completed the
         // dataflow in order to ensure that we don't destroy data in a way that it can't be replayed if the downstream processors fail.
         if (!requireSynchronousCommits) {
-            super.commitAsync();
             tracker.addCallback(connectable, onSuccess, onFailure, this);
+            super.commitAsync();
             return;
         }
 
@@ -232,7 +234,7 @@ public class StatelessProcessSession extends StandardProcessSession {
             return false;
         }
 
-        if (executionProgress.isFailurePort(connectable.getName())) {
+        if (connectable instanceof Port && ((Port) connectable).getPortFunction() == PortFunction.FAILURE) {
             return true;
         }
 

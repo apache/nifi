@@ -21,6 +21,11 @@ import { Bundle, DocumentedType, RequiredPermission } from '../shared';
 
 export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
 
+export const selectExtensionTypesLoadingStatus = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.status
+);
+
 export const selectProcessorTypes = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => state.processorTypes

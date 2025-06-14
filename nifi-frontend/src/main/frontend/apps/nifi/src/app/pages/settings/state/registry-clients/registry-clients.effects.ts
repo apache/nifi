@@ -23,7 +23,10 @@ import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectRegistryClientTypes } from '../../../../state/extension-types/extension-types.selectors';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectRegistryClientTypes
+} from '../../../../state/extension-types/extension-types.selectors';
 import { LARGE_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
@@ -78,16 +81,17 @@ export class RegistryClientsEffects {
         () =>
             this.actions$.pipe(
                 ofType(RegistryClientsActions.openNewRegistryClientDialog),
-                concatLatestFrom(() => this.store.select(selectRegistryClientTypes)),
-                tap(([, registryClientTypes]) => {
+                tap(() => {
                     const dialogReference = this.dialog.open(CreateRegistryClient, {
-                        ...LARGE_DIALOG,
-                        data: {
-                            registryClientTypes
-                        }
+                        ...LARGE_DIALOG
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    dialogReference.componentInstance.registryClientTypes$ =
+                        this.store.select(selectRegistryClientTypes);
+                    dialogReference.componentInstance.registryClientTypesLoadingStatus$ = this.store.select(
+                        selectExtensionTypesLoadingStatus
+                    );
 
                     dialogReference.componentInstance.createRegistryClient.pipe(take(1)).subscribe((request) => {
                         this.store.dispatch(

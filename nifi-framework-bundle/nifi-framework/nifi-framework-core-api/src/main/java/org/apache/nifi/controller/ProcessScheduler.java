@@ -22,6 +22,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.StatelessGroupNode;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -80,9 +81,10 @@ public interface ProcessScheduler {
      * interrupt any threads that are currently running within the given
      * Processor. If the Processor is not scheduled to run, does nothing.
      *
-     * @param procNode to stop
+     * @param procNode the Processor to stop
+     * @param lifecycleMethods the lifecycle methods to invoke when stopping the processor
      */
-    CompletableFuture<Void> stopProcessor(ProcessorNode procNode);
+    CompletableFuture<Void> stopProcessor(ProcessorNode procNode, ProcessorStopLifecycleMethods lifecycleMethods);
 
     /**
      * Interrupts all threads that are currently active in the Processor in an attempt to

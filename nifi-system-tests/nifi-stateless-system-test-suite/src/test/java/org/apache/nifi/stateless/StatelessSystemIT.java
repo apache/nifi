@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -67,7 +68,7 @@ public class StatelessSystemIT {
 
     @AfterEach
     public void shutdownFlows() {
-        createdFlows.forEach(StatelessDataflow::shutdown);
+        createdFlows.forEach(dataflow -> dataflow.shutdown(true, true, Duration.ofSeconds(1)));
     }
 
     protected StatelessEngineConfiguration getEngineConfiguration() {

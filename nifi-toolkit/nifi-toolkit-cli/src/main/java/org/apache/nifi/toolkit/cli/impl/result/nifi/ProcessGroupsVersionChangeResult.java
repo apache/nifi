@@ -64,8 +64,8 @@ public class ProcessGroupsVersionChangeResult extends AbstractWritableResult<Lis
                 .column("#", 3, 3, false)
                 .column("Name", 20, 36, true)
                 .column("Id", 36, 36, false)
-                .column("Prev Version", 15, 15, false)
-                .column("New Version", 15, 15, false)
+                .column("Prev Version", 45, 45, false)
+                .column("New Version", 45, 45, false)
                 .column("Message", 100, 100, false)
                 .build();
 

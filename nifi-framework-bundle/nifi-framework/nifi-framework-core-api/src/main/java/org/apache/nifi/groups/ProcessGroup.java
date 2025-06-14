@@ -35,6 +35,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
@@ -177,7 +178,17 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * Stops all Processors, Local Ports, and Funnels that are directly within
      * this group and child ProcessGroups, except for those that are disabled.
      */
-    CompletableFuture<Void> stopComponents();
+    default CompletableFuture<Void> stopComponents() {
+        return stopComponents(ProcessorStopLifecycleMethods.TRIGGER_ALL);
+    }
+
+    /**
+     * Stops all Processors, Local Ports, and Funnels that are directly within
+     * this group and child ProcessGroups, except for those that are disabled.
+     *
+     * @param processorStopLifecycleMethods indicates which lifecycle methods should be called when stopping Processors
+     */
+    CompletableFuture<Void> stopComponents(ProcessorStopLifecycleMethods processorStopLifecycleMethods);
 
     /**
      * @return the scheduled state for this ProcessGroup, or StatelessGroupScheduledState.STOPPED

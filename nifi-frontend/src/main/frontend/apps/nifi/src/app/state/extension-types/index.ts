@@ -19,6 +19,8 @@ import { DocumentedType } from '../shared';
 
 export const extensionTypesFeatureKey = 'extensionTypes';
 
+export type ExtensionTypesLoadingStatus = 'pending' | 'loading' | 'success' | 'error';
+
 export interface LoadExtensionTypesForCanvasResponse {
     processorTypes: DocumentedType[];
     controllerServiceTypes: DocumentedType[];
@@ -57,5 +59,5 @@ export interface ExtensionTypesState {
     registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
-    status: 'pending' | 'loading' | 'success';
+    status: ExtensionTypesLoadingStatus;
 }

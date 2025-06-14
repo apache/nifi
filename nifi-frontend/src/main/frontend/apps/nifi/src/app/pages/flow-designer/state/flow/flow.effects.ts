@@ -114,7 +114,6 @@ import { Router } from '@angular/router';
 import { Client } from '../../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasView } from '../../service/canvas-view.service';
-import { selectProcessorTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/canvas/items/processor/create-processor/create-processor.component';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
@@ -384,14 +383,12 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openNewProcessorDialog),
                 map((action) => action.request),
-                concatLatestFrom(() => this.store.select(selectProcessorTypes)),
-                tap(([request, processorTypes]) => {
+                tap((request) => {
                     this.dialog
                         .open(CreateProcessor, {
                             ...LARGE_DIALOG,
                             data: {
-                                request,
-                                processorTypes
+                                request
                             }
                         })
                         .afterClosed()

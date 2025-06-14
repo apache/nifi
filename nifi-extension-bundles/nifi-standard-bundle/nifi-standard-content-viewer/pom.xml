@@ -26,7 +26,6 @@
     <artifactId>nifi-standard-content-viewer</artifactId>
     <packaging>war</packaging>
     <properties>
-        <spring.boot.version>3.4.6</spring.boot.version>
         <standard-content-viewer.ui.working.dir>${project.build.directory}/standard-content-viewer-ui-working-directory</standard-content-viewer.ui.working.dir>
     </properties>
     <dependencies>
@@ -63,21 +62,6 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <version>${spring.boot.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-tomcat</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
