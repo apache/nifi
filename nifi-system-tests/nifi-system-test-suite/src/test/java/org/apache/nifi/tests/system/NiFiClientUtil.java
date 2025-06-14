@@ -926,13 +926,13 @@ public class NiFiClientUtil {
                 continue;
             }
 
-            if ("RUNNING".equals(expectedState)) {
-                return;
-            }
-
             final ProcessorStatusSnapshotDTO snapshotDto = entity.getStatus().getAggregateSnapshot();
-            if (snapshotDto.getActiveThreadCount() == 0 && snapshotDto.getTerminatedThreadCount() == 0) {
-                logger.info("Processor {} has reached desired state of {}", processorId, expectedState);
+            final Integer activeThreadCount = snapshotDto.getActiveThreadCount();
+            final Integer terminatedThreadCount = snapshotDto.getTerminatedThreadCount();
+
+            if ("RUNNING".equals(expectedState) || (activeThreadCount == 0 && terminatedThreadCount == 0)) {
+                logger.info("Processor {} is now in desired state of {} with {} active threads and {} terminated threads",
+                    processorId, expectedState, activeThreadCount, terminatedThreadCount);
                 return;
             }
 
@@ -997,7 +997,7 @@ public class NiFiClientUtil {
 
         final ActivateControllerServicesEntity activateControllerServices = nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
         if (waitForEnabled) {
-            waitForControllerSerivcesEnabled(groupId);
+            waitForControllerServicesEnabled(groupId);
         }
 
         return activateControllerServices;
@@ -1198,7 +1198,7 @@ public class NiFiClientUtil {
         activateControllerServicesEntity.setDisconnectedNodeAcknowledged(true);
 
         final ActivateControllerServicesEntity activateControllerServices = nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
-        waitForControllerSerivcesDisabled(groupId);
+        waitForControllerServicesDisabled(groupId);
 
         if (recurse) {
             final ProcessGroupFlowEntity groupEntity = nifiClient.getFlowClient().getProcessGroup(groupId);
@@ -1256,15 +1256,15 @@ public class NiFiClientUtil {
         }
     }
 
-    public void waitForControllerSerivcesDisabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
+    public void waitForControllerServicesDisabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
         waitForControllerServiceState(groupId, "DISABLED", Arrays.asList(serviceIdsOfInterest));
     }
 
-    public void waitForControllerSerivcesEnabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
+    public void waitForControllerServicesEnabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
         waitForControllerServiceState(groupId, "ENABLED", Arrays.asList(serviceIdsOfInterest));
     }
 
-    public void waitForControllerSerivcesEnabled(final String groupId, final List<String> serviceIdsOfInterest) throws NiFiClientException, IOException {
+    public void waitForControllerServicesEnabled(final String groupId, final List<String> serviceIdsOfInterest) throws NiFiClientException, IOException {
         waitForControllerServiceState(groupId, "ENABLED", serviceIdsOfInterest);
     }
 
@@ -1278,7 +1278,7 @@ public class NiFiClientUtil {
                 return;
             }
 
-            final ControllerServiceEntity entity = nonDisabledServices.get(0);
+            final ControllerServiceEntity entity = nonDisabledServices.getFirst();
             logger.info("Controller Service ID [{}] Type [{}] State [{}] waiting for State [{}]: sleeping for 500 ms before retrying", entity.getId(),
                     entity.getComponent().getType(), entity.getComponent().getState(), desiredState);
 

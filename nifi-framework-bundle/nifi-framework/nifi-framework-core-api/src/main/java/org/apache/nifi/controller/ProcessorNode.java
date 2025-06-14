@@ -140,9 +140,6 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract void verifyCanTerminate();
 
-    /**
-     *
-     */
     @Override
     public ScheduledState getScheduledState() {
         ScheduledState sc = this.scheduledState.get();

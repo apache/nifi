@@ -59,7 +59,7 @@ public class NarProviderAndAutoLoaderIT extends NiFiSystemIT {
                 ROOT_GROUP_ID, NIFI_GROUP_ID, CLASSLOADER_INFO_SERVICE_NAR_ARTIFACT, getNiFiVersion());
 
         getClientUtil().enableControllerService(classLoaderInfoService);
-        getClientUtil().waitForControllerSerivcesEnabled(classLoaderInfoService.getParentGroupId(), classLoaderInfoService.getId());
+        getClientUtil().waitForControllerServicesEnabled(classLoaderInfoService.getParentGroupId(), classLoaderInfoService.getId());
 
         final ProcessorEntity getClassLoaderInfo = getClientUtil().createProcessor(CLASSLOADER_INFO_PROCESSOR_CLASS_NAME,
                 NIFI_GROUP_ID, CLASSLOADER_INFO_PROCESSOR_NAR_ARTIFACT, getNiFiVersion());
