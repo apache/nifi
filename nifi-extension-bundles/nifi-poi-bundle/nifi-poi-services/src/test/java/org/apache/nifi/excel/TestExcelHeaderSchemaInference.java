@@ -17,9 +17,10 @@
 package org.apache.nifi.excel;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -32,8 +33,11 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -48,19 +52,22 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import static java.nio.file.Files.newDirectoryStream;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static java.nio.file.Files.newDirectoryStream;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-public class TestExcelHeaderSchemaStrategy {
+public class TestExcelHeaderSchemaInference {
     private static final TimeValueInference TIME_VALUE_INFERENCE = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
 
     @Mock
-    ComponentLog logger;
+    private ComponentLog logger;
+
+    private PropertyContext context;
 
     /*
      * Cleanup the temporary poifiles directory which is created by org.apache.poi.util.DefaultTempFileCreationStrategy
@@ -77,75 +84,74 @@ public class TestExcelHeaderSchemaStrategy {
         }
     }
 
-    @Test
-    void testWhereConfiguredStartRowIsEmpty() throws IOException {
-        Object[][] singleSheet = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
-        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+    @BeforeEach
+    void setUp() {
         final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
+        context = new MockConfigurationContext(properties, null, null);
+    }
+
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testWhereConfiguredStartRowIsEmpty(HeaderSchemaStrategy headerSchemaStrategy) throws IOException {
+        final Object[][] singleSheet = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
-            assertTrue(schemaNotFoundException.getMessage().contains("no cells with data"));
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+            final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
+            assertTrue(ioException.getCause().getMessage().contains("Field names could not be determined from configured header row"));
         }
     }
 
-    @Test
-    void testWhereConfiguredStartRowHasEmptyCell() throws Exception {
-        Object[][] singleSheet = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testWhereConfiguredStartRowHasEmptyCell(HeaderSchemaStrategy headerSchemaStrategy) throws Exception {
+        final Object[][] singleSheet = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            RecordSchema schema = schemaStrategy.getSchema(null, inputStream, null);
-            RecordField recordField = schema.getField(1);
-            assertEquals("column_1", recordField.getFieldName());
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+            RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("ID", "column_1", "Middle"), schema.getFieldNames());
         }
     }
 
-    @Test
-    void testWhereInferenceRowHasMoreCellsThanFieldNames() throws Exception {
-        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testWhereInferenceRowHasMoreCellsThanFieldNames(HeaderSchemaStrategy headerSchemaStrategy) throws Exception {
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
-            assertTrue(schemaNotFoundException.getMessage().contains("more than"));
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+            final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
+            assertTrue(ioException.getCause().getMessage().contains("more than"));
         }
     }
 
     @Test
     void testWhereTotalRowsLessThanConfiguredInferenceRows() throws Exception {
-        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD);
+            assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
         }
     }
 
     @Test
-    void testWhereConfiguredInferenceRowsHasAnEmptyRow() throws IOException {
-        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+    void testWhereConfiguredInferenceRowsHasAnEmptyRow() throws Exception {
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
                 {4, "Four", "F"}, {5, "Five", "F"}, {}, {7, "Seven", "S"}, {8, "Eight", "E"},
                 {9, "Nine", "N"}, {10, "Ten", "T"}};
-
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD);
+            assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
         }
     }
 
@@ -156,31 +162,51 @@ public class TestExcelHeaderSchemaStrategy {
                 {9, "Nine", "N"}, {10, "Ten", "T"}, {11, "Eleven", "E"}};
 
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD);
+            assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
         }
     }
 
-    @Test
-    void testWhereConfiguredInferenceRowsAreAllBlank() throws IOException {
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testWhereConfiguredInferenceRowsAreAllBlank(HeaderSchemaStrategy headerSchemaStrategy) throws Exception {
         Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
-            assertTrue(schemaNotFoundException.getMessage().contains("empty"));
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+
+            switch (headerSchemaStrategy) {
+                case USE_STARTING_ROW_STANDARD -> {
+                    final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+                    assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
+                    assertTrue(ioException.getCause().getMessage().contains("empty"));
+                }
+                case USE_STARTING_ROW_ALL -> assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            }
         }
     }
 
-    @Test
-    void testAlignedDateColumnsAcrossTwoSheets() throws Exception {
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testWhereRowsAreAllBlank(HeaderSchemaStrategy headerSchemaStrategy) throws Exception {
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+
+            final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
+            assertTrue(ioException.getCause().getMessage().contains("empty"));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testAlignedDateColumnsAcrossTwoSheets(HeaderSchemaStrategy headerSchemaStrategy) throws Exception {
         final String dateColumnName = "Date";
         final Object[] columnNames = {dateColumnName, "Something", "Name"};
         final Object[][] firstSheet =
@@ -188,12 +214,11 @@ public class TestExcelHeaderSchemaStrategy {
         Object[][] secondSheet =
                 {columnNames, {LocalDate.of(1976, 9, 11), "test1", "Sheet2"}, {LocalDate.of(1987, 2, 12), "test2", "Sheet2"}};
         final ByteArrayOutputStream outputStream = createWorkbook(firstSheet, secondSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final RecordSchema schema = schemaStrategy.getSchema(null, inputStream, null);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             final RecordField dateRecordField = schema.getField(dateColumnName).orElse(null);
 
             assertNotNull(dateRecordField);
@@ -202,21 +227,26 @@ public class TestExcelHeaderSchemaStrategy {
         }
     }
 
-    @Test
-    void testDuplicateColumnNames() throws Exception {
+    @ParameterizedTest
+    @EnumSource(HeaderSchemaStrategy.class)
+    void testDuplicateColumnNames(HeaderSchemaStrategy headerSchemaStrategy) throws Exception {
         Object[][] singleSheet = {{"Frequency", "Intervals", "Frequency", "Name", "Frequency", "Intervals"},
                 {6, "0-9", 13, "John", 15, 2}, {4, "10-19", 15, "Sue", 13, 3}};
 
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
-        final Map<PropertyDescriptor, String> properties = Map.of();
-        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
-
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            RecordSchema recordSchema = schemaStrategy.getSchema(null, inputStream, null);
-            assertEquals(6, recordSchema.getFieldNames().size());
-            assertEquals(List.of("Frequency", "Intervals", "Frequency_1", "Name", "Frequency_2", "Intervals_1"), recordSchema.getFieldNames());
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(headerSchemaStrategy);
+
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(6, schema.getFieldNames().size());
+            assertEquals(List.of("Frequency", "Intervals", "Frequency_1", "Name", "Frequency_2", "Intervals_1"), schema.getFieldNames());
         }
+    }
+
+    private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(HeaderSchemaStrategy headerSchemaStrategy) {
+        return new InferSchemaAccessStrategy<>(
+                (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
+                new ExcelHeaderSchemaInference(headerSchemaStrategy, 1, TIME_VALUE_INFERENCE), logger);
     }
 
     private static ByteArrayOutputStream createWorkbook(Object[][]... sheetData) throws IOException {
