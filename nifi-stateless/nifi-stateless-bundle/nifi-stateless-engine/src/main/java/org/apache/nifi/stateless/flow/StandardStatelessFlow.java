@@ -373,9 +373,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         shutdown = true;
         logger.info("Shutting down dataflow {}", rootGroup.getName());
 
-        if (runDataflowExecutor != null) {
-            runDataflowExecutor.shutdown();
-        }
         if (backgroundTaskExecutor != null) {
             backgroundTaskExecutor.shutdown();
         }
@@ -387,11 +384,12 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         // Wait for the graceful shutdown period for all processors to stop. If the processors do not stop within this time,
         // then interrupt them.
-        if (runDataflowExecutor != null && interruptProcessors) {
+        boolean interrupt = false;
+        if (interruptProcessors) {
             if (gracefulShutdownDuration.isZero()) {
                 logger.info("Shutting down all components immediately without waiting for graceful shutdown period");
                 tracker.triggerFailureCallbacks(new TerminatedTaskException());
-                runDataflowExecutor.shutdownNow();
+                interrupt = true;
             } else {
                 final boolean gracefullyStopped = waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
                 if (gracefullyStopped) {
@@ -401,12 +399,20 @@ public class StandardStatelessFlow implements StatelessDataflow {
                     logger.warn("{} Processors did not finish running within the graceful shutdown period of {} millis. Interrupting all running components. Processors still running: {}",
                         runningProcessors.size(), gracefulShutdownDuration.toMillis(), runningProcessors);
                     tracker.triggerFailureCallbacks(new TerminatedTaskException());
-                    runDataflowExecutor.shutdownNow();
+                    interrupt = true;
                 }
             }
-        } else if (runDataflowExecutor != null) {
+        } else {
             waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
             tracker.triggerCallbacks();
+        }
+
+        if (runDataflowExecutor != null) {
+            if (interrupt) {
+                runDataflowExecutor.shutdownNow();
+            } else {
+                runDataflowExecutor.shutdown();
+            }
         }
 
         // Stop components but do not trigger @OnUnscheduled because those were already triggered.

@@ -190,7 +190,7 @@ public class StatelessFlowTask {
 
         try {
             int invocationCount = 0;
-            while ((invocationCount == 0 || allowBatch) && System.currentTimeMillis() < endTime) {
+            while ((invocationCount == 0 || allowBatch) && statelessGroupNode.getDesiredState() == ScheduledState.RUNNING && System.currentTimeMillis() < endTime) {
                 invocationCount++;
 
                 final Invocation invocation = new Invocation();
