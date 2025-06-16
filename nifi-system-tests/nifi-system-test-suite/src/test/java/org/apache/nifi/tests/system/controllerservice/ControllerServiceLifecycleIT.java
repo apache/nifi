@@ -42,7 +42,7 @@ public class ControllerServiceLifecycleIT extends NiFiSystemIT {
         }
 
         getClientUtil().enableControllerServices("root", false);
-        getClientUtil().waitForControllerSerivcesEnabled("root", countServiceIds);
+        getClientUtil().waitForControllerServicesEnabled("root", countServiceIds);
     }
 
     @Test
@@ -51,7 +51,7 @@ public class ControllerServiceLifecycleIT extends NiFiSystemIT {
         getClientUtil().updateControllerServiceProperties(service, Collections.singletonMap("Enable Failure Count", "1"));
 
         getClientUtil().enableControllerServices("root", false);
-        getClientUtil().waitForControllerSerivcesEnabled("root");
+        getClientUtil().waitForControllerServicesEnabled("root");
     }
 
 }
