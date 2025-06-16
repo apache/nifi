@@ -78,7 +78,7 @@ public class RecordSqlWriter implements SqlWriter {
         } catch (final SQLException | SchemaNotFoundException | IOException e) {
             throw new ProcessException(e);
         }
-        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, Collections.emptyMap())) {
+        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, originalAttributes)) {
             writeResultRef.set(resultSetWriter.write(recordSet));
             if (mimeType == null) {
                 mimeType = resultSetWriter.getMimeType();
