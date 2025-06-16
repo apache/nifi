@@ -2090,6 +2090,10 @@ export class CanvasUtils {
      * @return {boolean}                       Whether the selection supports starting flow versioning
      */
     public supportsStartFlowVersioning(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
         if (!this.supportsFlowVersioning(selection)) {
             return false;
         }
@@ -2116,10 +2120,6 @@ export class CanvasUtils {
      * @return {boolean}                       Whether the selection supports flow versioning
      */
     public supportsFlowVersioning(selection: d3.Selection<any, any, any, any>): boolean {
-        if (!this.canVersionFlows()) {
-            return false;
-        }
-
         if (selection.empty()) {
             // prevent versioning of the root group
             if (!this.getParentProcessGroupId()) {
@@ -2144,6 +2144,10 @@ export class CanvasUtils {
      * @return {boolean}                       Whether the selection supports commit.
      */
     public supportsCommitFlowVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
         const versionControlInformation = this.getFlowVersionControlInformation(selection);
 
         // check the selection for version control information
@@ -2157,6 +2161,10 @@ export class CanvasUtils {
      * @return {boolean}                       Whether the selection supports force commit.
      */
     public supportsForceCommitFlowVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
         const versionControlInformation = this.getFlowVersionControlInformation(selection);
 
         // check the selection for version control information
@@ -2170,6 +2178,10 @@ export class CanvasUtils {
      * @return {boolean}                       Whether the selection has local changes.
      */
     public hasLocalChanges(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
         const versionControlInformation = this.getFlowVersionControlInformation(selection);
 
         // check the selection for version control information
@@ -2187,6 +2199,10 @@ export class CanvasUtils {
      * @return {boolean}                       Whether the selection supports change flow version.
      */
     public supportsChangeFlowVersion(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
         const versionControlInformation = this.getFlowVersionControlInformation(selection);
 
         return (

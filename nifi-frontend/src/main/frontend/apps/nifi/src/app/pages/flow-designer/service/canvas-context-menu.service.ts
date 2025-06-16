@@ -702,9 +702,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.supportsFlowVersioning(selection);
-                },
                 text: 'Version',
                 subMenuId: this.VERSION_MENU.id
             },
