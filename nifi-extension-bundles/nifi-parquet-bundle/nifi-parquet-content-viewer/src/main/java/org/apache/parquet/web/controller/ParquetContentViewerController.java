@@ -17,13 +17,13 @@
 package org.apache.parquet.web.controller;
 
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.parquet.stream.NifiParquetInputFile;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.ContentRequestContext;
 import org.apache.nifi.web.DownloadableContent;
@@ -32,11 +32,9 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.io.InputFile;
+import org.apache.parquet.web.utils.NifiParquetContentViewerInputFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,13 +43,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-@RestController()
-@RequestMapping("/api")
-public class ParquetContentViewerController {
+public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
 
-    @GetMapping("/content")
-    public void getContent(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
+    @Override
+    public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         final ContentRequestContext requestContext = new HttpServletContentRequestContext(request);
 
         final ServletContext servletContext = request.getServletContext();
@@ -105,7 +101,7 @@ public class ParquetContentViewerController {
             Configuration conf = new Configuration();
             conf.setBoolean("parquet.avro.readInt96AsFixed", true);
 
-            final InputFile inputFile = new NifiParquetInputFile(new ByteArrayInputStream(data), data.length);
+            final InputFile inputFile = new NifiParquetContentViewerInputFile(new ByteArrayInputStream(data), data.length);
             final ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(inputFile)
                     .withConf(conf)
                     .build();
