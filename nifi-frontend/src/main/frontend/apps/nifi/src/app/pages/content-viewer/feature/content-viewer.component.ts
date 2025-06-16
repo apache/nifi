@@ -25,13 +25,22 @@ import { ContentViewer, HEX_VIEWER_URL, SupportedMimeTypes } from '../state/view
 import { isDefinedAndNotNull, NiFiCommon, SelectGroup, SelectOption, selectQueryParams, TextTip } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { concatLatestFrom } from '@ngrx/operators';
-import { navigateToBundledContentViewer, resetContent, setRef } from '../state/content/content.actions';
+import {
+    downloadContentWithEvent,
+    downloadContentWithFlowFile,
+    loadSideBarData,
+    navigateToBundledContentViewer,
+    resetContent,
+    setRef
+} from '../state/content/content.actions';
 import { MatSelectChange } from '@angular/material/select';
 import { loadAbout } from '../../../state/about/about.actions';
 import { selectAbout } from '../../../state/about/about.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
 import { navigateToExternalViewer } from '../state/external-viewer/external-viewer.actions';
 import { snackBarError } from '../../../state/error/error.actions';
+import { selectSideBarData } from '../state/content/content.selectors';
+import { SideBarData } from '../state/content';
 
 interface SupportedContentViewer {
     supportedMimeTypes: SupportedMimeTypes;
@@ -49,6 +58,8 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     viewerForm: FormGroup;
     viewAsOptions: SelectGroup[] = [];
     panelWidth: string | null = 'auto';
+    data!: SideBarData;
+    resizing: boolean = false;
 
     private supportedMimeTypeId = 0;
     private supportedContentViewerLookup: Map<number, SupportedContentViewer> = new Map<
@@ -61,6 +72,9 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     viewerSelected: boolean = false;
     mimeType: string | undefined;
     private clientId: string | undefined;
+    private uri: string | undefined;
+    private eventId: number | undefined;
+    private clusterNodeId: string | undefined;
 
     private queryParamsLoaded = false;
     private viewerOptionsLoaded = false;
@@ -71,6 +85,10 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         private formBuilder: FormBuilder
     ) {
         this.viewerForm = this.formBuilder.group({ viewAs: null });
+
+        this.store.select(selectSideBarData).subscribe((data) => {
+            this.data = data;
+        });
 
         this.store
             .select(selectViewerOptions)
@@ -199,7 +217,9 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                 const ref = queryParams['ref'];
                 this.mimeType = queryParams['mimeType'];
                 this.clientId = queryParams['clientId'];
-
+                this.uri = queryParams['uri'];
+                this.clusterNodeId = queryParams['clusterNodeId'];
+                this.eventId = queryParams['eventId'];
                 if (ref) {
                     this.store.dispatch(
                         setRef({
@@ -219,6 +239,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.store.dispatch(loadContentViewerOptions());
         this.store.dispatch(loadAbout());
+        this.store.dispatch(loadSideBarData());
     }
 
     private handleDefaultSelection(): void {
@@ -301,6 +322,31 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                 }
             }
         }
+    }
+
+    downloadContent(direction?: string): void {
+        if (this.eventId && direction) {
+            this.store.dispatch(
+                downloadContentWithEvent({
+                    eventId: this.eventId,
+                    direction: direction,
+                    clusterNodeId: this.clusterNodeId
+                })
+            );
+        } else if (this.uri) {
+            this.store.dispatch(
+                downloadContentWithFlowFile({
+                    request: {
+                        uri: this.uri,
+                        clusterNodeId: this.clusterNodeId
+                    }
+                })
+            );
+        }
+    }
+
+    setResizing(resizing: boolean) {
+        this.resizing = resizing;
     }
 
     ngOnDestroy(): void {
