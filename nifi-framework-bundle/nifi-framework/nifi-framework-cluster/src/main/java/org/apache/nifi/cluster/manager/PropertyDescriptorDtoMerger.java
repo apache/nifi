@@ -50,9 +50,9 @@ public class PropertyDescriptorDtoMerger {
 
     private static boolean allNodesHaveAllowableValue(final AllowableValueEntity entity, final Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap) {
         return dtoMap.values().stream()
-            .allMatch(propertyDescriptorDTO -> propertyDescriptorDTO.getAllowableValues() != null &&
-                propertyDescriptorDTO.getAllowableValues().stream()
-                    .anyMatch(allowableValueEntity -> allowableValueEntity.getAllowableValue().equals(entity.getAllowableValue())));
+            .allMatch(propertyDescriptorDTO ->
+                    propertyDescriptorDTO.getAllowableValues() != null && propertyDescriptorDTO.getAllowableValues().stream()
+                            .anyMatch(allowableValueEntity -> allowableValueEntity.getAllowableValue().equals(entity.getAllowableValue())));
     }
 
     private static void addEntities(PropertyDescriptorDTO propertyDescriptorDTO, Map<AllowableValueDTO, List<AllowableValueEntity>> dtoToEntities) {
