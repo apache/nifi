@@ -310,13 +310,59 @@ describe('ParameterContextTable', () => {
             supportsManagedAuthorizer: true
         } as unknown as FlowConfiguration;
 
-        beforeEach(async () => {
+        beforeEach(() => {
             component.currentUser = {
                 identity: 'test-user',
                 parameterContextPermissions: { canRead: true, canWrite: true },
                 tenantsPermissions: { canRead: true, canWrite: true }
             } as unknown as CurrentUser;
             component.flowConfiguration = flowConfiguration;
+        });
+
+        it.each([
+            { action: 'Edit', expected: 1 },
+            { action: 'View Configuration', expected: 0 },
+            { action: 'Delete', expected: 1 },
+            { action: 'Manage Access Policies', expected: 1 },
+            { action: 'Go to Parameter provider', expected: 0 }
+        ])('%s when read and write parameter context permissions are given', async ({ action, expected }) => {
+            const parameterContext: ParameterContextEntity = {
+                id: '1',
+                permissions: { canRead: true, canWrite: true }
+            } as unknown as ParameterContextEntity;
+
+            component.dataSource = new MatTableDataSource([parameterContext]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            const menu = await loader.getHarness(MatMenuHarness);
+            await menu.open();
+
+            const conditionalItems = await menu.getItems({ text: action });
+            expect(conditionalItems.length).toEqual(expected);
+        });
+
+        it.each([
+            { action: 'Edit', expected: 0 },
+            { action: 'View Configuration', expected: 1 },
+            { action: 'Delete', expected: 0 },
+            { action: 'Manage Access Policies', expected: 1 },
+            { action: 'Go to Parameter provider', expected: 0 }
+        ])('%s when only read parameter context permission is given', async ({ action, expected }) => {
+            const parameterContext: ParameterContextEntity = {
+                id: '1',
+                permissions: { canRead: true, canWrite: false }
+            } as unknown as ParameterContextEntity;
+
+            component.dataSource = new MatTableDataSource([parameterContext]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            const menu = await loader.getHarness(MatMenuHarness);
+            await menu.open();
+
+            const conditionalItems = await menu.getItems({ text: action });
+            expect(conditionalItems.length).toEqual(expected);
         });
     });
 
@@ -325,13 +371,59 @@ describe('ParameterContextTable', () => {
             supportsManagedAuthorizer: false
         } as unknown as FlowConfiguration;
 
-        beforeEach(async () => {
+        beforeEach(() => {
             const parameterContext: ParameterContextEntity = {
                 id: '1',
                 permissions: { canRead: true, canWrite: true }
             } as unknown as ParameterContextEntity;
             component.dataSource = new MatTableDataSource([parameterContext]);
             component.flowConfiguration = flowConfiguration;
+        });
+
+        it.each([
+            { action: 'Edit', expected: 1 },
+            { action: 'View Configuration', expected: 0 },
+            { action: 'Delete', expected: 0 },
+            { action: 'Manage Access Policies', expected: 0 },
+            { action: 'Go to Parameter Provider', expected: 0 }
+        ])('%s when only read parameter context permission is given', async ({ action, expected }) => {
+            component.currentUser = {
+                identity: 'test-user',
+                parameterContextPermissions: { canRead: true, canWrite: false },
+                tenantsPermissions: { canRead: false, canWrite: false }
+            } as unknown as CurrentUser;
+
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            const menu = await loader.getHarness(MatMenuHarness);
+            await menu.open();
+
+            const conditionalItems = await menu.getItems({ text: action });
+            expect(conditionalItems.length).toEqual(expected);
+        });
+
+        it.each([
+            { action: 'Edit', expected: 1 },
+            { action: 'View Configuration', expected: 0 },
+            { action: 'Delete', expected: 0 },
+            { action: 'Manage Access Policies', expected: 0 },
+            { action: 'Go to Parameter Provider', expected: 0 }
+        ])('%s when no parameter context permissions are given', async ({ action, expected }) => {
+            component.currentUser = {
+                identity: 'test-user',
+                parameterContextPermissions: { canRead: false, canWrite: false },
+                tenantsPermissions: { canRead: false, canWrite: false }
+            } as unknown as CurrentUser;
+
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            const menu = await loader.getHarness(MatMenuHarness);
+            await menu.open();
+
+            const conditionalItems = await menu.getItems({ text: action });
+            expect(conditionalItems.length).toEqual(expected);
         });
     });
 
