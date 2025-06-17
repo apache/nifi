@@ -88,6 +88,7 @@ public class MockProcessSession implements ProcessSession {
     private final StateManager stateManager;
     private final boolean allowSynchronousCommits;
     private final boolean allowRecursiveReads;
+    private final boolean shouldRollbackSession;
 
     private boolean committed = false;
     private boolean rolledBack = false;
@@ -109,11 +110,16 @@ public class MockProcessSession implements ProcessSession {
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
                               final boolean allowSynchronousCommits) {
-        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, false);
+        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, false, false);
     }
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
                               final boolean allowSynchronousCommits, final boolean allowRecursiveReads) {
+        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, allowRecursiveReads, false);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
+                              final boolean allowSynchronousCommits, final boolean allowRecursiveReads, final boolean shouldRollbackSession) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
@@ -122,6 +128,7 @@ public class MockProcessSession implements ProcessSession {
         this.stateManager = stateManager;
         this.allowSynchronousCommits = allowSynchronousCommits;
         this.allowRecursiveReads = allowRecursiveReads;
+        this.shouldRollbackSession = shouldRollbackSession;
     }
 
     @Override
@@ -284,6 +291,10 @@ public class MockProcessSession implements ProcessSession {
                 "commitAsync(Runnable), or commitAsync(Runnable, Consumer<Throwable>). However, if this is not possible, ProcessSession.commit() may still be used, but this must be explicitly " +
                 "enabled by calling TestRunner.");
         }
+        if (shouldRollbackSession) {
+            rollback();
+            throw new TestSessionRollbackException();
+        }
 
         commitInternal();
     }
@@ -313,11 +324,22 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commitAsync() {
+        if (shouldRollbackSession) {
+            rollback();
+            throw new TestSessionRollbackException();
+        }
         commitInternal();
     }
 
     @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        if (shouldRollbackSession) {
+            rollback();
+            final TestSessionRollbackException e = new TestSessionRollbackException();
+            onFailure.accept(e);
+            throw e;
+        }
+
         try {
             commitInternal();
         } catch (final Throwable t) {
@@ -1455,5 +1477,11 @@ public class MockProcessSession implements ProcessSession {
         final String curUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         final String providedUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         return curUuid.equals(providedUuid);
+    }
+
+    public static final class TestSessionRollbackException extends RuntimeException {
+        private TestSessionRollbackException() {
+            super("Rolling session back as requested by test");
+        }
     }
 }
