@@ -32,12 +32,11 @@ public interface KafkaClientComponent {
 
     PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name("bootstrap.servers")
-            .displayName("Kafka Brokers")
-            .description("Comma-separated list of Kafka Brokers in the format host:port")
+            .displayName("Bootstrap Servers")
+            .description("Comma-separated list of Kafka Bootstrap Servers in the format host:port. Corresponds to Kafka bootstrap.servers property")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .defaultValue("localhost:9092")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
@@ -58,13 +57,16 @@ public interface KafkaClientComponent {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SaslMechanism.getAvailableSaslMechanisms())
             .defaultValue(SaslMechanism.GSSAPI)
+            .dependsOn(SECURITY_PROTOCOL,
+                    SecurityProtocol.SASL_PLAINTEXT.name(),
+                    SecurityProtocol.SASL_SSL.name())
             .build();
 
     PropertyDescriptor SASL_USERNAME = new PropertyDescriptor.Builder()
             .name("sasl.username")
-            .displayName("Username")
+            .displayName("SASL Username")
             .description("Username provided with configured password when using PLAIN or SCRAM SASL Mechanisms")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(
@@ -77,9 +79,9 @@ public interface KafkaClientComponent {
 
     PropertyDescriptor SASL_PASSWORD = new PropertyDescriptor.Builder()
             .name("sasl.password")
-            .displayName("Password")
+            .displayName("SASL Password")
             .description("Password provided with configured username when using PLAIN or SCRAM SASL Mechanisms")
-            .required(false)
+            .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -119,8 +121,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("ssl.context.service")
-            .displayName("SSL Context Service")
+            .name("SSL Context Service")
             .description("Service supporting SSL communication with Kafka brokers")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
