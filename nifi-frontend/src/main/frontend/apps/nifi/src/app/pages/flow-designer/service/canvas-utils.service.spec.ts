@@ -37,6 +37,8 @@ import { queueFeatureKey } from '../../queue/state';
 import * as fromQueue from '../state/queue/queue.reducer';
 import { flowAnalysisFeatureKey } from '../state/flow-analysis';
 import * as fromFlowAnalysis from '../state/flow-analysis/flow-analysis.reducer';
+import { ComponentType } from '@nifi/shared';
+import * as d3 from 'd3';
 
 describe('CanvasUtils', () => {
     let service: CanvasUtils;
@@ -77,5 +79,56 @@ describe('CanvasUtils', () => {
 
     it('should be created', () => {
         expect(service).toBeTruthy();
+    });
+
+    describe('supportsStopFlowVersioning', () => {
+        it('should return null if selection is non empty and version control information is missing', () => {
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation: null
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+            expect(service.getFlowVersionControlInformation(selection)).toBe(null);
+        });
+
+        it('should return vci if selection is non empty and version control information is present', () => {
+            const versionControlInformation = {
+                groupId: '1',
+                registryId: '324e0ab1-0197-1000-ffff-ffffb3123c5c',
+                registryName: 'ConnectorFlowRegistryClient',
+                branch: 'main',
+                bucketId: 'connectors',
+                bucketName: 'connectors',
+                flowId: 'kafka-json-sasl-topic2table-schemaev',
+                flowName: 'kafka-json-sasl-topic2table-schemaev',
+                version: '0.1.0-f47ff72',
+                state: 'UP_TO_DATE',
+                stateExplanation: 'Flow version is current'
+            };
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+            expect(service.getFlowVersionControlInformation(selection)).toBe(versionControlInformation);
+        });
     });
 });
