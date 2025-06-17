@@ -26,12 +26,11 @@
     <artifactId>nifi-aws-bundle</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <aws-kinesis-client-library-version>2.7.1</aws-kinesis-client-library-version>
-    </properties>
-
     <modules>
+        <module>nifi-aws-kinesis-3-processors</module>
+        <module>nifi-aws-kinesis-3-nar</module>
         <module>nifi-aws-processors</module>
+        <module>nifi-aws-regions</module>
         <module>nifi-aws-nar</module>
         <module>nifi-aws-service-api</module>
         <module>nifi-aws-service-api-nar</module>
