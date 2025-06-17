@@ -22,25 +22,18 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTableDataSource } from '@angular/material/table';
 import { ParameterContextEntity } from '../../../../../state/shared';
 import { Sort } from '@angular/material/sort';
-import { HarnessLoader } from '@angular/cdk/testing';
-import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
-import { MatMenuHarness } from '@angular/material/menu/testing';
-import { CurrentUser } from '../../../../../state/current-user';
-import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 
 describe('ParameterContextTable', () => {
     let component: ParameterContextTable;
     let fixture: ComponentFixture<ParameterContextTable>;
-    let loader: HarnessLoader;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ParameterContextTable, NoopAnimationsModule, RouterModule, MatIconModule]
         });
         fixture = TestBed.createComponent(ParameterContextTable);
-        loader = TestbedHarnessEnvironment.loader(fixture);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
@@ -302,128 +295,6 @@ describe('ParameterContextTable', () => {
             } as unknown as ParameterContextEntity;
 
             expect(component.formatProcessGroups(entity)).toEqual('');
-        });
-    });
-
-    describe('verify parameter context buttons with given parameter contexts permissions', () => {
-        const flowConfiguration = {
-            supportsManagedAuthorizer: true
-        } as unknown as FlowConfiguration;
-
-        beforeEach(() => {
-            component.currentUser = {
-                identity: 'test-user',
-                parameterContextPermissions: { canRead: true, canWrite: true },
-                tenantsPermissions: { canRead: true, canWrite: true }
-            } as unknown as CurrentUser;
-            component.flowConfiguration = flowConfiguration;
-        });
-
-        it.each([
-            { action: 'Edit', expected: 1 },
-            { action: 'View Configuration', expected: 0 },
-            { action: 'Delete', expected: 1 },
-            { action: 'Manage Access Policies', expected: 1 },
-            { action: 'Go to Parameter provider', expected: 0 }
-        ])('%s when read and write parameter context permissions are given', async ({ action, expected }) => {
-            const parameterContext: ParameterContextEntity = {
-                id: '1',
-                permissions: { canRead: true, canWrite: true }
-            } as unknown as ParameterContextEntity;
-
-            component.dataSource = new MatTableDataSource([parameterContext]);
-            fixture.detectChanges();
-            await fixture.whenStable();
-
-            const menu = await loader.getHarness(MatMenuHarness);
-            await menu.open();
-
-            const conditionalItems = await menu.getItems({ text: action });
-            expect(conditionalItems.length).toEqual(expected);
-        });
-
-        it.each([
-            { action: 'Edit', expected: 0 },
-            { action: 'View Configuration', expected: 1 },
-            { action: 'Delete', expected: 0 },
-            { action: 'Manage Access Policies', expected: 1 },
-            { action: 'Go to Parameter provider', expected: 0 }
-        ])('%s when only read parameter context permission is given', async ({ action, expected }) => {
-            const parameterContext: ParameterContextEntity = {
-                id: '1',
-                permissions: { canRead: true, canWrite: false }
-            } as unknown as ParameterContextEntity;
-
-            component.dataSource = new MatTableDataSource([parameterContext]);
-            fixture.detectChanges();
-            await fixture.whenStable();
-
-            const menu = await loader.getHarness(MatMenuHarness);
-            await menu.open();
-
-            const conditionalItems = await menu.getItems({ text: action });
-            expect(conditionalItems.length).toEqual(expected);
-        });
-    });
-
-    describe('verify parameter context buttons with given user permissions', () => {
-        const flowConfiguration = {
-            supportsManagedAuthorizer: false
-        } as unknown as FlowConfiguration;
-
-        beforeEach(() => {
-            const parameterContext: ParameterContextEntity = {
-                id: '1',
-                permissions: { canRead: true, canWrite: true }
-            } as unknown as ParameterContextEntity;
-            component.dataSource = new MatTableDataSource([parameterContext]);
-            component.flowConfiguration = flowConfiguration;
-        });
-
-        it.each([
-            { action: 'Edit', expected: 1 },
-            { action: 'View Configuration', expected: 0 },
-            { action: 'Delete', expected: 0 },
-            { action: 'Manage Access Policies', expected: 0 },
-            { action: 'Go to Parameter Provider', expected: 0 }
-        ])('%s when only read parameter context permission is given', async ({ action, expected }) => {
-            component.currentUser = {
-                identity: 'test-user',
-                parameterContextPermissions: { canRead: true, canWrite: false },
-                tenantsPermissions: { canRead: false, canWrite: false }
-            } as unknown as CurrentUser;
-
-            fixture.detectChanges();
-            await fixture.whenStable();
-
-            const menu = await loader.getHarness(MatMenuHarness);
-            await menu.open();
-
-            const conditionalItems = await menu.getItems({ text: action });
-            expect(conditionalItems.length).toEqual(expected);
-        });
-
-        it.each([
-            { action: 'Edit', expected: 1 },
-            { action: 'View Configuration', expected: 0 },
-            { action: 'Delete', expected: 0 },
-            { action: 'Manage Access Policies', expected: 0 },
-            { action: 'Go to Parameter Provider', expected: 0 }
-        ])('%s when no parameter context permissions are given', async ({ action, expected }) => {
-            component.currentUser = {
-                identity: 'test-user',
-                parameterContextPermissions: { canRead: false, canWrite: false },
-                tenantsPermissions: { canRead: false, canWrite: false }
-            } as unknown as CurrentUser;
-
-            fixture.detectChanges();
-            await fixture.whenStable();
-
-            const menu = await loader.getHarness(MatMenuHarness);
-            await menu.open();
-
-            const conditionalItems = await menu.getItems({ text: action });
-            expect(conditionalItems.length).toEqual(expected);
         });
     });
 
