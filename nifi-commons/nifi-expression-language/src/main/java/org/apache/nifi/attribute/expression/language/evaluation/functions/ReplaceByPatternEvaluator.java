@@ -24,9 +24,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class ReplaceByPatternEvaluator extends StringEvaluator {
@@ -34,7 +34,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
     private final Evaluator<String> subject;
     private final Evaluator<String> search;
 
-    private Map<String, Pattern> compiledPatterns = null;
+    private List<PatternMapping> compiledPatterns = null;
 
     public ReplaceByPatternEvaluator(final Evaluator<String> subject, final Evaluator<String> search) {
         this.subject = subject;
@@ -56,7 +56,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
             return new StringQueryResult(null);
         }
 
-        final Map<String, Pattern> patterns;
+        final List<PatternMapping> patterns;
         if (compiledPatterns == null) {
             String expression = search.evaluate(evaluationContext).getValue();
             if (expression == null) {
@@ -67,17 +67,17 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
             patterns = compiledPatterns;
         }
 
-        for (Map.Entry<String, Pattern> entry : patterns.entrySet()) {
-            if (entry.getValue().matcher(subjectValue).matches()) {
-                return new StringQueryResult(entry.getKey());
+        for (PatternMapping entry : patterns) {
+            if (entry.pattern().matcher(subjectValue).matches()) {
+                return new StringQueryResult(entry.replacement());
             }
         }
 
         return new StringQueryResult(subjectValue);
     }
 
-    private Map<String, Pattern> compilePatterns(final String argument) {
-        final Map<String, Pattern> result = new HashMap<>();
+    private List<PatternMapping> compilePatterns(final String argument) {
+        final List<PatternMapping> result = new ArrayList<>();
         if (argument == null || argument.trim().isEmpty()) {
             return result;
         }
@@ -97,7 +97,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
             }
 
             try {
-                result.put(mappedTo, Pattern.compile(streamPattern));
+                result.add(new PatternMapping(Pattern.compile(streamPattern), mappedTo));
             } catch (Exception e) {
                 // ignore
                 continue;
@@ -112,4 +112,6 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
         return subject;
     }
 
+    private record PatternMapping(Pattern pattern, String replacement) {
+    }
 }

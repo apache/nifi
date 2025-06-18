@@ -2389,8 +2389,18 @@ public class TestQuery {
         verifyEquals("${str_attr:replaceByPattern('myValue[3-4]:test,.*:foo')}", attributes, "foo");
         verifyEquals("${str_attr:replaceByPattern('myValue[3-4]:test,abc:foo')}", attributes, "myValue2");
         verifyEquals("${str_attr:replaceByPattern('myValue[3-4]:test, abc:foo, myValue[1-4]:xyz')}", attributes, "xyz");
+        verifyEquals("${str_attr:replaceByPattern('myValue1:test,myValue2:test,myValue3:test')}", attributes, "test");
 
         verifyEquals("${str_attr:replaceByPattern(${literal('myValue[3-4]:test'):append(','):append(' .*:foo')})}", attributes, "foo");
+    }
+
+    @Test
+    public void testReplaceByPatternWithSameReplacement() {
+        final String expression = "${attr:replaceByPattern('a:ok,b:ok,c:ok')}";
+
+        verifyEquals(expression, Map.of("attr", "a"), "ok");
+        verifyEquals(expression, Map.of("attr", "b"), "ok");
+        verifyEquals(expression, Map.of("attr", "c"), "ok");
     }
 
     @Test
