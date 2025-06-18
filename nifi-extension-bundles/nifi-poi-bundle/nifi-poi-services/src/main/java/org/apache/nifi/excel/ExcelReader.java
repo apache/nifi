@@ -26,7 +26,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -53,7 +52,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Tags({"excel", "spreadsheet", "xls", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
 @CapabilityDescription("Parses a Microsoft Excel document returning each row in each sheet as a separate record. "
@@ -97,12 +95,22 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .displayName("Starting Row")
             .description("The row number of the first row to start processing (One based)."
                     + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset."
-                    + " When using the '" + HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD.getDisplayName() + "' or the '" + HeaderSchemaStrategy.USE_STARTING_ROW_ALL.getDisplayName() + "' "
-                    + " strategies, this should be the column header row.")
+                    + " When using the '" + StartingRowStrategy.USE_STARTING_ROW.getValue() + "' strategy this should be the column header row.")
             .required(true)
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor STARTING_ROW_STRATEGY = new PropertyDescriptor
+            .Builder().name("Starting Row Strategy")
+            .displayName("Starting Row Strategy")
+            .description("A strategy to select how many rows after the starting row to use for determining the schema.")
+            .required(true)
+            .allowableValues(StartingRowStrategy.class)
+            .defaultValue(StartingRowStrategy.STANDARD)
+            .dependsOn(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, StartingRowStrategy.USE_STARTING_ROW)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
@@ -156,25 +164,13 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        super.migrateProperties(config);
-
-        Optional<String> schemaAccessStrategyFound = config.getPropertyValue(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY);
-        if (schemaAccessStrategyFound.isPresent()) {
-            final String schemaAccessStrategy = schemaAccessStrategyFound.get();
-            if ("Use Starting Row".equals(schemaAccessStrategy)) {
-                config.setProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD.getValue());
-            }
-        }
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(INPUT_FILE_TYPE);
         properties.add(PROTECTION_TYPE);
         properties.add(PASSWORD);
         properties.add(STARTING_ROW);
+        properties.add(STARTING_ROW_STRATEGY);
         properties.add(REQUIRED_SHEETS);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
@@ -185,12 +181,14 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (HeaderSchemaStrategy.ALL_STRATEGIES.contains(allowableValue)) {
+        if (StartingRowStrategy.USE_STARTING_ROW.getValue().equals(allowableValue)) {
+            final StartingRowStrategy startingRowStrategy =
+                    context.getProperty(STARTING_ROW_STRATEGY).asAllowableValue(StartingRowStrategy.class);
             final int firstRow = context.getProperty(STARTING_ROW)
                     .evaluateAttributeExpressions()
                     .asInteger();
             final SchemaInferenceEngine<Row> inference =
-                    new ExcelHeaderSchemaInference(HeaderSchemaStrategy.valueOf(allowableValue), firstRow, createTimeValueInference());
+                    new ExcelStartingRowSchemaInference(startingRowStrategy, firstRow, createTimeValueInference());
             return createInferSchemaAccessStrategy(context, inference);
         } else if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
             final SchemaInferenceEngine<Row> inference = new ExcelSchemaInference(createTimeValueInference());
@@ -203,22 +201,21 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
-        allowableValues.add(HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD.getAllowableValue());
-        allowableValues.add(HeaderSchemaStrategy.USE_STARTING_ROW_ALL.getAllowableValue());
+        allowableValues.add(StartingRowStrategy.USE_STARTING_ROW);
         allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
 
     @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD.getAllowableValue();
+        return StartingRowStrategy.USE_STARTING_ROW;
     }
 
     private int getStartingRow(final Map<String, String> variables) {
         int rawStartingRow = configurationContext.getProperty(STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
         final String schemaAccessStrategy = configurationContext.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
 
-        if (HeaderSchemaStrategy.ALL_STRATEGIES.contains(schemaAccessStrategy)) {
+        if (StartingRowStrategy.USE_STARTING_ROW.getValue().equals(schemaAccessStrategy)) {
             rawStartingRow++;
         }
         return getZeroBasedIndex(rawStartingRow);

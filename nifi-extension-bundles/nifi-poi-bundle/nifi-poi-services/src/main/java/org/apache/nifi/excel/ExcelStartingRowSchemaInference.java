@@ -37,15 +37,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ExcelHeaderSchemaInference implements SchemaInferenceEngine<Row> {
+public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Row> {
 
-    private final HeaderSchemaStrategy headerSchemaStrategy;
+    private final StartingRowStrategy startingRowStrategy;
     private final int firstRow;
     private final CellFieldTypeReader cellFieldTypeReader;
     private final DataFormatter dataFormatter;
 
-    public ExcelHeaderSchemaInference(HeaderSchemaStrategy headerSchemaStrategy, int firstRow, TimeValueInference timeValueInference) {
-        this.headerSchemaStrategy = headerSchemaStrategy;
+    public ExcelStartingRowSchemaInference(StartingRowStrategy startingRowStrategy, int firstRow, TimeValueInference timeValueInference) {
+        this.startingRowStrategy = startingRowStrategy;
         this.firstRow = firstRow;
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
         this.dataFormatter = new DataFormatter();
@@ -65,8 +65,8 @@ public class ExcelHeaderSchemaInference implements SchemaInferenceEngine<Row> {
             } else if (row.getRowNum() == zeroBasedFirstRow) { // skip first row of all sheets
                 continue;
             } else {
-                if (HeaderSchemaStrategy.USE_STARTING_ROW_STANDARD == headerSchemaStrategy) {
-                    if (index <= HeaderSchemaStrategy.NUM_ROWS_TO_DETERMINE_TYPES) {
+                if (StartingRowStrategy.STANDARD == startingRowStrategy) {
+                    if (index <= StartingRowStrategy.NUM_ROWS_TO_DETERMINE_TYPES) {
                         inferSchema(row, fieldNames, typeMap);
                     } else {
                         break;
