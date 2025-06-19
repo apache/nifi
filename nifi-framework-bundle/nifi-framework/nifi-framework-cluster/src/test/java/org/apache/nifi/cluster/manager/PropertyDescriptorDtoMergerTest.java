@@ -95,6 +95,16 @@ public class PropertyDescriptorDtoMergerTest {
         );
     }
 
+    @Test
+    void testMergeWithDuplicateAllowableValues() {
+        testMerge(
+                createPropertyDescriptorDTO(v("value1"), v("value1")),
+                Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value1")),
+                        createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value1"), v("value1"))),
+                createPropertyDescriptorDTO(v("value1"), v("value1"))
+        );
+    }
+
     private PropertyDescriptorDTO createPropertyDescriptorDTO(AllowableValueData... allowableValueData) {
         PropertyDescriptorDTO clientPropertyDescriptor = new PropertyDescriptorDTO();
 

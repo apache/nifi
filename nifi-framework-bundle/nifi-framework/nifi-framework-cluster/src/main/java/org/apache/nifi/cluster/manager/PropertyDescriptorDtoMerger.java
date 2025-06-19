@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +36,23 @@ public class PropertyDescriptorDtoMerger {
             addEntities(clientPropertyDescriptor, allowableValueDtoToEntities);
             dtoMap.values().forEach(propertyDescriptorDTO -> addEntities(propertyDescriptorDTO, allowableValueDtoToEntities));
 
-            List<AllowableValueEntity> mergedAllowableValues = allowableValueDtoToEntities.values().stream()
-                .filter(entities -> Integer.valueOf(entities.size()).equals(dtoMap.size() + 1))
+            // Consider each allowable value from the client property descriptor. In the event of a duplicate allowable value, each entry will still
+            // be included in the merged list. Also ensure that each allowable value is present in all nodes property descriptors.
+            List<AllowableValueEntity> mergedAllowableValues = clientPropertyDescriptor.getAllowableValues().stream()
+                .map(allowableValueEntity -> allowableValueDtoToEntities.getOrDefault(allowableValueEntity.getAllowableValue(), Collections.emptyList()))
+                .filter(entities -> !entities.isEmpty() && allNodesHaveAllowableValue(entities.getFirst(), dtoMap))
                 .map(AllowableValueEntityMerger::merge)
                 .collect(Collectors.toList());
 
             clientPropertyDescriptor.setAllowableValues(mergedAllowableValues);
         }
+    }
+
+    private static boolean allNodesHaveAllowableValue(final AllowableValueEntity entity, final Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap) {
+        return dtoMap.values().stream()
+            .allMatch(propertyDescriptorDTO ->
+                    propertyDescriptorDTO.getAllowableValues() != null && propertyDescriptorDTO.getAllowableValues().stream()
+                            .anyMatch(allowableValueEntity -> allowableValueEntity.getAllowableValue().equals(entity.getAllowableValue())));
     }
 
     private static void addEntities(PropertyDescriptorDTO propertyDescriptorDTO, Map<AllowableValueDTO, List<AllowableValueEntity>> dtoToEntities) {
