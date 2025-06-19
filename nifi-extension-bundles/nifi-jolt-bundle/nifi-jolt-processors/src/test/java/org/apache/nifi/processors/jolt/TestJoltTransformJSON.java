@@ -202,10 +202,9 @@ class TestJoltTransformJSON {
         runner.assertNotValid();
     }
 
-    @ParameterizedTest(name = "{index} {1}")
+    @ParameterizedTest()
     @MethodSource("getChainrArguments")
-        /*NOTE: Even though description is not used in the actual test, it needs to be declared in order to use it in the ParameterizedTest name argument*/
-    void testTransformInputWithChainr(Path specPath, String ignoredDescription) throws IOException {
+    void testTransformInputWithChainr(Path specPath) throws IOException {
         final String spec = Files.readString(specPath);
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
@@ -533,7 +532,7 @@ class TestJoltTransformJSON {
 
     private static Stream<Arguments> getChainrArguments() {
         return Stream.of(
-                Arguments.of(Paths.get(CHAINR_SPEC_PATH), "has no single line comments"),
-                Arguments.of(Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json"), "has a single line comment"));
+                Arguments.argumentSet("has no single line comments", Paths.get(CHAINR_SPEC_PATH)),
+                Arguments.argumentSet("has a single line comment", Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json")));
     }
 }
