@@ -85,12 +85,12 @@ export class QueueService {
 
     viewContent(request: ViewFlowFileContentRequest, contentViewerUrl: string): void {
         // build the uri to the data
-        let dataUri = `${request.uri}/content`;
+        let dataUri = `${request.flowfileSummary.uri}/content`;
 
         const dataUriParameters: any = {};
 
-        if (request.clusterNodeId) {
-            dataUriParameters['clusterNodeId'] = request.clusterNodeId;
+        if (request.flowfileSummary.clusterNodeId) {
+            dataUriParameters['clusterNodeId'] = request.flowfileSummary.clusterNodeId;
         }
 
         // include parameters if necessary
@@ -114,9 +114,12 @@ export class QueueService {
             clientId: this.client.getClientId()
         };
 
-        if (request.mimeType) {
-            contentViewerParameters['mimeType'] = request.mimeType;
+        if (request.flowfileSummary.mimeType) {
+            contentViewerParameters['mimeType'] = request.flowfileSummary.mimeType;
         }
+
+        contentViewerParameters['uri'] = request.flowfileSummary.uri;
+        contentViewerParameters['clusterNodeId'] = request.flowfileSummary.clusterNodeId;
 
         // open the content viewer
         const contentViewerQuery: string = new URLSearchParams(contentViewerParameters).toString();
