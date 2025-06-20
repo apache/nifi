@@ -28,7 +28,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <couchbase.version>3.7.8</couchbase.version>
+        <couchbase.version>3.8.2</couchbase.version>
     </properties>
 
     <modules>
