@@ -156,6 +156,16 @@ public class StandardLogRepository implements LogRepository {
         }
     }
 
+    @Override
+    public boolean hasObserver() {
+        lock.lock();
+        try {
+            return !observers.isEmpty();
+        } finally {
+            lock.unlock();
+        }
+    }
+
 
     @Override
     public void removeAllObservers() {

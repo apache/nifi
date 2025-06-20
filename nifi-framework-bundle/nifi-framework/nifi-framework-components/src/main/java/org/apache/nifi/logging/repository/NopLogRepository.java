@@ -43,6 +43,11 @@ public class NopLogRepository implements LogRepository {
     }
 
     @Override
+    public boolean hasObserver() {
+        return false;
+    }
+
+    @Override
     public void setObservationLevel(final LogLevel level) {
     }
 
