@@ -54,7 +54,7 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
-            <version>10.3</version>
+            <version>${nimbus-jose-jwt.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.crypto.tink</groupId>
