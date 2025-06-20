@@ -25,7 +25,6 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -42,11 +41,10 @@ import org.bson.Document;
 
 import javax.net.ssl.SSLContext;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
@@ -107,20 +105,25 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
             final MongoClientSettings.Builder builder = MongoClientSettings.builder();
 
-            if (StringUtils.containsIgnoreCase(uri, "authmechanism") && user != null && passw != null) {
-                // we extract all specified parameters in the URI
-                final Map<String, String> result = new LinkedHashMap<>();
-                for (String param : uri.split("&")) {
-                    String[] pair = param.split("=", 2);
-                    String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8).toLowerCase();
-                    String value = pair.length > 1 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
-                    result.put(key, value);
-                }
+            // Regex to find authMechanism value (case-insensitive)
+            final Pattern authMechanismPattern = Pattern.compile("(?i)(?:[?&])authmechanism=([^&]*)");
 
-                uri = uri.replaceAll("(?i)authmechanism=[^&]*&?", "");
-                final ConnectionString cs = new ConnectionString(uri);
-                final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
-                final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(result.get("authmechanism").toUpperCase());
+            Matcher matcher = authMechanismPattern.matcher(uri);
+            String authMechanism = null;
+
+            // If authMechanism is present, extract its value and clean the URI
+            if (matcher.find()) {
+                authMechanism = matcher.group(1);
+                uri = matcher.replaceFirst(uri.contains("?") ? "?" : "");
+                // If trailing & or ? is left, clean up
+                uri = uri.replaceAll("[&?]+$", "");
+            }
+
+            final ConnectionString cs = new ConnectionString(uri);
+            final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
+
+            if (authMechanism != null && user != null && passw != null) {
+                final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(authMechanism.toUpperCase());
 
                 switch (mechanism) {
                     case SCRAM_SHA_1 -> builder.credential(MongoCredential.createScramSha1Credential(user, database, passw.toCharArray()));
@@ -129,19 +132,12 @@ public class MongoDBControllerService extends AbstractControllerService implemen
                     case PLAIN -> builder.credential(MongoCredential.createPlainCredential(user, database, passw.toCharArray()));
                     default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username and password: " + mechanism);
                 }
-
-                builder.applyConnectionString(cs);
-            } else {
-                final ConnectionString cs = new ConnectionString(uri);
-
-                if (user != null && passw != null) {
-                    final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
-                    final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
-                    builder.credential(credential);
-                }
-
-                builder.applyConnectionString(cs);
+            } else if (user != null && passw != null) {
+                final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
+                builder.credential(credential);
             }
+
+            builder.applyConnectionString(cs);
 
             if (sslContext != null) {
                 builder.applyToSslSettings(sslBuilder -> sslBuilder.enabled(true).context(sslContext));
@@ -149,6 +145,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
             final MongoClientSettings clientSettings = builder.build();
             return MongoClients.create(clientSettings);
+
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", this.getClass().getName(), e, e);
             throw e;
