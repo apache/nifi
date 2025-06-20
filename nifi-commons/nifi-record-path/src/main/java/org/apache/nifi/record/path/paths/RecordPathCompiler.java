@@ -219,7 +219,7 @@ public class RecordPathCompiler {
                 return new LiteralValuePath(parent, tree.getText(), absolute);
             }
             case NUMBER: {
-                return new LiteralValuePath(parent, Integer.parseInt(tree.getText()), absolute);
+                return new LiteralValuePath(parent, Long.parseLong(tree.getText()), absolute);
             }
             case PREDICATE: {
                 final Tree operatorTree = tree.getChild(0);
