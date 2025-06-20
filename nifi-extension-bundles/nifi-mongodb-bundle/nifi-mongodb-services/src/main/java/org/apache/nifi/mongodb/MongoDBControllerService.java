@@ -52,6 +52,8 @@ import java.util.regex.Pattern;
                 "other Mongo-related components."
 )
 public class MongoDBControllerService extends AbstractControllerService implements MongoDBClientService {
+    // Regex to find authMechanism value (case-insensitive)
+    public static final Pattern AUTH_MECHANISM_PATTERN = Pattern.compile("(?i)(?:[?&])authmechanism=([^&]*)");
     private String uri;
 
     @OnEnabled
@@ -105,10 +107,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
             final MongoClientSettings.Builder builder = MongoClientSettings.builder();
 
-            // Regex to find authMechanism value (case-insensitive)
-            final Pattern authMechanismPattern = Pattern.compile("(?i)(?:[?&])authmechanism=([^&]*)");
-
-            Matcher matcher = authMechanismPattern.matcher(uri);
+            Matcher matcher = AUTH_MECHANISM_PATTERN.matcher(uri);
             String authMechanism = null;
 
             // If authMechanism is present, extract its value and clean the URI
