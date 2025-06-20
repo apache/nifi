@@ -34,6 +34,11 @@ public interface LogRepository {
     void addObserver(LogLevel level, LogObserver observer);
 
     /**
+     * @return true if there is at least 1 observer registered, false otherwise
+     */
+    boolean hasObserver();
+
+    /**
      * Sets the observation level of the specified observer.
      *
      * @param level of logs the observer wants

@@ -186,7 +186,11 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             }
 
             LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
-            if (registerLogObserver) {
+
+            // Only register an observer is there is no currently one registered. We do this because in stateless we create
+            // a new ProcessorNode for each Concurrent Task every time that a dataflow is triggered, and we don't want to
+            // register multiple observers for the same ProcessorNode.
+            if (registerLogObserver && !logRepository.hasObserver()) {
                 logRepository.addObserver(procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
             }
 
