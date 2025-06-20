@@ -15,18 +15,6 @@
  * limitations under the License.
  */
 
-.process-group-references {
-    ul {
-        list-style: none;
-        margin: 0;
-
-        &.nested {
-            list-style: disc;
-            padding-inline-start: 20px;
-        }
-    }
-
-    .references {
-        margin-left: 20px;
-    }
+.process-group-tip {
+    max-width: 400px;
 }

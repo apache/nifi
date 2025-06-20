@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-.process-group-references {
-    ul {
-        list-style: none;
-        margin: 0;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-        &.nested {
-            list-style: disc;
-            padding-inline-start: 20px;
-        }
-    }
+import { ProcessGroupTip } from './process-group-tip.component';
 
-    .references {
-        margin-left: 20px;
-    }
-}
+describe('ProcessGroupTip', () => {
+    let component: ProcessGroupTip;
+    let fixture: ComponentFixture<ProcessGroupTip>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [ProcessGroupTip]
+        });
+        fixture = TestBed.createComponent(ProcessGroupTip);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});
