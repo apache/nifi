@@ -1838,7 +1838,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public void adjustCounter(final String name, final long delta, final boolean immediate) {
-        verifyTaskActive();
+        // If we are adjusting the counter immediately, allow it even if the task is terminated. The contract states:
+        // "the counter will be updated immediately, without regard to whether the session is committed or rolled back"
+        // so we need to ensure that we allow adjusting the counter even after the task is terminated.
+        if (!immediate) {
+            verifyTaskActive();
+        }
 
         final Map<String, Long> counters;
         if (immediate) {
@@ -1863,11 +1868,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private void adjustCounter(final String name, final long delta, final Map<String, Long> map) {
         Long curVal = map.get(name);
         if (curVal == null) {
-            curVal = Long.valueOf(0L);
+            curVal = 0L;
         }
 
-        final long newValue = curVal.longValue() + delta;
-        map.put(name, Long.valueOf(newValue));
+        final long newValue = curVal + delta;
+        map.put(name, newValue);
     }
 
     @Override
