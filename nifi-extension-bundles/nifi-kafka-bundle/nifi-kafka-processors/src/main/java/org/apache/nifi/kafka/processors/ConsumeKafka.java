@@ -359,7 +359,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         KafkaConsumerService service;
 
         while ((service = consumerServices.poll()) != null) {
-            close(service);
+            close(service, "Processor stopped");
         }
     }
 
@@ -396,7 +396,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             } catch (final Exception e) {
                 getLogger().error("Failed to consume Kafka Records", e);
                 consumerService.rollback();
-                close(consumerService);
+                close(consumerService, "Encountered Exception while consuming or writing out Kafka Records");
                 context.yield();
                 // If there are any FlowFiles already created and transferred, roll them back because we're rolling back offsets and
                 // because we will consume the data again, we don't want to transfer out the FlowFiles.
@@ -433,33 +433,35 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             consumerServices.offer(consumerService);
             getLogger().debug("Committed offsets for Kafka Consumer Service");
         } catch (final Exception e) {
-            close(consumerService);
-            getLogger().error("Failed to commit offsets for Kafka Consumer Service", e);
+            getLogger().error("Failed to commit offsets for Kafka Consumer Service; will attempt to rollback to latest committed offsets", e);
+            rollback(consumerService, offsetTracker, session);
         }
     }
 
     private void rollback(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final ProcessSession session) {
         if (!consumerService.isClosed()) {
-            offsetTracker.getRecordCounts().forEach((topic, count) -> {
-                session.adjustCounter("Records Rolled Back for " + topic, count, true);
-            });
-
             try {
                 consumerService.rollback();
                 consumerServices.offer(consumerService);
                 getLogger().debug("Rolled back offsets for Kafka Consumer Service");
             } catch (final Exception e) {
                 getLogger().warn("Failed to rollback offsets for Kafka Consumer", e);
-                close(consumerService);
+                close(consumerService, "Failed to rollback offsets");
             }
+
+            offsetTracker.getRecordCounts().forEach((topic, count) -> {
+                session.adjustCounter("Records Rolled Back for " + topic, count, true);
+            });
         }
     }
 
-    private void close(final KafkaConsumerService consumerService) {
+    private void close(final KafkaConsumerService consumerService, final String reason) {
         if (consumerService.isClosed()) {
             getLogger().debug("Asked to close Kafka Consumer Service but consumer already closed");
             return;
         }
+
+        getLogger().info("Closing Kafka Consumer due to: {}", reason);
 
         try {
             consumerService.close();
@@ -509,7 +511,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             return null;
         }
 
-        getLogger().debug("No Kafka Consumer Service available; creating a new one");
+        getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
         return connectionService.getConsumerService(pollingContext);
     }
