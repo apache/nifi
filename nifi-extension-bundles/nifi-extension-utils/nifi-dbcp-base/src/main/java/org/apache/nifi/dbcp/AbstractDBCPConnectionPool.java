@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -31,6 +23,9 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
@@ -43,8 +38,25 @@ import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
 
+import java.io.File;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Collectors;
+
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
 
@@ -58,6 +70,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         List<ConfigVerificationResult> results = new ArrayList<>();
 
         KerberosUser kerberosUser = null;
+
         try {
             kerberosUser = getKerberosUser(context);
             if (kerberosUser != null) {
@@ -103,14 +116,26 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         } catch (final Exception e) {
             String message = "Failed to configure Data Source.";
             if (e.getCause() instanceof ClassNotFoundException) {
-                message += String.format("  Ensure changes to the '%s' property are applied before verifying",
+                message += String.format(" Ensure changes to the '%s' property are applied before verifying.",
                         DB_DRIVER_LOCATION.getDisplayName());
             }
             verificationLogger.error(message, e);
+
+            final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+            final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
+
+            if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
+                List<String> availableDrivers = discoverDriverClassesStatic(driverResources);
+                if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
+                    message += String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
+                            driverName, String.join(", ", availableDrivers));
+                }
+            }
+
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(FAILED)
-                    .explanation(message + ": " + e.getMessage())
+                    .explanation(message + " Exception: " + e.getMessage())
                     .build());
         } finally {
             try {
@@ -269,5 +294,159 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 dataSource.close();
             }
         }
+    }
+
+    /**
+     * Discovers JDBC driver classes using static JAR scanning only (no class
+     * loading) This is used during validation when resources aren't loaded into
+     * classpath yet
+     */
+    protected List<String> discoverDriverClassesStatic(final ResourceReferences driverResources) {
+        final Set<String> driverClasses = new TreeSet<>();
+
+        if (driverResources == null || driverResources.getCount() == 0) {
+            getLogger().debug("No driver resources provided for static discovery");
+            return new ArrayList<>();
+        }
+        getLogger().debug("Starting static driver discovery for {} resources", driverResources.getCount());
+
+        for (final ResourceReference resource : driverResources.flattenRecursively().asList()) {
+            try {
+                getLogger().debug("Processing resource: {} (type: {})", resource.getLocation(), resource.getResourceType());
+                final List<File> jarFiles = getJarFilesFromResource(resource);
+                getLogger().debug("Found {} JAR files in resource {}", jarFiles.size(), resource.getLocation());
+
+                for (final File jarFile : jarFiles) {
+                    getLogger().debug("Scanning JAR file: {}", jarFile.getAbsolutePath());
+                    final Set<String> foundDrivers = scanJarForDriverClassesStatic(jarFile);
+                    getLogger().debug("Found {} potential driver classes in {}", foundDrivers.size(), jarFile.getName());
+                    driverClasses.addAll(foundDrivers);
+                }
+            } catch (final Exception e) {
+                getLogger().warn("Error processing resource {} for static driver discovery", resource.getLocation(), e);
+            }
+        }
+
+        getLogger().debug("Static driver discovery completed. Found {} potential driver classes", driverClasses.size());
+        return new ArrayList<>(driverClasses);
+    }
+
+    /**
+     * Scans a JAR file for potential JDBC driver class names using static analysis
+     * only This uses improved heuristics including checking META-INF/services and
+     * common patterns
+     */
+    private Set<String> scanJarForDriverClassesStatic(final File jarFile) {
+        final Set<String> driverClasses = new TreeSet<>();
+
+        try (final JarFile jar = new JarFile(jarFile)) {
+            // First, check META-INF/services/java.sql.Driver for registered drivers
+            // This is the most reliable method
+            final JarEntry servicesEntry = jar.getJarEntry("META-INF/services/java.sql.Driver");
+            if (servicesEntry != null) {
+                try (Scanner scanner = new Scanner(jar.getInputStream(servicesEntry))) {
+                    while (scanner.hasNextLine()) {
+                        final String line = scanner.nextLine().trim();
+                        if (!line.isEmpty() && !line.startsWith("#")) {
+                            driverClasses.add(line);
+                            getLogger().debug("Found driver in META-INF/services: {}", line);
+                        }
+                    }
+                }
+            }
+
+            // If we found drivers via META-INF/services, prefer those (most reliable)
+            if (!driverClasses.isEmpty()) {
+                getLogger().debug("Found {} drivers via META-INF/services, using those", driverClasses.size());
+                return driverClasses;
+            }
+
+            // Fallback: scan for classes with very specific driver patterns
+            getLogger().debug("No META-INF/services found, falling back to pattern matching");
+            final Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                final JarEntry entry = entries.nextElement();
+                final String entryName = entry.getName();
+
+                // Look for .class files (exclude inner classes)
+                if (entryName.endsWith(".class") && !entryName.contains("$")) {
+                    final String className = entryName.substring(0, entryName.length() - 6).replace('/', '.');
+
+                    // Use very specific patterns for actual JDBC drivers
+                    if (isVeryLikelyDriverClass(className)) {
+                        driverClasses.add(className);
+                        getLogger().debug("Found potential driver by strict pattern: {}", className);
+                    }
+                }
+            }
+        } catch (final Exception e) {
+            getLogger().warn("Error scanning JAR file {} for driver classes", jarFile.getAbsolutePath(), e);
+        }
+
+        return driverClasses;
+    }
+
+    /**
+     * Very strict heuristics to identify only actual JDBC driver classes
+     */
+    private boolean isVeryLikelyDriverClass(final String className) {
+        // Must end with "Driver" and be in a reasonable package structure
+        if (!className.endsWith("Driver")) {
+            return false;
+        }
+
+        // Must be in a package (not default package)
+        if (!className.contains(".")) {
+            return false;
+        }
+
+        // Known driver class names (exact matches)
+        final Set<String> knownDrivers = Set.of(
+                "com.mysql.cj.jdbc.Driver",
+                "com.mysql.jdbc.Driver",
+                "org.postgresql.Driver",
+                "oracle.jdbc.driver.OracleDriver",
+                "oracle.jdbc.OracleDriver",
+                "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+                "org.apache.derby.jdbc.EmbeddedDriver",
+                "org.apache.derby.jdbc.ClientDriver",
+                "org.h2.Driver",
+                "org.hsqldb.jdbc.JDBCDriver",
+                "org.sqlite.JDBC",
+                "org.mariadb.jdbc.Driver",
+                "net.sourceforge.jtds.jdbc.Driver");
+
+        if (knownDrivers.contains(className)) {
+            return true;
+        }
+
+        // Pattern-based matching for common driver structures
+        final String lowerClassName = className.toLowerCase();
+
+        // Must be in jdbc/driver related package AND end with Driver
+        final boolean hasDriverPackage = lowerClassName.matches(".*\\.(jdbc|driver)\\.[^.]*driver$");
+
+        // Known vendor patterns
+        final boolean hasVendorPattern = className.matches(".*\\.(mysql|postgresql|oracle|microsoft|apache|mariadb|h2|hsqldb|sqlite|jtds)\\..*Driver$");
+
+        return hasDriverPackage || hasVendorPattern;
+    }
+
+    /**
+     * Gets JAR files from a ResourceReference for scanning
+     */
+    protected List<File> getJarFilesFromResource(final ResourceReference resource) {
+        final List<File> jarFiles = new ArrayList<>();
+
+        if (resource.getResourceType() == ResourceType.FILE) {
+            final File file = new File(resource.getLocation());
+            if (file.exists() && file.canRead() && file.getName().toLowerCase().endsWith(".jar")) {
+                jarFiles.add(file);
+            }
+        }
+        // we don't need to scan for directory since we already did a recursive flatten
+        // and we don't want to deal with URLs in this case
+
+        return jarFiles;
     }
 }
