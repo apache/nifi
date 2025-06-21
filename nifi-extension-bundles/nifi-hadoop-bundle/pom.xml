@@ -69,7 +69,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.48</version>
+                <version>${nimbus-jose-jwt.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
