@@ -156,13 +156,19 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
 
             final long offset = consumerRecord.getOffset();
             final AtomicLong maxOffset = new AtomicLong(offset);
-            group = new RecordGroup(ff, writer, maxOffset);
+            final AtomicLong minOffset = new AtomicLong(offset);
+            group = new RecordGroup(ff, writer, maxOffset, minOffset);
             recordGroups.put(criteria, group);
         } else {
             final long recordOffset = consumerRecord.getOffset();
             final AtomicLong maxOffset = group.maxOffset();
             if (recordOffset > maxOffset.get()) {
                 maxOffset.set(recordOffset);
+            }
+
+            final AtomicLong minOffset = group.minOffset();
+            if (recordOffset < minOffset.get()) {
+                minOffset.set(recordOffset);
             }
         }
 
@@ -184,10 +190,14 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
                 final WriteResult wr = writer.finishRecordSet();
                 resultAttrs.putAll(wr.getAttributes());
                 resultAttrs.put("record.count", String.valueOf(wr.getRecordCount()));
+                resultAttrs.put(KafkaFlowFileAttribute.KAFKA_COUNT, String.valueOf(wr.getRecordCount()));
                 resultAttrs.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
 
                 final long maxOffset = group.maxOffset().get();
                 resultAttrs.put(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, Long.toString(maxOffset));
+
+                final long minOffset = group.minOffset().get();
+                resultAttrs.put(KafkaFlowFileAttribute.KAFKA_OFFSET, Long.toString(minOffset));
 
                 // add any extra header‐derived attributes
                 resultAttrs.putAll(criteria.extraAttributes());
@@ -228,6 +238,6 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
     private record RecordGroupCriteria(RecordSchema schema, Map<String, String> extraAttributes, String topic, int partition) {
     }
 
-    private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, AtomicLong maxOffset) {
+    private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, AtomicLong maxOffset, AtomicLong minOffset) {
     }
 }
