@@ -33,7 +33,7 @@ The integration tests use [Testcontainers](https://www.testcontainers.org/) to p
 
 ## Maven Run Examples
 
-Elasticsearch 8.X is the current default version of Elasticsearch when Testcontainers are used. An example run of the integration tests with Elasticsearch 7 support would be like this:
+Elasticsearch 9.X is the current default version of Elasticsearch when Testcontainers are used. An example run of the integration tests with Elasticsearch 7 support would be like this:
 
 `mvn -Pintegration-tests,elasticsearch7 --fail-at-end clean install`
 
@@ -49,7 +49,7 @@ Execute the following script from the `nifi-elasticsearch-bundle` directory:
 mvn --fail-at-end -Pcontrib-check clean install
 
 # blank entry to run the default integration-tests profile, i.e. Elasticsearch 8
-es_versions=(elasticsearch6 elasticsearch7 " ")
+es_versions=(elasticsearch8 elasticsearch7 " ")
 it_modules=(nifi-elasticsearch-client-service nifi-elasticsearch-restapi-processors)
 for v in "${es_versions[@]}"; do
     for m in "${it_modules[@]}"; do
@@ -96,8 +96,7 @@ It may be necessary to do the following to run the tests successfully:
 
 Integration Tests with Testcontainers currently only uses the `amd64` Docker Images.
 
-`elasticsearch6` is known to experience some problems with `arm64` machines (e.g. Mac M1/M2),
-but other Elasticsearch images (e.g. 7.x and 8.x) appear to work. Settings have been altered for the Elasticsearch
-containers in order to try and enable them on different architectures, but there may still be some inconsistencies.
+Elasticsearch images (e.g. 7.x and above) appear to work with `arm64` machines (e.g. Mac M1 and later).
+Settings have been altered for the Elasticsearch containers in order to try and enable them on different architectures, but there may still be some inconsistencies.
 
 Explicit `arm64` architecture support may be added in future where the Elasticsearch images exist.

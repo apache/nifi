@@ -987,7 +987,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final Map<String, Object> parsed = parseResponse(response);
         final List<String> warnings = parseResponseWarningHeaders(response);
 
-        // took should be an int, but could be a long (bg in Elasticsearch 8.15.0)
+        // took should be an int, but could be a long (bug in Elasticsearch 8.15.0)
         final long took = Long.parseLong(String.valueOf(parsed.get("took")));
         final boolean timedOut = (Boolean) parsed.get("timed_out");
         final String pitId = parsed.get("pit_id") != null ? (String) parsed.get("pit_id") : null;

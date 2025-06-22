@@ -66,7 +66,7 @@ import java.util.stream.Stream;
 @TriggerSerially
 @PrimaryNodeOnly
 @DefaultSchedule(period = "1 min")
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "search", "json"})
+@Tags({"elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that repeatedly runs a paginated query against a field using a Range query to consume new Documents from an Elasticsearch index/query. " +
         "The processor will retrieve multiple pages of results until either no more results are available or the Pagination Keep Alive expiration is reached, " +
         "after which the Range query will automatically update the field constraint based on the last retrieved Document value.")
