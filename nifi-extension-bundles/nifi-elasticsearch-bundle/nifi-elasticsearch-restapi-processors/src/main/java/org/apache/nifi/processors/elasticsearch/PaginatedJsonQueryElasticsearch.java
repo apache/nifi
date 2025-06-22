@@ -45,7 +45,7 @@ import java.util.List;
     @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "read", "json"})
+@Tags({"elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "query", "scroll", "page", "read", "json"})
 @CapabilityDescription("A processor that allows the user to run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "It will use the flowfile's content for the query unless the QUERY attribute is populated. " +
         "Search After/Point in Time queries must include a valid \"sort\" field.")

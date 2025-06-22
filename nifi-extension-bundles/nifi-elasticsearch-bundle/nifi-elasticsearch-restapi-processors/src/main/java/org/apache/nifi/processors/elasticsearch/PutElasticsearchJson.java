@@ -57,7 +57,7 @@ import java.util.Map;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
+@Tags({"json", "elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "put", "index"})
 @CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries. " +
         "Each FlowFile is treated as a document to be sent to the Elasticsearch _bulk API. Multiple FlowFiles can be batched together into each Request sent to Elasticsearch.")
 @WritesAttributes({

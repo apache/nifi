@@ -47,10 +47,7 @@ public abstract class AbstractJsonQueryElasticsearch_IT extends AbstractElastics
     @Test
     void testVerifyBuildQueryValidAll() {
         runner.setProperty(ElasticsearchRestProcessor.AGGREGATIONS, "{\"messages\":{\"terms\":{\"field\":\"msg\"}}}");
-        if (getElasticMajorVersion() > 6) {
-            // "fields" didn't exist before Elasticsearch 7
-            runner.setProperty(ElasticsearchRestProcessor.FIELDS, "[\"msg\", \"test*\"]");
-        }
+        runner.setProperty(ElasticsearchRestProcessor.FIELDS, "[\"msg\", \"test*\"]");
         runner.setProperty(ElasticsearchRestProcessor.SCRIPT_FIELDS, "{\"test1\": {\"script\": {\"lang\": \"painless\", \"source\": \"doc['num'].value * 2\"}}}");
 
         assertQueryVerify(3, 1);
