@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -87,6 +88,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@SupportsBatching
 @Tags({"json", "elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries. " +
         "Each Record within the FlowFile is converted into a document to be sent to the Elasticsearch _bulk APi. " +
