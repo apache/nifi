@@ -22,6 +22,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -57,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@SupportsBatching
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
 @CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries. " +
         "Each FlowFile is treated as a document to be sent to the Elasticsearch _bulk API. Multiple FlowFiles can be batched together into each Request sent to Elasticsearch.")
@@ -272,9 +274,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> getMapFromAttribute(final PropertyDescriptor propertyDescriptor, final ProcessContext context, final FlowFile input) {
-        final String dynamicTemplates = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(input).getValue();
+        final String propertyValue = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(input).getValue();
         try {
-            return StringUtils.isNotBlank(dynamicTemplates) ? mapper.readValue(dynamicTemplates, Map.class) : Collections.emptyMap();
+            return StringUtils.isNotBlank(propertyValue) ? mapper.readValue(propertyValue, Map.class) : Collections.emptyMap();
         } catch (final JsonProcessingException jpe) {
             throw new ProcessException(propertyDescriptor.getDisplayName() + " must be a String parsable into a JSON Object", jpe);
         }
