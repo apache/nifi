@@ -260,7 +260,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         + "execution(void activateControllerServices(String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Collection<String>)) && "
         + "args(groupId, state, serviceIds)")
     public void activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
-        List<ControllerServiceNode> controllerServiceNodes = getControllerServicesChangingState(groupId, state, serviceIds);
+        final List<ControllerServiceNode> controllerServiceNodes = getControllerServicesChangingState(groupId, state, serviceIds);
         final Operation operation;
 
         proceedingJoinPoint.proceed();
@@ -273,24 +273,26 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         saveUpdateProcessGroupAction(groupId, operation);
-        for (ControllerServiceNode csNode : controllerServiceNodes) {
+        for (final ControllerServiceNode csNode : controllerServiceNodes) {
             saveUpdateControllerServiceAction(csNode, operation);
         }
     }
 
     private List<ControllerServiceNode> getControllerServicesChangingState(final String groupId, final ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
-        ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
-        ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        List<ControllerServiceNode> csNodes = new ArrayList<>();
+        final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        final List<ControllerServiceNode> csNodes = new ArrayList<>();
         for (String serviceId : serviceIds) {
-            ControllerServiceNode csNode = processGroup.findControllerService(serviceId, true, true);
-            if (csNode != null) {
-                if ((isControllerServiceDisabled(csNode) && state.equals(ControllerServiceState.ENABLED)) || isControllerServiceEnabled(csNode) && state.equals(ControllerServiceState.DISABLED)) {
-                    csNodes.add(csNode);
-                }
+            final ControllerServiceNode csNode = processGroup.findControllerService(serviceId, true, true);
+            if (csNode != null && isControllerServiceStateChanged(csNode, state)) {
+                csNodes.add(csNode);
             }
         }
         return csNodes;
+    }
+
+    boolean isControllerServiceStateChanged(final ControllerServiceNode csNode,  final ControllerServiceState state) {
+        return isControllerServiceDisabled(csNode) && state.equals(ControllerServiceState.ENABLED) || isControllerServiceEnabled(csNode) && state.equals(ControllerServiceState.DISABLED);
     }
 
     private boolean isControllerServiceDisabled(final ControllerServiceNode controllerService) {
@@ -381,8 +383,8 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         saveAction(action, logger);
     }
 
-    private void saveUpdateControllerServiceAction(ControllerServiceNode csNode, final Operation operation) throws Throwable {
-        FlowChangeAction action = createFlowChangeAction();
+    private void saveUpdateControllerServiceAction(final ControllerServiceNode csNode, final Operation operation) throws Throwable {
+        final FlowChangeAction action = createFlowChangeAction();
         action.setSourceId(csNode.getIdentifier());
         action.setSourceName(csNode.getName());
         action.setSourceType(Component.ControllerService);

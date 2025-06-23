@@ -159,7 +159,7 @@ public class TestProcessGroupAuditor {
         verify(auditService, times(2)).addActions(argumentCaptorActions.capture());
         final List<List<Action>> actions = argumentCaptorActions.getAllValues();
         assertEquals(2, actions.size());
-        Iterator<List<Action>> actionsIterator = actions.iterator();
+        final Iterator<List<Action>> actionsIterator = actions.iterator();
 
         final List<Action> pgActions = actionsIterator.next();
         assertEquals(1, pgActions.size());
