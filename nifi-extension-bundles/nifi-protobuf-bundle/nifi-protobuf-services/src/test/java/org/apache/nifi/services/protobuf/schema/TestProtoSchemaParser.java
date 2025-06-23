@@ -58,11 +58,13 @@ public class TestProtoSchemaParser {
                 new RecordField("sfixed64Field", RecordFieldType.LONG.getDataType()),
                 new RecordField("nestedMessage", RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
                         new RecordField("testEnum", RecordFieldType.ENUM.getEnumDataType(Arrays.asList("ENUM_VALUE_1", "ENUM_VALUE_2", "ENUM_VALUE_3"))),
-                        new RecordField("testMap", RecordFieldType.MAP.getMapDataType(RecordFieldType.INT.getDataType())),
-                        new RecordField("stringOption", RecordFieldType.STRING.getDataType()),
-                        new RecordField("booleanOption", RecordFieldType.BOOLEAN.getDataType()),
-                        new RecordField("int32Option", RecordFieldType.INT.getDataType())
-                ))))
+                        new RecordField("nestedMessage2", RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+                                new RecordField("testMap", RecordFieldType.MAP.getMapDataType(RecordFieldType.INT.getDataType())),
+                                new RecordField("stringOption", RecordFieldType.STRING.getDataType()),
+                                new RecordField("booleanOption", RecordFieldType.BOOLEAN.getDataType()),
+                                new RecordField("int32Option", RecordFieldType.INT.getDataType())
+                        )))
+                )))))
         ));
 
         final RecordSchema actual = schemaParser.createSchema("Proto3Message");
