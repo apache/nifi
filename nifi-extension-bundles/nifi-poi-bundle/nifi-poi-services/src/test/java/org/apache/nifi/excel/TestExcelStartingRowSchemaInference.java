@@ -91,13 +91,13 @@ public class TestExcelStartingRowSchemaInference {
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testWhereConfiguredStartRowIsEmpty(StartingRowStrategy startingRowStrategy) throws IOException {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereConfiguredStartRowIsEmpty(RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
         final Object[][] singleSheet = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
             final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
             assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
             assertTrue(ioException.getCause().getMessage().contains("Field names could not be determined from configured header row"));
@@ -105,26 +105,26 @@ public class TestExcelStartingRowSchemaInference {
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testWhereConfiguredStartRowHasEmptyCell(StartingRowStrategy startingRowStrategy) throws Exception {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereConfiguredStartRowHasEmptyCell(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         final Object[][] singleSheet = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
             RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             assertEquals(List.of("ID", "column_1", "Middle"), schema.getFieldNames());
         }
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testWhereInferenceRowHasMoreCellsThanFieldNames(StartingRowStrategy startingRowStrategy) throws Exception {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereInferenceRowHasMoreCellsThanFieldNames(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
             final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
             assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
             assertTrue(ioException.getCause().getMessage().contains("more than"));
@@ -137,7 +137,7 @@ public class TestExcelStartingRowSchemaInference {
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(StartingRowStrategy.STANDARD);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(RowEvaluationStrategy.STANDARD);
             assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
         }
     }
@@ -150,7 +150,7 @@ public class TestExcelStartingRowSchemaInference {
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(StartingRowStrategy.STANDARD);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(RowEvaluationStrategy.STANDARD);
             assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
         }
     }
@@ -164,21 +164,21 @@ public class TestExcelStartingRowSchemaInference {
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(StartingRowStrategy.STANDARD);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(RowEvaluationStrategy.STANDARD);
             assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
         }
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testWhereConfiguredInferenceRowsAreAllBlank(StartingRowStrategy startingRowStrategy) throws Exception {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereConfiguredInferenceRowsAreAllBlank(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
 
-            switch (startingRowStrategy) {
+            switch (rowEvaluationStrategy) {
                 case STANDARD -> {
                     final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
                     assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
@@ -190,13 +190,13 @@ public class TestExcelStartingRowSchemaInference {
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testWhereRowsAreAllBlank(StartingRowStrategy startingRowStrategy) throws Exception {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereRowsAreAllBlank(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
 
             final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
             assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
@@ -205,8 +205,8 @@ public class TestExcelStartingRowSchemaInference {
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testAlignedDateColumnsAcrossTwoSheets(StartingRowStrategy startingRowStrategy) throws Exception {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testAlignedDateColumnsAcrossTwoSheets(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         final String dateColumnName = "Date";
         final Object[] columnNames = {dateColumnName, "Something", "Name"};
         final Object[][] firstSheet =
@@ -216,7 +216,7 @@ public class TestExcelStartingRowSchemaInference {
         final ByteArrayOutputStream outputStream = createWorkbook(firstSheet, secondSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
 
             final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             final RecordField dateRecordField = schema.getField(dateColumnName).orElse(null);
@@ -228,14 +228,14 @@ public class TestExcelStartingRowSchemaInference {
     }
 
     @ParameterizedTest
-    @EnumSource(StartingRowStrategy.class)
-    void testDuplicateColumnNames(StartingRowStrategy startingRowStrategy) throws Exception {
+    @EnumSource(RowEvaluationStrategy.class)
+    void testDuplicateColumnNames(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         Object[][] singleSheet = {{"Frequency", "Intervals", "Frequency", "Name", "Frequency", "Intervals"},
                 {6, "0-9", 13, "John", 15, 2}, {4, "10-19", 15, "Sue", 13, 3}};
 
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(startingRowStrategy);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
 
             final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             assertEquals(6, schema.getFieldNames().size());
@@ -243,10 +243,10 @@ public class TestExcelStartingRowSchemaInference {
         }
     }
 
-    private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(StartingRowStrategy startingRowStrategy) {
+    private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(RowEvaluationStrategy rowEvaluationStrategy) {
         return new InferSchemaAccessStrategy<>(
                 (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
-                new ExcelStartingRowSchemaInference(startingRowStrategy, 1, TIME_VALUE_INFERENCE), logger);
+                new ExcelStartingRowSchemaInference(rowEvaluationStrategy, 1, TIME_VALUE_INFERENCE), logger);
     }
 
     private static ByteArrayOutputStream createWorkbook(Object[][]... sheetData) throws IOException {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.excel;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.FieldTypeInference;
 import org.apache.nifi.schema.inference.RecordSource;
@@ -39,13 +40,19 @@ import java.util.stream.IntStream;
 
 public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Row> {
 
-    private final StartingRowStrategy startingRowStrategy;
+    static final AllowableValue USE_STARTING_ROW = new AllowableValue("Use Starting Row", "Use Starting Row",
+            "The configured first row of the Excel file is a header line that contains the names of the columns. The schema will be derived by using the "
+                    + "column names in the header of the first sheet and dependent on the strategy chosen either the subsequent "
+                    + RowEvaluationStrategy.NUM_ROWS_TO_DETERMINE_TYPES + " rows or all of the subsequent rows. However the configured header rows of subsequent sheets are skipped. "
+                    + "NOTE: If there are duplicate column names then each subsequent duplicate column name is given a one up number. "
+                    + "For example, column names \"Name\", \"Name\" will be changed to \"Name\", \"Name_1\".");
+    private final RowEvaluationStrategy rowEvaluationStrategy;
     private final int firstRow;
     private final CellFieldTypeReader cellFieldTypeReader;
     private final DataFormatter dataFormatter;
 
-    public ExcelStartingRowSchemaInference(StartingRowStrategy startingRowStrategy, int firstRow, TimeValueInference timeValueInference) {
-        this.startingRowStrategy = startingRowStrategy;
+    public ExcelStartingRowSchemaInference(RowEvaluationStrategy rowEvaluationStrategy, int firstRow, TimeValueInference timeValueInference) {
+        this.rowEvaluationStrategy = rowEvaluationStrategy;
         this.firstRow = firstRow;
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
         this.dataFormatter = new DataFormatter();
@@ -65,8 +72,8 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
             } else if (row.getRowNum() == zeroBasedFirstRow) { // skip first row of all sheets
                 continue;
             } else {
-                if (StartingRowStrategy.STANDARD == startingRowStrategy) {
-                    if (index <= StartingRowStrategy.NUM_ROWS_TO_DETERMINE_TYPES) {
+                if (RowEvaluationStrategy.STANDARD == rowEvaluationStrategy) {
+                    if (index <= RowEvaluationStrategy.NUM_ROWS_TO_DETERMINE_TYPES) {
                         inferSchema(row, fieldNames, typeMap);
                     } else {
                         break;
