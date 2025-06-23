@@ -25,20 +25,16 @@ public abstract class NumericComparisonFilter extends NumericBinaryOperatorFilte
     }
 
     @Override
-    protected final boolean test(final Number lhsNumber, final Number rhsNumber) {
-        final int comparisonResult = isLongCompatible(lhsNumber) && isLongCompatible(rhsNumber)
-                ? Long.compare(lhsNumber.longValue(), rhsNumber.longValue())
-                : Double.compare(lhsNumber.doubleValue(), rhsNumber.doubleValue());
+    protected final boolean test(final long lhsNumber, final long rhsNumber) {
+        final int comparisonResult = Long.compare(lhsNumber, rhsNumber);
+        return verifyComparisonResult(comparisonResult);
+    }
 
+    @Override
+    protected final boolean test(final double lhsNumber, final double rhsNumber) {
+        final int comparisonResult = Double.compare(lhsNumber, rhsNumber);
         return verifyComparisonResult(comparisonResult);
     }
 
     protected abstract boolean verifyComparisonResult(final int comparisonResult);
-
-    private boolean isLongCompatible(final Number value) {
-        return value instanceof Long
-                || value instanceof Integer
-                || value instanceof Short
-                || value instanceof Byte;
-    }
 }

@@ -70,5 +70,6 @@ public abstract class NumericBinaryOperatorFilter extends BinaryOperatorFilter {
                 : test(DataTypeUtils.toDouble(value, fieldName), DataTypeUtils.toDouble(rhsValue, fieldName));
     }
 
-    protected abstract boolean test(final Number lhsNumber, final Number rhsNumber);
+    protected abstract boolean test(final long lhsNumber, final long rhsNumber);
+    protected abstract boolean test(final double lhsNumber, final double rhsNumber);
 }
