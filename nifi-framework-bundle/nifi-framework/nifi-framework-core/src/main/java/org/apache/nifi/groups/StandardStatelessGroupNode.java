@@ -316,10 +316,9 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     private void shutdownFlows() {
         final List<StatelessFlowTask> tasks = initializedFlowTasks;
         if (tasks != null) {
-            tasks.forEach(StatelessFlowTask::shutdown);
+            tasks.stream().parallel().forEach(StatelessFlowTask::shutdown);
         }
     }
-
 
     private StandardStatelessFlow createStatelessFlow(final ProcessGroup group, final VersionedExternalFlow versionedExternalFlow) {
         final Set<String> failurePortNames = group.getOutputPorts().stream()

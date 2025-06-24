@@ -303,7 +303,6 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         }
     }
 
-
     private void trigger(final Connectable connectable, final ProcessSessionFactory sessionFactory, final TrackedStats trackedStats) {
         final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
 

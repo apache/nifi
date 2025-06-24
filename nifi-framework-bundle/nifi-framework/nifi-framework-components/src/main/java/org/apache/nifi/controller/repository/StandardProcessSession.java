@@ -521,7 +521,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 rollback();
             } catch (final Throwable t2) {
                 t.addSuppressed(t2);
-                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
             }
 
             throw t;
@@ -1192,7 +1191,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     @Override
     public void rollback(final boolean penalize) {
         rollback(penalize, false);
-        verifyTaskActive();
     }
 
     protected synchronized void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
