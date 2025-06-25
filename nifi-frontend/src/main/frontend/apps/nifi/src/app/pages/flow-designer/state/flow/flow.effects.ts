@@ -2930,10 +2930,15 @@ export class FlowEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
+                    let type: string = request.type;
+                    if (request.type === ComponentType.ControllerService) {
+                        type = 'controller-services';
+                    }
+
                     if (request.processGroupId) {
-                        this.router.navigate(['/process-groups', request.processGroupId, request.type, request.id]);
+                        this.router.navigate(['/process-groups', request.processGroupId, type, request.id]);
                     } else {
-                        this.router.navigate(['/process-groups', currentProcessGroupId, request.type, request.id]);
+                        this.router.navigate(['/process-groups', currentProcessGroupId, type, request.id]);
                     }
                 })
             ),

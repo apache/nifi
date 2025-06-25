@@ -29,7 +29,7 @@ import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 interface LocalChange {
-    componentType: ComponentType;
+    componentType: string;
     componentId: string;
     componentName: string;
     processGroupId: string;
@@ -124,6 +124,10 @@ export class LocalChangesTable implements AfterViewInit {
         return item.differenceType;
     }
 
+    canGoTo(item: LocalChange): boolean {
+        return item.differenceType !== 'Component Removed';
+    }
+
     formatDifference(item: LocalChange): string {
         return item.difference;
     }
@@ -158,12 +162,48 @@ export class LocalChangesTable implements AfterViewInit {
     }
 
     goToClicked(item: LocalChange) {
-        const linkMeta: NavigateToComponentRequest = {
-            id: item.componentId,
-            type: item.componentType,
-            processGroupId: item.processGroupId
-        };
-        this.goToChange.next(linkMeta);
+        const type = this.getComponentType(item.componentType);
+        if (type) {
+            const linkMeta: NavigateToComponentRequest = {
+                id: item.componentId,
+                type,
+                processGroupId: item.processGroupId
+            };
+            this.goToChange.next(linkMeta);
+        }
+    }
+
+    private getComponentType(componentType: string): ComponentType | null {
+        switch (componentType) {
+            case 'Connection':
+                return ComponentType.Connection;
+            case 'Processor':
+                return ComponentType.Processor;
+            case 'Output Port':
+                return ComponentType.OutputPort;
+            case 'Input Port':
+                return ComponentType.InputPort;
+            case 'Process Group':
+                return ComponentType.ProcessGroup;
+            case 'Controller Service':
+                return ComponentType.ControllerService;
+            case 'Flow':
+                return ComponentType.Flow;
+            case 'Flow Registry Client':
+                return ComponentType.FlowRegistryClient;
+            case 'Funnel':
+                return ComponentType.Funnel;
+            case 'Label':
+                return ComponentType.Label;
+            case 'Parameter Provider':
+                return ComponentType.ParameterProvider;
+            case 'Remote Process Group':
+                return ComponentType.RemoteProcessGroup;
+            case 'Reporting Task':
+                return ComponentType.ReportingTask;
+            default:
+                return null;
+        }
     }
 
     private explodeDifferences(differences: ComponentDifference[]): LocalChange[] {
