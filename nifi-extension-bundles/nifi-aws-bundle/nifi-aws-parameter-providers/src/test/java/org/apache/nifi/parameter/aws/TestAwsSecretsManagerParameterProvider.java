@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.parameter.aws;
 
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.model.AWSSecretsManagerException;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
-import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
-import com.amazonaws.services.secretsmanager.model.SecretListEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -40,6 +32,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
+import software.amazon.awssdk.services.secretsmanager.model.ListSecretsResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,10 +63,10 @@ import static org.mockito.Mockito.when;
 public class TestAwsSecretsManagerParameterProvider {
 
     @Mock
-    private AWSSecretsManager defaultSecretsManager;
+    private SecretsManagerClient defaultSecretsManager;
 
     @Mock
-    private ListSecretsResult emptyListSecretsResult;
+    private ListSecretsResponse emptyListSecretsResponse;
 
     final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -110,23 +110,23 @@ public class TestAwsSecretsManagerParameterProvider {
 
     @Test
     public void testFetchNonExistentSecret() throws InitializationException {
-        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecretDoesNotExist")))).thenThrow(new ResourceNotFoundException("Fake exception"));
+        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecretDoesNotExist")))).thenThrow(ResourceNotFoundException.builder().message("Fake exception").build());
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED, "ENUMERATION", "BadSecret");
     }
 
     @Test
     public void testFetchParametersListFailure() throws InitializationException {
-        when(defaultSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
+        when(defaultSecretsManager.listSecrets(any(ListSecretsRequest.class))).thenThrow(SecretsManagerException.builder().message("Fake exception").build());
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED, "PATTERN", null);
     }
 
     @Test
     public void testFetchParametersGetSecretFailure() throws InitializationException {
-        final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName("MySecret"));
-        final ListSecretsResult listSecretsResult = mock(ListSecretsResult.class);
-        when(listSecretsResult.getSecretList()).thenReturn(secretList);
-        when(defaultSecretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(listSecretsResult);
-        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
+        final List<SecretListEntry> secretList = Collections.singletonList(SecretListEntry.builder().name("MySecret").build());
+        final ListSecretsResponse listSecretsResponse = mock(ListSecretsResponse.class);
+        when(listSecretsResponse.secretList()).thenReturn(secretList);
+        when(defaultSecretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(listSecretsResponse);
+        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(SecretsManagerException.builder().message("Fake exception").build());
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED, "PATTERN", null);
     }
 
@@ -134,8 +134,8 @@ public class TestAwsSecretsManagerParameterProvider {
         return spy(new AwsSecretsManagerParameterProvider());
     }
 
-    private AWSSecretsManager mockSecretsManagerNoList(final List<ParameterGroup> mockParameterGroups, final String secretNames) {
-        final AWSSecretsManager secretsManager = mock(AWSSecretsManager.class);
+    private SecretsManagerClient mockSecretsManagerNoList(final List<ParameterGroup> mockParameterGroups, final String secretNames) {
+        final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
 
         mockParameterGroups.forEach(group -> {
             final String groupName = group.getGroupName();
@@ -147,9 +147,9 @@ public class TestAwsSecretsManagerParameterProvider {
                     final String secretString;
                     try {
                         secretString = objectMapper.writeValueAsString(keyValues);
-                        final GetSecretValueResult result = new GetSecretValueResult().withName(groupName).withSecretString(secretString);
+                        final GetSecretValueResponse response = GetSecretValueResponse.builder().name(groupName).secretString(secretString).build();
                         when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(groupName))))
-                                .thenReturn(result);
+                                .thenReturn(response);
                     } catch (final JsonProcessingException e) {
                         throw new IllegalStateException(e);
                     }
@@ -158,22 +158,22 @@ public class TestAwsSecretsManagerParameterProvider {
         });
         return secretsManager;
     }
-    private AWSSecretsManager mockSecretsManager(final List<ParameterGroup> mockParameterGroups) {
-        final AWSSecretsManager secretsManager = mock(AWSSecretsManager.class);
-        when(emptyListSecretsResult.getSecretList()).thenReturn(Collections.emptyList());
+    private SecretsManagerClient mockSecretsManager(final List<ParameterGroup> mockParameterGroups) {
+        final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
+        when(emptyListSecretsResponse.secretList()).thenReturn(Collections.emptyList());
 
         String currentToken = null;
         for (int i = 0; i < mockParameterGroups.size(); i++) {
             final ParameterGroup group = mockParameterGroups.get(i);
-            final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName(group.getGroupName()));
-            final ListSecretsResult listSecretsResult = mock(ListSecretsResult.class);
-            when(listSecretsResult.getSecretList()).thenReturn(secretList);
-            when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(currentToken)))).thenReturn(listSecretsResult);
+            final List<SecretListEntry> secretList = Collections.singletonList(SecretListEntry.builder().name(group.getGroupName()).build());
+            final ListSecretsResponse listSecretsResponse = mock(ListSecretsResponse.class);
+            when(listSecretsResponse.secretList()).thenReturn(secretList);
+            when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(currentToken)))).thenReturn(listSecretsResponse);
 
             currentToken = "token-" + i;
-            when(listSecretsResult.getNextToken()).thenReturn(currentToken);
+            when(listSecretsResponse.nextToken()).thenReturn(currentToken);
         }
-        when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(currentToken)))).thenReturn(emptyListSecretsResult);
+        when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(currentToken)))).thenReturn(emptyListSecretsResponse);
 
         mockParameterGroups.forEach(group -> {
             final String groupName = group.getGroupName();
@@ -183,9 +183,9 @@ public class TestAwsSecretsManagerParameterProvider {
             final String secretString;
             try {
                 secretString = objectMapper.writeValueAsString(keyValues);
-                final GetSecretValueResult result = new GetSecretValueResult().withName(groupName).withSecretString(secretString);
+                final GetSecretValueResponse response = GetSecretValueResponse.builder().name(groupName).secretString(secretString).build();
                 when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(groupName))))
-                        .thenReturn(result);
+                        .thenReturn(response);
             } catch (final JsonProcessingException e) {
                 throw new IllegalStateException(e);
             }
@@ -193,7 +193,7 @@ public class TestAwsSecretsManagerParameterProvider {
         return secretsManager;
     }
 
-    private List<ParameterGroup> runProviderTest(final AWSSecretsManager secretsManager,
+    private List<ParameterGroup> runProviderTest(final SecretsManagerClient secretsManager,
                                                  final int expectedCount,
                                                  final ConfigVerificationResult.Outcome expectedOutcome,
                                                  final String listingStrategy,
@@ -255,7 +255,7 @@ public class TestAwsSecretsManagerParameterProvider {
 
         @Override
         public boolean matches(final GetSecretValueRequest argument) {
-            return argument != null && argument.getSecretId().equals(secretId);
+            return argument != null && argument.secretId().equals(secretId);
         }
     }
 
@@ -273,7 +273,7 @@ public class TestAwsSecretsManagerParameterProvider {
 
         @Override
         public boolean matches(final ListSecretsRequest argument) {
-            return argument != null && Objects.equals(argument.getNextToken(), token);
+            return argument != null && Objects.equals(argument.nextToken(), token);
         }
     }
 }

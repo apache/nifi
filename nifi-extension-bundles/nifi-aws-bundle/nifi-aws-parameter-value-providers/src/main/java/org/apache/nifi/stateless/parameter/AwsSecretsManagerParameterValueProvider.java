@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.stateless.parameter;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
-import com.amazonaws.services.secretsmanager.model.AWSSecretsManagerException;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,6 +23,15 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -70,7 +70,7 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private AWSSecretsManager secretsManager;
+    private SecretsManagerClient secretsManager;
 
     @Override
     protected List<PropertyDescriptor> getAdditionalSupportedPropertyDescriptors() {
@@ -89,21 +89,22 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
 
     @Override
     protected String getSecretValue(final String secretName, final String keyName) {
-        final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest()
-                .withSecretId(secretName);
+        final GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder()
+                .secretId(secretName)
+                .build();
         try {
-            final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
+            final GetSecretValueResponse getSecretValueResponse = secretsManager.getSecretValue(getSecretValueRequest);
 
-            if (getSecretValueResult.getSecretString() == null) {
+            if (getSecretValueResponse.secretString() == null) {
                 logger.debug("Secret [{}] not configured", secretName);
                 return null;
             }
 
-            return parseParameterValue(getSecretValueResult.getSecretString(), keyName);
+            return parseParameterValue(getSecretValueResponse.secretString(), keyName);
         } catch (final ResourceNotFoundException e) {
             logger.debug("Secret [{}] not found", secretName);
             return null;
-        } catch (final AWSSecretsManagerException e) {
+        } catch (final SecretsManagerException e) {
             logger.debug("Error retrieving secret [{}]", secretName);
             return null;
         }
@@ -133,7 +134,7 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
         }
     }
 
-    AWSSecretsManager configureClient(final String awsCredentialsFilename) throws IOException {
+    SecretsManagerClient configureClient(final String awsCredentialsFilename) throws IOException {
         if (awsCredentialsFilename == null) {
             return getDefaultClient();
         }
@@ -143,18 +144,18 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
         final String region = properties.getProperty(REGION_KEY_PROPS_NAME);
 
         if (isNotBlank(accessKey) && isNotBlank(secretKey) && isNotBlank(region)) {
-            return AWSSecretsManagerClientBuilder.standard()
-                    .withRegion(region)
-                    .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+            return SecretsManagerClient.builder()
+                    .region(Region.of(region))
+                    .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                     .build();
         } else {
             return getDefaultClient();
         }
     }
 
-    private AWSSecretsManager getDefaultClient() {
-        return AWSSecretsManagerClientBuilder.standard()
-                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+    private SecretsManagerClient getDefaultClient() {
+        return SecretsManagerClient.builder()
+                .credentialsProvider(DefaultCredentialsProvider.builder().build())
                 .build();
     }
 

@@ -16,25 +16,10 @@
  */
 package org.apache.nifi.parameter.aws;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
-import com.amazonaws.services.secretsmanager.model.AWSSecretsManagerException;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
-import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
-import com.amazonaws.services.secretsmanager.model.SecretListEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -50,16 +35,38 @@ import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.ssl.SSLContextProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.TlsKeyManagersProvider;
+import software.amazon.awssdk.http.TlsTrustManagersProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.retries.DefaultRetryStrategy;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
+import software.amazon.awssdk.services.secretsmanager.model.ListSecretsResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -67,7 +74,7 @@ import java.util.regex.Pattern;
  * <code>aws secretsmanager create-secret --name "[Context]" --secret-string '{ "[Param]": "[secretValue]", "[Param2]": "[secretValue2]" }'</code> <br/><br/>
  */
 @Tags({"aws", "secretsmanager", "secrets", "manager"})
-@CapabilityDescription("Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with " +
+@CapabilityDescription("Fetches parameters from AWS SecretsManager. Each secret becomes a Parameter group, which can map to a Parameter Context, with " +
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     enum ListingStrategy implements DescribedValue {
@@ -144,7 +151,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .displayName("Region")
             .required(true)
             .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .defaultValue(createAllowableValue(Region.US_WEST_2).getValue())
             .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
@@ -164,7 +171,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .build();
 
     private static final String DEFAULT_USER_AGENT = "NiFi";
-    private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SECRET_LISTING_STRATEGY,
             SECRET_NAME_PATTERN,
@@ -184,7 +191,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     @Override
     public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
-        AWSSecretsManager secretsManager = this.configureClient(context);
+        SecretsManagerClient secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
 
@@ -196,24 +203,24 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             fetchSecretNames.addAll(Arrays.asList(secretNames.split(",")));
         } else {
             final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
-            final ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
 
-            ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
-            while (!listSecretsResult.getSecretList().isEmpty()) {
-                for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-                    final String secretName = entry.getName();
+            ListSecretsRequest listSecretsRequest = ListSecretsRequest.builder().build();
+            ListSecretsResponse listSecretsResponse = secretsManager.listSecrets(listSecretsRequest);
+            while (!listSecretsResponse.secretList().isEmpty()) {
+                for (final SecretListEntry entry : listSecretsResponse.secretList()) {
+                    final String secretName = entry.name();
                     if (!secretNamePattern.matcher(secretName).matches()) {
                         getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
                         continue;
                     }
                     fetchSecretNames.add(secretName);
                 }
-                final String nextToken = listSecretsResult.getNextToken();
+                final String nextToken = listSecretsResponse.nextToken();
                 if (nextToken == null) {
                     break;
                 }
-                listSecretsRequest.setNextToken(nextToken);
-                listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+                listSecretsRequest = ListSecretsRequest.builder().nextToken(nextToken).build();
+                listSecretsResponse = secretsManager.listSecrets(listSecretsRequest);
             }
         }
 
@@ -251,22 +258,24 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         return results;
     }
 
-    private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final String secretName) {
+    private List<ParameterGroup> fetchSecret(final SecretsManagerClient secretsManager, final String secretName) {
         final List<ParameterGroup> groups = new ArrayList<>();
 
         final List<Parameter> parameters = new ArrayList<>();
 
-        final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest().withSecretId(secretName);
+        final GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder()
+                .secretId(secretName)
+                .build();
 
         try {
-            final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
+            final GetSecretValueResponse getSecretValueResponse = secretsManager.getSecretValue(getSecretValueRequest);
 
-            if (getSecretValueResult.getSecretString() == null) {
+            if (getSecretValueResponse.secretString() == null) {
                 getLogger().debug("Secret [{}] is not configured", secretName);
                 return groups;
             }
 
-            final ObjectNode secretObject = parseSecret(getSecretValueResult.getSecretString());
+            final ObjectNode secretObject = parseSecret(getSecretValueResponse.secretString());
             if (secretObject == null) {
                 getLogger().debug("Secret [{}] is not in the expected JSON key/value format", secretName);
                 return groups;
@@ -289,7 +298,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             return groups;
         } catch (final ResourceNotFoundException e) {
             throw new IllegalStateException(String.format("Secret %s not found", secretName), e);
-        } catch (final AWSSecretsManagerException e) {
+        } catch (final SecretsManagerException e) {
             throw new IllegalStateException("Error retrieving secret " + secretName, e);
         }
     }
@@ -302,23 +311,41 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                 .build();
     }
 
-    protected ClientConfiguration createConfiguration(final ConfigurationContext context) {
-        final ClientConfiguration config = new ClientConfiguration();
-        config.setMaxErrorRetry(0);
-        config.setUserAgentPrefix(DEFAULT_USER_AGENT);
-        config.setProtocol(DEFAULT_PROTOCOL);
-        final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        config.setConnectionTimeout(commsTimeout);
-        config.setSocketTimeout(commsTimeout);
+    private ClientOverrideConfiguration createConfiguration() {
+        return ClientOverrideConfiguration.builder()
+                .retryStrategy(DefaultRetryStrategy.doNotRetry())
+                .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, DEFAULT_USER_AGENT)
+                .build();
+    }
+
+    private SdkHttpClient createHttpClient(final ConfigurationContext context) {
+        final ApacheHttpClient.Builder builder = ApacheHttpClient.builder();
+
+        final Duration commsTimeout = context.getProperty(TIMEOUT).asDuration();
+        builder.connectionTimeout(commsTimeout);
+        builder.socketTimeout(commsTimeout);
 
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         if (sslContextProvider != null) {
-            final SSLContext sslContext = sslContextProvider.createContext();
-            SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+            final TrustManager[] trustManagers = new TrustManager[]{trustManager};
+            final TlsTrustManagersProvider trustManagersProvider = () -> trustManagers;
+
+            final TlsKeyManagersProvider keyManagersProvider;
+            final Optional<X509ExtendedKeyManager> keyManagerFound = sslContextProvider.createKeyManager();
+            if (keyManagerFound.isPresent()) {
+                final X509ExtendedKeyManager keyManager = keyManagerFound.get();
+                final KeyManager[] keyManagers = new KeyManager[]{keyManager};
+                keyManagersProvider = () -> keyManagers;
+            } else {
+                keyManagersProvider = null;
+            }
+
+            builder.tlsTrustManagersProvider(trustManagersProvider);
+            builder.tlsKeyManagersProvider(keyManagersProvider);
         }
 
-        return config;
+        return builder.build();
     }
 
     private ObjectNode parseSecret(final String secretString) {
@@ -334,11 +361,12 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         }
     }
 
-    AWSSecretsManager configureClient(final ConfigurationContext context) {
-        return AWSSecretsManagerClientBuilder.standard()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withClientConfiguration(createConfiguration(context))
-                .withCredentials(getCredentialsProvider(context))
+    SecretsManagerClient configureClient(final ConfigurationContext context) {
+        return SecretsManagerClient.builder()
+                .region(Region.of(context.getProperty(REGION).getValue()))
+                .overrideConfiguration(createConfiguration())
+                .httpClient(createHttpClient(context))
+                .credentialsProvider(getCredentialsProvider(context))
                 .build();
     }
 
@@ -348,24 +376,26 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
      * @return AWSCredentialsProvider the credential provider
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
-    protected AWSCredentialsProvider getCredentialsProvider(final ConfigurationContext context) {
+    protected AwsCredentialsProvider getCredentialsProvider(final ConfigurationContext context) {
 
         final AWSCredentialsProviderService awsCredentialsProviderService =
                 context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
 
-        return awsCredentialsProviderService.getCredentialsProvider();
+        return awsCredentialsProviderService.getAwsCredentialsProvider();
 
     }
 
-    private static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    private static AllowableValue createAllowableValue(final Region region) {
+        final String description = region.metadata() != null ? region.metadata().description() : region.id();
+        return new AllowableValue(region.id(), description, "AWS Region Code : " + region.id());
     }
 
     private static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions region : Regions.values()) {
+        for (final Region region : Region.regions()) {
             values.add(createAllowableValue(region));
         }
+        values.sort(Comparator.comparing(AllowableValue::getDisplayName));
         return values.toArray(new AllowableValue[0]);
     }
 }

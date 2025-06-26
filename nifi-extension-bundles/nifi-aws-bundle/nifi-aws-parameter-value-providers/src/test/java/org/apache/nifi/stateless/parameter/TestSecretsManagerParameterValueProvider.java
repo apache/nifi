@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.stateless.parameter;
 
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -33,6 +29,10 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -63,7 +63,7 @@ public class TestSecretsManagerParameterValueProvider {
     private AwsSecretsManagerParameterValueProvider provider;
 
     @Mock
-    private AWSSecretsManager secretsManager;
+    private SecretsManagerClient secretsManager;
 
     @BeforeEach
     public void init() throws IOException {
@@ -144,13 +144,14 @@ public class TestSecretsManagerParameterValueProvider {
     private void mockGetSecretValue(final String context, final String parameterName, final String secretValue, final boolean hasSecretString, final boolean resourceNotFound)
             throws JsonProcessingException {
         if (resourceNotFound) {
-            when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenThrow(new ResourceNotFoundException("Not found"));
+            when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenThrow(ResourceNotFoundException.builder().message("Not found").build());
         } else {
-            GetSecretValueResult result = new GetSecretValueResult();
+            GetSecretValueResponse.Builder builder = GetSecretValueResponse.builder();
             if (hasSecretString) {
-                result = result.withSecretString(getSecretString(parameterName, secretValue));
+                builder.secretString(getSecretString(parameterName, secretValue));
             }
-            when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenReturn(result);
+            GetSecretValueResponse response = builder.build();
+            when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenReturn(response);
         }
     }
 
@@ -217,7 +218,7 @@ public class TestSecretsManagerParameterValueProvider {
 
         @Override
         public boolean matches(final GetSecretValueRequest argument) {
-            return argument != null && argument.getSecretId().equals(secretId);
+            return argument != null && argument.secretId().equals(secretId);
         }
     }
 }
