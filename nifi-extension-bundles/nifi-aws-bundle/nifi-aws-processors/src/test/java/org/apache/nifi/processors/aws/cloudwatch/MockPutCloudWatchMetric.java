@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import com.amazonaws.AmazonClientException;
 import org.apache.nifi.processor.ProcessContext;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
@@ -32,19 +31,14 @@ public class MockPutCloudWatchMetric extends PutCloudWatchMetric {
 
     protected String actualNamespace;
     protected List<MetricDatum> actualMetricData;
-    protected AmazonClientException throwException;
     protected PutMetricDataResponse result = PutMetricDataResponse.builder().build();
     protected int putMetricDataCallCount = 0;
 
 
-    protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) throws AmazonClientException {
+    protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) {
         putMetricDataCallCount++;
         actualNamespace = metricDataRequest.namespace();
         actualMetricData = metricDataRequest.metricData();
-
-        if (throwException != null) {
-            throw throwException;
-        }
 
         return result;
     }
