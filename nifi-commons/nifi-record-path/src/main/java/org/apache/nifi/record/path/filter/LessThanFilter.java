@@ -19,15 +19,15 @@ package org.apache.nifi.record.path.filter;
 
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
-public class LessThanFilter extends NumericBinaryOperatorFilter {
+public class LessThanFilter extends NumericComparisonFilter {
 
     public LessThanFilter(final RecordPathSegment lhs, final RecordPathSegment rhs) {
         super(lhs, rhs);
     }
 
     @Override
-    protected boolean compare(final Number lhsNumber, final Number rhsNumber) {
-        return Double.compare(lhsNumber.doubleValue(), rhsNumber.doubleValue()) < 0;
+    protected boolean verifyComparisonResult(final int comparisonResult) {
+        return comparisonResult < 0;
     }
 
     @Override

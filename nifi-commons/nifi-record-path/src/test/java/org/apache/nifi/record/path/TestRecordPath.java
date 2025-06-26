@@ -2630,9 +2630,16 @@ public class TestRecordPath {
         @Nested
         class GreaterThan {
             @Test
-            public void supportsComparingWithLongCompatibleLiteralValues() {
+            public void supportsComparingWithIntCompatibleLiteralValues() {
                 assertMatches("/id[. > 47]", record);
                 assertNotMatches("/id[. > 48]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/longNumber[. > 1000000000000000000]", record);
+                assertMatches("/longNumber[. > 1234567890123456788]", record);
+                assertNotMatches("/longNumber[. > 1234567890123456789]", record);
             }
 
             @Test
@@ -2665,9 +2672,17 @@ public class TestRecordPath {
         @Nested
         class GreaterThanOrEqual {
             @Test
-            public void supportsComparingWithLongCompatibleLiteralValues() {
+            public void supportsComparingWithIngCompatibleLiteralValues() {
                 assertMatches("/id[. >= 48]", record);
                 assertNotMatches("/id[. >= 49]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/longNumber[. >= 1234567890123456788]", record);
+                assertMatches("/longNumber[. >= 1234567890123456789]", record);
+                assertNotMatches("/longNumber[. >= 1234567890123456790]", record);
+                assertNotMatches("/longNumber[. >= 2000000000000000000]", record);
             }
 
             @Test
@@ -2774,9 +2789,16 @@ public class TestRecordPath {
         @Nested
         class LessThan {
             @Test
-            public void supportsComparingWithLongCompatibleLiteralValues() {
+            public void supportsComparingWithIntCompatibleLiteralValues() {
                 assertMatches("/id[. < 49]", record);
                 assertNotMatches("/id[. < 48]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/longNumber[. < 2000000000000000000]", record);
+                assertMatches("/longNumber[. < 1234567890123456790]", record);
+                assertNotMatches("/longNumber[. < 1234567890123456789]", record);
             }
 
             @Test
@@ -2809,9 +2831,17 @@ public class TestRecordPath {
         @Nested
         class LessThanOrEqual {
             @Test
-            public void supportsComparingWithLongCompatibleLiteralValues() {
+            public void supportsComparingWithIntCompatibleLiteralValues() {
                 assertMatches("/id[. <= 48]", record);
                 assertNotMatches("/id[. <= 47]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/longNumber[. <= 1234567890123456789]", record);
+                assertMatches("/longNumber[. <= 1234567890123456790]", record);
+                assertNotMatches("/longNumber[. <= 1234567890123456788]", record);
+                assertNotMatches("/longNumber[. <= 1000000000000000000]", record);
             }
 
             @Test
@@ -3117,7 +3147,8 @@ public class TestRecordPath {
                 recordFieldOf("accounts", arrayTypeOf(accountDataType)),
                 recordFieldOf("numbers", arrayTypeOf(RecordFieldType.INT)),
                 recordFieldOf("friends", arrayTypeOf(RecordFieldType.STRING)),
-                recordFieldOf("bytes", arrayTypeOf(RecordFieldType.BYTE))
+                recordFieldOf("bytes", arrayTypeOf(RecordFieldType.BYTE)),
+                recordFieldOf("longNumber", RecordFieldType.LONG)
         );
     }
 
@@ -3155,7 +3186,8 @@ public class TestRecordPath {
                 }),
                 entry("numbers", new Integer[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}),
                 entry("friends", new String[]{"John", "Jane", "Jacob", "Judy"}),
-                entry("bytes", boxBytes("Hello World!".getBytes(StandardCharsets.UTF_8)))
+                entry("bytes", boxBytes("Hello World!".getBytes(StandardCharsets.UTF_8))),
+                entry("longNumber", 1234567890123456789L)
         );
 
         return new MapRecord(getExampleSchema(), new HashMap<>(values));

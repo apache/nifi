@@ -65,10 +65,11 @@ public abstract class NumericBinaryOperatorFilter extends BinaryOperatorFilter {
         }
 
         final String fieldName = fieldValue.getField() == null ? "<Anonymous Inner Field>" : fieldValue.getField().getFieldName();
-        final Number lhsNumber = lhsLongCompatible ? DataTypeUtils.toLong(value, fieldName) : DataTypeUtils.toDouble(value, fieldName);
-        final Number rhsNumber = rhsLongCompatible ? DataTypeUtils.toLong(rhsValue, fieldName) : DataTypeUtils.toDouble(rhsValue, fieldName);
-        return compare(lhsNumber, rhsNumber);
+        return lhsLongCompatible && rhsLongCompatible
+                ? test(DataTypeUtils.toLong(value, fieldName), DataTypeUtils.toLong(rhsValue, fieldName))
+                : test(DataTypeUtils.toDouble(value, fieldName), DataTypeUtils.toDouble(rhsValue, fieldName));
     }
 
-    protected abstract boolean compare(final Number lhsNumber, final Number rhsNumber);
+    protected abstract boolean test(final long lhsNumber, final long rhsNumber);
+    protected abstract boolean test(final double lhsNumber, final double rhsNumber);
 }

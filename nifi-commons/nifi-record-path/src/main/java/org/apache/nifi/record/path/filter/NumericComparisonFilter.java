@@ -14,24 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.record.path.filter;
 
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
-public class GreaterThanFilter extends NumericComparisonFilter {
+public abstract class NumericComparisonFilter extends NumericBinaryOperatorFilter {
 
-    public GreaterThanFilter(final RecordPathSegment lhs, final RecordPathSegment rhs) {
+    public NumericComparisonFilter(final RecordPathSegment lhs, final RecordPathSegment rhs) {
         super(lhs, rhs);
     }
 
     @Override
-    protected boolean verifyComparisonResult(final int comparisonResult) {
-        return comparisonResult > 0;
+    protected final boolean test(final long lhsNumber, final long rhsNumber) {
+        final int comparisonResult = Long.compare(lhsNumber, rhsNumber);
+        return verifyComparisonResult(comparisonResult);
     }
 
     @Override
-    protected String getOperator() {
-        return ">";
+    protected final boolean test(final double lhsNumber, final double rhsNumber) {
+        final int comparisonResult = Double.compare(lhsNumber, rhsNumber);
+        return verifyComparisonResult(comparisonResult);
     }
+
+    protected abstract boolean verifyComparisonResult(final int comparisonResult);
 }
