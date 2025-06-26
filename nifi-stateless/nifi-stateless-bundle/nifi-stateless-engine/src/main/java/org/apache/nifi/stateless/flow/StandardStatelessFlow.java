@@ -51,6 +51,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -135,6 +136,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private volatile ExecutorService runDataflowExecutor;
     private volatile ScheduledExecutorService backgroundTaskExecutor;
     private volatile boolean initialized = false;
+    private volatile Boolean stateful = null;
     private volatile boolean shutdown = false;
     private volatile boolean manageControllerServices = true;
 
@@ -711,6 +713,17 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
+    @Override
+    public boolean isStateful() {
+        if (stateful == null) {
+            final boolean hasStatefulReportingTask = reportingTasks.stream().anyMatch(this::isStateful);
+            if (hasStatefulReportingTask) {
+                return true;
+            }
+            stateful = isStateful(rootGroup);
+        }
+        return stateful;
+    }
 
     private boolean isStateful(final ProcessGroup processGroup) {
         final boolean hasStatefulProcessor = processGroup.getProcessors().stream().anyMatch(this::isStateful);
@@ -871,6 +884,40 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         return serializedStateMaps;
+    }
+
+    @Override
+    public void setComponentStates(final Map<String, String> componentStates, final Scope scope) {
+        final Map<String, StateMap> stateMaps = deserializeStateMaps(componentStates);
+        stateManagerProvider.updateComponentsStates(stateMaps, scope);
+    }
+
+    private Map<String, StateMap> deserializeStateMaps(final Map<String, String> componentStates) {
+        if (componentStates == null) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, StateMap> deserializedStateMaps = new HashMap<>();
+
+        for (final Map.Entry<String, String> entry : componentStates.entrySet()) {
+            final String componentId = entry.getKey();
+            final String serialized = entry.getValue();
+
+            final SerializableStateMap deserialized;
+            try {
+                deserialized = objectMapper.readValue(serialized, SerializableStateMap.class);
+            } catch (final Exception e) {
+                // We want to avoid throwing an Exception here because if we do, we may never be able to run the flow again, at least not without
+                // destroying all state that exists for the component. Would be better to simply skip the state for this component
+                logger.error("Failed to deserialized components' state for component with ID {}. State will be reset to empty", componentId, e);
+                continue;
+            }
+
+            final StateMap stateMap = new StandardStateMap(deserialized.getStateValues(), Optional.ofNullable(deserialized.getVersion()));
+            deserializedStateMaps.put(componentId, stateMap);
+        }
+
+        return deserializedStateMaps;
     }
 
     @Override
