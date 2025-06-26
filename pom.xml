@@ -110,10 +110,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.787</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.31.67</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.31.70</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.3.1</io.fabric8.kubernetes.client.version>
-        <kotlin.version>2.1.21</kotlin.version>
+        <kotlin.version>2.2.0</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
         <okio.version>3.13.0</okio.version>
         <org.apache.commons.cli.version>1.9.0</org.apache.commons.cli.version>
@@ -541,7 +541,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.20.1</version>
+                <version>1.21.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
