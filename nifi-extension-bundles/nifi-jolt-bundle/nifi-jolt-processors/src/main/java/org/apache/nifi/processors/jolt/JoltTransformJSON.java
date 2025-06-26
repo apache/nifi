@@ -55,7 +55,7 @@ import java.util.stream.Stream;
 
 @SideEffectFree
 @SupportsBatching
-@Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr", "cardinality", "sort"})
+@Tags({"json", "jolt", "transform", "chainr", "shift", "default", "remove", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "mime.type", description = "Always set to application/json")
 @CapabilityDescription("Applies a list of Jolt specifications to either the FlowFile JSON content or a specified FlowFile JSON attribute. "
