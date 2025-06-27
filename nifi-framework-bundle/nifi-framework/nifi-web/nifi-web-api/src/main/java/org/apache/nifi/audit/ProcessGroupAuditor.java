@@ -20,10 +20,12 @@ import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
@@ -41,6 +43,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -216,7 +219,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             operation = Operation.Stop;
         }
 
-        saveUpdateAction(groupId, operation);
+        saveUpdateProcessGroupAction(groupId, operation);
     }
 
     /**
@@ -242,11 +245,11 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             operation = Operation.Enable;
         }
 
-        saveUpdateAction(groupId, operation);
+        saveUpdateProcessGroupAction(groupId, operation);
     }
 
     /**
-     * Audits the update of controller serivce state
+     * Audits the update of controller service state
      *
      * @param proceedingJoinPoint join point
      * @param groupId group id
@@ -257,6 +260,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         + "execution(void activateControllerServices(String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Collection<String>)) && "
         + "args(groupId, state, serviceIds)")
     public void activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
+        final List<ControllerServiceNode> controllerServiceNodes = getControllerServices(groupId, serviceIds);
         final Operation operation;
 
         proceedingJoinPoint.proceed();
@@ -268,7 +272,23 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             operation = Operation.Disable;
         }
 
-        saveUpdateAction(groupId, operation);
+        saveUpdateProcessGroupAction(groupId, operation);
+        for (final ControllerServiceNode csNode : controllerServiceNodes) {
+            saveUpdateControllerServiceAction(csNode, operation);
+        }
+    }
+
+    private List<ControllerServiceNode> getControllerServices(final String groupId, final Collection<String> serviceIds) throws Throwable {
+        final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        final List<ControllerServiceNode> csNodes = new ArrayList<>();
+        for (String serviceId : serviceIds) {
+            final ControllerServiceNode csNode = processGroup.findControllerService(serviceId, true, true);
+            if (csNode != null) {
+                csNodes.add(csNode);
+            }
+        }
+        return csNodes;
     }
 
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
@@ -297,7 +317,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             }
         }
 
-        saveUpdateAction(groupId, operation);
+        saveUpdateProcessGroupAction(groupId, operation);
 
         return updatedProcessGroup;
     }
@@ -320,7 +340,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             operation = Operation.CommitLocalChanges;
         }
 
-        saveUpdateAction(vciDto.getGroupId(), operation);
+        saveUpdateProcessGroupAction(vciDto.getGroupId(), operation);
 
         return updatedProcessGroup;
     }
@@ -331,12 +351,12 @@ public class ProcessGroupAuditor extends NiFiAuditor {
     public ProcessGroup disconnectVersionControlAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String groupId) throws Throwable {
         final ProcessGroup updatedProcessGroup = (ProcessGroup) proceedingJoinPoint.proceed();
 
-        saveUpdateAction(groupId, Operation.StopVersionControl);
+        saveUpdateProcessGroupAction(groupId, Operation.StopVersionControl);
 
         return updatedProcessGroup;
     }
 
-    private void saveUpdateAction(final String groupId, final Operation operation) {
+    private void saveUpdateProcessGroupAction(final String groupId, final Operation operation) {
         ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
 
@@ -346,6 +366,21 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         action.setSourceName(processGroup.getName());
         action.setSourceType(Component.ProcessGroup);
         action.setOperation(operation);
+
+        // add this action
+        saveAction(action, logger);
+    }
+
+    private void saveUpdateControllerServiceAction(final ControllerServiceNode csNode, final Operation operation) throws Throwable {
+        final FlowChangeAction action = createFlowChangeAction();
+        action.setSourceId(csNode.getIdentifier());
+        action.setSourceName(csNode.getName());
+        action.setSourceType(Component.ControllerService);
+        action.setOperation(operation);
+
+        FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
+        serviceDetails.setType(csNode.getComponentType());
+        action.setComponentDetails(serviceDetails);
 
         // add this action
         saveAction(action, logger);
