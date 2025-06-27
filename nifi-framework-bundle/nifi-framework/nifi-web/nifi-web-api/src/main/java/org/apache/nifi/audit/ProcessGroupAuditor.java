@@ -260,7 +260,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         + "execution(void activateControllerServices(String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Collection<String>)) && "
         + "args(groupId, state, serviceIds)")
     public void activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
-        final List<ControllerServiceNode> controllerServiceNodes = getControllerServicesChangingState(groupId, state, serviceIds);
+        final List<ControllerServiceNode> controllerServiceNodes = getControllerServices(groupId, serviceIds);
         final Operation operation;
 
         proceedingJoinPoint.proceed();
@@ -278,29 +278,17 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
     }
 
-    private List<ControllerServiceNode> getControllerServicesChangingState(final String groupId, final ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
+    private List<ControllerServiceNode> getControllerServices(final String groupId, final Collection<String> serviceIds) throws Throwable {
         final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final List<ControllerServiceNode> csNodes = new ArrayList<>();
         for (String serviceId : serviceIds) {
             final ControllerServiceNode csNode = processGroup.findControllerService(serviceId, true, true);
-            if (csNode != null && isControllerServiceStateChanged(csNode, state)) {
+            if (csNode != null) {
                 csNodes.add(csNode);
             }
         }
         return csNodes;
-    }
-
-    boolean isControllerServiceStateChanged(final ControllerServiceNode csNode,  final ControllerServiceState state) {
-        return isControllerServiceDisabled(csNode) && state.equals(ControllerServiceState.ENABLED) || isControllerServiceEnabled(csNode) && state.equals(ControllerServiceState.DISABLED);
-    }
-
-    private boolean isControllerServiceDisabled(final ControllerServiceNode controllerService) {
-        return ControllerServiceState.DISABLED.equals(controllerService.getState()) || ControllerServiceState.DISABLING.equals(controllerService.getState());
-    }
-
-    private boolean isControllerServiceEnabled(final ControllerServiceNode controllerService) {
-        return ControllerServiceState.ENABLED.equals(controllerService.getState()) || ControllerServiceState.ENABLING.equals(controllerService.getState());
     }
 
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
