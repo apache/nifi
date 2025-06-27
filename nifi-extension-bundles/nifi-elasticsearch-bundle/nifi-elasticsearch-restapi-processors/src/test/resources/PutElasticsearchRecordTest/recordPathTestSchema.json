@@ -78,9 +78,20 @@
                     {
                         "name": "language",
                         "type": "string"
+                    },
+                    {
+                        "name": "params",
+                        "type": {
+                            "type": "map",
+                            "values": "int"
+                        }
                     }
                 ]
             }
+        },
+        {
+            "name": "script_stringified",
+            "type": "string"
         },
         {
             "name": "dynamic_templates",
