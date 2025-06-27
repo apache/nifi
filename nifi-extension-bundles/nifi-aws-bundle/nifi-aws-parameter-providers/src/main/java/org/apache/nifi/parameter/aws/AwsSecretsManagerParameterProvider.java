@@ -62,7 +62,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -281,8 +280,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                 return groups;
             }
 
-            for (final Iterator<Map.Entry<String, JsonNode>> it = secretObject.fields(); it.hasNext(); ) {
-                final Map.Entry<String, JsonNode> field = it.next();
+            for (final Map.Entry<String, JsonNode> field : secretObject.properties()) {
                 final String parameterName = field.getKey();
                 final String parameterValue = field.getValue().textValue();
                 if (parameterValue == null) {

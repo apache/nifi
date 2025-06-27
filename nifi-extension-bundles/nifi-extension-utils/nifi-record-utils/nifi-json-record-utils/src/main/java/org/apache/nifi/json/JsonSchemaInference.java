@@ -26,7 +26,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.math.BigDecimal;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -103,9 +102,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
 
     @Override
     protected void forEachFieldInRecord(final JsonNode rawRecord, final BiConsumer<String, JsonNode> fieldConsumer) {
-        final Iterator<Map.Entry<String, JsonNode>> itr = rawRecord.fields();
-        while (itr.hasNext()) {
-            final Map.Entry<String, JsonNode> entry = itr.next();
+        for (Map.Entry<String, JsonNode> entry : rawRecord.properties()) {
             final String fieldName = entry.getKey();
             final JsonNode value = entry.getValue();
 
