@@ -303,9 +303,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
         final Map<String, Object> mapValue = new LinkedHashMap<>();
 
-        final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.fields();
-        while (fieldItr.hasNext()) {
-            final Map.Entry<String, JsonNode> entry = fieldItr.next();
+        for (Map.Entry<String, JsonNode> entry : fieldNode.properties()) {
             final String elementName = entry.getKey();
             final JsonNode elementNode = entry.getValue();
 
