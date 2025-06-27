@@ -26,6 +26,8 @@ import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
@@ -58,9 +60,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -362,6 +366,22 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             flowSnapshot.getParameterContexts().forEach((name, parameterContext) ->
                 parameterContext.getParameters().forEach(parameter -> parameter.setValue(null))
             );
+        } else if (ParameterContextValuesStrategy.IGNORE_CHANGES.equals(parameterContextValuesStrategy)) {
+            existingSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
+                final VersionedParameterContext targetContext = flowSnapshot.getParameterContexts().get(name);
+                if (targetContext != null) {
+                    final Map<String, VersionedParameter> targetParamMap = targetContext.getParameters()
+                            .stream()
+                            .collect(Collectors.toMap(VersionedParameter::getName, Function.identity()));
+
+                    parameterContext.getParameters().forEach(parameter -> {
+                        final VersionedParameter targetParam = targetParamMap.get(parameter.getName());
+                        if (targetParam != null) {
+                            targetParam.setValue(parameter.getValue());
+                        }
+                    });
+                }
+            });
         }
 
         // replace the id of the top level group and all of its references with a constant value prior to serializing to avoid
@@ -676,7 +696,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
     enum ParameterContextValuesStrategy implements DescribedValue {
         RETAIN("Retain", "Retain Values in Parameter Contexts without modifications"),
-        REMOVE("Remove", "Remove Values from Parameter Context");
+        REMOVE("Remove", "Remove Values from Parameter Context"),
+        IGNORE_CHANGES("Ignore Changes", "Ignore any change on existing parameters");
 
         private final String displayName;
         private final String description;
