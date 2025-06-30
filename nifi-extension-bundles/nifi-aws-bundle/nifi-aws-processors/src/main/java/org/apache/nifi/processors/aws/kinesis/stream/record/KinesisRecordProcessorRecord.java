@@ -34,6 +34,7 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
@@ -56,6 +57,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     private RecordSetWriter writer;
     private OutputStream outputStream;
     private final RecordConverter recordConverter;
+    private SuccessfulWriteInfo firstSuccessfulWriteInfo;
+    private SuccessfulWriteInfo lastSuccessfulWriteInfo;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
@@ -82,15 +85,13 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     @Override
     void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
-        boolean firstOutputRecord = true;
-        int recordCount = 0;
         final ByteBuffer dataBuffer = kinesisRecord.data();
         byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
         if (dataBuffer != null) {
             dataBuffer.get(data);
         }
 
-        FlowFile flowFile = null;
+        FlowFile emptyFlowFileToRemove = null;
         try (final InputStream in = new ByteArrayInputStream(data);
              final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, getLogger())
         ) {
@@ -99,27 +100,44 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             while ((intermediateRecord = recordSet.next()) != null) {
                 Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
                 if (flowFiles.isEmpty()) {
-                    flowFile = session.create();
-                    flowFiles.add(flowFile);
+                    final FlowFile createdFlowFile = session.create();
+                    flowFiles.add(createdFlowFile);
 
                     // initialize the writer when the first record is read.
-                    createWriter(flowFile, session, outputRecord);
+                    createWriter(createdFlowFile, session, outputRecord);
+                    emptyFlowFileToRemove = createdFlowFile;
                 }
 
                 final WriteResult writeResult = writer.write(outputRecord);
-                recordCount += writeResult.getRecordCount();
-
-                // complete the FlowFile if there are no more incoming Kinesis Records and no more records in this RecordSet
-                if (lastRecord && !recordSet.isAnotherRecord()) {
-                    completeFlowFile(flowFiles, session, recordCount, writeResult, kinesisRecord, stopWatch);
-                }
-                firstOutputRecord = false;
+                // definitely no longer empty
+                emptyFlowFileToRemove = null;
+                firstSuccessfulWriteInfo = firstSuccessfulWriteInfo == null
+                        ? new SuccessfulWriteInfo(kinesisRecord, writeResult)
+                        : firstSuccessfulWriteInfo;
+                lastSuccessfulWriteInfo = new SuccessfulWriteInfo(kinesisRecord, writeResult);
             }
-        } catch (final MalformedRecordException | IOException | SchemaNotFoundException e) {
+        } catch (final MalformedRecordException | IOException | SchemaNotFoundException | IllegalTypeConversionException e) {
             // write raw Kinesis Record to the parse failure relationship
             getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
-            outputRawRecordOnException(firstOutputRecord, flowFile, flowFiles, session, data, kinesisRecord, e);
+            outputRawRecordOnException(emptyFlowFileToRemove, flowFiles, session, data, kinesisRecord, e);
+        }
+
+        // complete the FlowFile if there are no more incoming Kinesis Records and no more records in this RecordSet
+        if (lastRecord && !flowFiles.isEmpty()) {
+            try {
+                completeFlowFile(flowFiles, session, lastSuccessfulWriteInfo.writeResult.getRecordCount(), lastSuccessfulWriteInfo.writeResult, lastSuccessfulWriteInfo.kinesisRecord, stopWatch);
+            } catch (IOException e) {
+                getLogger().error("Failed to complete a FlowFile, dropped records from stream: {}, shardId: {}, sequence number range: [{}, {}], due to {}",
+                        getStreamName(),
+                        getKinesisShardId(),
+                        firstSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                        lastSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                        e.getLocalizedMessage(),
+                        e);
+            }
+            firstSuccessfulWriteInfo = null;
+            lastSuccessfulWriteInfo = null;
         }
 
         if (getLogger().isDebugEnabled()) {
@@ -146,8 +164,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             writer.finishRecordSet();
         } catch (IOException e) {
             getLogger().error("Failed to finish record output due to {}", e.getLocalizedMessage(), e);
-            session.remove(flowFiles.get(0));
-            flowFiles.remove(0);
+            session.remove(flowFiles.getFirst());
+            flowFiles.removeFirst();
             throw e;
         } finally {
             try {
@@ -158,24 +176,24 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             }
         }
 
-        reportProvenance(session, flowFiles.get(0), null, null, stopWatch);
+        reportProvenance(session, flowFiles.getFirst(), null, null, stopWatch);
 
         final Map<String, String> attributes = getDefaultAttributes(lastRecord);
         attributes.put("record.count", String.valueOf(recordCount));
         attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
         attributes.putAll(writeResult.getAttributes());
-        flowFiles.set(0, session.putAllAttributes(flowFiles.get(0), attributes));
+        flowFiles.set(0, session.putAllAttributes(flowFiles.getFirst(), attributes));
 
         writer = null;
         outputStream = null;
     }
 
-    private void outputRawRecordOnException(final boolean firstOutputRecord, final FlowFile flowFile,
+    private void outputRawRecordOnException(final FlowFile flowFileToRemove,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
                                             final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
-        if (firstOutputRecord && flowFile != null) {
-            session.remove(flowFile);
-            flowFiles.remove(0);
+        if (flowFileToRemove != null) {
+            session.remove(flowFileToRemove);
+            flowFiles.remove(flowFileToRemove);
             if (writer != null) {
                 try {
                     writer.close();
@@ -200,4 +218,6 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         return getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
     }
+
+    private record SuccessfulWriteInfo(KinesisClientRecord kinesisRecord, WriteResult writeResult) { }
 }

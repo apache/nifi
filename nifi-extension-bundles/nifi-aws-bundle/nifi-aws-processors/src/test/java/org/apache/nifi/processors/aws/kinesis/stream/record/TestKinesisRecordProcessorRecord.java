@@ -286,20 +286,24 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessUnparsableRecordWithRawOutputWithCheckpoint() throws ShutdownException, InvalidStateException {
+        testProcessUnparsableRecordWithRawOutputWithCheckpoint(Arrays.asList(
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-1")
+                        .sequenceNumber("1")
+                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                kinesisRecord,
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-3")
+                        .sequenceNumber("3")
+                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build()
+        ));
+    }
+
+    private void testProcessUnparsableRecordWithRawOutputWithCheckpoint(final List<KinesisClientRecord> inputRecords) throws ShutdownException, InvalidStateException {
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
-                .records(Arrays.asList(
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-1")
-                                .sequenceNumber("1")
-                                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build(),
-                        kinesisRecord,
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-3")
-                                .sequenceNumber("3")
-                                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build()
-                ))
+                .records(inputRecords)
                 .checkpointer(checkpointer)
                 .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
                 .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
@@ -341,6 +345,23 @@ public class TestKinesisRecordProcessorRecord {
 
         session.assertCommitted();
         session.assertNotRolledBack();
+    }
+
+    @Test
+    public void testProcessUnparsableRecordWithRawOutputWithCheckpoint_lastRecordInvalid() throws ShutdownException, InvalidStateException {
+        testProcessUnparsableRecordWithRawOutputWithCheckpoint(Arrays.asList(
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-1")
+                        .sequenceNumber("1")
+                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-3")
+                        .sequenceNumber("3")
+                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                kinesisRecord
+        ));
     }
 
     private void assertFlowFile(final MockFlowFile flowFile, final Date approxTimestamp, final String partitionKey,
