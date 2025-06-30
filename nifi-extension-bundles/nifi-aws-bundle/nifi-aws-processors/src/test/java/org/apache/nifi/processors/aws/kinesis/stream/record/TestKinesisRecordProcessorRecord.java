@@ -286,20 +286,24 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessUnparsableRecordWithRawOutputWithCheckpoint() throws ShutdownException, InvalidStateException {
+        testProcessUnparsableRecordWithRawOutputWithCheckpoint(Arrays.asList(
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-1")
+                        .sequenceNumber("1")
+                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                kinesisRecord,
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-3")
+                        .sequenceNumber("3")
+                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build()
+        ));
+    }
+
+    private void testProcessUnparsableRecordWithRawOutputWithCheckpoint(final List<KinesisClientRecord> inputRecords) throws ShutdownException, InvalidStateException {
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
-                .records(Arrays.asList(
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-1")
-                                .sequenceNumber("1")
-                                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build(),
-                        kinesisRecord,
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-3")
-                                .sequenceNumber("3")
-                                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build()
-                ))
+                .records(inputRecords)
                 .checkpointer(checkpointer)
                 .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
                 .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
@@ -345,61 +349,19 @@ public class TestKinesisRecordProcessorRecord {
 
     @Test
     public void testProcessUnparsableRecordWithRawOutputWithCheckpoint_lastRecordInvalid() throws ShutdownException, InvalidStateException {
-        final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
-                .records(Arrays.asList(
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-1")
-                                .sequenceNumber("1")
-                                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build(),
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-3")
-                                .sequenceNumber("3")
-                                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build(),
-                        kinesisRecord
-                ))
-                .checkpointer(checkpointer)
-                .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
-                .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
-                .millisBehindLatest(100L)
-                .build();
-
-        when(kinesisRecord.data()).thenReturn(ByteBuffer.wrap("invalid-json".getBytes(StandardCharsets.UTF_8)));
-        when(kinesisRecord.partitionKey()).thenReturn("unparsable-partition");
-        when(kinesisRecord.sequenceNumber()).thenReturn("unparsable-sequence");
-        when(kinesisRecord.approximateArrivalTimestamp()).thenReturn(null);
-
-        fixture.setKinesisShardId("test-shard");
-
-        when(processSessionFactory.createSession()).thenReturn(session);
-        fixture.processRecords(processRecordsInput);
-        verify(processSessionFactory, times(1)).createSession();
-
-        // check non-poison pill records are output successfully
-        session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 1);
-        final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
-        // 1 successful records in single output file, attributes equating to that of the last successful record
-        assertFlowFile(flowFiles.getFirst(), null, "partition-3", "3", "test-shard", "{\"record\":\"1\"}\n" +
-                "{\"record\":\"3\"}", 2);
-
-        // check poison-pill output (as the raw data could not be retrieved)
-        session.assertTransferCount(ConsumeKinesisStream.REL_PARSE_FAILURE, 1);
-        final List<MockFlowFile> failureFlowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_PARSE_FAILURE);
-        assertFlowFile(failureFlowFiles.getFirst(), null, "unparsable-partition", "unparsable-sequence", "test-shard", "invalid-json", 0);
-        failureFlowFiles.getFirst().assertAttributeExists("record.error.message");
-
-        // check the invalid json record was *not* retried a 2nd time
-        assertNull(verify(kinesisRecord, times(1)).partitionKey());
-        assertNull(verify(kinesisRecord, times(1)).sequenceNumber());
-        assertNull(verify(kinesisRecord, times(1)).approximateArrivalTimestamp());
-        assertNull(verify(kinesisRecord, times(1)).data());
-        verify(checkpointer, times(1)).checkpoint();
-
-        assertEquals(1, runner.getLogger().getErrorMessages().size());
-
-        session.assertCommitted();
-        session.assertNotRolledBack();
+        testProcessUnparsableRecordWithRawOutputWithCheckpoint(Arrays.asList(
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-1")
+                        .sequenceNumber("1")
+                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-3")
+                        .sequenceNumber("3")
+                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                kinesisRecord
+        ));
     }
 
     private void assertFlowFile(final MockFlowFile flowFile, final Date approxTimestamp, final String partitionKey,
