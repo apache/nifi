@@ -27,6 +27,11 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.controller.service.StandardControllerServiceNode;
+import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.dao.impl.StandardProcessGroupDAO;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +53,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +73,7 @@ public class TestProcessGroupAuditor {
     private static final String PG_1 = "processGroup1";
     private static final String PROC_1 = "processor1";
     private static final String PROC_2 = "processor2";
+    private static final String CS_1 = "controllerService1";
     private static final String USER_ID = "user-id";
 
     @Autowired
@@ -81,6 +89,8 @@ public class TestProcessGroupAuditor {
     private Authentication authentication;
     @Mock
     private FlowManager flowManager;
+    @Mock
+    private ProcessGroup processGroup;
 
     @Captor
     private ArgumentCaptor<List<Action>> argumentCaptorActions;
@@ -93,15 +103,14 @@ public class TestProcessGroupAuditor {
         processGroupDAO.setFlowController(flowController);
         processGroupAuditor.setAuditService(auditService);
         processGroupAuditor.setProcessGroupDAO(processGroupDAO);
+
+        final SecurityContext securityContext = SecurityContextHolder.getContext();
+        securityContext.setAuthentication(authentication);
+        when(authentication.getName()).thenReturn(USER_ID);
     }
 
     @Test
     void testVerifyProcessGroupAuditing() {
-        final SecurityContext securityContext = SecurityContextHolder.getContext();
-        securityContext.setAuthentication(authentication);
-        when(authentication.getName()).thenReturn(USER_ID);
-
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
         final ProcessorNode processor1 = mock(StandardProcessorNode.class);
         final ProcessorNode processor2 = mock(StandardProcessorNode.class);
         when(processor1.getProcessGroup()).thenReturn(processGroup);
@@ -124,6 +133,44 @@ public class TestProcessGroupAuditor {
         assertEquals(USER_ID, action.getUserIdentity());
         assertEquals("ProcessGroup", action.getSourceType().name());
         assertEquals(Operation.Start, action.getOperation());
+    }
+
+    @Test
+    void testVerifyEnableControllerServicesAuditing() {
+        final ControllerServiceNode cs = mock(StandardControllerServiceNode.class);
+        final ControllerServiceProvider csProvider = mock(StandardControllerServiceProvider.class);
+
+        when(cs.getName()).thenReturn(CS_1);
+        when(processGroup.findControllerService(eq(CS_1), eq(true), eq(true))).thenReturn(cs);
+
+        when(flowManager.getGroup(eq(PG_1))).thenReturn(processGroup);
+        when(flowManager.getControllerServiceNode(eq(CS_1))).thenReturn(cs);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+        when(flowController.getControllerServiceProvider()).thenReturn(csProvider);
+
+        processGroupDAO.activateControllerServices(PG_1, ControllerServiceState.ENABLED, new HashSet<>(Arrays.asList(CS_1)));
+
+        verify(auditService, times(2)).addActions(argumentCaptorActions.capture());
+        final List<List<Action>> actions = argumentCaptorActions.getAllValues();
+        assertEquals(2, actions.size());
+        final Iterator<List<Action>> actionsIterator = actions.iterator();
+
+        final List<Action> pgActions = actionsIterator.next();
+        assertEquals(1, pgActions.size());
+        final Action pgAction = pgActions.iterator().next();
+        assertInstanceOf(FlowChangeAction.class, pgAction);
+        assertEquals(USER_ID, pgAction.getUserIdentity());
+        assertEquals("ProcessGroup", pgAction.getSourceType().name());
+        assertEquals(Operation.Enable, pgAction.getOperation());
+
+        final List<Action> csActions = actionsIterator.next();
+        assertEquals(1, csActions.size());
+        final Action csAction = csActions.iterator().next();
+        assertInstanceOf(FlowChangeAction.class, csAction);
+        assertEquals(USER_ID, csAction.getUserIdentity());
+        assertEquals("ControllerService", csAction.getSourceType().name());
+        assertEquals(CS_1, csAction.getSourceName());
+        assertEquals(Operation.Enable, csAction.getOperation());
     }
 
     @Configuration
