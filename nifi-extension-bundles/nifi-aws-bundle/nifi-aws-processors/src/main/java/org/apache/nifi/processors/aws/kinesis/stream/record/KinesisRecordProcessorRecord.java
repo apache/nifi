@@ -85,6 +85,12 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     @Override
     void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
+        if (flowFiles.size() > 1) {
+            // historically this code has assumed that the FlowFile it operates on is the first one in the list.
+            // changing this behavior would exceed the scope of the bugfix change this comment was added in.
+            // leaving this comment to inform future maintainers that assumption is rather weak and should be refactored
+            getLogger().warn("More than one FlowFile is being processed at once, this is not expected.", flowFiles);
+        }
         final ByteBuffer dataBuffer = kinesisRecord.data();
         byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
         if (dataBuffer != null) {
