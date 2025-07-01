@@ -42,6 +42,7 @@ public class JacksonFlowSnapshotSerializer implements FlowSnapshotSerializer {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
             .enable(SerializationFeature.INDENT_OUTPUT)
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
             .addModule(new VersionedComponentModule())
             .addModule(new SortedStringCollectionsModule())
             .build();

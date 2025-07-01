@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Spliterators;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -60,15 +62,21 @@ public class JacksonFlowSnapshotSerializerTest {
 
         versionedParameterContext.setParameters(Set.of(parameter2, parameter1, parameter3));
 
-        final VersionedPropertyDescriptor descriptor = new VersionedPropertyDescriptor();
+        final VersionedPropertyDescriptor descriptorA = new VersionedPropertyDescriptor();
+        final VersionedPropertyDescriptor descriptorB = new VersionedPropertyDescriptor();
+        final VersionedPropertyDescriptor descriptorC = new VersionedPropertyDescriptor();
         final VersionedResourceDefinition resourceDefinition = new VersionedResourceDefinition();
         resourceDefinition.setResourceTypes(Set.of(VersionedResourceType.TEXT, VersionedResourceType.URL, VersionedResourceType.FILE));
-        descriptor.setResourceDefinition(resourceDefinition);
+        descriptorC.setResourceDefinition(resourceDefinition);
 
         final VersionedProcessor processor1 = new VersionedProcessor();
         processor1.setIdentifier("proc1");
         processor1.setAutoTerminatedRelationships(Set.of("success", "failure"));
-        processor1.setPropertyDescriptors(Map.of("prop1", descriptor));
+        processor1.setProperties(Map.of("bKey", "2", "aKey", "1", "cKey", "3"));
+        processor1.setPropertyDescriptors(Map.of(
+                "bProp", descriptorB,
+                "cProp", descriptorC,
+                "aProp", descriptorA));
         final VersionedProcessor processor2 = new VersionedProcessor();
         processor2.setIdentifier("proc2");
         final VersionedProcessor processor3 = new VersionedProcessor();
@@ -95,7 +103,18 @@ public class JacksonFlowSnapshotSerializerTest {
         assertEquals(3, processors.size());
         assertEquals("proc1", processors.get(0).get("identifier").asText());
         assertEquals("[ \"failure\", \"success\" ]", processors.get(0).get("autoTerminatedRelationships").toPrettyString());
-        assertEquals("[ \"FILE\", \"TEXT\", \"URL\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("resourceDefinition").get("resourceTypes").toPrettyString());
+
+        final JsonNode propertyDescriptors = processors.get(0).get("propertyDescriptors");
+        assertEquals(List.of("aProp", "bProp", "cProp"),
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(propertyDescriptors.fieldNames(), 0), false)
+                        .toList());
+
+        assertEquals("[ \"FILE\", \"TEXT\", \"URL\" ]", propertyDescriptors.get("cProp").get("resourceDefinition").get("resourceTypes").toPrettyString());
+
+        final JsonNode properties = processors.get(0).get("properties");
+        assertEquals(List.of("aKey", "bKey", "cKey"),
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(properties.fieldNames(), 0), false)
+                        .toList());
 
         assertEquals("proc2", processors.get(1).get("identifier").asText());
         assertEquals("proc3", processors.get(2).get("identifier").asText());
