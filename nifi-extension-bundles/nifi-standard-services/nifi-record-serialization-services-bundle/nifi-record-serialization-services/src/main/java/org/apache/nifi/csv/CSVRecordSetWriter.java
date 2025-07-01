@@ -44,6 +44,7 @@ import java.util.Map;
     + "will be the column names (unless the 'Include Header Line' property is false). All subsequent lines will be the values "
     + "corresponding to the record fields.")
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
+private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CSVRecordSetWriter.class);
 
     // CSV writer implementations
     public static final AllowableValue APACHE_COMMONS_CSV = new AllowableValue("commons-csv", "Apache Commons CSV",
@@ -118,6 +119,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         } else {
             csvFormat = CSVUtils.createCSVFormat(context, variables);
         }
+      log.info("✅ Value Separator resolved to: '{}'", csvFormat.getDelimiter());
 
         if (APACHE_COMMONS_CSV.getValue().equals(csvWriter)) {
             return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema, variables), out,
