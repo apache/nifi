@@ -125,7 +125,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         if (lastRecord && !flowFiles.isEmpty()) {
             try {
                 completeFlowFile(flowFiles, session, lastSuccessfulWriteInfo.writeResult.getRecordCount(), lastSuccessfulWriteInfo.writeResult, lastSuccessfulWriteInfo.kinesisRecord, stopWatch);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 getLogger().error("Failed to complete a FlowFile, dropped records from Stream Name: {}, Shard Id: {}, Sequence/Subsequence No range: [{}/{}, {}/{}), due to {}",
                         getStreamName(),
                         getKinesisShardId(),
