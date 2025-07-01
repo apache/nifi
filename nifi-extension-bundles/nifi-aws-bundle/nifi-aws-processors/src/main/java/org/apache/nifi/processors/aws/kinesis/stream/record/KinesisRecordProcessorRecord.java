@@ -136,7 +136,9 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                         getStreamName(),
                         getKinesisShardId(),
                         firstSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                        firstSuccessfulWriteInfo.kinesisRecord.subSequenceNumber(),
                         lastSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                        lastSuccessfulWriteInfo.kinesisRecord.subSequenceNumber(),
                         e.getLocalizedMessage(),
                         e);
                 final boolean removeFirstFlowFileIfAvailable = true;
