@@ -37,7 +37,11 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import software.amazon.kinesis.exceptions.InvalidStateException;
 import software.amazon.kinesis.exceptions.ShutdownException;
 import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
@@ -56,6 +60,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -284,24 +289,61 @@ public class TestKinesisRecordProcessorRecord {
         session.assertNotRolledBack();
     }
 
-    @Test
-    public void testProcessUnparsableRecordWithRawOutputWithCheckpoint() throws ShutdownException, InvalidStateException {
-        testProcessUnparsableRecordWithRawOutputWithCheckpoint(Arrays.asList(
-                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                        .partitionKey("partition-1")
-                        .sequenceNumber("1")
-                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                        .build(),
-                kinesisRecord,
-                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                        .partitionKey("partition-3")
-                        .sequenceNumber("3")
-                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                        .build()
-        ));
+    private static Stream<Arguments> unparsableRecordsLists() {
+        final KinesisClientRecord unparsableRecordMock = mock(KinesisClientRecord.class);
+        return Stream.of(
+                Arguments.argumentSet("Unparsable At The Beginning",
+                        Arrays.asList(
+                                unparsableRecordMock,
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-1")
+                                        .sequenceNumber("1")
+                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-3")
+                                        .sequenceNumber("3")
+                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build()
+                        ),
+                        unparsableRecordMock),
+                Arguments.argumentSet("Unparsable In The Middle",
+                        Arrays.asList(
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-1")
+                                        .sequenceNumber("1")
+                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                unparsableRecordMock,
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-3")
+                                        .sequenceNumber("3")
+                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build()
+                        ),
+                        unparsableRecordMock),
+                Arguments.argumentSet("Unparsable At The End",
+                        Arrays.asList(
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-1")
+                                        .sequenceNumber("1")
+                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-3")
+                                        .sequenceNumber("3")
+                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                unparsableRecordMock
+                        ),
+                        unparsableRecordMock)
+        );
     }
 
-    private void testProcessUnparsableRecordWithRawOutputWithCheckpoint(final List<KinesisClientRecord> inputRecords) throws ShutdownException, InvalidStateException {
+    @ParameterizedTest
+    @MethodSource("unparsableRecordsLists")
+    void testProcessUnparsableRecordWithRawOutputWithCheckpoint(final List<KinesisClientRecord> inputRecords, final KinesisClientRecord kinesisRecord) throws ShutdownException, InvalidStateException {
+        Mockito.reset(kinesisRecord);
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
                 .records(inputRecords)
                 .checkpointer(checkpointer)
@@ -345,23 +387,6 @@ public class TestKinesisRecordProcessorRecord {
 
         session.assertCommitted();
         session.assertNotRolledBack();
-    }
-
-    @Test
-    public void testProcessUnparsableRecordWithRawOutputWithCheckpoint_lastRecordInvalid() throws ShutdownException, InvalidStateException {
-        testProcessUnparsableRecordWithRawOutputWithCheckpoint(Arrays.asList(
-                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                        .partitionKey("partition-1")
-                        .sequenceNumber("1")
-                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                        .build(),
-                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                        .partitionKey("partition-3")
-                        .sequenceNumber("3")
-                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                        .build(),
-                kinesisRecord
-        ));
     }
 
     private void assertFlowFile(final MockFlowFile flowFile, final Date approxTimestamp, final String partitionKey,

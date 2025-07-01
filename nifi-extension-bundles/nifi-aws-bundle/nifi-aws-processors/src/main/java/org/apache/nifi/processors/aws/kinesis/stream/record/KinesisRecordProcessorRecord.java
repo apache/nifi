@@ -91,7 +91,6 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             dataBuffer.get(data);
         }
 
-        FlowFile emptyFlowFileToRemove = null;
         try (final InputStream in = new ByteArrayInputStream(data);
              final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, getLogger())
         ) {
@@ -105,12 +104,9 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
                     // initialize the writer when the first record is read.
                     createWriter(createdFlowFile, session, outputRecord);
-                    emptyFlowFileToRemove = createdFlowFile;
                 }
 
                 final WriteResult writeResult = writer.write(outputRecord);
-                // definitely no longer empty
-                emptyFlowFileToRemove = null;
                 firstSuccessfulWriteInfo = firstSuccessfulWriteInfo == null
                         ? new SuccessfulWriteInfo(kinesisRecord, writeResult)
                         : firstSuccessfulWriteInfo;
@@ -120,7 +116,9 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             // write raw Kinesis Record to the parse failure relationship
             getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
-            outputRawRecordOnException(emptyFlowFileToRemove, flowFiles, session, data, kinesisRecord, e);
+            // nothing was written, file can be removed
+            final boolean removeFirstFlowFileIfAvailable = firstSuccessfulWriteInfo == null;
+            outputRawRecordOnException(removeFirstFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
         }
 
         // complete the FlowFile if there are no more incoming Kinesis Records and no more records in this RecordSet
@@ -128,13 +126,15 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             try {
                 completeFlowFile(flowFiles, session, lastSuccessfulWriteInfo.writeResult.getRecordCount(), lastSuccessfulWriteInfo.writeResult, lastSuccessfulWriteInfo.kinesisRecord, stopWatch);
             } catch (IOException e) {
-                getLogger().error("Failed to complete a FlowFile, dropped records from stream: {}, shardId: {}, sequence number range: [{}, {}], due to {}",
+                getLogger().error("Failed to complete a FlowFile, dropped records from Stream Name: {}, Shard Id: {}, Sequence/Subsequence No range: [{}/{}, {}/{}), due to {}",
                         getStreamName(),
                         getKinesisShardId(),
                         firstSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
                         lastSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
                         e.getLocalizedMessage(),
                         e);
+                final boolean removeFirstFlowFileIfAvailable = true;
+                outputRawRecordOnException(removeFirstFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
             }
             firstSuccessfulWriteInfo = null;
             lastSuccessfulWriteInfo = null;
@@ -188,12 +188,12 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         outputStream = null;
     }
 
-    private void outputRawRecordOnException(final FlowFile flowFileToRemove,
+    private void outputRawRecordOnException(final boolean removeFirstFlowFileIfAvailable,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
                                             final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
-        if (flowFileToRemove != null) {
-            session.remove(flowFileToRemove);
-            flowFiles.remove(flowFileToRemove);
+        if (removeFirstFlowFileIfAvailable && !flowFiles.isEmpty()) {
+            final FlowFile flowFile = flowFiles.removeFirst();
+            session.remove(flowFile);
             if (writer != null) {
                 try {
                     writer.close();
