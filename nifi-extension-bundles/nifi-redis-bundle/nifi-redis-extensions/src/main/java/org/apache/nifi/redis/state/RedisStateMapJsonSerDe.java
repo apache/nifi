@@ -82,7 +82,7 @@ public class RedisStateMapJsonSerDe implements RedisStateMapSerDe {
             builder.encodingVersion(rootNode.get(FIELD_ENCODING).asInt());
 
             final JsonNode stateValuesNode = rootNode.get(FIELD_STATE_VALUES);
-            stateValuesNode.fields().forEachRemaining(e -> builder.stateValue(e.getKey(), e.getValue().asText()));
+            stateValuesNode.properties().iterator().forEachRemaining(e -> builder.stateValue(e.getKey(), e.getValue().asText()));
         }
 
         return builder.build();
