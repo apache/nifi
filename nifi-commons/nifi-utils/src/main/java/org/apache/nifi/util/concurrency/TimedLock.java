@@ -27,13 +27,11 @@ public class TimedLock {
     private final DebugEnabledTimedLock enabled;
     private final DebugDisabledTimedLock disabled;
 
-    private final Logger logger;
+    private static final Logger logger = LoggerFactory.getLogger(TimedLock.class.getName());
 
     public TimedLock(final Lock lock, final String name, final int iterationFrequency) {
         this.enabled = new DebugEnabledTimedLock(lock, name, iterationFrequency);
         this.disabled = new DebugDisabledTimedLock(lock);
-
-        logger = LoggerFactory.getLogger(TimedLock.class.getName() + "." + name);
     }
 
     private DebuggableTimedLock getLock() {
