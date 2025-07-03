@@ -1323,7 +1323,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanStart() {
         final ScheduledState currentState = getPhysicalScheduledState();
-        if (currentState != ScheduledState.STOPPED && currentState != ScheduledState.DISABLED) {
+        if (currentState == ScheduledState.DISABLED) {
+            throw new IllegalStateException(this + " cannot be started because it is disabled. Enable the processor first.");
+        }
+        if (currentState != ScheduledState.STOPPED) {
             throw new IllegalStateException(this + " cannot be started because it is not stopped. Current state is " + currentState.name());
         }
 
@@ -1397,13 +1400,22 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void disable() {
         setDesiredState(ScheduledState.DISABLED);
-        final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
+        synchronized (this) {
+        final ScheduledState currentState = scheduledState.get();
+        if (currentState == ScheduledState.STOPPED) {
+            final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
 
-        if (updated) {
-            LOG.info("{} disabled so ScheduledState transitioned from STOPPED to DISABLED", this);
+            if (updated) {
+                LOG.info("{} disabled so ScheduledState from STOPPED to DISABLED", this);
+            } else {
+                LOG.info("{} disabled but not currently STOPPED so set desired state to DISABLED; current state is {}", this, scheduledState.get());
+            }
+        } else if (currentState == ScheduledState.STARTING || currentState == ScheduledState.STOPPING) {
+            LOG.info("{} is being disabled but is currently in {} state. Will wait for state to transition to STOPPED before disabling.", this, currentState);
         } else {
-            LOG.info("{} disabled but not currently STOPPED so set desired state to DISABLED; current state is {}", this, scheduledState.get());
+            LOG.info("{} disabled but not in a valid state for disabling; transition to DISABLED will occur when stopped; current state is {}", this, currentState);
         }
+    }
     }
 
     private void setDesiredState(final ScheduledState desiredState) {
@@ -1484,6 +1496,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         boolean starting;
         synchronized (this) {
             currentState = this.scheduledState.get();
+
+            if (getValidationStatus() != ValidationStatus.VALID) {
+            procLog.warn("Cannot start {} because it is not valid. Validation errors: {}", this, getValidationErrors());
+            return;
+            }
+
+            if (currentState == ScheduledState.DISABLED) {
+            procLog.warn("Cannot start {} because it is disabled", this);
+            return;
+            }
 
             if (currentState == ScheduledState.STOPPED) {
                 starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
@@ -1624,6 +1646,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final Processor processor = getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
 
+        if (scheduledState.get() == ScheduledState.DISABLED) {
+        procLog.warn("Cannot initiate start for {} because it is disabled", this);
+        schedulingAgentCallback.onTaskComplete();
+        completeStopAction();
+        return;
+        }
         // Completion Timestamp is set to MAX_VALUE because we don't want to timeout until the task has a chance to run.
         final AtomicLong completionTimestampRef = new AtomicLong(Long.MAX_VALUE);
 
@@ -1807,7 +1835,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final SchedulingAgent schedulingAgent, final LifecycleState lifecycleState, final ProcessorStopLifecycleMethods lifecycleMethods) {
 
         final Processor processor = processorRef.get().getProcessor();
+        final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
         LOG.debug("Stopping processor: {}", this);
+
+        synchronized (this) {
+            if (scheduledState.get() == ScheduledState.DISABLED) {
+                procLog.warn("Cannot stop {} because it is disabled", this);
+                return CompletableFuture.completedFuture(null);
+            }
+        } 
         setDesiredState(ScheduledState.STOPPED);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
@@ -1929,6 +1965,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             LOG.info("{} has completely stopped. Completing any associated Futures.", this);
             this.hasActiveThreads = false;
             this.scheduledState.set(ScheduledState.STOPPED);
+
+            final ScheduledState desired = this.desiredState;
+            if (desired == ScheduledState.DISABLED) {
+                final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
+                if (updated) {
+                    LOG.info("Desired state for {} is DISABLED, so transitioned from STOPPED to DISABLED", this);
+                } else {
+                    LOG.warn("Desired state for {} is DISABLED, but could not transition from STOPPED to DISABLED. Current state is {}", this, scheduledState.get());
+                }
+            }
 
             final List<CompletableFuture<Void>> futures = this.stopFutures.getAndSet(new ArrayList<>());
             futures.forEach(f -> f.complete(null));
