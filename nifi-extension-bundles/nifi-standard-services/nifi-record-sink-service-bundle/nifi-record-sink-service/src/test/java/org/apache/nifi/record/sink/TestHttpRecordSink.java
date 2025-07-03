@@ -18,9 +18,9 @@
 package org.apache.nifi.record.sink;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
@@ -46,7 +46,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -146,7 +145,7 @@ public class TestHttpRecordSink {
 
     @AfterEach
     public void cleanUpEachTest() throws IOException {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
@@ -250,7 +249,7 @@ public class TestHttpRecordSink {
         testRunner.enableControllerService(httpRecordSink);
 
         for (int i = 0; i < expectedRequestCount; i++) {
-            mockWebServer.enqueue(new MockResponse());
+            mockWebServer.enqueue(new MockResponse.Builder().build());
         }
 
         final WriteResult writeResult = httpRecordSink.sendData(recordSetIn, Collections.emptyMap(), false);
@@ -263,7 +262,7 @@ public class TestHttpRecordSink {
 
         for (int i = 0; i < expectedRequestCount; i++) {
             RecordedRequest recordedRequest = mockWebServer.takeRequest();
-            String requestBody = recordedRequest.getBody().readString(StandardCharsets.UTF_8);
+            String requestBody = recordedRequest.getBody().utf8();
             Person[] people =
                     (maxBatchSize == 1)
                             ? new Person[] {
@@ -277,10 +276,10 @@ public class TestHttpRecordSink {
                 assertTrue(people[personIndex].equals(records[compareIndex]), "Mismatch - Expected: " + records[compareIndex].toMap().toString() +
                         " Actual: {" + people[personIndex].toString() + "} order of fields can be ignored.");
             }
-            String actualContentTypeHeader = recordedRequest.getHeader(HttpHeader.CONTENT_TYPE.toString());
+            String actualContentTypeHeader = recordedRequest.getHeaders().get(HttpHeader.CONTENT_TYPE.toString());
             assertEquals(expectedContentType != null ? expectedContentType : "application/json", actualContentTypeHeader);
 
-            String actualAuthorizationHeader = recordedRequest.getHeader(HttpHeader.AUTHORIZATION.toString());
+            String actualAuthorizationHeader = recordedRequest.getHeaders().get(HttpHeader.AUTHORIZATION.toString());
             assertEquals("Bearer " + (expectedAuthorization != null ? expectedAuthorization : OAUTH_ACCESS_TOKEN),
                     actualAuthorizationHeader);
         }

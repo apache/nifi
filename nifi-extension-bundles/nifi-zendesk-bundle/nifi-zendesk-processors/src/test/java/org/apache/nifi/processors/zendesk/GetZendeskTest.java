@@ -17,10 +17,10 @@
 
 package org.apache.nifi.processors.zendesk;
 
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -50,9 +50,9 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTIC
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
+import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
+import static org.apache.nifi.processors.zendesk.AbstractZendesk.REL_SUCCESS;
 import static org.apache.nifi.processors.zendesk.GetZendesk.HTTP_TOO_MANY_REQUESTS;
-import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.REL_SUCCESS;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE;
@@ -118,14 +118,17 @@ public class GetZendeskTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        server.shutdown();
+        server.close();
     }
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
     public void testQueryStartTimestampIsUsedWhenNoStateIsAvailable(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
@@ -136,14 +139,17 @@ public class GetZendeskTest {
         RecordedRequest request = server.takeRequest();
         assertEquals(
             zendeskResource.apiPath(exportMethod) + "?" + exportMethod.getInitialCursorQueryParameterName() + "=" + DEFAULT_QUERY_START_TIMESTAMP,
-            request.getPath());
+                request.getTarget());
     }
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
     public void testCursorFromStateIsUsedWhenStateIsAvailable(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException, IOException {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
         testRunner.getStateManager().setState(singletonMap(zendeskResource.getValue() + exportMethod.getValue(), DEFAULT_CURSOR_VALUE), CLUSTER);
@@ -155,15 +161,17 @@ public class GetZendeskTest {
         RecordedRequest request = server.takeRequest();
         assertEquals(
             zendeskResource.apiPath(exportMethod) + "?" + exportMethod.getCursorQueryParameterName() + "=" + DEFAULT_CURSOR_VALUE,
-            request.getPath());
+                request.getTarget());
     }
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
     public void testCursorPositionIsStoredInState(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws IOException {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK)
-            .setBody(format(RESPONSE_WITH_CURSOR_FIELD_TEMPLATE, exportMethod.getCursorJsonFieldName())));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(format(RESPONSE_WITH_CURSOR_FIELD_TEMPLATE, exportMethod.getCursorJsonFieldName()))
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
         String stateKey = zendeskResource.getValue() + exportMethod.getValue();
@@ -180,8 +188,10 @@ public class GetZendeskTest {
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
     public void testFlowFileIsCreatedAndContentIsAddedAndFlowFileAttributeIsSet(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK)
-            .setBody(format(RESPONSE_WITH_THREE_RECORDS_TEMPLATE, zendeskResource.getResponseFieldName())));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(format(RESPONSE_WITH_THREE_RECORDS_TEMPLATE, zendeskResource.getResponseFieldName()))
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
@@ -200,8 +210,10 @@ public class GetZendeskTest {
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
     public void testNoFlowFileIsEmittedWhenZeroRecordsAreSent(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK)
-            .setBody(format(RESPONSE_WITH_ZERO_RECORDS_TEMPLATE, zendeskResource.getResponseFieldName())));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(format(RESPONSE_WITH_ZERO_RECORDS_TEMPLATE, zendeskResource.getResponseFieldName()))
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
@@ -216,7 +228,9 @@ public class GetZendeskTest {
     @Test
     public void testNoFlowFileIsEmittedWhenTooManyRequestResponseCodeReceived() {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_TOO_MANY_REQUESTS));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_TOO_MANY_REQUESTS)
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, TICKETS);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, CURSOR);
 
@@ -231,8 +245,10 @@ public class GetZendeskTest {
     @Test
     public void testNoFlowFileIsEmittedWhenNonOkHttpResponseIsSent() {
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST)
-            .setBody(format(RESPONSE_WITH_ZERO_RECORDS_TEMPLATE, TICKETS.getResponseFieldName())));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_BAD_REQUEST)
+                .body(format(RESPONSE_WITH_ZERO_RECORDS_TEMPLATE, TICKETS.getResponseFieldName()))
+                .build());
         testRunner.setProperty(ZENDESK_RESOURCE, TICKETS);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, CURSOR);
 

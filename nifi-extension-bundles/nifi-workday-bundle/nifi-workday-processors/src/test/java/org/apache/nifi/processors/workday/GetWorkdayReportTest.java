@@ -17,9 +17,9 @@
 
 package org.apache.nifi.processors.workday;
 
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonTreeReader;
@@ -80,14 +80,15 @@ class GetWorkdayReportTest {
     private MockWebServer mockWebServer;
 
     @BeforeEach
-    public void setRunner() {
+    public void setRunner() throws IOException {
         runner = TestRunners.newTestRunner(new GetWorkdayReport());
         mockWebServer = new MockWebServer();
+        mockWebServer.start();
     }
 
     @AfterEach
     public void shutdownServer() throws IOException {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Nested
@@ -222,7 +223,9 @@ class GetWorkdayReportTest {
         withWebClientService();
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(500)
+                .build());
 
         runner.run();
 
@@ -240,7 +243,9 @@ class GetWorkdayReportTest {
         withWebClientService();
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(500)
+                .build());
 
         runner.enqueue("test");
         runner.run();
@@ -280,7 +285,11 @@ class GetWorkdayReportTest {
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
         String content = "id,name\n1,2";
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(content).setHeader(CONTENT_TYPE, TEXT_CSV));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(content)
+                .addHeader(CONTENT_TYPE, TEXT_CSV)
+                .build());
 
         runner.run();
 
@@ -305,7 +314,11 @@ class GetWorkdayReportTest {
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
         String content = "id,name\n1,2";
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(content).setHeader(CONTENT_TYPE, TEXT_CSV));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(content)
+                .addHeader(CONTENT_TYPE, TEXT_CSV)
+                .build());
         runner.enqueue("");
 
         runner.run();
@@ -337,7 +350,11 @@ class GetWorkdayReportTest {
 
         String jsonContent = "{\"id\": 1, \"name\": \"test\"}";
         String csvContent = "id,name\n1,test\n";
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(jsonContent).setHeader(CONTENT_TYPE, APPLICATION_JSON));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(jsonContent)
+                .addHeader(CONTENT_TYPE, APPLICATION_JSON)
+                .build());
 
         runner.run();
 
@@ -362,12 +379,15 @@ class GetWorkdayReportTest {
         runner.setProperty(GetWorkdayReport.AUTH_TYPE, GetWorkdayReport.OAUTH_TYPE);
         withAccessTokenProvider();
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setHeader(CONTENT_TYPE, APPLICATION_JSON));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .addHeader(CONTENT_TYPE, APPLICATION_JSON)
+                .build());
 
         runner.run();
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
-        String authorization = recordedRequest.getHeader(HEADER_AUTHORIZATION);
+        String authorization = recordedRequest.getHeaders().get(HEADER_AUTHORIZATION);
         assertNotNull(authorization, "Authorization Header not found");
 
         Pattern bearerPattern = Pattern.compile("^Bearer \\S+$");
@@ -382,12 +402,15 @@ class GetWorkdayReportTest {
         withWebClientService();
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setHeader(CONTENT_TYPE, APPLICATION_JSON));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .addHeader(CONTENT_TYPE, APPLICATION_JSON)
+                .build());
 
         runner.run();
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
-        String authorization = recordedRequest.getHeader(HEADER_AUTHORIZATION);
+        String authorization = recordedRequest.getHeaders().get(HEADER_AUTHORIZATION);
         assertNotNull(authorization, "Authorization Header not found");
 
         Pattern basicAuthPattern = Pattern.compile("^Basic \\S+$");
