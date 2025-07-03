@@ -44,7 +44,7 @@ public class AmazonGlueEncodedSchemaReferenceReader extends AbstractControllerSe
                     + AWSSchemaRegistryConstants.COMPRESSION_BYTE_SIZE
                     + AWSSchemaRegistryConstants.SCHEMA_VERSION_ID_SIZE;
 
-    private static final Set<SchemaField> SUPPLIED_SCHEMA_FIELDS = Set.of(SchemaField.SCHEMA_BRANCH_NAME);
+    private static final Set<SchemaField> SUPPLIED_SCHEMA_FIELDS = Set.of(SchemaField.SCHEMA_NAME);
 
     @Override
     public SchemaIdentifier getSchemaIdentifier(final Map<String, String> variables, final InputStream contentStream) throws SchemaNotFoundException {

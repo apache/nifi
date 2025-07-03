@@ -102,7 +102,8 @@ class GlueSchemaRegistryClientTest {
 
         schemaRegistryClient = new GlueSchemaRegistryClient(mockClient, REGISTRY_NAME);
 
-        when(mockClient.getSchemaVersion(any(GetSchemaVersionRequest.class))).thenReturn(mockResponse);
+        when(mockClient.getSchemaVersion(argThat((GetSchemaVersionRequest req) -> schemaVersionId.toString().equals(req.schemaVersionId()))).thenReturn(mockResponse);
+
 
         final RecordSchema actualSchema = schemaRegistryClient.getSchema(schemaVersionId);
 
