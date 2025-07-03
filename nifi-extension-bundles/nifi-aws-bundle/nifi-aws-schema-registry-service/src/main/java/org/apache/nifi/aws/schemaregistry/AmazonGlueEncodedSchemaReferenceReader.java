@@ -61,7 +61,7 @@ public class AmazonGlueEncodedSchemaReferenceReader extends AbstractControllerSe
             throw new SchemaNotFoundException("Failed to parse Glue Schema Registry header: %s".formatted(errorStringBuilder));
         }
         final UUID schemaVersionId = deserializerDataParser.getSchemaVersionId(headerBuffer);
-        return SchemaIdentifier.builder().name(WireFormatSchemaVersionIdUtil.toWireFormatName(schemaVersionId)).build();
+        return SchemaIdentifier.builder().name(new WireFormatAwsGlueSchemaId(schemaVersionId).toSchemaName()).build();
     }
 
     @Override

@@ -16,30 +16,28 @@
  */
 package org.apache.nifi.aws.schemaregistry;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public class WireFormatSchemaVersionIdUtil {
+record WireFormatAwsGlueSchemaId(UUID id) {
     private static final String GLUE_SCHEMA_REGISTRY_WIRE_FORMAT_UUID_PREFIX = "aws-glue-schema-registry-wire-format-uuid$$";
 
-    private WireFormatSchemaVersionIdUtil() {
-        // Prevent instantiation
+    WireFormatAwsGlueSchemaId {
+        Objects.requireNonNull(id, "Schema version ID must not be null");
     }
 
-    public static String toWireFormatName(final UUID schemaVersionId) {
-        if (schemaVersionId == null) {
-            throw new IllegalArgumentException("Schema version ID must not be null");
-        }
-        return GLUE_SCHEMA_REGISTRY_WIRE_FORMAT_UUID_PREFIX + schemaVersionId;
+    public String toSchemaName() {
+        return GLUE_SCHEMA_REGISTRY_WIRE_FORMAT_UUID_PREFIX + id;
     }
 
-    public static Optional<UUID> fromWireFormatName(final String schemaName) {
+    public static Optional<WireFormatAwsGlueSchemaId> fromSchemaName(final String name) {
         try {
-            if (!isWireFormatName(schemaName)) {
+            if (!isWireFormatName(name)) {
                 return Optional.empty();
             }
-            final UUID uuid = UUID.fromString(schemaName.substring(GLUE_SCHEMA_REGISTRY_WIRE_FORMAT_UUID_PREFIX.length()));
-            return Optional.of(uuid);
+            final UUID uuid = UUID.fromString(name.substring(GLUE_SCHEMA_REGISTRY_WIRE_FORMAT_UUID_PREFIX.length()));
+            return Optional.of(new WireFormatAwsGlueSchemaId(uuid));
         } catch (final IllegalArgumentException e) {
             // If the string is not a valid UUID, return empty
             return Optional.empty();

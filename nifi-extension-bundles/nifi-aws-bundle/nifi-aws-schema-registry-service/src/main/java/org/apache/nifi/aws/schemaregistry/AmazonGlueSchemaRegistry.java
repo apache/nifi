@@ -60,7 +60,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"schema", "registry", "aws", "avro", "glue"})
@@ -187,11 +186,11 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
                 () -> new SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present")
         );
 
-        if (WireFormatSchemaVersionIdUtil.isWireFormatName(schemaName)) {
-            final UUID schemaVersionId = WireFormatSchemaVersionIdUtil.fromWireFormatName(schemaName).orElseThrow(
+        if (WireFormatAwsGlueSchemaId.isWireFormatName(schemaName)) {
+            final WireFormatAwsGlueSchemaId schemaVersionId = WireFormatAwsGlueSchemaId.fromSchemaName(schemaName).orElseThrow(
                     () -> new SchemaNotFoundException("Cannot retrieve schema because Schema Name does not contain a valid Schema Version ID: " + schemaName)
             );
-            return client.getSchema(schemaVersionId);
+            return client.getSchema(schemaVersionId.id());
         }
 
         final OptionalInt version = schemaIdentifier.getVersion();
