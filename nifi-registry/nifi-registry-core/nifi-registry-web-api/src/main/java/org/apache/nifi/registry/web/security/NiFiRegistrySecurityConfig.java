@@ -55,10 +55,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import java.io.IOException;
-
-import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
 /**
  * Spring Security Filter Configuration
@@ -112,12 +111,12 @@ public class NiFiRegistrySecurityConfig {
                 )
                 .authorizeRequests((authorize) -> authorize
                         .requestMatchers(
-                                antMatcher("/access/token"),
-                                antMatcher("/access/token/identity-provider"),
-                                antMatcher("/access/token/kerberos"),
-                                antMatcher("/access/oidc/callback"),
-                                antMatcher("/access/oidc/exchange"),
-                                antMatcher("/access/oidc/request")
+                                PathPatternRequestMatcher.withDefaults().matcher("/access/token"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/access/token/identity-provider"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/access/token/kerberos"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/access/oidc/callback"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/access/oidc/exchange"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/access/oidc/request")
                         )
                         .permitAll()
                         .anyRequest().fullyAuthenticated()
