@@ -22,7 +22,7 @@
 nf-registry.*.min.*
 vendor.min.*
 index.html
-registry-favicon.png
+/registry-favicon.png
 # Only exists if Bazel was run
 /bazel-out
 
