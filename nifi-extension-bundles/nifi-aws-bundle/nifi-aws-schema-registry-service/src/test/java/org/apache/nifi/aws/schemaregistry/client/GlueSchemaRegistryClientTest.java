@@ -33,6 +33,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -89,7 +90,7 @@ class GlueSchemaRegistryClientTest {
     }
 
     @Test
-    void getSchemaWithNameVersionIdInvokesClientAndReturnsRecordSchema() throws IOException, SchemaNotFoundException {
+    void getSchemaWithNameVersionIdInvokesClientAndReturnsRecordSchema() throws SchemaNotFoundException {
         UUID schemaVersionId = UUID.randomUUID();
         String schemaArn = "arn:aws:glue:us-east-1:123456789012:schema/registry/name";
 
@@ -102,8 +103,7 @@ class GlueSchemaRegistryClientTest {
 
         schemaRegistryClient = new GlueSchemaRegistryClient(mockClient, REGISTRY_NAME);
 
-        when(mockClient.getSchemaVersion(argThat((GetSchemaVersionRequest req) -> schemaVersionId.toString().equals(req.schemaVersionId()))).thenReturn(mockResponse);
-
+        when(mockClient.getSchemaVersion(argThat((GetSchemaVersionRequest req) -> schemaVersionId.toString().equals(req.schemaVersionId())))).thenReturn(mockResponse);
 
         final RecordSchema actualSchema = schemaRegistryClient.getSchema(schemaVersionId);
 
