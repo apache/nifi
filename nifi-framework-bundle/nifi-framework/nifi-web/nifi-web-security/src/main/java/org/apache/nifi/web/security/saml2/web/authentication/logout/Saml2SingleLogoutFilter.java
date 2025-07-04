@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
@@ -46,7 +46,7 @@ public class Saml2SingleLogoutFilter extends OncePerRequestFilter {
 
     private static final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
 
-    private final AntPathRequestMatcher requestMatcher = new AntPathRequestMatcher(SamlUrlPath.SINGLE_LOGOUT_REQUEST.getPath());
+    private final PathPatternRequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher(SamlUrlPath.SINGLE_LOGOUT_REQUEST.getPath());
 
     private final LogoutRequestManager logoutRequestManager;
 
