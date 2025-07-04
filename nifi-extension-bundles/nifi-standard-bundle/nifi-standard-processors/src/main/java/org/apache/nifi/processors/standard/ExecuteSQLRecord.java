@@ -39,9 +39,7 @@ import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.db.JdbcCommon;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
@@ -190,9 +188,24 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
                 .defaultPrecision(defaultPrecision)
                 .defaultScale(defaultScale)
                 .build();
-        final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+        final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY)
+                .asControllerService(RecordSetWriterFactory.class);
 
-        return new RecordSqlWriter(recordSetWriterFactory, options, maxRowsPerFlowFile, fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
+        final Map<String, String> attributes = new HashMap<>();
+        if (fileToProcess != null) {
+            attributes.putAll(fileToProcess.getAttributes());
+        }
+
+// OPTIONAL — inject value separator if not passed by user already
+        final String evaluatedSeparator = context.getProperty(RECORD_WRITER_FACTORY)
+                .evaluateAttributeExpressions(fileToProcess)
+                .getValue();
+        if (evaluatedSeparator != null && evaluatedSeparator.length() == 1) {
+            attributes.put("csv.delimiter", evaluatedSeparator);  // Or "value.separator"
+        }
+
+        return new RecordSqlWriter(recordSetWriterFactory, options, maxRowsPerFlowFile, attributes);
+
     }
 
     @Override

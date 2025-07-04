@@ -33,7 +33,7 @@ import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.OutputStream; 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -56,12 +56,15 @@ public class RecordSqlWriter implements SqlWriter {
     private String mimeType;
 
     public RecordSqlWriter(RecordSetWriterFactory recordSetWriterFactory, AvroConversionOptions options, int maxRowsPerFlowFile, Map<String, String> originalAttributes) {
-        this.recordSetWriterFactory = recordSetWriterFactory;
-        this.writeResultRef = new AtomicReference<>();
-        this.maxRowsPerFlowFile = maxRowsPerFlowFile;
-        this.options = options;
-        this.originalAttributes = originalAttributes;
-    }
+    this.writeResultRef = new AtomicReference<>();
+    this.maxRowsPerFlowFile = maxRowsPerFlowFile;
+    this.recordSetWriterFactory = recordSetWriterFactory;
+    this.originalAttributes = originalAttributes;
+
+
+    // Create a new AvroConversionOptions with the evaluated options
+    this.options = options;
+}
 
     @Override
     public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, ResultSetRowCallback callback) throws Exception {
@@ -78,7 +81,7 @@ public class RecordSqlWriter implements SqlWriter {
         } catch (final SQLException | SchemaNotFoundException | IOException e) {
             throw new ProcessException(e);
         }
-        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, Collections.emptyMap())) {
+        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, originalAttributes)) {
             writeResultRef.set(resultSetWriter.write(recordSet));
             if (mimeType == null) {
                 mimeType = resultSetWriter.getMimeType();
