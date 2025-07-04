@@ -40,6 +40,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +57,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -1199,6 +1202,22 @@ public class TestMergeContent {
         runner.run();
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+    }
+
+    @Test
+    public void testBinReleasedWhenOnlyMaxBinAgeConditionIsFulfilled() {
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "2 sec");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+
+        Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .pollInterval(Duration.ofSeconds(1))
+                .untilAsserted(() -> {
+                    runner.enqueue(new byte[0]);
+                    runner.run(1, false);
+                    runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+                });
     }
 
     @Test
