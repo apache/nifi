@@ -188,6 +188,9 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         try {
             processRecord(flowFiles, kinesisRecord, session, stopWatch);
             processedSuccessfully = true;
+        } catch (final KinesisBatchUnrecoverableException e) {
+            // don't attempt retry, rethrow
+            throw e;
         } catch (final Exception e) {
             log.error("Caught Exception while processing Kinesis record {}", kinesisRecord, e);
 
@@ -348,5 +351,11 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
     void setProcessingRecords(final boolean processingRecords) {
         this.processingRecords = processingRecords;
+    }
+
+    protected static class KinesisBatchUnrecoverableException extends RuntimeException {
+        public KinesisBatchUnrecoverableException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
     }
 }

@@ -58,11 +58,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     final RecordSetWriterFactory writerFactory;
     final Map<String, String> schemaRetrievalVariables;
 
-    private FlowFileState flowFileState;
+    private FlowFileState currentFlowFileState;
     private final RecordConverter recordConverter;
-
-    private KinesisClientRecord failedKinesisRecordCausingDataLoss = null;
-    private CompleteFlowFileMultipleKinesisRecordException failedKinesisRecordCausingDataLossException = null;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
@@ -82,10 +79,10 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     @Override
     void startProcessingRecords() {
         super.startProcessingRecords();
-        if (flowFileState != null) {
+        if (currentFlowFileState != null) {
             getLogger().warn("FlowFile State is not null at the start of processing records, this is not expected.");
-            closeSafe(flowFileState, "FlowFile State");
-            flowFileState = null;
+            closeSafe(currentFlowFileState, "FlowFile State");
+            currentFlowFileState = null;
         }
     }
 
@@ -93,43 +90,36 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     void finishProcessingRecords(final ProcessSession session, final List<FlowFile> flowFiles, final StopWatch stopWatch) {
         super.finishProcessingRecords(session, flowFiles, stopWatch);
         try {
-            if (flowFileState == null) {
+            if (currentFlowFileState == null) {
                 return;
             }
-            if (!flowFiles.contains(flowFileState.flowFile)) {
+            if (!flowFiles.contains(currentFlowFileState.flowFile)) {
                 getLogger().warn("Currently processed FlowFile is no longer available at processing end, this is not expected.", flowFiles);
-                closeSafe(flowFileState, "FlowFile State");
+                closeSafe(currentFlowFileState, "FlowFile State");
                 return;
             }
             completeFlowFile(flowFiles, session, stopWatch);
-        } catch (CompleteFlowFileSingleKinesisRecordException e) {
-            final boolean removeFirstFlowFileIfAvailable = true;
-            final KinesisClientRecord kinesisRecord = e.kinesisClientRecord;
+        } catch (final FlowFileCompletionException e) {
+            if (!currentFlowFileState.containsDataFromExactlyOneKinesisRecord()) {
+                throw new KinesisBatchUnrecoverableException(e.getMessage(), e);
+            }
+            final boolean removeCurrentStateFlowFileIfAvailable = true;
+            final KinesisClientRecord kinesisRecord = currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord;
             final byte[] data = getData(kinesisRecord);
-            outputRawRecordOnException(removeFirstFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
+            outputRawRecordOnException(removeCurrentStateFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
         } finally {
-            flowFileState = null;
-            failedKinesisRecordCausingDataLoss = null;
-            failedKinesisRecordCausingDataLossException = null;
+            currentFlowFileState = null;
         }
     }
 
     @Override
     void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
-        if (flowFileState != null && !flowFiles.contains(flowFileState.flowFile)) {
+        if (currentFlowFileState != null && !flowFiles.contains(currentFlowFileState.flowFile)) {
             getLogger().warn("Currently processed FlowFile is no longer available, this is not expected.", flowFiles);
-            closeSafe(flowFileState, "FlowFile State");
-            flowFileState = null;
+            closeSafe(currentFlowFileState, "FlowFile State");
+            currentFlowFileState = null;
         }
-        if (kinesisRecord == failedKinesisRecordCausingDataLoss)  {
-            // AbstractKinesisRecordProcessor does retry processing of failed records. however in case of CompleteFlowFileMultipleKinesisRecordException it is impossible to determine the state of
-            // the affected FlowFile and replay all records that were in it. To prevent data loss, the exception needs to be rethrown until it is given up by the abstract processor. still there may be
-            // other cases where we end up in undetermined state.
-            throw failedKinesisRecordCausingDataLossException;
-        }
-        failedKinesisRecordCausingDataLoss = null;
-        failedKinesisRecordCausingDataLossException = null;
 
         final byte[] data = getData(kinesisRecord);
 
@@ -140,34 +130,33 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             final PushBackRecordSet recordSet = new PushBackRecordSet(reader.createRecordSet());
             while ((intermediateRecord = recordSet.next()) != null) {
                 final Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
-                if (flowFileState == null) {
+                if (currentFlowFileState == null) {
                     // writer schema is determined by some, usually the first record
-                    flowFileState = initializeState(session, outputRecord, null);
-                    flowFiles.add(flowFileState.flowFile);
+                    currentFlowFileState = initializeState(session, outputRecord, null);
+                    flowFiles.add(currentFlowFileState.flowFile);
                 }
 
-                if (!DataTypeUtils.isRecordTypeCompatible(flowFileState.recordSchema, outputRecord, false)) {
+                if (!DataTypeUtils.isRecordTypeCompatible(currentFlowFileState.recordSchema, outputRecord, false)) {
                     // subsequent records may have different schema. if so, try complete current FlowFile and start a new one with wider schema to continue
                     completeFlowFile(flowFiles, session, stopWatch);
-                    flowFileState = initializeState(session, outputRecord, flowFileState);
-                    flowFiles.add(flowFileState.flowFile);
+                    currentFlowFileState = initializeState(session, outputRecord, currentFlowFileState);
+                    flowFiles.add(currentFlowFileState.flowFile);
                 }
 
-                flowFileState.write(outputRecord, kinesisRecord);
+                currentFlowFileState.write(outputRecord, kinesisRecord);
             }
-        } catch (final CompleteFlowFileMultipleKinesisRecordException dataLossException) {
-            failedKinesisRecordCausingDataLoss = kinesisRecord;
-            failedKinesisRecordCausingDataLossException = dataLossException;
-            throw dataLossException;
-        } catch (final MalformedRecordException | IOException | SchemaNotFoundException | IllegalTypeConversionException | CompleteFlowFileSingleKinesisRecordException e) {
+        } catch (final MalformedRecordException | IOException | SchemaNotFoundException | IllegalTypeConversionException | FlowFileCompletionException e) {
+            if (e instanceof FlowFileCompletionException && currentFlowFileState != null && !currentFlowFileState.containsDataFromExactlyOneKinesisRecord())  {
+                // in case of multiple Kinesis Records in FlowFile, the whole batch needs to be failed, otherwise data can be lost
+                throw new KinesisBatchUnrecoverableException(e.getMessage(), e);
+            }
             // write raw Kinesis Record to the parse failure relationship
             getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
-            // nothing was written, file can be removed
-            final boolean removeCurrentStateFlowFileIfAvailable = flowFileState != null && flowFileState.isFlowFileEmpty();
+            final boolean removeCurrentStateFlowFileIfAvailable = currentFlowFileState != null && currentFlowFileState.isFlowFileEmpty();
             outputRawRecordOnException(removeCurrentStateFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
             if (removeCurrentStateFlowFileIfAvailable) {
-                flowFileState = null;
+                currentFlowFileState = null;
             }
         }
 
@@ -218,53 +207,47 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     }
 
     private void completeFlowFile(final List<FlowFile> flowFiles, final ProcessSession session, final StopWatch stopWatch)
-            throws CompleteFlowFileSingleKinesisRecordException {
-        if (flowFileState.isFlowFileEmpty()) {
-            flowFiles.remove(flowFileState.flowFile);
-            session.remove(flowFileState.flowFile);
-            closeSafe(flowFileState, "FlowFile State");
+            throws FlowFileCompletionException {
+        if (currentFlowFileState.isFlowFileEmpty()) {
+            flowFiles.remove(currentFlowFileState.flowFile);
+            session.remove(currentFlowFileState.flowFile);
+            closeSafe(currentFlowFileState, "FlowFile State");
             return;
         }
         try {
-            flowFileState.writer.finishRecordSet();
-            closeSafe(flowFileState, "FlowFile State");
-            reportProvenance(session, flowFileState.flowFile, null, null, stopWatch);
+            currentFlowFileState.writer.finishRecordSet();
+            closeSafe(currentFlowFileState, "FlowFile State");
+            reportProvenance(session, currentFlowFileState.flowFile, null, null, stopWatch);
 
-            final Map<String, String> attributes = getDefaultAttributes(flowFileState.lastSuccessfulWriteInfo.kinesisRecord);
-            attributes.put("record.count", String.valueOf(flowFileState.lastSuccessfulWriteInfo.writeResult.getRecordCount()));
-            attributes.put(CoreAttributes.MIME_TYPE.key(), flowFileState.writer.getMimeType());
-            attributes.putAll(flowFileState.lastSuccessfulWriteInfo.writeResult.getAttributes());
-            final int flowFileIndex = flowFiles.indexOf(flowFileState.flowFile);
-            flowFiles.set(flowFileIndex, session.putAllAttributes(flowFileState.flowFile, attributes));
+            final Map<String, String> attributes = getDefaultAttributes(currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord);
+            attributes.put("record.count", String.valueOf(currentFlowFileState.lastSuccessfulWriteInfo.writeResult.getRecordCount()));
+            attributes.put(CoreAttributes.MIME_TYPE.key(), currentFlowFileState.writer.getMimeType());
+            attributes.putAll(currentFlowFileState.lastSuccessfulWriteInfo.writeResult.getAttributes());
+            final int flowFileIndex = flowFiles.indexOf(currentFlowFileState.flowFile);
+            flowFiles.set(flowFileIndex, session.putAllAttributes(currentFlowFileState.flowFile, attributes));
         } catch (final IOException e) {
-            flowFiles.remove(flowFileState.flowFile);
-            session.remove(flowFileState.flowFile);
-            closeSafe(flowFileState, "FlowFile State");
+            flowFiles.remove(currentFlowFileState.flowFile);
+            session.remove(currentFlowFileState.flowFile);
+            closeSafe(currentFlowFileState, "FlowFile State");
             final String message = "Failed to complete a FlowFile containing records from Stream Name: %s, Shard Id: %s, Sequence/Subsequence No range: [%s/%d, %s/%d)".formatted(
                     getStreamName(),
                     getKinesisShardId(),
-                    flowFileState.firstSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
-                    flowFileState.firstSuccessfulWriteInfo.kinesisRecord.subSequenceNumber(),
-                    flowFileState.lastSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
-                    flowFileState.lastSuccessfulWriteInfo.kinesisRecord.subSequenceNumber()
+                    currentFlowFileState.firstSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                    currentFlowFileState.firstSuccessfulWriteInfo.kinesisRecord.subSequenceNumber(),
+                    currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                    currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord.subSequenceNumber()
             );
-            final boolean isSingleKinesisRecordInFlowFile = flowFileState.firstSuccessfulWriteInfo.kinesisRecord.equals(flowFileState.lastSuccessfulWriteInfo.kinesisRecord);
-            if (isSingleKinesisRecordInFlowFile) {
-                // in case of a single Kinesis Record in FlowFile, so we can route it to failure relationship
-                throw new CompleteFlowFileSingleKinesisRecordException(message, e, flowFileState.firstSuccessfulWriteInfo.kinesisRecord);
-            }
-            // in case of multiple Kinesis Records the whole batch needs to be failed, otherwise data can be lost
-            throw new CompleteFlowFileMultipleKinesisRecordException(message, e);
+            throw new FlowFileCompletionException(message, e);
         }
     }
 
     private void outputRawRecordOnException(final boolean removeCurrentStateFlowFileIfAvailable,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
                                             final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
-        if (removeCurrentStateFlowFileIfAvailable && flowFileState != null) {
-            closeSafe(flowFileState, "FlowFile State");
-            session.remove(flowFileState.flowFile);
-            flowFiles.remove(flowFileState.flowFile);
+        if (removeCurrentStateFlowFileIfAvailable && currentFlowFileState != null) {
+            closeSafe(currentFlowFileState, "FlowFile State");
+            session.remove(currentFlowFileState.flowFile);
+            flowFiles.remove(currentFlowFileState.flowFile);
         }
         FlowFile failed = session.create();
         session.write(failed, o -> o.write(data));
@@ -314,6 +297,11 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             return lastSuccessfulWriteInfo == null;
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+        public boolean containsDataFromExactlyOneKinesisRecord() {
+            return !isFlowFileEmpty() && firstSuccessfulWriteInfo.kinesisRecord == lastSuccessfulWriteInfo.kinesisRecord;
+        }
+
         public void write(final Record outputRecord, final KinesisClientRecord kinesisRecord) throws IOException {
             final WriteResult writeResult = writer.write(outputRecord);
             firstSuccessfulWriteInfo = firstSuccessfulWriteInfo == null
@@ -328,24 +316,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
     }
 
-    /**
-     * Exception thrown when there is an issue completing a FlowFile that contains a single Kinesis Record. This exception is used to case when the record can be routed to failure relationship and/or
-     * retried.
-     */
-    private static class CompleteFlowFileSingleKinesisRecordException extends Exception {
-        private final KinesisClientRecord kinesisClientRecord;
-
-        public CompleteFlowFileSingleKinesisRecordException(final String message, final Throwable cause, final KinesisClientRecord kinesisClientRecord) {
-            super(message, cause);
-            this.kinesisClientRecord = kinesisClientRecord;
-        }
-    }
-
-    /**
-     * Exception thrown when there is an issue completing a FlowFile that contains multiple Kinesis Records. This exception is used to case when there is possibility of loosing data.
-     */
-    private static class CompleteFlowFileMultipleKinesisRecordException extends RuntimeException {
-        public CompleteFlowFileMultipleKinesisRecordException(final String message, final Throwable cause) {
+    private static class FlowFileCompletionException extends Exception {
+        public FlowFileCompletionException(final String message, final Throwable cause) {
             super(message, cause);
         }
     }

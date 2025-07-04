@@ -397,7 +397,7 @@ public class TestKinesisRecordProcessorRecord {
         final String inputWithLong = "{\"record\":%s}".formatted(intOverflowValue);
         final String inputWithLongExpected = "{\"record\":%s,\"extraField\":null}".formatted(intOverflowValue);
         final String inputWithIntAnother = "{\"record\":1,\"extraField\":\"inputWithIntAnother\"}";
-        final var inputRecords = Arrays.asList(
+        final List<KinesisClientRecord> inputRecords = Arrays.asList(
                 KinesisClientRecord.builder().approximateArrivalTimestamp(null)
                         .partitionKey("partition-1")
                         .sequenceNumber("1")

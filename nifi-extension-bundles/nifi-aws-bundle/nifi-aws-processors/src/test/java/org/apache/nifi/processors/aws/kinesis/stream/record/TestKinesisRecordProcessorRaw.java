@@ -218,6 +218,7 @@ public class TestKinesisRecordProcessorRaw {
         // check the "poison pill" record was retried a 2nd time
         assertNull(verify(kinesisRecord, times(2)).partitionKey());
         assertNull(verify(kinesisRecord, times(2)).sequenceNumber());
+        assertEquals(0L, verify(kinesisRecord, times(2)).subSequenceNumber());
         assertNull(verify(kinesisRecord, times(2)).approximateArrivalTimestamp());
         assertNull(verify(kinesisRecord, times(2)).data());
         verify(checkpointer, times(1)).checkpoint();
