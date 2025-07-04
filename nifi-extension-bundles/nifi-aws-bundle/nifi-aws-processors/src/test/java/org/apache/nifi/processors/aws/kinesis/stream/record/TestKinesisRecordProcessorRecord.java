@@ -37,13 +37,18 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import software.amazon.kinesis.exceptions.InvalidStateException;
 import software.amazon.kinesis.exceptions.ShutdownException;
 import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
 import software.amazon.kinesis.processor.RecordProcessorCheckpointer;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -56,6 +61,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -284,22 +290,63 @@ public class TestKinesisRecordProcessorRecord {
         session.assertNotRolledBack();
     }
 
-    @Test
-    public void testProcessUnparsableRecordWithRawOutputWithCheckpoint() throws ShutdownException, InvalidStateException {
+    private static Stream<Arguments> unparsableRecordsLists() {
+        final KinesisClientRecord unparsableRecordMock = mock(KinesisClientRecord.class);
+        return Stream.of(
+                Arguments.argumentSet("Unparsable At The Beginning",
+                        Arrays.asList(
+                                unparsableRecordMock,
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-1")
+                                        .sequenceNumber("1")
+                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-3")
+                                        .sequenceNumber("3")
+                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build()
+                        ),
+                        unparsableRecordMock),
+                Arguments.argumentSet("Unparsable In The Middle",
+                        Arrays.asList(
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-1")
+                                        .sequenceNumber("1")
+                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                unparsableRecordMock,
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-3")
+                                        .sequenceNumber("3")
+                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build()
+                        ),
+                        unparsableRecordMock),
+                Arguments.argumentSet("Unparsable At The End",
+                        Arrays.asList(
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-1")
+                                        .sequenceNumber("1")
+                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                                        .partitionKey("partition-3")
+                                        .sequenceNumber("3")
+                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                                        .build(),
+                                unparsableRecordMock
+                        ),
+                        unparsableRecordMock)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("unparsableRecordsLists")
+    void testProcessUnparsableRecordWithRawOutputWithCheckpoint(final List<KinesisClientRecord> inputRecords, final KinesisClientRecord kinesisRecord) throws ShutdownException, InvalidStateException {
+        Mockito.reset(kinesisRecord);
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
-                .records(Arrays.asList(
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-1")
-                                .sequenceNumber("1")
-                                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build(),
-                        kinesisRecord,
-                        KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                .partitionKey("partition-3")
-                                .sequenceNumber("3")
-                                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                .build()
-                ))
+                .records(inputRecords)
                 .checkpointer(checkpointer)
                 .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
                 .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
@@ -341,6 +388,52 @@ public class TestKinesisRecordProcessorRecord {
 
         session.assertCommitted();
         session.assertNotRolledBack();
+    }
+
+    @Test
+    void testSchemaWideningOnSubsequentRecords() throws ShutdownException, InvalidStateException {
+        final String inputWithInt = "{\"record\":1,\"extraField\":\"inputWithInt\"}";
+        final BigInteger intOverflowValue = BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TEN);
+        final String inputWithLong = "{\"record\":%s}".formatted(intOverflowValue);
+        final String inputWithLongExpected = "{\"record\":%s,\"extraField\":null}".formatted(intOverflowValue);
+        final String inputWithIntAnother = "{\"record\":1,\"extraField\":\"inputWithIntAnother\"}";
+        final List<KinesisClientRecord> inputRecords = Arrays.asList(
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-1")
+                        .sequenceNumber("1")
+                        .data(ByteBuffer.wrap(inputWithInt.getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-3")
+                        .sequenceNumber("3")
+                        .data(ByteBuffer.wrap(inputWithLong.getBytes(StandardCharsets.UTF_8)))
+                        .build(),
+                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                        .partitionKey("partition-3")
+                        .sequenceNumber("4")
+                        .data(ByteBuffer.wrap(inputWithIntAnother.getBytes(StandardCharsets.UTF_8)))
+                        .build()
+        );
+
+        final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
+                .records(inputRecords)
+                .checkpointer(checkpointer)
+                .cacheEntryTime(Instant.now().minus(1, ChronoUnit.MINUTES))
+                .cacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
+                .millisBehindLatest(100L)
+                .build();
+
+        fixture.setKinesisShardId("test-shard");
+
+        when(processSessionFactory.createSession()).thenReturn(session);
+        fixture.processRecords(processRecordsInput);
+
+        verify(processSessionFactory, times(1)).createSession();
+        verify(checkpointer, times(1)).checkpoint();
+
+        session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 2);
+        assertFlowFile(session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS).get(0), null, "partition-1", "1", "test-shard", inputWithInt, 1);
+        assertFlowFile(session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS).get(1), null, "partition-3", "4", "test-shard", inputWithLongExpected + "\n" + inputWithIntAnother, 2);
     }
 
     private void assertFlowFile(final MockFlowFile flowFile, final Date approxTimestamp, final String partitionKey,

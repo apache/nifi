@@ -686,7 +686,7 @@ public class DataTypeUtils {
      * @param strict check for a strict match, i.e. all fields in the record should have a corresponding entry in the schema
      * @return True if the object is compatible with the schema
      */
-    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value, boolean strict) {
+    public static boolean isRecordTypeCompatible(RecordSchema schema, Object value, boolean strict) {
 
         if (value == null) {
             return false;

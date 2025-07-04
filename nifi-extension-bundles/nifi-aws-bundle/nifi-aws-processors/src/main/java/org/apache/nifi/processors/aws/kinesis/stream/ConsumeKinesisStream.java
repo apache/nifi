@@ -131,6 +131,8 @@ import java.util.concurrent.atomic.AtomicReference;
                 description = "Shard ID from which the Kinesis Record was read"),
         @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_SEQUENCE_NUMBER,
                 description = "The unique identifier of the (last) Kinesis Record within its Shard"),
+        @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_SUBSEQUENCE_NUMBER,
+                description = "The subsequence identifier of the (last) sub-record within the last Kinesis Record"),
         @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP,
                 description = "Approximate arrival timestamp of the (last) Kinesis Record read from the stream"),
         @WritesAttribute(attribute = "mime.type",
