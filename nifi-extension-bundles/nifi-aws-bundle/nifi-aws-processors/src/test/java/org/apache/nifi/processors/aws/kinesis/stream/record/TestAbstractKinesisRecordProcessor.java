@@ -77,7 +77,7 @@ public class TestAbstractKinesisRecordProcessor {
         fixture = new AbstractKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, NOOP_RECORD_PROCESSOR_BLOCKER) {
             @Override
-            void processRecord(List<FlowFile> flowFiles, KinesisClientRecord kinesisRecord, boolean lastRecord, ProcessSession session, StopWatch stopWatch) {
+            void processRecord(List<FlowFile> flowFiles, KinesisClientRecord kinesisRecord, ProcessSession session, StopWatch stopWatch) {
                 // intentionally blank
             }
         };

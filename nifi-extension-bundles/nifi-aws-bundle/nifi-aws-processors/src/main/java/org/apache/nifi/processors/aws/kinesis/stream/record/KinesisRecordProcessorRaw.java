@@ -40,10 +40,11 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
+    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
         final String partitionKey = kinesisRecord.partitionKey();
         final String sequenceNumber = kinesisRecord.sequenceNumber();
+        final long subSequenceNumber = kinesisRecord.subSequenceNumber();
         final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         final ByteBuffer dataBuffer = kinesisRecord.data();
         byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
@@ -60,7 +61,7 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
 
         reportProvenance(session, flowFile, partitionKey, sequenceNumber, stopWatch);
 
-        final Map<String, String> attributes = getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
+        final Map<String, String> attributes = getDefaultAttributes(sequenceNumber, subSequenceNumber, partitionKey, approximateArrivalTimestamp);
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         flowFiles.add(flowFile);
