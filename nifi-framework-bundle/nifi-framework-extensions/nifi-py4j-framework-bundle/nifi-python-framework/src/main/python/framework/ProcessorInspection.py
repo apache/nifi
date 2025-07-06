@@ -66,7 +66,7 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
                                actual_property = imported_value
                            if actual_property is None:
                                self.logger.error(f"Cannot resolve property descriptor '{variable_name}' in {self.processor_name}. Skipping.")
-                                       continuegu
+                                       continue
                 dependent_values = []
                 for dependent_value in dependency.args[1:]:
                     dependent_values.append(get_constant_values(dependent_value, self.module_string_constants))
