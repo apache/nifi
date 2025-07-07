@@ -237,8 +237,8 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
                     snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), currentValue - previousValue);
                 }
             } else {
-                for (int j = 0; j < gcMetricDescriptorsDifferential.size(); j++) {
-                    snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), 0L);
+                for (MetricDescriptor<List<GarbageCollectionStatus>> listMetricDescriptor : gcMetricDescriptorsDifferential) {
+                    snapshot.addStatusMetric(listMetricDescriptor, 0L);
                 }
             }
 
