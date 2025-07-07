@@ -169,7 +169,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
             final KinesisClientRecord kinesisRecord = records.get(r);
             boolean processedSuccessfully = false;
             for (int i = 0; !processedSuccessfully && i < numRetries; i++) {
-                processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, r == records.size() - 1, session, stopWatch);
+                processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, session, stopWatch);
             }
 
             if (processedSuccessfully) {
@@ -182,7 +182,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         return recordsTransformed;
     }
 
-    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
+    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                                          final ProcessSession session, final StopWatch stopWatch) {
         boolean processedSuccessfully = false;
         try {
