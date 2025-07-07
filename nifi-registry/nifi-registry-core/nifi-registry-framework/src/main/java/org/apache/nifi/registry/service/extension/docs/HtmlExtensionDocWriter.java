@@ -227,7 +227,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
             xmlStreamWriter.writeCharacters("Please consider using one of the following alternatives: ");
 
             final List<String> alternatives = deprecationNotice.getAlternatives();
-            if (alternatives != null && alternatives.size() > 0) {
+            if (alternatives != null && !alternatives.isEmpty()) {
                 xmlStreamWriter.writeStartElement("ul");
                 for (final String alternative : alternatives) {
                     xmlStreamWriter.writeStartElement("li");
@@ -288,7 +288,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
         final List<Property> properties = extension.getProperties();
         writeSimpleElement(xmlStreamWriter, "h3", "Properties: ");
 
-        if (properties != null && properties.size() > 0) {
+        if (properties != null && !properties.isEmpty()) {
             final boolean containsExpressionLanguage = containsExpressionLanguage(extension);
             final boolean containsSensitiveProperties = containsSensitiveProperties(extension);
             xmlStreamWriter.writeStartElement("p");
@@ -409,7 +409,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     }
 
     protected void writeValidValues(final XMLStreamWriter xmlStreamWriter, final Property property) throws XMLStreamException {
-        if (property.getAllowableValues() != null && property.getAllowableValues().size() > 0) {
+        if (property.getAllowableValues() != null && !property.getAllowableValues().isEmpty()) {
             xmlStreamWriter.writeStartElement("ul");
             for (AllowableValue value : property.getAllowableValues()) {
                 xmlStreamWriter.writeStartElement("li");
@@ -460,7 +460,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
 
         final List<DynamicProperty> dynamicProperties = extension.getDynamicProperties();
 
-        if (dynamicProperties != null && dynamicProperties.size() > 0) {
+        if (dynamicProperties != null && !dynamicProperties.isEmpty()) {
             writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Properties: ");
             xmlStreamWriter.writeStartElement("p");
             xmlStreamWriter.writeCharacters("Dynamic Properties allow the user to specify both the name and value of a property.");
@@ -563,7 +563,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
             }
 
             final List<Restriction> restrictions = restricted.getRestrictions();
-            if (restrictions != null && restrictions.size() > 0) {
+            if (restrictions != null && !restrictions.isEmpty()) {
                 xmlStreamWriter.writeStartElement("table");
                 xmlStreamWriter.writeAttribute("id", "restrictions");
                 xmlStreamWriter.writeStartElement("tr");
@@ -621,7 +621,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
         List<SystemResourceConsideration> systemResourceConsiderations = extension.getSystemResourceConsiderations();
 
         writeSimpleElement(xmlStreamWriter, "h3", "System Resource Considerations:");
-        if (systemResourceConsiderations != null && systemResourceConsiderations.size() > 0) {
+        if (systemResourceConsiderations != null && !systemResourceConsiderations.isEmpty()) {
             xmlStreamWriter.writeStartElement("table");
             xmlStreamWriter.writeAttribute("id", "system-resource-considerations");
             xmlStreamWriter.writeStartElement("tr");
@@ -649,7 +649,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
 
     private void writeProvidedServiceApis(final Extension extension, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final List<ProvidedServiceAPI> serviceAPIS = extension.getProvidedServiceAPIs();
-        if (serviceAPIS != null && serviceAPIS.size() > 0) {
+        if (serviceAPIS != null && !serviceAPIS.isEmpty()) {
             writeSimpleElement(xmlStreamWriter, "h3", "Provided Service APIs:");
 
             xmlStreamWriter.writeStartElement("ul");
@@ -673,7 +673,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     private void writeSeeAlso(final Extension extension, final XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
         final List<String> seeAlsos = extension.getSeeAlso();
-        if (seeAlsos != null && seeAlsos.size() > 0) {
+        if (seeAlsos != null && !seeAlsos.isEmpty()) {
             writeSimpleElement(xmlStreamWriter, "h3", "See Also:");
 
             xmlStreamWriter.writeStartElement("ul");

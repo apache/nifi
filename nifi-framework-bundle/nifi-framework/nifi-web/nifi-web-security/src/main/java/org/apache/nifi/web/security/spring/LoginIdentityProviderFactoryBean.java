@@ -156,7 +156,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
         // get the classloader for the specified login identity provider
         final List<Bundle> loginIdentityProviderBundles = extensionManager.getBundles(loginIdentityProviderClassName);
 
-        if (loginIdentityProviderBundles.size() == 0) {
+        if (loginIdentityProviderBundles.isEmpty()) {
             throw new Exception(String.format("The specified login identity provider class '%s' is not known to this nifi.", loginIdentityProviderClassName));
         }
 

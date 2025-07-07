@@ -412,7 +412,7 @@ public class QueryRecord extends AbstractProcessor {
             }
 
             final long elapsedMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
-            if (transformedFlowFiles.size() > 0) {
+            if (!transformedFlowFiles.isEmpty()) {
                 session.getProvenanceReporter().fork(original, transformedFlowFiles.keySet(), elapsedMillis);
 
                 for (final Map.Entry<FlowFile, Relationship> entry : transformedFlowFiles.entrySet()) {

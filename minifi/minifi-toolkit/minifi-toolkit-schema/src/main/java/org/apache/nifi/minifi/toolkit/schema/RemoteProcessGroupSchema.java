@@ -90,7 +90,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         outputPorts = convertListToType(getOptionalKeyAsType(map, OUTPUT_PORTS_KEY, List.class, wrapperName, new ArrayList<>()), "output port", RemotePortSchema.class, OUTPUT_PORTS_KEY);
         addIssuesIfNotNull(outputPorts);
 
-        if (inputPorts.size() == 0 && outputPorts.size() == 0) {
+        if (inputPorts.isEmpty() && outputPorts.isEmpty()) {
             addValidationIssue("Expected either '" + INPUT_PORTS_KEY + "', '" + OUTPUT_PORTS_KEY + "' in section '" + wrapperName + "' to have value(s)");
         }
 

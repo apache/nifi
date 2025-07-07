@@ -296,7 +296,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 } finally {
                     queueLock.unlock();
                 }
-                if (listedFiles.size() > 0) {
+                if (!listedFiles.isEmpty()) {
                     logEmptyListing.set(3L);
                 }
                 if (logEmptyListing.getAndDecrement() > 0) {

@@ -87,7 +87,7 @@ public class FilteringMetricFamilySamplesEnumeration implements Enumeration<Coll
         while (metricFamilySamples.hasMoreElements()) {
             final Collector.MetricFamilySamples possibleNextElement = metricFamilySamples.nextElement();
             possibleNextElement.samples.removeIf(this::isSampleNotMatched);
-            if (possibleNextElement.samples.size() == 0) {
+            if (possibleNextElement.samples.isEmpty()) {
                 continue;
             }
             nextElement = possibleNextElement;

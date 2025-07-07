@@ -686,7 +686,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         int entitiesListed = 0;
 
-        if (orderedEntries.size() > 0) {
+        if (!orderedEntries.isEmpty()) {
             latestListedEntryTimestampThisCycleMillis = orderedEntries.lastKey();
 
             // Determine target system time precision.

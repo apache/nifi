@@ -117,7 +117,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         // Each node should have the same URL structure and network reachability with the proxy configuration
         final Collection<PeerDTO> peers = apiClient.getPeers();
         logger.debug("Retrieved {} peers from {}: {}", peers.size(), apiClient.getBaseUrl(), peers);
-        if (peers.size() == 0) {
+        if (peers.isEmpty()) {
             throw new IOException("Could not get any peer to communicate with. " + apiClient.getBaseUrl() + " returned zero peers.");
         }
 
@@ -139,7 +139,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             final String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
             final StringBuilder clusterUrls = new StringBuilder();
             config.getUrls().forEach(url -> {
-                if (clusterUrls.length() > 0) {
+                if (!clusterUrls.isEmpty()) {
                     clusterUrls.append(",");
                     clusterUrls.append(url);
                 }

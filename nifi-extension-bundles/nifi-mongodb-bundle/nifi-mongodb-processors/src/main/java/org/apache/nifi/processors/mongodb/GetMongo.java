@@ -227,7 +227,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                     sent++;
                 }
 
-                if (batch.size() > 0) {
+                if (!batch.isEmpty()) {
                     try {
                         writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                     } catch (Exception e) {

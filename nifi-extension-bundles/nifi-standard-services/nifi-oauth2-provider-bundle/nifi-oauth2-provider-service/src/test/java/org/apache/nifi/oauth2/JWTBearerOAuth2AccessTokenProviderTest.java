@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -141,7 +142,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         final List<ConfigVerificationResult> configVerifResults = runner.verify(provider, Map.of());
 
         // all configuration results should be successful
-        assertTrue(configVerifResults.size() > 0);
+        assertFalse(configVerifResults.isEmpty());
         assertEquals(0, configVerifResults.stream().filter(result -> !result.getOutcome().equals(Outcome.SUCCESSFUL)).count());
 
         // Validate the claims are properly set
