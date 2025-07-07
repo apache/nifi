@@ -340,8 +340,7 @@ public class TestStandardRemoteGroupPort {
 
         // Execute onTrigger while offering new flow files.
         final List<MockFlowFile> flowFiles = new ArrayList<>();
-        for (int i = 0; i < expectedNumberOfPackets.length; i++) {
-            int numOfPackets = expectedNumberOfPackets[i];
+        for (int numOfPackets : expectedNumberOfPackets) {
             int startF = flowFiles.size();
             int endF = startF + numOfPackets;
             IntStream.range(startF, endF).forEach(f -> {
@@ -374,11 +373,10 @@ public class TestStandardRemoteGroupPort {
             final List<DataPacket> dataPackets = sentPackets.get(i);
             assertEquals(expectedNumberOfPackets[i], dataPackets.size());
 
-            for (int p = 0; p < dataPackets.size(); p++) {
+            for (DataPacket dataPacket : dataPackets) {
                 final FlowFile flowFile = flowFiles.get(f);
 
                 // Assert sent packet
-                final DataPacket dataPacket = dataPackets.get(p);
                 assertEquals(flowFile.getSize(), dataPacket.getSize());
 
                 // Assert provenance events (SEND and DROP)

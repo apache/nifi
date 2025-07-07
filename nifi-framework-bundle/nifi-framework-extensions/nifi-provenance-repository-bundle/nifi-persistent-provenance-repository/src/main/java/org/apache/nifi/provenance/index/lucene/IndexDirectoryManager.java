@@ -161,9 +161,7 @@ public class IndexDirectoryManager {
         // start time of index N+1. So we determine the time range of each index and select an index only if
         // its start time is before the given timestamp and its end time is <= the given timestamp.
         for (final List<IndexLocation> locationList : startTimeWithFileByStorageDirectory.values()) {
-            for (int i = 0; i < locationList.size(); i++) {
-                final IndexLocation indexLoc = locationList.get(i);
-
+            for (IndexLocation indexLoc : locationList) {
                 final String partition = indexLoc.getPartitionName();
                 final IndexLocation activeLocation = activeIndices.get(partition);
                 if (indexLoc.equals(activeLocation)) {

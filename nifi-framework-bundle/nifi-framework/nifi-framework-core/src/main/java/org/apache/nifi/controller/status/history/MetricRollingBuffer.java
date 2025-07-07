@@ -63,6 +63,7 @@ public class MetricRollingBuffer {
         return count;
     }
 
+    @SuppressWarnings("PMD.ForLoopCanBeForeach")
     public void expireBefore(final Date date) {
         if (snapshots == null) {
             return;
@@ -109,6 +110,7 @@ public class MetricRollingBuffer {
         writeIndex = initialSize;
     }
 
+    @SuppressWarnings("PMD.ForLoopCanBeForeach")
     private void compact() {
         final StatusSnapshot[] newArray = new StatusSnapshot[count + 1];
         int insertionIndex = 0;

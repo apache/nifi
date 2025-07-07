@@ -600,19 +600,18 @@ public class PutMongoIT extends MongoWriteTestBase {
         upsertOutput.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, "Test");
 
         // test next flow files for update attributes
-        for (int i = 0; i < flowFilesForRelationship.size(); i++) {
-            flowFilesForRelationship.get(i).assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
-            flowFilesForRelationship.get(i).assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));
-            flowFilesForRelationship.get(i).assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));
+        for (MockFlowFile flowFile : flowFilesForRelationship) {
+            flowFile.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
+            flowFile.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));
+            flowFile.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));
         }
 
         Document query = new Document("_id", "Test");
         Document result = collection.find(query).first();
-        List array = (List) result.get("testArr");
+        List<Document> array = (List<Document>) result.get("testArr");
         assertNotNull(array, "Array was empty");
         assertEquals(3, array.size(), "Wrong size");
-        for (int index = 0; index < array.size(); index++) {
-            Document doc = (Document) array.get(index);
+        for (Document doc : array) {
             String msg = doc.getString("msg");
             assertNotNull(msg, "Msg was null");
             assertEquals(msg, "Hi", "Msg had wrong value");
