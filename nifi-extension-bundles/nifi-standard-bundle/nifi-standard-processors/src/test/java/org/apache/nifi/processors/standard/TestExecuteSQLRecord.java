@@ -116,6 +116,7 @@ public class TestExecuteSQLRecord {
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(ExecuteSQLRecord.class);
+	runner.setValidateExpressionUsage(false);
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(AbstractExecuteSQL.DBCP_SERVICE, "dbcp");
@@ -419,6 +420,7 @@ public class TestExecuteSQLRecord {
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(ExecuteSQLRecord.class);
+	    runner.setValidateExpressionUsage(false);
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(AbstractExecuteSQL.DBCP_SERVICE, "dbcp");
