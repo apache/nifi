@@ -189,7 +189,6 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
             processRecord(flowFiles, kinesisRecord, session, stopWatch);
             processedSuccessfully = true;
         } catch (final KinesisBatchUnrecoverableException e) {
-            // don't attempt retry, rethrow
             throw e;
         } catch (final Exception e) {
             log.error("Caught Exception while processing Kinesis record {}", kinesisRecord, e);

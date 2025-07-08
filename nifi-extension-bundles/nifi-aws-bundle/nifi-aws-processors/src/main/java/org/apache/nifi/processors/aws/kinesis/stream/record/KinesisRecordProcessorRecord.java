@@ -37,7 +37,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.apache.nifi.util.StopWatch;
-import org.jetbrains.annotations.NotNull;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.io.ByteArrayInputStream;
@@ -54,12 +53,12 @@ import java.util.Map;
 import java.util.Optional;
 
 public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor {
-    final RecordReaderFactory readerFactory;
-    final RecordSetWriterFactory writerFactory;
-    final Map<String, String> schemaRetrievalVariables;
+    private final RecordReaderFactory readerFactory;
+    private final RecordSetWriterFactory writerFactory;
+    private final Map<String, String> schemaRetrievalVariables;
+    private final RecordConverter recordConverter;
 
     private FlowFileState currentFlowFileState;
-    private final RecordConverter recordConverter;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
@@ -80,7 +79,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     void startProcessingRecords() {
         super.startProcessingRecords();
         if (currentFlowFileState != null) {
-            getLogger().warn("FlowFile State is not null at the start of processing records, this is not expected.");
+            // this may happen if the previous processing has not been completed successfully, close the leftover state
             closeSafe(currentFlowFileState, "FlowFile State");
             currentFlowFileState = null;
         }
@@ -94,9 +93,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 return;
             }
             if (!flowFiles.contains(currentFlowFileState.flowFile)) {
-                getLogger().warn("Currently processed FlowFile is no longer available at processing end, this is not expected.", flowFiles);
-                closeSafe(currentFlowFileState, "FlowFile State");
-                return;
+                // this is unexpected, flowFiles have been altered not in this class after the start of processing
+                throw new IllegalStateException("%s is not available in provided FlowFiles [%d]".formatted(currentFlowFileState.flowFile, flowFiles.size()));
             }
             completeFlowFile(flowFiles, session, stopWatch);
         } catch (final FlowFileCompletionException e) {
@@ -116,9 +114,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
         if (currentFlowFileState != null && !flowFiles.contains(currentFlowFileState.flowFile)) {
-            getLogger().warn("Currently processed FlowFile is no longer available, this is not expected.", flowFiles);
-            closeSafe(currentFlowFileState, "FlowFile State");
-            currentFlowFileState = null;
+            // this is unexpected, flowFiles have been altered not in this class after the start of processing
+            throw new IllegalStateException("%s is not available in provided FlowFiles [%d]".formatted(currentFlowFileState.flowFile, flowFiles.size()));
         }
 
         final byte[] data = getData(kinesisRecord);
@@ -166,7 +163,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
     }
 
-    private static byte @NotNull [] getData(final KinesisClientRecord kinesisRecord) {
+    private static byte[] getData(final KinesisClientRecord kinesisRecord) {
         final ByteBuffer dataBuffer = kinesisRecord.data();
         final byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
         if (dataBuffer != null) {
@@ -271,7 +268,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             try {
                 closeable.close();
             } catch (final IOException e) {
-                getLogger().warn("Failed to close {} due to {}", closeableName, e.getLocalizedMessage(), e);
+                getLogger().warn("Failed to close {}", closeableName, e);
             }
         }
     }
