@@ -97,7 +97,7 @@ public class ProtoTestUtil {
         DynamicMessage nestedMessage = DynamicMessage
                 .newBuilder(nestedMessageDescriptor)
                 .setField(nestedMessageDescriptor.findFieldByNumber(20), enumValueDescriptor.findValueByNumber(2))
-                .setField(nestedMessageDescriptor.findFieldByNumber(21), nestedMessage2)
+                .addRepeatedField(nestedMessageDescriptor.findFieldByNumber(21), nestedMessage2)
                 .build();
 
         DynamicMessage message = DynamicMessage

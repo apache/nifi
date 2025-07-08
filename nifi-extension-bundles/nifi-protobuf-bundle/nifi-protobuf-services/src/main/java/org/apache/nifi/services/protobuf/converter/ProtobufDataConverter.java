@@ -64,13 +64,17 @@ public class ProtobufDataConverter {
     public static final String ANY_MESSAGE_TYPE = "google.protobuf.Any";
 
     private final Schema schema;
+    private final String rootMessageType;
+    private final RecordSchema rootRecordSchema;
     private final boolean coerceTypes;
     private final boolean dropUnknownFields;
 
     private boolean containsAnyField = false;
 
-    public ProtobufDataConverter(Schema schema, boolean coerceTypes, boolean dropUnknownFields) {
+    public ProtobufDataConverter(Schema schema, String messageType, RecordSchema recordSchema, boolean coerceTypes, boolean dropUnknownFields) {
         this.schema = schema;
+        this.rootMessageType = messageType;
+        this.rootRecordSchema = recordSchema;
         this.coerceTypes = coerceTypes;
         this.dropUnknownFields = dropUnknownFields;
     }
@@ -81,11 +85,11 @@ public class ProtobufDataConverter {
      * @return created record
      * @throws IOException failed to read input stream
      */
-    public MapRecord createRecord(InputStream data, RecordSchema recordSchema, String messageType) throws IOException {
-        final MessageType rootMessageType = (MessageType) schema.getType(messageType);
-        Objects.requireNonNull(rootMessageType, String.format("Message with name [%s] not found in the provided proto files", messageType));
+    public MapRecord createRecord(InputStream data) throws IOException {
+        final MessageType rootMessageType = (MessageType) schema.getType(this.rootMessageType);
+        Objects.requireNonNull(rootMessageType, String.format("Message with name [%s] not found in the provided proto files", this.rootMessageType));
 
-        MapRecord record = createRecord(rootMessageType, ByteString.readFrom(data), recordSchema);
+        MapRecord record = createRecord(rootMessageType, ByteString.readFrom(data), rootRecordSchema);
         if (containsAnyField) {
             record.regenerateSchema();
         }
@@ -231,8 +235,7 @@ public class ProtobufDataConverter {
                 try {
                     Optional<DataType> recordDataType = recordSchema.getDataType(protoField.getFieldName());
                     if (protoField.isRepeatable()) {
-                        final ArrayDataType arrayDataType = (ArrayDataType) recordDataType.get();
-                        recordDataType = Optional.ofNullable(arrayDataType.getElementType());
+                        recordDataType = recordDataType.map(dataType -> ((ArrayDataType) dataType).getElementType());
                     }
                     final RecordSchema subSchema = recordDataType.map(dataType ->
                             ((RecordDataType) dataType).getChildSchema()).orElse(generateRecordSchema(messageType.getType().toString()));

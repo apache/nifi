@@ -37,7 +37,7 @@ message Proto3Message {
 
 message NestedMessage {
   TestEnum testEnum = 20;
-  NestedMessage2 nestedMessage2 = 21;
+  repeated NestedMessage2 nestedMessage2 = 21;
 }
 
 message NestedMessage2 {
