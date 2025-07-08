@@ -103,6 +103,11 @@ The following binary components are provided under the Apache Software License v
       Amazon Ion Java
       Copyright 2007-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
+  (ASLv2) AWS Glue Schema Registry Serializer Deserializer
+    The following NOTICE information applies:
+      AWS Glue Schema Registry Serializer Deserializer
+      Copyright 2020 Amazon.com, Inc. or its affiliates.
+
   (ASLv2) Amazon Web Services SDK
     The following NOTICE information applies:
       Copyright 2010-2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
