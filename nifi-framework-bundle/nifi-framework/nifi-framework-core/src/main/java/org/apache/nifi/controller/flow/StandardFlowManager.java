@@ -300,7 +300,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> prioritizerBundles = flowController.getExtensionManager().getBundles(type);
-            if (prioritizerBundles.size() == 0) {
+            if (prioritizerBundles.isEmpty()) {
                 throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
             if (prioritizerBundles.size() > 1) {

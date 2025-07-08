@@ -662,8 +662,8 @@ public class StandardParameterContext implements ParameterContext {
         }
 
         final String parameterName = parameter.getDescriptor().getName();
-        return parameterReferenceManager.getProcessorsReferencing(this, parameterName).size() > 0
-                || parameterReferenceManager.getControllerServicesReferencing(this, parameterName).size() > 0;
+        return !parameterReferenceManager.getProcessorsReferencing(this, parameterName).isEmpty()
+                || !parameterReferenceManager.getControllerServicesReferencing(this, parameterName).isEmpty();
     }
 
     @Override

@@ -65,7 +65,7 @@ public class DeleteFlow extends AbstractNiFiRegistryCommand<OkResult> {
         final FlowSnapshotClient flowSnapshotClient = client.getFlowSnapshotClient();
         final List<VersionedFlowSnapshotMetadata> snapshotMetadata = flowSnapshotClient.getSnapshotMetadata(flowId);
 
-        if (snapshotMetadata != null && snapshotMetadata.size() > 0 && !forceDelete) {
+        if (snapshotMetadata != null && !snapshotMetadata.isEmpty() && !forceDelete) {
             throw new NiFiRegistryException("Flow has versions, use --" + CommandOption.FORCE.getLongName() + " to delete");
         } else {
             flowClient.delete(versionedFlow.getBucketIdentifier(), versionedFlow.getIdentifier());

@@ -480,7 +480,7 @@ public class WindowsEventLogRecordReader implements RecordReader {
             }
         }
 
-        if (recordValues.size() > 0) {
+        if (!recordValues.isEmpty()) {
             return new MapRecord(schema, recordValues);
         } else {
             return null;

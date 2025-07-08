@@ -246,7 +246,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         // get the classloader for the specified user group provider
         final List<Bundle> userGroupProviderBundles = extensionManager.getBundles(userGroupProviderClassName);
 
-        if (userGroupProviderBundles.size() == 0) {
+        if (userGroupProviderBundles.isEmpty()) {
             throw new Exception(String.format("The specified user group provider class '%s' is not known to this nifi.", userGroupProviderClassName));
         }
 
@@ -289,7 +289,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         // get the classloader for the specified access policy provider
         final List<Bundle> accessPolicyProviderBundles = extensionManager.getBundles(accessPolicyProviderClassName);
 
-        if (accessPolicyProviderBundles.size() == 0) {
+        if (accessPolicyProviderBundles.isEmpty()) {
             throw new Exception(String.format("The specified access policy provider class '%s' is not known to this nifi.", accessPolicyProviderClassName));
         }
 
@@ -332,7 +332,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         // get the classloader for the specified authorizer
         final List<Bundle> authorizerBundles = extensionManager.getBundles(authorizerClassName);
 
-        if (authorizerBundles.size() == 0) {
+        if (authorizerBundles.isEmpty()) {
             throw new Exception(String.format("The specified authorizer class '%s' is not known to this nifi.", authorizerClassName));
         }
 

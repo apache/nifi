@@ -417,7 +417,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 args.add(argValue);
 
             }
-            if (argumentAttributeValue.size() > 0) {
+            if (!argumentAttributeValue.isEmpty()) {
                 final StringBuilder builder = new StringBuilder();
                 for (String s : argumentAttributeValue) {
                     builder.append(s).append("\t");

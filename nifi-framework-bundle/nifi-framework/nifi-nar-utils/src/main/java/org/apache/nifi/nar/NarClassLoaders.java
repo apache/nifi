@@ -285,7 +285,7 @@ public final class NarClassLoaders {
             } while (narCount != narDetails.size());
 
             // Ensure exactly one NiFiServer implementation, otherwise report none or multiples found
-            if (niFiServers.size() == 0) {
+            if (niFiServers.isEmpty()) {
                 serverInstance = null;
             } else if (niFiServers.size() > 1) {
                 String sb = "Expected exactly one implementation of NiFiServer but found " + niFiServers.size() + ": " +
