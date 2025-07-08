@@ -292,49 +292,35 @@ public class TestKinesisRecordProcessorRecord {
 
     private static Stream<Arguments> unparsableRecordsLists() {
         final KinesisClientRecord unparsableRecordMock = mock(KinesisClientRecord.class);
+        final KinesisClientRecord parsableRecord1 = KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                .partitionKey("partition-1")
+                .sequenceNumber("1")
+                .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
+                .build();
+        final KinesisClientRecord parsableRecord3 = KinesisClientRecord.builder().approximateArrivalTimestamp(null)
+                .partitionKey("partition-3")
+                .sequenceNumber("3")
+                .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
+                .build();
         return Stream.of(
                 Arguments.argumentSet("Unparsable At The Beginning",
                         Arrays.asList(
                                 unparsableRecordMock,
-                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                        .partitionKey("partition-1")
-                                        .sequenceNumber("1")
-                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                        .build(),
-                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                        .partitionKey("partition-3")
-                                        .sequenceNumber("3")
-                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                        .build()
+                                parsableRecord1,
+                                parsableRecord3
                         ),
                         unparsableRecordMock),
                 Arguments.argumentSet("Unparsable In The Middle",
                         Arrays.asList(
-                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                        .partitionKey("partition-1")
-                                        .sequenceNumber("1")
-                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                        .build(),
+                                parsableRecord1,
                                 unparsableRecordMock,
-                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                        .partitionKey("partition-3")
-                                        .sequenceNumber("3")
-                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                        .build()
+                                parsableRecord3
                         ),
                         unparsableRecordMock),
                 Arguments.argumentSet("Unparsable At The End",
                         Arrays.asList(
-                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                        .partitionKey("partition-1")
-                                        .sequenceNumber("1")
-                                        .data(ByteBuffer.wrap("{\"record\":\"1\"}".getBytes(StandardCharsets.UTF_8)))
-                                        .build(),
-                                KinesisClientRecord.builder().approximateArrivalTimestamp(null)
-                                        .partitionKey("partition-3")
-                                        .sequenceNumber("3")
-                                        .data(ByteBuffer.wrap("{\"record\":\"3\"}".getBytes(StandardCharsets.UTF_8)))
-                                        .build(),
+                                parsableRecord1,
+                                parsableRecord3,
                                 unparsableRecordMock
                         ),
                         unparsableRecordMock)
