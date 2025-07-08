@@ -66,17 +66,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <dependency>
-                <groupId>software.amazon.glue</groupId>
-                <artifactId>schema-registry-serde</artifactId>
-                <version>1.1.24</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
             <!-- Override kotlin-stdlib-common from amazon-kinesis-client -->
             <!-- can be removed when not relying on kotlin-stdlib-common:jar anymore -->
             <dependency>

@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.aws.schemaregistry;
 
-import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryDeserializerDataParser;
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.aws.schemaregistry.serde.GlueSchemaRegistryDeserializerDataParser;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -40,9 +39,7 @@ public class AmazonGlueEncodedSchemaReferenceReader extends AbstractControllerSe
 
     private final GlueSchemaRegistryDeserializerDataParser deserializerDataParser = GlueSchemaRegistryDeserializerDataParser.getInstance();
 
-    private static final int HEADER_CAPACITY = AWSSchemaRegistryConstants.HEADER_VERSION_BYTE_SIZE
-                    + AWSSchemaRegistryConstants.COMPRESSION_BYTE_SIZE
-                    + AWSSchemaRegistryConstants.SCHEMA_VERSION_ID_SIZE;
+    private static final int HEADER_CAPACITY = GlueSchemaRegistryDeserializerDataParser.getSchemaRegistryHeaderLength();
 
     private static final Set<SchemaField> SUPPLIED_SCHEMA_FIELDS = Set.of(SchemaField.SCHEMA_NAME);
 

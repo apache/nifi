@@ -1,0 +1,1 @@
+Files in this folder come from library: software.amazon.schemaregistry:aws-schema-registry-serde:1.1.24
