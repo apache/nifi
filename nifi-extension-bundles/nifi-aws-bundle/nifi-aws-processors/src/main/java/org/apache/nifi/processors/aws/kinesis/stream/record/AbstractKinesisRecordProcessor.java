@@ -165,8 +165,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
     private int processRecordsWithRetries(final List<KinesisClientRecord> records, final List<FlowFile> flowFiles,
                                            final ProcessSession session, final StopWatch stopWatch) {
         int recordsTransformed = 0;
-        for (int r = 0; r < records.size(); r++) {
-            final KinesisClientRecord kinesisRecord = records.get(r);
+        for (final KinesisClientRecord kinesisRecord : records) {
             boolean processedSuccessfully = false;
             for (int i = 0; !processedSuccessfully && i < numRetries; i++) {
                 processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, session, stopWatch);
