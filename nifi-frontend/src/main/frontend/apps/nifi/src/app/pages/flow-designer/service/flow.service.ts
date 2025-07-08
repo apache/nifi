@@ -206,6 +206,7 @@ export class FlowService implements PropertyDescriptorRetriever {
         const payload = new FormData();
         payload.append('id', processGroupId);
         payload.append('groupName', uploadProcessGroup.name);
+        payload.append('parameterContextHandlingStrategy', uploadProcessGroup.keepExistingParameterContext ? 'KEEP_EXISTING' : 'REPLACE');
         payload.append('positionX', uploadProcessGroup.position.x.toString());
         payload.append('positionY', uploadProcessGroup.position.y.toString());
         payload.append('clientId', uploadProcessGroup.revision.clientId);
