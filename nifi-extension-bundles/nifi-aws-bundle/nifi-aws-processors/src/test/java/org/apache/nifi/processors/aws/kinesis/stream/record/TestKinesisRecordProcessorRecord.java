@@ -290,7 +290,7 @@ public class TestKinesisRecordProcessorRecord {
         session.assertNotRolledBack();
     }
 
-    private static Stream<Arguments> unparsableRecordsLists() {
+    private static Stream<Arguments.ArgumentSet> unparsableRecordsLists() {
         final KinesisClientRecord unparsableRecordMock = mock(KinesisClientRecord.class);
         final KinesisClientRecord parsableRecord1 = KinesisClientRecord.builder().approximateArrivalTimestamp(null)
                 .partitionKey("partition-1")
@@ -324,7 +324,11 @@ public class TestKinesisRecordProcessorRecord {
                                 unparsableRecordMock
                         ),
                         unparsableRecordMock)
-        );
+        )
+                .peek(it -> {
+                    parsableRecord1.data().rewind();
+                    parsableRecord3.data().rewind();
+                });
     }
 
     @ParameterizedTest
