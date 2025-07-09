@@ -43,7 +43,10 @@
         "msg": "Hello",
         "script_record": {
             "source": "some script",
-            "language": "painless"
+            "language": "painless",
+            "params": {
+                "param": 1
+            }
         }
     }
 ]
