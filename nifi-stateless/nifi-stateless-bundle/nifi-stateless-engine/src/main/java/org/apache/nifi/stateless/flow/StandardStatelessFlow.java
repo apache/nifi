@@ -144,6 +144,16 @@ public class StandardStatelessFlow implements StatelessDataflow {
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
                                  final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository,
                                  final LifecycleStateManager lifecycleStateManager, final Duration componentEnableTimeout, final StatsTracker statsTracker) {
+        this(rootGroup, reportingTasks, controllerServiceProvider, processContextFactory, repositoryContextFactory, dataflowDefinition,
+                stateManagerProvider, processScheduler, bulletinRepository, lifecycleStateManager, componentEnableTimeout, statsTracker,
+                new AsynchronousCommitTracker(rootGroup));
+    }
+
+    public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
+                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
+                                 final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository,
+                                 final LifecycleStateManager lifecycleStateManager, final Duration componentEnableTimeout, final StatsTracker statsTracker,
+                                 final AsynchronousCommitTracker commitTracker) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
@@ -156,7 +166,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.transactionThresholdMeter = new TransactionThresholdMeter(dataflowDefinition.getTransactionThresholds());
         this.bulletinRepository = bulletinRepository;
         this.componentEnableTimeoutMillis = componentEnableTimeout.toMillis();
-        this.tracker = new AsynchronousCommitTracker(rootGroup);
+        this.tracker = commitTracker;
         this.lifecycleStateManager = lifecycleStateManager;
         this.inputPorts = new ArrayList<>(rootGroup.getInputPorts());
         this.statsTracker = statsTracker;
@@ -395,8 +405,16 @@ public class StandardStatelessFlow implements StatelessDataflow {
             } else {
                 final boolean gracefullyStopped = waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
                 if (gracefullyStopped) {
-                    logger.info("All Processors have finished running; triggering session callbacks");
-                    tracker.triggerCallbacks();
+                    if (rootGroup.isDataQueuedForProcessing()) {
+                        final int queuedCount = allConnections.stream()
+                                .mapToInt(conn -> conn.getFlowFileQueue().size().getObjectCount())
+                                .sum();
+                        logger.warn("All Processors finished running but {} FlowFiles remain queued; treating session as failure", queuedCount);
+                        tracker.triggerFailureCallbacks(new TerminatedTaskException());
+                    } else {
+                        logger.info("All Processors have finished running; triggering session callbacks");
+                        tracker.triggerCallbacks();
+                    }
                 } else {
                     logger.warn("{} Processors did not finish running within the graceful shutdown period of {} millis. Interrupting all running components. Processors still running: {}",
                         runningProcessors.size(), gracefulShutdownDuration.toMillis(), runningProcessors);
@@ -406,7 +424,15 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
         } else {
             waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
-            tracker.triggerCallbacks();
+            if (rootGroup.isDataQueuedForProcessing()) {
+                final int queuedCount = allConnections.stream()
+                        .mapToInt(conn -> conn.getFlowFileQueue().size().getObjectCount())
+                        .sum();
+                logger.warn("{} FlowFiles remain queued after shutdown; treating session as failure", queuedCount);
+                tracker.triggerFailureCallbacks(new TerminatedTaskException());
+            } else {
+                tracker.triggerCallbacks();
+            }
         }
 
         if (runDataflowExecutor != null) {
