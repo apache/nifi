@@ -144,7 +144,7 @@ In this configuration, the user will need to provide certificates and associated
 if the LDAP provider of interest is operating in LDAPS or START_TLS modes, certificates will additionally be needed.
 Of particular note, is the `AUTH` environment variable which is set to `ldap`.  Additionally, the user must provide a
 DN as provided by the configured LDAP server in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be
-used to seed the instance with an initial user with administrative privileges.  Finally, this command makes use of a
+used to seed the instance with an initial user with administrative privileges. Finally, this command makes use of a
 volume to provide certificates on the host system to the container instance.
 
 #### For a minimal, connection to an LDAP server using SIMPLE authentication:
@@ -183,7 +183,8 @@ volume to provide certificates on the host system to the container instance.
 In this configuration, the user will need to provide certificates and associated configuration information. 
 Of particular note, is the `AUTH` environment variable which is set to `oidc`. Additionally, the user must provide a
 in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be used to seed the instance with an initial 
-user with administrative privileges.
+user with administrative privileges. Alternatively, the `INITIAL_ADMIN_GROUP` environment variable can be specified 
+to grant access to a group of users instead.
 
 ### For a minimal, connection to an OpenID server
 
@@ -198,6 +199,7 @@ user with administrative privileges.
       -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
       -e TRUSTSTORE_TYPE=JKS \
       -e INITIAL_ADMIN_IDENTITY='test' \
+      -e INITIAL_ADMIN_GROUP='myGroup' \
       -e NIFI_SECURITY_USER_OIDC_DISCOVERY_URL=http://OPENID_SERVER_URL/auth/realms/OPENID_REALM/.well-known/openid-configuration \
       -e NIFI_SECURITY_USER_OIDC_CONNECT_TIMEOUT=10000 \
       -e NIFI_SECURITY_USER_OIDC_READ_TIMEOUT=10000 \
@@ -214,7 +216,7 @@ user with administrative privileges.
       apache/nifi:latest
 
 - Make sure you've created realm, client and user in OpenID Server before with the same user name defined in `INITIAL_ADMIN_IDENTITY` environment variable
-- You can read more information about theses Nifi security OIDC configurations in this following link: [https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect)
+- You can read more information about these Nifi security OIDC configurations in this following link: [https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#openid_connect)
 
 #### Clustering can be enabled by using the following properties to Docker environment variable mappings.
 
