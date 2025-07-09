@@ -17,11 +17,7 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
-import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -49,38 +45,27 @@ public class TestStandardStatelessFlow {
 
     @Test
     public void testShutdownWithQueuedFlowFilesTriggersFailure() throws Exception {
-        ProcessGroup rootGroup = mock(ProcessGroup.class);
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
         when(rootGroup.getName()).thenReturn("root");
         when(rootGroup.getInputPorts()).thenReturn(Collections.emptySet());
         when(rootGroup.getOutputPorts()).thenReturn(Collections.emptySet());
         when(rootGroup.findAllProcessors()).thenReturn(Collections.emptyList());
         when(rootGroup.stopComponents(any())).thenReturn(CompletableFuture.completedFuture(null));
         when(rootGroup.findAllRemoteProcessGroups()).thenReturn(Collections.emptyList());
+        when(rootGroup.isDataQueuedForProcessing()).thenReturn(true);
 
-        FlowFileQueue queue = mock(FlowFileQueue.class);
-        when(queue.isActiveQueueEmpty()).thenReturn(false);
-        when(queue.size()).thenReturn(new QueueSize(1, 0L));
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        final ProcessContextFactory processContextFactory = mock(ProcessContextFactory.class);
+        final RepositoryContextFactory repositoryContextFactory = mock(RepositoryContextFactory.class);
+        final DataflowDefinition dataflowDefinition = mock(DataflowDefinition.class);
+        final StatelessStateManagerProvider stateManagerProvider = mock(StatelessStateManagerProvider.class);
+        final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
+        final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
+        final LifecycleStateManager lifecycleStateManager = mock(LifecycleStateManager.class);
+        final StatsTracker statsTracker = mock(StatsTracker.class);
 
-        Connection connection = mock(Connection.class);
-        when(connection.getFlowFileQueue()).thenReturn(queue);
-        when(connection.getSource()).thenReturn(mock(Connectable.class));
-        when(connection.getDestination()).thenReturn(mock(Connectable.class));
-        when(rootGroup.findAllConnections()).thenReturn(Collections.singletonList(connection));
-
-        ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
-        ProcessContextFactory processContextFactory = mock(ProcessContextFactory.class);
-        RepositoryContextFactory repositoryContextFactory = mock(RepositoryContextFactory.class);
-        DataflowDefinition dataflowDefinition = mock(DataflowDefinition.class);
-        when(dataflowDefinition.getTransactionThresholds()).thenReturn(TransactionThresholds.SINGLE_FLOWFILE);
-        when(dataflowDefinition.getFailurePortNames()).thenReturn(Collections.emptySet());
-        StatelessStateManagerProvider stateManagerProvider = mock(StatelessStateManagerProvider.class);
-        ProcessScheduler processScheduler = mock(ProcessScheduler.class);
-        BulletinRepository bulletinRepository = mock(BulletinRepository.class);
-        LifecycleStateManager lifecycleStateManager = mock(LifecycleStateManager.class);
-        StatsTracker statsTracker = mock(StatsTracker.class);
-
-        AsynchronousCommitTracker tracker = spy(new AsynchronousCommitTracker(rootGroup));
-        StandardStatelessFlow flow = new StandardStatelessFlow(rootGroup, List.of(), controllerServiceProvider, processContextFactory,
+        final AsynchronousCommitTracker tracker = spy(new AsynchronousCommitTracker(rootGroup));
+        final StandardStatelessFlow flow = new StandardStatelessFlow(rootGroup, List.of(), controllerServiceProvider, processContextFactory,
                 repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository,
                 lifecycleStateManager, Duration.ZERO, statsTracker, tracker);
 

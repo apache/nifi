@@ -405,7 +405,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
             } else {
                 final boolean gracefullyStopped = waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
                 if (gracefullyStopped) {
-                    if (isFlowFileQueued()) {
+                    if (rootGroup.isDataQueuedForProcessing()) {
                         final int queuedCount = allConnections.stream()
                                 .mapToInt(conn -> conn.getFlowFileQueue().size().getObjectCount())
                                 .sum();
@@ -424,7 +424,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
         } else {
             waitForProcessorThreadsToComplete(runningProcessors, gracefulShutdownDuration);
-            if (isFlowFileQueued()) {
+            if (rootGroup.isDataQueuedForProcessing()) {
                 final int queuedCount = allConnections.stream()
                         .mapToInt(conn -> conn.getFlowFileQueue().size().getObjectCount())
                         .sum();
