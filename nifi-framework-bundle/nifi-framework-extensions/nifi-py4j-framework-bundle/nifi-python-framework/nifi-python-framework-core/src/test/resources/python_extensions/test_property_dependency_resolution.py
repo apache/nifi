@@ -18,3 +18,13 @@ class TestProcessorWithImport:
 
     def get_property_descriptors(self):
         return [MY_PROP]
+
+class PropertyDependencyTestCase(unittest.TestCase):
+    def test_dependencies(self):
+        processor = TestProcessorWithImport()
+        descriptors = processor.get_property_descriptors()
+        self.assertEqual(len(descriptors), 1)
+        self.assertEqual(descriptors[0].dependencies[0].dependent_property.name, SHARED_PROP.name)
+
+if __name__ == '__main__':
+    unittest.main()
