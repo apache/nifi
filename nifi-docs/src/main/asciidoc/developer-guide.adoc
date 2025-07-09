@@ -2707,6 +2707,7 @@ deprecationLogger.warn(
 | QuestDB Bundle         | include-questdb       | Adds support for persistent Status History using QuestDB
 | Snowflake Bundle       | include-snowflake     | Adds support for integration with the https://www.snowflake.com[Snowflake platform].
 | SQL Reporting Bundle   | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
+| Couchbase Bundle       | include-couchbase     | Adds support for Couchbase storage
 |==================================================================================================================================================
 
 === Standard Build Instructions
