@@ -116,7 +116,7 @@ public class RecordSqlWriter implements SqlWriter {
 
     @Override
     public void writeEmptyResultSet(OutputStream outputStream, ComponentLog logger) throws IOException {
-        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, Collections.emptyMap())) {
+        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, originalAttributes)) {
             mimeType = resultSetWriter.getMimeType();
             resultSetWriter.beginRecordSet();
             resultSetWriter.finishRecordSet();
