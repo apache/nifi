@@ -35,12 +35,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellCopyContext;
 import org.apache.poi.ss.usermodel.CellCopyPolicy;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellUtil;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -127,7 +130,7 @@ public class SplitExcel extends AbstractProcessor {
             .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
             .copyHyperlink(CellCopyPolicy.DEFAULT_COPY_HYPERLINK_POLICY)
             .mergeHyperlink(CellCopyPolicy.DEFAULT_MERGE_HYPERLINK_POLICY)
-            .mergedRegions(CellCopyPolicy.DEFAULT_COPY_MERGED_REGIONS_POLICY)
+            .mergedRegions(false) // NOTE: set to false because of the explicit merge region handling in the copyRows method.
             .rowHeight(CellCopyPolicy.DEFAULT_COPY_ROW_HEIGHT_POLICY)
             .build();
 
@@ -167,21 +170,14 @@ public class SplitExcel extends AbstractProcessor {
                 int index = 0;
                 for (final Sheet originalSheet : originalWorkbook) {
                     final String originalSheetName = originalSheet.getSheetName();
-                    try (XSSFWorkbook newWorkbook = new XSSFWorkbook()) {
-                        XSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
-                        List<Row> originalRows = new ArrayList<>();
-                        for (Row originalRow : originalSheet) {
-                            originalRows.add(originalRow);
-                        }
+                    try (final Workbook newWorkbook = new SXSSFWorkbook(null, SXSSFWorkbook.DEFAULT_WINDOW_SIZE, false, true)) {
+                        final Sheet newSheet = newWorkbook.createSheet(originalSheetName);
+                        final int numberOfCopiedRows = copyRows(originalSheet, newSheet);
 
-                        if (!originalRows.isEmpty()) {
-                            newSheet.copyRows(originalRows, originalSheet.getFirstRowNum(), CELL_COPY_POLICY);
-                        }
-
-                        FlowFile newFlowFile = session.create(originalFlowFile);
+                        final FlowFile newFlowFile = session.create(originalFlowFile);
                         try (final OutputStream out = session.write(newFlowFile)) {
                             newWorkbook.write(out);
-                            workbookSplits.add(new WorkbookSplit(index, newFlowFile, originalSheetName, originalRows.size()));
+                            workbookSplits.add(new WorkbookSplit(index, newFlowFile, originalSheetName, numberOfCopiedRows));
                         }
                     }
 
@@ -228,6 +224,29 @@ public class SplitExcel extends AbstractProcessor {
                 .toList();
 
         session.transfer(flowFileSplits, REL_SPLIT);
+    }
+
+    private int copyRows(final Sheet originalSheet, final Sheet destinationSheet) {
+        final CellCopyContext cellCopyContext = new CellCopyContext();
+        int rowCount = 0;
+
+        for (final Row sourceRow : originalSheet) {
+            final Row destinationRow = destinationSheet.createRow(sourceRow.getRowNum());
+            destinationRow.setHeight(sourceRow.getHeight());
+
+            for (final Cell sourceCell : sourceRow) {
+                final Cell destCell = destinationRow.createCell(sourceCell.getColumnIndex());
+                CellUtil.copyCell(sourceCell, destCell, CELL_COPY_POLICY, cellCopyContext);
+            }
+
+            ++rowCount;
+        }
+
+        for (final CellRangeAddress sourceRegion : originalSheet.getMergedRegions()) {
+            destinationSheet.addMergedRegion(sourceRegion.copy());
+        }
+
+        return rowCount;
     }
 
     private record WorkbookSplit(int index, FlowFile content, String sheetName, int numRows) {
