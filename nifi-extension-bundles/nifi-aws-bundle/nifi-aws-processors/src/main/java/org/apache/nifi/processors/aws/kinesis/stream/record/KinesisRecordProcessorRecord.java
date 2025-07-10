@@ -50,7 +50,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor {
     private final RecordReaderFactory readerFactory;
@@ -129,24 +128,20 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 final Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
                 if (currentFlowFileState == null) {
                     // writer schema is determined by some, usually the first record
-                    currentFlowFileState = initializeState(session, outputRecord, null);
+                    currentFlowFileState = initializeState(session, outputRecord);
                     flowFiles.add(currentFlowFileState.flowFile);
                 }
 
                 if (!DataTypeUtils.isRecordTypeCompatible(currentFlowFileState.recordSchema, outputRecord, false)) {
-                    // subsequent records may have different schema. if so, try complete current FlowFile and start a new one with wider schema to continue
-                    completeFlowFile(flowFiles, session, stopWatch);
-                    currentFlowFileState = initializeState(session, outputRecord, currentFlowFileState);
-                    flowFiles.add(currentFlowFileState.flowFile);
+                    // subsequent records may have different schema. if so, route the record to PARSE_FAILURE and continue with next record
+                    // this explicit check is needed because RecordSetWriterFactory may throw an exception if the schema is not compatible and leave the FlowFile partially written which prevents
+                    // continuing with subsequent records from next KinesisClientRecord from the same batch
+                    throw new IllegalTypeConversionException("Record schema %s is not compatible with the FlowFile schema %s".formatted(outputRecord.getSchema(), currentFlowFileState.recordSchema));
                 }
 
                 currentFlowFileState.write(outputRecord, kinesisRecord);
             }
-        } catch (final MalformedRecordException | IOException | SchemaNotFoundException | IllegalTypeConversionException | FlowFileCompletionException e) {
-            if (e instanceof FlowFileCompletionException && currentFlowFileState != null && !currentFlowFileState.containsDataFromExactlyOneKinesisRecord())  {
-                // in case of multiple Kinesis Records in FlowFile, the whole batch needs to be failed, otherwise data can be lost
-                throw new KinesisBatchUnrecoverableException(e.getMessage(), e);
-            }
+        } catch (final MalformedRecordException | IOException | SchemaNotFoundException | IllegalTypeConversionException e) {
             // write raw Kinesis Record to the parse failure relationship
             getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
@@ -176,18 +171,13 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
      * Initializes the FlowFile state for the current processing. This includes creating a new FlowFile, initializing the RecordSetWriter, and setting up the output stream.
      * In case of an exception during initialization, the FlowFile is removed from the session and the resources are closed properly.
      */
-    private FlowFileState initializeState(final ProcessSession session, final Record outputRecord, final FlowFileState previousFlowFileState) throws IOException, SchemaNotFoundException {
+    private FlowFileState initializeState(final ProcessSession session, final Record outputRecord) throws IOException, SchemaNotFoundException {
         FlowFile flowFile = null;
         OutputStream outputStream = null;
         RecordSetWriter writer = null;
         try {
             flowFile = session.create();
-            // If we have a previous schema, we need to merge it with the current schema to ensure that the writer can handle all fields from both schemas going forward.
-            // There is an assumption here that all the records are expected by the downstream to have the same-ish schema. It is possible to imagine a scenario where records with different schemas
-            // should be written to separate FlowFiles.
-            final RecordSchema newReadSchema = Optional.ofNullable(previousFlowFileState).map(it ->
-                    DataTypeUtils.merge(it.recordSchema, outputRecord.getSchema())).orElse(outputRecord.getSchema());
-
+            final RecordSchema newReadSchema = outputRecord.getSchema();
             final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, newReadSchema);
             outputStream = session.write(flowFile);
             writer = writerFactory.createWriter(getLogger(), writeSchema, outputStream, flowFile);
@@ -258,9 +248,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     private Map<String, String> getDefaultAttributes(final KinesisClientRecord kinesisRecord) {
         final String partitionKey = kinesisRecord.partitionKey();
         final String sequenceNumber = kinesisRecord.sequenceNumber();
-        final long subSequenceNumber = kinesisRecord.subSequenceNumber();
         final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
-        return getDefaultAttributes(sequenceNumber, subSequenceNumber, partitionKey, approximateArrivalTimestamp);
+        return getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
     }
 
     void closeSafe(final Closeable closeable, final String closeableName) {

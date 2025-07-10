@@ -53,8 +53,6 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
     public static final String AWS_KINESIS_SEQUENCE_NUMBER = "aws.kinesis.sequence.number";
 
-    public static final String AWS_KINESIS_SUBSEQUENCE_NUMBER = "aws.kinesis.subsequence.number";
-
     public static final String AWS_KINESIS_PARTITION_KEY = "aws.kinesis.partition.key";
 
     public static final String AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP = "aws.kinesis.approximate.arrival.timestamp";
@@ -224,11 +222,10 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
     }
 
-    Map<String, String> getDefaultAttributes(final String sequenceNumber, final long subSequenceNumber, final String partitionKey, final Instant approximateArrivalTimestamp) {
+    Map<String, String> getDefaultAttributes(final String sequenceNumber, final String partitionKey, final Instant approximateArrivalTimestamp) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(AWS_KINESIS_SHARD_ID, kinesisShardId);
         attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, sequenceNumber);
-        attributes.put(AWS_KINESIS_SUBSEQUENCE_NUMBER, Long.toString(subSequenceNumber));
         attributes.put(AWS_KINESIS_PARTITION_KEY, partitionKey);
         if (approximateArrivalTimestamp != null) {
             attributes.put(AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP,
