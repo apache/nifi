@@ -107,6 +107,7 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       AWS Glue Schema Registry Serializer Deserializer
       Copyright 2020 Amazon.com, Inc. or its affiliates.
+    Files in package org/apache/nifi/aws/schemaregistry/serde come from library: software.amazon.schemaregistry:aws-schema-registry-serde:1.1.24
 
   (ASLv2) Amazon Web Services SDK
     The following NOTICE information applies:
