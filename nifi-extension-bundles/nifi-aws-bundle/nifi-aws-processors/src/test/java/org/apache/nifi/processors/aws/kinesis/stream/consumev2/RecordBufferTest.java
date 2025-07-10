@@ -92,6 +92,9 @@ class RecordBufferTest {
     @Test
     void testAddRecordsToBuffer() {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+        // Buffer without records is not available for leasing.
+        assertTrue(recordBuffer.acquireBufferLease().isEmpty());
+
         final List<KinesisClientRecord> records = createTestRecords(2);
 
         recordBuffer.addRecords(bufferId, records, checkpointer1);
@@ -224,11 +227,15 @@ class RecordBufferTest {
         final ShardBufferLease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
 
         // Consume some records, but don't commit them.
-        recordBuffer.consumeRecords(lease1);
+        final List<KinesisClientRecord> lease1Records = recordBuffer.consumeRecords(lease1);
         recordBuffer.returnBufferLease(lease1);
 
         final ShardBufferLease lease2 = recordBuffer.acquireBufferLease().orElseThrow();
         assertEquals(SHARD_ID_1, lease2.shardId());
+        final List<KinesisClientRecord> lease2Records = recordBuffer.consumeRecords(lease2);
+
+        // Until committed, the records stay in the buffer.
+        assertEquals(lease1Records, lease2Records);
     }
 
     @Test

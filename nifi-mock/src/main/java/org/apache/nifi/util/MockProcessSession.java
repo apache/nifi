@@ -88,7 +88,7 @@ public class MockProcessSession implements ProcessSession {
     private final StateManager stateManager;
     private final boolean allowSynchronousCommits;
     private final boolean allowRecursiveReads;
-    private final boolean shouldRollbackSession;
+    private final boolean shouldFailCommit;
 
     private boolean committed = false;
     private boolean rolledBack = false;
@@ -119,7 +119,7 @@ public class MockProcessSession implements ProcessSession {
     }
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
-                              final boolean allowSynchronousCommits, final boolean allowRecursiveReads, final boolean shouldRollbackSession) {
+                              final boolean allowSynchronousCommits, final boolean allowRecursiveReads, final boolean shouldFailCommit) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
@@ -128,7 +128,7 @@ public class MockProcessSession implements ProcessSession {
         this.stateManager = stateManager;
         this.allowSynchronousCommits = allowSynchronousCommits;
         this.allowRecursiveReads = allowRecursiveReads;
-        this.shouldRollbackSession = shouldRollbackSession;
+        this.shouldFailCommit = shouldFailCommit;
     }
 
     @Override
@@ -291,17 +291,22 @@ public class MockProcessSession implements ProcessSession {
                 "commitAsync(Runnable), or commitAsync(Runnable, Consumer<Throwable>). However, if this is not possible, ProcessSession.commit() may still be used, but this must be explicitly " +
                 "enabled by calling TestRunner.");
         }
-        if (shouldRollbackSession) {
-            rollback();
-            throw new TestSessionRollbackException();
-        }
 
-        commitInternal();
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
+            rollback();
+            throw t;
+        }
     }
 
     private void commitInternal() {
         if (!beingProcessed.isEmpty()) {
             throw new FlowFileHandlingException("Cannot commit session because the following FlowFiles have not been removed or transferred: " + beingProcessed);
+        }
+
+        if (shouldFailCommit) {
+            throw new TestFailedCommitException();
         }
 
         closeStreams(openInputStreams, enforceStreamsClosed);
@@ -324,22 +329,16 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commitAsync() {
-        if (shouldRollbackSession) {
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
             rollback();
-            throw new TestSessionRollbackException();
+            throw t;
         }
-        commitInternal();
     }
 
     @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
-        if (shouldRollbackSession) {
-            rollback();
-            final TestSessionRollbackException e = new TestSessionRollbackException();
-            onFailure.accept(e);
-            throw e;
-        }
-
         try {
             commitInternal();
         } catch (final Throwable t) {
@@ -1479,9 +1478,9 @@ public class MockProcessSession implements ProcessSession {
         return curUuid.equals(providedUuid);
     }
 
-    public static final class TestSessionRollbackException extends RuntimeException {
-        private TestSessionRollbackException() {
-            super("Rolling session back as requested by test");
+    public static final class TestFailedCommitException extends RuntimeException {
+        private TestFailedCommitException() {
+            super("Failing the commit, as requested by the test");
         }
     }
 }

@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
 
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
+import java.util.HashMap;
 import java.util.Map;
 
 final class ConsumeKinesisStreamV2Attributes {
@@ -38,13 +39,18 @@ final class ConsumeKinesisStreamV2Attributes {
     static Map<String, String> fromKinesisRecord(
             final String shardId,
             final KinesisClientRecord record) {
-        return Map.of(
-                SHARD_ID, shardId,
-                SEQUENCE_NUMBER, record.sequenceNumber(),
-                SUB_SEQUENCE_NUMBER, String.valueOf(record.subSequenceNumber()),
-                PARTITION_KEY, record.partitionKey(),
-                APPROXIMATE_ARRIVAL_TIMESTAMP, record.approximateArrivalTimestamp().toString()
-        );
+        final Map<String, String> attributes = new HashMap<>(5, 1.0f);
+
+       attributes.put(SHARD_ID, shardId);
+       attributes.put(SEQUENCE_NUMBER, record.sequenceNumber());
+       attributes.put(SUB_SEQUENCE_NUMBER, String.valueOf(record.subSequenceNumber()));
+       attributes.put(PARTITION_KEY, record.partitionKey());
+
+       if (record.approximateArrivalTimestamp() != null) {
+           attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, record.approximateArrivalTimestamp().toString());
+       }
+
+       return attributes;
     }
 
     private ConsumeKinesisStreamV2Attributes() {

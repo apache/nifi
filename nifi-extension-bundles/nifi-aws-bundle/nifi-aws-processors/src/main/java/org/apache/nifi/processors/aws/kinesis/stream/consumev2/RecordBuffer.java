@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
 
+import jakarta.annotation.Nullable;
 import org.apache.nifi.logging.ComponentLog;
-import org.jetbrains.annotations.Nullable;
 import software.amazon.kinesis.exceptions.InvalidStateException;
 import software.amazon.kinesis.exceptions.KinesisClientLibDependencyException;
 import software.amazon.kinesis.exceptions.ShutdownException;

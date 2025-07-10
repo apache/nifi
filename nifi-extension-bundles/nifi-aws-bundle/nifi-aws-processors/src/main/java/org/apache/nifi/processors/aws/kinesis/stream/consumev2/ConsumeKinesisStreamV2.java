@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
 
+import jakarta.annotation.Nullable;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -93,7 +94,7 @@ import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKin
 @TriggerSerially
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
 @CapabilityDescription("Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) " +
-        " or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
+        "or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
         "AWS Kinesis Client Library can take several seconds to initialise before starting to fetch data. " +
         "Uses DynamoDB for check pointing and coordination, and CloudWatch (optional) for metrics. " +
         "Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.")
@@ -529,7 +530,7 @@ public class ConsumeKinesisStreamV2 extends AbstractProcessor {
     private static class ConsumeKinesisRecordProcessor implements ShardRecordProcessor {
 
         private final RecordBuffer recordBuffer;
-        private volatile ShardBufferId bufferId;
+        private volatile @Nullable ShardBufferId bufferId;
 
         ConsumeKinesisRecordProcessor(final RecordBuffer recordBuffer) {
             this.recordBuffer = recordBuffer;

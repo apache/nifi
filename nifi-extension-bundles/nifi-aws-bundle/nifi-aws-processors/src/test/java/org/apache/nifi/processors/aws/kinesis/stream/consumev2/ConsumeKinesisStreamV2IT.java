@@ -315,7 +315,7 @@ class ConsumeKinesisStreamV2IT {
             final MockProcessSession failingSession = createFailingSession(processor);
             try {
                 processor.onTrigger(runner.getProcessContext(), failingSession);
-            } catch (final MockProcessSession.TestSessionRollbackException e) {
+            } catch (final MockProcessSession.TestFailedCommitException e) {
                 failingSession.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
                 break; // Expected rollback occurred
             }
