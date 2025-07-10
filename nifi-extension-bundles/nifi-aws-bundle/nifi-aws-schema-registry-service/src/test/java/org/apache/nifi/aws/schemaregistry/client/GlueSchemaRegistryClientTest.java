@@ -23,14 +23,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.glue.GlueClient;
+import software.amazon.awssdk.services.glue.model.DataFormat;
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionRequest;
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +43,7 @@ class GlueSchemaRegistryClientTest {
     private static final String REGISTRY_NAME = "registry";
     private static final String SCHEMA_DEFINITION = "{\"namespace\":\"com.example\",\"type\":\"record\",\"name\":\"User\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}]}";
     private static final GetSchemaVersionResponse MOCK_RESPONSE = GetSchemaVersionResponse.builder()
+            .dataFormat(DataFormat.AVRO)
             .schemaDefinition(SCHEMA_DEFINITION)
             .versionNumber(1L)
             .build();
@@ -68,6 +72,7 @@ class GlueSchemaRegistryClientTest {
         int version = 1;
 
         final GetSchemaVersionResponse mockResponse = GetSchemaVersionResponse.builder()
+                .dataFormat(DataFormat.AVRO)
                 .schemaDefinition(SCHEMA_DEFINITION)
                 .versionNumber(1L)
                 .build();
@@ -77,6 +82,30 @@ class GlueSchemaRegistryClientTest {
         when(mockClient.getSchemaVersion(any(GetSchemaVersionRequest.class))).thenReturn(mockResponse);
 
         final RecordSchema actualSchema = schemaRegistryClient.getSchema(SCHEMA_NAME, version);
+
+        assertNotNull(actualSchema);
+        assertEquals(EXPECTED_SCHEMA_NAMESPACE, actualSchema.getSchemaNamespace().orElseThrow(() -> new RuntimeException("Schema namespace not found")));
+        assertEquals(EXPECTED_SCHEMA_NAME, actualSchema.getSchemaName().orElseThrow(() -> new RuntimeException("Schema name not found")));
+        verify(mockClient).getSchemaVersion(any(GetSchemaVersionRequest.class));
+    }
+
+    @Test
+    void getSchemaWithNameVersionIdInvokesClientAndReturnsRecordSchema() throws SchemaNotFoundException {
+        UUID schemaVersionId = UUID.randomUUID();
+        String schemaArn = "arn:aws:glue:us-east-1:123456789012:schema/registry/name";
+
+        final GetSchemaVersionResponse mockResponse = GetSchemaVersionResponse.builder()
+                .dataFormat(DataFormat.AVRO)
+                .schemaDefinition(SCHEMA_DEFINITION)
+                .versionNumber(1L)
+                .schemaArn(schemaArn)
+                .build();
+
+        schemaRegistryClient = new GlueSchemaRegistryClient(mockClient, REGISTRY_NAME);
+
+        when(mockClient.getSchemaVersion(argThat((GetSchemaVersionRequest req) -> schemaVersionId.toString().equals(req.schemaVersionId())))).thenReturn(mockResponse);
+
+        final RecordSchema actualSchema = schemaRegistryClient.getSchema(schemaVersionId);
 
         assertNotNull(actualSchema);
         assertEquals(EXPECTED_SCHEMA_NAMESPACE, actualSchema.getSchemaNamespace().orElseThrow(() -> new RuntimeException("Schema namespace not found")));
