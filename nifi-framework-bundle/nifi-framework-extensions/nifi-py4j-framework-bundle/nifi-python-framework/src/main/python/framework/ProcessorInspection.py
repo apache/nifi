@@ -59,16 +59,33 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
         resolved_dependencies = []
         for dependency in node.elts:
             variable_name = dependency.args[0].id
-            if not self.discovered_property_descriptors[variable_name]:
-                self.logger.error(f"Not able to find actual property descriptor for {variable_name}, so not able to resolve property dependencies in {self.processor_name}.")
-            else:
-                actual_property = self.discovered_property_descriptors[variable_name]
-                dependent_values = []
-                for dependent_value in dependency.args[1:]:
-                    dependent_values.append(get_constant_values(dependent_value, self.module_string_constants))
-                resolved_dependencies.append(PropertyDependency(name = actual_property.name,
-                                                                display_name = actual_property.display_name,
-                                                                dependent_values = dependent_values))
+            actual_property = self.discovered_property_descriptors.get(variable_name)
+
+            if not actual_property:
+                imported_value = self.module_string_constants.get(variable_name)
+                if isinstance(imported_value, PropertyDescription):
+                    actual_property = imported_value
+
+                if not actual_property:
+                    self.logger.error(
+                        f"Cannot resolve property descriptor '{variable_name}' in {self.processor_name}. Skipping."
+                    )
+                    continue
+
+            dependent_values = []
+            for dependent_value in dependency.args[1:]:
+                dependent_values.append(
+                    get_constant_values(dependent_value, self.module_string_constants)
+                )
+
+            resolved_dependencies.append(
+                PropertyDependency(
+                    name=actual_property.name,
+                    display_name=actual_property.display_name,
+                    dependent_values=dependent_values,
+                )
+            )
+
         return resolved_dependencies
 
     def resolve_property_descriptor_name_in_code(self, node: ast.AST):
