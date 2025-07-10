@@ -14,6 +14,7 @@
 # limitations under the License.
 
 org.apache.nifi.flowanalysis.rules.DisallowComponentType
+org.apache.nifi.flowanalysis.rules.RequireLoadBalancedConnectionAfterSourceProcessor
 org.apache.nifi.flowanalysis.rules.RequireServerSSLContextService
 org.apache.nifi.flowanalysis.rules.RestrictBackpressureSettings
 org.apache.nifi.flowanalysis.rules.RestrictFlowFileExpiration
