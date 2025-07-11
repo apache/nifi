@@ -26,7 +26,7 @@ import java.io.IOException;
 
 /**
  * <p>
- * A RowRecordReader is responsible for parsing data and returning a record at a time
+ * A RecordReader is responsible for parsing data and returning a record at a time
  * in order to allow the caller to iterate over the records individually.
  * </p>
  *
