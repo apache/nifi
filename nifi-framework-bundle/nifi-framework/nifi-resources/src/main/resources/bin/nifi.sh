@@ -214,8 +214,11 @@ run() {
     echo "NIFI_HOME=${NIFI_HOME}"
     echo
 
+    # NopStatusListener prevents Logback from writing configuration failures to the standard output stream
+    BOOTSTRAP_LOGBACK_STATUS_LISTENER="-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener"
+
     #setup directory parameters
-    BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.bootstrap.config.log.dir='${NIFI_LOG_DIR}'"
+    BOOTSTRAP_LOG_PARAMS="${BOOTSTRAP_LOGBACK_STATUS_LISTENER} -Dorg.apache.nifi.bootstrap.config.log.dir='${NIFI_LOG_DIR}'"
     BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.bootstrap.config.file='${BOOTSTRAP_CONF}'"
 
     # uncomment to allow debugging of the bootstrap process
