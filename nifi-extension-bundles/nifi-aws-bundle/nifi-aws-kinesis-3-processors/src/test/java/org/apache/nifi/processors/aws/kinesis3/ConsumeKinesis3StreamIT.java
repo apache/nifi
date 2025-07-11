@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
+package org.apache.nifi.processors.aws.kinesis3;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
@@ -64,7 +64,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -75,9 +75,9 @@ import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
  */
 @Execution(ExecutionMode.CONCURRENT)
 @Timeout(value = 5, unit = MINUTES, threadMode = SEPARATE_THREAD)
-class ConsumeKinesisStreamV2IT {
+class ConsumeKinesis3StreamIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(ConsumeKinesisStreamV2IT.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConsumeKinesis3StreamIT.class);
     private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:4.6.0");
 
     private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE)
@@ -305,7 +305,7 @@ class ConsumeKinesisStreamV2IT {
         // Initialize the processor.
         runner.run(1, false, true);
 
-        final ConsumeKinesisStreamV2 processor = (ConsumeKinesisStreamV2) runner.getProcessor();
+        final ConsumeKinesis3Stream processor = (ConsumeKinesis3Stream) runner.getProcessor();
 
         final String firstMessage = "Initial-Rollback-Message";
         streamClient.putRecord("key", firstMessage);
@@ -335,9 +335,8 @@ class ConsumeKinesisStreamV2IT {
         flowFiles.getLast().assertContentEquals(secondMessage);
     }
 
-
     private TestRunner createTestRunner(final String streamName, final String applicationName) throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStreamV2.class);
+        final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesis3Stream.class);
 
         final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
         runner.addControllerService("credentials", credentialsService);
@@ -345,20 +344,20 @@ class ConsumeKinesisStreamV2IT {
         runner.setProperty(credentialsService, AWSCredentialsProviderControllerService.SECRET_KEY, localstack.getSecretKey());
         runner.enableControllerService(credentialsService);
 
-        runner.setProperty(ConsumeKinesisStreamV2.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials");
-        runner.setProperty(ConsumeKinesisStreamV2.KINESIS_STREAM_NAME, streamName);
-        runner.setProperty(ConsumeKinesisStreamV2.APPLICATION_NAME, applicationName);
-        runner.setProperty(ConsumeKinesisStreamV2.REGION, localstack.getRegion());
-        runner.setProperty(ConsumeKinesisStreamV2.INITIAL_STREAM_POSITION, ConsumeKinesisStreamV2.InitialPosition.TRIM_HORIZON);
+        runner.setProperty(ConsumeKinesis3Stream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials");
+        runner.setProperty(ConsumeKinesis3Stream.KINESIS_STREAM_NAME, streamName);
+        runner.setProperty(ConsumeKinesis3Stream.APPLICATION_NAME, applicationName);
+        runner.setProperty(ConsumeKinesis3Stream.REGION, localstack.getRegion());
+        runner.setProperty(ConsumeKinesis3Stream.INITIAL_STREAM_POSITION, ConsumeKinesis3Stream.InitialPosition.TRIM_HORIZON);
 
-        runner.setProperty(ConsumeKinesisStreamV2.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.KINESIS).toString());
-        runner.setProperty(ConsumeKinesisStreamV2.DYNAMODB_ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.DYNAMODB).toString());
-        runner.setProperty(ConsumeKinesisStreamV2.CLOUDWATCH_ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.CLOUDWATCH).toString());
+        runner.setProperty(ConsumeKinesis3Stream.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.KINESIS).toString());
+        runner.setProperty(ConsumeKinesis3Stream.DYNAMODB_ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.DYNAMODB).toString());
+        runner.setProperty(ConsumeKinesis3Stream.CLOUDWATCH_ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.CLOUDWATCH).toString());
 
-        runner.setProperty(ConsumeKinesisStreamV2.REPORT_CLOUDWATCH_METRICS, "false");
+        runner.setProperty(ConsumeKinesis3Stream.REPORT_CLOUDWATCH_METRICS, "false");
 
-        runner.setProperty(ConsumeKinesisStreamV2.MAX_BYTES_TO_BUFFER, "10 MB");
-        runner.setProperty(ConsumeKinesisStreamV2.TIMEOUT, "30 secs");
+        runner.setProperty(ConsumeKinesis3Stream.MAX_BYTES_TO_BUFFER, "10 MB");
+        runner.setProperty(ConsumeKinesis3Stream.TIMEOUT, "30 secs");
 
         runner.assertValid();
         return runner;

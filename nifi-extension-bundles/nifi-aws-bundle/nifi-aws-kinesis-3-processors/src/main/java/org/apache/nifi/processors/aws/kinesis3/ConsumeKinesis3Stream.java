@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
+package org.apache.nifi.processors.aws.kinesis3;
 
 import jakarta.annotation.Nullable;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -40,9 +40,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
-import org.apache.nifi.processors.aws.kinesis.stream.consumev2.RecordBuffer.ShardBufferId;
-import org.apache.nifi.processors.aws.kinesis.stream.consumev2.RecordBuffer.ShardBufferLease;
-import org.apache.nifi.processors.aws.v2.RegionUtilV2;
+import org.apache.nifi.processors.aws.kinesis3.RecordBuffer.ShardBufferId;
+import org.apache.nifi.processors.aws.kinesis3.RecordBuffer.ShardBufferLease;
+import org.apache.nifi.processors.aws.region.RegionUtilV2;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
@@ -82,13 +82,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.PARTITION_KEY;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.RECORD_COUNT;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.RECORD_ERROR_MESSAGE;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.SEQUENCE_NUMBER;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.SHARD_ID;
-import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKinesisStreamV2Attributes.SUB_SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.PARTITION_KEY;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.RECORD_COUNT;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.RECORD_ERROR_MESSAGE;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.SHARD_ID;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.SUB_SEQUENCE_NUMBER;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
@@ -123,7 +123,7 @@ import static org.apache.nifi.processors.aws.kinesis.stream.consumev2.ConsumeKin
         "Concurrent Thread pool and are not released until this processor is stopped.")
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
-public class ConsumeKinesisStreamV2 extends AbstractProcessor {
+public class ConsumeKinesis3Stream extends AbstractProcessor {
 
     public enum InitialPosition implements DescribedValue {
         TRIM_HORIZON("Trim Horizon", "Start reading at the last untrimmed record in the shard in the system, which is the oldest data record in the shard."),
@@ -516,7 +516,7 @@ public class ConsumeKinesisStreamV2 extends AbstractProcessor {
     private static void processRecordsAsRaw(final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
         for (final KinesisClientRecord record : records) {
             final FlowFile flowFile = session.create();
-            session.putAllAttributes(flowFile, ConsumeKinesisStreamV2Attributes.fromKinesisRecord(shardId, record));
+            session.putAllAttributes(flowFile, ConsumeKinesis3StreamAttributes.fromKinesisRecord(shardId, record));
 
             session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
 

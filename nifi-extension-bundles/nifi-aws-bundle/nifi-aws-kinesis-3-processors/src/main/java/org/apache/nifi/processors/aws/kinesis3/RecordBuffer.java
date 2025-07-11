@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
+package org.apache.nifi.processors.aws.kinesis3;
 
 import jakarta.annotation.Nullable;
 import org.apache.nifi.logging.ComponentLog;
@@ -48,7 +48,7 @@ import static java.util.Collections.emptyList;
 /**
  * RecordBuffer keeps track of all created Shard buffers, including exclusive read access via leasing,
  * and memory consumption tracking. It acts as the main interface between KCL callbacks and
- * the {@link ConsumeKinesisStreamV2} processor, routing events to appropriate ShardBuffers and ensuring
+ * the {@link ConsumeKinesis3Stream} processor, routing events to appropriate ShardBuffers and ensuring
  * thread-safe operations.
  */
 final class RecordBuffer {

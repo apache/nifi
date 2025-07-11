@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
+package org.apache.nifi.processors.aws.kinesis3;
 
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.util.HashMap;
 import java.util.Map;
 
-final class ConsumeKinesisStreamV2Attributes {
+final class ConsumeKinesis3StreamAttributes {
+
     private static final String PREFIX = "aws.kinesis.";
 
     // AWS Kinesis attributes.
@@ -53,6 +54,6 @@ final class ConsumeKinesisStreamV2Attributes {
        return attributes;
     }
 
-    private ConsumeKinesisStreamV2Attributes() {
+    private ConsumeKinesis3StreamAttributes() {
     }
 }

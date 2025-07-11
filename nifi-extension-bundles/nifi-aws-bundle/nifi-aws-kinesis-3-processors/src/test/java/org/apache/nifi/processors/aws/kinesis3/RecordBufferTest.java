@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.consumev2;
+package org.apache.nifi.processors.aws.kinesis3;
 
 import org.apache.nifi.documentation.init.NopComponentLog;
-import org.apache.nifi.processors.aws.kinesis.stream.consumev2.RecordBuffer.ShardBufferId;
-import org.apache.nifi.processors.aws.kinesis.stream.consumev2.RecordBuffer.ShardBufferLease;
+import org.apache.nifi.processors.aws.kinesis3.RecordBuffer.ShardBufferId;
+import org.apache.nifi.processors.aws.kinesis3.RecordBuffer.ShardBufferLease;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
