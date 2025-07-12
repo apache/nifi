@@ -1034,9 +1034,8 @@ public class StandardNiFiServiceFacadeTest {
 
     }
 
-
     @Test
-    public void testGetRuleViolationsForGroupIsRecursive() throws Exception {
+    public void testGetRuleViolationsForRoot() {
         // GIVEN
         int ruleViolationCounter = 0;
 
@@ -1076,8 +1075,138 @@ public class StandardNiFiServiceFacadeTest {
                 grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
         ));
 
+        when(processGroupDAO.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS)).thenReturn(processGroup);
+        when(ruleViolationsManager.getAllRuleViolations()).thenReturn(expected);
+
         // WHEN
         Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(processGroup.getIdentifier()).collect(Collectors.toSet());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testGetRuleViolationsForRootWithAlias() {
+        // GIVEN
+        int ruleViolationCounter = 0;
+
+        String groupId = "groupId";
+        String childGroupId = "childGroupId";
+        String grandChildGroupId = "grandChildGroupId";
+
+        RuleViolation ruleViolation1 = createRuleViolation(groupId, ruleViolationCounter++);
+        RuleViolation ruleViolation2 = createRuleViolation(groupId, ruleViolationCounter++);
+
+        RuleViolation childRuleViolation1 = createRuleViolation(childGroupId, ruleViolationCounter++);
+        RuleViolation childRuleViolation2 = createRuleViolation(childGroupId, ruleViolationCounter++);
+
+        RuleViolation grandChildRuleViolation1 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation2 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation3 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+
+        ProcessGroup grandChildProcessGroup = mockProcessGroup(
+                grandChildGroupId,
+                Collections.emptyList(),
+                Arrays.asList(grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+        ProcessGroup childProcessGroup = mockProcessGroup(
+                childGroupId,
+                Arrays.asList(grandChildProcessGroup),
+                Arrays.asList(childRuleViolation1, childRuleViolation2)
+        );
+        ProcessGroup processGroup = mockProcessGroup(
+                groupId,
+                Arrays.asList(childProcessGroup),
+                Arrays.asList(ruleViolation1, ruleViolation2)
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(Arrays.asList(
+                ruleViolation1, ruleViolation2,
+                childRuleViolation1, childRuleViolation2,
+                grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
+        ));
+
+        when(processGroupDAO.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS)).thenReturn(processGroup);
+        when(ruleViolationsManager.getAllRuleViolations()).thenReturn(expected);
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(FlowManager.ROOT_GROUP_ID_ALIAS).collect(Collectors.toSet());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    public void testGetRuleViolationsEmpty() {
+        // GIVEN
+        String groupId = "groupId";
+
+        ProcessGroup processGroup = mockProcessGroup(
+                groupId,
+                Arrays.asList(),
+                Arrays.asList()
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(List.of());
+
+        when(ruleViolationsManager.isEmpty()).thenReturn(true);
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(processGroup.getIdentifier()).collect(Collectors.toSet());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testGetRuleViolationsForGroupIsRecursive() {
+        // GIVEN
+        int ruleViolationCounter = 0;
+
+        String rootGroupId = "groupId";
+        String childGroupId = "childGroupId";
+        String grandChildGroupId = "grandChildGroupId";
+
+        RuleViolation ruleViolation1 = createRuleViolation(rootGroupId, ruleViolationCounter++);
+        RuleViolation ruleViolation2 = createRuleViolation(rootGroupId, ruleViolationCounter++);
+
+        RuleViolation childRuleViolation1 = createRuleViolation(childGroupId, ruleViolationCounter++);
+        RuleViolation childRuleViolation2 = createRuleViolation(childGroupId, ruleViolationCounter++);
+
+        RuleViolation grandChildRuleViolation1 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation2 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation3 = createRuleViolation(grandChildGroupId, ruleViolationCounter);
+
+        ProcessGroup grandChildProcessGroup = mockProcessGroup(
+                grandChildGroupId,
+                Collections.emptyList(),
+                Arrays.asList(grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+        ProcessGroup childProcessGroup = mockProcessGroup(
+                childGroupId,
+                Arrays.asList(grandChildProcessGroup),
+                Arrays.asList(childRuleViolation1, childRuleViolation2)
+        );
+        mockProcessGroup(
+                rootGroupId,
+                Arrays.asList(childProcessGroup),
+                Arrays.asList(ruleViolation1, ruleViolation2)
+        );
+
+        when(ruleViolationsManager.getRuleViolationsForGroups(Set.of(childGroupId, grandChildGroupId))).thenReturn(
+                Arrays.asList(
+                        childRuleViolation1, childRuleViolation2,
+                        grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(Arrays.asList(
+                childRuleViolation1, childRuleViolation2,
+                grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
+        ));
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(childProcessGroup.getIdentifier()).collect(Collectors.toSet());
 
         // THEN
         assertEquals(expected, actual);
