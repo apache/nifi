@@ -34,10 +34,13 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,13 +52,12 @@ import java.util.List;
 import java.util.Map;
 
 public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor {
-    final RecordReaderFactory readerFactory;
-    final RecordSetWriterFactory writerFactory;
-    final Map<String, String> schemaRetrievalVariables;
-
-    private RecordSetWriter writer;
-    private OutputStream outputStream;
+    private final RecordReaderFactory readerFactory;
+    private final RecordSetWriterFactory writerFactory;
+    private final Map<String, String> schemaRetrievalVariables;
     private final RecordConverter recordConverter;
+
+    private FlowFileState currentFlowFileState;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
@@ -75,51 +77,79 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     @Override
     void startProcessingRecords() {
         super.startProcessingRecords();
-        outputStream = null;
-        writer = null;
+        if (currentFlowFileState != null) {
+            // this may happen if the previous processing has not been completed successfully, close the leftover state
+            closeSafe(currentFlowFileState, "FlowFile State");
+            currentFlowFileState = null;
+        }
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
+    void finishProcessingRecords(final ProcessSession session, final List<FlowFile> flowFiles, final StopWatch stopWatch) {
+        super.finishProcessingRecords(session, flowFiles, stopWatch);
+        try {
+            if (currentFlowFileState == null) {
+                return;
+            }
+            if (!flowFiles.contains(currentFlowFileState.flowFile)) {
+                // this is unexpected, flowFiles have been altered not in this class after the start of processing
+                throw new IllegalStateException("%s is not available in provided FlowFiles [%d]".formatted(currentFlowFileState.flowFile, flowFiles.size()));
+            }
+            completeFlowFile(flowFiles, session, stopWatch);
+        } catch (final FlowFileCompletionException e) {
+            if (!currentFlowFileState.containsDataFromExactlyOneKinesisRecord()) {
+                throw new KinesisBatchUnrecoverableException(e.getMessage(), e);
+            }
+            final boolean removeCurrentStateFlowFileIfAvailable = true;
+            final KinesisClientRecord kinesisRecord = currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord;
+            final byte[] data = getData(kinesisRecord);
+            outputRawRecordOnException(removeCurrentStateFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
+        } finally {
+            currentFlowFileState = null;
+        }
+    }
+
+    @Override
+    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
-        boolean firstOutputRecord = true;
-        int recordCount = 0;
-        final ByteBuffer dataBuffer = kinesisRecord.data();
-        byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
-        if (dataBuffer != null) {
-            dataBuffer.get(data);
+        if (currentFlowFileState != null && !flowFiles.contains(currentFlowFileState.flowFile)) {
+            // this is unexpected, flowFiles have been altered not in this class after the start of processing
+            throw new IllegalStateException("%s is not available in provided FlowFiles [%d]".formatted(currentFlowFileState.flowFile, flowFiles.size()));
         }
 
-        FlowFile flowFile = null;
+        final byte[] data = getData(kinesisRecord);
+
         try (final InputStream in = new ByteArrayInputStream(data);
              final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, getLogger())
         ) {
             Record intermediateRecord;
             final PushBackRecordSet recordSet = new PushBackRecordSet(reader.createRecordSet());
             while ((intermediateRecord = recordSet.next()) != null) {
-                Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
-                if (flowFiles.isEmpty()) {
-                    flowFile = session.create();
-                    flowFiles.add(flowFile);
-
-                    // initialize the writer when the first record is read.
-                    createWriter(flowFile, session, outputRecord);
+                final Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
+                if (currentFlowFileState == null) {
+                    // writer schema is determined by some, usually the first record
+                    currentFlowFileState = initializeState(session, outputRecord);
+                    flowFiles.add(currentFlowFileState.flowFile);
                 }
 
-                final WriteResult writeResult = writer.write(outputRecord);
-                recordCount += writeResult.getRecordCount();
-
-                // complete the FlowFile if there are no more incoming Kinesis Records and no more records in this RecordSet
-                if (lastRecord && !recordSet.isAnotherRecord()) {
-                    completeFlowFile(flowFiles, session, recordCount, writeResult, kinesisRecord, stopWatch);
+                if (!DataTypeUtils.isRecordTypeCompatible(currentFlowFileState.recordSchema, outputRecord, false)) {
+                    // subsequent records may have different schema. if so, route the record to PARSE_FAILURE and continue with next record
+                    // this explicit check is needed because RecordSetWriterFactory may throw an exception if the schema is not compatible and leave the FlowFile partially written which prevents
+                    // continuing with subsequent records from next KinesisClientRecord from the same batch
+                    throw new IllegalTypeConversionException("Record schema %s is not compatible with the FlowFile schema %s".formatted(outputRecord.getSchema(), currentFlowFileState.recordSchema));
                 }
-                firstOutputRecord = false;
+
+                currentFlowFileState.write(outputRecord, kinesisRecord);
             }
-        } catch (final MalformedRecordException | IOException | SchemaNotFoundException e) {
+        } catch (final MalformedRecordException | IOException | SchemaNotFoundException | IllegalTypeConversionException e) {
             // write raw Kinesis Record to the parse failure relationship
             getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
-            outputRawRecordOnException(firstOutputRecord, flowFile, flowFiles, session, data, kinesisRecord, e);
+            final boolean removeCurrentStateFlowFileIfAvailable = currentFlowFileState != null && currentFlowFileState.isFlowFileEmpty();
+            outputRawRecordOnException(removeCurrentStateFlowFileIfAvailable, flowFiles, session, data, kinesisRecord, e);
+            if (removeCurrentStateFlowFileIfAvailable) {
+                currentFlowFileState = null;
+            }
         }
 
         if (getLogger().isDebugEnabled()) {
@@ -128,62 +158,83 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
     }
 
-    private void createWriter(final FlowFile flowFile, final ProcessSession session, final Record outputRecord)
-            throws IOException, SchemaNotFoundException {
-
-        final RecordSchema readerSchema = outputRecord.getSchema();
-        final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
-        outputStream = session.write(flowFile);
-        writer = writerFactory.createWriter(getLogger(), writeSchema, outputStream, flowFile);
-        writer.beginRecordSet();
-    }
-
-    private void completeFlowFile(final List<FlowFile> flowFiles, final ProcessSession session, final int recordCount,
-                                  final WriteResult writeResult, final KinesisClientRecord lastRecord, final StopWatch stopWatch)
-            throws IOException {
-
-        try {
-            writer.finishRecordSet();
-        } catch (IOException e) {
-            getLogger().error("Failed to finish record output due to {}", e.getLocalizedMessage(), e);
-            session.remove(flowFiles.get(0));
-            flowFiles.remove(0);
-            throw e;
-        } finally {
-            try {
-                writer.close();
-                outputStream.close();
-            } catch (final IOException e) {
-                getLogger().warn("Failed to close Record Writer due to {}", e.getLocalizedMessage(), e);
-            }
+    private static byte[] getData(final KinesisClientRecord kinesisRecord) {
+        final ByteBuffer dataBuffer = kinesisRecord.data();
+        final byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
+        if (dataBuffer != null) {
+            dataBuffer.get(data);
         }
-
-        reportProvenance(session, flowFiles.get(0), null, null, stopWatch);
-
-        final Map<String, String> attributes = getDefaultAttributes(lastRecord);
-        attributes.put("record.count", String.valueOf(recordCount));
-        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-        attributes.putAll(writeResult.getAttributes());
-        flowFiles.set(0, session.putAllAttributes(flowFiles.get(0), attributes));
-
-        writer = null;
-        outputStream = null;
+        return data;
     }
 
-    private void outputRawRecordOnException(final boolean firstOutputRecord, final FlowFile flowFile,
+    /**
+     * Initializes the FlowFile state for the current processing. This includes creating a new FlowFile, initializing the RecordSetWriter, and setting up the output stream.
+     * In case of an exception during initialization, the FlowFile is removed from the session and the resources are closed properly.
+     */
+    private FlowFileState initializeState(final ProcessSession session, final Record outputRecord) throws IOException, SchemaNotFoundException {
+        FlowFile flowFile = null;
+        OutputStream outputStream = null;
+        RecordSetWriter writer = null;
+        try {
+            flowFile = session.create();
+            final RecordSchema newReadSchema = outputRecord.getSchema();
+            final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, newReadSchema);
+            outputStream = session.write(flowFile);
+            writer = writerFactory.createWriter(getLogger(), writeSchema, outputStream, flowFile);
+            writer.beginRecordSet();
+        } catch (final Exception e) {
+            if (flowFile != null) {
+                session.remove(flowFile);
+            }
+            closeSafe(writer, "Record Writer");
+            closeSafe(outputStream, "Output Stream");
+            throw e;
+        }
+        return new FlowFileState(flowFile, writer, outputStream, outputRecord.getSchema());
+    }
+
+    private void completeFlowFile(final List<FlowFile> flowFiles, final ProcessSession session, final StopWatch stopWatch)
+            throws FlowFileCompletionException {
+        if (currentFlowFileState.isFlowFileEmpty()) {
+            flowFiles.remove(currentFlowFileState.flowFile);
+            session.remove(currentFlowFileState.flowFile);
+            closeSafe(currentFlowFileState, "FlowFile State");
+            return;
+        }
+        try {
+            currentFlowFileState.writer.finishRecordSet();
+            closeSafe(currentFlowFileState, "FlowFile State");
+            reportProvenance(session, currentFlowFileState.flowFile, null, null, stopWatch);
+
+            final Map<String, String> attributes = getDefaultAttributes(currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord);
+            attributes.put("record.count", String.valueOf(currentFlowFileState.lastSuccessfulWriteInfo.writeResult.getRecordCount()));
+            attributes.put(CoreAttributes.MIME_TYPE.key(), currentFlowFileState.writer.getMimeType());
+            attributes.putAll(currentFlowFileState.lastSuccessfulWriteInfo.writeResult.getAttributes());
+            final int flowFileIndex = flowFiles.indexOf(currentFlowFileState.flowFile);
+            flowFiles.set(flowFileIndex, session.putAllAttributes(currentFlowFileState.flowFile, attributes));
+        } catch (final IOException e) {
+            flowFiles.remove(currentFlowFileState.flowFile);
+            session.remove(currentFlowFileState.flowFile);
+            closeSafe(currentFlowFileState, "FlowFile State");
+            final String message = "Failed to complete a FlowFile containing records from Stream Name: %s, Shard Id: %s, Sequence/Subsequence No range: [%s/%d, %s/%d)".formatted(
+                    getStreamName(),
+                    getKinesisShardId(),
+                    currentFlowFileState.firstSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                    currentFlowFileState.firstSuccessfulWriteInfo.kinesisRecord.subSequenceNumber(),
+                    currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord.sequenceNumber(),
+                    currentFlowFileState.lastSuccessfulWriteInfo.kinesisRecord.subSequenceNumber()
+            );
+            throw new FlowFileCompletionException(message, e);
+        }
+    }
+
+    private void outputRawRecordOnException(final boolean removeCurrentStateFlowFileIfAvailable,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
                                             final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
-        if (firstOutputRecord && flowFile != null) {
-            session.remove(flowFile);
-            flowFiles.remove(0);
-            if (writer != null) {
-                try {
-                    writer.close();
-                    outputStream.close();
-                } catch (IOException ioe) {
-                    getLogger().warn("Failed to close Record Writer due to {}", ioe.getLocalizedMessage(), ioe);
-                }
-            }
+        if (removeCurrentStateFlowFileIfAvailable && currentFlowFileState != null) {
+            closeSafe(currentFlowFileState, "FlowFile State");
+            session.remove(currentFlowFileState.flowFile);
+            flowFiles.remove(currentFlowFileState.flowFile);
         }
         FlowFile failed = session.create();
         session.write(failed, o -> o.write(data));
@@ -199,5 +250,61 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         final String sequenceNumber = kinesisRecord.sequenceNumber();
         final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         return getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
+    }
+
+    void closeSafe(final Closeable closeable, final String closeableName) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (final IOException e) {
+                getLogger().warn("Failed to close {}", closeableName, e);
+            }
+        }
+    }
+
+    private record SuccessfulWriteInfo(KinesisClientRecord kinesisRecord, WriteResult writeResult) { }
+
+    private class FlowFileState implements Closeable {
+        private final FlowFile flowFile;
+        private final RecordSetWriter writer;
+        private final OutputStream outputStream;
+        private final RecordSchema recordSchema;
+        private SuccessfulWriteInfo firstSuccessfulWriteInfo;
+        private SuccessfulWriteInfo lastSuccessfulWriteInfo;
+
+        public FlowFileState(final FlowFile flowFile, final RecordSetWriter writer, final OutputStream outputStream, final RecordSchema recordSchema) {
+            this.flowFile = flowFile;
+            this.writer = writer;
+            this.outputStream = outputStream;
+            this.recordSchema = recordSchema;
+        }
+
+        public boolean isFlowFileEmpty() {
+            return lastSuccessfulWriteInfo == null;
+        }
+
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+        public boolean containsDataFromExactlyOneKinesisRecord() {
+            return !isFlowFileEmpty() && firstSuccessfulWriteInfo.kinesisRecord == lastSuccessfulWriteInfo.kinesisRecord;
+        }
+
+        public void write(final Record outputRecord, final KinesisClientRecord kinesisRecord) throws IOException {
+            final WriteResult writeResult = writer.write(outputRecord);
+            firstSuccessfulWriteInfo = firstSuccessfulWriteInfo == null
+                    ? new SuccessfulWriteInfo(kinesisRecord, writeResult)
+                    : firstSuccessfulWriteInfo;
+            lastSuccessfulWriteInfo = new SuccessfulWriteInfo(kinesisRecord, writeResult);
+        }
+
+        public void close() {
+            closeSafe(writer, "Record Writer");
+            closeSafe(outputStream, "Output Stream");
+        }
+    }
+
+    private static class FlowFileCompletionException extends Exception {
+        public FlowFileCompletionException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
     }
 }
