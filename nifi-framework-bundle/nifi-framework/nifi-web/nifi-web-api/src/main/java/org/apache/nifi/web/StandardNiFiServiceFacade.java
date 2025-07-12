@@ -6846,18 +6846,34 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     public Stream<RuleViolation> getRuleViolationStream(String processGroupId) {
+        if (ruleViolationsManager.isEmpty()) {
+            return Stream.empty();
+        }
+
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
 
-        Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroup(processGroupId);
+        if (processGroup.getIdentifier().equals(processGroupDAO.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS).getIdentifier())) {
+            return ruleViolationsManager.getAllRuleViolations().stream();
+        } else {
 
-        Stream<RuleViolation> ruleViolationStreamForGroupAndAllChildren = Stream.concat(
-            ruleViolations.stream(),
-            processGroup.getProcessGroups().stream()
-                .map(ProcessGroup::getIdentifier)
-                .flatMap(this::getRuleViolationStream)
-        );
+            Set<String> allIdsOfProcessGroupAndChildren = new HashSet<>();
 
-        return ruleViolationStreamForGroupAndAllChildren;
+            collectGroupIdsRecursively(processGroupId, allIdsOfProcessGroupAndChildren);
+
+            Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroups(allIdsOfProcessGroupAndChildren);
+
+            return ruleViolations.stream();
+        }
+    }
+
+    private void collectGroupIdsRecursively(String processGroupId, Set<String> allIdsOfProcessGroupAndChildren) {
+        allIdsOfProcessGroupAndChildren.add(processGroupId);
+
+        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        Set<ProcessGroup> children = processGroup.getProcessGroups();
+        for (ProcessGroup child : children) {
+            collectGroupIdsRecursively(child.getIdentifier(), allIdsOfProcessGroupAndChildren);
+        }
     }
 
     public FlowAnalysisResultEntity createFlowAnalysisResultEntity(Collection<RuleViolation> ruleViolations) {

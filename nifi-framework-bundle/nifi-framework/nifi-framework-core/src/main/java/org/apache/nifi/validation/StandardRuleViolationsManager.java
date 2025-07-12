@@ -162,6 +162,16 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     }
 
     @Override
+    public Collection<RuleViolation> getRuleViolationsForGroups(Collection<String> groupIds) {
+        Set<RuleViolation> groupViolations = subjectIdToRuleViolation.values().stream()
+                .map(Map::values).flatMap(Collection::stream)
+                .filter(violation -> groupIds.contains(violation.getGroupId()))
+                .collect(Collectors.toSet());
+
+        return groupViolations;
+    }
+
+    @Override
     public Collection<RuleViolation> getAllRuleViolations() {
         Set<RuleViolation> allRuleViolations = subjectIdToRuleViolation.values().stream()
             .map(Map::values).flatMap(Collection::stream)
@@ -188,5 +198,10 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     @Override
     public void cleanUp() {
         subjectIdToRuleViolation.entrySet().removeIf(subjectIdAndViolationMap -> subjectIdAndViolationMap.getValue().isEmpty());
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return subjectIdToRuleViolation.isEmpty();
     }
 }
