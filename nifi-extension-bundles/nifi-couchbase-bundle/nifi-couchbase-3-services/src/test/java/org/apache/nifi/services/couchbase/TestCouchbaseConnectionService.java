@@ -40,8 +40,8 @@ import java.util.Optional;
 
 import static java.util.Map.entry;
 import static org.apache.nifi.services.couchbase.Couchbase3ConnectionService.BUCKET_NAME;
+import static org.apache.nifi.services.couchbase.Couchbase3ConnectionService.COUCHBASE_CLUSTER_SERVICE;
 import static org.apache.nifi.services.couchbase.Couchbase3ConnectionService.DOCUMENT_TYPE;
-import static org.apache.nifi.services.couchbase.CouchbaseConnectionService.COUCHBASE_CLUSTER_SERVICE;
 import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
 import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
 import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;

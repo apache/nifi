@@ -18,7 +18,7 @@ package org.apache.nifi.services.couchbase.exception;
 
 import java.util.Map;
 
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.Failure;
+import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE;
 
 public class CouchbaseErrorHandler {
 
@@ -29,10 +29,10 @@ public class CouchbaseErrorHandler {
     }
 
     public ErrorHandlingStrategy getStrategy(Exception exception) {
-        return exceptionMapping.getOrDefault(exception.getClass(), Failure);
+        return exceptionMapping.getOrDefault(exception.getClass(), FAILURE);
     }
 
     public enum ErrorHandlingStrategy {
-        Rollback, Failure, Retry
+        ROLLBACK, FAILURE, RETRY
     }
 }

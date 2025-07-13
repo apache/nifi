@@ -58,7 +58,7 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
 
         try {
             final CouchbaseGetResult result = connectionService.getDocument(documentId);
-            flowFile = session.write(flowFile, result.resultContent());
+            flowFile = session.write(flowFile, out -> out.write(result.resultContent()));
             flowFile = session.putAllAttributes(flowFile, result.attributes());
 
             final long fetchMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -66,7 +66,6 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         } catch (CouchbaseException e) {
             handleCouchbaseException(context, session, getLogger(), flowFile, e, "Failed to get document from Couchbase");
-
         }
     }
 }

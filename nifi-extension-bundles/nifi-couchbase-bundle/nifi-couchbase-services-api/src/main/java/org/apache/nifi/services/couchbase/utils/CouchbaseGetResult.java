@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.services.couchbase.utils;
 
-import org.apache.nifi.processor.io.OutputStreamCallback;
-
 import java.util.Map;
 
-public record CouchbaseGetResult(OutputStreamCallback resultContent, Map<String, String> attributes, String transitUrl) {
+public record CouchbaseGetResult(byte[] resultContent, Map<String, String> attributes, String transitUrl) {
 }
