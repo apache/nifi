@@ -131,7 +131,7 @@ public class TestPutCouchbase {
     @Test
     public void testWithFailure() throws CouchbaseException, InitializationException {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.Failure);
+                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
@@ -153,7 +153,7 @@ public class TestPutCouchbase {
     @Test
     public void testWithRetry() throws CouchbaseException, InitializationException {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.Retry);
+                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.RETRY);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
@@ -175,7 +175,7 @@ public class TestPutCouchbase {
     @Test
     public void testWithRollback() throws CouchbaseException, InitializationException {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.Rollback);
+                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.ROLLBACK);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);

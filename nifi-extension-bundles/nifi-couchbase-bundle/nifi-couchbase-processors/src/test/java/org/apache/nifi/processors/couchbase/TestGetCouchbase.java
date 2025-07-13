@@ -70,10 +70,7 @@ public class TestGetCouchbase {
                 entry("attribute_3", "value_3")
         );
 
-        final CouchbaseGetResult result = new CouchbaseGetResult(
-                (out) -> out.write(content.getBytes()),
-                attributes,
-                TEST_TRANSIT_URL);
+        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), attributes, TEST_TRANSIT_URL);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
@@ -116,10 +113,7 @@ public class TestGetCouchbase {
                 entry("attribute_3", "value_3")
         );
 
-        final CouchbaseGetResult result = new CouchbaseGetResult(
-                (out) -> out.write(content.getBytes()),
-                attributes,
-                TEST_TRANSIT_URL);
+        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), attributes, TEST_TRANSIT_URL);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.services.couchbase;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
@@ -24,13 +23,6 @@ import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.services.couchbase.utils.CouchbasePutResult;
 
 public interface CouchbaseConnectionService extends ControllerService {
-
-    PropertyDescriptor COUCHBASE_CLUSTER_SERVICE = new PropertyDescriptor.Builder()
-            .name("Couchbase Cluster Service")
-            .description("A Couchbase Cluster Service which manages connections to a Couchbase cluster.")
-            .required(true)
-            .identifiesControllerService(CouchbaseClusterService.class)
-            .build();
 
     CouchbaseGetResult getDocument(String documentId) throws CouchbaseException;
 

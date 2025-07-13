@@ -102,12 +102,12 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         logger.error(errorMessage, e.getCause());
         final CouchbaseErrorHandler.ErrorHandlingStrategy strategy = errorHandler.getStrategy(e);
         switch (strategy) {
-            case Rollback -> session.rollback();
-            case Failure -> {
+            case ROLLBACK -> session.rollback();
+            case FAILURE -> {
                 context.yield();
                 session.transfer(flowFile, REL_FAILURE);
             }
-            case Retry -> session.transfer(flowFile, REL_RETRY);
+            case RETRY -> session.transfer(flowFile, REL_RETRY);
         }
     }
 }

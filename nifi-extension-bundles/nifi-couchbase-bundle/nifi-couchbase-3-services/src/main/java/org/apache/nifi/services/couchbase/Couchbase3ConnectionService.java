@@ -70,9 +70,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Map.entry;
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.Failure;
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.Retry;
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.Rollback;
+import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE;
+import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.RETRY;
+import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.ROLLBACK;
 import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
 import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
 import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;
@@ -83,6 +83,13 @@ import static org.apache.nifi.services.couchbase.utils.CouchbaseAttributes.SCOPE
 @CapabilityDescription("Provides a Couchbase SDK 3 based implementation.")
 @Tags({"nosql", "couchbase", "database", "connection"})
 public class Couchbase3ConnectionService extends AbstractControllerService implements CouchbaseConnectionService {
+
+    public static final PropertyDescriptor COUCHBASE_CLUSTER_SERVICE = new PropertyDescriptor.Builder()
+            .name("Couchbase Cluster Service")
+            .description("A Couchbase Cluster Service which manages connections to a Couchbase cluster.")
+            .required(true)
+            .identifiesControllerService(CouchbaseClusterService.class)
+            .build();
 
     public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder()
             .name("Bucket Name")
@@ -179,13 +186,7 @@ public class Couchbase3ConnectionService extends AbstractControllerService imple
                     entry(CoreAttributes.MIME_TYPE.key(), documentType.getMimeType())
             );
 
-            return new CouchbaseGetResult(
-                    out -> {
-                        final byte[] content = result.contentAsBytes();
-                        out.write(content);
-                    },
-                    attributes,
-                    createTransitUrl(documentId));
+            return new CouchbaseGetResult(result.contentAsBytes(), attributes, createTransitUrl(documentId));
         } catch (Exception e) {
             throw new CouchbaseException(e);
         }
@@ -221,33 +222,33 @@ public class Couchbase3ConnectionService extends AbstractControllerService imple
     @Override
     public CouchbaseErrorHandler getErrorHandler() {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping = Map.ofEntries(
-                entry(AuthenticationFailureException.class, Rollback),
-                entry(BucketNotFoundException.class, Rollback),
-                entry(ScopeNotFoundException.class, Rollback),
-                entry(CollectionNotFoundException.class, Rollback),
-                entry(DatasetNotFoundException.class, Rollback),
-                entry(ServiceNotAvailableException.class, Rollback),
-                entry(FeatureNotAvailableException.class, Rollback),
-                entry(InvalidArgumentException.class, Rollback),
-                entry(ConfigException.class, Rollback),
+                entry(AuthenticationFailureException.class, ROLLBACK),
+                entry(BucketNotFoundException.class, ROLLBACK),
+                entry(ScopeNotFoundException.class, ROLLBACK),
+                entry(CollectionNotFoundException.class, ROLLBACK),
+                entry(DatasetNotFoundException.class, ROLLBACK),
+                entry(ServiceNotAvailableException.class, ROLLBACK),
+                entry(FeatureNotAvailableException.class, ROLLBACK),
+                entry(InvalidArgumentException.class, ROLLBACK),
+                entry(ConfigException.class, ROLLBACK),
 
-                entry(RequestCanceledException.class, Retry),
-                entry(TemporaryFailureException.class, Retry),
-                entry(DurableWriteInProgressException.class, Retry),
-                entry(DurableWriteReCommitInProgressException.class, Retry),
-                entry(ServerOutOfMemoryException.class, Retry),
-                entry(DocumentLockedException.class, Retry),
-                entry(DocumentMutationLostException.class, Retry),
-                entry(DocumentUnretrievableException.class, Retry),
-                entry(DocumentNotLockedException.class, Retry),
+                entry(RequestCanceledException.class, RETRY),
+                entry(TemporaryFailureException.class, RETRY),
+                entry(DurableWriteInProgressException.class, RETRY),
+                entry(DurableWriteReCommitInProgressException.class, RETRY),
+                entry(ServerOutOfMemoryException.class, RETRY),
+                entry(DocumentLockedException.class, RETRY),
+                entry(DocumentMutationLostException.class, RETRY),
+                entry(DocumentUnretrievableException.class, RETRY),
+                entry(DocumentNotLockedException.class, RETRY),
 
-                entry(DocumentNotFoundException.class, Failure),
-                entry(DocumentExistsException.class, Failure),
-                entry(CasMismatchException.class, Failure),
-                entry(DecodingFailureException.class, Failure),
-                entry(PathNotFoundException.class, Failure),
-                entry(PathExistsException.class, Failure),
-                entry(ValueTooLargeException.class, Failure)
+                entry(DocumentNotFoundException.class, FAILURE),
+                entry(DocumentExistsException.class, FAILURE),
+                entry(CasMismatchException.class, FAILURE),
+                entry(DecodingFailureException.class, FAILURE),
+                entry(PathNotFoundException.class, FAILURE),
+                entry(PathExistsException.class, FAILURE),
+                entry(ValueTooLargeException.class, FAILURE)
         );
 
         return new CouchbaseErrorHandler(exceptionMapping);
