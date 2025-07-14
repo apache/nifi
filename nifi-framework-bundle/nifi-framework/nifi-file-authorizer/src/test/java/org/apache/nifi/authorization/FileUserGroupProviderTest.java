@@ -243,11 +243,8 @@ public class FileUserGroupProviderTest {
         writeFile(primaryTenants, SIMPLE_TENANTS_BY_USER);
         userGroupProvider.onConfigured(configurationContext);
 
-        final Set<User> users = userGroupProvider.getUsers();
-        assertEquals(2, users.size());
-
-        assertTrue(users.contains(new User.Builder().identifier("user-1").identity("user-1").build()));
-        assertTrue(users.contains(new User.Builder().identifier("user-2").identity("user-2").build()));
+        final Set<Group> groups = userGroupProvider.getGroups();
+        assertEquals(0, groups.size());
     }
 
     @Test

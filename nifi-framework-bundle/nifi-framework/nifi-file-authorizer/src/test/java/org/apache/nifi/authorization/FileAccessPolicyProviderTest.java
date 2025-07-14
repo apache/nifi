@@ -379,7 +379,7 @@ public class FileAccessPolicyProviderTest {
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
-        when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.json.gz"));
+        when(properties.getFlowConfigurationFile()).thenReturn(null);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
@@ -493,7 +493,7 @@ public class FileAccessPolicyProviderTest {
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
-        when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.json.gz"));
+        when(properties.getFlowConfigurationFile()).thenReturn(null);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
