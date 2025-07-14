@@ -26,9 +26,11 @@ import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFHyperlink;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -236,6 +238,35 @@ public class TestSplitExcel {
 
             dateCells.stream().flatMap(Collection::stream)
                     .forEach(dateCell -> assertTrue(DateUtil.isCellDateFormatted(dateCell)));
+        }
+    }
+
+    @Test
+    void testHyperlinksWithLocation() throws IOException {
+        final Path hyperlinksWithLocation = Paths.get("src/test/resources/excel/hyperlinksWithLocation.xlsx");
+        runner.enqueue(hyperlinksWithLocation);
+
+        runner.run();
+
+        runner.assertTransferCount(SplitExcel.REL_SPLIT, 1);
+        runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT).getFirst();
+        try (XSSFWorkbook workbook = new XSSFWorkbook(flowFile.getContentStream())) {
+            final Sheet sheet = workbook.getSheetAt(0);
+            assertEquals("Sheet1", sheet.getSheetName());
+
+            final List<XSSFHyperlink> hyperlinks = (List<XSSFHyperlink>) sheet.getHyperlinkList();
+            Assertions.assertIterableEquals(
+                    List.of(
+                            "http://twitter.com/#!/apacheorg",
+                            "http://www.bailii.org/databases.html#ie",
+                            "https://en.wikipedia.org/wiki/Apache_POI#See_also",
+                            "Sheet1"
+                    ),
+                    hyperlinks.stream().map(XSSFHyperlink::getAddress).toList()
+            );
         }
     }
 
