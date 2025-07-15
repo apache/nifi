@@ -65,6 +65,7 @@ export interface ConnectionStatusSnapshot extends BaseSnapshot {
     queuedCount: string;
     queuedSize: string;
     sourceName: string;
+    loadBalanceStatus: string;
 }
 
 export interface RemoteProcessGroupStatusSnapshot {

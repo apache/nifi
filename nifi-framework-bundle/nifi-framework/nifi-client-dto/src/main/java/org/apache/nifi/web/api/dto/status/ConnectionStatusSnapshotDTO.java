@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.dto.status;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.controller.status.LoadBalanceStatus;
 
 /**
  * DTO for serializing the status of a connection.
@@ -49,6 +50,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     private Integer percentUseCount;
     private Integer percentUseBytes;
     private String flowFileAvailability;
+    private LoadBalanceStatus loadBalanceStatus;
 
     /* getters / setters */
     /**
@@ -206,7 +208,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return output for this connection
      */
-    @Schema(description = "The output count/sie for the connection in the last 5 minutes, pretty printed.")
+    @Schema(description = "The output count/size for the connection in the last 5 minutes, pretty printed.")
     public String getOutput() {
         return output;
     }
@@ -293,6 +295,18 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.flowFileAvailability = availability;
     }
 
+    /**
+     * @return load balance status of the connection
+     */
+    @Schema(description = "The load balance status of the connection")
+    public LoadBalanceStatus getLoadBalanceStatus() {
+        return loadBalanceStatus;
+    }
+
+    public void setLoadBalanceStatus(LoadBalanceStatus loadBalanceStatus) {
+        this.loadBalanceStatus = loadBalanceStatus;
+    }
+
     @Override
     public ConnectionStatusSnapshotDTO clone() {
         final ConnectionStatusSnapshotDTO other = new ConnectionStatusSnapshotDTO();
@@ -322,6 +336,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         other.setPercentUseBytes(getPercentUseBytes());
         other.setPercentUseCount(getPercentUseCount());
         other.setFlowFileAvailability(getFlowFileAvailability());
+        other.setLoadBalanceStatus(getLoadBalanceStatus());
 
         return other;
     }

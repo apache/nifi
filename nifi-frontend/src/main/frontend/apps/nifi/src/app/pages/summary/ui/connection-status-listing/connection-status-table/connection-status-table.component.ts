@@ -31,7 +31,7 @@ import { ComponentStatusTable } from '../../common/component-status-table/compon
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
-export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | 'sourceName' | 'destinationName';
+export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | 'sourceName' | 'destinationName' | 'loadBalanceStatus';
 
 @Component({
     selector: 'connection-status-table',
@@ -54,7 +54,8 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
     filterableColumns: SummaryTableFilterColumn[] = [
         { key: 'sourceName', label: 'source' },
         { key: 'name', label: 'name' },
-        { key: 'destinationName', label: 'destination' }
+        { key: 'destinationName', label: 'destination' },
+        { key: 'loadBalanceStatus', label: 'loadBalanceStatus' }
     ];
 
     displayedColumns: string[] = [
@@ -65,6 +66,7 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
         'sourceName',
         'out',
         'destinationName',
+        'loadBalanceStatus',
         'actions'
     ];
 
@@ -124,12 +126,27 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
         return `${connection.connectionStatusSnapshot.percentUseCount}% | ${connection.connectionStatusSnapshot.percentUseBytes}%`;
     }
 
+    formatLoadBalanceStatus(connection: ConnectionStatusSnapshotEntity): string {
+        switch (connection.connectionStatusSnapshot.loadBalanceStatus) {
+            case 'LOAD_BALANCE_NOT_CONFIGURED':
+                return 'Not Configured';
+            case 'LOAD_BALANCE_ACTIVE':
+                return 'Active';
+            case 'LOAD_BALANCE_INACTIVE':
+                return 'Inactive';
+            default:
+                return 'unknown';
+
+            }
+    }
+
     override supportsMultiValuedSort(sort: Sort): boolean {
         switch (sort.active) {
             case 'in':
             case 'out':
             case 'threshold':
             case 'queue':
+            case 'loadBalanceStatus':
                 return true;
             default:
                 return false;
@@ -213,6 +230,12 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
                             b.connectionStatusSnapshot.percentUseBytes
                         );
                     }
+                    break;
+                case 'loadBalanceStatus':
+                    retVal = this.nifiCommon.compareString(
+                        a.connectionStatusSnapshot.loadBalanceStatus,
+                        b.connectionStatusSnapshot.loadBalanceStatus
+                    );
                     break;
                 default:
                     retVal = 0;
