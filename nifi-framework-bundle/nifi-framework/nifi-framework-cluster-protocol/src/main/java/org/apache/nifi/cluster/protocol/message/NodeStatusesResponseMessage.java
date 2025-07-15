@@ -16,31 +16,26 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-public abstract class ProtocolMessage {
+import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
-    public static enum MessageType {
-        CONNECTION_REQUEST,
-        CONNECTION_RESPONSE,
-        OFFLOAD_REQUEST,
-        DISCONNECTION_REQUEST,
-        EXCEPTION,
-        FLOW_REQUEST,
-        FLOW_RESPONSE,
-        PING,
-        RECONNECTION_REQUEST,
-        RECONNECTION_RESPONSE,
-        SERVICE_BROADCAST,
-        HEARTBEAT,
-        HEARTBEAT_RESPONSE,
-        NODE_CONNECTION_STATUS_REQUEST,
-        NODE_CONNECTION_STATUS_RESPONSE,
-        NODE_STATUS_CHANGE,
-        NODE_STATUSES_REQUEST,
-        NODE_STATUSES_RESPONSE,
-        CLUSTER_WORKLOAD_REQUEST,
-        CLUSTER_WORKLOAD_RESPONSE
+import java.util.List;
+
+@XmlRootElement(name = "nodeStatusesResponse")
+public class NodeStatusesResponseMessage extends ProtocolMessage {
+
+    private List<NodeConnectionStatus> nodeStatuses;
+
+    @Override
+    public MessageType getType() {
+        return MessageType.NODE_STATUSES_RESPONSE;
     }
 
-    public abstract MessageType getType();
+    public List<NodeConnectionStatus> getNodeStatuses() {
+        return nodeStatuses;
+    }
 
+    public void setNodeStatuses(final List<NodeConnectionStatus> nodeStatuses) {
+        this.nodeStatuses = nodeStatuses;
+    }
 }
