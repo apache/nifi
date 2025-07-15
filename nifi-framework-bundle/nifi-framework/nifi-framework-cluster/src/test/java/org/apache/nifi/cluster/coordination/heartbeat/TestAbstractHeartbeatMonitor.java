@@ -275,6 +275,11 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
+        public NodeConnectionStatus fetchConnectionStatus(NodeIdentifier nodeId) {
+            return getConnectionStatus(nodeId);
+        }
+
+        @Override
         public synchronized Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState... states) {
             final Set<NodeConnectionState> stateSet = new HashSet<>();
             for (final NodeConnectionState state : states) {
@@ -367,6 +372,11 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
+        public NodeIdentifier waitForElectedClusterCoordinator() {
+            return null;
+        }
+
+        @Override
         public List<NodeConnectionStatus> getConnectionStatuses() {
             return Collections.emptyList();
         }
@@ -395,9 +405,6 @@ public class TestAbstractHeartbeatMonitor {
         public void registerEventListener(final ClusterTopologyEventListener eventListener) {
         }
 
-        @Override
-        public void unregisterEventListener(final ClusterTopologyEventListener eventListener) {
-        }
     }
 
 
