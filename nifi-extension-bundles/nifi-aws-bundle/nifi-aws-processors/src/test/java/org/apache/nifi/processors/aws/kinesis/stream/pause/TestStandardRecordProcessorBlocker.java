@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.kinesis.stream.pause;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -161,6 +162,7 @@ public class TestStandardRecordProcessorBlocker {
     }
 
     private static class TestThreadInspector {
+        private static final Duration BUSY_WAIT_MAX_DURATION = Duration.ofSeconds(5);
         private boolean blockAwaited = false;
         private boolean blockExited = false;
 
@@ -181,10 +183,15 @@ public class TestStandardRecordProcessorBlocker {
         }
 
         private void busyWait(final Supplier<Boolean> condition) {
-            final long maxWait = System.currentTimeMillis() + 1000;
+            final long maxWait = System.currentTimeMillis() + BUSY_WAIT_MAX_DURATION.toMillis();
             do {
                 if (System.currentTimeMillis() > maxWait) {
                     throw new RuntimeException("Timed out waiting for condition");
+                }
+                try {
+                    Thread.sleep(10L); // Sleep to avoid busy waiting too aggressively
+                } catch (final InterruptedException e) {
+                    throw new RuntimeException("Thread interrupted while waiting for condition", e);
                 }
             } while (condition.get());
         }
