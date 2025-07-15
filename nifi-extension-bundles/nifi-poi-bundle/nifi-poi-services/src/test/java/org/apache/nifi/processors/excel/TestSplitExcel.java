@@ -242,9 +242,9 @@ public class TestSplitExcel {
     }
 
     @Test
-    void testHyperlinksWithLocation() throws IOException {
-        final Path hyperlinksWithLocation = Paths.get("src/test/resources/excel/hyperlinksWithLocation.xlsx");
-        runner.enqueue(hyperlinksWithLocation);
+    void testHyperlinks() throws IOException {
+        final Path hyperlinksFile = Paths.get("src/test/resources/excel/hyperlinks.xlsx");
+        runner.enqueue(hyperlinksFile);
 
         runner.run();
 
@@ -260,10 +260,13 @@ public class TestSplitExcel {
             final List<XSSFHyperlink> hyperlinks = (List<XSSFHyperlink>) sheet.getHyperlinkList();
             Assertions.assertIterableEquals(
                     List.of(
+                            "http://google.com/",
+                            "https://apache.org/",
+                            "https://en.wikipedia.org/",
+                            "Sheet1",
                             "http://twitter.com/#!/apacheorg",
                             "http://www.bailii.org/databases.html#ie",
-                            "https://en.wikipedia.org/wiki/Apache_POI#See_also",
-                            "Sheet1"
+                            "https://en.wikipedia.org/wiki/Apache_POI#See_also"
                     ),
                     hyperlinks.stream().map(XSSFHyperlink::getAddress).toList()
             );
