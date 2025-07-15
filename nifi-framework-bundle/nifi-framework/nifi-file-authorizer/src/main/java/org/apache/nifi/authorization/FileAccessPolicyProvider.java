@@ -580,7 +580,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
             if (hasInitialAdminIdentity) {
                 logger.info("Populating authorizations for Initial Admin: {}", initialAdminIdentity);
-                populateInitialAdmin(authorizations);
+                populateInitialAdmin(authorizations, hasInitialAdminGroup);
             }
             if (hasInitialAdminGroup) {
                 logger.info("Populating authorizations for Initial Admin Group: {}", initialAdminGroup);
@@ -636,12 +636,30 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     /**
-     *  Creates the initial admin user and policies for access the flow and managing users and policies.
+     *  Grants the initial admin user the policies for accessing the flow and managing users and policies.
+     * <p>
+     *  Either by creating the policies for the user itself or by making it a member of the initial admin group.
      */
-    private void populateInitialAdmin(final Authorizations authorizations) {
+    private void populateInitialAdmin(final Authorizations authorizations, boolean hasInitialAdminGroup) {
         final User initialAdmin = userGroupProvider.getUserByIdentity(initialAdminIdentity);
         if (initialAdmin == null) {
             throw new AuthorizerCreationException("Unable to locate initial admin " + initialAdminIdentity + " to seed policies");
+        }
+
+        if (hasInitialAdminGroup && userGroupProvider instanceof ConfigurableUserGroupProvider configurableProvider) {
+            final Group initialAdminGroup = userGroupProvider.getGroupByName(this.initialAdminGroup);
+            if (initialAdminGroup == null) {
+                throw new AuthorizerCreationException("Unable to locate initial admin group " + this.initialAdminGroup + " to seed policies");
+            }
+
+            if (configurableProvider.isConfigurable(initialAdminGroup)) {
+                final Group updatedAdminGroup = new Group.Builder(initialAdminGroup)
+                        .addUser(initialAdmin.getIdentifier())
+                        .build();
+
+                configurableProvider.updateGroup(updatedAdminGroup);
+                return; // user has access through membership; no need to add policies to the user explicitly
+            }
         }
 
         // grant the user read access to the /flow resource
@@ -673,12 +691,12 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     /**
-     *  Creates the initial admin user and policies for access the flow and managing users and policies.
+     *  Grants the initial admin group the policies for accessing the flow and managing users and policies.
      */
     private void populateInitialAdminGroup(final Authorizations authorizations) {
         final Group initialAdminGroup = userGroupProvider.getGroupByName(this.initialAdminGroup);
         if (initialAdminGroup == null) {
-            throw new AuthorizerCreationException("Unable to locate initial admin " + this.initialAdminGroup + " to seed policies");
+            throw new AuthorizerCreationException("Unable to locate initial admin group " + this.initialAdminGroup + " to seed policies");
         }
 
         // grant the group read access to the /flow resource

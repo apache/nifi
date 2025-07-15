@@ -272,6 +272,8 @@
             given the ability to create additional users, groups, and policies. The value of this property could be
             a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there
             are no other policies defined.
+            If the property "Initial Admin Group" is specified as well, the initial admin user will be a member of that group,
+            in case the configured user group provider supports updating the group.
 
             NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the initial admin identity,
             so the value should be the unmapped identity. This identity must be found in the configured User Group Provider.

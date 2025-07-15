@@ -33,10 +33,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -527,6 +529,40 @@ public class FileAccessPolicyProviderTest {
         }
 
         assertFalse(foundRootGroupPolicy);
+    }
+
+    @Test
+    public void testOnConfiguredWhenBothInitialAdminAndInitialAdminGroupProvided() throws Exception {
+        final String adminIdentity = "admin-user";
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
+
+        final String adminGroupName = "admin-group";
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_GROUP)))
+                .thenReturn(new StandardPropertyValue(adminGroupName, null, ParameterLookup.EMPTY));
+
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
+
+        userGroupProvider.onConfigured(configurationContext);
+        accessPolicyProvider.onConfigured(configurationContext);
+
+        final Set<User> users = userGroupProvider.getUsers();
+        final User adminUser = users.iterator().next();
+        assertEquals(adminIdentity, adminUser.getIdentity());
+
+        final Set<Group> groups = userGroupProvider.getGroups();
+        final Group adminGroup = groups.iterator().next();
+        assertEquals(adminGroupName, adminGroup.getName());
+        assertEquals(Set.of(adminUser.getIdentifier()), adminGroup.getUsers());
+
+        final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
+        assertEquals(12, policies.size());
+        // admin user is a member of admin group; no need to grant access right to the user itself
+        final Set<String> usersWithPolicies = policies.stream()
+                .flatMap(policy -> policy.getUsers().stream())
+                .collect(Collectors.toUnmodifiableSet());
+        assertEquals(Collections.emptySet(), usersWithPolicies);
     }
 
     @Test
