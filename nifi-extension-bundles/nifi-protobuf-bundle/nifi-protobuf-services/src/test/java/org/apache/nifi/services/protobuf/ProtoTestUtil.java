@@ -44,6 +44,12 @@ public class ProtoTestUtil {
         return schemaLoader.loadSchema();
     }
 
+    public static Schema loadProto4TestSchema() {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "org/apache/nifi/protobuf/test/test_proto4.proto")), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
+
     public static Schema loadRepeatedProto3TestSchema() {
         final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
         schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_repeated_proto3.proto")), Collections.emptyList());
@@ -63,6 +69,60 @@ public class ProtoTestUtil {
         schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_circular_reference.proto")), Collections.emptyList());
         return schemaLoader.loadSchema();
     }
+
+    public static InputStream generateInputDataForProto4() throws IOException, Descriptors.DescriptorValidationException {
+        DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "org/apache/nifi/protobuf/test/test_proto4.desc"));
+        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorSet.getFile(0), new Descriptors.FileDescriptor[0]);
+
+        Descriptors.Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("Proto4Message");
+        Descriptors.Descriptor nestedMessageDescriptor = fileDescriptor.findMessageTypeByName("NestedMessage");
+        Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
+        Descriptors.Descriptor mapDescriptor = nestedMessageDescriptor.findNestedTypeByName("TestMapEntry");
+
+        DynamicMessage mapEntry1 = DynamicMessage
+            .newBuilder(mapDescriptor)
+            .setField(mapDescriptor.findFieldByName(MAP_KEY_FIELD_NAME), "test_key_entry1")
+            .setField(mapDescriptor.findFieldByName(MAP_VALUE_FIELD_NAME), 101)
+            .build();
+
+        DynamicMessage mapEntry2 = DynamicMessage
+            .newBuilder(mapDescriptor)
+            .setField(mapDescriptor.findFieldByName(MAP_KEY_FIELD_NAME), "test_key_entry2")
+            .setField(mapDescriptor.findFieldByName(MAP_VALUE_FIELD_NAME), 202)
+            .build();
+
+        DynamicMessage nestedMessage = DynamicMessage
+            .newBuilder(nestedMessageDescriptor)
+            .setField(nestedMessageDescriptor.findFieldByNumber(20), enumValueDescriptor.findValueByNumber(2))
+            .setField(nestedMessageDescriptor.findFieldByNumber(21), Arrays.asList(mapEntry1, mapEntry2))
+            .setField(nestedMessageDescriptor.findFieldByNumber(22), "One Of Option")
+            .setField(nestedMessageDescriptor.findFieldByNumber(23), true)
+            .setField(nestedMessageDescriptor.findFieldByNumber(24), 3)
+            .build();
+
+        DynamicMessage message = DynamicMessage
+            .newBuilder(messageDescriptor)
+            .setField(messageDescriptor.findFieldByNumber(1), true)
+            .setField(messageDescriptor.findFieldByNumber(2), "Test text")
+            .setField(messageDescriptor.findFieldByNumber(3), Integer.MAX_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(4), -1)
+            .setField(messageDescriptor.findFieldByNumber(5), Integer.MIN_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(6), -2)
+            .setField(messageDescriptor.findFieldByNumber(7), Integer.MAX_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(8), Double.MAX_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(9), Float.MAX_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(10), "Test bytes".getBytes())
+            .setField(messageDescriptor.findFieldByNumber(11), Long.MAX_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(12), -1L)
+            .setField(messageDescriptor.findFieldByNumber(13), Long.MIN_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(14), -2L)
+            .setField(messageDescriptor.findFieldByNumber(15), Long.MAX_VALUE)
+            .setField(messageDescriptor.findFieldByNumber(16), nestedMessage)
+            .build();
+
+        return message.toByteString().newInput();
+    }
+
 
     public static InputStream generateInputDataForProto3() throws IOException, Descriptors.DescriptorValidationException {
         DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_proto3.desc"));

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package org.apache.nifi.protobuf.test;
+
+import "user_profile.proto";
+
+message UserSettings {
+  .org.apache.nifi.protobuf.test.UserProfile profile = 1;
+  NotificationSettings notifications = 2;
+  Theme theme = 4;
+  string language = 5;
+  bool two_factor_enabled = 7;
+}
+
+message NotificationSettings {
+  bool email_notifications = 1;
+}
+
+enum Theme {
+  LIGHT = 0;
+  DARK = 1;
+} 

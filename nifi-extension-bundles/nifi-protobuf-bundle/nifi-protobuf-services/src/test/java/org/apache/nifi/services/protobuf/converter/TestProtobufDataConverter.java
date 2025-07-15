@@ -19,6 +19,7 @@ package org.apache.nifi.services.protobuf.converter;
 import com.google.protobuf.Descriptors;
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.protobuf.ProtoTestUtil;
 import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
@@ -26,10 +27,13 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto4TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -78,6 +82,45 @@ public class TestProtobufDataConverter {
         assertNull(nestedRecord2.getValue("booleanOption"));
         assertEquals(3, nestedRecord2.getValue("int32Option"));
     }
+
+    // Test to ensure that ProtobufDataConverter can handle nested messages.
+    @Test
+    public void testDataConverterForProto4() throws Descriptors.DescriptorValidationException, IOException {
+        final Schema schema = loadProto4TestSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("org.apache.nifi.protobuf.test.Proto4Message");
+
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "org.apache.nifi.protobuf.test.Proto4Message", recordSchema, false, false);
+        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto4());
+
+        assertEquals(true, record.getValue("booleanField"));
+        assertEquals("Test text", record.getValue("stringField"));
+        assertEquals(Integer.MAX_VALUE, record.getValue("int32Field"));
+        assertEquals(4294967295L, record.getValue("uint32Field"));
+        assertEquals(Integer.MIN_VALUE, record.getValue("sint32Field"));
+        assertEquals(4294967294L, record.getValue("fixed32Field"));
+        assertEquals(Integer.MAX_VALUE, record.getValue("sfixed32Field"));
+        assertEquals(Double.MAX_VALUE, record.getValue("doubleField"));
+        assertEquals(Float.MAX_VALUE, record.getValue("floatField"));
+        assertArrayEquals("Test bytes".getBytes(), (byte[]) record.getValue("bytesField"));
+        assertEquals(Long.MAX_VALUE, record.getValue("int64Field"));
+        assertEquals(new BigInteger("18446744073709551615"), record.getValue("uint64Field"));
+        assertEquals(Long.MIN_VALUE, record.getValue("sint64Field"));
+        assertEquals(new BigInteger("18446744073709551614"), record.getValue("fixed64Field"));
+        assertEquals(Long.MAX_VALUE, record.getValue("sfixed64Field"));
+
+        final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
+        assertEquals("ENUM_VALUE_3", nestedRecord.getValue("testEnum"));
+        final List<Object> records =  Arrays.stream(nestedRecord.getAsArray("testMap")).toList();
+        assertEquals(2, records.size());
+        final Record map1 = (MapRecord) records.getFirst();
+        assertEquals("test_key_entry1", map1.getValue("key"));
+        assertEquals(101, map1.getValue("value"));
+
+        assertNull(nestedRecord.getValue("stringOption"));
+        assertNull(nestedRecord.getValue("booleanOption"));
+        assertEquals(3, nestedRecord.getValue("int32Option"));
+    }
+
 
     @Test
     public void testDataConverterForRepeatedProto3() throws Descriptors.DescriptorValidationException, IOException {
