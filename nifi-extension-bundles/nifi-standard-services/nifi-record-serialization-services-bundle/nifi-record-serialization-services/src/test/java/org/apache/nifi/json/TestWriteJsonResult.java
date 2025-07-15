@@ -31,6 +31,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SerializedForm;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestWriteJsonResult {
@@ -632,5 +634,31 @@ class TestWriteJsonResult {
 
         final String output = new String(data, StandardCharsets.UTF_8);
         assertEquals(json, output);
+    }
+
+    @Test
+    void testNumericOverflowRecordLeavesBAOSInAConsistentState() throws IOException {
+        final String intJson = "{\"number\":1}";
+
+        final JsonSchemaInference jsonSchemaInference = new JsonSchemaInference(new TimeValueInference(null, null, null));
+        final RecordSchema intSchema = jsonSchemaInference.inferSchema(new JsonRecordSource(new ByteArrayInputStream(intJson.getBytes(StandardCharsets.UTF_8))));
+
+        final Record intRecord = new MapRecord(intSchema, Map.of("number", 1));
+        final long intOverflowValue = Integer.MAX_VALUE + 1L;
+        final Record intOverflowRecord = new MapRecord(intSchema, Map.of("number", intOverflowValue));
+        try (
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), intSchema, new SchemaNameAsAttribute(), baos, false,
+                        NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null)
+        ) {
+            writer.beginRecordSet();
+            writer.writeRecord(intRecord);
+            assertThrows(IllegalTypeConversionException.class, () -> writer.writeRecord(intOverflowRecord));
+            writer.finishRecordSet();
+            writer.flush();
+
+            final String output = baos.toString(StandardCharsets.UTF_8);
+            assertEquals("[%s]".formatted(intJson), output);
+        }
     }
 }

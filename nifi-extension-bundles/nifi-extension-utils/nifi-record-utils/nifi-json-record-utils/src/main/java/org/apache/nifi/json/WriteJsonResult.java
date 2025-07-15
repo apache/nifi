@@ -46,6 +46,8 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -154,7 +156,11 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             schemaAccess.writeHeader(recordSchema, getOutputStream());
         }
 
-        writeRecord(record, recordSchema, generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, true);
+        final List<GeneratorTask> recordGenerationTasks = new LinkedList<>();
+        writeRecord(record, recordSchema, recordGenerationTasks, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, true);
+        for (final GeneratorTask task : recordGenerationTasks) {
+            task.apply(generator);
+        }
         return schemaAccess.getAttributes(recordSchema);
     }
 
@@ -167,7 +173,11 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             schemaAccess.writeHeader(recordSchema, getOutputStream());
         }
 
-        writeRecord(record, recordSchema, generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
+        final List<GeneratorTask> recordGenerationTasks = new LinkedList<>();
+        writeRecord(record, recordSchema, recordGenerationTasks, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
+        for (final GeneratorTask task : recordGenerationTasks) {
+            task.apply(generator);
+        }
         final Map<String, String> attributes = schemaAccess.getAttributes(recordSchema);
         return WriteResult.of(incrementRecordCount(), attributes);
     }
@@ -203,17 +213,17 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         return SCIENTIFIC_NOTATION_PATTERN.matcher(value).find();
     }
 
-    private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator,
+    private void writeRecord(final Record record, final RecordSchema writeSchema, final List<GeneratorTask> generatorTaskBacklog,
         final GeneratorTask startTask, final GeneratorTask endTask, final boolean schemaAware) throws IOException {
 
         if (isUseSerializeForm(record, writeSchema)) {
             final String serialized = (String) record.getSerializedForm().get().getSerialized();
-            generator.writeRawValue(serialized);
+            generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeRawValue, serialized));
             return;
         }
 
         try {
-            startTask.apply(generator);
+            generatorTaskBacklog.add(startTask);
 
             if (schemaAware) {
                 for (final RecordField field : writeSchema.getFields()) {
@@ -221,34 +231,34 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                     final Object value = record.getValue(field);
                     if (value == null) {
                         if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && isFieldPresent(field, record)) {
-                            generator.writeNullField(fieldName);
+                            generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNullField, fieldName));
                         }
 
                         continue;
                     }
 
-                    generator.writeFieldName(fieldName);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeFieldName, fieldName));
 
                     final DataType dataType = writeSchema.getDataType(fieldName).get();
-                    writeValue(generator, value, fieldName, dataType);
+                    writeValue(generatorTaskBacklog, value, fieldName, dataType);
                 }
             } else {
                 for (final String fieldName : record.getRawFieldNames()) {
                     final Object value = record.getValue(fieldName);
                     if (value == null) {
                         if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && record.getRawFieldNames().contains(fieldName)) {
-                            generator.writeNullField(fieldName);
+                            generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNullField, fieldName));
                         }
 
                         continue;
                     }
 
-                    generator.writeFieldName(fieldName);
-                    writeRawValue(generator, value, fieldName);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeFieldName, fieldName));
+                    writeRawValue(generatorTaskBacklog, value, fieldName);
                 }
             }
 
-            endTask.apply(generator);
+            generatorTaskBacklog.add(endTask);
         } catch (final Exception e) {
             logger.error("Failed to write {} with reader schema {} and writer schema {} as a JSON Object", record, record.getSchema(), writeSchema, e);
             throw e;
@@ -271,78 +281,78 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     }
 
     @SuppressWarnings("unchecked")
-    private void writeRawValue(final JsonGenerator generator, final Object value, final String fieldName) throws IOException {
+    private void writeRawValue(final List<GeneratorTask> generatorTaskBacklog, final Object value, final String fieldName) throws IOException {
 
         if (value == null) {
-            generator.writeNull();
+            generatorTaskBacklog.add(JsonGenerator::writeNull);
             return;
         }
 
         if (value instanceof Record record) {
-            writeRecord(record, record.getSchema(), generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
+            writeRecord(record, record.getSchema(), generatorTaskBacklog, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
             return;
         }
 
         if (value instanceof Map) {
             final Map<String, ?> map = (Map<String, ?>) value;
-            generator.writeStartObject();
+            generatorTaskBacklog.add(JsonGenerator::writeStartObject);
 
             for (final Map.Entry<String, ?> entry : map.entrySet()) {
                 final String mapKey = entry.getKey();
                 final Object mapValue = entry.getValue();
-                generator.writeFieldName(mapKey);
-                writeRawValue(generator, mapValue, fieldName + "." + mapKey);
+                generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeFieldName, mapKey));
+                writeRawValue(generatorTaskBacklog, mapValue, fieldName + "." + mapKey);
             }
 
-            generator.writeEndObject();
+            generatorTaskBacklog.add(JsonGenerator::writeEndObject);
             return;
         }
 
         if (value instanceof Object[] values) {
-            generator.writeStartArray();
+            generatorTaskBacklog.add(JsonGenerator::writeStartArray);
             for (final Object element : values) {
-                writeRawValue(generator, element, fieldName);
+                writeRawValue(generatorTaskBacklog, element, fieldName);
             }
-            generator.writeEndArray();
+            generatorTaskBacklog.add(JsonGenerator::writeEndArray);
             return;
         }
 
         if (value instanceof java.sql.Time) {
             final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timeFormat), fieldName);
-            generator.writeObject(formatted);
+            generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeObject, formatted));
             return;
         }
         if (value instanceof java.sql.Date) {
             final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(dateFormat), fieldName);
-            generator.writeObject(formatted);
+            generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeObject, formatted));
             return;
         }
         if (value instanceof java.util.Date) {
             final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timestampFormat), fieldName);
-            generator.writeObject(formatted);
+            generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeObject, formatted));
             return;
         }
         if (!allowScientificNotation) {
             if (value instanceof Double || value instanceof Float) {
-                generator.writeNumber(DataTypeUtils.toBigDecimal(value, fieldName));
+                generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toBigDecimal(value, fieldName)));
                 return;
             }
         }
 
-        generator.writeObject(value);
+        generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeObject, value));
     }
 
     @SuppressWarnings("unchecked")
-    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws IOException {
+    private void writeValue(final List<GeneratorTask> generatorTaskBacklog, final Object value, final String fieldName, final DataType dataType) throws IOException {
         if (value == null) {
-            generator.writeNull();
+            generatorTaskBacklog.add(JsonGenerator::writeNull);
             return;
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
         if (chosenDataType == null) {
             logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", fieldName, value);
-            generator.writeNull();
+            generatorTaskBacklog.add(JsonGenerator::writeNull);
             return;
         }
 
@@ -350,7 +360,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 value, chosenDataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName
         );
         if (coercedValue == null) {
-            generator.writeNull();
+            generatorTaskBacklog.add(JsonGenerator::writeNull);
             return;
         }
 
@@ -358,97 +368,97 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             case DATE: {
                 final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(dateFormat), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
-                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toLong(coercedValue, fieldName)));
                 } else {
-                    generator.writeString(stringValue);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeString, stringValue));
                 }
                 break;
             }
             case TIME: {
                 final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timeFormat), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
-                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toLong(coercedValue, fieldName)));
                 } else {
-                    generator.writeString(stringValue);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeString, stringValue));
                 }
                 break;
             }
             case TIMESTAMP: {
                 final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timestampFormat), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
-                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toLong(coercedValue, fieldName)));
                 } else {
-                    generator.writeString(stringValue);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeString, stringValue));
                 }
                 break;
             }
             case DOUBLE:
                 if (allowScientificNotation) {
-                    generator.writeNumber(DataTypeUtils.toDouble(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toDouble(coercedValue, fieldName)));
                 } else {
-                    generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toBigDecimal(coercedValue, fieldName)));
                 }
                 break;
             case FLOAT:
                 if (allowScientificNotation) {
-                    generator.writeNumber(DataTypeUtils.toFloat(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toFloat(coercedValue, fieldName)));
                 } else {
-                    generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toBigDecimal(coercedValue, fieldName)));
                 }
                 break;
             case LONG:
-                generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toLong(coercedValue, fieldName)));
                 break;
             case INT:
             case BYTE:
             case SHORT:
-                generator.writeNumber(DataTypeUtils.toInteger(coercedValue, fieldName));
+                generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toInteger(coercedValue, fieldName)));
                 break;
             case UUID:
             case CHAR:
             case STRING:
-                generator.writeString(coercedValue.toString());
+                generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeString, coercedValue.toString()));
                 break;
             case DECIMAL:
-                generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
+                generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, DataTypeUtils.toBigDecimal(coercedValue, fieldName)));
                 break;
             case BIGINT:
                 if (coercedValue instanceof Long) {
-                    generator.writeNumber((Long) coercedValue);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, (Long) coercedValue));
                 } else {
-                    generator.writeNumber((BigInteger) coercedValue);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeNumber, (BigInteger) coercedValue));
                 }
                 break;
             case BOOLEAN:
                 final String stringValue = coercedValue.toString();
                 if ("true".equalsIgnoreCase(stringValue)) {
-                    generator.writeBoolean(true);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeBoolean, true));
                 } else if ("false".equalsIgnoreCase(stringValue)) {
-                    generator.writeBoolean(false);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeBoolean, false));
                 } else {
-                    generator.writeString(stringValue);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeString, stringValue));
                 }
                 break;
             case RECORD: {
                 final Record record = (Record) coercedValue;
                 final RecordDataType recordDataType = (RecordDataType) chosenDataType;
                 final RecordSchema childSchema = recordDataType.getChildSchema();
-                writeRecord(record, childSchema, generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, true);
+                writeRecord(record, childSchema, generatorTaskBacklog, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, true);
                 break;
             }
             case MAP: {
                 final MapDataType mapDataType = (MapDataType) chosenDataType;
                 final DataType valueDataType = mapDataType.getValueType();
                 final Map<String, ?> map = (Map<String, ?>) coercedValue;
-                generator.writeStartObject();
+                generatorTaskBacklog.add(JsonGenerator::writeStartObject);
 
                 for (final Map.Entry<String, ?> entry : map.entrySet()) {
                     final String mapKey = entry.getKey();
                     final Object mapValue = entry.getValue();
-                    generator.writeFieldName(mapKey);
-                    writeValue(generator, mapValue, fieldName + "." + mapKey, valueDataType);
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeFieldName, mapKey));
+                    writeValue(generatorTaskBacklog, mapValue, fieldName + "." + mapKey, valueDataType);
                 }
-                generator.writeEndObject();
+                generatorTaskBacklog.add(JsonGenerator::writeEndObject);
                 break;
             }
             case ARRAY:
@@ -456,20 +466,20 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 if (coercedValue instanceof Object[] values) {
                     final ArrayDataType arrayDataType = (ArrayDataType) chosenDataType;
                     final DataType elementType = arrayDataType.getElementType();
-                    writeArray(values, fieldName, generator, elementType);
+                    writeArray(values, fieldName, generatorTaskBacklog, elementType);
                 } else {
-                    generator.writeString(coercedValue.toString());
+                    generatorTaskBacklog.add(GeneratorTaskWithValue.of(JsonGenerator::writeString, coercedValue.toString()));
                 }
                 break;
         }
     }
 
-    private void writeArray(final Object[] values, final String fieldName, final JsonGenerator generator, final DataType elementType) throws IOException {
-        generator.writeStartArray();
+    private void writeArray(final Object[] values, final String fieldName, final List<GeneratorTask> generatorTaskBacklog, final DataType elementType) throws IOException {
+        generatorTaskBacklog.add(JsonGenerator::writeStartArray);
         for (final Object element : values) {
-            writeValue(generator, element, fieldName, elementType);
+            writeValue(generatorTaskBacklog, element, fieldName, elementType);
         }
-        generator.writeEndArray();
+        generatorTaskBacklog.add(JsonGenerator::writeEndArray);
     }
 
 
@@ -480,5 +490,20 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
     private interface GeneratorTask {
         void apply(JsonGenerator generator) throws IOException;
+    }
+
+    private record GeneratorTaskWithValue<T>(IoThrowingBiConsumer<JsonGenerator, T> task, T value) implements GeneratorTask {
+        static <T> GeneratorTaskWithValue<T> of(IoThrowingBiConsumer<JsonGenerator, T> task, T value) {
+            return new GeneratorTaskWithValue<>(task, value);
+        }
+
+        @Override
+        public void apply(JsonGenerator generator) throws IOException {
+            task.accept(generator, value);
+        }
+    }
+
+    private interface IoThrowingBiConsumer<T, U> {
+        void accept(T t, U u) throws IOException;
     }
 }
