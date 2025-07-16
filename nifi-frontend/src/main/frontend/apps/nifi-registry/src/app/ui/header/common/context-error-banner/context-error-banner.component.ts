@@ -32,7 +32,8 @@ import { ErrorContextKey } from '../../../../state/error';
     selector: 'context-error-banner',
     imports: [CommonModule, ErrorBanner],
     templateUrl: './context-error-banner.component.html',
-    styleUrl: './context-error-banner.component.scss'
+    styleUrl: './context-error-banner.component.scss',
+    standalone: true
 })
 export class ContextErrorBanner implements OnDestroy {
     private _context!: ErrorContextKey;
