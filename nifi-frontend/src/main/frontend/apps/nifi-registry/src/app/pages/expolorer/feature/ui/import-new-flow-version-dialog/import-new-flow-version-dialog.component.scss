@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
- @use '@angular/material' as mat;
+@use '@angular/material' as mat;
 
- .import-new-flow-version-dialog {
+.import-new-flow-version-dialog {
     @include mat.button-density(-1);
- }
+}

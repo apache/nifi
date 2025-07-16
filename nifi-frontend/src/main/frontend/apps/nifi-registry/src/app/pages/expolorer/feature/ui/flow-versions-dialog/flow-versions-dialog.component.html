@@ -26,7 +26,8 @@
                     matSort
                     matSortDisableClear
                     (matSortChange)="sortData($event)"
-                    [matSortActive]="sort.active" [matSortDirection]="sort.direction">
+                    [matSortActive]="sort.active"
+                    [matSortDirection]="sort.direction">
                     <!-- Version Column -->
                     <ng-container matColumnDef="version">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
@@ -57,25 +58,31 @@
                         <th mat-header-cell *matHeaderCellDef></th>
                         <td mat-cell *matCellDef="let item">
                             <div class="flex items-center justify-end gap-x-2">
-                                    <button
-                                        data-test-id="exportMenuBtn"
-                                        mat-icon-button
-                                        type="button"
-                                        [matMenuTriggerFor]="actionMenu"
-                                        class="h-16 w-16 flex items-center justify-center icon global-menu">
-                                        <i class="fa fa-ellipsis-v"></i>
-                                    </button>
+                                <button
+                                    data-test-id="exportMenuBtn"
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="actionMenu"
+                                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
-                                        <button mat-menu-item (click)="exportVersion(item.version)" data-test-id="exportBtn">
-                                            <i class="fa fa-download primary-color mr-2"></i>
-                                            Export flow version
-                                        </button>
+                                    <button
+                                        mat-menu-item
+                                        (click)="exportVersion(item.version)"
+                                        data-test-id="exportBtn">
+                                        <i class="fa fa-download primary-color mr-2"></i>
+                                        Export flow version
+                                    </button>
                                 </mat-menu>
                             </div>
                         </td>
                     </ng-container>
                     <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                    <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns" [class.even]="even"></tr>
+                    <tr
+                        mat-row
+                        *matRowDef="let row; let even = even; columns: displayedColumns"
+                        [class.even]="even"></tr>
                 </table>
             </div>
         </div>

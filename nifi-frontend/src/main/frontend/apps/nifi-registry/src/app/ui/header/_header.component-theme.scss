@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
- @use 'sass:map';
- @use '@angular/material' as mat;
+@use 'sass:map';
+@use '@angular/material' as mat;
 
- @mixin generate-theme() {
+@mixin generate-theme() {
     .registry-header {
         background-color: var(--mat-sys-secondary);
         @extend .secondary-contrast;

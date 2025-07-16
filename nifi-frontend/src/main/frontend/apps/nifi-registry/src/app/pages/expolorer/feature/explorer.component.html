@@ -17,10 +17,16 @@
 
 <div class="pb-5 px-5 flex flex-col h-full">
     <div class="h-full flex flex-col">
-        <h3 class="primary-color">Flows</h3>
+        <h3 class="primary-color">Resources</h3>
         <div class="flex justify-between items-baseline">
-            <droplet-table-filter [buckets]="buckets" [filterTerm]="filterTerm" [filterBucket]="filterBucket"
-                [filterColumn]="filterColumn" [filteredCount]="dataSource.filteredData.length" [totalCount]="dataSource.data.length" (filterChanged)="applyFilter($event)"></droplet-table-filter>
+            <droplet-table-filter
+                [buckets]="buckets"
+                [filterTerm]="filterTerm"
+                [filterBucket]="filterBucket"
+                [filterColumn]="filterColumn"
+                [filteredCount]="dataSource.filteredData.length"
+                [totalCount]="dataSource.data.length"
+                (filterChanged)="applyFilter($event)"></droplet-table-filter>
             <div class="flex justify-end">
                 <button mat-icon-button class="primary-icon-button" (click)="openImportNewFlowDialog()">
                     <i class="fa fa-plus"></i>
@@ -28,14 +34,14 @@
             </div>
         </div>
         @if (droplets$ | async; as droplets) {
-            <droplet-table 
-                [buckets]="buckets" 
+            <droplet-table
+                [buckets]="buckets"
                 [dataSource]="dataSource"
                 [selectedId]="selectedDropletId$ | async"
                 (selectDroplet)="selectDroplet($event)"
                 class="h-full flex"></droplet-table>
         }
-       
+
         @if (dropletsState$ | async; as dropletsState) {
             <div class="flex justify-between mt-2">
                 <div class="text-sm flex items-center gap-x-2">

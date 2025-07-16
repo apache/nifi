@@ -26,22 +26,22 @@
 @use 'libs/shared/src/assets/themes/material';
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 
- @tailwind base;
- @tailwind components;
- @tailwind utilities;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
- // only include these once (not needed for dark mode)
- @include app.styles();
- @include listing-table.styles();
+// only include these once (not needed for dark mode)
+@include app.styles();
+@include listing-table.styles();
 
- html {
+html {
     @include app.generate-material-theme();
     @include listing-table.generate-theme();
     @include header.generate-theme();
 
-     .dark-theme {
+    .dark-theme {
         @include app.generate-material-theme();
         @include listing-table.generate-theme();
         @include header.generate-theme();
-     }
- }
+    }
+}
