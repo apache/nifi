@@ -45,7 +45,7 @@ export class DropletsService {
 
     uploadFlow(flowUri: string, file: File, description: string): Observable<any> {
         return this.httpClient.post(`${DropletsService.API}/${flowUri}/versions/import`, file, {
-            headers: { Comments: description }
+            headers: { Comments: description || '' } // using a short-circuit here because the backend does not accept null
         });
     }
 

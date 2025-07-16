@@ -111,7 +111,7 @@ export class DropletsEffects {
                             this.store.dispatch(
                                 DropletsActions.dropletsBannerError({
                                     errorContext: {
-                                        context: ErrorContextKey.DROPLETS,
+                                        context: ErrorContextKey.DELETE_DROPLET,
                                         errors: [this.errorHelper.getErrorString(errorResponse)]
                                     }
                                 })
@@ -174,7 +174,7 @@ export class DropletsEffects {
                             this.store.dispatch(
                                 DropletsActions.dropletsBannerError({
                                     errorContext: {
-                                        context: ErrorContextKey.DROPLETS,
+                                        context: ErrorContextKey.CREATE_DROPLET,
                                         errors: [this.errorHelper.getErrorString(errorResponse)]
                                     }
                                 })
@@ -209,7 +209,7 @@ export class DropletsEffects {
                             this.store.dispatch(
                                 DropletsActions.dropletsBannerError({
                                     errorContext: {
-                                        context: ErrorContextKey.DROPLETS,
+                                        context: ErrorContextKey.IMPORT_DROPLET_VERSION,
                                         errors: [this.errorHelper.getErrorString(errorResponse)]
                                     }
                                 })

@@ -23,8 +23,9 @@ export interface ErrorDetail {
 }
 
 export enum ErrorContextKey {
-    DROPLETS = 'droplets',
-    BUCKETS = 'buckets'
+    DELETE_DROPLET = 'delete droplet',
+    CREATE_DROPLET = 'create droplet',
+    IMPORT_DROPLET_VERSION = 'import droplet version'
 }
 
 export interface ErrorContext {
