@@ -223,11 +223,17 @@ public class TestExecuteSQLRecord {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
 
+        // Check if none of the FlowFiles have the EOF attribute, except the last one.
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).stream()
+                .limit(199)
+                .forEach(fragment -> fragment.assertAttributeNotExists(ExecuteSQL.END_OF_RESULTSET_FLAG));
+
         MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(199);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.END_OF_RESULTSET_FLAG, "true");
     }
 
     @Test
@@ -278,6 +284,11 @@ public class TestExecuteSQLRecord {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
 
+        // Check if none of the FlowFiles have the EOF attribute, except the last one.
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).stream()
+                .limit(199)
+                .forEach(fragment -> fragment.assertAttributeNotExists(ExecuteSQL.END_OF_RESULTSET_FLAG));
+
         MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(199);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
@@ -285,6 +296,7 @@ public class TestExecuteSQLRecord {
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
         lastFlowFile.assertAttributeEquals(testAttrName, testAttrValue);
         lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFlowFile.getAttribute(CoreAttributes.UUID.key()));
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.END_OF_RESULTSET_FLAG, "true");
     }
 
     @Test

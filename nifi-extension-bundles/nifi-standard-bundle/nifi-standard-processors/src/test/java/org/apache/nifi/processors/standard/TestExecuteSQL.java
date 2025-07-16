@@ -26,6 +26,7 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.sql.ContentOutputStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -268,7 +269,7 @@ public class TestExecuteSQL {
         stmt.execute("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.CONTENT_OUTPUT_STRATEGY, AbstractExecuteSQL.ContentOutputStrategy.ORIGINAL);
+        runner.setProperty(ExecuteSQL.CONTENT_OUTPUT_STRATEGY, ContentOutputStrategy.ORIGINAL);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "TRUNCATE TABLE TEST_TRUNCATE_TABLE");
         runner.enqueue("some data");
         runner.run();
@@ -349,11 +350,17 @@ public class TestExecuteSQL {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
+        // Check if none of the FlowFiles have the EOF attribute, except the last one.
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).stream()
+                .limit(199)
+                .forEach(fragment -> fragment.assertAttributeNotExists(ExecuteSQL.END_OF_RESULTSET_FLAG));
+
         MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.END_OF_RESULTSET_FLAG, "true");
     }
 
     @Test
@@ -400,13 +407,18 @@ public class TestExecuteSQL {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
+        // Check if none of the FlowFiles have the EOF attribute, except the last one.
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).stream()
+                .limit(199)
+                .forEach(fragment -> fragment.assertAttributeNotExists(ExecuteSQL.END_OF_RESULTSET_FLAG));
 
+        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
         lastFlowFile.assertAttributeEquals(testAttrName, testAttrValue);
         lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFlowFile.getAttribute(CoreAttributes.UUID.key()));
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.END_OF_RESULTSET_FLAG, "true");
     }
 
     @Test
