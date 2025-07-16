@@ -6846,8 +6846,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     public Stream<RuleViolation> getRuleViolationStream(String processGroupId) {
-        if (ruleViolationsManager.isEmpty())
+        if (ruleViolationsManager.isEmpty()) {
             return Stream.empty();
+        }
 
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
 
