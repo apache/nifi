@@ -60,7 +60,7 @@ public class AvroFileStreamKafkaMessageConverter implements KafkaMessageConverte
     private final CodecFactory avroCodec;
     private final boolean commitOffsets;
     private final OffsetTracker offsetTracker;
-    private final Runnable onSuccess;
+    private final String brokerUri;
 
     public AvroFileStreamKafkaMessageConverter(
             final Charset headerEncoding,
@@ -72,7 +72,7 @@ public class AvroFileStreamKafkaMessageConverter implements KafkaMessageConverte
             final CodecFactory avroCodec,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
-            final Runnable onSuccess) {
+            final String brokerUri) {
         this.headerEncoding = headerEncoding;
         this.headerNamePattern = headerNamePattern;
         this.keyEncoding = keyEncoding;
@@ -82,7 +82,7 @@ public class AvroFileStreamKafkaMessageConverter implements KafkaMessageConverte
         this.avroCodec = avroCodec;
         this.commitOffsets = commitOffsets;
         this.offsetTracker = offsetTracker;
-        this.onSuccess = onSuccess;
+        this.brokerUri = brokerUri;
     }
 
     @Override
@@ -186,14 +186,11 @@ public class AvroFileStreamKafkaMessageConverter implements KafkaMessageConverte
 
                 FlowFile flowFile = recordGroup.flowFile();
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                final ProvenanceReporter provenanceReporter = session.getProvenanceReporter();
-                final String transitUri = String.format(TRANSIT_URI_FORMAT, topic, partition);
-                provenanceReporter.receive(flowFile, transitUri);
-                session.adjustCounter("Records Received from " + topic, recordCount, false);
+                session.getProvenanceReporter().receive(flowFile,brokerUri + "/" + topic);
+                session.adjustCounter("Records received from " + topic, recordCount, false);
                 session.transfer(flowFile, ConsumeKafka.SUCCESS);
             }
 
-            onSuccess.run();
         } catch (Exception e) {
             throw new RuntimeException("Error while interpreting Kafka content as Confluent Avro",e);
         }

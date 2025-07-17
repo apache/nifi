@@ -40,6 +40,7 @@ import org.apache.nifi.kafka.processors.consumer.convert.InjectOffsetRecordStrea
 import org.apache.nifi.kafka.processors.consumer.convert.KafkaMessageConverter;
 import org.apache.nifi.kafka.processors.consumer.convert.RecordStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.processors.consumer.convert.WrapperRecordStreamKafkaMessageConverter;
+import org.apache.nifi.kafka.processors.consumer.convert.AvroFileStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
@@ -619,7 +620,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             final Iterator<ByteRecord> consumerRecords) {
         switch (processingStrategy) {
             case RECORD -> processInputRecords(context, session, offsetTracker, consumerRecords);
-            case AVRO_FILE -> processInputAvroFile(context, offetTracker, consumerRecords); // TODO: Adapt function to new Signature
+            case AVRO_FILE -> processInputAvroFile(context, session, offsetTracker, consumerRecords);
             case FLOW_FILE -> processInputFlowFile(session, offsetTracker, consumerRecords);
             case DEMARCATOR -> {
                 final Iterator<ByteRecord> demarcatedRecords = transformDemarcator(context, consumerRecords);
@@ -670,17 +671,13 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         converter.toFlowFiles(session, consumerRecords);
     }
 
-    private void processInputAvroFile(final ProcessContext context, final ProcessSession session, final KafkaConsumerService consumerService, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
-        final OffsetTracker offsetTracker = new OffsetTracker();
+    private void processInputAvroFile(final ProcessContext context, final ProcessSession session, OffsetTracker offsetTracker, final Iterator<ByteRecord> consumerRecords) {
         final SchemaReferenceReader schemaReferenceReader = context.getProperty(SCHEMA_REFERENCE).asControllerService(SchemaReferenceReader.class);
         final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
         final CodecFactory avroCodec = getCodecFactory(context.getProperty(AVRO_CODEC).getValue());
 
-        final Runnable onSuccess = commitOffsets
-                ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
-                : session::commitAsync;
         final KafkaMessageConverter converter = new AvroFileStreamKafkaMessageConverter(
-                headerEncoding, headerNamePattern, keyEncoding, schemaRegistry, schemaReferenceReader, avroCodec, commitOffsets, offsetTracker, onSuccess);
+                headerEncoding, headerNamePattern, keyEncoding, schemaRegistry, schemaReferenceReader, avroCodec, commitOffsets, offsetTracker, brokerUri);
         getLogger().info("Processing x input records into one Avro per Partition");
         converter.toFlowFiles(session, consumerRecords);
 
