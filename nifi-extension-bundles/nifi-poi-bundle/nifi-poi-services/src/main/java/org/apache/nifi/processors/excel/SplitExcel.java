@@ -242,7 +242,7 @@ public class SplitExcel extends AbstractProcessor {
                 CellUtil.copyCell(sourceCell, destCell, CELL_COPY_POLICY, cellCopyContext);
             }
 
-            ++rowCount;
+            rowCount++;
         }
 
         for (final CellRangeAddress sourceRegion : originalSheet.getMergedRegions()) {

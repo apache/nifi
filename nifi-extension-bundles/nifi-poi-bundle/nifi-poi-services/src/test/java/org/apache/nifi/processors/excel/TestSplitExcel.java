@@ -55,6 +55,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -258,7 +259,7 @@ public class TestSplitExcel {
             assertEquals("Sheet1", sheet.getSheetName());
 
             final List<XSSFHyperlink> hyperlinks = (List<XSSFHyperlink>) sheet.getHyperlinkList();
-            Assertions.assertIterableEquals(
+            assertIterableEquals(
                     List.of(
                             "http://google.com/",
                             "https://apache.org/",
