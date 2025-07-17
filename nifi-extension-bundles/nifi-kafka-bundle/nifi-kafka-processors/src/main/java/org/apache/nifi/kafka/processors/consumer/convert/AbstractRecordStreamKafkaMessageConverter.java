@@ -110,6 +110,8 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
                     processSingleRecord(session, recordGroups, consumerRecord, record, attributes, extraAttrs, topic, partition);
                 }
             } catch (final MalformedRecordException | IOException | SchemaNotFoundException e) {
+                logger.debug("Reader or writer failed to process Kafka message from topic {} partition {} offset {}",
+                             consumerRecord.getTopic(), consumerRecord.getPartition(), consumerRecord.getOffset(), e);
                 handleParseFailure(session, consumerRecord, attributes, value);
                 offsetTracker.update(consumerRecord);
                 continue;
