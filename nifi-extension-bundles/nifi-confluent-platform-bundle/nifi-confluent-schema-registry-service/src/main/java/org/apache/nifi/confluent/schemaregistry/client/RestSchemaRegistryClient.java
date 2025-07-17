@@ -23,6 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaDefinition;
+import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.web.util.WebClientUtils;
@@ -40,12 +42,15 @@ import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.io.IOException;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.nifi.schemaregistry.services.SchemaDefinition.SchemaType;
 
 
 /**
@@ -69,8 +74,13 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String VERSION_FIELD_NAME = "version";
     private static final String ID_FIELD_NAME = "id";
     private static final String SCHEMA_TEXT_FIELD_NAME = "schema";
+    private static final String SCHEMA_TYPE_FIELD_NAME = "schemaType";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String SCHEMA_REGISTRY_CONTENT_TYPE = "application/vnd.schemaregistry.v1+json";
+    private static final String REFERENCES_FIELD_NAME = "references";
+    private static final String REFERENCE_NAME_FIELD_NAME = "name";
+    private static final String REFERENCE_SUBJECT_FIELD_NAME = "subject";
+    private static final String REFERENCE_VERSION_FIELD_NAME = "version";
 
 
     public RestSchemaRegistryClient(final List<String> baseUrls,
@@ -97,7 +107,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
 
     @Override
-    public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(final String schemaName) throws SchemaNotFoundException {
         final String pathSuffix = getSubjectPath(schemaName, null);
         final JsonNode responseJson = fetchJsonResponse(pathSuffix, "name " + schemaName);
 
@@ -105,7 +115,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(final String schemaName, final int schemaVersion) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(final String schemaName, final int schemaVersion) throws SchemaNotFoundException {
         final String pathSuffix = getSubjectPath(schemaName, schemaVersion);
         final JsonNode responseJson = fetchJsonResponse(pathSuffix, "name " + schemaName);
 
@@ -113,7 +123,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(final int schemaId) throws SchemaNotFoundException {
         // The Confluent Schema Registry's version below 5.3.1 REST API does not provide us with the 'subject' (name) of a Schema given the ID.
         // It will provide us only the text of the Schema itself. Therefore, in order to determine the name (which is required for
         // a SchemaIdentifier), we must obtain a list of all Schema names, and then request each and every one of the schemas to determine
@@ -131,7 +141,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         // Get subject name by id, works only with v5.3.1+ Confluent Schema Registry
         // GET /schemas/ids/{int: id}/subjects
-        JsonNode subjectsJson = null;
+        JsonNode subjectsJson;
         try {
             subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
 
@@ -145,7 +155,6 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                         break;
                     } catch (SchemaNotFoundException e) {
                         logger.debug("Could not find schema in registry by subject name {}", searchName, e);
-                        continue;
                     }
                 }
             }
@@ -211,6 +220,91 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         return createRecordSchema(completeSchema);
     }
 
+    @Override
+    public SchemaDefinition getSchemaDefinition(SchemaIdentifier identifier) throws SchemaNotFoundException {
+        final JsonNode schemaJson;
+        String subject = null;
+        Integer version = null;
+
+        // If we have an ID, get the schema by ID first
+        // Using schemaVersionId, because that is what is set by ConfluentEncodedSchemaReferenceReader.
+        // probably identifier field should be used, but I'm not changing ConfluentEncodedSchemaReferenceReader for backward compatibility reasons.
+        if (identifier.getSchemaVersionId().isPresent()) {
+            long schemaId = identifier.getSchemaVersionId().getAsLong();
+            String schemaPath = getSchemaPath(schemaId);
+            schemaJson = fetchJsonResponse(schemaPath, "id " + schemaId);
+        } else if (identifier.getName().isPresent()) {
+            // If we have a name or (name and version), get the schema by those
+            subject = identifier.getName().get();
+            version = identifier.getVersion().isPresent() ? identifier.getVersion().getAsInt() : null;
+            // if no version was specified, the latest version will be used. See @getSubjectPath method.
+            String pathSuffix = getSubjectPath(subject, version);
+            schemaJson = fetchJsonResponse(pathSuffix, "name " + subject);
+        } else {
+            throw new SchemaNotFoundException("Schema identifier must contain either a version identifier or a subject name");
+        }
+
+        // Extract schema information
+        String schemaText = schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText();
+        String schemaTypeText = schemaJson.get(SCHEMA_TYPE_FIELD_NAME).asText();
+        SchemaType schemaType = toSchemaType(schemaTypeText);
+
+        long schemaId;
+        if (schemaJson.has(ID_FIELD_NAME)) {
+            schemaId = schemaJson.get(ID_FIELD_NAME).asLong();
+        } else {
+            schemaId = identifier.getSchemaVersionId().getAsLong();
+        }
+
+        if (subject == null && schemaJson.has(SUBJECT_FIELD_NAME)) {
+            subject = schemaJson.get(SUBJECT_FIELD_NAME).asText();
+        }
+
+        if (version == null && schemaJson.has(VERSION_FIELD_NAME)) {
+            version = schemaJson.get(VERSION_FIELD_NAME).asInt();
+        }
+
+        // Build schema identifier with all available information
+        SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
+            .id(schemaId)
+            .name(subject)
+            .version(version)
+            .build();
+
+        // Process references if present
+        Map<String, SchemaDefinition> references = new HashMap<>();
+        if (schemaJson.has(REFERENCES_FIELD_NAME) && !schemaJson.get(REFERENCES_FIELD_NAME).isNull()) {
+            ArrayNode refsArray = (ArrayNode) schemaJson.get(REFERENCES_FIELD_NAME);
+            for (JsonNode ref : refsArray) {
+                String refName = ref.get(REFERENCE_NAME_FIELD_NAME).asText();
+                String refSubject = ref.get(REFERENCE_SUBJECT_FIELD_NAME).asText();
+                int refVersion = ref.get(REFERENCE_VERSION_FIELD_NAME).asInt();
+
+                // Recursively get referenced schema
+                SchemaIdentifier refId = SchemaIdentifier.builder()
+                    .name(refSubject)
+                    .version(refVersion)
+                    .build();
+                SchemaDefinition refSchema = getSchemaDefinition(refId);
+                references.put(refName, refSchema);
+            }
+        }
+
+        return new StandardSchemaDefinition(schemaIdentifier, schemaText, schemaType, references);
+    }
+
+    private SchemaType toSchemaType(final String schemaTypeText) {
+        try {
+            if (schemaTypeText == null || schemaTypeText.isEmpty()) {
+                return SchemaType.AVRO; // Default schema type for confluent schema registry is AVRO.
+            }
+            return SchemaType.valueOf(schemaTypeText.toUpperCase().trim());
+        } catch (final Exception e) {
+            final String message = String.format("Could not convert schema type '%s' to SchemaType enum.", schemaTypeText);
+            throw new IllegalArgumentException(message, e);
+        }
+    }
+
     private RecordSchema createRecordSchema(final String name, final Integer version, final int id, final String schema) throws SchemaNotFoundException {
         try {
             final Schema avroSchema = new Schema.Parser().parse(schema);
@@ -243,7 +337,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                 (schemaVersion == null ? "latest" : URLEncoder.encode(String.valueOf(schemaVersion), StandardCharsets.UTF_8));
     }
 
-    private String getSchemaPath(final int schemaId) {
+    private String getSchemaPath(final long schemaId) {
         return "/schemas/ids/" + URLEncoder.encode(String.valueOf(schemaId), StandardCharsets.UTF_8);
     }
 
@@ -280,7 +374,6 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
                 default:
                     errorMessage = response.readEntity(String.class);
-                    continue;
             }
         }
 
@@ -322,10 +415,8 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
                 default:
                     errorMessage = response.readEntity(String.class);
-                    continue;
             }
         }
-
         throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription
                 + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
     }

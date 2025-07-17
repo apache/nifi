@@ -20,7 +20,9 @@ package org.apache.nifi.confluent.schemaregistry.client;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.time.Duration;
 
@@ -30,6 +32,7 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final LoadingCache<String, RecordSchema> nameCache;
     private final LoadingCache<Pair<String, Integer>, RecordSchema> nameVersionCache;
     private final LoadingCache<Integer, RecordSchema> idCache;
+    private final LoadingCache<SchemaIdentifier, SchemaDefinition> definitionCache;
 
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
@@ -47,6 +50,10 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
                 .build(client::getSchema);
+        definitionCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(expirationNanos))
+                .build(client::getSchemaDefinition);
     }
 
     @Override
@@ -62,6 +69,11 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     @Override
     public RecordSchema getSchema(final int schemaId) {
         return idCache.get(schemaId);
+    }
+
+    @Override
+    public SchemaDefinition getSchemaDefinition(final SchemaIdentifier identifier) {
+        return definitionCache.get(identifier);
     }
 
 }
