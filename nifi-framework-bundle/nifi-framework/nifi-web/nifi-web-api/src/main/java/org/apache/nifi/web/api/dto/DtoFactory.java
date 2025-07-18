@@ -1182,6 +1182,8 @@ public final class DtoFactory {
        snapshot.setFlowFilesOut(connectionStatus.getOutputCount());
        snapshot.setBytesOut(connectionStatus.getOutputBytes());
 
+       snapshot.setLoadBalanceStatus(connectionStatus.getLoadBalanceStatus());
+
        ConnectionStatusPredictions predictions = connectionStatus.getPredictions();
        ConnectionStatusPredictionsSnapshotDTO predictionsDTO = null;
        if (predictions != null) {
