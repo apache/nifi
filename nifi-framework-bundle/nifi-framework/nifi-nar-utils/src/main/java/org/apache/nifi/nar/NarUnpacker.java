@@ -318,12 +318,10 @@ public final class NarUnpacker {
     }
 
     private static void unpackIndividualJars(final File nar, final File workingDirectory, final byte[] hash, final NarUnpackMode unpackMode) throws IOException {
-        switch (unpackMode) {
-            case UNPACK_INDIVIDUAL_JARS:
-                unpackIndividualJars(nar, workingDirectory, hash);
-                return;
-            case UNPACK_TO_UBER_JAR:
-                unpackToUberJar(nar, workingDirectory, hash);
+        if (unpackMode == NarUnpackMode.UNPACK_INDIVIDUAL_JARS) {
+            unpackIndividualJars(nar, workingDirectory, hash);
+        } else if (unpackMode == NarUnpackMode.UNPACK_TO_UBER_JAR) {
+            unpackToUberJar(nar, workingDirectory, hash);
         }
     }
 
