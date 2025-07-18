@@ -3074,7 +3074,6 @@ public final class DtoFactory {
                return false;
            }
        }
-
        return true;
    }
 
@@ -3084,7 +3083,7 @@ public final class DtoFactory {
     */
    private String getCapabilityDescription(final Class<?> cls) {
        final CapabilityDescription capabilityDesc = cls.getAnnotation(CapabilityDescription.class);
-       return capabilityDesc == null ? null : capabilityDesc.value();
+       return capabilityDesc == null ? "" : capabilityDesc.value();
    }
 
    /**
