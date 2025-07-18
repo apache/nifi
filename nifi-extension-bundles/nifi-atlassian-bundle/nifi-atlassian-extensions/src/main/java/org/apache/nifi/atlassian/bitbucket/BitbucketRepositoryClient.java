@@ -452,8 +452,9 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
                 } catch (FlowRegistryException e) {
                     return "none";
                 }
+            default:
+                return "none";
             }
-            return "none";
     }
 
     private GitCommit toGitCommit(final JsonNode commit) {

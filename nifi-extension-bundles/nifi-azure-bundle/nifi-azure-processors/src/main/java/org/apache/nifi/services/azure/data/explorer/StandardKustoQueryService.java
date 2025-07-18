@@ -143,14 +143,14 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
         final String clientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();
         final KustoAuthenticationStrategy kustoAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asAllowableValue(KustoAuthenticationStrategy.class);
 
-        final ConnectionStringBuilder builder;
-        if (kustoAuthenticationStrategy == KustoAuthenticationStrategy.APPLICATION_CREDENTIALS) {
-            final String applicationKey = context.getProperty(APPLICATION_KEY).getValue();
-            final String tenantId = context.getProperty(APPLICATION_TENANT_ID).getValue();
-            builder = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, clientId, applicationKey, tenantId);
-        } else {
-            builder = ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
-        }
+        final ConnectionStringBuilder builder = switch (kustoAuthenticationStrategy) {
+            case APPLICATION_CREDENTIALS -> {
+                final String applicationKey = context.getProperty(APPLICATION_KEY).getValue();
+                final String tenantId = context.getProperty(APPLICATION_TENANT_ID).getValue();
+                yield ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, clientId, applicationKey, tenantId);
+            }
+            case MANAGED_IDENTITY -> ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
+        };
 
         builder.setConnectorDetails("Kusto.Nifi.Source", StandardKustoQueryService.class.getPackage().getImplementationVersion(), null, null, false, null, NIFI_SOURCE);
         return builder;

@@ -1208,10 +1208,13 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {
-                    if (newState == NodeConnectionState.OFFLOADING) {
-                        onNodeRemoved(nodeId);
-                    } else if (newState == NodeConnectionState.CONNECTED) {
-                        onNodeAdded(nodeId);
+                    switch (newState) {
+                        case OFFLOADING:
+                            onNodeRemoved(nodeId);
+                            break;
+                        case CONNECTED:
+                            onNodeAdded(nodeId);
+                            break;
                     }
                 } else {
                     switch (newState) {

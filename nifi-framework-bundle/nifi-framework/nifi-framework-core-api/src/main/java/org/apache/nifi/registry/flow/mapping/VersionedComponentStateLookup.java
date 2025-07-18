@@ -97,7 +97,10 @@ public interface VersionedComponentStateLookup {
 
         @Override
         public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
-            return ruleNode.getState() == FlowAnalysisRuleState.DISABLED ? ScheduledState.DISABLED : ScheduledState.ENABLED;
+            return switch (ruleNode.getState()) {
+                case DISABLED -> ScheduledState.DISABLED;
+                default -> ScheduledState.ENABLED;
+            };
         }
 
         @Override

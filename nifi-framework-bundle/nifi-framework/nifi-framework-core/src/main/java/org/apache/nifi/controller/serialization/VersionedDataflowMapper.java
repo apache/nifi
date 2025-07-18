@@ -34,7 +34,6 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
-import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
@@ -193,7 +192,10 @@ public class VersionedDataflowMapper {
 
             @Override
             public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
-                return ruleNode.getState() == FlowAnalysisRuleState.DISABLED ? ScheduledState.DISABLED : ScheduledState.ENABLED;
+                return switch (ruleNode.getState()) {
+                    case DISABLED -> ScheduledState.DISABLED;
+                    case ENABLED -> ScheduledState.ENABLED;
+                };
             }
 
             @Override

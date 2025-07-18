@@ -303,24 +303,28 @@ public class ExtractGrok extends AbstractProcessor {
         }
 
         final ObjectMapper objectMapper = new ObjectMapper();
-        final String destinationValue = context.getProperty(DESTINATION).getValue();
-        if (FLOWFILE_ATTRIBUTE.equals(destinationValue)) {
-            Map<String, String> grokResults = new HashMap<>();
-            for (Map.Entry<String, Object> entry : captureMap.entrySet()) {
-                if (null != entry.getValue()) {
-                    grokResults.put("grok." + entry.getKey(), entry.getValue().toString());
+        switch (context.getProperty(DESTINATION).getValue()) {
+            case FLOWFILE_ATTRIBUTE:
+                Map<String, String> grokResults = new HashMap<>();
+                for (Map.Entry<String, Object> entry : captureMap.entrySet()) {
+                    if (null != entry.getValue()) {
+                        grokResults.put("grok." + entry.getKey(), entry.getValue().toString());
+                    }
                 }
-            }
 
-            flowFile = session.putAllAttributes(flowFile, grokResults);
-            session.getProvenanceReporter().modifyAttributes(flowFile);
-            session.transfer(flowFile, REL_MATCH);
-            getLogger().info("Matched {} Grok Expressions and added attributes to FlowFile {}", grokResults.size(), flowFile);
-        } else if (destinationValue.equals(FLOWFILE_CONTENT)) {
-            FlowFile conFlowfile = session.write(flowFile, outputStream -> objectMapper.writeValue(outputStream, captureMap));
-            conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
-            session.getProvenanceReporter().modifyContent(conFlowfile, "Replaced content with parsed Grok fields and values", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(conFlowfile, REL_MATCH);
+                flowFile = session.putAllAttributes(flowFile, grokResults);
+                session.getProvenanceReporter().modifyAttributes(flowFile);
+                session.transfer(flowFile, REL_MATCH);
+                getLogger().info("Matched {} Grok Expressions and added attributes to FlowFile {}", grokResults.size(), flowFile);
+
+                break;
+            case FLOWFILE_CONTENT:
+                FlowFile conFlowfile = session.write(flowFile, outputStream -> objectMapper.writeValue(outputStream, captureMap));
+                conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
+                session.getProvenanceReporter().modifyContent(conFlowfile, "Replaced content with parsed Grok fields and values", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                session.transfer(conFlowfile, REL_MATCH);
+
+                break;
         }
     }
 }

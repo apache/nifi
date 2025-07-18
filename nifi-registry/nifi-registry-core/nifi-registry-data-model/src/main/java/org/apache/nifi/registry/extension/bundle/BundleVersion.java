@@ -81,7 +81,13 @@ public class BundleVersion extends LinkableEntity {
     @XmlTransient
     public String getFilename() {
         final String filename = bundle.getArtifactId() + "-" + versionMetadata.getVersion();
-        return bundle.getBundleType() == BundleType.NIFI_NAR ? filename + ".nar" : filename;
+
+        return switch (bundle.getBundleType()) {
+            case NIFI_NAR -> filename + ".nar";
+            case MINIFI_CPP ->
+                // TODO should CPP get a special extension
+                    filename;
+        };
     }
 
 }

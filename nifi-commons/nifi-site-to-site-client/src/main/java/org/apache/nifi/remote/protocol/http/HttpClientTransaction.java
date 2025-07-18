@@ -60,7 +60,9 @@ public class HttpClientTransaction extends AbstractTransaction {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(bos);
         if (TransferDirection.RECEIVE.equals(direction)) {
-            if (state == TransactionState.TRANSACTION_STARTED || state == TransactionState.DATA_EXCHANGED) {
+            switch (state) {
+                case TRANSACTION_STARTED:
+                case DATA_EXCHANGED:
                     logger.debug("{} {} readTransactionResponse. checksum={}", this, peer, commSession.getChecksum());
                     if (StringUtils.isEmpty(commSession.getChecksum())) {
                         // We don't know if there's more data to receive, so just continue it.
@@ -82,20 +84,24 @@ public class HttpClientTransaction extends AbstractTransaction {
                             }
                         }
                     }
+                    break;
             }
         } else {
-            if (state == TransactionState.DATA_EXCHANGED) {
-                // Some flow files have been sent via stream, finish transferring.
-                apiClient.finishTransferFlowFiles(commSession);
-                ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, commSession.getChecksum());
-            } else if (state == TransactionState.TRANSACTION_CONFIRMED) {
-                TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION);
-                ResponseCode responseCode = ResponseCode.fromCode(resultEntity.getResponseCode());
-                if (responseCode.containsMessage()) {
-                    responseCode.writeResponse(dos, resultEntity.getMessage());
-                } else {
-                    responseCode.writeResponse(dos);
-                }
+            switch (state) {
+                case DATA_EXCHANGED:
+                    // Some flow files have been sent via stream, finish transferring.
+                    apiClient.finishTransferFlowFiles(commSession);
+                    ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, commSession.getChecksum());
+                    break;
+                case TRANSACTION_CONFIRMED:
+                    TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION);
+                    ResponseCode responseCode = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    if (responseCode.containsMessage()) {
+                        responseCode.writeResponse(dos, resultEntity.getMessage());
+                    } else {
+                        responseCode.writeResponse(dos);
+                    }
+                    break;
             }
         }
         ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());

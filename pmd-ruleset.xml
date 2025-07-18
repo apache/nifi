@@ -75,5 +75,9 @@ under the License.
     <rule ref="category/java/multithreading.xml/UnsynchronizedStaticFormatter" />
 
     <rule ref="category/java/performance.xml/BigIntegerInstantiation" />
-    <rule ref="category/java/performance.xml/TooFewBranchesForSwitch" />
+    <rule ref="category/java/performance.xml/TooFewBranchesForSwitch">
+        <properties>
+            <property name="minimumNumberCaseForASwitch" value="2" />
+        </properties>
+    </rule>
 </ruleset>
