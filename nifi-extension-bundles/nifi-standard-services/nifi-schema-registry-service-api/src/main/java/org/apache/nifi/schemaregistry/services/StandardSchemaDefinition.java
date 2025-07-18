@@ -25,7 +25,7 @@ import java.util.Objects;
  * Simple implementation of SchemaDefinition that holds a schema identifier, text, and references.
  */
 public class StandardSchemaDefinition implements SchemaDefinition {
-    
+
     private final SchemaIdentifier identifier;
     private final String text;
     private final Map<String, SchemaDefinition> references;
@@ -35,7 +35,7 @@ public class StandardSchemaDefinition implements SchemaDefinition {
      * Creates a new StandardSchemaDefinition.
      *
      * @param identifier the schema identifier
-     * @param text the schema text content
+     * @param text       the schema text content
      * @param references map of schema references (key = reference name, value = referenced schema)
      */
     public StandardSchemaDefinition(final SchemaIdentifier identifier,
@@ -54,7 +54,7 @@ public class StandardSchemaDefinition implements SchemaDefinition {
      * Creates a new StandardSchemaDefinition without references.
      *
      * @param identifier the schema identifier
-     * @param text the schema text content
+     * @param text       the schema text content
      */
     public StandardSchemaDefinition(final SchemaIdentifier identifier, final String text, final SchemaType schemaType) {
         this(identifier, text, schemaType, null);
@@ -85,9 +85,9 @@ public class StandardSchemaDefinition implements SchemaDefinition {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final StandardSchemaDefinition that = (StandardSchemaDefinition) o;
-        return Objects.equals(identifier, that.identifier) &&
-               Objects.equals(text, that.text) &&
-               Objects.equals(references, that.references);
+        return Objects.equals(identifier, that.identifier)
+                && Objects.equals(text, that.text)
+                && Objects.equals(references, that.references);
     }
 
     @Override
@@ -98,9 +98,9 @@ public class StandardSchemaDefinition implements SchemaDefinition {
     @Override
     public String toString() {
         return "StandardSchemaDefinition{" +
-               "identifier=" + identifier +
-               ", text='" + text + '\'' +
-               ", references=" + references.keySet() +
-               '}';
+                "identifier=" + identifier +
+                ", text='" + text + '\'' +
+                ", references=" + references.keySet() +
+                '}';
     }
-} 
+}

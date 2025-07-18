@@ -23,37 +23,34 @@ import java.util.Optional;
  * and the namespace for message types. This interface is typically used for schema formats
  * that support namespaced message types, such as Protocol Buffers, where messages can be organized
  * within packages.
- * 
  */
 public interface MessageName {
 
     /**
      * Returns the simple name of the message without any package qualification.
-     * 
+     *
      * @return the message name
      */
     String getName();
-    
+
     /**
      * Returns the namespace that contains this message, if present.
-     * 
+     *
      * @return an Optional containing the namespace name, or empty if the message
-     *         is not contained within a namespace
+     * is not contained within a namespace
      */
     Optional<String> getNamespace();
-    
+
     /**
      * Returns the fully qualified name of the message by combining the namespace
      * and simple name. If no namespace is present, returns just the simple name.
-     * 
+     *
      * @return the fully qualified message name in the format "namespace.name" or
-     *         just "name" if no namespace is present
+     * just "name" if no namespace is present
      */
     default String getFQNName() {
-        final StringBuilder sb = new StringBuilder();
-        if(getNamespace().isPresent()) {
-            sb.append(getNamespace().get().trim()).append(".");
-        }
-        return sb.append(getName()).toString();
+        return getNamespace()
+            .map(namespace -> namespace.trim() + ".")
+            .orElse("") + getName();
     }
 }
