@@ -94,11 +94,11 @@ class RestSchemaRegistryClientTest {
         }""";
     private static final String PROTOBUF_SCHEMA_TEXT = """
         syntax = "proto3";
-                    
+
         package example;
-                    
+
         import "common.proto";
-                    
+
         message User {
           int32 id = 1;
           string name = 2;
@@ -107,7 +107,7 @@ class RestSchemaRegistryClientTest {
           google.protobuf.Timestamp created_at = 5;
           common.Status status = 6;
         }
-                    
+
         message Address {
           string street = 1;
           string city = 2;
@@ -117,9 +117,9 @@ class RestSchemaRegistryClientTest {
         }""";
     private static final String REFERENCED_SCHEMA_TEXT = """
         syntax = "proto3";
-                    
+
         package common;
-                    
+
         enum Status {
           UNKNOWN = 0;
           ACTIVE = 1;
@@ -256,7 +256,7 @@ class RestSchemaRegistryClientTest {
         stubEndpointNotFound("/schemas/ids/" + SCHEMA_ID);
         assertThrows(SchemaNotFoundException.class, () -> client.getSchema(SCHEMA_ID));
 
-        // Verify that the expected endpoint was called        
+        // Verify that the expected endpoint was called
         verify(getRequestedFor(urlEqualTo("/schemas/ids/" + SCHEMA_ID)));
     }
 
@@ -478,4 +478,4 @@ class RestSchemaRegistryClientTest {
         );
     }
 
-} 
+}

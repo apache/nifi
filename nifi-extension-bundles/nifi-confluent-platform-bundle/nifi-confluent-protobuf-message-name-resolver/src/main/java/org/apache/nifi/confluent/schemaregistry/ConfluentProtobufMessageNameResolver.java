@@ -178,7 +178,7 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
      */
     private @NotNull MessageName getFullyQualifiedName(@NotNull final List<ProtobufMessageSchema> messagePath) {
         final ProtobufMessageSchema firstMessage = messagePath.getFirst();
-        
+
         final String fullName = messagePath.stream()
             .map(ProtobufMessageSchema::name)
             .collect(Collectors.joining("."));

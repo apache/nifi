@@ -27,20 +27,20 @@ import java.io.InputStream;
  */
 public final class VarintUtils {
 
-    private VarintUtils() {}
+    private VarintUtils() { }
 
     /**
      * Reads a single varint from the input stream.
-     * 
+     *
      * <p>Variable-length integers (varints) are a method of serializing integers using one or more bytes.
      * Smaller numbers take fewer bytes. Each byte in a varint, except the last byte, has the most
      * significant bit set – this indicates that there are further bytes to come. The lower 7 bits
      * of each byte are used to store the two's complement representation of the number in groups of 7 bits,
      * least significant group first.</p>
-     * 
+     *
      * <p>For more information about varint encoding, see:
      * <a href="https://en.wikipedia.org/wiki/Variable-length_quantity">Variable-length quantity - Wikipedia</a></p>
-     * 
+     *
      * <p>This implementation follows the Protocol Buffers varint encoding format as described in:
      * <a href="https://developers.google.com/protocol-buffers/docs/encoding#varints">Protocol Buffers Encoding</a></p>
      *
@@ -58,19 +58,18 @@ public final class VarintUtils {
 
     /**
      * Reads a single varint from the input stream with a pre-read first byte.
-     * 
+     *
      * <p>Variable-length integers (varints) are a method of serializing integers using one or more bytes.
      * Smaller numbers take fewer bytes. Each byte in a varint, except the last byte, has the most
      * significant bit set – this indicates that there are further bytes to come. The lower 7 bits
      * of each byte are used to store the two's complement representation of the number in groups of 7 bits,
      * least significant group first.</p>
-     * 
+     *
      * <p>For more information about varint encoding, see:
      * <a href="https://en.wikipedia.org/wiki/Variable-length_quantity">Variable-length quantity - Wikipedia</a></p>
-     * 
+     *
      * <p>This implementation follows the Protocol Buffers varint encoding format as described in:
      * <a href="https://developers.google.com/protocol-buffers/docs/encoding#varints">Protocol Buffers Encoding</a></p>
-     * 
      *
      * @param inputStream the input stream to read from
      * @param firstByte   the first byte already read from the stream
@@ -80,10 +79,10 @@ public final class VarintUtils {
     public static int readVarintFromStreamAfterFirstByteConsumed(InputStream inputStream, int firstByte) throws IOException {
         // accumulated result
         int value = 0;
-        
+
         // stores bit shift position (0, 7, 14, 21, 28 for consecutive bytes)
         int shift = 0;
-        
+
         // Store the current byte being processed
         int currentByte = firstByte;
 
@@ -107,9 +106,9 @@ public final class VarintUtils {
 
             // Increment the bit shift position by 7 for the next byte
             shift += 7;
-            
+
             currentByte = inputStream.read();
-            
+
             if (currentByte == -1) {
                 throw new IOException("Unexpected end of stream while reading varint");
             }
@@ -120,9 +119,9 @@ public final class VarintUtils {
 
     /**
      * Decodes a zigzag encoded integer.
-     * ZigZag encoding maps signed integers to unsigned integers so that 
+     * ZigZag encoding maps signed integers to unsigned integers so that
      * numbers with a small absolute value have a small varint encoding.
-     * 
+     *
      * @param encodedValue the zigzag encoded value
      * @return the decoded integer value
      */
@@ -132,9 +131,9 @@ public final class VarintUtils {
 
     /**
      * Writes a zigzag encoded varint to the output stream.
-     * ZigZag encoding maps signed integers to unsigned integers so that 
+     * ZigZag encoding maps signed integers to unsigned integers so that
      * numbers with a small absolute value have a small varint encoding.
-     * 
+     *
      * @param output the output stream to write to
      * @param value the integer value to encode and write
      */
@@ -149,4 +148,4 @@ public final class VarintUtils {
         }
         output.write(encoded & 0x7F);
     }
-} 
+}

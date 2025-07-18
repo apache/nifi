@@ -41,10 +41,9 @@ import java.util.stream.Stream;
 
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.writeZigZagVarint;
 
-import static org.apache.nifi.schemaregistry.services.SchemaDefinition.SchemaType.*;
+import static org.apache.nifi.schemaregistry.services.SchemaDefinition.SchemaType.PROTOBUF;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -194,12 +193,12 @@ class ConfluentProtobufMessageNameResolverTest {
     @Test
     void testGetMessageNameIndexOutOfBounds() throws IOException {
         // Test with index [99] which should be out of bounds for both schemas
-        
+
         // Test with default package schema
         final InputStream inputStream1 = createWireFormatData(SCHEMA_WITH_DEFAULT_PACKAGE, new int[] {99});
         assertThrows(IllegalStateException.class, () -> resolver.getMessageName(SCHEMA_WITH_DEFAULT_PACKAGE, inputStream1));
-        
-        // Test with explicit package schema  
+
+        // Test with explicit package schema
         final InputStream inputStream2 = createWireFormatData(SCHEMA_WITH_EXPLICIT_PACKAGE, new int[] {99});
         assertThrows(IllegalStateException.class, () -> {
             resolver.getMessageName(SCHEMA_WITH_EXPLICIT_PACKAGE, inputStream2);
@@ -232,9 +231,13 @@ class ConfluentProtobufMessageNameResolverTest {
         output.write(new byte[] {0x5F, 0x5F, 0x5F, 0x5F, 0x48, 0x45, 0x4C, 0x50, 0x20, 0x4D, 0x45, 0x5F, 0x5F, 0x5F});
         final ByteArrayInputStream payloadStream = new ByteArrayInputStream(output.toByteArray());
         // Skip magic byte, schema ID,
-        // Message name resolver is designed to work on a stream positioned exacltly
+        // Message name resolver is designed to work on a stream positioned exactly
         // at the start of the message index wireformat section (6 th byte)
-        payloadStream.skip(MAGIC_BYTE_LENGTH + SCHEMA_ID_LENGTH);
+        final int expectedSkipLength = MAGIC_BYTE_LENGTH + SCHEMA_ID_LENGTH;
+        final long actualSkipped = payloadStream.skip(expectedSkipLength);
+        if (actualSkipped != expectedSkipLength) {
+            throw new IOException("Failed to skip expected bytes: expected " + expectedSkipLength + ", actual " + actualSkipped);
+        }
         return payloadStream;
     }
 
@@ -253,7 +256,11 @@ class ConfluentProtobufMessageNameResolverTest {
         // Special case: single 0 byte
         output.write(0x00);
         final ByteArrayInputStream payloadStream = new ByteArrayInputStream(output.toByteArray());
-        payloadStream.skip(MAGIC_BYTE_LENGTH + SCHEMA_ID_LENGTH); // Skip magic byte, schema ID, and indexes
+        final int expectedSkipLength = MAGIC_BYTE_LENGTH + SCHEMA_ID_LENGTH;
+        final long actualSkipped = payloadStream.skip(expectedSkipLength);
+        if (actualSkipped != expectedSkipLength) {
+            throw new IOException("Failed to skip expected bytes: expected " + expectedSkipLength + ", actual " + actualSkipped);
+        }
         return payloadStream;
     }
 

@@ -27,7 +27,9 @@ import static org.apache.nifi.confluent.schemaregistry.VarintUtils.decodeZigZag;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStream;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.writeZigZagVarint;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VarintUtilsTest {
 
@@ -35,7 +37,7 @@ public class VarintUtilsTest {
     public void testReadVarintFromStream_SingleByte() throws IOException {
         byte[] data = {0x08}; // 8 in varint format (0x08 = 00001000)
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         int result = readVarintFromStream(inputStream);
         assertEquals(8, result);
     }
@@ -44,7 +46,7 @@ public class VarintUtilsTest {
     public void testReadVarintFromStream_MultiByte() throws IOException {
         byte[] data = {(byte) 0x96, 0x01}; // 150 in varint format (10010110 00000001)
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         int result = readVarintFromStream(inputStream);
         assertEquals(150, result);
     }
@@ -54,7 +56,7 @@ public class VarintUtilsTest {
         // Maximum 32-bit value in varint format (11111111 11111111 11111111 11111111 00001111)
         byte[] data = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0x0F};
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         int result = readVarintFromStream(inputStream);
         assertEquals(0xFFFFFFFF, result);
     }
@@ -63,7 +65,7 @@ public class VarintUtilsTest {
     public void testReadVarintFromStream_WithFirstByte() throws IOException {
         byte[] data = {0x08}; // 8 in varint format (0x08 = 00001000)
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         int result = readVarintFromStreamAfterFirstByteConsumed(inputStream, 0x08);
         assertEquals(8, result);
     }
@@ -72,7 +74,7 @@ public class VarintUtilsTest {
     public void testReadVarintFromStream_Zero() throws IOException {
         byte[] data = {0x00}; // 0 in varint format (0x00 = 00000000)
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         int result = readVarintFromStream(inputStream);
         assertEquals(0, result);
     }
@@ -82,7 +84,7 @@ public class VarintUtilsTest {
         // 16384 in varint format (10000000 10000000 00000001)
         byte[] data = {(byte) 0x80, (byte) 0x80, 0x01};
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         int result = readVarintFromStream(inputStream);
         assertEquals(16384, result);
     }
@@ -90,7 +92,7 @@ public class VarintUtilsTest {
     @Test
     public void testReadVarintFromStream_EmptyStream() {
         InputStream inputStream = new ByteArrayInputStream(new byte[0]);
-        
+
         IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream));
         assertTrue(exception.getMessage().contains("Unexpected end of stream while reading varint"));
     }
@@ -100,7 +102,7 @@ public class VarintUtilsTest {
         // Start of a multi-byte varint but missing continuation bytes (0x80 = 10000000)
         byte[] data = {(byte) 0x80}; // Indicates more bytes to follow but none provided
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream));
         assertTrue(exception.getMessage().contains("Unexpected end of stream while reading varint"));
     }
@@ -111,7 +113,7 @@ public class VarintUtilsTest {
         // (10000000 10000000 10000000 10000000 10000000 00000001)
         byte[] data = {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01};
         InputStream inputStream = new ByteArrayInputStream(data);
-        
+
         IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream));
         assertTrue(exception.getMessage().contains("Varint too long (more than 32 bits)"));
     }
@@ -154,54 +156,41 @@ public class VarintUtilsTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         writeZigZagVarint(output, 0);
         byte[] result = output.toByteArray();
-        
+
         assertEquals(1, result.length);
         assertEquals(0x00, result[0]);
     }
 
     @Test
-    public void testWriteZigZagVarint_PositiveSmallNumbers() throws IOException {
+    public void testWriteZigZagVarint_PositiveNumber() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        writeZigZagVarint(output, 1);
+        writeZigZagVarint(output, 150);
         byte[] result = output.toByteArray();
-        
-        assertEquals(1, result.length);
-        assertEquals(0x02, result[0]); // 1 -> 2 (zigzag encoded)
-        
-        output = new ByteArrayOutputStream();
-        writeZigZagVarint(output, 2);
-        result = output.toByteArray();
-        
-        assertEquals(1, result.length);
-        assertEquals(0x04, result[0]); // 2 -> 4 (zigzag encoded)
+
+        assertEquals(2, result.length);
+        assertEquals((byte) 0xAC, result[0]); // Lower 7 bits of 300 with continuation bit
+        assertEquals(0x02, result[1]); // Upper bits of 300 (150 -> 300 zigzag)
     }
 
     @Test
-    public void testWriteZigZagVarint_NegativeSmallNumbers() throws IOException {
+    public void testWriteZigZagVarint_NegativeNumber() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         writeZigZagVarint(output, -1);
         byte[] result = output.toByteArray();
-        
+
         assertEquals(1, result.length);
-        assertEquals(0x01, result[0]); // -1 -> 1 (zigzag encoded)
-        
-        output = new ByteArrayOutputStream();
-        writeZigZagVarint(output, -2);
-        result = output.toByteArray();
-        
-        assertEquals(1, result.length);
-        assertEquals(0x03, result[0]); // -2 -> 3 (zigzag encoded)
+        assertEquals(0x01, result[0]); // -1 -> 1 zigzag
     }
 
     @Test
     public void testWriteZigZagVarint_LargePositiveNumber() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        writeZigZagVarint(output, 150);
+        writeZigZagVarint(output, 1000);
         byte[] result = output.toByteArray();
-        
+
         assertEquals(2, result.length);
-        assertEquals((byte) 0xAC, result[0]); // Lower 7 bits of 300 with continuation bit
-        assertEquals(0x02, result[1]); // Upper bits of 300 (150 -> 300 zigzag)
+        assertEquals((byte) 0xD0, result[0]); // Lower 7 bits of 2000 with continuation bit
+        assertEquals(0x0F, result[1]); // Upper bits of 2000 (1000 -> 2000 zigzag)
     }
 
     @Test
@@ -209,7 +198,7 @@ public class VarintUtilsTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         writeZigZagVarint(output, -150);
         byte[] result = output.toByteArray();
-        
+
         assertEquals(2, result.length);
         assertEquals((byte) 0xAB, result[0]); // Lower 7 bits of 299 with continuation bit
         assertEquals(0x02, result[1]); // Upper bits of 299 (-150 -> 299 zigzag)
@@ -220,34 +209,34 @@ public class VarintUtilsTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         writeZigZagVarint(output, Integer.MAX_VALUE);
         byte[] result = output.toByteArray();
-        
+
         assertEquals(5, result.length);
-        
+
         output = new ByteArrayOutputStream();
         writeZigZagVarint(output, Integer.MIN_VALUE);
         result = output.toByteArray();
-        
+
         assertEquals(5, result.length);
     }
 
     @Test
     public void testWriteZigZagVarint_MultipleValues() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        
+
         // Write multiple values
         writeZigZagVarint(output, 0);
         writeZigZagVarint(output, 1);
         writeZigZagVarint(output, -1);
         writeZigZagVarint(output, 150);
-        
+
         byte[] result = output.toByteArray();
-        
+
         // Verify we have the expected number of bytes
         assertTrue(result.length > 4); // At least one byte per value
-        
+
         // Read back and verify
         ByteArrayInputStream input = new ByteArrayInputStream(result);
-        
+
         assertEquals(0, decodeZigZag(readVarintFromStream(input)));
         assertEquals(1, decodeZigZag(readVarintFromStream(input)));
         assertEquals(-1, decodeZigZag(readVarintFromStream(input)));
