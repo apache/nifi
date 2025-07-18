@@ -247,7 +247,7 @@ public abstract class AbstractExecuteSQL extends AbstractSessionFactoryProcessor
     }
 
     protected void onTrigger(final ProcessContext context, final ProcessSession session, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        final ExecuteSQLConfiguration config; // TODO remove
+        final ExecuteSQLConfiguration config;
 
         // Ensure that fileToProcess can only be accessed through resultSetFragments, because it might get removed
         // while outputting in batches, because the session needs to be committed.
