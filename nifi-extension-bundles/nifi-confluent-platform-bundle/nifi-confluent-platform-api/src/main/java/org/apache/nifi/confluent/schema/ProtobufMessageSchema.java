@@ -33,12 +33,12 @@ import java.util.Optional;
 public final class ProtobufMessageSchema {
 
     private final String name;
-    private final String packageName;
+    private final Optional<String> packageName;
     private final List<ProtobufMessageSchema> childMessageSchemas = new ArrayList<>();
 
-    public ProtobufMessageSchema(final String name, final String packageName) {
+    public ProtobufMessageSchema(final String name, final Optional<String> packageName) {
         this.name = name;
-        this.packageName = (packageName == null ? null : packageName.trim());
+        this.packageName = packageName;
     }
 
     public String name() {
@@ -46,11 +46,11 @@ public final class ProtobufMessageSchema {
     }
 
     public Optional<String> packageName() {
-        return Optional.ofNullable(packageName);
+        return packageName;
     }
 
     public boolean isDefaultPackage() {
-        return packageName == null || packageName.isEmpty();
+        return packageName.isEmpty();
     }
 
     public List<ProtobufMessageSchema> getChildMessageSchemas() {

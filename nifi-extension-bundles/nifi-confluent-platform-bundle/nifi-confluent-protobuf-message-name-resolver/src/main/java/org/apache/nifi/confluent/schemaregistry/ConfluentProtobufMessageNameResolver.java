@@ -74,9 +74,7 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
         // Read message indexes directly from stream (Confluent wire format)
         final List<Integer> messageIndexes = readMessageIndexesFromStream(inputStream);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Decoded message indexes: {}", messageIndexes);
-        }
+        logger.debug("Decoded message indexes: {}", messageIndexes);
 
         final FindMessageNameArguments findMessageNameArgs = new FindMessageNameArguments(schemaDefinition, messageIndexes);
 
@@ -189,7 +187,7 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
             fullName.append(messagePath.get(i).name());
         }
 
-        return new StandardMessageName(firstMessage.packageName().get(), fullName.toString());
+        return new StandardMessageName(firstMessage.packageName(), fullName.toString());
     }
 
     record FindMessageNameArguments(SchemaDefinition schemaDefinition, List<Integer> messageIndexes) {

@@ -21,12 +21,12 @@ import java.util.Optional;
 
 public class StandardMessageName implements MessageName {
 
+    private final Optional<String> namespace;
     private final String name;
-    private final String namespace;
 
-    public StandardMessageName(final String namespace, final String name) {
+    public StandardMessageName(final Optional<String> namespace, final String name) {
         this.name = Objects.requireNonNull(name, "name must not be null");
-        this.namespace = namespace == null ? null : namespace.trim();
+        this.namespace = namespace.map(String::trim);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class StandardMessageName implements MessageName {
 
     @Override
     public Optional<String> getNamespace() {
-        return Optional.ofNullable(namespace);
+        return namespace;
     }
 
     @Override

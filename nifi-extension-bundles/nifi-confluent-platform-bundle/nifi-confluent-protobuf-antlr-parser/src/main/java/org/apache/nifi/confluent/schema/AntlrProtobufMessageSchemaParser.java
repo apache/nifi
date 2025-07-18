@@ -31,6 +31,7 @@ import org.apache.nifi.confluent.schema.antlr.Protobuf3Parser.ProtoContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Stack;
 
 /**
@@ -89,7 +90,7 @@ public class AntlrProtobufMessageSchemaParser implements ProtobufMessageSchemaPa
         public Void visitMessageDef(final MessageDefContext ctx) {
             final String messageName = ctx.messageName().getText();
 
-            final ProtobufMessageSchema protobufMessageSchema = new ProtobufMessageSchema(messageName, currentPackage);
+            final ProtobufMessageSchema protobufMessageSchema = new ProtobufMessageSchema(messageName, Optional.ofNullable(currentPackage));
 
             // Add to parent's nested messages or root messages
             if (messageStack.isEmpty()) {
