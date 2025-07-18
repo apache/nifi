@@ -15,12 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, Signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { Store } from '@ngrx/store';
-import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
-import { CurrentUser } from '../../state/current-user';
-import { loadCurrentUser, startCurrentUserPolling } from '../../state/current-user/current-user.actions';
 import { RouterModule } from '@angular/router';
 
 @Component({
@@ -30,15 +26,6 @@ import { RouterModule } from '@angular/router';
     templateUrl: './header.component.html',
     styleUrl: './header.component.scss'
 })
-export class HeaderComponent implements OnInit {
-    currentUser: Signal<CurrentUser>;
-
-    constructor(private store: Store) {
-        this.currentUser = this.store.selectSignal(selectCurrentUser);
-    }
-
-    ngOnInit(): void {
-        this.store.dispatch(loadCurrentUser());
-        this.store.dispatch(startCurrentUserPolling());
-    }
+export class HeaderComponent {
+    constructor() {}
 }

@@ -17,9 +17,7 @@
 
 import { routerReducer, RouterReducerState, DEFAULT_ROUTER_FEATURENAME } from '@ngrx/router-store';
 import { ActionReducerMap } from '@ngrx/store';
-import { CurrentUserState, currentUserFeatureKey } from './current-user';
 import { dropletsFeatureKey, DropletsState } from './droplets';
-import { currentUserReducer } from './current-user/current-user.reducer';
 import { dropletsReducer } from './droplets/droplets.reducer';
 import { bucketsFeatureKey, BucketsState } from './buckets';
 import { bucketsReducer } from './buckets/buckets.reducer';
@@ -29,7 +27,6 @@ import { errorFeatureKey, ErrorState } from './error';
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
     [errorFeatureKey]: ErrorState;
-    [currentUserFeatureKey]: CurrentUserState;
     [dropletsFeatureKey]: DropletsState;
     [bucketsFeatureKey]: BucketsState;
 }
@@ -37,7 +34,6 @@ export interface NiFiState {
 export const rootReducers: ActionReducerMap<NiFiState> = {
     [DEFAULT_ROUTER_FEATURENAME]: routerReducer,
     [errorFeatureKey]: errorReducer,
-    [currentUserFeatureKey]: currentUserReducer,
     [dropletsFeatureKey]: dropletsReducer,
     [bucketsFeatureKey]: bucketsReducer
 };
