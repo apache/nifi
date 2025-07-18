@@ -119,9 +119,8 @@ public final class VarintUtils {
      * 
      * @param output the output stream to write to
      * @param value the integer value to encode and write
-     * @throws IOException if unable to write to the stream
      */
-    public static void writeZigZagVarint(ByteArrayOutputStream output, int value) throws IOException {
+    public static void writeZigZagVarint(ByteArrayOutputStream output, int value) {
         // Zigzag encode
         int encoded = (value << 1) ^ (value >> 31);
 

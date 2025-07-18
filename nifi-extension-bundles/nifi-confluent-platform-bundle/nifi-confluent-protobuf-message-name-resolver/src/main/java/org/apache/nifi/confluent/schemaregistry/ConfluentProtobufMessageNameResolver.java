@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
@@ -175,19 +176,13 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
      * Gets the fully qualified name for a message path, including parent message names.
      */
     private @NotNull MessageName getFullyQualifiedName(@NotNull final List<ProtobufMessageSchema> messagePath) {
-
-        final StringBuilder fullName = new StringBuilder();
         final ProtobufMessageSchema firstMessage = messagePath.getFirst();
+        
+        final String fullName = messagePath.stream()
+            .map(ProtobufMessageSchema::name)
+            .collect(Collectors.joining("."));
 
-        // Add all message names in the path
-        for (int i = 0; i < messagePath.size(); i++) {
-            if (i > 0) {
-                fullName.append(".");
-            }
-            fullName.append(messagePath.get(i).name());
-        }
-
-        return new StandardMessageName(firstMessage.packageName(), fullName.toString());
+        return new StandardMessageName(firstMessage.packageName(), fullName);
     }
 
     record FindMessageNameArguments(SchemaDefinition schemaDefinition, List<Integer> messageIndexes) {

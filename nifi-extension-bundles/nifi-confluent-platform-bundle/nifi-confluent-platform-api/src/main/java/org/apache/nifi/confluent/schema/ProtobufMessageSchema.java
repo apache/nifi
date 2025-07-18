@@ -69,7 +69,7 @@ public final class ProtobufMessageSchema {
         if (obj == null || obj.getClass() != this.getClass()) {
             return false;
         }
-        final var that = (ProtobufMessageSchema) obj;
+        final ProtobufMessageSchema that = (ProtobufMessageSchema) obj;
         return Objects.equals(this.name, that.name) && Objects.equals(this.packageName, that.packageName) && Objects.equals(this.childMessageSchemas, that.childMessageSchemas);
     }
 
