@@ -409,10 +409,7 @@ public class StandardExtensionService implements ExtensionService {
     }
 
     private BundleVersionType getProviderBundleType(final BundleType bundleType) {
-        return switch (bundleType) {
-            case NIFI_NAR -> BundleVersionType.NIFI_NAR;
-            case MINIFI_CPP -> BundleVersionType.MINIFI_CPP;
-        };
+        return bundleType == BundleType.NIFI_NAR ? BundleVersionType.NIFI_NAR : BundleVersionType.MINIFI_CPP;
     }
 
     @Override
