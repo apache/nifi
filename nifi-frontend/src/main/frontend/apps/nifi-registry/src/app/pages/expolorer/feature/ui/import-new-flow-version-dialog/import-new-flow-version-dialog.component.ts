@@ -27,7 +27,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/header/common/context-error-banner/context-error-banner.component';
+import { ContextErrorBanner } from '@nifi/shared';
 import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 export interface ImportNewFlowVersionDialogData {
