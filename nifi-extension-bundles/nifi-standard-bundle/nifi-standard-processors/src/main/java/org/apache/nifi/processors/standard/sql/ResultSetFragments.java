@@ -32,6 +32,7 @@ import static java.util.Collections.singletonMap;
 
 public class ResultSetFragments {
 
+    public final String fragmentId = UUID.randomUUID().toString();
     private final List<FlowFile> flowFiles = new ArrayList<>();
     private final ProcessSession session;
     private final ExecuteSQLConfiguration config;
@@ -65,7 +66,7 @@ public class ResultSetFragments {
         if (config.isMaxRowsPerFlowFileSet()) {
             // if fragmented ResultSet, set fragment attributes
             final Map<String, String> attributesToAdd = new HashMap<>();
-            attributesToAdd.put(ExecuteSQLCommonAttributes.FRAGMENT_ID, UUID.randomUUID().toString());
+            attributesToAdd.put(ExecuteSQLCommonAttributes.FRAGMENT_ID, fragmentId);
             attributesToAdd.put(ExecuteSQLCommonAttributes.FRAGMENT_INDEX, String.valueOf(fragmentIndex++));
             flowFile = session.putAllAttributes(flowFile, attributesToAdd);
         }
