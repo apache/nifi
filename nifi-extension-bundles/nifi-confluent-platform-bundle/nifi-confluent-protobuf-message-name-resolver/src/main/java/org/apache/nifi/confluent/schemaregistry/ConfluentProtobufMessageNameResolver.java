@@ -44,6 +44,7 @@ import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.decodeZigZag;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStream;
+import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
 
 @Tags({"confluent", "schema", "registry", "protobuf", "message", "name", "resolver"})
 @CapabilityDescription("""
@@ -107,7 +108,7 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
         }
 
         // General case: read array length as varint
-        int arrayLength = readVarintFromStream(inputStream, firstByte);
+        int arrayLength = readVarintFromStreamAfterFirstByteConsumed(inputStream, firstByte);
         arrayLength = decodeZigZag(arrayLength);
 
         if (arrayLength < 0 || arrayLength > MAXIMUM_SUPPORTED_ARRAY_LENGTH) { // Reasonable limit
@@ -117,7 +118,7 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
         // Read each index as varint
         final List<Integer> indexes = new ArrayList<>();
         for (int i = 0; i < arrayLength; i++) {
-            final int rawIndex = readVarintFromStream(inputStream, -1);
+            final int rawIndex = readVarintFromStream(inputStream);
             final int index = decodeZigZag(rawIndex);
             indexes.add(index);
         }

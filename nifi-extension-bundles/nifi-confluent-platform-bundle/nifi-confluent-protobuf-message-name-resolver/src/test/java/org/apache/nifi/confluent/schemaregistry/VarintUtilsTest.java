@@ -25,6 +25,7 @@ import java.io.InputStream;
 
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.decodeZigZag;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStream;
+import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.writeZigZagVarint;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,7 +36,7 @@ public class VarintUtilsTest {
         byte[] data = {0x08}; // 8 in varint format (0x08 = 00001000)
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        int result = readVarintFromStream(inputStream, -1);
+        int result = readVarintFromStream(inputStream);
         assertEquals(8, result);
     }
 
@@ -44,7 +45,7 @@ public class VarintUtilsTest {
         byte[] data = {(byte) 0x96, 0x01}; // 150 in varint format (10010110 00000001)
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        int result = readVarintFromStream(inputStream, -1);
+        int result = readVarintFromStream(inputStream);
         assertEquals(150, result);
     }
 
@@ -54,7 +55,7 @@ public class VarintUtilsTest {
         byte[] data = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0x0F};
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        int result = readVarintFromStream(inputStream, -1);
+        int result = readVarintFromStream(inputStream);
         assertEquals(0xFFFFFFFF, result);
     }
 
@@ -63,7 +64,7 @@ public class VarintUtilsTest {
         byte[] data = {0x08}; // 8 in varint format (0x08 = 00001000)
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        int result = readVarintFromStream(inputStream, 0x08);
+        int result = readVarintFromStreamAfterFirstByteConsumed(inputStream, 0x08);
         assertEquals(8, result);
     }
 
@@ -72,7 +73,7 @@ public class VarintUtilsTest {
         byte[] data = {0x00}; // 0 in varint format (0x00 = 00000000)
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        int result = readVarintFromStream(inputStream, -1);
+        int result = readVarintFromStream(inputStream);
         assertEquals(0, result);
     }
 
@@ -82,7 +83,7 @@ public class VarintUtilsTest {
         byte[] data = {(byte) 0x80, (byte) 0x80, 0x01};
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        int result = readVarintFromStream(inputStream, -1);
+        int result = readVarintFromStream(inputStream);
         assertEquals(16384, result);
     }
 
@@ -90,7 +91,7 @@ public class VarintUtilsTest {
     public void testReadVarintFromStream_EmptyStream() {
         InputStream inputStream = new ByteArrayInputStream(new byte[0]);
         
-        IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream, -1));
+        IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream));
         assertTrue(exception.getMessage().contains("Unexpected end of stream while reading varint"));
     }
 
@@ -100,7 +101,7 @@ public class VarintUtilsTest {
         byte[] data = {(byte) 0x80}; // Indicates more bytes to follow but none provided
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream, -1));
+        IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream));
         assertTrue(exception.getMessage().contains("Unexpected end of stream while reading varint"));
     }
 
@@ -111,7 +112,7 @@ public class VarintUtilsTest {
         byte[] data = {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01};
         InputStream inputStream = new ByteArrayInputStream(data);
         
-        IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream, -1));
+        IOException exception = assertThrows(IOException.class, () -> readVarintFromStream(inputStream));
         assertTrue(exception.getMessage().contains("Varint too long (more than 32 bits)"));
     }
 
@@ -247,9 +248,9 @@ public class VarintUtilsTest {
         // Read back and verify
         ByteArrayInputStream input = new ByteArrayInputStream(result);
         
-        assertEquals(0, decodeZigZag(readVarintFromStream(input, -1)));
-        assertEquals(1, decodeZigZag(readVarintFromStream(input, -1)));
-        assertEquals(-1, decodeZigZag(readVarintFromStream(input, -1)));
-        assertEquals(150, decodeZigZag(readVarintFromStream(input, -1)));
+        assertEquals(0, decodeZigZag(readVarintFromStream(input)));
+        assertEquals(1, decodeZigZag(readVarintFromStream(input)));
+        assertEquals(-1, decodeZigZag(readVarintFromStream(input)));
+        assertEquals(150, decodeZigZag(readVarintFromStream(input)));
     }
 }

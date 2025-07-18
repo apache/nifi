@@ -43,14 +43,41 @@ public final class VarintUtils {
      * 
      * <p>This implementation follows the Protocol Buffers varint encoding format as described in:
      * <a href="https://developers.google.com/protocol-buffers/docs/encoding#varints">Protocol Buffers Encoding</a></p>
-     * 
      *
      * @param inputStream the input stream to read from
-     * @param firstByte   the first byte already read, or -1 if not yet read
      * @return the decoded varint value
      * @throws IOException if unable to read from stream or invalid varint format
      */
-    public static int readVarintFromStream(InputStream inputStream, int firstByte) throws IOException {
+    public static int readVarintFromStream(InputStream inputStream) throws IOException {
+        final int firstByte = inputStream.read();
+        if (firstByte == -1) {
+            throw new IOException("Unexpected end of stream while reading varint");
+        }
+        return readVarintFromStreamAfterFirstByteConsumed(inputStream, firstByte);
+    }
+
+    /**
+     * Reads a single varint from the input stream with a pre-read first byte.
+     * 
+     * <p>Variable-length integers (varints) are a method of serializing integers using one or more bytes.
+     * Smaller numbers take fewer bytes. Each byte in a varint, except the last byte, has the most
+     * significant bit set – this indicates that there are further bytes to come. The lower 7 bits
+     * of each byte are used to store the two's complement representation of the number in groups of 7 bits,
+     * least significant group first.</p>
+     * 
+     * <p>For more information about varint encoding, see:
+     * <a href="https://en.wikipedia.org/wiki/Variable-length_quantity">Variable-length quantity - Wikipedia</a></p>
+     * 
+     * <p>This implementation follows the Protocol Buffers varint encoding format as described in:
+     * <a href="https://developers.google.com/protocol-buffers/docs/encoding#varints">Protocol Buffers Encoding</a></p>
+     * 
+     *
+     * @param inputStream the input stream to read from
+     * @param firstByte   the first byte already read from the stream
+     * @return the decoded varint value
+     * @throws IOException if unable to read from stream or invalid varint format
+     */
+    public static int readVarintFromStreamAfterFirstByteConsumed(InputStream inputStream, int firstByte) throws IOException {
         // accumulated result
         int value = 0;
         
@@ -59,15 +86,6 @@ public final class VarintUtils {
         
         // Store the current byte being processed
         int currentByte = firstByte;
-
-        // Handle the case where no first byte was provided (-1 indicates not yet read)
-        if (currentByte == -1) {
-            currentByte = inputStream.read();
-            
-            if (currentByte == -1) {
-                throw new IOException("Unexpected end of stream while reading varint");
-            }
-        }
 
         // continues until we find a byte without the continuation bit
         while (true) {
