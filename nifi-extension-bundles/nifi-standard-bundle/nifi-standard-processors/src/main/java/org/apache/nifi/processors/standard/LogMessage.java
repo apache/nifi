@@ -169,8 +169,6 @@ public class LogMessage extends AbstractProcessor {
             case error:
                 logger.error(messageToWrite);
                 break;
-            default:
-                logger.debug(messageToWrite);
         }
     }
 }

@@ -68,9 +68,9 @@ public class WholeNumberCastEvaluator extends WholeNumberEvaluator {
                         }
                         return new WholeNumberQueryResult(longResultValue);
                     case NOT_NUMBER:
-                    default:
                         return new WholeNumberQueryResult(null);
                 }
+                // fallthrough
             case DATE:
                 return new WholeNumberQueryResult(((DateQueryResult) result).getValue().getTime());
             case INSTANT:

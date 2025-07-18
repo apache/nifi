@@ -409,14 +409,10 @@ public class StandardExtensionService implements ExtensionService {
     }
 
     private BundleVersionType getProviderBundleType(final BundleType bundleType) {
-        switch (bundleType) {
-            case NIFI_NAR:
-                return BundleVersionType.NIFI_NAR;
-            case MINIFI_CPP:
-                return BundleVersionType.MINIFI_CPP;
-            default:
-                throw new IllegalArgumentException("Unknown bundle type: " + bundleType.toString());
-        }
+        return switch (bundleType) {
+            case NIFI_NAR -> BundleVersionType.NIFI_NAR;
+            case MINIFI_CPP -> BundleVersionType.MINIFI_CPP;
+        };
     }
 
     @Override

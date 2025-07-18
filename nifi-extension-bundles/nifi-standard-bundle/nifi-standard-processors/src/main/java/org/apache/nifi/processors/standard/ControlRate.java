@@ -278,11 +278,9 @@ public class ControlRate extends AbstractProcessor {
                             .explanation("property must be set if using <Rate Control Criteria> of 'attribute value'")
                             .build());
                 }
+            // fallthrough
             case FLOWFILE_RATE:
                 validationResults.add(StandardValidators.POSITIVE_LONG_VALIDATOR.validate("Maximum Rate", context.getProperty(MAX_RATE).getValue(), context));
-                break;
-            default:
-                // no custom validation required
                 break;
         }
 

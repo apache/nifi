@@ -590,7 +590,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                     case Operation:
                         return new OperationAuthorizable(getAccessPolicy(baseResourceType, resource));
                 }
-
+            // fallthrough
             case RestrictedComponents:
                 final String slashRequiredPermission = StringUtils.substringAfter(resource, resourceType.getValue());
 
