@@ -218,7 +218,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             case PARTITION_BY_ATTRIBUTE -> new CorrelationAttributePartitioner(partitioningAttribute);
             case ROUND_ROBIN -> new RoundRobinPartitioner();
             case SINGLE_NODE -> new FirstNodePartitioner();
-            default -> throw new IllegalArgumentException();
         };
         return partitioner;
     }
@@ -1209,13 +1208,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {
-                    switch (newState) {
-                        case OFFLOADING:
-                            onNodeRemoved(nodeId);
-                            break;
-                        case CONNECTED:
-                            onNodeAdded(nodeId);
-                            break;
+                    if (newState == NodeConnectionState.OFFLOADING) {
+                        onNodeRemoved(nodeId);
+                    } else if (newState == NodeConnectionState.CONNECTED) {
+                        onNodeAdded(nodeId);
                     }
                 } else {
                     switch (newState) {

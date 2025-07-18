@@ -46,24 +46,12 @@ public class RepositoryRecordUpdate implements Record {
             }
             final UpdateType updateType = UpdateType.valueOf(actionType);
 
-            final String actionName;
-            switch (updateType) {
-                case CREATE:
-                case UPDATE:
-                    actionName = RepositoryRecordSchema.CREATE_OR_UPDATE_ACTION;
-                    break;
-                case DELETE:
-                    actionName = RepositoryRecordSchema.DELETE_ACTION;
-                    break;
-                case SWAP_IN:
-                    actionName = RepositoryRecordSchema.SWAP_IN_ACTION;
-                    break;
-                case SWAP_OUT:
-                    actionName = RepositoryRecordSchema.SWAP_OUT_ACTION;
-                    break;
-                default:
-                    return null;
-            }
+            final String actionName = switch (updateType) {
+                case CREATE, UPDATE -> RepositoryRecordSchema.CREATE_OR_UPDATE_ACTION;
+                case DELETE -> RepositoryRecordSchema.DELETE_ACTION;
+                case SWAP_IN -> RepositoryRecordSchema.SWAP_IN_ACTION;
+                case SWAP_OUT -> RepositoryRecordSchema.SWAP_OUT_ACTION;
+            };
 
             return new NamedValue(actionName, fieldMap);
         }

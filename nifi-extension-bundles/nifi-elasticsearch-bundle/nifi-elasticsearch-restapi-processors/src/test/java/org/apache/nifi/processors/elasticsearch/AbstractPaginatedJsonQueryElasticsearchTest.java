@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -150,14 +151,12 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
                 assertTrue(hit.containsKey("_source"));
                 assertTrue(hit.containsKey("_index"));
                 break;
-            default:
-                throw new IllegalArgumentException("Unknown SearchResultsFormat value: " + searchResultsFormat);
         }
     }
 
     private void assertResultsFormat(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final SearchResultsFormat searchResultsFormat) {
-        final int flowFileCount;
-        final String hitsCount;
+        int flowFileCount = 0;
+        String hitsCount = null;
         boolean ndjson = false;
 
         switch (resultOutputStrategy) {
@@ -174,8 +173,6 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
                 flowFileCount = 1;
                 hitsCount = "10";
                 break;
-            default:
-                throw new IllegalArgumentException("Unknown ResultOutputStrategy value: " + resultOutputStrategy);
         }
 
         // Test Relationship counts
@@ -183,7 +180,8 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
 
         // Per response outputs an array of values
         final boolean ndJsonCopy = ndjson;
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach( hit -> {
+        final List<MockFlowFile> hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS);
+        for (MockFlowFile hit : hits) {
             hit.assertAttributeEquals("hit.count", hitsCount);
             AbstractJsonQueryElasticsearchTest.assertOutputContent(hit.getContent(), Integer.parseInt(hitsCount), ndJsonCopy);
             if (ResultOutputStrategy.PER_RESPONSE.equals(resultOutputStrategy)) {
@@ -195,7 +193,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
 
             assertEquals(1L, runner.getProvenanceEvents().stream().filter(event ->
                     ProvenanceEventType.RECEIVE.equals(event.getEventType()) && event.getAttribute("uuid").equals(hit.getAttribute("uuid"))).count());
-        });
+        }
     }
 
     @ParameterizedTest

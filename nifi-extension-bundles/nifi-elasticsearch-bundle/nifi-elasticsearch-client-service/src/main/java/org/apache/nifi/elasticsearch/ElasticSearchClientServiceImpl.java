@@ -685,8 +685,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             case Delete:
                 // nothing to do for Delete operations, it just needs the header
                 break;
-            default:
-                throw new IllegalArgumentException(String.format("Unhandled Index Operation type: %s", request.getOperation().name()));
         }
     }
 

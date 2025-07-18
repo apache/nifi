@@ -62,14 +62,11 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
                         port.verifyCanStart();
                         break;
                     case STOPPED:
-                        switch (port.getScheduledState()) {
-                            case RUNNING:
-                                port.getProcessGroup().verifyCanScheduleComponentsIndividually();
-                                port.verifyCanStop();
-                                break;
-                            case DISABLED:
-                                port.verifyCanEnable();
-                                break;
+                        if (port.getScheduledState() == ScheduledState.RUNNING) {
+                            port.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                            port.verifyCanStop();
+                        } else if (port.getScheduledState() == ScheduledState.DISABLED) {
+                            port.verifyCanEnable();
                         }
                         break;
                     case DISABLED:

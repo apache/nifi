@@ -92,32 +92,30 @@ public class AirtableTableRetriever {
                 if (jsonParser.currentToken() != JsonToken.FIELD_NAME) {
                     continue;
                 }
-                switch (jsonParser.currentName()) {
-                    case "records":
-                        jsonParser.nextToken();
-                        if (jsonParser.currentToken() != JsonToken.START_ARRAY) {
-                            break;
-                        }
-                        while (jsonParser.nextToken() != null && jsonParser.currentToken() != JsonToken.END_ARRAY) {
-                            if (jsonParser.currentToken() != JsonToken.START_OBJECT) {
-                                continue;
-                            }
-                            if (flowFileWriter == null) {
-                                flowFileWriter = AirtableRecordSetFlowFileWriter.startRecordSet(session);
-                            }
-                            ++parsedRecordCount;
-                            flowFileWriter.writeRecord(jsonParser);
-                            if (maxRecordsPerFlowFile != null && maxRecordsPerFlowFile == flowFileWriter.getRecordCount()) {
-                                flowFiles.add(flowFileWriter.closeRecordSet(session));
-                                flowFileWriter = null;
-                            }
 
+                if (jsonParser.currentName().equals("records")) {
+                    jsonParser.nextToken();
+                    if (jsonParser.currentToken() != JsonToken.START_ARRAY) {
+                        break;
+                    }
+                    while (jsonParser.nextToken() != null && jsonParser.currentToken() != JsonToken.END_ARRAY) {
+                        if (jsonParser.currentToken() != JsonToken.START_OBJECT) {
+                            continue;
                         }
-                        break;
-                    case "offset":
-                        jsonParser.nextToken();
-                        nextOffset = jsonParser.getValueAsString();
-                        break;
+                        if (flowFileWriter == null) {
+                            flowFileWriter = AirtableRecordSetFlowFileWriter.startRecordSet(session);
+                        }
+                        ++parsedRecordCount;
+                        flowFileWriter.writeRecord(jsonParser);
+                        if (maxRecordsPerFlowFile != null && maxRecordsPerFlowFile == flowFileWriter.getRecordCount()) {
+                            flowFiles.add(flowFileWriter.closeRecordSet(session));
+                            flowFileWriter = null;
+                        }
+
+                    }
+                } else if (jsonParser.currentName().equals("offset")) {
+                    jsonParser.nextToken();
+                    nextOffset = jsonParser.getValueAsString();
                 }
             }
         } catch (final IOException e) {

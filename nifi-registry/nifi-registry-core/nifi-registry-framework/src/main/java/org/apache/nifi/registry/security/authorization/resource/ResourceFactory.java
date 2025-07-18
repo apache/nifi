@@ -212,13 +212,10 @@ public final class ResourceFactory {
             @Override
             public String getSafeDescription() {
                 final StringBuilder safeDescription = new StringBuilder();
-                switch (parentResourceType) {
-                    case Bucket:
-                        safeDescription.append("Bucket");
-                        break;
-                    default:
-                        safeDescription.append("Unknown resource type");
-                        break;
+                if (parentResourceType == ResourceType.Bucket) {
+                    safeDescription.append("Bucket");
+                } else {
+                    safeDescription.append("Unknown resource type");
                 }
                 safeDescription.append(" with ID ");
                 safeDescription.append(childIdentifier);

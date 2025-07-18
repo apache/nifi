@@ -488,7 +488,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 if (PhoenixDatabaseAdapter.NAME.equals(databaseType)) {
                     return "time '" + value + "'";
                 }
+            // fallthrough
             case DATE:
+            // fallthrough
             case TIMESTAMP:
                 // TODO delegate to database adapter the conversion instead of using if in this
                 // class.

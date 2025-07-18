@@ -62,6 +62,7 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
                 out.writeUTF(record.getSwapLocation());
                 // intentionally fall through to CREATE/UPDATE block
             }
+            // fallthrough
             case CREATE:
             case UPDATE: {
                     final Map<String, String> props = record.getProperties();
@@ -151,6 +152,7 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
                 record.setSwapLocation(swapLocation);
                 // intentionally fall through to the CREATE/UPDATE block
             }
+            // fallthrough
             case CREATE:
             case UPDATE:
                 final int numProps = in.readInt();

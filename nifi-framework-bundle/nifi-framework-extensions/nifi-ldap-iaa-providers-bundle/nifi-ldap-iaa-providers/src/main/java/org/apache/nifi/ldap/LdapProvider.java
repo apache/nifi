@@ -101,56 +101,53 @@ public class LdapProvider implements LoginIdentityProvider {
                     rawAuthenticationStrategy, StringUtils.join(LdapAuthenticationStrategy.values(), ", ")));
         }
 
-        switch (authenticationStrategy) {
-            case ANONYMOUS:
-                context.setAnonymousReadOnly(true);
-                break;
-            default:
-                final String userDn = configurationContext.getProperty("Manager DN");
-                final String password = configurationContext.getProperty("Manager Password");
+        if (authenticationStrategy == LdapAuthenticationStrategy.ANONYMOUS) {
+            context.setAnonymousReadOnly(true);
+        } else {
+            final String userDn = configurationContext.getProperty("Manager DN");
+            final String password = configurationContext.getProperty("Manager Password");
 
-                context.setUserDn(userDn);
-                context.setPassword(password);
+            context.setUserDn(userDn);
+            context.setPassword(password);
 
-                switch (authenticationStrategy) {
-                    case SIMPLE:
-                        context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
-                        break;
-                    case LDAPS:
-                        context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
+            switch (authenticationStrategy) {
+                case SIMPLE:
+                    context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
+                    break;
+                case LDAPS:
+                    context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
 
-                        // indicate a secure connection
-                        baseEnvironment.put(Context.SECURITY_PROTOCOL, "ssl");
+                    // indicate a secure connection
+                    baseEnvironment.put(Context.SECURITY_PROTOCOL, "ssl");
 
-                        // get the configured ssl context
-                        final SSLContext ldapsSslContext = getConfiguredSslContext(configurationContext);
-                        if (ldapsSslContext != null) {
-                            // initialize the ldaps socket factory prior to use
-                            LdapsSocketFactory.initialize(ldapsSslContext.getSocketFactory());
-                            baseEnvironment.put("java.naming.ldap.factory.socket", LdapsSocketFactory.class.getName());
-                        }
-                        break;
-                    case START_TLS:
-                        final AbstractTlsDirContextAuthenticationStrategy tlsAuthenticationStrategy = new DefaultTlsDirContextAuthenticationStrategy();
+                    // get the configured ssl context
+                    final SSLContext ldapsSslContext = getConfiguredSslContext(configurationContext);
+                    if (ldapsSslContext != null) {
+                        // initialize the ldaps socket factory prior to use
+                        LdapsSocketFactory.initialize(ldapsSslContext.getSocketFactory());
+                        baseEnvironment.put("java.naming.ldap.factory.socket", LdapsSocketFactory.class.getName());
+                    }
+                    break;
+                case START_TLS:
+                    final AbstractTlsDirContextAuthenticationStrategy tlsAuthenticationStrategy = new DefaultTlsDirContextAuthenticationStrategy();
 
-                        // shutdown gracefully
-                        final String rawShutdownGracefully = configurationContext.getProperty("TLS - Shutdown Gracefully");
-                        if (StringUtils.isNotBlank(rawShutdownGracefully)) {
-                            final boolean shutdownGracefully = Boolean.TRUE.toString().equalsIgnoreCase(rawShutdownGracefully);
-                            tlsAuthenticationStrategy.setShutdownTlsGracefully(shutdownGracefully);
-                        }
+                    // shutdown gracefully
+                    final String rawShutdownGracefully = configurationContext.getProperty("TLS - Shutdown Gracefully");
+                    if (StringUtils.isNotBlank(rawShutdownGracefully)) {
+                        final boolean shutdownGracefully = Boolean.TRUE.toString().equalsIgnoreCase(rawShutdownGracefully);
+                        tlsAuthenticationStrategy.setShutdownTlsGracefully(shutdownGracefully);
+                    }
 
-                        // get the configured ssl context
-                        final SSLContext startTlsSslContext = getConfiguredSslContext(configurationContext);
-                        if (startTlsSslContext != null) {
-                            tlsAuthenticationStrategy.setSslSocketFactory(startTlsSslContext.getSocketFactory());
-                        }
+                    // get the configured ssl context
+                    final SSLContext startTlsSslContext = getConfiguredSslContext(configurationContext);
+                    if (startTlsSslContext != null) {
+                        tlsAuthenticationStrategy.setSslSocketFactory(startTlsSslContext.getSocketFactory());
+                    }
 
-                        // set the authentication strategy
-                        context.setAuthenticationStrategy(tlsAuthenticationStrategy);
-                        break;
-                }
-                break;
+                    // set the authentication strategy
+                    context.setAuthenticationStrategy(tlsAuthenticationStrategy);
+                    break;
+            }
         }
 
         // referrals

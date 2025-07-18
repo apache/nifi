@@ -1510,13 +1510,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         } catch (final TimeoutException e) {
             // On timeout, if action is to terminate and the component is a processor, terminate it.
             if (component instanceof ProcessorNode) {
-                switch (timeoutAction) {
-                    case THROW_TIMEOUT_EXCEPTION:
-                        throw e;
-                    case TERMINATE:
-                    default:
-                        ((ProcessorNode) component).terminate();
-                        return;
+                if (timeoutAction == FlowSynchronizationOptions.ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION) {
+                    throw e;
+                } else if (timeoutAction == ComponentStopTimeoutAction.TERMINATE) {
+                    ((ProcessorNode) component).terminate();
+                    return;
                 }
             }
 
@@ -2534,13 +2532,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
                     verifyCanDelete(port, timeout);
 
-                    switch (port.getConnectableType()) {
-                        case INPUT_PORT:
-                            port.getProcessGroup().removeInputPort(port);
-                            break;
-                        case OUTPUT_PORT:
-                            port.getProcessGroup().removeOutputPort(port);
-                            break;
+                    if (port.getConnectableType() == ConnectableType.INPUT_PORT) {
+                        port.getProcessGroup().removeInputPort(port);
+                    } else if (port.getConnectableType() == ConnectableType.OUTPUT_PORT) {
+                        port.getProcessGroup().removeOutputPort(port);
                     }
 
                     LOG.info("Successfully synchronized {} by removing it from the flow", port);
@@ -3859,17 +3854,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(flowAnalysisRule, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             flowAnalysisRule.setProperties(proposed.getProperties(), false, sensitiveDynamicPropertyNames);
 
-            switch (proposed.getScheduledState()) {
-                case DISABLED:
-                    if (flowAnalysisRule.isEnabled()) {
-                        flowAnalysisRule.disable();
-                    }
-                    break;
-                case ENABLED:
-                    if (!flowAnalysisRule.isEnabled()) {
-                        flowAnalysisRule.enable();
-                    }
-                    break;
+            if (proposed.getScheduledState() == org.apache.nifi.flow.ScheduledState.DISABLED) {
+                if (flowAnalysisRule.isEnabled()) {
+                    flowAnalysisRule.disable();
+                }
+            } else if (proposed.getScheduledState() == org.apache.nifi.flow.ScheduledState.ENABLED) {
+                if (!flowAnalysisRule.isEnabled()) {
+                    flowAnalysisRule.enable();
+                }
             }
             notifyScheduledStateChange(flowAnalysisRule, syncOptions, proposed.getScheduledState());
         } finally {

@@ -591,16 +591,11 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     private String getActionCode(final RequestAction action) {
-        switch (action) {
-            case READ:
-                return READ_CODE;
-            case WRITE:
-                return WRITE_CODE;
-            case DELETE:
-                return DELETE_CODE;
-            default:
-                throw new IllegalStateException("Unknown action: " + action);
-        }
+        return switch (action) {
+            case READ -> READ_CODE;
+            case WRITE -> WRITE_CODE;
+            case DELETE -> DELETE_CODE;
+        };
     }
 
     private RequestAction getAction(final String actionCode) {

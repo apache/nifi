@@ -909,6 +909,7 @@ public class ExpressionCompiler {
                             ", " + ResultType.DECIMAL + ", or " + ResultType.DATE);
                 }
             }
+            // fallthrough
             case TO_DECIMAL: {
                 verifyArgCount(argEvaluators, 0, "toDecimal");
                 switch (subjectEvaluator.getResultType()) {
@@ -924,6 +925,7 @@ public class ExpressionCompiler {
                             ", " + ResultType.WHOLE_NUMBER + ", or " + ResultType.DATE);
                 }
             }
+            // fallthrough
             case TO_MICROS: {
                 verifyArgCount(argEvaluators, 0, "toMicros");
                 if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
@@ -1411,13 +1413,12 @@ public class ExpressionCompiler {
     }
 
     private Evaluator<Boolean> buildBooleanEvaluator(final Tree tree) {
-        switch (tree.getType()) {
-            case TRUE:
-                return addToken(new BooleanLiteralEvaluator(true), "true");
-            case FALSE:
-                return addToken(new BooleanLiteralEvaluator(false), "true");
-        }
-        throw new AttributeExpressionLanguageParsingException("Cannot build Boolean evaluator from tree " + tree.toString());
+        return switch (tree.getType()) {
+            case TRUE -> addToken(new BooleanLiteralEvaluator(true), "true");
+            case FALSE -> addToken(new BooleanLiteralEvaluator(false), "true");
+            default ->
+                    throw new AttributeExpressionLanguageParsingException("Cannot build Boolean evaluator from tree " + tree.toString());
+        };
     }
 
 }

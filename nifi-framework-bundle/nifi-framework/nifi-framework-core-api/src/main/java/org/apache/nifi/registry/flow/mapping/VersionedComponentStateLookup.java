@@ -97,26 +97,18 @@ public interface VersionedComponentStateLookup {
 
         @Override
         public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
-            switch (ruleNode.getState()) {
-                case DISABLED:
-                    return ScheduledState.DISABLED;
-                case ENABLED:
-                default:
-                    return ScheduledState.ENABLED;
-            }
+            return switch (ruleNode.getState()) {
+                case DISABLED -> ScheduledState.DISABLED;
+                case ENABLED -> ScheduledState.ENABLED;
+            };
         }
 
         @Override
         public ScheduledState getState(final ControllerServiceNode serviceNode) {
-            switch (serviceNode.getState()) {
-                case ENABLED:
-                case ENABLING:
-                    return ScheduledState.ENABLED;
-                case DISABLED:
-                case DISABLING:
-                default:
-                    return ScheduledState.DISABLED;
-            }
+            return switch (serviceNode.getState()) {
+                case ENABLED, ENABLING -> ScheduledState.ENABLED;
+                default -> ScheduledState.DISABLED;
+            };
         }
 
         @Override
@@ -133,18 +125,11 @@ public interface VersionedComponentStateLookup {
                 return null;
             }
 
-            switch (componentState) {
-                case DISABLED:
-                    return ScheduledState.DISABLED;
-                case RUNNING:
-                case STARTING:
-                    return ScheduledState.RUNNING;
-                case RUN_ONCE:
-                case STOPPED:
-                case STOPPING:
-                default:
-                    return ScheduledState.ENABLED;
-            }
+            return switch (componentState) {
+                case DISABLED -> ScheduledState.DISABLED;
+                case RUNNING, STARTING -> ScheduledState.RUNNING;
+                default -> ScheduledState.ENABLED;
+            };
         }
     };
 }

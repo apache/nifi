@@ -246,6 +246,7 @@ public class RetryFlowFile extends AbstractProcessor {
                     return;
                 case "warn":
                     reuseLogLevel = LogLevel.WARN;
+                // fallthrough
                 case "reset":
                     getLogger().log(reuseLogLevel, "FlowFile {} was previously retried with the same attribute " +
                                     "by a different processor. Reset the current retry count to '1'. Consider " +

@@ -154,13 +154,10 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             reportingTaskProvider.startReportingTask(reportingTask);
                             break;
                         case STOPPED:
-                            switch (reportingTask.getScheduledState()) {
-                                case RUNNING:
-                                    reportingTaskProvider.stopReportingTask(reportingTask);
-                                    break;
-                                case DISABLED:
-                                    reportingTaskProvider.enableReportingTask(reportingTask);
-                                    break;
+                            if (reportingTask.getScheduledState() == ScheduledState.RUNNING) {
+                                reportingTaskProvider.stopReportingTask(reportingTask);
+                            } else if (reportingTask.getScheduledState() == ScheduledState.DISABLED) {
+                                reportingTaskProvider.enableReportingTask(reportingTask);
                             }
                             break;
                         case DISABLED:
@@ -301,13 +298,10 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             reportingTask.verifyCanStart();
                             break;
                         case STOPPED:
-                            switch (reportingTask.getScheduledState()) {
-                                case RUNNING:
-                                    reportingTask.verifyCanStop();
-                                    break;
-                                case DISABLED:
-                                    reportingTask.verifyCanEnable();
-                                    break;
+                            if (reportingTask.getScheduledState() == ScheduledState.RUNNING) {
+                                reportingTask.verifyCanStop();
+                            } else if (reportingTask.getScheduledState() == ScheduledState.DISABLED) {
+                                reportingTask.verifyCanEnable();
                             }
                             break;
                         case DISABLED:

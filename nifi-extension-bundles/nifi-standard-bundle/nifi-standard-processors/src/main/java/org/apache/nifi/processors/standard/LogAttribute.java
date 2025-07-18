@@ -268,9 +268,6 @@ public class LogAttribute extends AbstractProcessor {
             case error:
                 logger.error(outputMessage);
                 break;
-            default:
-                logger.debug(outputMessage);
-                break;
         }
 
         return outputMessage;

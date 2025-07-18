@@ -34,6 +34,7 @@ under the License.
 
     <rule ref="category/java/bestpractices.xml/AvoidMessageDigestField" />
     <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables" />
+    <rule ref="category/java/bestpractices.xml/ExhaustiveSwitchHasDefault" />
     <rule ref="category/java/bestpractices.xml/ForLoopCanBeForeach" />
     <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation" />
     <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion" />
@@ -60,6 +61,7 @@ under the License.
     <rule ref="category/java/errorprone.xml/ClassCastExceptionWithToArray" />
     <rule ref="category/java/errorprone.xml/DontUseFloatTypeForLoopIndices" />
     <rule ref="category/java/errorprone.xml/EmptyCatchBlock" />
+    <rule ref="category/java/errorprone.xml/ImplicitSwitchFallThrough" />
     <rule ref="category/java/errorprone.xml/JumbledIncrementer" />
     <rule ref="category/java/errorprone.xml/MisplacedNullCheck" />
     <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock" />
@@ -73,4 +75,5 @@ under the License.
     <rule ref="category/java/multithreading.xml/UnsynchronizedStaticFormatter" />
 
     <rule ref="category/java/performance.xml/BigIntegerInstantiation" />
+    <rule ref="category/java/performance.xml/TooFewBranchesForSwitch" />
 </ruleset>

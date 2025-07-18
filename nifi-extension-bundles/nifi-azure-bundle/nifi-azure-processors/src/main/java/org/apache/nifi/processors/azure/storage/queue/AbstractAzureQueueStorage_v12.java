@@ -169,8 +169,6 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
                 TokenCredential credential = tokenRequestContext -> Mono.just(storageCredentialsDetails.getAccessToken());
                 clientBuilder.credential(credential);
                 break;
-            default:
-                throw new IllegalArgumentException("Unhandled credentials type: " + storageCredentialsDetails.getCredentialsType());
         }
     }
 

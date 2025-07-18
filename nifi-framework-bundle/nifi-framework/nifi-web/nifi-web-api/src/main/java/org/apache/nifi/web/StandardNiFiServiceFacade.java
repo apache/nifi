@@ -6356,62 +6356,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         Authorizable authorizable;
         try {
-            switch (type) {
-                case Processor:
-                    authorizable = authorizableLookup.getProcessor(sourceId).getAuthorizable();
-                    break;
-                case ReportingTask:
-                    authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
-                    break;
-                case FlowAnalysisRule:
-                    authorizable = authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
-                    break;
-                case FlowRegistryClient:
-                    authorizable = authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
-                    break;
-                case ControllerService:
-                    authorizable = authorizableLookup.getControllerService(sourceId).getAuthorizable();
-                    break;
-                case Controller:
-                    authorizable = controllerFacade;
-                    break;
-                case InputPort:
-                    authorizable = authorizableLookup.getInputPort(sourceId);
-                    break;
-                case OutputPort:
-                    authorizable = authorizableLookup.getOutputPort(sourceId);
-                    break;
-                case ProcessGroup:
-                    authorizable = authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
-                    break;
-                case RemoteProcessGroup:
-                    authorizable = authorizableLookup.getRemoteProcessGroup(sourceId);
-                    break;
-                case Funnel:
-                    authorizable = authorizableLookup.getFunnel(sourceId);
-                    break;
-                case Connection:
-                    authorizable = authorizableLookup.getConnection(sourceId).getAuthorizable();
-                    break;
-                case ParameterContext:
-                    authorizable = authorizableLookup.getParameterContext(sourceId);
-                    break;
-                case ParameterProvider:
-                    authorizable = authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
-                    break;
-                case AccessPolicy:
-                    authorizable = authorizableLookup.getAccessPolicyById(sourceId);
-                    break;
-                case User:
-                case UserGroup:
-                    authorizable = authorizableLookup.getTenant();
-                    break;
-                case Label:
-                    authorizable = authorizableLookup.getLabel(sourceId);
-                    break;
-                default:
-                    throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());
-            }
+            authorizable = switch (type) {
+                case Processor -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
+                case ReportingTask -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                case FlowAnalysisRule -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
+                case FlowRegistryClient -> authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
+                case ControllerService -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
+                case Controller -> controllerFacade;
+                case InputPort -> authorizableLookup.getInputPort(sourceId);
+                case OutputPort -> authorizableLookup.getOutputPort(sourceId);
+                case ProcessGroup -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                case RemoteProcessGroup -> authorizableLookup.getRemoteProcessGroup(sourceId);
+                case Funnel -> authorizableLookup.getFunnel(sourceId);
+                case Connection -> authorizableLookup.getConnection(sourceId).getAuthorizable();
+                case ParameterContext -> authorizableLookup.getParameterContext(sourceId);
+                case ParameterProvider -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
+                case AccessPolicy -> authorizableLookup.getAccessPolicyById(sourceId);
+                case User, UserGroup -> authorizableLookup.getTenant();
+                case Label -> authorizableLookup.getLabel(sourceId);
+            };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, use the controller to see if permissions should be allowed
             authorizable = controllerFacade;
