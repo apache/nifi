@@ -154,10 +154,13 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             reportingTaskProvider.startReportingTask(reportingTask);
                             break;
                         case STOPPED:
-                            if (reportingTask.getScheduledState() == ScheduledState.RUNNING) {
-                                reportingTaskProvider.stopReportingTask(reportingTask);
-                            } else if (reportingTask.getScheduledState() == ScheduledState.DISABLED) {
-                                reportingTaskProvider.enableReportingTask(reportingTask);
+                            switch (reportingTask.getScheduledState()) {
+                                case RUNNING:
+                                    reportingTaskProvider.stopReportingTask(reportingTask);
+                                    break;
+                                case DISABLED:
+                                    reportingTaskProvider.enableReportingTask(reportingTask);
+                                    break;
                             }
                             break;
                         case DISABLED:
@@ -298,10 +301,13 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             reportingTask.verifyCanStart();
                             break;
                         case STOPPED:
-                            if (reportingTask.getScheduledState() == ScheduledState.RUNNING) {
-                                reportingTask.verifyCanStop();
-                            } else if (reportingTask.getScheduledState() == ScheduledState.DISABLED) {
-                                reportingTask.verifyCanEnable();
+                            switch (reportingTask.getScheduledState()) {
+                                case RUNNING:
+                                    reportingTask.verifyCanStop();
+                                    break;
+                                case DISABLED:
+                                    reportingTask.verifyCanEnable();
+                                    break;
                             }
                             break;
                         case DISABLED:

@@ -230,11 +230,12 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         }
 
         final BoxAppActor appActor = context.getProperty(APP_ACTOR).asAllowableValue(BoxAppActor.class);
-        if (appActor == BoxAppActor.SERVICE_ACCOUNT) {
-            api.asSelf();
-        } else if (appActor == BoxAppActor.IMPERSONATED_USER) {
-            final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
-            api.asUser(accountId);
+        switch (appActor) {
+            case SERVICE_ACCOUNT -> api.asSelf();
+            case IMPERSONATED_USER -> {
+                final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
+                api.asUser(accountId);
+            }
         }
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {

@@ -493,12 +493,15 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 ExceptionHandler.createOnGroupError(context, session, result, REL_FAILURE, REL_RETRY);
 
         onGroupError = onGroupError.andThen((ctx, flowFileGroup, errorTypesResult, exception) -> {
-            if (errorTypesResult.destination() == ErrorTypes.Destination.Failure) {
-                List<FlowFile> flowFilesToFailure = getFlowFilesOnRelationship(result, REL_FAILURE);
-                result.getRoutedFlowFiles().put(REL_FAILURE, addErrorAttributesToFlowFilesInGroup(session, flowFilesToFailure, flowFileGroup.getFlowFiles(), exception));
-            } else if (errorTypesResult.destination() == ErrorTypes.Destination.Retry) {
-                List<FlowFile> flowFilesToRetry = getFlowFilesOnRelationship(result, REL_RETRY);
-                result.getRoutedFlowFiles().put(REL_RETRY, addErrorAttributesToFlowFilesInGroup(session, flowFilesToRetry, flowFileGroup.getFlowFiles(), exception));
+            switch (errorTypesResult.destination()) {
+                case Failure:
+                    List<FlowFile> flowFilesToFailure = getFlowFilesOnRelationship(result, REL_FAILURE);
+                    result.getRoutedFlowFiles().put(REL_FAILURE, addErrorAttributesToFlowFilesInGroup(session, flowFilesToFailure, flowFileGroup.getFlowFiles(), exception));
+                    break;
+                case Retry:
+                    List<FlowFile> flowFilesToRetry = getFlowFilesOnRelationship(result, REL_RETRY);
+                    result.getRoutedFlowFiles().put(REL_RETRY, addErrorAttributesToFlowFilesInGroup(session, flowFilesToRetry, flowFileGroup.getFlowFiles(), exception));
+                    break;
             }
         });
 
@@ -577,11 +580,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             // Apply default error handling and logging for other Exceptions.
             ExceptionHandler.OnError<RollbackOnFailure, FlowFileGroup> onGroupError = onGroupError(context, session, result);
             onGroupError = onGroupError.andThen((cl, il, rl, el) -> {
-                if (r.destination() == ErrorTypes.Destination.Failure) {
-                    getLogger().error("Failed to update database for {} due to {}; routing to failure", il.getFlowFiles(), e, e);
-                } else if (r.destination() == ErrorTypes.Destination.Retry) {
-                    getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                            il.getFlowFiles(), e, e);
+                switch (r.destination()) {
+                    case Failure:
+                        getLogger().error("Failed to update database for {} due to {}; routing to failure", il.getFlowFiles(), e, e);
+                        break;
+                    case Retry:
+                        getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
+                                il.getFlowFiles(), e, e);
+                        break;
                 }
             });
             onGroupError.apply(c, enclosure, r, e);

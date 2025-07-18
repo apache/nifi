@@ -314,6 +314,9 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
     }
 
     static String getBundleFileExtension(final BundleVersionType bundleType) {
-        return bundleType == BundleVersionType.NIFI_NAR ? NAR_EXTENSION : CPP_EXTENSION;
+        return switch (bundleType) {
+            case NIFI_NAR -> NAR_EXTENSION;
+            case MINIFI_CPP -> CPP_EXTENSION;
+        };
     }
 }

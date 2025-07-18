@@ -398,11 +398,14 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             processor.verifyCanStart();
                             break;
                         case STOPPED:
-                            if (processor.getScheduledState() == ScheduledState.RUNNING) {
-                                processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
-                                processor.verifyCanStop();
-                            } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
-                                processor.verifyCanEnable();
+                            switch (processor.getScheduledState()) {
+                                case RUNNING:
+                                    processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                                    processor.verifyCanStop();
+                                    break;
+                                case DISABLED:
+                                    processor.verifyCanEnable();
+                                    break;
                             }
                             break;
                         case DISABLED:
@@ -522,10 +525,13 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             parentGroup.startProcessor(processor, true);
                             break;
                         case STOPPED:
-                            if (processor.getScheduledState() == ScheduledState.RUNNING) {
-                                parentGroup.stopProcessor(processor);
-                            } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
-                                parentGroup.enableProcessor(processor);
+                            switch (processor.getScheduledState()) {
+                                case RUNNING:
+                                    parentGroup.stopProcessor(processor);
+                                    break;
+                                case DISABLED:
+                                    parentGroup.enableProcessor(processor);
+                                    break;
                             }
                             break;
                         case DISABLED:

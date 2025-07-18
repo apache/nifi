@@ -152,10 +152,11 @@ public class ExceptionHandler<C> {
 
     private static FlowFile penalize(final ProcessContext context, final ProcessSession session,
                                      final FlowFile flowFile, final ErrorTypes.Penalty penalty) {
-        if (penalty == ErrorTypes.Penalty.Penalize) {
-            return session.penalize(flowFile);
-        } else if (penalty == ErrorTypes.Penalty.Yield) {
-            context.yield();
+        switch (penalty) {
+            case Penalize:
+                return session.penalize(flowFile);
+            case Yield:
+                context.yield();
         }
         return flowFile;
     }

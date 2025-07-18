@@ -458,12 +458,15 @@ public class StandardProcessSessionIT {
         int aCounters = 0;
         int bCounters = 0;
         for (final Counter counter : counters) {
-            if ("a".equals(counter.getName())) {
-                assertEquals(5, counter.getValue());
-                aCounters++;
-            } else if ("b".equals(counter.getName())) {
-                assertEquals(3, counter.getValue());
-                bCounters++;
+            switch (counter.getName()) {
+                case "a":
+                    assertEquals(5, counter.getValue());
+                    aCounters++;
+                    break;
+                case "b":
+                    assertEquals(3, counter.getValue());
+                    bCounters++;
+                    break;
             }
         }
 
@@ -497,12 +500,15 @@ public class StandardProcessSessionIT {
         int aCounters = 0;
         int bCounters = 0;
         for (final Counter counter : counters) {
-            if ("a".equals(counter.getName())) {
-                assertEquals(2, counter.getValue());
-                aCounters++;
-            } else if ("b".equals(counter.getName())) {
-                assertEquals(3, counter.getValue());
-                bCounters++;
+            switch (counter.getName()) {
+                case "a":
+                    assertEquals(2, counter.getValue());
+                    aCounters++;
+                    break;
+                case "b":
+                    assertEquals(3, counter.getValue());
+                    bCounters++;
+                    break;
             }
         }
 

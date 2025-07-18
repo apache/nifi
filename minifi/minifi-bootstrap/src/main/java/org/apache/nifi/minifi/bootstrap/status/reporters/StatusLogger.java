@@ -22,7 +22,6 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_ST
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY;
 
 import java.io.IOException;
-
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;

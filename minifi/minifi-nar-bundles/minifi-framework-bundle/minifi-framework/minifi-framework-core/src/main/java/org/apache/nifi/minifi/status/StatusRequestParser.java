@@ -181,21 +181,25 @@ public final class StatusRequestParser {
 
         String[] statusSplits = statusTypes.split(",");
         for (String statusType : statusSplits) {
-            String statusTypeLowerCased = statusType.toLowerCase().trim();
-            if (statusTypeLowerCased.equals("health")) {
-                ConnectionHealth connectionHealth = new ConnectionHealth();
-                connectionHealth.setQueuedBytes(inputConnectionStatus.getQueuedBytes());
-                connectionHealth.setQueuedCount(inputConnectionStatus.getQueuedCount());
+            switch (statusType.toLowerCase().trim()) {
+                case "health":
+                    ConnectionHealth connectionHealth = new ConnectionHealth();
 
-                connectionStatusBean.setConnectionHealth(connectionHealth);
-            } else if (statusTypeLowerCased.equals("stats")) {
-                ConnectionStats connectionStats = new ConnectionStats();
-                connectionStats.setInputBytes(inputConnectionStatus.getInputBytes());
-                connectionStats.setInputCount(inputConnectionStatus.getInputCount());
-                connectionStats.setOutputCount(inputConnectionStatus.getOutputCount());
-                connectionStats.setOutputBytes(inputConnectionStatus.getOutputBytes());
+                    connectionHealth.setQueuedBytes(inputConnectionStatus.getQueuedBytes());
+                    connectionHealth.setQueuedCount(inputConnectionStatus.getQueuedCount());
 
-                connectionStatusBean.setConnectionStats(connectionStats);
+                    connectionStatusBean.setConnectionHealth(connectionHealth);
+                    break;
+                case "stats":
+                    ConnectionStats connectionStats = new ConnectionStats();
+
+                    connectionStats.setInputBytes(inputConnectionStatus.getInputBytes());
+                    connectionStats.setInputCount(inputConnectionStatus.getInputCount());
+                    connectionStats.setOutputCount(inputConnectionStatus.getOutputCount());
+                    connectionStats.setOutputBytes(inputConnectionStatus.getOutputBytes());
+
+                    connectionStatusBean.setConnectionStats(connectionStats);
+                    break;
             }
         }
         return connectionStatusBean;
@@ -211,19 +215,22 @@ public final class StatusRequestParser {
                         .sourceIdMatches(id)
                         .build());
         for (String statusType : statusSplits) {
-            String statusTypeLowercase = statusType.toLowerCase().trim();
-            if (statusTypeLowercase.equals("health")) {
-                ReportingTaskHealth reportingTaskHealth = new ReportingTaskHealth();
-                reportingTaskHealth.setScheduledState(reportingTaskNode.getScheduledState().name());
-                reportingTaskHealth.setActiveThreads(reportingTaskNode.getActiveThreadCount());
-                reportingTaskHealth.setHasBulletins(!bulletinList.isEmpty());
+            switch (statusType.toLowerCase().trim()) {
+                case "health":
+                    ReportingTaskHealth reportingTaskHealth = new ReportingTaskHealth();
 
-                Collection<ValidationResult> validationResults = reportingTaskNode.getValidationErrors();
-                reportingTaskHealth.setValidationErrorList(transformValidationResults(validationResults));
+                    reportingTaskHealth.setScheduledState(reportingTaskNode.getScheduledState().name());
+                    reportingTaskHealth.setActiveThreads(reportingTaskNode.getActiveThreadCount());
+                    reportingTaskHealth.setHasBulletins(!bulletinList.isEmpty());
 
-                reportingTaskStatus.setReportingTaskHealth(reportingTaskHealth);
-            } else if (statusTypeLowercase.equals("bulletins")) {
-                reportingTaskStatus.setBulletinList(transformBulletins(bulletinList));
+                    Collection<ValidationResult> validationResults = reportingTaskNode.getValidationErrors();
+                    reportingTaskHealth.setValidationErrorList(transformValidationResults(validationResults));
+
+                    reportingTaskStatus.setReportingTaskHealth(reportingTaskHealth);
+                    break;
+                case "bulletins":
+                    reportingTaskStatus.setBulletinList(transformBulletins(bulletinList));
+                    break;
             }
         }
         return reportingTaskStatus;
@@ -240,19 +247,21 @@ public final class StatusRequestParser {
                         .sourceIdMatches(id)
                         .build());
         for (String statusType : statusSplits) {
-            String statusTypeLowercase = statusType.toLowerCase().trim();
-            if (statusTypeLowercase.equals("health")) {
-                ControllerServiceHealth controllerServiceHealth = new ControllerServiceHealth();
+            switch (statusType.toLowerCase().trim()) {
+                case "health":
+                    ControllerServiceHealth controllerServiceHealth = new ControllerServiceHealth();
 
-                controllerServiceHealth.setState(controllerServiceNode.getState().name());
-                controllerServiceHealth.setHasBulletins(!bulletinList.isEmpty());
+                    controllerServiceHealth.setState(controllerServiceNode.getState().name());
+                    controllerServiceHealth.setHasBulletins(!bulletinList.isEmpty());
 
-                Collection<ValidationResult> validationResults = controllerServiceNode.getValidationErrors();
-                controllerServiceHealth.setValidationErrorList(transformValidationResults(validationResults));
+                    Collection<ValidationResult> validationResults = controllerServiceNode.getValidationErrors();
+                    controllerServiceHealth.setValidationErrorList(transformValidationResults(validationResults));
 
-                controllerServiceStatus.setControllerServiceHealth(controllerServiceHealth);
-            } else if (statusTypeLowercase.equals("bulletins")) {
-                controllerServiceStatus.setBulletinList(transformBulletins(bulletinList));
+                    controllerServiceStatus.setControllerServiceHealth(controllerServiceHealth);
+                    break;
+                case "bulletins":
+                    controllerServiceStatus.setBulletinList(transformBulletins(bulletinList));
+                    break;
             }
         }
         return controllerServiceStatus;

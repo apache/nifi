@@ -138,7 +138,8 @@ public class SchemaRecordReader {
 
 
     private Object readField(final InputStream in, final RecordField field) throws IOException {
-        if (Repetition.ZERO_OR_MORE == field.getRepetition()) {
+        switch (field.getRepetition()) {
+            case ZERO_OR_MORE: {
                 // If repetition is 0+ then that means we have a list and need to read how many items are in the list.
                 final int iterations = readInt(in);
                 if (iterations == 0) {
@@ -151,18 +152,20 @@ public class SchemaRecordReader {
                 }
 
                 return value;
-        } else if (Repetition.ZERO_OR_ONE == field.getRepetition()) {
-            // If repetition is 0 or 1 (optional), then check if next byte is a 0, which means field is absent or 1, which means
-            // field is present. Otherwise, throw an Exception.
-            final int nextByte = in.read();
-            if (nextByte == -1) {
-                throw new EOFException("Unexpected End-of-File when attempting to read Repetition value for field '" + field.getFieldName() + "'");
             }
-            if (nextByte == 0) {
-                return null;
-            }
-            if (nextByte != 1) {
-                throw new IOException("Invalid Boolean value found when reading 'Repetition' of field '" + field.getFieldName() + "'. Expected 0 or 1 but got " + (nextByte & 0xFF));
+            case ZERO_OR_ONE: {
+                // If repetition is 0 or 1 (optional), then check if next byte is a 0, which means field is absent or 1, which means
+                // field is present. Otherwise, throw an Exception.
+                final int nextByte = in.read();
+                if (nextByte == -1) {
+                    throw new EOFException("Unexpected End-of-File when attempting to read Repetition value for field '" + field.getFieldName() + "'");
+                }
+                if (nextByte == 0) {
+                    return null;
+                }
+                if (nextByte != 1) {
+                    throw new IOException("Invalid Boolean value found when reading 'Repetition' of field '" + field.getFieldName() + "'. Expected 0 or 1 but got " + (nextByte & 0xFF));
+                }
             }
         }
 
