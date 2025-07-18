@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -54,7 +55,7 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("", user.packageName().orElse(""));
+        assertTrue(user.packageName().isEmpty());
         assertTrue(user.getChildMessageSchemas().isEmpty());
     }
 
@@ -75,7 +76,7 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("com.example.test", user.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), user.packageName());
         assertTrue(user.getChildMessageSchemas().isEmpty());
     }
 
@@ -102,17 +103,17 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("com.example.test", user.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), user.packageName());
         assertTrue(user.getChildMessageSchemas().isEmpty());
 
         final ProtobufMessageSchema company = messages.get(1);
         assertEquals("Company", company.name());
-        assertEquals("com.example.test", company.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), company.packageName());
         assertTrue(company.getChildMessageSchemas().isEmpty());
 
         final ProtobufMessageSchema project = messages.get(2);
         assertEquals("Project", project.name());
-        assertEquals("com.example.test", project.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), company.packageName());
         assertTrue(project.getChildMessageSchemas().isEmpty());
     }
 
@@ -139,17 +140,17 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("com.example.test", user.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), user.packageName());
         assertEquals(1, user.getChildMessageSchemas().size());
 
         final ProtobufMessageSchema profile = user.getChildMessageSchemas().getFirst();
         assertEquals("Profile", profile.name());
-        assertEquals("com.example.test", profile.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), profile.packageName());
         assertEquals(1, profile.getChildMessageSchemas().size());
 
         final ProtobufMessageSchema settings = profile.getChildMessageSchemas().getFirst();
         assertEquals("Settings", settings.name());
-        assertEquals("com.example.test", settings.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), settings.packageName());
         assertTrue(settings.getChildMessageSchemas().isEmpty());
     }
 
@@ -192,22 +193,22 @@ class AntlrProtobufMessageSchemaReaderTest {
         // Test Company message and its nested structure
         final ProtobufMessageSchema company = messages.getFirst();
         assertEquals("Company", company.name());
-        assertEquals("com.example.company", company.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.company"), company.packageName());
         assertEquals(1, company.getChildMessageSchemas().size());
 
         final ProtobufMessageSchema department = company.getChildMessageSchemas().getFirst();
         assertEquals("Department", department.name());
-        assertEquals("com.example.company", department.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.company"), department.packageName());
         assertEquals(1, department.getChildMessageSchemas().size());
 
         final ProtobufMessageSchema employee = department.getChildMessageSchemas().getFirst();
         assertEquals("Employee", employee.name());
-        assertEquals("com.example.company", employee.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.company"), employee.packageName());
         assertEquals(1, employee.getChildMessageSchemas().size());
 
         final ProtobufMessageSchema position = employee.getChildMessageSchemas().getFirst();
         assertEquals("Position", position.name());
-        assertEquals("com.example.company", position.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.company"), position.packageName());
         assertTrue(position.getChildMessageSchemas().isEmpty());
 
         // Test Address message (top-level)
@@ -243,22 +244,22 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("com.example.test", user.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), user.packageName());
         assertEquals(3, user.getChildMessageSchemas().size());
 
         final ProtobufMessageSchema profile = user.getChildMessageSchemas().getFirst();
         assertEquals("Profile", profile.name());
-        assertEquals("com.example.test", profile.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), profile.packageName());
         assertTrue(profile.getChildMessageSchemas().isEmpty());
 
         final ProtobufMessageSchema settings = user.getChildMessageSchemas().get(1);
         assertEquals("Settings", settings.name());
-        assertEquals("com.example.test", settings.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), settings.packageName());
         assertTrue(settings.getChildMessageSchemas().isEmpty());
 
         final ProtobufMessageSchema preferences = user.getChildMessageSchemas().get(2);
         assertEquals("Preferences", preferences.name());
-        assertEquals("com.example.test", preferences.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), preferences.packageName());
         assertTrue(preferences.getChildMessageSchemas().isEmpty());
     }
 
@@ -286,7 +287,7 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("com.example.test", user.packageName().orElse(""));
+        assertEquals(Optional.of("com.example.test"), user.packageName());
         assertTrue(user.getChildMessageSchemas().isEmpty());
     }
 
@@ -357,12 +358,12 @@ class AntlrProtobufMessageSchemaReaderTest {
 
         final ProtobufMessageSchema user = messages.getFirst();
         assertEquals("User", user.name());
-        assertEquals("", user.packageName().orElse(""));
+        assertTrue(user.packageName().isEmpty());
         assertTrue(user.isDefaultPackage());
 
         final ProtobufMessageSchema product = messages.get(1);
         assertEquals("Product", product.name());
-        assertEquals("", product.packageName().orElse(""));
+        assertTrue(product.packageName().isEmpty());
         assertTrue(product.isDefaultPackage());
     }
 }
