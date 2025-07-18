@@ -17,22 +17,77 @@
 package org.apache.nifi.cdc.mysql.event.io;
 
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.sql.Types;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 class TestInsertRowsWriter {
 
     @Test
-    public void testGetWritableObject() {
+    public void testGetWritableObject() throws IOException {
         InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
-        assertNull(insertRowsWriter.getWritableObject(null, null));
-        assertNull(insertRowsWriter.getWritableObject(Types.INTEGER, null));
-        assertEquals((byte) 1, insertRowsWriter.getWritableObject(Types.INTEGER, (byte) 1));
-        assertEquals("Hello", insertRowsWriter.getWritableObject(Types.VARCHAR, "Hello".getBytes()));
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", null, null); //null
+            verify(g).writeNullField("fieldName");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(true, Types.INTEGER), null); //null
+            verify(g).writeNullField("fieldName");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(false, Types.BIGINT), (int) -77); //null
+            verify(g).writeFieldName("fieldName");
+            verify(g).writeRawValue("18446744073709551539");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(false, Types.INTEGER), (int) -77); //null
+            verify(g).writeFieldName("fieldName");
+            verify(g).writeRawValue("4294967219");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(false, Types.SMALLINT), (int) -77); //null
+            verify(g).writeFieldName("fieldName");
+            verify(g).writeRawValue("65459");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(false, Types.TINYINT), (int) -77); //null
+            verify(g).writeFieldName("fieldName");
+            verify(g).writeRawValue("179");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(true, Types.TINYINT), (int) -77); //null
+            verify(g).writeObjectField("fieldName", -77);
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(false, Types.TINYINT), (byte) 1); //null
+            verify(g).writeFieldName("fieldName");
+            verify(g).writeRawValue( "1");
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(true, Types.TINYINT), (byte) 1); //null
+            verify(g).writeObjectField("fieldName", (byte) 1);
+            verifyNoMoreInteractions(g);
+        }
+        try (JsonGenerator g = mock(JsonGenerator.class)) {
+            insertRowsWriter.writeObjectAsValueField(g, "fieldName", new ColumnDefinition(null, Types.VARCHAR), "Hello".getBytes()); //null
+            verify(g).writeObjectField("fieldName", "Hello");
+            verifyNoMoreInteractions(g);
+        }
     }
 
 }

@@ -18,6 +18,7 @@
 package org.apache.nifi.cdc.mysql.processors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.DeleteRowsEventData;
@@ -498,6 +499,165 @@ public class CaptureChangeMySQLTest {
         assertEquals(13, resultFiles.size());
         assertEquals(13, testRunner.getProvenanceEvents().size());
         testRunner.getProvenanceEvents().forEach(event -> assertEquals(ProvenanceEventType.RECEIVE, event.getEventType()));
+    }
+
+    @Test
+    public void testInsertUpdateDeleteSignedAndUnsigned(@Mock Connection connection) throws JsonProcessingException {
+        CaptureChangeMySQL processorUnsigned = new MockCaptureChangeMySQLUnsigned(connection);
+        TestRunner unsignedRunner = TestRunners.newTestRunner(processorUnsigned);
+        Serializable[] sampleRow = new Serializable[]{2, SMITH, (byte) -77, (byte) -77, (short) -77, (short) -77, (int) -77, (int) -77, (long) -77, (long) -77};
+
+        unsignedRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION);
+        unsignedRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
+        unsignedRunner.setProperty(CaptureChangeMySQL.USERNAME, ROOT_USER);
+        unsignedRunner.setProperty(CaptureChangeMySQL.PASSWORD, PASSWORD);
+        unsignedRunner.setProperty(CaptureChangeMySQL.SERVER_ID, ONE);
+        unsignedRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+        unsignedRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_FILENAME, INIT_BIN_LOG_FILENAME);
+        unsignedRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_POSITION, FOUR);
+        unsignedRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, Boolean.TRUE.toString());
+        unsignedRunner.setProperty(CaptureChangeMySQL.INCLUDE_DDL_EVENTS, Boolean.TRUE.toString());
+
+        unsignedRunner.run(1, false, true);
+
+        // ROTATE scenario
+        EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
+        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
+
+
+        // INSERT scenario
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
+        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.TABLE_MAP, 6L);
+        TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, MockCaptureChangeMySQLUnsigned.COLUMN_TYPES);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.EXT_WRITE_ROWS, 8L);
+        BitSet cols = new BitSet();
+        cols.set(0, 10);
+        WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols, Collections.singletonList(sampleRow));
+
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 12L);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4));
+
+
+        // UPDATE scenario
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 16L);
+        queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.TABLE_MAP, 18L);
+        tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, MockCaptureChangeMySQLUnsigned.COLUMN_TYPES);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.UPDATE_ROWS, 20L);
+        BitSet colsBefore = new BitSet();
+        cols.set(0, 10);
+        BitSet colsAfter = new BitSet();
+        colsAfter.set(0, 10);
+        Map<Serializable[], Serializable[]> updateMap = Collections.singletonMap(sampleRow, sampleRow);
+        UpdateRowsEventData updateRowsEventData = EventUtils.buildUpdateRowsEventData(1L, colsBefore, colsAfter,
+                new ArrayList<>(updateMap.entrySet()));
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, updateRowsEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 24L);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4));
+
+        // ROTATE scenario
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 26L);
+        rotateEventData = EventUtils.buildRotateEventData(SUBSEQUENT_BIN_LOG_FILENAME, 4L);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 28L);
+        queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.TABLE_MAP, 30L);
+        tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, MockCaptureChangeMySQLUnsigned.COLUMN_TYPES);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
+
+
+        // DELETE scenario
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.DELETE_ROWS, 36L);
+        cols = new BitSet();
+        cols.set(0, 10);
+
+        DeleteRowsEventData deleteRowsEventData = EventUtils.buildDeleteRowsEventData(1L, cols, Collections.singletonList(sampleRow));
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4, deleteRowsEventData));
+
+        eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 40L);
+        client.sendEvent(EventUtils.buildEvent(eventHeaderV4));
+
+        unsignedRunner.run(1, true, false);
+
+        List<MockFlowFile> resultFiles = unsignedRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        List<String> expectedEventTypes = new ArrayList<>();
+        expectedEventTypes.add(BEGIN_SQL_KEYWORD_LOWERCASE);
+        expectedEventTypes.addAll(Collections.nCopies(1, INSERT_SQL_KEYWORD_LOWERCASE));
+        expectedEventTypes.addAll(Arrays.asList(COMMIT_SQL_KEYWORD_LOWERCASE, BEGIN_SQL_KEYWORD_LOWERCASE, "update", COMMIT_SQL_KEYWORD_LOWERCASE, BEGIN_SQL_KEYWORD_LOWERCASE));
+        expectedEventTypes.addAll(Collections.nCopies(1, "delete"));
+        expectedEventTypes.add(COMMIT_SQL_KEYWORD_LOWERCASE);
+
+        IntStream.range(0, resultFiles.size()).forEach(index -> {
+            MockFlowFile resultFile = resultFiles.get(index);
+            assertEquals(EventWriter.APPLICATION_JSON, resultFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+            assertEquals(index, Long.valueOf(resultFile.getAttribute(EventWriter.SEQUENCE_ID_KEY)));
+            assertEquals(index < 6 ? INIT_BIN_LOG_FILENAME : SUBSEQUENT_BIN_LOG_FILENAME, resultFile.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY));
+            assertEquals(0L, Long.parseLong(resultFile.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY)) % 4);
+            assertEquals(expectedEventTypes.get(index), resultFile.getAttribute(EventWriter.CDC_EVENT_TYPE_ATTRIBUTE));
+        });
+
+        // check value -77 unsigned vs. signed
+        int comparedValues = 0;
+        for (MockFlowFile flowFile : resultFiles) {
+            String content = new String(flowFile.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+            JsonNode root = new ObjectMapper().readTree(content);
+            JsonNode columns = root.get("columns");
+            if (columns != null && columns.isArray()) {
+                for (int i = 2; i < columns.size(); i++) { // the first two columns are id and name (not -77)
+                    JsonNode column = columns.get(i);
+                    JsonNode valueNode = column.get("value");
+                    JsonNode nameNode = column.get("name");
+                    JsonNode typeNode = column.get("column_type");
+                    if (nameNode != null && nameNode.isTextual() && valueNode != null && valueNode.isNumber()
+                            && typeNode != null && typeNode.isNumber() && nameNode.isTextual() ) {
+                        comparedValues++;
+                        if (typeNode.asInt() == -6) { //tinyint, byte
+                            assertEquals(
+                                    nameNode.asText().toLowerCase().startsWith("unsigned")
+                                            ? String.valueOf(Byte.toUnsignedInt((byte) -77)) : "-77",
+                                    valueNode.asText());
+                        } else if (typeNode.asInt() == 5) { //smallint, short
+                            assertEquals(
+                                    nameNode.asText().toLowerCase().startsWith("unsigned")
+                                            ? String.valueOf(Short.toUnsignedInt((short) -77)) : "-77",
+                                    valueNode.asText());
+                        } else if (typeNode.asInt() == 4) { //integer, int
+                            assertEquals(
+                                    nameNode.asText().toLowerCase().startsWith("unsigned")
+                                            ? Integer.toUnsignedString(-77) : "-77",
+                                    valueNode.asText());
+                        } else if (typeNode.asInt() == -5) { //bigint, long
+                            assertEquals(
+                                    nameNode.asText().toLowerCase().startsWith("unsigned")
+                                            ? Long.toUnsignedString( -77 ) : "-77",
+                                    valueNode.asText());
+                        } else {
+                            comparedValues--;
+                        }
+                    }
+                }
+            }
+        }
+        assertEquals(24, comparedValues);
+        assertEquals(9, resultFiles.size());
+        assertEquals(9, unsignedRunner.getProvenanceEvents().size());
+        unsignedRunner.getProvenanceEvents().forEach(event -> assertEquals(ProvenanceEventType.RECEIVE, event.getEventType()));
     }
 
     @Test
@@ -1317,11 +1477,59 @@ public class CaptureChangeMySQLTest {
             TableInfo tableInfo = cache.get(key);
             if (tableInfo == null) {
                 tableInfo = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(),
-                        Collections.singletonList(new ColumnDefinition((byte) -4, "string1")));
+                        Collections.singletonList(new ColumnDefinition(null, (byte) -4, "string1")));
                 cache.put(key, tableInfo);
             }
             return tableInfo;
         }
+
+        @Override
+        protected void registerDriver(String locationString, String drvName) {
+        }
+
+        @Override
+        protected Connection getJdbcConnection() {
+            return mockConnection;
+        }
+    }
+
+    @RequiresInstanceClassLoading
+    class MockCaptureChangeMySQLUnsigned extends CaptureChangeMySQL {
+        private final Connection mockConnection;
+
+        public MockCaptureChangeMySQLUnsigned(Connection mockConnection) {
+            this.mockConnection = mockConnection;
+        }
+
+        Map<TableInfoCacheKey, TableInfo> cache = new HashMap<>();
+
+        @Override
+        protected BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
+            return client;
+        }
+
+        @Override
+        protected TableInfo loadTableInfo(TableInfoCacheKey key) {
+            TableInfo tableInfo = cache.get(key);
+            if (tableInfo == null) {
+                tableInfo = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(),
+                        List.of(
+                                new ColumnDefinition(true, (byte) 4, "int1"),
+                                new ColumnDefinition(true, (byte) -4, "string1"),
+                                new ColumnDefinition(false, (byte) -6, "unsigned tinyint"),
+                                new ColumnDefinition(true, (byte) -6, "signed tinyint"),
+                                new ColumnDefinition(false, (byte) 5, "unsigned smallint"),
+                                new ColumnDefinition(true, (byte) 5, "signed smallint"),
+                                new ColumnDefinition(false, (byte) 4, "unsigned int"),
+                                new ColumnDefinition(true, (byte) 4, "signed int"),
+                                new ColumnDefinition(false, (byte) -5, "unsigned bigint"),
+                                new ColumnDefinition(true, (byte) -5, "signed bigint")
+                        ));
+                cache.put(key, tableInfo);
+            }
+            return tableInfo;
+        }
+        private static final byte[] COLUMN_TYPES = new byte[]{4, -4, -6, -6, 5, 5, 4, 4, -5, -5};
 
         @Override
         protected void registerDriver(String locationString, String drvName) {

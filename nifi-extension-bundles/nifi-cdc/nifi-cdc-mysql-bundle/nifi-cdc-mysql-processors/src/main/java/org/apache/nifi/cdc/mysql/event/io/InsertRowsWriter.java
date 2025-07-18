@@ -80,17 +80,11 @@ public class InsertRowsWriter extends AbstractBinlogTableEventWriter<InsertRowsE
             jsonGenerator.writeStartObject();
             jsonGenerator.writeNumberField("id", i + 1);
             ColumnDefinition columnDefinition = event.getColumnByIndex(i);
-            Integer columnType = null;
             if (columnDefinition != null) {
                 jsonGenerator.writeStringField("name", columnDefinition.getName());
-                columnType = columnDefinition.getType();
-                jsonGenerator.writeNumberField("column_type", columnType);
+                jsonGenerator.writeNumberField("column_type", columnDefinition.getType());
             }
-            if (row[i] == null) {
-                jsonGenerator.writeNullField("value");
-            } else {
-                jsonGenerator.writeObjectField("value", getWritableObject(columnType, row[i]));
-            }
+            writeObjectAsValueField(jsonGenerator, "value", columnDefinition, row[i]);
             jsonGenerator.writeEndObject();
             i = includedColumns.nextSetBit(i + 1);
         }
