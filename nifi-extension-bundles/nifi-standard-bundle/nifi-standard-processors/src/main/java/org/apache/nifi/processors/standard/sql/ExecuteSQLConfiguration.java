@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.standard.AbstractExecuteSQL;
 
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -46,14 +47,14 @@ public class ExecuteSQLConfiguration {
     private final Map<String, String> connectionAttributes;
 
     public ExecuteSQLConfiguration(ProcessContext context, ProcessSession session, FlowFile fileToProcess, Function<String, List<String>> getQueries) {
-        queryTimeout = context.getProperty(ExecuteSQLCommonProperties.QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
-        maxRowsPerFlowFile = context.getProperty(ExecuteSQLCommonProperties.MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final Integer outputBatchSizeField = context.getProperty(ExecuteSQLCommonProperties.OUTPUT_BATCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        queryTimeout = context.getProperty(AbstractExecuteSQL.QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
+        maxRowsPerFlowFile = context.getProperty(AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer outputBatchSizeField = context.getProperty(AbstractExecuteSQL.OUTPUT_BATCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
         outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
-        fetchSize = context.getProperty(ExecuteSQLCommonProperties.FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        fetchSize = context.getProperty(AbstractExecuteSQL.FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
-        preQueries = getQueries.apply(context.getProperty(ExecuteSQLCommonProperties.SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
-        postQueries = getQueries.apply(context.getProperty(ExecuteSQLCommonProperties.SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        preQueries = getQueries.apply(context.getProperty(AbstractExecuteSQL.SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        postQueries = getQueries.apply(context.getProperty(AbstractExecuteSQL.SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
 
         isOutputBatchSizeSet = outputBatchSize > 0;
         isMaxRowsPerFlowFileSet = maxRowsPerFlowFile > 0;
@@ -105,8 +106,8 @@ public class ExecuteSQLConfiguration {
 
     private String readSelectQuery(ProcessContext context, ProcessSession session, FlowFile fileToProcess) {
         String selectQuery;
-        if (context.getProperty(ExecuteSQLCommonProperties.SQL_QUERY).isSet()) {
-            selectQuery = context.getProperty(ExecuteSQLCommonProperties.SQL_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+        if (context.getProperty(AbstractExecuteSQL.SQL_QUERY).isSet()) {
+            selectQuery = context.getProperty(AbstractExecuteSQL.SQL_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         } else {
             // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.

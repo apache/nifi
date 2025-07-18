@@ -25,6 +25,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.AbstractExecuteSQL;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.db.JdbcCommon;
 import org.apache.nifi.util.db.SensitiveValueWrapper;
@@ -215,7 +216,7 @@ public class ExecuteSQLFetchSession implements Runnable {
     private FlowFile setFlowFileEmptyResults(final ProcessSession session, FlowFile flowFile, SqlWriter sqlWriter) {
         flowFile = session.write(flowFile, out -> sqlWriter.writeEmptyResultSet(out, logger));
         final Map<String, String> attributesToAdd = new HashMap<>();
-        attributesToAdd.put(ExecuteSQLCommonAttributes.RESULT_ROW_COUNT, "0");
+        attributesToAdd.put(AbstractExecuteSQL.RESULT_ROW_COUNT, "0");
         attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), sqlWriter.getMimeType());
         return session.putAllAttributes(flowFile, attributesToAdd);
     }
@@ -241,7 +242,7 @@ public class ExecuteSQLFetchSession implements Runnable {
 
     private void setupAutoCommit(ProcessContext context, Connection con, ComponentLog logger) throws SQLException {
         final boolean isAutoCommit = con.getAutoCommit();
-        final boolean setAutoCommitValue = context.getProperty(ExecuteSQLCommonProperties.AUTO_COMMIT).asBoolean();
+        final boolean setAutoCommitValue = context.getProperty(AbstractExecuteSQL.AUTO_COMMIT).asBoolean();
         // Only set auto-commit if necessary, log any "feature not supported" exceptions
         if (isAutoCommit != setAutoCommitValue) {
             try {
@@ -289,13 +290,13 @@ public class ExecuteSQLFetchSession implements Runnable {
         if (inputFileAttrMap != null) {
             attributesToAdd.putAll(inputFileAttrMap);
         }
-        attributesToAdd.put(ExecuteSQLCommonAttributes.RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
-        attributesToAdd.put(ExecuteSQLCommonAttributes.RESULT_QUERY_DURATION, String.valueOf(executionTimeElapsed + fetchTimeElapsed));
-        attributesToAdd.put(ExecuteSQLCommonAttributes.RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
-        attributesToAdd.put(ExecuteSQLCommonAttributes.RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
-        attributesToAdd.put(ExecuteSQLCommonAttributes.RESULTSET_INDEX, String.valueOf(resultCount));
+        attributesToAdd.put(AbstractExecuteSQL.RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+        attributesToAdd.put(AbstractExecuteSQL.RESULT_QUERY_DURATION, String.valueOf(executionTimeElapsed + fetchTimeElapsed));
+        attributesToAdd.put(AbstractExecuteSQL.RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
+        attributesToAdd.put(AbstractExecuteSQL.RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
+        attributesToAdd.put(AbstractExecuteSQL.RESULTSET_INDEX, String.valueOf(resultCount));
         if (inputFileUUID != null) {
-            attributesToAdd.put(ExecuteSQLCommonAttributes.INPUT_FLOWFILE_UUID, inputFileUUID);
+            attributesToAdd.put(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFileUUID);
         }
         attributesToAdd.putAll(sqlWriter.getAttributesToAdd());
         return session.putAllAttributes(resultSetFF, attributesToAdd);
@@ -321,19 +322,20 @@ public class ExecuteSQLFetchSession implements Runnable {
                 session.remove(fileToProcess);
             } else {
                 // If we had no results then transfer the original flow file downstream to trigger processors
-                final ContentOutputStrategy contentOutputStrategy = context.getProperty(ExecuteSQLCommonProperties.CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class);
-                if (ContentOutputStrategy.ORIGINAL == contentOutputStrategy) {
-                    session.transfer(fileToProcess, ExecuteSQLCommonRelationships.REL_SUCCESS);
+                final AbstractExecuteSQL.ContentOutputStrategy contentOutputStrategy = context.getProperty(AbstractExecuteSQL.CONTENT_OUTPUT_STRATEGY)
+                        .asAllowableValue(AbstractExecuteSQL.ContentOutputStrategy.class);
+                if (AbstractExecuteSQL.ContentOutputStrategy.ORIGINAL == contentOutputStrategy) {
+                    session.transfer(fileToProcess, AbstractExecuteSQL.REL_SUCCESS);
                 } else {
                     // Set Empty Results as the default behavior based on strategy or null property
-                    session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), ExecuteSQLCommonRelationships.REL_SUCCESS);
+                    session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), AbstractExecuteSQL.REL_SUCCESS);
                 }
             }
         } else if (resultCount == 0) {
             // If we had no inbound FlowFile, no exceptions, and the SQL generated no result sets (Insert/Update/Delete statements only)
             // Then generate an empty Output FlowFile
             FlowFile resultSetFF = session.create();
-            session.transfer(setFlowFileEmptyResults(session, resultSetFF, sqlWriter), ExecuteSQLCommonRelationships.REL_SUCCESS);
+            session.transfer(setFlowFileEmptyResults(session, resultSetFF, sqlWriter), AbstractExecuteSQL.REL_SUCCESS);
         }
     }
 
@@ -354,8 +356,8 @@ public class ExecuteSQLFetchSession implements Runnable {
                 logger.error("Unable to execute SQL select query [{}] routing to failure", selectQuery, e);
                 context.yield();
             }
-            session.putAttribute(fileToProcess, ExecuteSQLCommonAttributes.RESULT_ERROR_MESSAGE, e.getMessage());
-            session.transfer(fileToProcess, ExecuteSQLCommonRelationships.REL_FAILURE);
+            session.putAttribute(fileToProcess, AbstractExecuteSQL.RESULT_ERROR_MESSAGE, e.getMessage());
+            session.transfer(fileToProcess, AbstractExecuteSQL.REL_FAILURE);
         }
     }
 }

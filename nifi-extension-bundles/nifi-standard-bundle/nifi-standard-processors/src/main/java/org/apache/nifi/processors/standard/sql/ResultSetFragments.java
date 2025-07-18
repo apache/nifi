@@ -21,6 +21,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.standard.AbstractExecuteSQL;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,8 +67,8 @@ public class ResultSetFragments {
         if (config.isMaxRowsPerFlowFileSet()) {
             // if fragmented ResultSet, set fragment attributes
             final Map<String, String> attributesToAdd = new HashMap<>();
-            attributesToAdd.put(ExecuteSQLCommonAttributes.FRAGMENT_ID, fragmentId);
-            attributesToAdd.put(ExecuteSQLCommonAttributes.FRAGMENT_INDEX, String.valueOf(fragmentIndex++));
+            attributesToAdd.put(AbstractExecuteSQL.FRAGMENT_ID, fragmentId);
+            attributesToAdd.put(AbstractExecuteSQL.FRAGMENT_INDEX, String.valueOf(fragmentIndex++));
             flowFile = session.putAllAttributes(flowFile, attributesToAdd);
         }
 
@@ -76,7 +77,7 @@ public class ResultSetFragments {
         // If we've reached the batch size, send out the flow files
         if (config.isOutputBatchSizeSet() && flowFiles.size() > config.getOutputBatchSize()) {
             final FlowFile lastFlowFile = flowFiles.removeLast();
-            session.transfer(flowFiles, ExecuteSQLCommonRelationships.REL_SUCCESS);
+            session.transfer(flowFiles, AbstractExecuteSQL.REL_SUCCESS);
             // Need to remove the original input file if it exists
             if (inputFlowFile != null) {
                 session.remove(inputFlowFile);
@@ -112,10 +113,10 @@ public class ResultSetFragments {
         }
         // If we are splitting results but not outputting batches, set count on all FlowFiles
         if (!config.isOutputBatchSizeSet() && config.isMaxRowsPerFlowFileSet()) {
-            putAttributesToAll(singletonMap(ExecuteSQLCommonAttributes.FRAGMENT_COUNT, Long.toString(fragmentIndex)));
+            putAttributesToAll(singletonMap(AbstractExecuteSQL.FRAGMENT_COUNT, Long.toString(fragmentIndex)));
         }
-        flowFiles.addLast(session.putAttribute(flowFiles.removeLast(), ExecuteSQLCommonAttributes.END_OF_RESULTSET_FLAG, "true"));
-        session.transfer(flowFiles, ExecuteSQLCommonRelationships.REL_SUCCESS);
+        flowFiles.addLast(session.putAttribute(flowFiles.removeLast(), AbstractExecuteSQL.END_OF_RESULTSET_FLAG, "true"));
+        session.transfer(flowFiles, AbstractExecuteSQL.REL_SUCCESS);
         flowFiles.clear();
     }
 
