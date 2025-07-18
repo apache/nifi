@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -33,13 +36,28 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.sql.ExecuteSQLConfiguration;
-import org.apache.nifi.processors.standard.sql.ExecuteSQLFetchSession;
 import org.apache.nifi.processors.standard.sql.ResultSetFragments;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.db.JdbcCommon;
+import org.apache.nifi.util.db.SensitiveValueWrapper;
 
+import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static java.util.stream.Collectors.toMap;
 
 
 public abstract class AbstractExecuteSQL extends AbstractSessionFactoryProcessor {
@@ -229,26 +247,269 @@ public abstract class AbstractExecuteSQL extends AbstractSessionFactoryProcessor
     }
 
     protected void onTrigger(final ProcessContext context, final ProcessSession session, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        FlowFile fileToProcess = null;
-        if (context.hasIncomingConnection()) {
-            fileToProcess = session.get();
+        final ExecuteSQLConfiguration config; // TODO remove
 
-            // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
-            // However, if we have no FlowFile and we have connections coming from other Processors, then
-            // we know that we should run only if we have a FlowFile.
-            if (fileToProcess == null && context.hasNonLoopConnection()) {
-                return;
+        // Ensure that fileToProcess can only be accessed through resultSetFragments, because it might get removed
+        // while outputting in batches, because the session needs to be committed.
+        final ResultSetFragments resultSetFragments;
+        {
+            FlowFile fileToProcess = null;
+            if (context.hasIncomingConnection()) {
+                fileToProcess = session.get();
+
+                // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
+                // However, if we have no FlowFile and we have connections coming from other Processors, then
+                // we know that we should run only if we have a FlowFile.
+                if (fileToProcess == null && context.hasNonLoopConnection()) {
+                    return;
+                }
             }
+            config = new ExecuteSQLConfiguration(context, fileToProcess);
+            resultSetFragments = new ResultSetFragments(session, config, fileToProcess, sessionFactory);
         }
-
-        final ExecuteSQLConfiguration config = new ExecuteSQLConfiguration(context, session, fileToProcess, this::getQueries);
-        final ResultSetFragments resultSetFragments = new ResultSetFragments(session, config, fileToProcess, sessionFactory);
 
         final ComponentLog logger = getLogger();
 
-        final SqlWriter sqlWriter = configureSqlWriter(session, context, fileToProcess);
-        final Runnable fetchSession = new ExecuteSQLFetchSession(context, session, config, dbcpService, logger, sqlWriter, resultSetFragments);
-        fetchSession.run();
+        List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(resultSetFragments.getInputFlowFile()).getValue());
+        List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(resultSetFragments.getInputFlowFile()).getValue());
+
+        SqlWriter sqlWriter = configureSqlWriter(session, context, resultSetFragments.getInputFlowFile());
+
+        String selectQuery;
+        if (context.getProperty(SQL_QUERY).isSet()) {
+            selectQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions(resultSetFragments.getInputFlowFile()).getValue();
+        } else {
+            // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
+            // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
+            final FlowFile fileToProcess = resultSetFragments.getInputFlowFile();
+            final StringBuilder queryContents = new StringBuilder();
+            session.read(fileToProcess, in -> queryContents.append(IOUtils.toString(in, Charset.defaultCharset())));
+            selectQuery = queryContents.toString();
+        }
+
+        int resultCount = 0;
+        try (final Connection con = dbcpService.getConnection(config.getInputFileAttributes())) {
+            final boolean isAutoCommit = con.getAutoCommit();
+            final boolean setAutoCommitValue = context.getProperty(AUTO_COMMIT).asBoolean();
+            // Only set auto-commit if necessary, log any "feature not supported" exceptions
+            if (isAutoCommit != setAutoCommitValue) {
+                try {
+                    con.setAutoCommit(setAutoCommitValue);
+                } catch (SQLFeatureNotSupportedException sfnse) {
+                    logger.debug("setAutoCommit({}) not supported by this driver", setAutoCommitValue);
+                }
+            }
+            try (final PreparedStatement st = con.prepareStatement(selectQuery)) {
+                if (config.isFetchSizeSet()) {
+                    try {
+                        st.setFetchSize(config.getFetchSize());
+                    } catch (SQLException se) {
+                        // Not all drivers support this, just log the error (at debug level) and move on
+                        logger.debug("Cannot set fetch size to {} due to {}", config.getFetchSize(), se.getLocalizedMessage(), se);
+                    }
+                }
+                st.setQueryTimeout(config.getQueryTimeout()); // timeout in seconds
+
+                // Execute pre-query, throw exception and cleanup Flow Files if fail
+                Pair<String, SQLException> failure = executeConfigStatements(con, preQueries);
+                if (failure != null) {
+                    // In case of failure, assigning config query to "selectQuery" to follow current error handling
+                    selectQuery = failure.getLeft();
+                    throw failure.getRight();
+                }
+
+                final Map<String, SensitiveValueWrapper> sqlParameters = context.getProperties()
+                        .entrySet()
+                        .stream()
+                        .filter(e -> e.getKey().isDynamic())
+                        .collect(toMap(e -> e.getKey().getName(), e -> new SensitiveValueWrapper(e.getValue(), e.getKey().isSensitive())));
+
+                sqlParameters.putAll(
+                        config.getInputFileAttributes().entrySet().stream().collect(toMap(
+                            Map.Entry::getKey,
+                            entry -> new SensitiveValueWrapper(entry.getValue(), false)
+                        ))
+                );
+
+                if (!sqlParameters.isEmpty()) {
+                    JdbcCommon.setSensitiveParameters(st, sqlParameters);
+                }
+
+                logger.debug("Executing query {}", selectQuery);
+
+                final StopWatch executionTime = new StopWatch(true);
+
+                boolean hasResults = st.execute();
+
+                long executionTimeElapsed = executionTime.getElapsed(TimeUnit.MILLISECONDS);
+
+                boolean hasUpdateCount = st.getUpdateCount() != -1;
+
+                while (hasResults || hasUpdateCount) {
+                    //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
+                    if (hasResults) {
+                        final AtomicLong nrOfRows = new AtomicLong(0L);
+
+                        try {
+                            final ResultSet resultSet = st.getResultSet();
+                            do {
+                                final StopWatch fetchTime = new StopWatch(true);
+
+                                FlowFile resultSetFF = resultSetFragments.createNewFlowFile();
+
+                                try {
+                                    resultSetFF = session.write(resultSetFF, out -> {
+                                        try {
+                                            nrOfRows.set(sqlWriter.writeResultSet(resultSet, out, getLogger(), null));
+                                        } catch (Exception e) {
+                                            throw (e instanceof ProcessException) ? (ProcessException) e : new ProcessException(e);
+                                        }
+                                    });
+
+                                    // if fragmented ResultSet, determine if we should keep this fragment
+                                    if (config.isMaxRowsPerFlowFileSet() && nrOfRows.get() == 0 && !resultSetFragments.isFirst()) {
+                                        // if row count is zero and this is not the first fragment, drop it instead of committing it.
+                                        session.remove(resultSetFF);
+                                        break;
+                                    }
+
+                                    long fetchTimeElapsed = fetchTime.getElapsed(TimeUnit.MILLISECONDS);
+
+                                    // set attributes
+                                    final Map<String, String> attributesToAdd = new HashMap<>(config.getInputFileAttributes());
+                                    attributesToAdd.put(RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+                                    attributesToAdd.put(RESULT_QUERY_DURATION, String.valueOf(executionTimeElapsed + fetchTimeElapsed));
+                                    attributesToAdd.put(RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
+                                    attributesToAdd.put(RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
+                                    attributesToAdd.put(RESULTSET_INDEX, String.valueOf(resultCount));
+                                    attributesToAdd.putAll(sqlWriter.getAttributesToAdd());
+                                    resultSetFF = session.putAllAttributes(resultSetFF, attributesToAdd);
+                                    sqlWriter.updateCounters(session);
+
+                                    logger.info("{} contains {} records; transferring to 'success'", resultSetFF, nrOfRows.get());
+
+                                    // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
+                                    if (context.hasIncomingConnection()) {
+                                        session.getProvenanceReporter().fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                    } else {
+                                        session.getProvenanceReporter().receive(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                    }
+                                    resultSetFragments.add(resultSetFF);
+                                } catch (Exception e) {
+                                    // Remove any result set flow file(s) and propagate the exception
+                                    session.remove(resultSetFF);
+                                    resultSetFragments.removeAll();
+                                    if (e instanceof ProcessException) {
+                                        throw (ProcessException) e;
+                                    } else {
+                                        throw new ProcessException(e);
+                                    }
+                                }
+                            } while (config.isMaxRowsPerFlowFileSet() && nrOfRows.get() == config.getMaxRowsPerFlowFile());
+                        } catch (final SQLException e) {
+                            throw new ProcessException(e);
+                        }
+
+                        resultCount++;
+                    }
+
+                    // are there anymore result sets?
+                    try {
+                        hasResults = st.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
+                        hasUpdateCount = st.getUpdateCount() != -1;
+                    } catch (SQLException ex) {
+                        hasResults = false;
+                        hasUpdateCount = false;
+                    }
+                }
+
+                // Execute post-query, throw exception and cleanup Flow Files if fail
+                failure = executeConfigStatements(con, postQueries);
+                if (failure != null) {
+                    selectQuery = failure.getLeft();
+                    resultSetFragments.removeAll();
+                    throw failure.getRight();
+                }
+
+                // If the auto commit is set to false, commit() is called for consistency
+                if (!con.getAutoCommit()) {
+                    con.commit();
+                }
+
+                // Transfer any remaining files to SUCCESS
+                resultSetFragments.transferAllToSuccess();
+
+                // Safe to store fileToProcess, because beyond this point it won't be removed by ResultSetFragments
+                final FlowFile fileToProcess = resultSetFragments.getInputFlowFile();
+                if (fileToProcess != null) {
+                    if (resultCount > 0) {
+                        // If we had at least one result then it's OK to drop the original file
+                        session.remove(fileToProcess);
+                    } else {
+                        // If we had no results then transfer the original flow file downstream to trigger processors
+                        final ContentOutputStrategy contentOutputStrategy = context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class);
+                        if (ContentOutputStrategy.ORIGINAL == contentOutputStrategy) {
+                            session.transfer(fileToProcess, REL_SUCCESS);
+                        } else {
+                            // Set Empty Results as the default behavior based on strategy or null property
+                            session.transfer(setFlowFileEmptyResults(session, fileToProcess, sqlWriter), REL_SUCCESS);
+                        }
+                    }
+                } else if (resultCount == 0) {
+                    // If we had no inbound FlowFile, no exceptions, and the SQL generated no result sets (Insert/Update/Delete statements only)
+                    // Then generate an empty Output FlowFile
+                    FlowFile resultSetFF = session.create();
+                    session.transfer(setFlowFileEmptyResults(session, resultSetFF, sqlWriter), REL_SUCCESS);
+                }
+            }
+        } catch (final ProcessException | SQLException e) {
+            // Safe to store fileToProcess, because beyond this point it won't be removed by ResultSetFragments
+            FlowFile fileToProcess = resultSetFragments.getInputFlowFile();
+            //If we had at least one result then it's OK to drop the original file, but if we had no results then
+            //  pass the original flow file down the line to trigger downstream processors
+            if (fileToProcess == null) {
+                // This can happen if any exceptions occur while setting up the connection, statement, etc.
+                logger.error("Unable to execute SQL select query [{}]. No FlowFile to route to failure", selectQuery, e);
+                context.yield();
+            } else {
+                if (context.hasIncomingConnection()) {
+                    logger.error("Unable to execute SQL select query [{}] for {} routing to failure", selectQuery, fileToProcess, e);
+                    fileToProcess = session.penalize(fileToProcess);
+                } else {
+                    logger.error("Unable to execute SQL select query [{}] routing to failure", selectQuery, e);
+                    context.yield();
+                }
+                session.putAttribute(fileToProcess, RESULT_ERROR_MESSAGE, e.getMessage());
+                session.transfer(fileToProcess, REL_FAILURE);
+            }
+        }
+    }
+
+    protected FlowFile setFlowFileEmptyResults(final ProcessSession session, FlowFile flowFile, SqlWriter sqlWriter) {
+        flowFile = session.write(flowFile, out -> sqlWriter.writeEmptyResultSet(out, getLogger()));
+        final Map<String, String> attributesToAdd = new HashMap<>();
+        attributesToAdd.put(RESULT_ROW_COUNT, "0");
+        attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), sqlWriter.getMimeType());
+        return session.putAllAttributes(flowFile, attributesToAdd);
+    }
+
+    /*
+     * Executes given queries using pre-defined connection.
+     * Returns null on success, or a query string if failed.
+     */
+    protected Pair<String, SQLException> executeConfigStatements(final Connection con, final List<String> configQueries) {
+        if (configQueries == null || configQueries.isEmpty()) {
+            return null;
+        }
+
+        for (String confSQL : configQueries) {
+            try (final Statement st = con.createStatement()) {
+                st.execute(confSQL);
+            } catch (SQLException e) {
+                return Pair.of(confSQL, e);
+            }
+        }
+        return null;
     }
 
     /*

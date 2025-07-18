@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static java.util.Collections.singletonMap;
+import static org.apache.nifi.processors.standard.AbstractExecuteSQL.INPUT_FLOWFILE_UUID;
 
 public class ResultSetFragments {
 
@@ -40,7 +41,6 @@ public class ResultSetFragments {
 
     private FlowFile inputFlowFile;
 
-    private final Map<String, String> inputFileAttrMap;
     private final ProcessSessionFactory sessionFactory;
 
     private long fragmentIndex = 0;
@@ -49,7 +49,6 @@ public class ResultSetFragments {
         this.session = session;
         this.config = config;
         this.inputFlowFile = inputFlowFile;
-        this.inputFileAttrMap = inputFlowFile == null ? null : inputFlowFile.getAttributes();
         this.sessionFactory = sessionFactory;
     }
 
@@ -64,14 +63,21 @@ public class ResultSetFragments {
     }
 
     public void add(FlowFile flowFile) {
-        if (config.isMaxRowsPerFlowFileSet()) {
-            // if fragmented ResultSet, set fragment attributes
-            final Map<String, String> attributesToAdd = new HashMap<>();
-            attributesToAdd.put(AbstractExecuteSQL.FRAGMENT_ID, fragmentId);
-            attributesToAdd.put(AbstractExecuteSQL.FRAGMENT_INDEX, String.valueOf(fragmentIndex++));
-            flowFile = session.putAllAttributes(flowFile, attributesToAdd);
+        final Map<String, String> inputFileAttrMap = config.getInputFileAttributes();
+        final Map<String, String> attributesToAdd = new HashMap<>(inputFileAttrMap);
+        final String inputFileUUID = inputFileAttrMap.get(CoreAttributes.UUID.key());
+
+        if (inputFileUUID != null) {
+            attributesToAdd.put(INPUT_FLOWFILE_UUID, inputFileUUID);
         }
 
+        if (config.isMaxRowsPerFlowFileSet()) {
+            // if fragmented ResultSet, set fragment attributes
+            attributesToAdd.put(AbstractExecuteSQL.FRAGMENT_ID, fragmentId);
+            attributesToAdd.put(AbstractExecuteSQL.FRAGMENT_INDEX, String.valueOf(fragmentIndex++));
+        }
+
+        flowFile = session.putAllAttributes(flowFile, attributesToAdd);
         flowFiles.addLast(flowFile);
 
         // If we've reached the batch size, send out the flow files
@@ -126,14 +132,6 @@ public class ResultSetFragments {
 
     public FlowFile getInputFlowFile() {
         return inputFlowFile;
-    }
-
-    public Map<String, String> getInputFileAttributeMap() {
-        return inputFileAttrMap;
-    }
-
-    public String getInputFileUUID() {
-        return inputFileAttrMap == null ? null : inputFileAttrMap.get(CoreAttributes.UUID.key());
     }
 
     public boolean isFirst() {
