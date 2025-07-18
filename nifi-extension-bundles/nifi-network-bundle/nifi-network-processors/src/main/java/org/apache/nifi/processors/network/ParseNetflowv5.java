@@ -137,14 +137,11 @@ public class ParseNetflowv5 extends AbstractProcessor {
 
         try {
             final List<FlowFile> multipleRecords = new ArrayList<>();
-            switch (destination) {
-                case FLOWFILE_ATTRIBUTE:
-                    final Map<String, String> attributes = new HashMap<>();
-                    generateKV(multipleRecords, session, flowFile, attributes, parser, processedRecord);
-                    break;
-                case FLOWFILE_CONTENT:
-                    generateJSON(multipleRecords, session, flowFile, parser, processedRecord);
-                    break;
+            if (FLOWFILE_ATTRIBUTE.equals(destination)) {
+                final Map<String, String> attributes = new HashMap<>();
+                generateKV(multipleRecords, session, flowFile, attributes, parser, processedRecord);
+            } else if (FLOWFILE_CONTENT.equals(destination)) {
+                generateJSON(multipleRecords, session, flowFile, parser, processedRecord);
             }
 
             // Ready to transfer and commit

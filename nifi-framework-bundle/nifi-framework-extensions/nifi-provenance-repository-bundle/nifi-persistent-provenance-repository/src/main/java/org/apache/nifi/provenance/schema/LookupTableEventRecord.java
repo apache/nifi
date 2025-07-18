@@ -331,19 +331,15 @@ public class LookupTableEventRecord implements Record {
         // NO_VALUE type
         builder.setCurrentContentClaim(null, null, null, null, 0L);
         if (contentClaimObject != null) {
-            if (contentClaimObject instanceof String) {
-                final String contentClaimDescription = (String) contentClaimObject;
-                switch (contentClaimDescription) {
-                    case EventFieldNames.UNCHANGED_VALUE:
-                        builder.setCurrentContentClaim((String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
+            if (contentClaimObject instanceof String contentClaimDescription) {
+                if (contentClaimDescription.equals(EventFieldNames.UNCHANGED_VALUE)) {
+                    builder.setCurrentContentClaim((String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
                             (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SECTION),
                             (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_IDENTIFIER),
                             (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_OFFSET),
                             (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
-                        break;
                 }
-            } else if (contentClaimObject instanceof Record) {
-                final Record currentClaimRecord = (Record) contentClaimObject;
+            } else if (contentClaimObject instanceof Record currentClaimRecord) {
                 builder.setCurrentContentClaim(
                     (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
                     (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SECTION),

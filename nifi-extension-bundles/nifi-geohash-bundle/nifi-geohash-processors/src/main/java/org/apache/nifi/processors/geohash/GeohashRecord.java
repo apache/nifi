@@ -271,8 +271,6 @@ public class GeohashRecord extends AbstractProcessor {
             case SPLIT:
                 routingStrategyExecutor = new SplitRoutingStrategyExecutor();
                 break;
-            default:
-                throw new AssertionError();
         }
         enrichedCount = 0;
         unenrichedCount = 0;

@@ -257,7 +257,8 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 transferFile = false;
                 penalizeFile = true;
                 logger.warn("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", flowFile);
-            default:
+                // fallthrough
+                default:
                 break;
         }
 

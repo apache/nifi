@@ -62,47 +62,42 @@ public class BootstrapCodec {
     }
 
     private void processRequest(final String cmd, final String[] args) throws InvalidCommandException, IOException {
-        switch (cmd) {
-            case "PORT": {
-                if (args.length != 2) {
-                    throw new InvalidCommandException();
-                }
-
-                final int port;
-                try {
-                    port = Integer.parseInt(args[0]);
-                } catch (final NumberFormatException nfe) {
-                    throw new InvalidCommandException("Invalid Port number; should be integer between 1 and 65535");
-                }
-
-                if (port < 1 || port > 65535) {
-                    throw new InvalidCommandException("Invalid Port number; should be integer between 1 and 65535");
-                }
-
-                final String secretKey = args[1];
-
-                runner.setNiFiRegistryCommandControlPort(port, secretKey);
-                writer.write("OK");
-                writer.newLine();
-                writer.flush();
+        if (cmd.equals("PORT")) {
+            if (args.length != 2) {
+                throw new InvalidCommandException();
             }
-            break;
-            case "STARTED": {
-                if (args.length != 1) {
-                    throw new InvalidCommandException("STARTED command must contain a status argument");
-                }
 
-                if (!"true".equals(args[0]) && !"false".equals(args[0])) {
-                    throw new InvalidCommandException("Invalid status for STARTED command; should be true or false, but was '" + args[0] + "'");
-                }
-
-                final boolean started = Boolean.parseBoolean(args[0]);
-                runner.setNiFiRegistryStarted(started);
-                writer.write("OK");
-                writer.newLine();
-                writer.flush();
+            final int port;
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (final NumberFormatException nfe) {
+                throw new InvalidCommandException("Invalid Port number; should be integer between 1 and 65535");
             }
-            break;
+
+            if (port < 1 || port > 65535) {
+                throw new InvalidCommandException("Invalid Port number; should be integer between 1 and 65535");
+            }
+
+            final String secretKey = args[1];
+
+            runner.setNiFiRegistryCommandControlPort(port, secretKey);
+            writer.write("OK");
+            writer.newLine();
+            writer.flush();
+        } else if (cmd.equals("STARTED")) {
+            if (args.length != 1) {
+                throw new InvalidCommandException("STARTED command must contain a status argument");
+            }
+
+            if (!"true".equals(args[0]) && !"false".equals(args[0])) {
+                throw new InvalidCommandException("Invalid status for STARTED command; should be true or false, but was '" + args[0] + "'");
+            }
+
+            final boolean started = Boolean.parseBoolean(args[0]);
+            runner.setNiFiRegistryStarted(started);
+            writer.write("OK");
+            writer.newLine();
+            writer.flush();
         }
     }
 }

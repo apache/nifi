@@ -159,20 +159,17 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
                 }
 
                 try {
-                    switch (c) {
-                        case '\'':
-                            i = copyText(format, i);
-                            break;
-                        default:
-                            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
-                                if (c != lastChar) {
-                                    beginPattern(c);
-                                }
-
-                                continue;
+                    if (c == '\'') {
+                        i = copyText(format, i);
+                    } else {
+                        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+                            if (c != lastChar) {
+                                beginPattern(c);
                             }
-                            appendChar(c);
-                            break;
+
+                            continue;
+                        }
+                        appendChar(c);
                     }
                 } finally {
                     lastChar = c;

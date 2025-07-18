@@ -236,7 +236,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
                 final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
                 api.asUser(accountId);
             }
-            default -> throw new IllegalArgumentException("Unrecognized App actor:" + appActor);
         }
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {

@@ -1193,8 +1193,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         }
                     }
                     break;
-                    default:
-                        return results;
                 }
             }
         }

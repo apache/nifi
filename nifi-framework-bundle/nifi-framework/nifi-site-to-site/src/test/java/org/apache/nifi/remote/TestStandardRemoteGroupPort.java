@@ -103,18 +103,10 @@ public class TestStandardRemoteGroupPort {
 
         eventReporter = mock(EventReporter.class);
 
-        final ConnectableType connectableType;
-        switch (direction) {
-            case SEND:
-                connectableType = ConnectableType.REMOTE_INPUT_PORT;
-                break;
-            case RECEIVE:
-                connectableType = ConnectableType.OUTPUT_PORT;
-                break;
-            default:
-                connectableType = null;
-                break;
-        }
+        final ConnectableType connectableType = switch (direction) {
+            case SEND -> ConnectableType.REMOTE_INPUT_PORT;
+            case RECEIVE -> ConnectableType.OUTPUT_PORT;
+        };
 
         port = spy(new StandardRemoteGroupPort(ID, ID, NAME, remoteGroup, direction, connectableType, null, scheduler));
 

@@ -140,34 +140,28 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Transaction.TransactionState currentStatus = commSession.getStatus();
         if (isTransfer) {
-            switch (currentStatus) {
-                case DATA_EXCHANGED:
+            if (currentStatus == Transaction.TransactionState.DATA_EXCHANGED) {
                     String clientChecksum = commSession.getChecksum();
                     logger.debug("readTransactionResponse. clientChecksum={}", clientChecksum);
                     ResponseCode.CONFIRM_TRANSACTION.writeResponse(new DataOutputStream(bos), clientChecksum);
-                    break;
-                case TRANSACTION_CONFIRMED:
+            } else if (currentStatus == Transaction.TransactionState.TRANSACTION_CONFIRMED) {
                     logger.debug("readTransactionResponse. finishing.");
                     ResponseCode.TRANSACTION_FINISHED.writeResponse(new DataOutputStream(bos));
-                    break;
             }
         } else {
-            switch (currentStatus) {
-                case TRANSACTION_STARTED:
-                    logger.debug("readTransactionResponse. returning CONTINUE_TRANSACTION.");
-                    // We don't know if there's more data to receive, so just continue it.
-                    ResponseCode.CONTINUE_TRANSACTION.writeResponse(new DataOutputStream(bos));
-                    break;
-                case TRANSACTION_CONFIRMED:
-                    // Checksum was successfully validated at client side, or BAD_CHECKSUM is returned.
-                    ResponseCode responseCode = commSession.getResponseCode();
-                    logger.debug("readTransactionResponse. responseCode={}", responseCode);
-                    if (responseCode.containsMessage()) {
-                        responseCode.writeResponse(new DataOutputStream(bos), "");
-                    } else {
-                        responseCode.writeResponse(new DataOutputStream(bos));
-                    }
-                    break;
+            if (currentStatus == Transaction.TransactionState.TRANSACTION_STARTED) {
+                logger.debug("readTransactionResponse. returning CONTINUE_TRANSACTION.");
+                // We don't know if there's more data to receive, so just continue it.
+                ResponseCode.CONTINUE_TRANSACTION.writeResponse(new DataOutputStream(bos));
+            } else if (currentStatus == Transaction.TransactionState.TRANSACTION_CONFIRMED) {
+                // Checksum was successfully validated at client side, or BAD_CHECKSUM is returned.
+                ResponseCode responseCode = commSession.getResponseCode();
+                logger.debug("readTransactionResponse. responseCode={}", responseCode);
+                if (responseCode.containsMessage()) {
+                    responseCode.writeResponse(new DataOutputStream(bos), "");
+                } else {
+                    responseCode.writeResponse(new DataOutputStream(bos));
+                }
             }
         }
 

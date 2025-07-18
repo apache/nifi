@@ -548,6 +548,7 @@ public class AffectedComponentSet {
                 break;
             case FLOW_REGISTRY_CLIENT:
                 addFlowRegistryClient(flowManager.getFlowRegistryClient(componentId));
+            // fallthrough
             case REMOTE_PROCESS_GROUP:
                 addRemoteProcessGroup(flowManager.getRootGroup().findRemoteProcessGroup(componentId));
                 break;

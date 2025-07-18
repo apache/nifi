@@ -292,12 +292,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         // validate the concurrent tasks based on the scheduling strategy
         if (isNotNull(config.getConcurrentlySchedulableTaskCount())) {
-            switch (schedulingStrategy) {
-                case TIMER_DRIVEN:
-                    if (config.getConcurrentlySchedulableTaskCount() <= 0) {
-                        validationErrors.add("Concurrent tasks must be greater than 0.");
-                    }
-                    break;
+            if (schedulingStrategy == SchedulingStrategy.TIMER_DRIVEN) {
+                if (config.getConcurrentlySchedulableTaskCount() <= 0) {
+                    validationErrors.add("Concurrent tasks must be greater than 0.");
+                }
             }
         }
 
@@ -400,14 +398,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             processor.verifyCanStart();
                             break;
                         case STOPPED:
-                            switch (processor.getScheduledState()) {
-                                case RUNNING:
-                                    processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
-                                    processor.verifyCanStop();
-                                    break;
-                                case DISABLED:
-                                    processor.verifyCanEnable();
-                                    break;
+                            if (processor.getScheduledState() == ScheduledState.RUNNING) {
+                                processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                                processor.verifyCanStop();
+                            } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
+                                processor.verifyCanEnable();
                             }
                             break;
                         case DISABLED:
@@ -527,13 +522,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             parentGroup.startProcessor(processor, true);
                             break;
                         case STOPPED:
-                            switch (processor.getScheduledState()) {
-                                case RUNNING:
-                                    parentGroup.stopProcessor(processor);
-                                    break;
-                                case DISABLED:
-                                    parentGroup.enableProcessor(processor);
-                                    break;
+                            if (processor.getScheduledState() == ScheduledState.RUNNING) {
+                                parentGroup.stopProcessor(processor);
+                            } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
+                                parentGroup.enableProcessor(processor);
                             }
                             break;
                         case DISABLED:

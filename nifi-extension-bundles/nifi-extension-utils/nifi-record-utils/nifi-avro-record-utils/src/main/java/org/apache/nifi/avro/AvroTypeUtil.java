@@ -203,7 +203,7 @@ public class AvroTypeUtil {
     }
 
     private static Schema buildAvroSchema(final DataType dataType, final String fieldName, String fieldNamePrefix, final boolean nullable) {
-        final Schema schema;
+       Schema schema = null;
 
         switch (dataType.getFieldType()) {
             case ARRAY:
@@ -312,8 +312,6 @@ public class AvroTypeUtil {
                 final EnumDataType enumType = (EnumDataType) dataType;
                 schema = Schema.createEnum(fieldName, "", "org.apache.nifi", enumType.getEnums());
                 break;
-            default:
-                return null;
         }
 
         if (nullable) {

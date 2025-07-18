@@ -564,7 +564,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 final Iterator<ByteRecord> demarcatedRecords = transformDemarcator(context, consumerRecords);
                 processInputFlowFile(session, offsetTracker, demarcatedRecords);
             }
-            default -> throw new IllegalStateException("Processing Strategy not supported [%s]".formatted(processingStrategy));
         }
     }
 

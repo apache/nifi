@@ -711,17 +711,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final Map<String, String> decryptedProperties = decryptProperties(flowAnalysisRule.getProperties(), controller.getEncryptor());
         ruleNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
 
-        switch (flowAnalysisRule.getScheduledState()) {
-            case DISABLED:
-                if (ruleNode.isEnabled()) {
-                    controller.disableFlowAnalysisRule(ruleNode);
-                }
-                break;
-            case ENABLED:
-                if (!ruleNode.isEnabled()) {
-                    controller.enableFlowAnalysisRule(ruleNode);
-                }
-                break;
+        if (flowAnalysisRule.getScheduledState() == ScheduledState.DISABLED) {
+            if (ruleNode.isEnabled()) {
+                controller.disableFlowAnalysisRule(ruleNode);
+            }
+        } else if (flowAnalysisRule.getScheduledState() == ScheduledState.ENABLED) {
+            if (!ruleNode.isEnabled()) {
+                controller.enableFlowAnalysisRule(ruleNode);
+            }
         }
     }
 

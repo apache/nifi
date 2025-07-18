@@ -299,42 +299,33 @@ public class GenerateRecord extends AbstractProcessor {
         if (recordField.isNullable() && faker.number().numberBetween(0, 100) < nullPercentage) {
             return null;
         }
-        switch (recordField.getDataType().getFieldType()) {
-            case BIGINT:
-                return new BigInteger(String.valueOf(faker.number().numberBetween(Long.MIN_VALUE, Long.MAX_VALUE)));
-            case BOOLEAN:
-                return FakerUtils.getFakeData("Bool.bool", faker);
-            case BYTE:
-                return (byte) faker.number().numberBetween(Byte.MIN_VALUE, Byte.MAX_VALUE);
-            case CHAR:
-                return (char) faker.number().numberBetween(Character.MIN_VALUE, Character.MAX_VALUE);
-            case DATE:
-                return FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
-            case DOUBLE:
-                return faker.number().randomDouble(6, Long.MIN_VALUE, Long.MAX_VALUE);
-            case FLOAT:
+        return switch (recordField.getDataType().getFieldType()) {
+            case BIGINT -> new BigInteger(String.valueOf(faker.number().numberBetween(Long.MIN_VALUE, Long.MAX_VALUE)));
+            case BOOLEAN -> FakerUtils.getFakeData("Bool.bool", faker);
+            case BYTE -> (byte) faker.number().numberBetween(Byte.MIN_VALUE, Byte.MAX_VALUE);
+            case CHAR -> (char) faker.number().numberBetween(Character.MIN_VALUE, Character.MAX_VALUE);
+            case DATE -> FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
+            case DOUBLE -> faker.number().randomDouble(6, Long.MIN_VALUE, Long.MAX_VALUE);
+            case FLOAT -> {
                 final double randomDouble = faker.number().randomDouble(6, Long.MIN_VALUE, Long.MAX_VALUE);
-                return (float) randomDouble;
-            case DECIMAL:
-                return faker.number().randomDouble(((DecimalDataType) recordField.getDataType()).getScale(), Long.MIN_VALUE, Long.MAX_VALUE);
-            case INT:
-                return faker.number().numberBetween(Integer.MIN_VALUE, Integer.MAX_VALUE);
-            case LONG:
-                return faker.number().numberBetween(Long.MIN_VALUE, Long.MAX_VALUE);
-            case SHORT:
-                return faker.number().numberBetween(Short.MIN_VALUE, Short.MAX_VALUE);
-            case ENUM:
+                yield (float) randomDouble;
+            }
+            case DECIMAL -> faker.number().randomDouble(((DecimalDataType) recordField.getDataType()).getScale(), Long.MIN_VALUE, Long.MAX_VALUE);
+            case INT -> faker.number().numberBetween(Integer.MIN_VALUE, Integer.MAX_VALUE);
+            case LONG -> faker.number().numberBetween(Long.MIN_VALUE, Long.MAX_VALUE);
+            case SHORT -> faker.number().numberBetween(Short.MIN_VALUE, Short.MAX_VALUE);
+            case ENUM -> {
                 List<String> enums = ((EnumDataType) recordField.getDataType()).getEnums();
-                return enums.get(faker.number().numberBetween(0, enums.size() - 1));
-            case TIME:
+                yield enums.get(faker.number().numberBetween(0, enums.size() - 1));
+            }
+            case TIME -> {
                 Date fakeDate = (Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
                 LocalDate fakeLocalDate = fakeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                return fakeLocalDate.format(DateTimeFormatter.ISO_LOCAL_TIME);
-            case TIMESTAMP:
-                return ((Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker)).getTime();
-            case UUID:
-                return UUID.randomUUID();
-            case ARRAY:
+                yield fakeLocalDate.format(DateTimeFormatter.ISO_LOCAL_TIME);
+            }
+            case TIMESTAMP -> ((Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker)).getTime();
+            case UUID -> UUID.randomUUID();
+            case ARRAY -> {
                 final ArrayDataType arrayDataType = (ArrayDataType) recordField.getDataType();
                 final DataType elementType = arrayDataType.getElementType();
                 final int numElements = faker.number().numberBetween(0, 10);
@@ -344,8 +335,9 @@ public class GenerateRecord extends AbstractProcessor {
                     // If the array elements are non-nullable, use zero as the nullPercentage
                     returnValue[i] = generateValueFromRecordField(tempRecordField, faker, arrayDataType.isElementsNullable() ? nullPercentage : 0);
                 }
-                return returnValue;
-            case MAP:
+                yield returnValue;
+            }
+            case MAP -> {
                 final MapDataType mapDataType = (MapDataType) recordField.getDataType();
                 final DataType valueType = mapDataType.getValueType();
                 // Create 4-element fake map
@@ -354,8 +346,9 @@ public class GenerateRecord extends AbstractProcessor {
                 returnMap.put(KEY2, generateValueFromRecordField(new RecordField(KEY2, valueType), faker, nullPercentage));
                 returnMap.put(KEY3, generateValueFromRecordField(new RecordField(KEY3, valueType), faker, nullPercentage));
                 returnMap.put(KEY4, generateValueFromRecordField(new RecordField(KEY4, valueType), faker, nullPercentage));
-                return returnMap;
-            case RECORD:
+                yield returnMap;
+            }
+            case RECORD -> {
                 final RecordDataType recordType = (RecordDataType) recordField.getDataType();
                 final RecordSchema childSchema = recordType.getChildSchema();
                 final Map<String, Object> recordValues = new HashMap<>();
@@ -364,18 +357,18 @@ public class GenerateRecord extends AbstractProcessor {
                     final Object writeFieldValue = generateValueFromRecordField(writeRecordField, faker, nullPercentage);
                     recordValues.put(writeFieldName, writeFieldValue);
                 }
-                return new MapRecord(childSchema, recordValues);
-            case CHOICE:
+                yield new MapRecord(childSchema, recordValues);
+            }
+            case CHOICE -> {
                 final ChoiceDataType choiceDataType = (ChoiceDataType) recordField.getDataType();
                 List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
                 // Pick one at random and generate a value for it
                 DataType chosenType = subTypes.get(faker.number().numberBetween(0, subTypes.size() - 1));
                 RecordField tempRecordField = new RecordField(recordField.getFieldName(), chosenType);
-                return generateValueFromRecordField(tempRecordField, faker, nullPercentage);
-            case STRING:
-            default:
-                return generateRandomString();
-        }
+                yield generateValueFromRecordField(tempRecordField, faker, nullPercentage);
+            }
+            case STRING -> generateRandomString();
+        };
     }
 
     private String generateRandomString() {

@@ -89,11 +89,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         // Map of permission to access for tracking App Installation permissions from internal authorization
         final Map<String, String> appPermissions = new LinkedHashMap<>();
 
-        switch (authenticationType) {
-            case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
-            case APP_INSTALLATION -> gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
+        if (authenticationType == GitHubAuthenticationType.PERSONAL_ACCESS_TOKEN) {
+            gitHubBuilder.withOAuthToken(builder.personalAccessToken);
+        } else if (authenticationType == GitHubAuthenticationType.APP_INSTALLATION) {
+            gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
         }
-
         gitHub = gitHubBuilder.build();
 
         final String fullRepoName = repoOwner + "/" + repoName;

@@ -370,7 +370,6 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                             text += registry;
                             break;
                         case NONE:
-                        default:
                             // in case legacy/deprecated method has been used to specify EL support
                             text += " (undefined scope)";
                             break;
@@ -495,18 +494,13 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                         text = "Supports Expression Language: false";
                     }
                 } else {
-                    switch (elScope) {
-                        case FLOWFILE_ATTRIBUTES:
-                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and env/syst variables registry)";
-                            break;
-                        case ENVIRONMENT:
-                            text = "Supports Expression Language: true (will be evaluated using env/syst variables registry only)";
-                            break;
-                        case NONE:
-                        default:
-                            text = "Supports Expression Language: false";
-                            break;
-                    }
+                    text = switch (elScope) {
+                        case FLOWFILE_ATTRIBUTES ->
+                                "Supports Expression Language: true (will be evaluated using flow file attributes and env/syst variables registry)";
+                        case ENVIRONMENT ->
+                                "Supports Expression Language: true (will be evaluated using env/syst variables registry only)";
+                        default -> "Supports Expression Language: false";
+                    };
                 }
 
                 writeSimpleElement(xmlStreamWriter, "strong", text);
@@ -607,9 +601,6 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                     break;
                 case INPUT_REQUIRED:
                     xmlStreamWriter.writeCharacters("This component requires an incoming relationship.");
-                    break;
-                default:
-                    xmlStreamWriter.writeCharacters("This component does not have input requirement.");
                     break;
             }
         }

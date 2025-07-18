@@ -248,15 +248,10 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
     }
 
     static String getBundleFileExtension(final BundleVersionType bundleType) {
-        switch (bundleType) {
-            case NIFI_NAR:
-                return NAR_EXTENSION;
-            case MINIFI_CPP:
-                return CPP_EXTENSION;
-            default:
-                LOGGER.warn("Unknown bundle type: {}", bundleType);
-                return "";
-        }
+        return switch (bundleType) {
+            case NIFI_NAR -> NAR_EXTENSION;
+            case MINIFI_CPP -> CPP_EXTENSION;
+        };
     }
 
     private static String getNormalizedBucketId(final String id) {

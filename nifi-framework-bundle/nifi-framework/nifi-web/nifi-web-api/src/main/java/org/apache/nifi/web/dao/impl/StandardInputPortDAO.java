@@ -117,13 +117,10 @@ public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
                 processGroup.startInputPort(port);
                 break;
             case STOPPED:
-                switch (port.getScheduledState()) {
-                    case RUNNING:
-                        processGroup.stopInputPort(port);
-                        break;
-                    case DISABLED:
-                        processGroup.enableInputPort(port);
-                        break;
+                if (port.getScheduledState() == ScheduledState.RUNNING) {
+                    processGroup.stopInputPort(port);
+                } else if (port.getScheduledState() == ScheduledState.DISABLED) {
+                    processGroup.enableInputPort(port);
                 }
                 break;
             case DISABLED:

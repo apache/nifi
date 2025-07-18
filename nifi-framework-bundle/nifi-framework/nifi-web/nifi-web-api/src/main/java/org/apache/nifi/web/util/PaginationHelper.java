@@ -89,7 +89,6 @@ public class PaginationHelper {
                     break;
                 }
                 case AFTER:
-                default:
                     // Do nothing
             }
         }

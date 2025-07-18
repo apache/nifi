@@ -209,8 +209,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             case PARAMETER_PROVIDER:
                 addParameterProviderDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
-            default:
-                throw new IllegalArgumentException("Unknown extension type: " + extension.getType());
         }
     }
 
