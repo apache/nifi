@@ -637,10 +637,12 @@ public interface SiteToSiteClient extends Closeable {
                 throw new IllegalStateException("Must specify either Port Name or Port Identifier to build Site-to-Site client");
             }
 
-            return switch (transportProtocol) {
-                case RAW -> new SocketClient(buildConfig());
-                case HTTP -> new HttpClient(buildConfig());
-            };
+            if (transportProtocol == SiteToSiteTransportProtocol.RAW) {
+                return new SocketClient(buildConfig());
+            } else if (transportProtocol == SiteToSiteTransportProtocol.HTTP) {
+                return new HttpClient(buildConfig());
+            }
+            throw new IllegalStateException("Transport protocol '" + transportProtocol + "' is not supported.");
         }
 
         /**
