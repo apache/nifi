@@ -27,7 +27,7 @@ import { MatInputModule } from '@angular/material/input';
 import { Store } from '@ngrx/store';
 import { createNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
-import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/header/common/context-error-banner/context-error-banner.component';
+import { ContextErrorBanner } from '@nifi/shared';
 import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 export interface ImportNewFlowDialogData {
