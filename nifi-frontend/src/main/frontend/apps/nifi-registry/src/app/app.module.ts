@@ -31,7 +31,6 @@ import { EffectsModule } from '@ngrx/effects';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
-import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { DropletsEffects } from './state/droplets/droplets.effects';
 import { BucketsEffects } from './state/buckets/buckets.effects';
 import { ErrorEffects } from './state/error/error.effects';
@@ -69,7 +68,7 @@ try {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(CurrentUserEffects, DropletsEffects, BucketsEffects, ErrorEffects)
+        EffectsModule.forRoot(DropletsEffects, BucketsEffects, ErrorEffects)
     ],
     providers: [
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),
