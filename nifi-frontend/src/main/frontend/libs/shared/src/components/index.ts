@@ -29,3 +29,4 @@ export * from './yes-no-dialog/yes-no-dialog.component';
 export * from './tooltips/property-hint-tip/property-hint-tip.component';
 export * from './tooltips/text-tip/text-tip.component';
 export * from './error-banner/error-banner.component';
+export * from './context-error-banner/context-error-banner.component';
