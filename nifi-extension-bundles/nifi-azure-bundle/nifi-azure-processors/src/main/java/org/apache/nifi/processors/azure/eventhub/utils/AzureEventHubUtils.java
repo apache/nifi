@@ -123,10 +123,8 @@ public final class AzureEventHubUtils {
         final AzureEventHubTransportType transportType =
                 propertyContext.getProperty(AzureEventHubComponent.TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class);
 
-        final ProxyConfiguration proxyConfiguration = switch (transportType) {
-            case AMQP -> ProxyConfiguration.DIRECT_CONFIGURATION;
-            case AMQP_WEB_SOCKETS -> ProxyConfiguration.getConfiguration(propertyContext);
-        };
+        final ProxyConfiguration proxyConfiguration =
+                transportType == AzureEventHubTransportType.AMQP ? ProxyConfiguration.DIRECT_CONFIGURATION : ProxyConfiguration.getConfiguration(propertyContext);
 
         final ProxyOptions proxyOptions;
         if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
