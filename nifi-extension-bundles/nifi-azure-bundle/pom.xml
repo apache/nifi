@@ -75,6 +75,12 @@
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>${nimbus-jose-jwt.version}</version>
             </dependency>
+            <!-- Override Reactor Core Netty from azure-core-netty-http -->
+            <dependency>
+                <groupId>io.projectreactor.netty</groupId>
+                <artifactId>reactor-netty-http</artifactId>
+                <version>1.2.8</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
