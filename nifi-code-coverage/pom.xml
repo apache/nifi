@@ -85,11 +85,11 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <!-- Reactor Netty client 1.0.34 from Azure Identity -->
+            <!-- Override Reactor Netty client 1.0.48 from azure-core-netty-http -->
             <dependency>
                 <groupId>io.projectreactor.netty</groupId>
                 <artifactId>reactor-netty-http</artifactId>
-                <version>1.2.7</version>
+                <version>1.2.8</version>
             </dependency>
             <!-- SSHD from Registry and other modules -->
             <dependency>
