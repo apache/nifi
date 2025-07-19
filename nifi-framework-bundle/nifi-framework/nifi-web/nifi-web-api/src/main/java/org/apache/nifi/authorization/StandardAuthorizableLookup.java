@@ -591,6 +591,23 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                         return new OperationAuthorizable(getAccessPolicy(baseResourceType, resource));
                 }
 
+            case Controller:
+                // Handle Nested Resource Types such as Flow Analysis Rules and Flow Registry Clients
+                final ResourceType nestedResourceType;
+                if (resource.startsWith(ResourceType.RegistryClient.getValue())) {
+                    nestedResourceType = ResourceType.RegistryClient;
+                } else if (resource.startsWith(ResourceType.FlowAnalysisRule.getValue())) {
+                    nestedResourceType = ResourceType.FlowAnalysisRule;
+                } else {
+                    nestedResourceType = null;
+                }
+
+                if (nestedResourceType == null) {
+                    return getAccessPolicy(resourceType, resource);
+                } else {
+                    final String componentId = StringUtils.substringAfter(resource, nestedResourceType.getValue()).substring(1);
+                    return getAccessPolicyByResource(nestedResourceType, componentId);
+                }
             case RestrictedComponents:
                 final String slashRequiredPermission = StringUtils.substringAfter(resource, resourceType.getValue());
 
