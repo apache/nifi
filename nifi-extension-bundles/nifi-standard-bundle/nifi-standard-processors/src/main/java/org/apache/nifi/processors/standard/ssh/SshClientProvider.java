@@ -16,19 +16,21 @@
  */
 package org.apache.nifi.processors.standard.ssh;
 
-import net.schmizz.sshj.Config;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.sshd.client.session.ClientSession;
+
+import java.util.Map;
 
 /**
- * Configuration Provider for SSHJ
+ * Abstraction for producing configured Apache MINA SSH Client instances
  */
-public interface SSHConfigProvider {
+public interface SshClientProvider {
     /**
-     * Get SSH Configuration using configured properties
+     * Get configured SSH Client using configured properties
      *
-     * @param identifier SSH Client identifier for runtime tracking
      * @param context Property Context
-     * @return SSH Configuration
+     * @param attributes FlowFile attributes for property expression evaluation
+     * @return Apache MINA SSH Client Session
      */
-    Config getConfig(final String identifier, final PropertyContext context);
+    ClientSession getClientSession(PropertyContext context, final Map<String, String> attributes);
 }
