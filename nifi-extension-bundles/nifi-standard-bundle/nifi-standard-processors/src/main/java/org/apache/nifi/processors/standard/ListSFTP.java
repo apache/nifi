@@ -110,6 +110,7 @@ public class ListSFTP extends ListFileTransfer {
             ListFile.MAX_AGE,
             ListFile.MIN_SIZE,
             ListFile.MAX_SIZE,
+            SFTPTransfer.ALGORITHM_CONFIGURATION,
             SFTPTransfer.CIPHERS_ALLOWED,
             SFTPTransfer.KEY_ALGORITHMS_ALLOWED,
             SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED,
@@ -128,6 +129,7 @@ public class ListSFTP extends ListFileTransfer {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         config.removeProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE.getName());
+        SFTPTransfer.migrateAlgorithmProperties(config);
     }
 
     @Override

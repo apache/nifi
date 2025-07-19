@@ -216,18 +216,6 @@ The following binary components are provided under the Apache Software License v
 
         Copyright 2018 simple-syslog-5424 authors.
 
-  (ASLv2) sshj
-    The following NOTICE information applie:
-
-      sshj - SSHv2 library for Java
-      Copyright 2010-2012 sshj contributors
-
-      This product includes code derived from software developed at
-      The Apache Software Foundation (http://www.apache.org/):
-
-      - Apache MINA SSHD
-      - Apache Commons-Net
-
   (ASLv2) Apache Ftplet API
     The following NOTICE information applies:
       Apache Ftplet API 1.1.1

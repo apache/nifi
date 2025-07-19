@@ -27,11 +27,11 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,13 +42,14 @@ class TestDeleteSFTP {
     private static final int BATCH_SIZE = 2;
 
     private final TestRunner runner = TestRunners.newTestRunner(DeleteSFTP.class);
-    private final SSHTestServer sshTestServer = new SSHTestServer();
+    private SSHTestServer sshTestServer;
     private Path sshServerRootPath;
 
     @BeforeEach
-    void setRunner() throws IOException {
+    void setRunner(@TempDir final Path rootPath) throws IOException {
+        sshTestServer = new SSHTestServer(rootPath);
         sshTestServer.startServer();
-        sshServerRootPath = Paths.get(sshTestServer.getVirtualFileSystemPath()).toAbsolutePath();
+        sshServerRootPath = rootPath;
 
         runner.setProperty(SFTPTransfer.HOSTNAME, sshTestServer.getHost());
         runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));

@@ -2166,18 +2166,6 @@ The following binary components are provided under the Apache Software License v
       Apache Yetus
       Copyright 2008-2018 The Apache Software Foundation
 
-  (ASLv2) sshj
-    The following NOTICE information applies:
-
-      sshj - SSHv2 library for Java
-      Copyright 2010-2012 sshj contributors
-
-      This product includes code derived from software developed at
-      The Apache Software Foundation (http://www.apache.org/):
-
-      - Apache MINA SSHD
-      - Apache Commons-Net
-
   (ASLv2) Nimbus Language Tags
       The following NOTICE information applies:
         Nimbus Language Tags

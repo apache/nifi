@@ -23,9 +23,11 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.util.MockPropertyContext;
+import org.apache.sshd.common.CommonModuleProperties;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.sftp.SftpModuleProperties;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -508,6 +511,22 @@ public class TestServerSFTPTransfer {
     }
 
     @Test
+    public void testGetRemoteFileInfoCustomAlgorithmConfiguration() throws IOException {
+        final Map<PropertyDescriptor, String> properties = createBaseProperties();
+        properties.put(SFTPTransfer.ALGORITHM_CONFIGURATION, SFTPTransfer.AlgorithmConfiguration.CUSTOM.getValue());
+        properties.put(SFTPTransfer.CIPHERS_ALLOWED, "aes256-gcm@openssh.com");
+        properties.put(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED, "diffie-hellman-group14-sha256");
+        properties.put(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED, "hmac-sha2-256");
+        properties.put(SFTPTransfer.KEY_ALGORITHMS_ALLOWED, "ecdsa-sha2-nistp521");
+
+        try (final SFTPTransfer transfer = createSFTPTransfer(properties)) {
+            final FileInfo fileInfo = transfer.getRemoteFileInfo(null, DIR_2, FILE_1);
+            assertNotNull(fileInfo);
+            assertEquals(FILE_1, fileInfo.getFileName());
+        }
+    }
+
+    @Test
     public void testRename() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
 
@@ -675,6 +694,9 @@ public class TestServerSFTPTransfer {
 
     private void startServer() throws IOException {
         sshServer = SshServer.setUpDefaultServer();
+        // Set SFTP Version 3 for general compatibility for File Attribute operations
+        SftpModuleProperties.SFTP_VERSION.set(sshServer, 3);
+        CommonModuleProperties.CLOSE_WAIT_TIMEOUT.set(sshServer, Duration.ofMillis(250));
         sshServer.setHost(LOCALHOST);
         sshServer.setPasswordAuthenticator((username, password, serverSession) -> USERNAME.equals(username) && PASSWORD.equals(password));
         sshServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());

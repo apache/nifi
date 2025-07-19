@@ -21,38 +21,30 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGetSFTP {
 
+    private SSHTestServer sshTestServer;
+
     private TestRunner runner;
-    private static SSHTestServer sshTestServer;
-
-    @BeforeAll
-    public static void startServer() throws IOException {
-        sshTestServer = new SSHTestServer();
-        sshTestServer.startServer();
-    }
-
-    @AfterAll
-    public static void stopServer() throws IOException {
-        sshTestServer.stopServer();
-    }
 
     @BeforeEach
-    public void setup() {
+    void setup(@TempDir final Path rootPath) throws IOException {
+        sshTestServer = new SSHTestServer(rootPath);
+        sshTestServer.startServer();
+
         runner = TestRunners.newTestRunner(GetSFTP.class);
         runner.setProperty(SFTPTransfer.HOSTNAME, sshTestServer.getHost());
         runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
@@ -71,97 +63,80 @@ public class TestGetSFTP {
         runner.setProperty(SFTPTransfer.DELETE_ORIGINAL, "true");
         runner.setProperty(SFTPTransfer.MAX_SELECTS, "100");
         runner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "5000");
+    }
 
-        runner.setValidateExpressionUsage(false);
+    @AfterEach
+    void stopServer() throws IOException {
+        sshTestServer.stopServer();
     }
 
     @Test
-    public void testGetSFTPFileBasicRead() throws IOException {
-        emptyTestDirectory();
-
-        touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
-        touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile2.txt");
-        touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile3.txt");
-        touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile4.txt");
+    void testRunFilesFound() throws IOException {
+        touchFile(sshTestServer.getRootPath().resolve("testFile1.txt"));
+        touchFile(sshTestServer.getRootPath().resolve("testFile2.txt"));
+        touchFile(sshTestServer.getRootPath().resolve("testFile3.txt"));
+        touchFile(sshTestServer.getRootPath().resolve("testFile4.txt"));
 
         runner.run();
 
         runner.assertTransferCount(GetSFTP.REL_SUCCESS, 4);
 
-        //Verify files deleted
-        for (int i = 1; i < 5; i++) {
-            Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
-            assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
-        }
+        assertFileNotFound("testFile1.txt");
+        assertFileNotFound("testFile2.txt");
+        assertFileNotFound("testFile3.txt");
+        assertFileNotFound("testFile4.txt");
 
         runner.clearTransferState();
     }
 
     @Test
-    public void testGetSFTPShouldNotThrowIOExceptionIfUserHomeDirNotExixts() throws IOException {
-        emptyTestDirectory();
-
-        String userHome = System.getProperty("user.home");
+    void testRunNoExceptionWhenUserHomeNotFound() throws IOException {
+        final String userHome = System.getProperty("user.home");
         try {
-            // Set 'user.home' system property value to not_existdir
-            System.setProperty("user.home", "/not_existdir");
-            touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
-            touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile2.txt");
+            System.setProperty("user.home", "/directory-not-found");
+            touchFile(sshTestServer.getRootPath().resolve("testFile1.txt"));
+            touchFile(sshTestServer.getRootPath().resolve("testFile2.txt"));
 
             runner.run();
 
             runner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
 
-            // Verify files deleted
-            for (int i = 1; i < 3; i++) {
-                Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
-                assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
-            }
-
-            runner.clearTransferState();
-
+            assertFileNotFound("testFile1.txt");
+            assertFileNotFound("testFile2.txt");
         } finally {
-            // set back the original value for 'user.home' system property
             System.setProperty("user.home", userHome);
         }
     }
 
     @Test
-    public void testGetSFTPIgnoreDottedFiles() throws IOException {
-        emptyTestDirectory();
-
-        touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
-        touchFile(sshTestServer.getVirtualFileSystemPath() + ".testFile2.txt");
-        touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile3.txt");
-        touchFile(sshTestServer.getVirtualFileSystemPath() + ".testFile4.txt");
+    void testRunDottedFilesIgnored() throws IOException {
+        touchFile(sshTestServer.getRootPath().resolve("testFile1.txt"));
+        touchFile(sshTestServer.getRootPath().resolve(".testFile2.txt"));
+        touchFile(sshTestServer.getRootPath().resolve("testFile3.txt"));
+        touchFile(sshTestServer.getRootPath().resolve(".testFile4.txt"));
 
         runner.run();
 
         runner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
 
-        //Verify non-dotted files were deleted and dotted files were not deleted
-        Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile1.txt");
-        assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
+        assertFileNotFound("testFile1.txt");
+        assertFileNotFound("testFile3.txt");
 
-        file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile3.txt");
-        assertFalse(file1.toAbsolutePath().toFile().exists(), "File not deleted.");
-
-        file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/.testFile2.txt");
-        assertTrue(file1.toAbsolutePath().toFile().exists(), "File deleted.");
-
-        file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/.testFile4.txt");
-        assertTrue(file1.toAbsolutePath().toFile().exists(), "File deleted.");
-
-        runner.clearTransferState();
+        assertFileExists(".testFile2.txt");
+        assertFileExists(".testFile4.txt");
     }
 
-    private void touchFile(String file) throws IOException {
-        FileUtils.writeStringToFile(new File(file), "", StandardCharsets.UTF_8);
+    private void touchFile(final Path filePath) throws IOException {
+        FileUtils.writeStringToFile(filePath.toFile(), "", StandardCharsets.UTF_8);
     }
 
-    private void emptyTestDirectory() throws IOException {
-        //Delete Virtual File System folder
-        Path dir = Paths.get(sshTestServer.getVirtualFileSystemPath());
-        FileUtils.cleanDirectory(dir.toFile());
+    private void assertFileExists(final String relativePath) {
+        final Path filePath = sshTestServer.getRootPath().resolve(relativePath);
+        assertTrue(Files.exists(filePath), "File [%s] not found".formatted(filePath));
+    }
+
+    private void assertFileNotFound(final String relativePath) {
+        final Path filePath = sshTestServer.getRootPath().resolve(relativePath);
+        assertFalse(Files.exists(filePath), "File [%s] found".formatted(filePath));
     }
 }
