@@ -53,6 +53,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
@@ -314,5 +315,10 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
         return schemaFields;
+    }
+
+    @Override
+    public SchemaDefinition retrieveSchemaRaw(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        return client.getSchemaDefinition(schemaIdentifier);
     }
 }
