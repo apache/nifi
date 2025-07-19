@@ -128,6 +128,15 @@ public interface ClusterCoordinator {
     NodeConnectionStatus getConnectionStatus(NodeIdentifier nodeId);
 
     /**
+     * Retrieves the current status of the node by fetching it from the cluster coordinator.
+     *
+     * @param nodeId the identifier of the node
+     * @return the current status of the node with the given identifier,
+     *         or <code>null</code> if no node is known with the given identifier
+     */
+    NodeConnectionStatus fetchConnectionStatus(NodeIdentifier nodeId);
+
+    /**
      * Returns the identifiers of all nodes that have the given connection state
      *
      * @param states the states of interest
@@ -214,6 +223,13 @@ public interface ClusterCoordinator {
     NodeIdentifier getLocalNodeIdentifier();
 
     /**
+     * Waits for a cluster coordinator to be elected and returns the identifier of the node that is currently elected as the cluster coordinator.
+     *
+     * @return the identifier of the node that is currently elected as the cluster coordinator
+     */
+    NodeIdentifier waitForElectedClusterCoordinator();
+
+    /**
      * @return <code>true</code> if this node has been elected the active cluster coordinator, <code>false</code> otherwise.
      */
     boolean isActiveClusterCoordinator();
@@ -292,19 +308,4 @@ public interface ClusterCoordinator {
     default void validateHeartbeat(NodeHeartbeat nodeHeartbeat) {
     }
 
-    /**
-     * Stops notifying the given listener when cluster topology events occurs
-     * @param eventListener the event listener to stop notifying
-     */
-    void unregisterEventListener(ClusterTopologyEventListener eventListener);
-
-    default String summarizeClusterState() {
-        final StringBuilder sb = new StringBuilder();
-        for (final NodeIdentifier nodeId : getNodeIdentifiers()) {
-            sb.append(nodeId.getFullDescription()).append(" : ").append(getConnectionStatus(nodeId));
-            sb.append("\n");
-        }
-
-        return sb.toString();
-    }
 }

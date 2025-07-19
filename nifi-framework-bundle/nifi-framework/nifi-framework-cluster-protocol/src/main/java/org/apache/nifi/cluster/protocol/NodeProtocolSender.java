@@ -22,6 +22,8 @@ import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesResponseMessage;
 
 /**
  * An interface for sending protocol messages from a node to the cluster
@@ -60,4 +62,13 @@ public interface NodeProtocolSender {
      * @throws ProtocolException if communication failed
      */
     ClusterWorkloadResponseMessage clusterWorkload(ClusterWorkloadRequestMessage msg) throws ProtocolException;
+
+    /**
+     * Sends a "node statuses" request message to the Cluster Coordinator.
+     *
+     * @param msg a request message
+     * @return the response from the Cluster Coordinator containing the statuses of all nodes in the cluster
+     * @throws ProtocolException if communication failed
+     */
+    NodeStatusesResponseMessage nodeStatuses(NodeStatusesRequestMessage msg) throws ProtocolException;
 }
