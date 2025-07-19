@@ -508,6 +508,22 @@ public class TestServerSFTPTransfer {
     }
 
     @Test
+    public void testGetRemoteFileInfoCustomAlgorithmConfiguration() throws IOException {
+        final Map<PropertyDescriptor, String> properties = createBaseProperties();
+        properties.put(SFTPTransfer.ALGORITHM_CONFIGURATION, SFTPTransfer.AlgorithmConfiguration.CUSTOM.getValue());
+        properties.put(SFTPTransfer.CIPHERS_ALLOWED, "aes256-gcm@openssh.com");
+        properties.put(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED, "diffie-hellman-group14-sha256");
+        properties.put(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED, "hmac-sha2-256");
+        properties.put(SFTPTransfer.KEY_ALGORITHMS_ALLOWED, "ecdsa-sha2-nistp521");
+
+        try (final SFTPTransfer transfer = createSFTPTransfer(properties)) {
+            final FileInfo fileInfo = transfer.getRemoteFileInfo(null, DIR_2, FILE_1);
+            assertNotNull(fileInfo);
+            assertEquals(FILE_1, fileInfo.getFileName());
+        }
+    }
+
+    @Test
     public void testRename() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
 

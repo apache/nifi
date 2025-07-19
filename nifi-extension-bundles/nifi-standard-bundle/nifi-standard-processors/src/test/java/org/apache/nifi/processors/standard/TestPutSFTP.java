@@ -41,8 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class TestPutSFTP {
     private static final String FLOW_FILE_CONTENTS = TestPutSFTP.class.getSimpleName();
 
-    private static final String LOCALHOST = "localhost";
-
     private static final String REMOTE_DIRECTORY = "nifi_test/";
 
     private static final String FIRST_FILENAME = "1.txt";
@@ -63,7 +61,7 @@ class TestPutSFTP {
         sshTestServer.startServer();
 
         runner = TestRunners.newTestRunner(PutSFTP.class);
-        runner.setProperty(SFTPTransfer.HOSTNAME, LOCALHOST);
+        runner.setProperty(SFTPTransfer.HOSTNAME, sshTestServer.getHost());
         runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
         runner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
         runner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
@@ -76,7 +74,6 @@ class TestPutSFTP {
         runner.setProperty(SFTPTransfer.CONFLICT_RESOLUTION, FileTransfer.CONFLICT_RESOLUTION_REPLACE);
         runner.setProperty(SFTPTransfer.CREATE_DIRECTORY, Boolean.TRUE.toString());
         runner.setProperty(SFTPTransfer.DATA_TIMEOUT, "30 sec");
-        runner.setValidateExpressionUsage(false);
     }
 
     @AfterEach
@@ -198,7 +195,7 @@ class TestPutSFTP {
         assertFalse(records.isEmpty());
 
         final ProvenanceEventRecord record = records.iterator().next();
-        final String firstTransitUri = String.format(TRANSIT_URI_FORMAT, LOCALHOST);
+        final String firstTransitUri = String.format(TRANSIT_URI_FORMAT, sshTestServer.getHost());
         assertTrue(record.getTransitUri().startsWith(firstTransitUri), "Transit URI not found");
     }
 

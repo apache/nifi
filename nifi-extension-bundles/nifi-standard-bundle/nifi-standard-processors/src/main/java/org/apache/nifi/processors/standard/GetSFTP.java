@@ -80,6 +80,7 @@ public class GetSFTP extends GetFileTransfer {
             SFTPTransfer.USE_COMPRESSION,
             SFTPTransfer.USE_NATURAL_ORDERING,
             SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            SFTPTransfer.ALGORITHM_CONFIGURATION,
             SFTPTransfer.CIPHERS_ALLOWED,
             SFTPTransfer.KEY_ALGORITHMS_ALLOWED,
             SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED,
@@ -95,6 +96,7 @@ public class GetSFTP extends GetFileTransfer {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        SFTPTransfer.migrateAlgorithmProperties(config);
     }
 
     @Override
