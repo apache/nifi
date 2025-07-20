@@ -24,6 +24,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.util.MockPropertyContext;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
+import org.apache.sshd.common.util.io.IoUtils;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
@@ -42,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -704,5 +706,8 @@ public class TestServerSFTPTransfer {
         final File parentFile = path.toFile().getParentFile();
         FileUtils.forceMkdir(parentFile);
         Files.writeString(path, path.toFile().getAbsolutePath());
+        final List<PosixFilePermission> permissions = List.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE);
+        IoUtils.setPermissionsToFile(parentFile, permissions);
+        IoUtils.setPermissionsToFile(path.toFile(), permissions);
     }
 }

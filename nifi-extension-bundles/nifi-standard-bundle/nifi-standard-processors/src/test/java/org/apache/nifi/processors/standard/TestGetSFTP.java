@@ -21,6 +21,7 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.sshd.common.util.io.IoUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -156,7 +159,10 @@ public class TestGetSFTP {
     }
 
     private void touchFile(String file) throws IOException {
-        FileUtils.writeStringToFile(new File(file), "", StandardCharsets.UTF_8);
+        final File createdFile = new File(file);
+        FileUtils.writeStringToFile(createdFile, "", StandardCharsets.UTF_8);
+        final List<PosixFilePermission> permissions = List.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE);
+        IoUtils.setPermissionsToFile(createdFile, permissions);
     }
 
     private void emptyTestDirectory() throws IOException {
