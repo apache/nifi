@@ -228,6 +228,6 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
             throw new IllegalStateException("Invalid port configuration: Both nifi.registry.web.https.port and nifi.registry.web.http.port specified");
         }
 
-        return ObjectUtils.defaultIfNull(httpsPort, httpPort);
+        return ObjectUtils.getIfNull(httpsPort, httpPort);
     }
 }

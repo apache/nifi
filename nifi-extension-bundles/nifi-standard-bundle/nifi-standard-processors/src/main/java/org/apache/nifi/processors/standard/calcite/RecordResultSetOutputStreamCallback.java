@@ -59,7 +59,7 @@ public class RecordResultSetOutputStreamCallback implements OutputStreamCallback
     }
 
     public WriteResult getWriteResult() throws ProcessException {
-        return ObjectUtils.defaultIfNull(writeResult, WriteResult.EMPTY);
+        return ObjectUtils.getIfNull(writeResult, WriteResult.EMPTY);
     }
 
     public String getMimeType() {
