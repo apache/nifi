@@ -536,7 +536,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
 
                             try {
                                 if (context.getProperty(ADD_ATTRIBUTES_AS_FIELDS).asBoolean()) {
-                                    adTopicFields(record, mqttMessage.getTopic());
+                                    addTopicFields(record, mqttMessage.getTopic());
                                     record.setValue(QOS_FIELD_KEY, mqttMessage.getQos());
                                     record.setValue(IS_RETAINED_FIELD_KEY, mqttMessage.isRetained());
                                     record.setValue(IS_DUPLICATE_FIELD_KEY, mqttMessage.isDuplicate());
@@ -609,7 +609,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         logger.info("Successfully processed {} records for {}", count, flowFile);
     }
 
-    private void adTopicFields(
+    private void addTopicFields(
             final Record record,
             final String topic
     ) {
