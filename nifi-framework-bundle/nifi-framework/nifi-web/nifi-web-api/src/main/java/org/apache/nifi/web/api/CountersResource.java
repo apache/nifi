@@ -157,6 +157,56 @@ public class CountersResource extends ApplicationResource {
     }
 
     /**
+     * Update all counters. This will reset all counter values to 0.
+     *
+     * @return A countersEntity.
+     */
+    @PUT
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("")
+    @Operation(
+            summary = "Updates all counters. This will reset all counter values to 0",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = CountersEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /counters")
+            }
+    )
+    public Response updateAllCounters() {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT);
+        }
+
+        final ComponentEntity requestComponentEntity = new ComponentEntity();
+
+        return withWriteLock(
+                serviceFacade,
+                requestComponentEntity,
+                lookup -> authorizeCounters(RequestAction.WRITE),
+                null,
+                (componentEntity) -> {
+                    // reset all counters
+                    final CountersDTO counters = serviceFacade.updateAllCounters();
+
+                    // create the response entity
+                    final CountersEntity entity = new CountersEntity();
+                    entity.setCounters(counters);
+
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
      * Update the specified counter. This will reset the counter value to 0.
      *
      * @param id The id of the counter.

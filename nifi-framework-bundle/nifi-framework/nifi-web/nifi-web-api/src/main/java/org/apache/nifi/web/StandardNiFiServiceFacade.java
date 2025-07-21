@@ -1980,6 +1980,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public CountersDTO updateAllCounters() {
+        final List<Counter> resetCounters = controllerFacade.resetAllCounters();
+        final Set<CounterDTO> counterDTOs = new LinkedHashSet<>(resetCounters.size());
+        
+        for (final Counter counter : resetCounters) {
+            counterDTOs.add(dtoFactory.createCounterDto(counter));
+        }
+
+        final CountersSnapshotDTO snapshotDto = dtoFactory.createCountersDto(counterDTOs);
+        final CountersDTO countersDto = new CountersDTO();
+        countersDto.setAggregateSnapshot(snapshotDto);
+
+        return countersDto;
+    }
+
+    @Override
     public void verifyCanClearProcessorState(final String processorId) {
         processorDAO.verifyClearState(processorId);
     }

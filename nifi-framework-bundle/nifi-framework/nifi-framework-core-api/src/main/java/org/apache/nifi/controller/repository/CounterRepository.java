@@ -31,4 +31,6 @@ public interface CounterRepository {
     List<Counter> getCounters(String counterContext);
 
     Counter resetCounter(String identifier);
+
+    List<Counter> resetAllCounters();
 }

@@ -18,7 +18,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CounterEntity, CounterListingState } from '../../state/counter-listing';
 import { Store } from '@ngrx/store';
-import { loadCounters, promptCounterReset } from '../../state/counter-listing/counter-listing.actions';
+import {
+    loadCounters,
+    promptCounterReset,
+    promptResetAllCounters
+} from '../../state/counter-listing/counter-listing.actions';
 import { selectCounterListingState } from '../../state/counter-listing/counter-listing.selectors';
 import { initialState } from '../../state/counter-listing/counter-listing.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
@@ -59,5 +63,9 @@ export class CounterListing implements OnInit {
                 }
             })
         );
+    }
+
+    resetAllCounters(): void {
+        this.store.dispatch(promptResetAllCounters());
     }
 }

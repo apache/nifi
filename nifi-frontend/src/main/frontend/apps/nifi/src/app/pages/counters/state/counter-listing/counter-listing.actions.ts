@@ -46,3 +46,12 @@ export const resetCounterSuccess = createAction(
 );
 
 export const resetCounterState = createAction(`${COUNTER_PREFIX} Reset Counter State`);
+
+export const promptResetAllCounters = createAction(`${COUNTER_PREFIX} Prompt Reset All Counters`);
+
+export const resetAllCounters = createAction(`${COUNTER_PREFIX} Reset All Counters`);
+
+export const resetAllCountersSuccess = createAction(
+    `${COUNTER_PREFIX} Reset All Counters Success`,
+    props<{ response: LoadCounterListingResponse }>()
+);

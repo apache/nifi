@@ -26,9 +26,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatFormField } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatLabel, MatOption, MatSelect } from '@angular/material/select';
+import { MatButton } from '@angular/material/button';
 
 @Component({
     selector: 'counter-table',
+    standalone: true,
     templateUrl: './counter-table.component.html',
     imports: [
         ReactiveFormsModule,
@@ -38,7 +40,8 @@ import { MatLabel, MatOption, MatSelect } from '@angular/material/select';
         MatOption,
         MatLabel,
         MatTableModule,
-        MatSortModule
+        MatSortModule,
+        MatButton
     ],
     styleUrls: ['./counter-table.component.scss']
 })
@@ -99,6 +102,7 @@ export class CounterTable implements AfterViewInit {
     }
 
     @Output() resetCounter: EventEmitter<CounterEntity> = new EventEmitter<CounterEntity>();
+    @Output() resetAllCounters: EventEmitter<void> = new EventEmitter<void>();
 
     constructor(
         private formBuilder: FormBuilder,
@@ -145,6 +149,10 @@ export class CounterTable implements AfterViewInit {
     resetClicked(counter: CounterEntity, event: MouseEvent) {
         event.stopPropagation();
         this.resetCounter.next(counter);
+    }
+
+    resetAllClicked() {
+        this.resetAllCounters.next();
     }
 
     sortData(sort: Sort) {
