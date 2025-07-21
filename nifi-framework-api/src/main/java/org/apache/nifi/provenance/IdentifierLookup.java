@@ -64,7 +64,7 @@ public interface IdentifierLookup {
     }
 
 
-    public static final IdentifierLookup EMPTY = new IdentifierLookup() {
+    IdentifierLookup EMPTY = new IdentifierLookup() {
         @Override
         public List<String> getComponentIdentifiers() {
             return Collections.emptyList();

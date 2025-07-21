@@ -72,7 +72,7 @@ public interface EventAuthorizer {
             .collect(Collectors.toSet());
     }
 
-    public static final EventAuthorizer GRANT_ALL = new EventAuthorizer() {
+    EventAuthorizer GRANT_ALL = new EventAuthorizer() {
         @Override
         public boolean isAuthorized(ProvenanceEventRecord event) {
             return true;
@@ -93,7 +93,7 @@ public interface EventAuthorizer {
         }
     };
 
-    public static final EventAuthorizer DENY_ALL = new EventAuthorizer() {
+    EventAuthorizer DENY_ALL = new EventAuthorizer() {
         @Override
         public boolean isAuthorized(ProvenanceEventRecord event) {
             return false;
