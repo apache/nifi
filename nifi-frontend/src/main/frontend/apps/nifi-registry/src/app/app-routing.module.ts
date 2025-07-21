@@ -18,8 +18,13 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { ExplorerComponent } from './pages/expolorer/feature/explorer.component';
+import { Error } from './pages/error/feature/error.component';
 
 const routes: Routes = [
+    {
+        path: 'error',
+        loadComponent: () => Error
+    },
     {
         path: 'explorer',
         component: ExplorerComponent,
