@@ -1288,25 +1288,25 @@ public class StandardNiFiServiceFacadeTest {
         // Mock ControllerFacade to return a list of reset counters
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
         final List<Counter> mockCounters = new ArrayList<>();
-        
+
         // Create mock counters that would be returned after reset
         final Counter counter1 = mock(Counter.class);
         when(counter1.getIdentifier()).thenReturn("counter1-id");
         when(counter1.getName()).thenReturn("counter1");
         when(counter1.getContext()).thenReturn("context1");
         when(counter1.getValue()).thenReturn(0L); // Should be 0 after reset
-        
+
         final Counter counter2 = mock(Counter.class);
         when(counter2.getIdentifier()).thenReturn("counter2-id");
         when(counter2.getName()).thenReturn("counter2");
         when(counter2.getContext()).thenReturn("context2");
         when(counter2.getValue()).thenReturn(0L); // Should be 0 after reset
-        
+
         mockCounters.add(counter1);
         mockCounters.add(counter2);
-        
+
         when(controllerFacade.resetAllCounters()).thenReturn(mockCounters);
-        
+
         // Mock DtoFactory to create CounterDTOs
         final DtoFactory dtoFactory = mock(DtoFactory.class);
         final CounterDTO counterDto1 = new CounterDTO();
@@ -1314,35 +1314,35 @@ public class StandardNiFiServiceFacadeTest {
         counterDto1.setName("counter1");
         counterDto1.setContext("context1");
         counterDto1.setValue("0");
-        
+
         final CounterDTO counterDto2 = new CounterDTO();
         counterDto2.setId("counter2-id");
         counterDto2.setName("counter2");
         counterDto2.setContext("context2");
         counterDto2.setValue("0");
-        
+
         when(dtoFactory.createCounterDto(counter1)).thenReturn(counterDto1);
         when(dtoFactory.createCounterDto(counter2)).thenReturn(counterDto2);
-        
+
         final CountersSnapshotDTO snapshotDto = new CountersSnapshotDTO();
         snapshotDto.setCounters(Set.of(counterDto1, counterDto2));
         when(dtoFactory.createCountersDto(any())).thenReturn(snapshotDto);
-        
+
         // Set up the facade
         serviceFacade.setControllerFacade(controllerFacade);
         serviceFacade.setDtoFactory(dtoFactory);
-        
+
         // Test the updateAllCounters method
         final CountersDTO result = serviceFacade.updateAllCounters();
-        
+
         // Verify the result
         assertNotNull(result);
         assertNotNull(result.getAggregateSnapshot());
         assertEquals(2, result.getAggregateSnapshot().getCounters().size());
-        
+
         // Verify that resetAllCounters was called on the controller facade
         verify(controllerFacade, times(1)).resetAllCounters();
-        
+
         // Verify that DTOs were created for each counter
         verify(dtoFactory, times(1)).createCounterDto(counter1);
         verify(dtoFactory, times(1)).createCounterDto(counter2);
@@ -1354,25 +1354,25 @@ public class StandardNiFiServiceFacadeTest {
         // Mock ControllerFacade to return empty list
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
         when(controllerFacade.resetAllCounters()).thenReturn(new ArrayList<>());
-        
+
         // Mock DtoFactory
         final DtoFactory dtoFactory = mock(DtoFactory.class);
         final CountersSnapshotDTO snapshotDto = new CountersSnapshotDTO();
         snapshotDto.setCounters(Collections.emptySet());
         when(dtoFactory.createCountersDto(any())).thenReturn(snapshotDto);
-        
+
         // Set up the facade
         serviceFacade.setControllerFacade(controllerFacade);
         serviceFacade.setDtoFactory(dtoFactory);
-        
+
         // Test the updateAllCounters method
         final CountersDTO result = serviceFacade.updateAllCounters();
-        
+
         // Verify the result
         assertNotNull(result);
         assertNotNull(result.getAggregateSnapshot());
         assertTrue(result.getAggregateSnapshot().getCounters().isEmpty());
-        
+
         // Verify that resetAllCounters was called
         verify(controllerFacade, times(1)).resetAllCounters();
         verify(dtoFactory, times(1)).createCountersDto(any());

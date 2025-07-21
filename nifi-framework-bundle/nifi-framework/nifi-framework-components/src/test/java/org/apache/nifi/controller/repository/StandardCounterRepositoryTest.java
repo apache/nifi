@@ -46,21 +46,21 @@ public class StandardCounterRepositoryTest {
     public void testResetAllCountersWithSingleCounter() {
         // Create a counter and adjust its value
         repository.adjustCounter("context1", "counter1", 10);
-        
+
         // Verify the counter has the expected value
         final Counter counter = repository.getCounter("context1", "counter1");
         assertEquals(10, counter.getValue());
-        
+
         // Reset all counters
         final List<Counter> resetCounters = repository.resetAllCounters();
-        
+
         // Verify the result
         assertNotNull(resetCounters);
         assertEquals(1, resetCounters.size());
         assertEquals(0, resetCounters.get(0).getValue());
         assertEquals("counter1", resetCounters.get(0).getName());
         assertEquals("context1", resetCounters.get(0).getContext());
-        
+
         // Verify the original counter is also reset
         assertEquals(0, repository.getCounter("context1", "counter1").getValue());
     }
@@ -72,25 +72,25 @@ public class StandardCounterRepositoryTest {
         repository.adjustCounter("context1", "counter2", 25);
         repository.adjustCounter("context2", "counter1", 35);
         repository.adjustCounter("context2", "counter3", 45);
-        
+
         // Verify initial values
         assertEquals(15, repository.getCounter("context1", "counter1").getValue());
         assertEquals(25, repository.getCounter("context1", "counter2").getValue());
         assertEquals(35, repository.getCounter("context2", "counter1").getValue());
         assertEquals(45, repository.getCounter("context2", "counter3").getValue());
-        
+
         // Reset all counters
         final List<Counter> resetCounters = repository.resetAllCounters();
-        
+
         // Verify the result
         assertNotNull(resetCounters);
         assertEquals(4, resetCounters.size());
-        
+
         // All reset counters should have value 0
         for (final Counter counter : resetCounters) {
             assertEquals(0, counter.getValue());
         }
-        
+
         // Verify all original counters are reset
         assertEquals(0, repository.getCounter("context1", "counter1").getValue());
         assertEquals(0, repository.getCounter("context1", "counter2").getValue());
@@ -104,12 +104,12 @@ public class StandardCounterRepositoryTest {
         repository.adjustCounter("context1", "counter1", 100);
         repository.adjustCounter("context1", "counter2", 200);
         repository.adjustCounter("context2", "counter1", 300);
-        
+
         // Reset all counters should return all counters with value 0
         final List<Counter> resetCounters = repository.resetAllCounters();
-        
+
         assertEquals(3, resetCounters.size());
-        
+
         // Verify all returned counters are reset
         long totalValue = resetCounters.stream().mapToLong(Counter::getValue).sum();
         assertEquals(0, totalValue);
@@ -120,18 +120,18 @@ public class StandardCounterRepositoryTest {
         // Create counters
         repository.adjustCounter("context1", "counter1", 50);
         repository.adjustCounter("context1", "counter2", 75);
-        
+
         // Reset one counter individually
         final Counter counter1 = repository.getCounter("context1", "counter1");
         repository.resetCounter(counter1.getIdentifier());
-        
+
         // Verify individual reset worked
         assertEquals(0, repository.getCounter("context1", "counter1").getValue());
         assertEquals(75, repository.getCounter("context1", "counter2").getValue());
-        
+
         // Reset all counters
         final List<Counter> resetCounters = repository.resetAllCounters();
-        
+
         // Should still return all counters (including already reset ones)
         assertEquals(2, resetCounters.size());
         for (final Counter counter : resetCounters) {
@@ -143,19 +143,19 @@ public class StandardCounterRepositoryTest {
     public void testResetAllCountersReturnsUnmodifiableCounters() {
         // Create a counter
         repository.adjustCounter("context1", "counter1", 42);
-        
+
         // Reset all counters
         final List<Counter> resetCounters = repository.resetAllCounters();
-        
+
         assertNotNull(resetCounters);
         assertEquals(1, resetCounters.size());
-        
+
         final Counter returnedCounter = resetCounters.get(0);
         assertEquals(0, returnedCounter.getValue());
-        
+
         // The returned counter should be unmodifiable (this is implementation specific)
         // We can verify the type or behavior if needed, but the main contract is that it reflects the reset state
         assertEquals("counter1", returnedCounter.getName());
         assertEquals("context1", returnedCounter.getContext());
     }
-} 
+}
