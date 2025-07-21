@@ -99,7 +99,7 @@ public interface VersionedComponentStateLookup {
         public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
             return switch (ruleNode.getState()) {
                 case DISABLED -> ScheduledState.DISABLED;
-                default -> ScheduledState.ENABLED;
+                case ENABLED -> ScheduledState.ENABLED;
             };
         }
 
