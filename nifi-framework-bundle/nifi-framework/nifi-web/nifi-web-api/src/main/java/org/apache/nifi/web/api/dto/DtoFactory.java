@@ -3077,7 +3077,6 @@ public final class DtoFactory {
        return true;
    }
 
-
    /**
     * Gets the capability description from the specified class.
     */
