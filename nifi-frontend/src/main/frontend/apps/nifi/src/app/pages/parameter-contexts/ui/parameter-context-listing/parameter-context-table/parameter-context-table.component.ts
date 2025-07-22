@@ -18,23 +18,34 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
-import { ParameterContextEntity } from '../../../../../state/shared';
+import { BoundProcessGroup, ParameterContextEntity } from '../../../../../state/shared';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { ProcessGroupTip } from '../../../../../ui/common/tooltips/process-group-tip/process-group-tip.component';
 
 @Component({
     selector: 'parameter-context-table',
     templateUrl: './parameter-context-table.component.html',
     styleUrls: ['./parameter-context-table.component.scss'],
-    imports: [MatTableModule, MatSortModule, MatIconButton, MatMenuTrigger, MatMenu, MatMenuItem, RouterLink, NgClass]
+    imports: [
+        MatTableModule,
+        MatSortModule,
+        MatIconButton,
+        MatMenuTrigger,
+        MatMenu,
+        MatMenuItem,
+        RouterLink,
+        NgClass,
+        NifiTooltipDirective
+    ]
 })
 export class ParameterContextTable {
-    @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';
+    @Input() initialSortColumn: 'name' | 'provider' | 'description' | 'process groups' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
         active: this.initialSortColumn,
@@ -54,7 +65,7 @@ export class ParameterContextTable {
     @Output() deleteParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
     @Output() manageAccessPolicies: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
 
-    displayedColumns: string[] = ['name', 'provider', 'description', 'actions'];
+    displayedColumns: string[] = ['name', 'provider', 'description', 'process groups', 'actions'];
     dataSource: MatTableDataSource<ParameterContextEntity> = new MatTableDataSource<ParameterContextEntity>();
 
     constructor(private nifiCommon: NiFiCommon) {}
@@ -84,6 +95,32 @@ export class ParameterContextTable {
 
     formatDescription(entity: ParameterContextEntity): string {
         return this.canRead(entity) && entity.component ? entity.component.description : '';
+    }
+
+    formatProcessGroups(entity: ParameterContextEntity): string {
+        const boundedProcessGroups = this.getBoundedProcessGroups(entity);
+        return boundedProcessGroups.length <= 1
+            ? this.getAllowedProcessGroupName(boundedProcessGroups)
+            : boundedProcessGroups.length.toString() + ' referencing Process Groups';
+    }
+
+    hasMultipleProcessGroups(entity: ParameterContextEntity): boolean {
+        const boundedProcessGroups = this.getBoundedProcessGroups(entity);
+        return boundedProcessGroups.length > 1;
+    }
+
+    getBoundedProcessGroups(entity: ParameterContextEntity): BoundProcessGroup[] {
+        if (!this.canRead(entity) || entity.component === undefined) {
+            return [];
+        }
+        return entity.component.boundProcessGroups;
+    }
+
+    private getAllowedProcessGroupName(groups: BoundProcessGroup[]): string {
+        if (groups.length === 0) {
+            return '';
+        }
+        return groups[0].permissions.canRead ? groups[0].component.name : '1 referencing Process Group';
     }
 
     editClicked(entity: ParameterContextEntity): void {
@@ -157,10 +194,15 @@ export class ParameterContextTable {
                 case 'description':
                     retVal = this.nifiCommon.compareString(this.formatDescription(a), this.formatDescription(b));
                     break;
+                case 'process groups':
+                    retVal = this.nifiCommon.compareString(this.formatProcessGroups(a), this.formatProcessGroups(b));
+                    break;
                 default:
                     return 0;
             }
             return retVal * (isAsc ? 1 : -1);
         });
     }
+
+    protected readonly ProcessGroupTip = ProcessGroupTip;
 }

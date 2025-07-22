@@ -15,18 +15,16 @@
  * limitations under the License.
  */
 
-.process-group-references {
-    ul {
-        list-style: none;
-        margin: 0;
+import { Component, Input } from '@angular/core';
+import { BoundProcessGroup } from '../../../../state/shared';
+import { ProcessGroupReferences } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/process-group-references/process-group-references.component';
 
-        &.nested {
-            list-style: disc;
-            padding-inline-start: 20px;
-        }
-    }
-
-    .references {
-        margin-left: 20px;
-    }
+@Component({
+    selector: 'process-group-tip',
+    templateUrl: './process-group-tip.component.html',
+    imports: [ProcessGroupReferences],
+    styleUrls: ['./process-group-tip.component.scss']
+})
+export class ProcessGroupTip {
+    @Input() data: BoundProcessGroup[] | undefined;
 }
