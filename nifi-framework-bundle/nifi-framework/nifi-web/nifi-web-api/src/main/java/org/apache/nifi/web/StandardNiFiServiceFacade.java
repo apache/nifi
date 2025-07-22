@@ -20,6 +20,7 @@ import io.prometheus.client.CollectorRegistry;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -450,8 +451,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.commons.lang3.StringUtils.containsIgnoreCase;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -4614,7 +4613,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private boolean isMatched(final String label, final String query) {
-        return StringUtils.isEmpty(query) || containsIgnoreCase(label, query);
+        return StringUtils.isEmpty(query) || Strings.CI.contains(label, query);
     }
 
     private UserEntity createUserEntity(final User user, final boolean enforceUserExistence) {

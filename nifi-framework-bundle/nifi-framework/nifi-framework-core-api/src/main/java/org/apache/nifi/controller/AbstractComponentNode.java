@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
@@ -775,7 +776,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
         final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        return (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint));
+        return (!Strings.CS.equals(additionalResourcesFingerprint, newFingerprint));
     }
 
     /**
@@ -795,7 +796,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors, this::getEffectivePropertyValueWithDefault);
 
             final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, isolationKey);
-            if (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+            if (!Strings.CS.equals(additionalResourcesFingerprint, newFingerprint)) {
                 setAdditionalResourcesFingerprint(newFingerprint);
                 try {
                     logger.info("Updating classpath for [{}] with the ID [{}]", this.componentType, this.getIdentifier());

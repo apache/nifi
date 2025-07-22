@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -438,7 +438,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
                     final Path qualifiedPath = newFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                     flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                    final String transitUri = hdfs.getUri() + StringUtils.prependIfMissing(outputPath, "/");
+                    final String transitUri = hdfs.getUri() + Strings.CS.prependIfMissing(outputPath, "/");
                     session.getProvenanceReporter().send(flowFile, transitUri);
                     session.transfer(flowFile, REL_SUCCESS);
 

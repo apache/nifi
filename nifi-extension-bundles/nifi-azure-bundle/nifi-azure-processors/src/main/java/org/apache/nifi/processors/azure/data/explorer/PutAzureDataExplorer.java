@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.azure.data.explorer;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -240,7 +240,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             } else if (result == KustoIngestionResult.PARTIALLY_SUCCEEDED) {
                 getLogger().warn("Ingest {} for {}", result.getStatus(), flowFile);
                 flowFile = session.putAttribute(flowFile, "ingestion_status", KustoIngestionResult.PARTIALLY_SUCCEEDED.getStatus());
-                if (StringUtils.equalsIgnoreCase(partiallySucceededRoutingStrategy, SUCCESS.getName())) {
+                if (Strings.CI.equals(partiallySucceededRoutingStrategy, SUCCESS.getName())) {
                     transferRelationship = SUCCESS;
                 }
             }

@@ -41,6 +41,7 @@ import okio.Okio;
 import okio.Source;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -1298,7 +1299,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private String getFileNameFromUrl(URL url) {
         String fileName = null;
-        String path = StringUtils.removeEnd(url.getPath(), "/");
+        String path = Strings.CS.removeEnd(url.getPath(), "/");
 
         if (!StringUtils.isEmpty(path)) {
             fileName = path.substring(path.lastIndexOf('/') + 1);

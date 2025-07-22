@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.authorization.util.IdentityMapping.Transform;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -78,7 +79,7 @@ public class IdentityMappingUtil {
 
         // go through each property
         for (String propertyName : properties.getPropertyKeys()) {
-            if (StringUtils.startsWith(propertyName, patternPrefix)) {
+            if (Strings.CS.startsWith(propertyName, patternPrefix)) {
                 final String key = StringUtils.substringAfter(propertyName, patternPrefix);
                 final String identityPattern = properties.getProperty(propertyName);
 

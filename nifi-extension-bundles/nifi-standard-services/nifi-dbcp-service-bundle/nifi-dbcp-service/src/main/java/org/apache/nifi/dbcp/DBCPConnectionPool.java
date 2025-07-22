@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
@@ -182,7 +183,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
                     final PropertyValue propertyValue = context.getProperty(descriptor);
                     if (descriptor.isSensitive()) {
                         final String propertyName;
-                        if (StringUtils.startsWith(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX)) {
+                        if (Strings.CS.startsWith(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX)) {
                             propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
                         } else {
                             propertyName = descriptor.getName();

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.attributes;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -422,19 +423,19 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             // ensure there are some rules
             if (criteria.getRules() != null) {
                 final FlowFilePolicy flowFilePolicy = criteria.getFlowFilePolicy();
-                if (flowFilePolicy != null && StringUtils.containsIgnoreCase(flowFilePolicy.name(), term)) {
+                if (flowFilePolicy != null && Strings.CI.contains(flowFilePolicy.name(), term)) {
                     results.add(new SearchResult.Builder().label("FlowFile policy").match(flowFilePolicy.name()).build());
                 }
 
                 for (final Rule rule : criteria.getRules()) {
-                    if (StringUtils.containsIgnoreCase(rule.getName(), term)) {
+                    if (Strings.CI.contains(rule.getName(), term)) {
                         results.add(new SearchResult.Builder().label("Rule name").match(rule.getName()).build());
                     }
 
                     // ensure there are some conditions
                     if (rule.getConditions() != null) {
                         for (final Condition condition : rule.getConditions()) {
-                            if (StringUtils.containsIgnoreCase(condition.getExpression(), term)) {
+                            if (Strings.CI.contains(condition.getExpression(), term)) {
                                 results.add(new SearchResult.Builder().label(String.format("Condition in rule '%s'", rule.getName())).match(condition.getExpression()).build());
                             }
                         }
@@ -443,10 +444,10 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     // ensure there are some actions
                     if (rule.getActions() != null) {
                         for (final Action action : rule.getActions()) {
-                            if (StringUtils.containsIgnoreCase(action.getAttribute(), term)) {
+                            if (Strings.CI.contains(action.getAttribute(), term)) {
                                 results.add(new SearchResult.Builder().label(String.format("Action in rule '%s'", rule.getName())).match(action.getAttribute()).build());
                             }
-                            if (StringUtils.containsIgnoreCase(action.getValue(), term)) {
+                            if (Strings.CI.contains(action.getValue(), term)) {
                                 results.add(new SearchResult.Builder().label(String.format("Action in rule '%s'", rule.getName())).match(action.getValue()).build());
                             }
                         }

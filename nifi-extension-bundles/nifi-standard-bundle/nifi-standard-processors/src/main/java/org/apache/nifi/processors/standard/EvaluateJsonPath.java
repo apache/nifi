@@ -22,6 +22,7 @@ import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -216,7 +217,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if (descriptor.isDynamic() && !StringUtils.equals(oldValue, newValue) && oldValue != null) {
+        if (descriptor.isDynamic() && !Strings.CS.equals(oldValue, newValue) && oldValue != null) {
             cachedJsonPathMap.remove(oldValue);
         }
     }
