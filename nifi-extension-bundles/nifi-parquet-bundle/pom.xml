@@ -25,11 +25,15 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>nifi-parquet-content-viewer</module>
         <module>nifi-parquet-processors</module>
         <module>nifi-parquet-nar</module>
+        <module>nifi-parquet-content-viewer</module>
         <module>nifi-parquet-content-viewer-nar</module>
+        <module>nifi-parquet-shared</module>
     </modules>
+    <properties>
+        <parquet.version>1.15.2</parquet.version>
+    </properties>
     <dependencyManagement>
         <dependencies>
             <!-- Override commons-beanutils -->
