@@ -419,7 +419,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-    @Disabled("Unrelated flakiness - test fails randomly on main branch too")
+
     @Test
     public void testComponentsRecreatedOnRestart() throws NiFiClientException, IOException, InterruptedException {
         // Build dataflow with processors at root level and an inner group that contains an input port, output port, and a processor, as well as a Controller Service that the processor will use.
