@@ -22,7 +22,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
-import { BoundProcessGroup } from '../../../../../state/shared';
+import { BoundProcessGroup } from '../../../state/shared';
 
 @Component({
     selector: 'process-group-references',
