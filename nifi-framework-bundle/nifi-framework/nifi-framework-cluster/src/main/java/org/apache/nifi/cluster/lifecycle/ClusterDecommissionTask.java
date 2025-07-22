@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ClusterDecommissionTask implements DecommissionTask {
     private static final Logger logger = LoggerFactory.getLogger(ClusterDecommissionTask.class);
-    private static final int delaySeconds = 3;
+    private static final int DELAY_SECONDS = 3;
 
     private final ClusterCoordinator clusterCoordinator;
     private final FlowController flowController;
@@ -62,6 +62,12 @@ public class ClusterDecommissionTask implements DecommissionTask {
             throw new IllegalStateException("Node has not yet connected to the cluster");
         }
 
+        final boolean wasCoordinator = clusterCoordinator.isActiveClusterCoordinator();
+        final NodeIdentifier coordinatorId = clusterCoordinator.getElectedActiveCoordinatorNode();
+        if (wasCoordinator) {
+            logger.info("Decommissioning Cluster Coordinator [{}]...", coordinatorId);
+        }
+
         flowController.stopHeartbeating();
         flowController.setClustered(false, null);
         logger.info("Instructed FlowController to stop sending heartbeats to Cluster Coordinator and take Cluster Disconnect actions");
@@ -71,6 +77,10 @@ public class ClusterDecommissionTask implements DecommissionTask {
 
         waitForDisconnection();
         logger.info("Successfully disconnected node from cluster");
+
+        if (wasCoordinator) {
+            waitForNotActiveClusterCoordinator(coordinatorId);
+        }
 
         offloadNode();
         logger.info("Successfully triggered Node Offload. Will wait for offload to complete");
@@ -125,7 +135,13 @@ public class ClusterDecommissionTask implements DecommissionTask {
 
     private void waitForState(final Set<NodeConnectionState> acceptableStates) throws InterruptedException {
         while (true) {
-            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
+            final NodeConnectionStatus status = clusterCoordinator.fetchConnectionStatus(localNodeIdentifier);
+            if (status == null) {
+                logger.debug("Node connection status is null. Will wait {} seconds and check again", DELAY_SECONDS);
+                TimeUnit.SECONDS.sleep(DELAY_SECONDS);
+                continue;
+            }
+
             final NodeConnectionState state = status.getState();
             logger.debug("Node state is {}", state);
 
@@ -133,7 +149,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
                 return;
             }
 
-            TimeUnit.SECONDS.sleep(delaySeconds);
+            TimeUnit.SECONDS.sleep(DELAY_SECONDS);
         }
     }
 
@@ -142,7 +158,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
 
         int iterations = 0;
         while (true) {
-            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
+            final NodeConnectionStatus status = clusterCoordinator.fetchConnectionStatus(localNodeIdentifier);
             final NodeConnectionState state = status.getState();
             if (state == NodeConnectionState.OFFLOADED) {
                 return;
@@ -159,10 +175,10 @@ public class ClusterDecommissionTask implements DecommissionTask {
                 final long byteCount = statusCounts.getQueuedContentSize();
                 logger.info("Node state is OFFLOADING. Currently, there are {} FlowFiles ({} bytes) left on node.", flowFileCount, byteCount);
             } else {
-                logger.debug("Node state is OFFLOADING. Will wait {} seconds and check again", delaySeconds);
+                logger.debug("Node state is OFFLOADING. Will wait {} seconds and check again", DELAY_SECONDS);
             }
 
-            TimeUnit.SECONDS.sleep(delaySeconds);
+            TimeUnit.SECONDS.sleep(DELAY_SECONDS);
         }
     }
 
@@ -174,7 +190,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
         logger.info("Waiting for Node to be completely removed from cluster");
 
         while (true) {
-            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
+            final NodeConnectionStatus status = clusterCoordinator.fetchConnectionStatus(localNodeIdentifier);
             if (status == null) {
                 return;
             }
@@ -184,8 +200,29 @@ public class ClusterDecommissionTask implements DecommissionTask {
                 return;
             }
 
-            logger.debug("Node state is {}. Will wait {} seconds and check again", state, delaySeconds);
-            TimeUnit.SECONDS.sleep(delaySeconds);
+            logger.debug("Node state is {}. Will wait {} seconds and check again", state, DELAY_SECONDS);
+            TimeUnit.SECONDS.sleep(DELAY_SECONDS);
         }
     }
+
+    private void waitForNotActiveClusterCoordinator(final NodeIdentifier nodeIdentifier) throws InterruptedException {
+        logger.info("Waiting to no longer be the Active Cluster Coordinator");
+
+        // We check getElectedActiveCoordinatorNode here instead of calling isActiveClusterCoordinator because in the case of Kubernetes leader election,
+        // isActiveClusterCoordinator will return false since the current node unregistered from election for the coordinator role, but it still may hold
+        // the lease in Kubernetes, so we need to check the elected coordinator node id directly
+        while (true) {
+            final NodeIdentifier coordinatorId = clusterCoordinator.getElectedActiveCoordinatorNode();
+            logger.debug("Elected Cluster Coordinator is {}", coordinatorId);
+
+            if (coordinatorId != null && !coordinatorId.equals(nodeIdentifier)) {
+                logger.info("New Cluster Coordinator elected: {}", clusterCoordinator.getElectedActiveCoordinatorNode());
+                return;
+            }
+
+            logger.debug("Still considered the Active Cluster Coordinator. Will wait {} seconds and check again", DELAY_SECONDS);
+            TimeUnit.SECONDS.sleep(DELAY_SECONDS);
+        }
+    }
+
 }
