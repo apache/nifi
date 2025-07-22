@@ -101,7 +101,10 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced"),
         @WritesAttribute(attribute = "input.flowfile.uuid", description = "If the processor has an incoming connection, outgoing FlowFiles will have this attribute "
-                + "set to the value of the input FlowFile's UUID. If there is no incoming connection, the attribute will not be added.")
+                + "set to the value of the input FlowFile's UUID. If there is no incoming connection, the attribute will not be added."),
+        @WritesAttribute(attribute = "executesql.end.of.resultset", description = "This attribute is added to the very last created FlowFile, to indicate end of " +
+                "results. This is primarily serving the downstream processors, when 'Output Batch Size' is set, in which case no other information is available " +
+                "about the total number of fragments created from a single result set.")
 })
 @SupportsSensitiveDynamicProperties
 @DynamicProperties({
@@ -160,6 +163,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
                 DEFAULT_SCALE,
                 MAX_ROWS_PER_FLOW_FILE,
                 OUTPUT_BATCH_SIZE,
+                ADD_SENTINEL_FLOW_FILE,
                 FETCH_SIZE,
                 AUTO_COMMIT,
                 CONTENT_OUTPUT_STRATEGY
