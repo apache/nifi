@@ -65,7 +65,13 @@ export class CounterListing implements OnInit {
         );
     }
 
-    resetAllCounters(): void {
-        this.store.dispatch(promptResetAllCounters());
+    resetAllCounters(counterCount: number): void {
+        this.store.dispatch(
+            promptResetAllCounters({
+                request: {
+                    counterCount
+                }
+            })
+        );
     }
 }

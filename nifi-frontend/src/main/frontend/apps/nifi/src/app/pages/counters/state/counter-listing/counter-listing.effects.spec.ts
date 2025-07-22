@@ -163,7 +163,13 @@ describe('CounterListingEffects', () => {
                 }
             };
 
-            action$.next(CounterListingActions.promptResetAllCounters());
+            action$.next(
+                CounterListingActions.promptResetAllCounters({
+                    request: {
+                        counterCount: 6
+                    }
+                })
+            );
 
             jest.spyOn(dialog, 'open').mockReturnValueOnce(dialogRef as any);
 

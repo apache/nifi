@@ -19,4 +19,12 @@
 
 .counter-table {
     @include mat.button-density(-1);
+
+    .listing-table {
+        table {
+            .mat-column-reset {
+                width: 52px;
+            }
+        }
+    }
 }

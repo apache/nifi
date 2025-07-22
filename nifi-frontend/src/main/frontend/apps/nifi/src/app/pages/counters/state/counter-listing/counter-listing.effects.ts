@@ -111,12 +111,13 @@ export class CounterListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(CounterListingActions.promptResetAllCounters),
-                tap(() => {
+                map((action) => action.request),
+                tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         ...SMALL_DIALOG,
                         data: {
                             title: 'Reset All Counters',
-                            message: 'Reset all counters to 0?'
+                            message: `Reset all counters to 0? This will reset ${request.counterCount} counters.`
                         }
                     });
 

@@ -112,9 +112,16 @@ describe('CounterListing', () => {
             const { component, store } = await setup();
             jest.spyOn(store, 'dispatch');
 
-            component.resetAllCounters();
+            const counterCount = 6;
+            component.resetAllCounters(counterCount);
 
-            expect(store.dispatch).toHaveBeenCalledWith(promptResetAllCounters());
+            expect(store.dispatch).toHaveBeenCalledWith(
+                promptResetAllCounters({
+                    request: {
+                        counterCount
+                    }
+                })
+            );
         });
     });
 

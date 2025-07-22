@@ -129,7 +129,8 @@ describe('CounterTable', () => {
             const { fixture } = await setup({ canModifyCounters: true, counters: [] });
 
             const resetAllButton = fixture.debugElement.query(By.css('button[data-qa="reset-all-counters-button"]'));
-            expect(resetAllButton).toBeFalsy();
+            expect(resetAllButton).toBeTruthy();
+            expect(resetAllButton.nativeElement.disabled).toBeTruthy();
         });
     });
 

@@ -102,7 +102,7 @@ export class CounterTable implements AfterViewInit {
     }
 
     @Output() resetCounter: EventEmitter<CounterEntity> = new EventEmitter<CounterEntity>();
-    @Output() resetAllCounters: EventEmitter<void> = new EventEmitter<void>();
+    @Output() resetAllCounters: EventEmitter<number> = new EventEmitter<number>();
 
     constructor(
         private formBuilder: FormBuilder,
@@ -152,7 +152,7 @@ export class CounterTable implements AfterViewInit {
     }
 
     resetAllClicked() {
-        this.resetAllCounters.next();
+        this.resetAllCounters.next(this.totalCount);
     }
 
     sortData(sort: Sort) {

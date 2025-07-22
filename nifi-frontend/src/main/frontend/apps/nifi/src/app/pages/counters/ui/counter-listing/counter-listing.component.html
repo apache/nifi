@@ -28,7 +28,7 @@
                         [counters]="counterListingState.counters"
                         [canModifyCounters]="user.countersPermissions.canWrite"
                         (resetCounter)="resetCounter($event)"
-                        (resetAllCounters)="resetAllCounters()"></counter-table>
+                        (resetAllCounters)="resetAllCounters($event)"></counter-table>
                 </div>
             }
             <div class="flex justify-between">
