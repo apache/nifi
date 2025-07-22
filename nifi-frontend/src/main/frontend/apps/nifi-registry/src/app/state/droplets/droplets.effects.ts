@@ -26,18 +26,18 @@ import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '@nifi/shared';
 import { NiFiState } from '../index';
 import { DropletsService } from '../../service/droplets.service';
 import * as DropletsActions from './droplets.actions';
-import { DeleteDropletDialogComponent } from '../../pages/expolorer/feature/ui/delete-droplet-dialog/delete-droplet-dialog.component';
-import { ImportNewFlowDialogComponent } from '../../pages/expolorer/feature/ui/import-new-flow-dialog/import-new-flow-dialog.component';
-import { ImportNewFlowDialogData } from '../../pages/expolorer/feature/ui/import-new-flow-dialog/import-new-flow-dialog.component';
+import { DeleteDropletDialogComponent } from '../../pages/resources/feature/ui/delete-droplet-dialog/delete-droplet-dialog.component';
+import { ImportNewFlowDialogComponent } from '../../pages/resources/feature/ui/import-new-flow-dialog/import-new-flow-dialog.component';
+import { ImportNewFlowDialogData } from '../../pages/resources/feature/ui/import-new-flow-dialog/import-new-flow-dialog.component';
 import {
     ImportNewFlowVersionDialogComponent,
     ImportNewFlowVersionDialogData
-} from '../../pages/expolorer/feature/ui/import-new-flow-version-dialog/import-new-flow-version-dialog.component';
+} from '../../pages/resources/feature/ui/import-new-flow-version-dialog/import-new-flow-version-dialog.component';
 import {
     ExportFlowVersionDialogComponent,
     ExportFlowVersionDialogData
-} from '../../pages/expolorer/feature/ui/export-flow-version-dialog/export-flow-version-dialog.component';
-import { FlowVersionsDialogComponent } from '../../pages/expolorer/feature/ui/flow-versions-dialog/flow-versions-dialog.component';
+} from '../../pages/resources/feature/ui/export-flow-version-dialog/export-flow-version-dialog.component';
+import { FlowVersionsDialogComponent } from '../../pages/resources/feature/ui/flow-versions-dialog/flow-versions-dialog.component';
 import { ErrorHelper } from '../../service/error-helper.service';
 import * as ErrorActions from '../../state/error/error.actions';
 import { selectStatus } from './droplets.selectors';
@@ -351,7 +351,7 @@ export class DropletsEffects {
                 ofType(DropletsActions.selectDroplet),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/explorer', request.id]);
+                    this.router.navigate(['/resources', request.id]);
                 })
             ),
         { dispatch: false }

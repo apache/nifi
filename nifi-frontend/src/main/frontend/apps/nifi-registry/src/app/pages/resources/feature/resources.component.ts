@@ -52,7 +52,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { DropletTableComponent } from './ui/droplet-table/droplet-table.component';
 
 @Component({
-    selector: 'explorer',
+    selector: 'resources',
     imports: [
         CommonModule,
         MatTableModule,
@@ -63,11 +63,11 @@ import { DropletTableComponent } from './ui/droplet-table/droplet-table.componen
         MatButtonModule,
         DropletTableComponent
     ],
-    templateUrl: './explorer.component.html',
-    styleUrl: './explorer.component.scss',
+    templateUrl: './resources.component.html',
+    styleUrl: './resources.component.scss',
     standalone: true
 })
-export class ExplorerComponent implements OnInit {
+export class ResourcesComponent implements OnInit {
     droplets$: Observable<Droplet[]>;
     buckets$: Observable<Bucket[]>;
     buckets: Bucket[] = [];

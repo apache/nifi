@@ -16,7 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ExplorerComponent } from './explorer.component';
+import { ResourcesComponent } from './resources.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -26,14 +26,14 @@ import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-t
 import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 
-describe('ExplorerComponent', () => {
-    let component: ExplorerComponent;
-    let fixture: ComponentFixture<ExplorerComponent>;
+describe('ResourcesComponent', () => {
+    let component: ResourcesComponent;
+    let fixture: ComponentFixture<ResourcesComponent>;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
-                ExplorerComponent,
+                ResourcesComponent,
                 CommonModule,
                 MatTableModule,
                 MatSortModule,
@@ -47,7 +47,7 @@ describe('ExplorerComponent', () => {
             providers: [provideMockStore({})]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(ExplorerComponent);
+        fixture = TestBed.createComponent(ResourcesComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

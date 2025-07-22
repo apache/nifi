@@ -17,7 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { ExplorerComponent } from './pages/expolorer/feature/explorer.component';
+import { ResourcesComponent } from './pages/resources/feature/resources.component';
 import { Error } from './pages/error/feature/error.component';
 
 const routes: Routes = [
@@ -26,27 +26,27 @@ const routes: Routes = [
         loadComponent: () => Error
     },
     {
-        path: 'explorer',
-        component: ExplorerComponent,
+        path: 'resources',
+        component: ResourcesComponent,
         children: [
             {
                 path: ':id',
-                component: ExplorerComponent
+                component: ResourcesComponent
             }
         ]
     },
     {
         path: 'nifi-registry',
-        redirectTo: 'explorer'
+        redirectTo: 'resources'
     },
     {
         path: '',
-        redirectTo: 'explorer',
+        redirectTo: 'resources',
         pathMatch: 'full'
     },
     {
         path: '',
-        loadComponent: () => import('./pages/expolorer/feature/explorer.component').then((m) => m.ExplorerComponent)
+        loadComponent: () => import('./pages/resources/feature/resources.component').then((m) => m.ResourcesComponent)
     }
 ];
 
