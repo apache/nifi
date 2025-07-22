@@ -20,8 +20,12 @@ package org.apache.nifi.confluent.schemaregistry.client;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
+import java.io.IOException;
 import java.time.Duration;
 
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
@@ -30,6 +34,7 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final LoadingCache<String, RecordSchema> nameCache;
     private final LoadingCache<Pair<String, Integer>, RecordSchema> nameVersionCache;
     private final LoadingCache<Integer, RecordSchema> idCache;
+    private final LoadingCache<SchemaIdentifier, SchemaDefinition> definitionCache;
 
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
@@ -47,21 +52,30 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
                 .build(client::getSchema);
+        definitionCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(expirationNanos))
+                .build(client::getSchemaDefinition);
     }
 
     @Override
-    public RecordSchema getSchema(final String schemaName) {
+    public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
         return nameCache.get(schemaName);
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName, int version) {
+    public RecordSchema getSchema(String schemaName, int version) throws IOException, SchemaNotFoundException {
         return nameVersionCache.get(Pair.of(schemaName, version));
     }
 
     @Override
-    public RecordSchema getSchema(final int schemaId) {
+    public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
         return idCache.get(schemaId);
+    }
+
+    @Override
+    public SchemaDefinition getSchemaDefinition(final SchemaIdentifier identifier) throws IOException, SchemaNotFoundException {
+        return definitionCache.get(identifier);
     }
 
 }
