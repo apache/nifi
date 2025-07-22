@@ -360,28 +360,35 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         flowSnapshot.getSnapshotMetadata().setVersion(null);
         flowSnapshot.getSnapshotMetadata().setComments(null);
 
-        // remove all parameter values if configured to do so
         final ParameterContextValuesStrategy parameterContextValuesStrategy = context.getProperty(PARAMETER_CONTEXT_VALUES).asAllowableValue(ParameterContextValuesStrategy.class);
-        if (ParameterContextValuesStrategy.REMOVE.equals(parameterContextValuesStrategy)) {
-            flowSnapshot.getParameterContexts().forEach((name, parameterContext) ->
-                parameterContext.getParameters().forEach(parameter -> parameter.setValue(null))
-            );
-        } else if (ParameterContextValuesStrategy.IGNORE_CHANGES.equals(parameterContextValuesStrategy)) {
-            existingSnapshot.getParameterContexts().forEach((name, parameterContext) -> {
-                final VersionedParameterContext targetContext = flowSnapshot.getParameterContexts().get(name);
-                if (targetContext != null) {
-                    final Map<String, VersionedParameter> targetParamMap = targetContext.getParameters()
-                            .stream()
-                            .collect(Collectors.toMap(VersionedParameter::getName, Function.identity()));
+        final Map<String, VersionedParameterContext> parameterContexts = flowSnapshot.getParameterContexts();
+        if (parameterContexts != null) {
+            if (ParameterContextValuesStrategy.REMOVE.equals(parameterContextValuesStrategy)) {
+                // remove all parameter values if configured to do so
+                parameterContexts.forEach((name, parameterContext) ->
+                    parameterContext.getParameters().forEach(parameter -> parameter.setValue(null))
+                );
+            } else if (ParameterContextValuesStrategy.IGNORE_CHANGES.equals(parameterContextValuesStrategy)) {
+                // ignore changes on existing parameters if configured to do so
+                final Map<String, VersionedParameterContext> existingParameterContexts = existingSnapshot.getParameterContexts();
+                if (existingParameterContexts != null) {
+                    existingParameterContexts.forEach((name, parameterContext) -> {
+                        final VersionedParameterContext targetContext = parameterContexts.get(name);
+                        if (targetContext != null) {
+                            final Map<String, VersionedParameter> targetParamMap = targetContext.getParameters()
+                                    .stream()
+                                    .collect(Collectors.toMap(VersionedParameter::getName, Function.identity()));
 
-                    parameterContext.getParameters().forEach(parameter -> {
-                        final VersionedParameter targetParam = targetParamMap.get(parameter.getName());
-                        if (targetParam != null) {
-                            targetParam.setValue(parameter.getValue());
+                            parameterContext.getParameters().forEach(parameter -> {
+                                final VersionedParameter targetParam = targetParamMap.get(parameter.getName());
+                                if (targetParam != null) {
+                                    targetParam.setValue(parameter.getValue());
+                                }
+                            });
                         }
                     });
                 }
-            });
+            }
         }
 
         // replace the id of the top level group and all of its references with a constant value prior to serializing to avoid
