@@ -16,12 +16,14 @@
  */
 package org.apache.parquet.web.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.web.ContentAccess;
@@ -32,7 +34,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.io.InputFile;
-import org.apache.parquet.web.utils.NifiParquetContentViewerInputFile;
+import org.apache.nifi.parquet.shared.NifiParquetInputFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
@@ -40,7 +42,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class ParquetContentViewerController extends HttpServlet {
@@ -52,7 +53,6 @@ public class ParquetContentViewerController extends HttpServlet {
 
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
-
         // get the content
         final DownloadableContent downloadableContent;
         try {
@@ -86,72 +86,82 @@ public class ParquetContentViewerController extends HttpServlet {
             displayName = downloadableContent.getType();
         }
 
-        if (displayName == null || !(displayName.equals("parquet") || displayName.equals("application/parquet"))) {
+        if (displayName == null || !(displayName.equals("parquet") || displayName.equals("application/vnd.apache.parquet"))) {
             response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Unknown content type");
             return;
         }
 
         try {
-            //Output will be in a fixed length table format.
-            List<String> fieldNames = new ArrayList<>();
-            List<ArrayList<String>> columns = new ArrayList<>();
-
             //Convert InputStream to a seekable InputStream
-            byte[] data = IOUtils.toByteArray(downloadableContent.getContent());
+            long maxBytes = 1024 * 1024 * 2; //10MB
+            byte[] data = getInputStreamBytes(downloadableContent.getContent(), maxBytes);
+
+            if (data.length < 1) {
+                response.getOutputStream().write("Content size is too large to display.".getBytes());
+                return;
+            }
+
             Configuration conf = new Configuration();
             conf.setBoolean("parquet.avro.readInt96AsFixed", true);
 
-            final InputFile inputFile = new NifiParquetContentViewerInputFile(new ByteArrayInputStream(data), data.length);
+            final InputFile inputFile = new NifiParquetInputFile(new ByteArrayInputStream(data), data.length);
             final ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(inputFile)
                     .withConf(conf)
                     .build();
 
             //Get each column per record and save it to corresponding column list
             GenericRecord record;
-            boolean needHeader = true;
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            boolean firstRecord = true;
+
             while ((record = reader.read()) != null) {
-                //Get the field names from the schema
-                if (needHeader) {
-                    record.getSchema().getFields().forEach(f -> {
-                        fieldNames.add(f.name());
-                        ArrayList<String> column = new ArrayList<>();
-                        column.add(f.name());
-                        columns.add(column);
-                    });
-                    needHeader = false;
+                if (firstRecord) {
+                    firstRecord = false;
+                } else {
+                    response.getOutputStream().write(",\n".getBytes());
                 }
 
-                for (int i = 0; i < fieldNames.size(); i++) {
-                    Object value = record.get(fieldNames.get(i));
-                    if (value != null) {
-                        columns.get(i).add(value.toString());
-                    } else {
-                        columns.get(i).add("");
-                    }
-                }
+                response.getOutputStream().write(gson.toJson(JsonParser.parseString(record.toString())).getBytes());
             }
-
-            //Get the maximum length for each column including the header.
-            int[] maxLengths = new int[fieldNames.size()];
-            for (int i = 0; i < columns.size(); i++) {
-                maxLengths[i] = columns.get(i).stream()
-                        .max(Comparator.comparingInt(String::length))
-                        .orElse("")
-                        .length();
-            }
-
-            //Print out each field with a fixed length
-            for (int i = 0; i < columns.getFirst().size(); i++) {
-                StringBuilder row = new StringBuilder();
-                for (int j = 0; j < columns.size(); j++) {
-                    row.append(String.format("%-" + (maxLengths[j] + 1) + "s", columns.get(j).get(i)));
-                }
-                response.getOutputStream().write((row + "\n").getBytes());
-            }
-
         } catch (final Throwable t) {
             logger.warn("Unable to format FlowFile content", t);
             response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Unable to format FlowFile content");
         }
+    }
+
+    private byte[] getInputStreamBytes(final InputStream inputStream, long maxBytes) throws IOException {
+        final int bufferSize = 8 * 1024; //8KB
+        List<byte[]> segments = new ArrayList<>();
+        long totalRead = 0;
+
+        while (totalRead < maxBytes) {
+            byte[] buffer = new byte[bufferSize];
+            int bytesRead = inputStream.read(buffer, 0, bufferSize);
+            if (bytesRead == -1) {
+                break;
+            }
+
+            segments.add(buffer);
+            totalRead += bytesRead;
+        }
+
+        //Return an empty array if file size is too large
+        if (totalRead >= maxBytes && inputStream.read() != -1) {
+            return new byte[0];
+        }
+
+        byte[] bytes = new byte[(int) totalRead];
+        int offset = 0;
+
+        for (byte[] segment : segments) {
+            int segmentLength = segment.length;
+            if (totalRead <= segmentLength + offset) {
+                segmentLength = (int) totalRead - offset;
+            }
+            System.arraycopy(segment, 0, bytes, offset, segmentLength);
+            offset += segmentLength;
+        }
+
+        return bytes;
     }
 }
