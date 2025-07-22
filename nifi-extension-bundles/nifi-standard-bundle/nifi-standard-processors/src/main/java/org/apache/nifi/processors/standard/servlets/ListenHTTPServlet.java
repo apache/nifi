@@ -29,6 +29,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
@@ -455,7 +456,7 @@ public class ListenHTTPServlet extends HttpServlet {
             unpackager = new FlowFileUnpackagerV3();
         } else if (StandardFlowFileMediaType.VERSION_2.getMediaType().equals(contentType)) {
             unpackager = new FlowFileUnpackagerV2();
-        } else if (StringUtils.startsWith(contentType, StandardFlowFileMediaType.VERSION_UNSPECIFIED.getMediaType())) {
+        } else if (Strings.CS.startsWith(contentType, StandardFlowFileMediaType.VERSION_UNSPECIFIED.getMediaType())) {
             unpackager = new FlowFileUnpackagerV1();
         } else {
             unpackager = null;

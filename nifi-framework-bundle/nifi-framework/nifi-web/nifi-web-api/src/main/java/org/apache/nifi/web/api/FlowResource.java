@@ -43,6 +43,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -3835,7 +3836,7 @@ public class FlowResource extends ApplicationResource {
             final String address = node.getAddress() + ":" + node.getApiPort();
 
             // count the node if there is no search or it matches the address
-            if (StringUtils.isBlank(value) || StringUtils.containsIgnoreCase(address, value)) {
+            if (StringUtils.isBlank(value) || Strings.CI.contains(address, value)) {
                 final NodeSearchResultDTO nodeMatch = new NodeSearchResultDTO();
                 nodeMatch.setId(node.getNodeId());
                 nodeMatch.setAddress(address);

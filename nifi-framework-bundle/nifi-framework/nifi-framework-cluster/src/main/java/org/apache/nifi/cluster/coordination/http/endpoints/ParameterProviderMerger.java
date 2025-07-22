@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -38,7 +38,7 @@ public class ParameterProviderMerger {
                         continue;
                     }
                     ParameterGroupConfigurationEntity otherConfiguration = otherGroupIterator.next();
-                    if (!StringUtils.equals(parameterGroupConfiguration.getGroupName(), otherConfiguration.getGroupName())) {
+                    if (!Strings.CS.equals(parameterGroupConfiguration.getGroupName(), otherConfiguration.getGroupName())) {
                         continue;
                     }
                     final Map<String, ParameterSensitivity> targetParameterSensitivities = parameterGroupConfiguration.getParameterSensitivities();

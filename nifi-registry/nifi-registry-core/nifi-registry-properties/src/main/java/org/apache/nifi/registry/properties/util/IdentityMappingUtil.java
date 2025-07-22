@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.properties.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.registry.properties.util.IdentityMapping.Transform;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.slf4j.Logger;
@@ -83,7 +84,7 @@ public class IdentityMappingUtil {
 
         // go through each property
         for (String propertyName : properties.getPropertyKeys()) {
-            if (StringUtils.startsWith(propertyName, patternPrefix)) {
+            if (Strings.CS.startsWith(propertyName, patternPrefix)) {
                 final String key = StringUtils.substringAfter(propertyName, patternPrefix);
                 final String identityPattern = properties.getProperty(propertyName);
 

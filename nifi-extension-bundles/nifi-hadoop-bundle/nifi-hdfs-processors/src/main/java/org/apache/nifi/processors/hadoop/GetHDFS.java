@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -375,7 +375,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 // Check if compression codec is defined (inferred or otherwise)
                 if (codec != null) {
                     stream = codec.createInputStream(stream);
-                    outputFilename = StringUtils.removeEnd(originalFilename, codec.getDefaultExtension());
+                    outputFilename = Strings.CS.removeEnd(originalFilename, codec.getDefaultExtension());
                 } else {
                     outputFilename = originalFilename;
                 }
