@@ -98,7 +98,7 @@ You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, a
 3. Download a flow definition to create a JSON-formatted file.
 4. Transform the downloaded JSON file using the MiNiFi Toolkit:
    ```
-   minifi-toolkit/bin/transform-nifi SOURCE_NIFI_JSON_FLOW_FILE TARGET_MINIFI_JSON_FLOW_FILE
+   minifi-toolkit/bin/config.sh transform-nifi SOURCE_NIFI_JSON_FLOW_FILE TARGET_MINIFI_JSON_FLOW_FILE
    ```
 5. Move or copy the transformed flow definition file to `minifi/conf/flow.json.raw`.
 
