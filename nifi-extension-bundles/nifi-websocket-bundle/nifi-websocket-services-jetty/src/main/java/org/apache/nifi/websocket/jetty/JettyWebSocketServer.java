@@ -235,7 +235,9 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         @Override
         public Object createWebSocket(JettyServerUpgradeRequest servletUpgradeRequest, JettyServerUpgradeResponse servletUpgradeResponse) {
             final URI requestURI = servletUpgradeRequest.getRequestURI();
-            final int port = ((InetSocketAddress) servletUpgradeRequest.getLocalSocketAddress()).getPort();
+
+
+            final int port = getPort(servletUpgradeRequest);
             final JettyWebSocketServer service = portToControllerService.get(port);
 
             if (service == null) {
@@ -252,6 +254,21 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
             return new RoutingWebSocketListener(router);
         }
+    }
+
+    private static int getPort(JettyServerUpgradeRequest servletUpgradeRequest) {
+        final Object localSocketAddress = servletUpgradeRequest.getLocalSocketAddress();
+        if (localSocketAddress == null) {
+            throw new RuntimeException("Local socket address is null");
+        }
+
+        // Check if the local socket address is an instance of InetSocketAddress
+        if (!(localSocketAddress instanceof InetSocketAddress)) {
+            throw new RuntimeException("Local socket address is not an instance of InetSocketAddress: " + localSocketAddress.getClass().getName());
+        }
+
+        final int port = ((InetSocketAddress) localSocketAddress).getPort();
+        return port;
     }
 
     @OnEnabled
