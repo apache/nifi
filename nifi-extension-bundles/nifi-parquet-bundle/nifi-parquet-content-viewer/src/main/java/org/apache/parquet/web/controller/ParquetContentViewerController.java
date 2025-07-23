@@ -16,14 +16,14 @@
  */
 package org.apache.parquet.web.controller;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.web.ContentAccess;
@@ -41,11 +41,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
+    private static final long maxBytes = 1024 * 1024 * 2; //10MB
+    private static final int bufferSize = 8 * 1024; // 8KB
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
@@ -93,15 +93,16 @@ public class ParquetContentViewerController extends HttpServlet {
 
         try {
             //Convert InputStream to a seekable InputStream
-            long maxBytes = 1024 * 1024 * 2; //10MB
-            byte[] data = getInputStreamBytes(downloadableContent.getContent(), maxBytes);
+            byte[] data = getInputStreamBytes(downloadableContent.getContent());
 
-            if (data.length < 1) {
+            if (data.length == 0) {
                 response.getOutputStream().write("Content size is too large to display.".getBytes());
                 return;
             }
 
             Configuration conf = new Configuration();
+
+            //Allow older deprecated schemas
             conf.setBoolean("parquet.avro.readInt96AsFixed", true);
 
             final InputFile inputFile = new NifiParquetInputFile(new ByteArrayInputStream(data), data.length);
@@ -111,7 +112,8 @@ public class ParquetContentViewerController extends HttpServlet {
 
             //Get each column per record and save it to corresponding column list
             GenericRecord record;
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
             boolean firstRecord = true;
 
             while ((record = reader.read()) != null) {
@@ -121,7 +123,7 @@ public class ParquetContentViewerController extends HttpServlet {
                     response.getOutputStream().write(",\n".getBytes());
                 }
 
-                response.getOutputStream().write(gson.toJson(JsonParser.parseString(record.toString())).getBytes());
+                response.getOutputStream().write(objectMapper.readTree(record.toString()).toPrettyString().getBytes());
             }
         } catch (final Throwable t) {
             logger.warn("Unable to format FlowFile content", t);
@@ -129,39 +131,25 @@ public class ParquetContentViewerController extends HttpServlet {
         }
     }
 
-    private byte[] getInputStreamBytes(final InputStream inputStream, long maxBytes) throws IOException {
-        final int bufferSize = 8 * 1024; //8KB
-        List<byte[]> segments = new ArrayList<>();
+    private byte[] getInputStreamBytes(final InputStream inputStream) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buffer = new byte[bufferSize];
         long totalRead = 0;
 
         while (totalRead < maxBytes) {
-            byte[] buffer = new byte[bufferSize];
             int bytesRead = inputStream.read(buffer, 0, bufferSize);
             if (bytesRead == -1) {
                 break;
             }
-
-            segments.add(buffer);
+            baos.write(buffer, 0, bytesRead);
             totalRead += bytesRead;
         }
 
-        //Return an empty array if file size is too large
+        // Return empty array if inputStream has more data beyond maxBytes
         if (totalRead >= maxBytes && inputStream.read() != -1) {
             return new byte[0];
         }
 
-        byte[] bytes = new byte[(int) totalRead];
-        int offset = 0;
-
-        for (byte[] segment : segments) {
-            int segmentLength = segment.length;
-            if (totalRead <= segmentLength + offset) {
-                segmentLength = (int) totalRead - offset;
-            }
-            System.arraycopy(segment, 0, bytes, offset, segmentLength);
-            offset += segmentLength;
-        }
-
-        return bytes;
+        return baos.toByteArray();
     }
 }
