@@ -17,8 +17,6 @@
 
 package org.apache.nifi.tests.system.clustering;
 
-
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.controller.flow.VersionedDataflow;
