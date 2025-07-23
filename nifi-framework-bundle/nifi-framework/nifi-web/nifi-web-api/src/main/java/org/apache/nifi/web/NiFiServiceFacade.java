@@ -447,6 +447,13 @@ public interface NiFiServiceFacade {
     CounterDTO updateCounter(String counterId);
 
     /**
+     * Updates all counters by setting their values to 0.
+     *
+     * @return The counters
+     */
+    CountersDTO updateAllCounters();
+
+    /**
      * Returns the counters.
      *
      * @return The counters
