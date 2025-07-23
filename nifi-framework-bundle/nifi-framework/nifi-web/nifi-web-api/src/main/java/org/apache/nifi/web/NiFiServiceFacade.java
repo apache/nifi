@@ -2783,6 +2783,14 @@ public interface NiFiServiceFacade {
     void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
 
     /**
+     * Discovers the compatible bundle details for the components in the specified Parameter Providers and updates them
+     * to reflect the appropriate bundles.
+     *
+     * @param parameterProviders the parameter provider map
+     */
+    void discoverCompatibleBundles(Map<String, ParameterProviderReference> parameterProviders);
+
+    /**
      * Discovers the compatible bundle details for the components in the specified snapshot and updates the snapshot to reflect the appropriate bundles.
      *
      * @param reportingTaskSnapshot the snapshot
