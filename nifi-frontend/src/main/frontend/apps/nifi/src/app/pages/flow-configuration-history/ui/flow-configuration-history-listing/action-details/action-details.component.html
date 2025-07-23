@@ -23,7 +23,14 @@
                 <div>
                     <div>Id</div>
                     <div [copy]="actionEntity.sourceId" class="tertiary-color font-medium">
-                        {{ actionEntity.sourceId }}
+                        <a
+                            [href]="'#/flow/process-group/root/component/' + actionEntity.sourceId"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary underline"
+                        >
+                            {{ actionEntity.sourceId }}
+                        </a>
                     </div>
                 </div>
 
