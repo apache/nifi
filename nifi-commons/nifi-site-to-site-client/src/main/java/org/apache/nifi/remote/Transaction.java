@@ -194,7 +194,7 @@ public interface Transaction {
      */
     Communicant getCommunicant();
 
-    public enum TransactionState {
+    enum TransactionState {
 
         /**
          * Transaction has been started but no data has been sent or received.

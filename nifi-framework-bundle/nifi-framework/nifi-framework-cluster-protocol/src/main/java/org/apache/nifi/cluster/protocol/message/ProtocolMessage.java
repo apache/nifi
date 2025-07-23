@@ -18,7 +18,7 @@ package org.apache.nifi.cluster.protocol.message;
 
 public abstract class ProtocolMessage {
 
-    public static enum MessageType {
+    public enum MessageType {
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
         OFFLOAD_REQUEST,

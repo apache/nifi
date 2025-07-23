@@ -69,7 +69,7 @@ public class ValueNode extends BxmlNodeWithToken {
         init();
     }
 
-    private static final Map<Integer, VariantTypeNodeFactory> initFactories() {
+    private static Map<Integer, VariantTypeNodeFactory> initFactories() {
         Map<Integer, VariantTypeNodeFactory> result = new HashMap<>();
         result.put(0, NullTypeNode::new);
         result.put(1, WStringTypeNode::new);

@@ -28,7 +28,7 @@ public interface IdentityProviderConfigurationContext {
     /**
      * @return the IdentityProviderLookup from the factory context
      */
-    public IdentityProviderLookup getIdentityProviderLookup();
+    IdentityProviderLookup getIdentityProviderLookup();
 
     /**
      * Retrieves all properties the component currently understands regardless

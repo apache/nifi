@@ -84,7 +84,7 @@ public enum DisconnectionCode {
 
     private final String description;
 
-    private DisconnectionCode(final String description) {
+    DisconnectionCode(final String description) {
         this.description = description;
     }
 

@@ -3865,7 +3865,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
      * Callback interface used to poll a FlowFileQueue, in order to perform
      * functional programming-type of polling a queue
      */
-    private static interface ConnectionPoller {
+    private interface ConnectionPoller {
 
         List<FlowFileRecord> poll(Connection connection, Set<FlowFileRecord> expiredRecords);
     }
