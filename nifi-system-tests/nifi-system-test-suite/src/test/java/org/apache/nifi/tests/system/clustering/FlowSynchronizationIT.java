@@ -449,13 +449,14 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         getClientUtil().updateReportingTaskProperties(reportingTask, reportingTaskProperties);
 
         // Start everything up on Node 1.
-        getClientUtil().enableControllerService(countService);
         getClientUtil().enableControllerService(sleepService);
+        getClientUtil().enableControllerService(countService);
         getClientUtil().startReportingTask(reportingTask);
         getClientUtil().waitForValidProcessor(count.getId()); // Now that service was enabled, wait for processor to become valid.
         getClientUtil().startProcessGroupComponents(group.getId());
         getClientUtil().startProcessor(terminate);
         getClientUtil().startProcessor(generate);
+        getClientUtil().waitForProcessorState(count.getId(), RUNNING_STATE);
 
         // Stop & restart Node 2.
         getNiFiInstance().getNodeInstance(2).stop();
