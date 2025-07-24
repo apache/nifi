@@ -234,7 +234,7 @@ public class XMLRecordReader implements RecordReader {
                     }
                 }
 
-                if (embeddedMap.size() > 0) {
+                if (!embeddedMap.isEmpty()) {
                     return embeddedMap;
                 } else {
                     return null;
@@ -314,8 +314,8 @@ public class XMLRecordReader implements RecordReader {
             }
         }
 
-        final boolean hasContent = content.length() > 0;
-        final boolean hasFields = recordValues.size() > 0;
+        final boolean hasContent = !content.isEmpty();
+        final boolean hasFields = !recordValues.isEmpty();
 
         if (hasContent) {
             if (!hasFields) {
@@ -466,7 +466,7 @@ public class XMLRecordReader implements RecordReader {
             }
         }
 
-        if (recordValues.size() > 0) {
+        if (!recordValues.isEmpty()) {
             return new MapRecord(schema, recordValues);
         } else {
             return null;

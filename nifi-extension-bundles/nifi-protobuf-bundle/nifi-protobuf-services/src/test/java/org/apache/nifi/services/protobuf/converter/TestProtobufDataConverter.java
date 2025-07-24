@@ -66,12 +66,17 @@ public class TestProtobufDataConverter {
         final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
         assertEquals("ENUM_VALUE_3", nestedRecord.getValue("testEnum"));
 
-        assertEquals(Map.of("test_key_entry1", 101, "test_key_entry2", 202), nestedRecord.getValue("testMap"));
+        final Object[] recordList = (Object[]) nestedRecord.getValue("nestedMessage2");
+        assertEquals(1, recordList.length);
+
+        final MapRecord nestedRecord2 = (MapRecord) recordList[0];
+
+        assertEquals(Map.of("test_key_entry1", 101, "test_key_entry2", 202), nestedRecord2.getValue("testMap"));
 
         // assert only one field is set in the OneOf field
-        assertNull(nestedRecord.getValue("stringOption"));
-        assertNull(nestedRecord.getValue("booleanOption"));
-        assertEquals(3, nestedRecord.getValue("int32Option"));
+        assertNull(nestedRecord2.getValue("stringOption"));
+        assertNull(nestedRecord2.getValue("booleanOption"));
+        assertEquals(3, nestedRecord2.getValue("int32Option"));
     }
 
     @Test

@@ -68,10 +68,10 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         processGroupSchemas = getOptionalKeyAsList(map, PROCESS_GROUPS_KEY, m -> new ProcessGroupSchema(m, "ProcessGroup(id: {id}, name: {name})"), wrapperName);
 
         if (ConfigSchema.TOP_LEVEL_NAME.equals(wrapperName)) {
-            if (inputPortSchemas.size() > 0) {
+            if (!inputPortSchemas.isEmpty()) {
                 addValidationIssue(INPUT_PORTS_KEY, wrapperName, "must be empty in root group as external input/output ports are currently unsupported");
             }
-            if (outputPortSchemas.size() > 0) {
+            if (!outputPortSchemas.isEmpty()) {
                 addValidationIssue(OUTPUT_PORTS_KEY, wrapperName, "must be empty in root group as external input/output ports are currently unsupported");
             }
         } else if (ID_DEFAULT.equals(getId())) {

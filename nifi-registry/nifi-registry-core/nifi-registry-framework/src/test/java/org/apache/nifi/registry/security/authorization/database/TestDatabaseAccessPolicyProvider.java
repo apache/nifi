@@ -379,7 +379,7 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
 
         final Set<AccessPolicy> policies = policyProvider.getAccessPolicies();
         assertNotNull(policies);
-        assertTrue(policies.size() > 0);
+        assertFalse(policies.isEmpty());
 
         final AccessPolicy existingPolicy = policies.stream().findFirst().get();
         final AccessPolicy retrievedPolicy = policyProvider.getAccessPolicy(existingPolicy.getIdentifier());
@@ -400,7 +400,7 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
 
         final Set<AccessPolicy> policies = policyProvider.getAccessPolicies();
         assertNotNull(policies);
-        assertTrue(policies.size() > 0);
+        assertFalse(policies.isEmpty());
 
         final AccessPolicy existingPolicy = policies.stream().findFirst().get();
         final AccessPolicy retrievedPolicy = policyProvider.getAccessPolicy(existingPolicy.getResource(), existingPolicy.getAction());

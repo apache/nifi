@@ -36,7 +36,6 @@ import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -118,7 +117,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     private static final String COUNT_TABLE_COMMAND = "%s | count";
 
-    private static final Pair<String, String> NIFI_SINK = Pair.of("processor", StandardKustoIngestService.class.getSimpleName());
+    private static final Map<String, String> NIFI_SINK = Map.of("processor", StandardKustoIngestService.class.getSimpleName());
 
     private volatile QueuedIngestClient queuedIngestClient;
 

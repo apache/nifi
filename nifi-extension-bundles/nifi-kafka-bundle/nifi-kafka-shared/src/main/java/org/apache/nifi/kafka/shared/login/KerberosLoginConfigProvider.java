@@ -29,7 +29,7 @@ import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SELF_C
 /**
  * Kerberos User Service Login Module implementation of configuration provider
  */
-public class KerberosUserServiceLoginConfigProvider implements LoginConfigProvider {
+public class KerberosLoginConfigProvider implements LoginConfigProvider {
 
     /**
      * Get JAAS configuration using configured Kerberos credentials

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-shared-bom</artifactId>
-        <version>2.5.0-SNAPSHOT</version>
+        <version>2.6.0-SNAPSHOT</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
@@ -35,34 +35,34 @@
     </modules>
     <properties>
         <org.apache.sshd.version>2.15.0</org.apache.sshd.version>
-        <tika.version>3.2.0</tika.version>
+        <tika.version>3.2.1</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>2.5.0-SNAPSHOT</version>
+                <version>2.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>2.5.0-SNAPSHOT</version>
+                <version>2.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>2.5.0-SNAPSHOT</version>
+                <version>2.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-rules</artifactId>
-                <version>2.5.0-SNAPSHOT</version>
+                <version>2.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-parameter-providers</artifactId>
-                <version>2.5.0-SNAPSHOT</version>
+                <version>2.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.hierynomus</groupId>
@@ -112,7 +112,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>12.7</version>
+                <version>12.8</version>
             </dependency>
             <dependency>
                 <groupId>javax.jms</groupId>
@@ -232,7 +232,7 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.7</version>
+                <version>1.5.8</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

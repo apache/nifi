@@ -385,7 +385,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(type);
-            if (bundles.size() == 0) {
+            if (bundles.isEmpty()) {
                 throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
             if (bundles.size() > 1) {

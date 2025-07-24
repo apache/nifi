@@ -59,6 +59,13 @@ public interface RuleViolationsManager {
     Collection<RuleViolation> getRuleViolationsForGroup(String groupId);
 
     /**
+     * Returns a list of violations for all the given groupIds (non-recursive)
+     *
+     * @return Violations for all the given groupIds
+     */
+    Collection<RuleViolation> getRuleViolationsForGroups(Collection<String> groupIds);
+
+    /**
      * @return All current rule violations
      */
     Collection<RuleViolation> getAllRuleViolations();
@@ -81,4 +88,9 @@ public interface RuleViolationsManager {
      * Removes empty entries from the map storing the rule violations
      */
     void cleanUp();
+
+    /**
+     * @return True if there are no rule violations
+     */
+    boolean isEmpty();
 }

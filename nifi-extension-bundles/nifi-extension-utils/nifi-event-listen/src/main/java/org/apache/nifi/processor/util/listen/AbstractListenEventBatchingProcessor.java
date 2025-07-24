@@ -85,7 +85,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
         // if the size is 0 then there was nothing to process so return
         // we don't need to yield here because we have a long poll in side of getBatches
-        if (batches.size() == 0) {
+        if (batches.isEmpty()) {
             return;
         }
 
@@ -95,7 +95,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<E> events = entry.getValue().getEvents();
 
-            if (flowFile.getSize() == 0L || events.size() == 0) {
+            if (flowFile.getSize() == 0L || events.isEmpty()) {
                 session.remove(flowFile);
                 getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", entry.getKey());
                 continue;

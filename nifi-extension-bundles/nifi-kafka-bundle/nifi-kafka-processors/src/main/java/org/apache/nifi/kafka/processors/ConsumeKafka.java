@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
@@ -49,6 +50,7 @@ import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -158,10 +160,26 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .defaultValue("true")
             .build();
 
+    static final PropertyDescriptor MAX_UNCOMMITTED_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Uncommitted Size")
+            .description("""
+                    Maximum total size of records to consume from Kafka before transferring FlowFiles to an output
+                    relationship. Evaluated when specified based on the size of serialized keys and values from each
+                    Kafka record, before reaching the [Max Uncommitted Time].
+                    """
+            )
+            .required(false)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new PropertyDescriptor.Builder()
             .name("Max Uncommitted Time")
-            .description("Specifies the maximum amount of time that the Processor can consume from Kafka before it must transfer FlowFiles on " +
-                    "through the flow and commit the offsets to Kafka (if appropriate). A larger time period can result in longer latency.")
+            .description("""
+                    Maximum amount of time to spend consuming records from Kafka before transferring FlowFiles to an
+                    output relationship. Longer amounts of time may produce larger FlowFiles and increase processing
+                    latency for individual records.
+                    """
+            )
             .required(true)
             .defaultValue("100 millis")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -280,6 +298,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             TOPICS,
             AUTO_OFFSET_RESET,
             COMMIT_OFFSETS,
+            MAX_UNCOMMITTED_SIZE,
             MAX_UNCOMMITTED_TIME,
             HEADER_NAME_PATTERN,
             HEADER_ENCODING,
@@ -308,6 +327,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private volatile String brokerUri;
     private volatile PollingContext pollingContext;
     private volatile int maxConsumerCount;
+    private volatile boolean maxUncommittedSizeConfigured;
+    private volatile long maxUncommittedSize;
 
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
@@ -351,6 +372,12 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         brokerUri = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class).getBrokerUri();
         maxConsumerCount = context.getMaxConcurrentTasks();
         activeConsumerCount.set(0);
+
+        final PropertyValue maxUncommittedSizeProperty = context.getProperty(MAX_UNCOMMITTED_SIZE);
+        maxUncommittedSizeConfigured = maxUncommittedSizeProperty.isSet();
+        if (maxUncommittedSizeConfigured) {
+            maxUncommittedSize = maxUncommittedSizeProperty.asDataSize(DataUnit.B).longValue();
+        }
     }
 
     @OnStopped
@@ -393,6 +420,14 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
                 recordsReceived = true;
                 processConsumerRecords(context, session, offsetTracker, consumerRecords);
+
+                if (maxUncommittedSizeConfigured) {
+                    // Stop consuming before reaching Max Uncommitted Time when exceeding Max Uncommitted Size
+                    final long totalRecordSize = offsetTracker.getTotalRecordSize();
+                    if (totalRecordSize > maxUncommittedSize) {
+                        break;
+                    }
+                }
             } catch (final Exception e) {
                 getLogger().error("Failed to consume Kafka Records", e);
                 consumerService.rollback();

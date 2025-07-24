@@ -53,7 +53,11 @@
             @if (references.length > 0) {
                 @for (reference of references; track reference) {
                     <li>
-                        <a [routerLink]="getRouteForReference(reference)">{{ reference.component.name }}</a>
+                        @if (disabledLinks) {
+                            {{ reference.component.name }}
+                        } @else {
+                            <a [routerLink]="getRouteForReference(reference)">{{ reference.component.name }}</a>
+                        }
                     </li>
                 }
             }

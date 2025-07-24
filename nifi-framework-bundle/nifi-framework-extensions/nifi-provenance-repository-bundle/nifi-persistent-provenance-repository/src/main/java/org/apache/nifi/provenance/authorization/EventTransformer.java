@@ -32,11 +32,11 @@ public interface EventTransformer {
     /**
      * An EventTransformer that transforms any event into an Empty Optional
      */
-    public static final EventTransformer EMPTY_TRANSFORMER = event -> Optional.empty();
+    EventTransformer EMPTY_TRANSFORMER = event -> Optional.empty();
 
     /**
      * An EventTransformer that transforms any event into a Placeholder event
      */
-    public static final EventTransformer PLACEHOLDER_TRANSFORMER = event -> Optional.of(new PlaceholderProvenanceEvent(event));
+    EventTransformer PLACEHOLDER_TRANSFORMER = event -> Optional.of(new PlaceholderProvenanceEvent(event));
 
 }

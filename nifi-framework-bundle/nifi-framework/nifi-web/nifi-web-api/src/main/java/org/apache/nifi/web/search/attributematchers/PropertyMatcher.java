@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.web.search.query.SearchQuery;
@@ -53,7 +53,7 @@ public class PropertyMatcher<T extends ComponentNode> implements AttributeMatche
                     final String value = Optional.ofNullable(entry.getValue()).orElse(descriptor.getDefaultValue());
 
                     // evaluate if the value matches the search criteria
-                    if (StringUtils.containsIgnoreCase(value, searchTerm)) {
+                    if (Strings.CI.contains(value, searchTerm)) {
                         matches.add(LABEL_VALUE + SEPARATOR + descriptor.getName() + " - " + value);
                     }
                 }

@@ -18,9 +18,9 @@ package org.apache.nifi.services.slack;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -119,7 +119,7 @@ public class TestSlackRecordSink {
 
     @AfterEach
     public void cleanUp() throws IOException {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
@@ -128,7 +128,10 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_TEXT_MSG_WITH_TIMESTAMP));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(RESPONSE_SUCCESS_TEXT_MSG_WITH_TIMESTAMP)
+                .build());
 
         final WriteResult writeResult = slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
 
@@ -162,7 +165,9 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(500)
+                .build());
 
         final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("500"));
@@ -174,7 +179,10 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_ERROR));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(RESPONSE_ERROR)
+                .build());
 
         final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("slack-error"));
@@ -186,7 +194,10 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_WARNING));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(RESPONSE_WARNING)
+                .build());
 
         assertDoesNotThrow(() -> {
             slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
@@ -199,7 +210,10 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_EMPTY_JSON));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(RESPONSE_EMPTY_JSON)
+                .build());
 
         final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("null"));
@@ -211,7 +225,10 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_INVALID_JSON));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(RESPONSE_INVALID_JSON)
+                .build());
 
         final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("parsing"));
@@ -220,7 +237,7 @@ public class TestSlackRecordSink {
     private JsonNode getRequestBodyJson() {
         try {
             final RecordedRequest recordedRequest = mockWebServer.takeRequest();
-            return mapper.readTree(recordedRequest.getBody().inputStream());
+            return mapper.readTree(recordedRequest.getBody().toByteArray());
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }

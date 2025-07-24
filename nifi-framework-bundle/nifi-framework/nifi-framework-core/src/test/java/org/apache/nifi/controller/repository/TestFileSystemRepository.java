@@ -238,7 +238,7 @@ public class TestFileSystemRepository {
     @Test
     public void testUnreferencedFilesAreArchivedOnCleanup() throws IOException {
         final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
-        assertTrue(containerPaths.size() > 0);
+        assertFalse(containerPaths.isEmpty());
 
         for (final Map.Entry<String, Path> entry : containerPaths.entrySet()) {
             final String containerName = entry.getKey();
@@ -263,7 +263,7 @@ public class TestFileSystemRepository {
         repository.shutdown();
 
         final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
-        assertTrue(containerPaths.size() > 0);
+        assertFalse(containerPaths.isEmpty());
 
         for (final Path containerPath : containerPaths.values()) {
             final Path section1 = containerPath.resolve("1");

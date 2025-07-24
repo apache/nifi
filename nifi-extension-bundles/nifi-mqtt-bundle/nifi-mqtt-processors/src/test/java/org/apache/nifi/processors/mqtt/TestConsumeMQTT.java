@@ -40,7 +40,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -55,6 +57,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttTestUtil.createJsonReco
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -73,7 +76,7 @@ public class TestConsumeMQTT {
     private static final String INVALID_BROKER_URI = "http://localhost:1883";
     private static final String INVALID_CLUSTERED_BROKER_URI = "ssl://localhost:1883,tcp://localhost:1884";
     private static final String CLIENT_ID = "TestClient";
-    private static final String TOPIC_NAME = "testTopic";
+    private static final String TOPIC_NAME = "test/topic";
     private static final String INTERNAL_QUEUE_SIZE = "100";
 
     private static final String STRING_MESSAGE = "testMessage";
@@ -495,8 +498,8 @@ public class TestConsumeMQTT {
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         assertEquals(1, flowFiles.size());
-        assertEquals("[{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false},"
-                        + "{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false}]",
+        assertEquals("[{\"name\":\"Apache NiFi\",\"_topic\":\"test/topic\",\"_topicSegments\":[\"test\",\"topic\"],\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false},"
+                        + "{\"name\":\"Apache NiFi\",\"_topic\":\"test/topic\",\"_topicSegments\":[\"test\",\"topic\"],\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false}]",
                 new String(flowFiles.getFirst().toByteArray()));
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
@@ -643,6 +646,117 @@ public class TestConsumeMQTT {
                 }
             })));
         assertTrue(mqttQueue.contains(mock));
+    }
+
+    @Test
+    void addTopicAttributesWithMultipleTopicSegments() {
+        final String topic = "home/livingroom/temperature";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(4, attributes.size(), "Expected 4 attributes (1 for full topic + 3 for segments)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present");
+        assertEquals("home", attributes.get("mqtt.topic.segment.0"));
+        assertEquals("livingroom", attributes.get("mqtt.topic.segment.1"));
+        assertEquals("temperature", attributes.get("mqtt.topic.segment.2"));
+        assertNull(attributes.get("mqtt.topic.segment.3"), "No further segments expected");
+    }
+
+    @Test
+    void addTopicAttributesWithLeadingSlashInTopic() {
+        final String topic = "/sensors/light";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(4, attributes.size(), "Expected 4 attributes (1 for full topic + 3 for segments)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present");
+        assertEquals("", attributes.get("mqtt.topic.segment.0"), "Segment 0 should be empty for leading slash");
+        assertEquals("sensors", attributes.get("mqtt.topic.segment.1"));
+        assertEquals("light", attributes.get("mqtt.topic.segment.2"));
+        assertNull(attributes.get("mqtt.topic.segment.3"), "No further segments expected");
+    }
+
+    @Test
+    void addTopicAttributesWithTrailingSlashInTopicName() {
+        final String topic = "data/device/";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(4, attributes.size(), "Expected 4 attributes (1 for full topic + 3 for segments)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present");
+        assertEquals("data", attributes.get("mqtt.topic.segment.0"));
+        assertEquals("device", attributes.get("mqtt.topic.segment.1"));
+        assertEquals("", attributes.get("mqtt.topic.segment.2"), "Segment 2 should be empty for trailing slash");
+        assertNull(attributes.get("mqtt.topic.segment.3"), "No further segments expected");
+    }
+
+    @Test
+    void addTopicAttributesWithSingleSlashAsTopic() {
+        final String topic = "/";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(3, attributes.size(), "Expected 3 attributes (1 for full topic + 2 for segments)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present");
+        assertEquals("", attributes.get("mqtt.topic.segment.0"));
+        assertEquals("", attributes.get("mqtt.topic.segment.1"));
+        assertNull(attributes.get("mqtt.topic.segment.2"), "No further segments expected");
+    }
+
+    @Test
+    void addTopicAttributes_consecutiveSlashesTopic_addsCorrectly() {
+        final String topic = "status//alerts";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(4, attributes.size(), "Expected 4 attributes (1 for full topic + 3 for segments)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present");
+        assertEquals("status", attributes.get("mqtt.topic.segment.0"));
+        assertEquals("", attributes.get("mqtt.topic.segment.1"));
+        assertEquals("alerts", attributes.get("mqtt.topic.segment.2"));
+        assertNull(attributes.get("mqtt.topic.segment.3"), "No further segments expected");
+    }
+
+    @Test
+    void addTopicAttributesWithEmptyTopic() {
+        final String topic = "";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(1, attributes.size(), "Expected only 1 attribute (for full topic)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present and empty");
+        assertNull(attributes.get("mqtt.topic.segment.0"), "No segments should be added for empty topic");
+    }
+
+    @Test
+    void addTopicAttributesWithNullTopic() {
+        final String topic = null;
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(1, attributes.size(), "Expected only 1 attribute (for full topic)");
+        assertNull(attributes.get("mqtt.topic"), "Full topic should be null");
+        assertNull(attributes.get("mqtt.topic.segment.0"), "No segments should be added for null topic");
+    }
+
+    @Test
+    void addTopicAttributesWithTopicWithoutSlashes() {
+        final String topic = "sensors";
+
+        final Map<String, String> attributes = new HashMap<>();
+        new ConsumeMQTT().addTopicAttributes(attributes, topic);
+
+        assertEquals(2, attributes.size(), "Expected 2 attributes (1 for full topic + 1 for segment)");
+        assertEquals(topic, attributes.get("mqtt.topic"), "Full topic should be present");
+        assertEquals("sensors", attributes.get("mqtt.topic.segment.0"));
+        assertNull(attributes.get("mqtt.topic.segment.1"), "No further segments expected");
     }
 
     private TestRunner initializeTestRunner() {

@@ -23,6 +23,13 @@
             <div class="flex flex-col gap-y-4 p-4">
                 <configurable-extension-definition
                     [configurableExtensionDefinition]="controllerServiceDefinition"></configurable-extension-definition>
+
+                @if (controllerServiceDefinition.seeAlso) {
+                    <div>
+                        <h2>See Also</h2>
+                        <see-also [extensionTypes]="controllerServiceDefinition.seeAlso"></see-also>
+                    </div>
+                }
             </div>
         } @else if (controllerServiceDefinitionState.error) {
             <div class="p-4">

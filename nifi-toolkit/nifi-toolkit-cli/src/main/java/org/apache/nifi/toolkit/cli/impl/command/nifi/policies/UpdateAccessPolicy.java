@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.policies;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.toolkit.cli.api.AccessPolicyAction;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
@@ -70,7 +71,7 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
         final PoliciesClient policiesClient = client.getPoliciesClient();
         final TenantsClient tenantsClient = client.getTenantsClient();
 
-        final String resource = "/" + StringUtils.removeStart(getRequiredArg(properties, CommandOption.POLICY_RESOURCE), "/");
+        final String resource = "/" + Strings.CS.removeStart(getRequiredArg(properties, CommandOption.POLICY_RESOURCE), "/");
         final AccessPolicyAction actionType = AccessPolicyAction.valueOf(
                 getRequiredArg(properties, CommandOption.POLICY_ACTION).toUpperCase().trim());
 
@@ -116,7 +117,7 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
             if (shouldPrint(properties)) {
                 println("Access policy not found" +
                         " for action " + actionType.toString().toLowerCase() +
-                        " on resource /" + StringUtils.removeStart(resource, "/"));
+                        " on resource /" + Strings.CS.removeStart(resource, "/"));
             }
 
             final AccessPolicyDTO policyDTO = new AccessPolicyDTO();

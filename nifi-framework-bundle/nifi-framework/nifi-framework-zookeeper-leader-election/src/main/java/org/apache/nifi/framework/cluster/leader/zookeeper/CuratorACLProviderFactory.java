@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.curator.framework.imps.DefaultACLProvider;
 import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
@@ -34,7 +35,7 @@ public class CuratorACLProviderFactory {
     public static final String SASL_AUTH_SCHEME = "sasl";
 
     public ACLProvider create(ZooKeeperClientConfig config) {
-        return StringUtils.equalsIgnoreCase(config.getAuthType(), SASL_AUTH_SCHEME) ? new SaslACLProvider(config) : new DefaultACLProvider();
+        return Strings.CI.equals(config.getAuthType(), SASL_AUTH_SCHEME) ? new SaslACLProvider(config) : new DefaultACLProvider();
     }
 
     private class SaslACLProvider implements ACLProvider {

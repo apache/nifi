@@ -69,7 +69,7 @@ class GroovyMethods {
             /** to support: REL_SUCCESS << sessionFileCollection */
             @SuppressWarnings("unchecked")
             private Relationship leftShift(Relationship r, Collection sfl) {
-                if (sfl != null && sfl.size() > 0) {
+                if (sfl != null && !sfl.isEmpty()) {
                     ProcessSessionWrap session = ((SessionFile) sfl.iterator().next()).session();
                     List<FlowFile> ffl = session.unwrap(sfl);
                     //assume all files has the same session

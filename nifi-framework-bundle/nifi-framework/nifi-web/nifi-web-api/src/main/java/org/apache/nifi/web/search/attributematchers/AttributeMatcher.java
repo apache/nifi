@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.web.search.query.SearchQuery;
 
 import java.util.List;
@@ -49,7 +49,7 @@ public interface AttributeMatcher<T> {
     static void addIfMatching(final String searchTerm, final String subject, final String label, final List<String> matches) {
         final String match = label + SEPARATOR + subject;
 
-        if (StringUtils.containsIgnoreCase(subject, searchTerm) && matches != null && !matches.contains(match)) {
+        if (Strings.CI.contains(subject, searchTerm) && matches != null && !matches.contains(match)) {
             matches.add(match);
         }
     }

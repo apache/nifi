@@ -119,7 +119,7 @@ public class RedisDistributedMapCacheClientService extends SimpleRedisDistribute
             final List<Object> results = redisConnection.exec();
 
             // if we have a result then the replace succeeded
-            if (results != null && results.size() > 0) {
+            if (results != null && !results.isEmpty()) {
                 replaced = true;
             }
 

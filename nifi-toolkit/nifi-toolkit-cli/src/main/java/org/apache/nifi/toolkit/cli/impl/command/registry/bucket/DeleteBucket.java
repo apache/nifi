@@ -61,7 +61,7 @@ public class DeleteBucket extends AbstractNiFiRegistryCommand<OkResult> {
         final FlowClient flowClient = client.getFlowClient();
         final List<VersionedFlow> flowsInBucket = flowClient.getByBucket(bucketId);
 
-        if (flowsInBucket != null && flowsInBucket.size() > 0 && !forceDelete) {
+        if (flowsInBucket != null && !flowsInBucket.isEmpty() && !forceDelete) {
             throw new NiFiRegistryException("Bucket is not empty, use --" + CommandOption.FORCE.getLongName() + " to delete");
         } else {
             final BucketClient bucketClient = client.getBucketClient();

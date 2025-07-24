@@ -277,6 +277,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() + "\" is \"false\" then records associated with \"not_found\" " +
                     "Elasticsearch document responses will also be send to the \"" + REL_ERRORS.getName() + "\" relationship.")
             .defaultValue("false")
+            .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .required(false)
             .dependsOn(RESULT_RECORD_WRITER)
@@ -687,7 +688,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             final FieldValue fieldValue = value.get();
             final Map<String, Object> map;
             if (DataTypeUtils.isMapTypeCompatible(fieldValue.getValue())) {
-                map = DataTypeUtils.toMap(fieldValue.getValue(), path.getPath());
+                map = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(fieldValue.getValue(), fieldValue.getField().getDataType());
             } else {
                 try {
                     map = mapper.readValue(fieldValue.getValue().toString(), Map.class);

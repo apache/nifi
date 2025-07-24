@@ -33,11 +33,18 @@
 
         - Users File - The file where the FileUserGroupProvider will store users and groups.
 
-        - Initial User Identity [unique key] - The identity of a users and systems to seed the Users File. The name of
+        - Initial User Identity [unique key] - The identity of a user or system to seed the Users File. The name of
             each property must be unique, for example: "Initial User Identity A", "Initial User Identity B",
             "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
 
             NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the user identities,
+            so the values should be the unmapped identities (i.e. full DN from a certificate).
+
+        - Initial Group Identity [unique key] - The identity of a user group to seed the Users File. The name of
+            each property must be unique, for example: "Initial Group Identity A", "Initial Group Identity B",
+            "Initial Group Identity C" or "Initial Group Identity 1", "Initial Group Identity 2", "Initial Group Identity 3"
+
+            NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the group identities,
             so the values should be the unmapped identities (i.e. full DN from a certificate).
     -->
     <userGroupProvider>
@@ -45,6 +52,7 @@
         <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
         <property name="Initial User Identity 1"></property>
+        <property name="Initial Group Identity 1"></property>
     </userGroupProvider>
 
     <!--
@@ -264,8 +272,18 @@
             given the ability to create additional users, groups, and policies. The value of this property could be
             a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there
             are no other policies defined.
+            If the property "Initial Admin Group" is specified as well, the initial admin user will be a member of that group,
+            in case the configured user group provider supports updating the group.
 
             NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the initial admin identity,
+            so the value should be the unmapped identity. This identity must be found in the configured User Group Provider.
+
+        - Initial Admin Group - The identity of an initial admin group that will be granted access to the UI and
+            given the ability to create additional users, groups, and policies. The value of this property could be
+            a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there
+            are no other policies defined.
+
+            NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the initial admin group,
             so the value should be the unmapped identity. This identity must be found in the configured User Group Provider.
 
         - Node Identity [unique key] - The identity of a NiFi cluster node. When clustered, a property for each node
@@ -288,6 +306,7 @@
         <property name="User Group Provider">file-user-group-provider</property>
         <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity"></property>
+        <property name="Initial Admin Group"></property>
         <property name="Node Identity 1"></property>
         <property name="Node Group"></property>
     </accessPolicyProvider>

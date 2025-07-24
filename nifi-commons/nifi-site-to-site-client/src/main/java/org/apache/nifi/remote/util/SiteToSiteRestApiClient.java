@@ -1266,17 +1266,17 @@ public class SiteToSiteRestApiClient implements Closeable {
      */
     public static Set<String> parseClusterUrls(final String clusterUrlStr) {
         final Set<String> urls = new LinkedHashSet<>();
-        if (clusterUrlStr != null && clusterUrlStr.length() > 0) {
+        if (clusterUrlStr != null && !clusterUrlStr.isEmpty()) {
             Arrays.stream(clusterUrlStr.split(","))
                     .map(s -> s.trim())
-                    .filter(s -> s.length() > 0)
+                    .filter(s -> !s.isEmpty())
                     .forEach(s -> {
                         validateUriString(s);
                         urls.add(resolveBaseUrl(s).intern());
                     });
         }
 
-        if (urls.size() == 0) {
+        if (urls.isEmpty()) {
             throw new IllegalArgumentException("Cluster URL was not specified.");
         }
 

@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 public class DebugEnabledTimedLock implements DebuggableTimedLock {
 
     private final Lock lock;
-    private final Logger logger;
+    private static final Logger logger = LoggerFactory.getLogger(TimedLock.class.getName());
     private long lockTime = 0L;
 
     private final Map<String, Long> lockIterations = new HashMap<>();
@@ -40,7 +40,6 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
         this.lock = lock;
         this.name = name;
         this.iterationFrequency = iterationFrequency;
-        logger = LoggerFactory.getLogger(TimedLock.class.getName() + "." + name);
     }
 
     /**
@@ -54,7 +53,7 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
             logger.trace("TryLock failed for Lock: {}", name);
             return false;
         }
-        logger.trace("TryLock successful");
+        logger.trace("TryLock successful for Lock: {}", name);
 
         return true;
     }
@@ -78,7 +77,7 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
             logger.trace("TryLock failed for Lock {} with a timeout of {} {}", name, timeout, timeUnit);
             return false;
         }
-        logger.trace("TryLock successful");
+        logger.trace("TryLock successful for Lock: {}", name);
         return true;
     }
 

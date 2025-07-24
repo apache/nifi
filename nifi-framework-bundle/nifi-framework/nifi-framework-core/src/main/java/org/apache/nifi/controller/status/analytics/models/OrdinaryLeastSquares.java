@@ -79,7 +79,7 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
             final double intercept = olsModel.isNoIntercept() ? 0 : coefficients[0];
             final double predictorCoeff = coefficients[predictVariableIndex + 1];
             double sumX = 0;
-            if (knownVariablesWithIndex.size() > 0) {
+            if (!knownVariablesWithIndex.isEmpty()) {
                 sumX = knownVariablesWithIndex.entrySet().stream().map(featureTuple -> coefficients[olsModel.isNoIntercept()
                         ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue()).mapToDouble(Double::doubleValue).sum();
             }

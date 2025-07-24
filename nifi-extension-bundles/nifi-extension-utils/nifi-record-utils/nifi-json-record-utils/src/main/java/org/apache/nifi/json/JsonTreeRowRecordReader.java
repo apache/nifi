@@ -139,7 +139,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
         if (dropUnknown) {
             // Delete unknown fields for updated serialized representation
-            final Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
+            final Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.properties().iterator();
             while (fields.hasNext()) {
                 final Map.Entry<String, JsonNode> field = fields.next();
                 final String fieldName = field.getKey();

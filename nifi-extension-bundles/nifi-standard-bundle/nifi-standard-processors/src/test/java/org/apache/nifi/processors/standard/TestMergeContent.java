@@ -40,6 +40,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1199,6 +1201,32 @@ public class TestMergeContent {
         runner.run();
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+    }
+
+    @Test
+    @Timeout(value = 5)
+    public void testBinReleasedWhenOnlyMaxBinAgeConditionIsFulfilled() {
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "2 sec");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+
+        final Duration pollInterval = Duration.ofSeconds(1);
+        while (true) {
+            try {
+                runner.enqueue(new byte[0]);
+                runner.run(1, false);
+                runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+                break;
+            } catch (final AssertionError | Exception e) {
+                try {
+                    // Bin not released yet, wait and check again
+                    Thread.sleep(pollInterval.toMillis());
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Polling interrupted", ie);
+                }
+            }
+        }
     }
 
     @Test

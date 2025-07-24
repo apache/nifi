@@ -73,11 +73,12 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
         this.csvFormat = csvFormat;
 
         CsvReader.CsvReaderBuilder builder = CsvReader.builder()
-            .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
+                .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter())
                 .commentStrategy(CommentStrategy.SKIP)
                 .skipEmptyLines(csvFormat.getIgnoreEmptyLines())
-                .ignoreDifferentFieldCount(csvFormat.getAllowMissingColumnNames());
+                .allowExtraFields(csvFormat.getAllowMissingColumnNames())
+                .allowMissingFields(csvFormat.getAllowMissingColumnNames());
 
         if (csvFormat.getCommentMarker() != null) {
             builder.commentCharacter(csvFormat.getCommentMarker());

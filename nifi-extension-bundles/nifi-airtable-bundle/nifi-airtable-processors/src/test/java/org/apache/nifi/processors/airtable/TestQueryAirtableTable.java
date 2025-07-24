@@ -17,13 +17,9 @@
 
 package org.apache.nifi.processors.airtable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.List;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -33,6 +29,11 @@ import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvi
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQueryAirtableTable {
 
@@ -75,7 +76,9 @@ public class TestQueryAirtableTable {
     @Test
     void retrievesAndWritesRecords() throws Exception {
         try (final MockWebServer server = new MockWebServer()) {
-            server.enqueue(new MockResponse().setBody(RECORDS_JSON_BODY));
+            server.enqueue(new MockResponse.Builder()
+                    .body(RECORDS_JSON_BODY)
+                    .build());
 
             server.start();
             final HttpUrl httpUrl = server.url(API_URL_PATH);
@@ -95,8 +98,12 @@ public class TestQueryAirtableTable {
     @Test
     void retrievesAndWritesPagedRecords() throws Exception {
         try (final MockWebServer server = new MockWebServer()) {
-            server.enqueue(new MockResponse().setBody(RECORDS_WITH_OFFSET_JSON_BODY));
-            server.enqueue(new MockResponse().setBody(RECORDS_JSON_BODY));
+            server.enqueue(new MockResponse.Builder()
+                    .body(RECORDS_WITH_OFFSET_JSON_BODY)
+                    .build());
+            server.enqueue(new MockResponse.Builder()
+                    .body(RECORDS_JSON_BODY)
+                    .build());
 
             server.start();
             final HttpUrl httpUrl = server.url(API_URL_PATH);
@@ -116,8 +123,12 @@ public class TestQueryAirtableTable {
     @Test
     void retrievesAndWritesPagedRecordsInMultipleFlowFiles() throws Exception {
         try (final MockWebServer server = new MockWebServer()) {
-            server.enqueue(new MockResponse().setBody(RECORDS_WITH_OFFSET_JSON_BODY));
-            server.enqueue(new MockResponse().setBody(RECORDS_JSON_BODY));
+            server.enqueue(new MockResponse.Builder()
+                    .body(RECORDS_WITH_OFFSET_JSON_BODY)
+                    .build());
+            server.enqueue(new MockResponse.Builder()
+                    .body(RECORDS_JSON_BODY)
+                    .build());
 
             server.start();
             final HttpUrl httpUrl = server.url(API_URL_PATH);
@@ -143,7 +154,9 @@ public class TestQueryAirtableTable {
     @Test
     void doesNotWriteEmptyRecords() throws Exception {
         try (final MockWebServer server = new MockWebServer()) {
-            server.enqueue(new MockResponse().setBody("{\"records\":[]}"));
+            server.enqueue(new MockResponse.Builder()
+                    .body("{\"records\":[]}")
+                    .build());
 
             server.start();
             final HttpUrl httpUrl = server.url(API_URL_PATH);

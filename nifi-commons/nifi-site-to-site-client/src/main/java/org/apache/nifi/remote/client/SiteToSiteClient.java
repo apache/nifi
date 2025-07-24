@@ -651,7 +651,7 @@ public interface SiteToSiteClient extends Closeable {
          * @return the configured URL for the remote NiFi instance
          */
         public String getUrl() {
-            if (urls != null && urls.size() > 0) {
+            if (urls != null && !urls.isEmpty()) {
                 return urls.iterator().next();
             }
             return null;

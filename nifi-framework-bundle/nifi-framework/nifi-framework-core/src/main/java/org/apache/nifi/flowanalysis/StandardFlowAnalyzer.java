@@ -190,6 +190,9 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
             Collection<RuleViolation> groupViolations,
             Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations
     ) {
+        if (flowAnalysisRules.isEmpty()) {
+            return;
+        }
         String groupId = processGroup.getIdentifier();
         ComponentType processGroupComponentType = processGroup.getComponentType();
 

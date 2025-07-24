@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.search.query.SearchQuery;
@@ -39,9 +39,9 @@ public class SchedulingMatcher implements AttributeMatcher<ProcessorNode> {
         final String searchTerm = query.getTerm();
         final SchedulingStrategy schedulingStrategy = component.getSchedulingStrategy();
 
-        if (TIMER_DRIVEN.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_TIMER, searchTerm)) {
+        if (TIMER_DRIVEN.equals(schedulingStrategy) && Strings.CI.contains(SEARCH_TERM_TIMER, searchTerm)) {
             matches.add(MATCH_PREFIX + MATCH_TIMER);
-        } else if (CRON_DRIVEN.equals(schedulingStrategy) && StringUtils.containsIgnoreCase(SEARCH_TERM_CRON, searchTerm)) {
+        } else if (CRON_DRIVEN.equals(schedulingStrategy) && Strings.CI.contains(SEARCH_TERM_CRON, searchTerm)) {
             matches.add(MATCH_PREFIX + MATCH_CRON);
         }
     }

@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS)
@@ -130,7 +131,7 @@ public class TestCLICompleter {
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
-        assertTrue(candidates.size() > 0);
+        assertFalse(candidates.isEmpty());
         assertEquals(completer.getOptions(subCommand).size(), candidates.size());
     }
 
@@ -155,7 +156,7 @@ public class TestCLICompleter {
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
-        assertTrue(candidates.size() > 0);
+        assertFalse(candidates.isEmpty());
         assertEquals(completer.getOptions(subCommand).size(), candidates.size());
     }
 
@@ -182,7 +183,7 @@ public class TestCLICompleter {
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
-        assertTrue(candidates.size() > 0);
+        assertFalse(candidates.isEmpty());
         assertEquals(SessionVariable.values().length, candidates.size());
     }
 

@@ -16,8 +16,14 @@
  */
 
 .process-group-references {
-    ul.nested {
-        padding-inline-start: 20px;
+    ul {
+        list-style: none;
+        margin: 0;
+
+        &.nested {
+            list-style: disc;
+            padding-inline-start: 20px;
+        }
     }
 
     .references {

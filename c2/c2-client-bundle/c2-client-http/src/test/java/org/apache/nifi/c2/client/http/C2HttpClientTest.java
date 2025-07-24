@@ -16,21 +16,9 @@
  */
 package org.apache.nifi.c2.client.http;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
@@ -42,6 +30,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class C2HttpClientTest {
@@ -66,8 +67,9 @@ public class C2HttpClientTest {
     private String baseUrl;
 
     @BeforeEach
-    public void startServer() {
+    public void startServer() throws IOException {
         mockWebServer = new MockWebServer();
+        mockWebServer.start();
         baseUrl = mockWebServer.url("/").newBuilder().host("localhost").build().toString();
         when(c2ClientConfig.getKeepAliveDuration()).thenReturn(KEEP_ALIVE_DURATION);
         when(c2ClientConfig.getMaxIdleConnections()).thenReturn(MAX_IDLE_CONNECTIONS);
@@ -77,13 +79,15 @@ public class C2HttpClientTest {
 
     @AfterEach
     public void shutdownServer() throws IOException {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
     void testPublishHeartbeatSuccess() throws InterruptedException {
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
-        mockWebServer.enqueue(new MockResponse().setBody("responseBody"));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .body("responseBody")
+                .build());
 
         when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
         when(serializer.deserialize(any(), any(Class.class))).thenReturn(Optional.of(hbResponse));
@@ -95,7 +99,7 @@ public class C2HttpClientTest {
         assertEquals(response.get(), hbResponse);
 
         RecordedRequest request = mockWebServer.takeRequest();
-        assertEquals("/" + HEARTBEAT_PATH, request.getPath());
+        assertEquals("/" + HEARTBEAT_PATH, request.getTarget());
     }
 
     @Test
@@ -121,7 +125,10 @@ public class C2HttpClientTest {
 
     @Test
     void testRetrieveUpdateContentReturnsEmptyWhenServerErrorResponse() throws InterruptedException {
-        mockWebServer.enqueue(new MockResponse().setBody("updateContent").setResponseCode(HTTP_STATUS_BAD_REQUEST));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .body("updateContent")
+                .code(HTTP_STATUS_BAD_REQUEST)
+                .build());
 
         C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<byte[]> response = c2HttpClient.retrieveUpdateConfigurationContent(baseUrl + UPDATE_PATH);
@@ -129,13 +136,16 @@ public class C2HttpClientTest {
         assertFalse(response.isPresent());
 
         RecordedRequest request = mockWebServer.takeRequest();
-        assertEquals("/" + UPDATE_PATH, request.getPath());
+        assertEquals("/" + UPDATE_PATH, request.getTarget());
     }
 
     @Test
     void testRetrieveUpdateContentReturnsResponseWithBody() throws InterruptedException {
         String content = "updateContent";
-        mockWebServer.enqueue(new MockResponse().setBody(content).setResponseCode(HTTP_STATUS_OK));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .body(content)
+                .code(HTTP_STATUS_OK)
+                .build());
 
         C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<byte[]> response = c2HttpClient.retrieveUpdateConfigurationContent(baseUrl + UPDATE_PATH);
@@ -144,21 +154,23 @@ public class C2HttpClientTest {
         assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), response.get());
 
         RecordedRequest request = mockWebServer.takeRequest();
-        assertEquals("/" + UPDATE_PATH, request.getPath());
+        assertEquals("/" + UPDATE_PATH, request.getTarget());
     }
 
     @Test
     void testAcknowledgeOperation() throws InterruptedException {
         String ackContent = "ack";
         when(serializer.serialize(any(C2OperationAck.class))).thenReturn(Optional.of(ackContent));
-        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_STATUS_OK));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(HTTP_STATUS_OK)
+                .build());
 
         C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         c2HttpClient.acknowledgeOperation(new C2OperationAck());
 
         RecordedRequest request = mockWebServer.takeRequest();
-        assertEquals("/" + ACK_PATH, request.getPath());
-        assertTrue(request.getHeader("Content-Type").contains("application/json"));
-        assertArrayEquals(ackContent.getBytes(StandardCharsets.UTF_8), request.getBody().readByteArray());
+        assertEquals("/" + ACK_PATH, request.getTarget());
+        assertTrue(request.getHeaders().get("Content-Type").contains("application/json"));
+        assertArrayEquals(ackContent.getBytes(StandardCharsets.UTF_8), request.getBody().toByteArray());
     }
 }

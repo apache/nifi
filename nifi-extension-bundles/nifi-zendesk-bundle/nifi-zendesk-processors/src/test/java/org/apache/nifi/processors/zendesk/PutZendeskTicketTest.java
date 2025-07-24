@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.zendesk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -49,9 +49,9 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SU
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
+import static org.apache.nifi.processors.zendesk.AbstractZendesk.REL_SUCCESS;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.RECORD_READER;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_FAILURE;
-import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_SUCCESS;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -86,7 +86,7 @@ public class PutZendeskTicketTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        server.shutdown();
+        server.close();
     }
 
     @Test
@@ -107,7 +107,10 @@ public class PutZendeskTicketTest {
         flowFile.setData(flowFileContent.getBytes());
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
 
         // when
         testRunner.enqueue(flowFile);
@@ -115,8 +118,8 @@ public class PutZendeskTicketTest {
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
-        assertEquals(OBJECT_MAPPER.readTree(flowFileContent), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
+        assertEquals(OBJECT_MAPPER.readTree(flowFileContent), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -134,7 +137,10 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
         testRunner.setProperty(ZENDESK_TICKET_SUBJECT, "@{/subject}");
         testRunner.setProperty(ZENDESK_TICKET_PRIORITY, "@{/priority}");
@@ -146,7 +152,7 @@ public class PutZendeskTicketTest {
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         String expectedBody =
                 "{\n" +
@@ -160,7 +166,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -176,7 +182,10 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
 
         // when
@@ -185,7 +194,7 @@ public class PutZendeskTicketTest {
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKETS_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKETS_RESOURCE, recordedRequest.getTarget());
 
         String expectedBody =
                 "{\n" +
@@ -200,7 +209,7 @@ public class PutZendeskTicketTest {
                 "  } ]\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -217,7 +226,10 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
         testRunner.setProperty("/dp1/dynamicPropertyTarget1", "@{/dynamicPropertySource1}");
         testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "@{/dynamicPropertySource2}");
@@ -228,7 +240,7 @@ public class PutZendeskTicketTest {
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         String expectedBody =
                 "{\n" +
@@ -247,7 +259,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -264,7 +276,10 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
         testRunner.setProperty("/dp1/dynamicPropertyTarget1", "Constant 1");
         testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "Constant2");
@@ -275,7 +290,7 @@ public class PutZendeskTicketTest {
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         String expectedBody =
                 "{\n" +
@@ -294,7 +309,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
     }
 
@@ -309,7 +324,10 @@ public class PutZendeskTicketTest {
         testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
-        server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_BAD_REQUEST)
+                .body(EMPTY_RESPONSE)
+                .build());
         testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
 
         // when

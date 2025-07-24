@@ -18,6 +18,7 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
@@ -27,6 +28,7 @@ import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -238,6 +240,19 @@ public final class BundleUtils {
         if (reportingTaskSnapshot.getControllerServices() != null) {
             reportingTaskSnapshot.getControllerServices().forEach(controllerService -> discoverCompatibleBundle(extensionManager, controllerService));
         }
+    }
+
+    public static void discoverCompatibleBundles(final ExtensionManager extensionManager, final Map<String, ParameterProviderReference> parameterProviders) {
+        if (parameterProviders != null) {
+            parameterProviders.values().forEach(parameterProvider -> discoverCompatibleBundle(extensionManager, parameterProvider));
+        }
+    }
+
+    public static void discoverCompatibleBundle(final ExtensionManager extensionManager, final ParameterProviderReference parameterProviderReference) {
+        final BundleDTO dto = createBundleDto(parameterProviderReference.getBundle());
+        final BundleCoordinate coordinate = getOptionalCompatibleBundle(extensionManager, parameterProviderReference.getType(), dto).orElse(
+                new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
+        parameterProviderReference.setBundle(createBundle(coordinate));
     }
 
     public static void discoverCompatibleBundle(final ExtensionManager extensionManager, final VersionedConfigurableExtension extension) {

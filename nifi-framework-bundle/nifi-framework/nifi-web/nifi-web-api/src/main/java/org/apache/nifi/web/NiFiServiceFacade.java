@@ -447,6 +447,13 @@ public interface NiFiServiceFacade {
     CounterDTO updateCounter(String counterId);
 
     /**
+     * Updates all counters by setting their values to 0.
+     *
+     * @return The counters
+     */
+    CountersDTO updateAllCounters();
+
+    /**
      * Returns the counters.
      *
      * @return The counters
@@ -2774,6 +2781,14 @@ public interface NiFiServiceFacade {
      * @param versionedGroup the versioned group
      */
     void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
+
+    /**
+     * Discovers the compatible bundle details for the components in the specified Parameter Providers and updates them
+     * to reflect the appropriate bundles.
+     *
+     * @param parameterProviders the parameter provider map
+     */
+    void discoverCompatibleBundles(Map<String, ParameterProviderReference> parameterProviders);
 
     /**
      * Discovers the compatible bundle details for the components in the specified snapshot and updates the snapshot to reflect the appropriate bundles.

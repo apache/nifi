@@ -795,7 +795,8 @@ The default UserGroupProvider is the FileUserGroupProvider, however, you can dev
 
 * Users File - The file where the FileUserGroupProvider stores users and groups.  By default, the _users.xml_ in the `conf` directory is chosen.
 * Legacy Authorized Users File - The full path to an existing _authorized-users.xml_ that will be automatically be used to load the users and groups into the Users File.
-* Initial User Identity - The identity of a users and systems to seed the Users File. The name of each property must be unique, for example: "Initial User Identity A", "Initial User Identity B", "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
+* Initial User Identity - The identity of a user or system to seed the Users File. The name of each property must be unique, for example: "Initial User Identity A", "Initial User Identity B", "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
+* Initial Group Identity - The identity of a user group to seed the Users File. The name of each property must be unique, for example: "Initial Group Identity A", "Initial Group Identity B", "Initial Group Identity C" or "Initial Group Identity 1", "Initial Group Identity 2", "Initial Group Identity 3"
 
 ==== LdapUserGroupProvider
 
@@ -911,14 +912,15 @@ The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you c
 | Property Name | Description
 |`User Group Provider` | The identifier for an User Group Provider defined above that will be used to access users and groups for use in the managed access policies.
 |`Authorizations File` | The file where the FileAccessPolicyProvider will store policies.
-|`Initial Admin Identity` | The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified.
-|`Legacy Authorized Users File` | The full path to an existing _authorized-users.xml_ that will be automatically converted to the new authorizations model. If this property is specified then an Initial Admin Identity can not be specified, and this property will only be used when there are no other users, groups, and policies defined.
+|`Initial Admin Identity` | The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified. If the property `Initial Admin Group` is specified as well, the initial admin user will be a member of that group, in case the configured user group provider supports updating the group.
+|`Initial Admin Group` | The identity of an initial admin group that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified.
+|`Legacy Authorized Users File` | The full path to an existing _authorized-users.xml_ that will be automatically converted to the new authorizations model. If this property is specified then an Initial Admin Identity or Initial Admin Group can not be specified, and this property will only be used when there are no other users, groups, and policies defined.
 |`Node Identity` | The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered these properties can be ignored. The name of each property must be unique, for example for a three node cluster: "Node Identity A", "Node Identity B", "Node Identity C" or "Node Identity 1", "Node Identity 2", "Node Identity 3"
 |`Node Group` | The name of a group containing NiFi cluster nodes. The typical use for this is when nodes are dynamically added/removed from the cluster.
 
 |==================================================================================================================================================
 
-NOTE: The identities configured in the Initial Admin Identity, the Node Identity properties, or discovered in a Legacy Authorized Users File must be available in the configured User Group Provider.
+NOTE: The identities configured in the Initial Admin Identity, Initial Admin Group, the Node Identity properties, or discovered in a Legacy Authorized Users File must be available in the configured User Group Provider.
 
 NOTE: Any users in the legacy users file must be found in the configured User Group Provider.
 
@@ -959,6 +961,7 @@ NOTE: Any identity mapping rules specified in _nifi.properties_ will also be app
 ==== Initial Admin Identity  (New NiFi Instance)
 
 If you are setting up a secured NiFi instance for the first time, you must manually designate an “Initial Admin Identity” in the _authorizers.xml_ file.  This initial admin user is granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN (when using certificates or LDAP) or a Kerberos principal.  If you are the NiFi administrator, add yourself as the “Initial Admin Identity”.
+Alternatively, specifying an “Initial Admin Group” grants administrative access to a group of users, mitigating dependence on a single person or the need for a shared account.
 
 After you have edited and saved the _authorizers.xml_ file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the _users.xml_ and _authorizations.xml_ files during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
 
@@ -1399,7 +1402,7 @@ The following tables summarize the global and component policies assigned to eac
 
 For details on the individual policies in the table, see <<access-policies>>.
 
-NOTE: NiFi fails to restart if values exist for both the `Initial Admin Identity` and `Legacy Authorized Users File` properties.  You can specify only one of these values to initialize authorizations.
+NOTE: NiFi fails to restart if values exist for both the `Initial Admin Identity` (or `Initial Admin Group`) and `Legacy Authorized Users File` properties.  You can specify only one of these values to initialize authorizations.
 
 NOTE: Do not manually edit the _authorizations.xml_ file. Create authorizations only during initial setup and afterwards using the NiFi UI.
 

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.shopify;
 
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
@@ -65,7 +65,7 @@ class GetShopifyTest {
     @AfterEach
     void tearDown() throws IOException {
         if (server != null) {
-            server.shutdown();
+            server.close();
             server = null;
         }
     }
@@ -73,9 +73,10 @@ class GetShopifyTest {
     @Test
     void testStateIsUpdatedIfIncrementalAndNotPaging() throws InitializationException, IOException {
 
-        final MockResponse mockResponse = new MockResponse()
-                .setResponseCode(200)
-                .setBody(getResourceAsString("simple_response.json"));
+        final MockResponse mockResponse = new MockResponse.Builder()
+                .code(200)
+                .body(getResourceAsString("simple_response.json"))
+                .build();
 
         server.enqueue(mockResponse);
 
@@ -107,7 +108,9 @@ class GetShopifyTest {
 
     @Test
     void testHttpError429() throws InitializationException {
-        server.enqueue(new MockResponse().setResponseCode(429));
+        server.enqueue(new MockResponse.Builder()
+                .code(429)
+                .build());
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -131,7 +134,9 @@ class GetShopifyTest {
 
     @Test
     void testHttpError404() throws InitializationException {
-        server.enqueue(new MockResponse().setResponseCode(404));
+        server.enqueue(new MockResponse.Builder()
+                .code(404)
+                .build());
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -156,9 +161,10 @@ class GetShopifyTest {
 
     @Test
     void testNonEmptyJsonResponseSentToSuccess() throws InitializationException, IOException {
-        final MockResponse mockResponse = new MockResponse()
-                .setResponseCode(200)
-                .setBody(getResourceAsString("collection_listings.json"));
+        final MockResponse mockResponse = new MockResponse.Builder()
+                .code(200)
+                .body(getResourceAsString("collection_listings.json"))
+                .build();
         server.enqueue(mockResponse);
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =

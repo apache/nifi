@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.lambda;
 
-import com.amazonaws.util.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -47,6 +46,7 @@ import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
 import software.amazon.awssdk.services.lambda.model.UnsupportedMediaTypeException;
 
 import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,7 +150,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
 
             final String logResult = response.logResult();
             if (StringUtils.isNotBlank(logResult)) {
-                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_LOG, new String(Base64.decode(logResult), DEFAULT_CHARSET));
+                flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_LOG, new String(Base64.getDecoder().decode(logResult), DEFAULT_CHARSET));
             }
 
             if (response.payload() != null) {

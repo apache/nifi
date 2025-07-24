@@ -14,24 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.shared.login;
 
-import org.apache.nifi.context.PropertyContext;
+import { Component, Input } from '@angular/core';
+import { BoundProcessGroup } from '../../../../state/shared';
+import { ProcessGroupReferences } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/process-group-references/process-group-references.component';
 
-/**
- * Kerberos Delegating Login Module implementation of configuration provider
- */
-public class KerberosDelegatingLoginConfigProvider implements LoginConfigProvider {
-    private static final LoginConfigProvider USER_SERVICE_PROVIDER = new KerberosUserServiceLoginConfigProvider();
-
-    /**
-     * Get JAAS configuration using configured Kerberos credentials
-     *
-     * @param context Property Context
-     * @return JAAS configuration with Kerberos Login Module
-     */
-    @Override
-    public String getConfiguration(final PropertyContext context) {
-        return USER_SERVICE_PROVIDER.getConfiguration(context);
-    }
+@Component({
+    selector: 'process-group-tip',
+    templateUrl: './process-group-tip.component.html',
+    imports: [ProcessGroupReferences],
+    styleUrls: ['./process-group-tip.component.scss']
+})
+export class ProcessGroupTip {
+    @Input() data: BoundProcessGroup[] | undefined;
 }

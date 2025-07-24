@@ -14,22 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization;
+package org.apache.nifi.cluster.protocol.message;
 
-import org.apache.nifi.util.StringUtils;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import java.util.List;
 
-public final class IdentifierUtil {
+@XmlRootElement(name = "nodeStatusesResponse")
+public class NodeStatusesResponseMessage extends ProtocolMessage {
 
-    static String getIdentifier(final String seed) {
-        if (StringUtils.isBlank(seed)) {
-            return null;
-        }
+    private List<NodeConnectionStatus> nodeStatuses;
 
-        return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
+    @Override
+    public MessageType getType() {
+        return MessageType.NODE_STATUSES_RESPONSE;
     }
 
-    private IdentifierUtil() { }
+    public List<NodeConnectionStatus> getNodeStatuses() {
+        return nodeStatuses;
+    }
+
+    public void setNodeStatuses(final List<NodeConnectionStatus> nodeStatuses) {
+        this.nodeStatuses = nodeStatuses;
+    }
 }

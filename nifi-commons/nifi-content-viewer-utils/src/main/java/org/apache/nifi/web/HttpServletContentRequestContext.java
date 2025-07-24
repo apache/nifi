@@ -58,10 +58,8 @@ public class HttpServletContentRequestContext implements ContentRequestContext {
         if (query != null) {
             final String[] queryParameters = query.split("&");
 
-            for (int i = 0; i < queryParameters.length; i++) {
-                if (queryParameters[0].startsWith("clusterNodeId=")) {
-                    rawClusterNodeId = StringUtils.substringAfterLast(queryParameters[0], "clusterNodeId=");
-                }
+            if (queryParameters[0].startsWith("clusterNodeId=")) {
+                rawClusterNodeId = StringUtils.substringAfterLast(queryParameters[0], "clusterNodeId=");
             }
         }
         final String clusterNodeId = rawClusterNodeId;

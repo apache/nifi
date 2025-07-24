@@ -268,7 +268,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
         final Collection<T> listedEntities = listEntities.apply(minTimestampToList);
 
-        if (listedEntities.size() == 0) {
+        if (listedEntities.isEmpty()) {
             logger.debug("No entity is listed. Yielding.");
             context.yield();
             return;

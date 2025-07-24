@@ -29,7 +29,7 @@ public class DelegatingLoginConfigProvider implements LoginConfigProvider {
     private static final LoginConfigProvider SCRAM_PROVIDER = new ScramLoginConfigProvider();
 
     private static final Map<SaslMechanism, LoginConfigProvider> PROVIDERS = Map.of(
-            SaslMechanism.GSSAPI, new KerberosDelegatingLoginConfigProvider(),
+            SaslMechanism.GSSAPI, new KerberosLoginConfigProvider(),
             SaslMechanism.PLAIN, new PlainLoginConfigProvider(),
             SaslMechanism.SCRAM_SHA_256, SCRAM_PROVIDER,
             SaslMechanism.SCRAM_SHA_512, SCRAM_PROVIDER,

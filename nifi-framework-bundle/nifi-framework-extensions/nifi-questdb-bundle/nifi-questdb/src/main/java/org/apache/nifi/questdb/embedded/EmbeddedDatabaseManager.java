@@ -58,7 +58,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
     private final AtomicReference<CairoEngine> engine = new AtomicReference<>();
     private final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newScheduledThreadPool(2, new BasicThreadFactory.Builder().namingPattern("EmbeddedQuestDbManagerWorker-" + id + "-%d").build());
+            .newScheduledThreadPool(2, BasicThreadFactory.builder().namingPattern("EmbeddedQuestDbManagerWorker-" + id + "-%d").build());
 
     EmbeddedDatabaseManager(final EmbeddedDatabaseManagerContext context) {
         this.context = context;

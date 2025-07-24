@@ -27,6 +27,8 @@ import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 import java.io.IOException;
@@ -102,5 +104,10 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     @Override
     public ClusterWorkloadResponseMessage clusterWorkload(ClusterWorkloadRequestMessage msg) throws ProtocolException {
         return sender.clusterWorkload(msg);
+    }
+
+    @Override
+    public NodeStatusesResponseMessage nodeStatuses(NodeStatusesRequestMessage msg) throws ProtocolException {
+        return sender.nodeStatuses(msg);
     }
 }

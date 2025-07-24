@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * Converter from SAML 2 Response Token to SAML 2 Authentication for Spring Security
  */
 public class ResponseAuthenticationConverter implements Converter<ResponseToken, Saml2Authentication> {
-    private static final Converter<ResponseToken, Saml2Authentication> defaultConverter = OpenSaml5AuthenticationProvider.createDefaultResponseAuthenticationConverter();
+    private static final Converter<ResponseToken, Saml2Authentication> defaultConverter = new OpenSaml5AuthenticationProvider.ResponseAuthenticationConverter();
 
     private final String groupAttributeName;
 

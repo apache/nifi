@@ -166,7 +166,7 @@ class OidcBearerTokenRefreshFilterTest {
 
     @Test
     void testDoFilterBearerTokenNotFound() throws ServletException, IOException {
-        request.setServletPath(CURRENT_USER_URI);
+        request.setRequestURI(CURRENT_USER_URI);
 
         filter.doFilter(request, response, filterChain);
 
@@ -175,7 +175,7 @@ class OidcBearerTokenRefreshFilterTest {
 
     @Test
     void testDoFilterBearerTokenFoundRefreshNotRequired() throws ServletException, IOException {
-        request.setServletPath(CURRENT_USER_URI);
+        request.setRequestURI(CURRENT_USER_URI);
 
         when(bearerTokenResolver.resolve(eq(request))).thenReturn(BEARER_TOKEN);
         final Jwt jwt = getJwt(Instant.MAX);
@@ -188,7 +188,7 @@ class OidcBearerTokenRefreshFilterTest {
 
     @Test
     void testDoFilterRefreshRequiredClientNotFound() throws ServletException, IOException {
-        request.setServletPath(CURRENT_USER_URI);
+        request.setRequestURI(CURRENT_USER_URI);
 
         when(bearerTokenResolver.resolve(eq(request))).thenReturn(BEARER_TOKEN);
         final Jwt jwt = getJwt(Instant.now().minusSeconds(INSTANT_OFFSET));
@@ -204,7 +204,7 @@ class OidcBearerTokenRefreshFilterTest {
 
     @Test
     void testDoFilterRefreshRequiredRefreshTokenNotFound() throws ServletException, IOException {
-        request.setServletPath(CURRENT_USER_URI);
+        request.setRequestURI(CURRENT_USER_URI);
 
         when(bearerTokenResolver.resolve(eq(request))).thenReturn(BEARER_TOKEN);
         final Jwt jwt = getJwt(Instant.now().minusSeconds(INSTANT_OFFSET));
@@ -226,7 +226,7 @@ class OidcBearerTokenRefreshFilterTest {
         final SecurityContext securityContext = new SecurityContextImpl(authenticationToken);
         SecurityContextHolder.setContext(securityContext);
 
-        request.setServletPath(CURRENT_USER_URI);
+        request.setRequestURI(CURRENT_USER_URI);
 
         when(bearerTokenResolver.resolve(eq(request))).thenReturn(BEARER_TOKEN);
         final Instant expiration = Instant.now().minusSeconds(INSTANT_OFFSET);

@@ -19,7 +19,7 @@ package org.apache.nifi.web.security.oidc.logout;
 import org.apache.nifi.web.security.logout.StandardLogoutFilter;
 import org.apache.nifi.web.security.oidc.OidcUrlPath;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * OpenID Connect Logout Filter completes application Logout Requests
@@ -28,6 +28,6 @@ public class OidcLogoutFilter extends StandardLogoutFilter {
     public OidcLogoutFilter(
             final LogoutSuccessHandler logoutSuccessHandler
     ) {
-        super(new AntPathRequestMatcher(OidcUrlPath.LOGOUT.getPath()), logoutSuccessHandler);
+        super(PathPatternRequestMatcher.withDefaults().matcher(OidcUrlPath.LOGOUT.getPath()), logoutSuccessHandler);
     }
 }

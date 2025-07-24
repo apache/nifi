@@ -35,7 +35,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.model.Tag;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
@@ -289,12 +289,12 @@ public class TestPutS3Object {
     public void testPersistenceFileLocationWithDefaultTempDir() {
         String dir = System.getProperty("java.io.tmpdir");
 
-        executePersistenceFileLocationTest(StringUtils.appendIfMissing(dir, File.separator) + putS3Object.getIdentifier());
+        executePersistenceFileLocationTest(Strings.CS.appendIfMissing(dir, File.separator) + putS3Object.getIdentifier());
     }
 
     @Test
     public void testPersistenceFileLocationWithUserDefinedDirWithEndingSeparator() {
-        String dir = StringUtils.appendIfMissing(new File("target").getAbsolutePath(), File.separator);
+        String dir = Strings.CS.appendIfMissing(new File("target").getAbsolutePath(), File.separator);
         runner.setProperty(PutS3Object.MULTIPART_TEMP_DIR, dir);
 
         executePersistenceFileLocationTest(dir + putS3Object.getIdentifier());
@@ -302,7 +302,7 @@ public class TestPutS3Object {
 
     @Test
     public void testPersistenceFileLocationWithUserDefinedDirWithoutEndingSeparator() {
-        String dir = StringUtils.removeEnd(new File("target").getAbsolutePath(), File.separator);
+        String dir = Strings.CS.removeEnd(new File("target").getAbsolutePath(), File.separator);
         runner.setProperty(PutS3Object.MULTIPART_TEMP_DIR, dir);
 
         executePersistenceFileLocationTest(dir + File.separator + putS3Object.getIdentifier());

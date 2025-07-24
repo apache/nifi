@@ -425,7 +425,7 @@ public class PutS3Object extends AbstractS3Processor {
             props.remove(s3ObjectKey);
         }
 
-        if (props.size() > 0) {
+        if (!props.isEmpty()) {
             try (final FileOutputStream fos = new FileOutputStream(persistenceFile)) {
                 props.store(fos, null);
             } catch (IOException ioe) {
@@ -628,7 +628,7 @@ public class PutS3Object extends AbstractS3Processor {
                         } else {
                             attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.Standard.toString());
                         }
-                        if (userMetadata.size() > 0) {
+                        if (!userMetadata.isEmpty()) {
                             StringBuilder userMetaBldr = new StringBuilder();
                             for (String userKey : userMetadata.keySet()) {
                                 userMetaBldr.append(userKey).append("=").append(userMetadata.get(userKey));
@@ -652,7 +652,7 @@ public class PutS3Object extends AbstractS3Processor {
                     try {
                         currentState = getLocalStateIfInS3(s3, bucket, cacheKey);
                         if (currentState != null) {
-                            if (currentState.getPartETags().size() > 0) {
+                            if (!currentState.getPartETags().isEmpty()) {
                                 final PartETag lastETag = currentState.getPartETags().get(
                                         currentState.getPartETags().size() - 1);
                                 getLogger().info("Resuming upload for flowfile='{}' bucket='{}' key='{}' " +
@@ -820,7 +820,7 @@ public class PutS3Object extends AbstractS3Processor {
                         if (currentState.getStorageClass() != null) {
                             attributes.put(S3_STORAGECLASS_ATTR_KEY, currentState.getStorageClass().toString());
                         }
-                        if (userMetadata.size() > 0) {
+                        if (!userMetadata.isEmpty()) {
                             StringBuilder userMetaBldr = new StringBuilder();
                             for (String userKey : userMetadata.keySet()) {
                                 userMetaBldr.append(userKey).append("=").append(userMetadata.get(userKey));
@@ -1059,7 +1059,7 @@ public class PutS3Object extends AbstractS3Processor {
             StringBuilder buf = new StringBuilder();
             buf.append(uploadId).append(SEPARATOR)
                 .append(filePosition.toString()).append(SEPARATOR);
-            if (partETags.size() > 0) {
+            if (!partETags.isEmpty()) {
                 boolean first = true;
                 for (PartETag tag : partETags) {
                     if (!first) {

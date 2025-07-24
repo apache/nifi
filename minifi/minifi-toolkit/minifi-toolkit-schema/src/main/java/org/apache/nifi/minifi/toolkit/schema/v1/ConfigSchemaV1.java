@@ -205,7 +205,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
             connectionSchemas.add(convert);
         }
 
-        if (problematicDuplicateNames.size() > 0) {
+        if (!problematicDuplicateNames.isEmpty()) {
             validationIssues.add(CANNOT_LOOK_UP_PROCESSOR_ID_FROM_PROCESSOR_NAME_DUE_TO_DUPLICATE_PROCESSOR_NAMES
                     + problematicDuplicateNames.stream().collect(Collectors.joining(", ")));
         }

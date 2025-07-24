@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.twitter;
 
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -35,8 +35,9 @@ public class TestConsumeTwitter {
     private TestRunner runner;
 
     @BeforeEach
-    public void setRunnerAndAPI() {
+    public void setRunnerAndAPI() throws IOException {
         mockWebServer = new MockWebServer();
+        mockWebServer.start();
 
         runner = TestRunners.newTestRunner(ConsumeTwitter.class);
 
@@ -47,17 +48,18 @@ public class TestConsumeTwitter {
 
     @AfterEach
     public void shutdownServerAndAPI() throws IOException {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
     @Timeout(60)
     public void testReceiveSingleTweetInStream() {
         String sampleTweet = "{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}";
-        MockResponse response = new MockResponse()
-                .setResponseCode(200)
-                .setBody(sampleTweet)
-                .addHeader("Content-Type", "application/json");
+        MockResponse response = new MockResponse.Builder()
+                .code(200)
+                .body(sampleTweet)
+                .addHeader("Content-Type", "application/json")
+                .build();
         mockWebServer.enqueue(response);
 
 

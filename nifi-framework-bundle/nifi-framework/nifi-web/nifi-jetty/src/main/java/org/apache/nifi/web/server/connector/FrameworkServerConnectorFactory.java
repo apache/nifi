@@ -156,7 +156,7 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
             throw new IllegalStateException("Invalid port configuration in nifi.properties: Both nifi.web.https.port and nifi.web.http.port specified");
         }
 
-        return ObjectUtils.defaultIfNull(httpsPort, httpPort);
+        return ObjectUtils.getIfNull(httpsPort, httpPort);
     }
 
     private static Set<Integer> getValidPorts(final NiFiProperties properties) {

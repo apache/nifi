@@ -21,7 +21,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -133,7 +133,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         if (descriptor.equals(ARRAY_JSON_PATH_EXPRESSION)) {
-            if (!StringUtils.equals(oldValue, newValue)) {
+            if (!Strings.CS.equals(oldValue, newValue)) {
                 // This value will be computed and set in customValidate()
                 JSON_PATH_REF.set(null);
             }

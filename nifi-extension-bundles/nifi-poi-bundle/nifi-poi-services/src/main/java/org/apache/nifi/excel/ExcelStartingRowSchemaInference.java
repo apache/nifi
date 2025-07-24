@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.excel;
 
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.schema.access.SchemaAccessStrategy;
-import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.FieldTypeInference;
+import org.apache.nifi.schema.inference.RecordSource;
+import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
@@ -32,89 +29,67 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 
-import java.io.InputStream;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
-    private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
-    static final int NUM_ROWS_TO_DETERMINE_TYPES = 10; // NOTE: This number is arbitrary.
+public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Row> {
+
     static final AllowableValue USE_STARTING_ROW = new AllowableValue("Use Starting Row", "Use Starting Row",
             "The configured first row of the Excel file is a header line that contains the names of the columns. The schema will be derived by using the "
-                    + "column names in the header of the first sheet and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column "
-                    + "while the configured header rows of subsequent sheets are skipped. "
+                    + "column names in the header of the first sheet and dependent on the strategy chosen either the subsequent "
+                    + RowEvaluationStrategy.NUM_ROWS_TO_DETERMINE_TYPES + " rows or all of the subsequent rows. However the configured header rows of subsequent sheets are skipped. "
                     + "NOTE: If there are duplicate column names then each subsequent duplicate column name is given a one up number. "
-                    + "For example, column names \"Name\", \"Name\" will be changed to \"Name\", \"Name_1\"");
-
-    private final PropertyContext context;
-    private final ComponentLog logger;
+                    + "For example, column names \"Name\", \"Name\" will be changed to \"Name\", \"Name_1\".");
+    private final RowEvaluationStrategy rowEvaluationStrategy;
+    private final int firstRow;
     private final CellFieldTypeReader cellFieldTypeReader;
     private final DataFormatter dataFormatter;
 
-    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference) {
-        this.context = context;
-        this.logger = logger;
+    public ExcelStartingRowSchemaInference(RowEvaluationStrategy rowEvaluationStrategy, int firstRow, TimeValueInference timeValueInference) {
+        this.rowEvaluationStrategy = rowEvaluationStrategy;
+        this.firstRow = firstRow;
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
         this.dataFormatter = new DataFormatter();
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
-        if (this.context == null) {
-            throw new SchemaNotFoundException("Schema Access Strategy intended only for validation purposes and cannot obtain schema");
-        }
-
-        final String requiredSheetsDelimited = context.getProperty(ExcelReader.REQUIRED_SHEETS).evaluateAttributeExpressions(variables).getValue();
-        final List<String> requiredSheets = ExcelReader.getRequiredSheets(requiredSheetsDelimited);
-        final Integer rawFirstRow = context.getProperty(ExcelReader.STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
-        final int firstRow = rawFirstRow == null ? NumberUtils.toInt(ExcelReader.STARTING_ROW.getDefaultValue()) : rawFirstRow;
-        final int zeroBasedFirstRow = ExcelReader.getZeroBasedIndex(firstRow);
-        final String password = context.getProperty(ExcelReader.PASSWORD).getValue();
-        final InputFileType inputFileType = context.getProperty(ExcelReader.INPUT_FILE_TYPE).asAllowableValue(InputFileType.class);
-        final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
-                .withRequiredSheets(requiredSheets)
-                .withFirstRow(zeroBasedFirstRow)
-                .withPassword(password)
-                .withInputFileType(inputFileType)
-                .build();
-
-        final RowIterator rowIterator = new RowIterator(contentStream, configuration, logger);
+    public RecordSchema inferSchema(RecordSource<Row> recordSource) throws IOException {
         final Map<String, FieldTypeInference> typeMap = new LinkedHashMap<>();
+        final int zeroBasedFirstRow = ExcelReader.getZeroBasedIndex(firstRow);
         List<String> fieldNames = null;
         int index = 0;
+        Row row;
 
-        while (rowIterator.hasNext()) {
-            Row row = rowIterator.next();
+        while ((row = recordSource.next()) != null) {
             if (index == 0) {
                 fieldNames = getFieldNames(firstRow, row);
             } else if (row.getRowNum() == zeroBasedFirstRow) { // skip first row of all sheets
                 continue;
-            } else if (index <= NUM_ROWS_TO_DETERMINE_TYPES) {
-                inferSchema(row, fieldNames, typeMap);
             } else {
-                break;
+                if (RowEvaluationStrategy.STANDARD == rowEvaluationStrategy) {
+                    if (index <= RowEvaluationStrategy.NUM_ROWS_TO_DETERMINE_TYPES) {
+                        inferSchema(row, fieldNames, typeMap);
+                    } else {
+                        break;
+                    }
+                } else {
+                    inferSchema(row, fieldNames, typeMap);
+                }
             }
-
             index++;
-        }
-
-        if (typeMap.isEmpty()) {
-            final String message = String.format("Failed to infer schema from empty first %d rows", NUM_ROWS_TO_DETERMINE_TYPES);
-            throw new SchemaNotFoundException(message);
         }
         return createSchema(typeMap);
     }
 
-    private List<String> getFieldNames(int firstRowIndex, Row row) throws SchemaNotFoundException {
+    private List<String> getFieldNames(int firstRowIndex, Row row) throws IOException {
         if (!ExcelUtils.hasCells(row)) {
-            throw new SchemaNotFoundException(String.format("Field names could not be determined from configured header row %s, as this row has no cells with data", firstRowIndex));
+            throw new IOException(new SchemaNotFoundException(String.format("Field names could not be determined from configured header row %s, as this row has no cells with data", firstRowIndex)));
         }
 
         final List<String> fieldNames = new ArrayList<>();
@@ -151,11 +126,12 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         return renamedDuplicateFieldNames;
     }
 
-    private void inferSchema(final Row row, final List<String> fieldNames, final Map<String, FieldTypeInference> typeMap) throws SchemaNotFoundException {
+    private void inferSchema(final Row row, final List<String> fieldNames, final Map<String, FieldTypeInference> typeMap) throws IOException {
         // NOTE: This allows rows to be blank when inferring the schema
         if (ExcelUtils.hasCells(row)) {
             if (row.getLastCellNum() > fieldNames.size()) {
-                throw new SchemaNotFoundException(String.format("Row %s has %s cells, more than the expected %s number of field names", row.getRowNum(), row.getLastCellNum(), fieldNames.size()));
+                throw new IOException(new SchemaNotFoundException(String.format("Row %s has %s cells, more than the expected %s number of field names",
+                        row.getRowNum(), row.getLastCellNum(), fieldNames.size())));
             }
 
             IntStream.range(0, row.getLastCellNum())
@@ -167,15 +143,14 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         }
     }
 
-    private RecordSchema createSchema(final Map<String, FieldTypeInference> inferences) {
+    private RecordSchema createSchema(final Map<String, FieldTypeInference> inferences) throws IOException {
+        if (inferences.isEmpty()) {
+            throw new IOException(new SchemaNotFoundException("Failed to infer schema from empty rows"));
+        }
+
         final List<RecordField> recordFields = inferences.entrySet().stream()
                 .map(entry -> new RecordField(entry.getKey(), entry.getValue().toDataType(), true))
                 .collect(Collectors.toList());
         return new SimpleRecordSchema(recordFields);
-    }
-
-    @Override
-    public Set<SchemaField> getSuppliedSchemaFields() {
-        return schemaFields;
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import com.amazonaws.AmazonClientException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -341,7 +340,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     }
 
-    protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) throws AmazonClientException {
+    protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) {
         final CloudWatchClient client = getClient(context);
         final PutMetricDataResponse result = client.putMetricData(metricDataRequest);
         return result;

@@ -186,7 +186,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                     batch = new ArrayList<>();
                 }
             }
-            if (!error && batch.size() > 0) {
+            if (!error && !batch.isEmpty()) {
                 bulkInsert(batch);
             }
         } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {

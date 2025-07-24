@@ -19,7 +19,6 @@ package org.apache.nifi.services.azure.data.explorer;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -33,6 +32,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Tags({"Azure", "Data", "Explorer", "ADX", "Kusto"})
@@ -98,7 +98,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
         return PROPERTY_DESCRIPTORS;
     }
 
-    public static final Pair<String, String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
+    public static final Map<String, String> NIFI_SOURCE = Map.of("processor", "nifi-source");
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException, URISyntaxException {
@@ -138,7 +138,6 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
         return ClientFactory.createStreamingClient(connectionStringBuilder);
     }
 
-    @SuppressWarnings("unchecked")
     private ConnectionStringBuilder getConnectionStringBuilder(final ConfigurationContext context) {
         final String clusterUrl = context.getProperty(CLUSTER_URI).getValue();
         final String clientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();

@@ -118,7 +118,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
                 // if the results list was empty, then the transaction failed (i.e. key was modified after we started watching), so keep looping to retry
                 // if the results list was null, then the transaction failed
                 // if the results list has results, then the transaction succeeded and it should have the result of the setNX operation
-                if (results != null && results.size() > 0) {
+                if (results != null && !results.isEmpty()) {
                     final Object firstResult = results.get(0);
                     if (firstResult instanceof Boolean) {
                         final Boolean absent = (Boolean) firstResult;

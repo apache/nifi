@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.properties;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -504,7 +505,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         // go through each property
         for (String propertyName : getPropertyKeys()) {
             // determine if the property is a network interface name
-            if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
+            if (Strings.CS.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
                 // get the network interface property value
                 final String interfaceName = getProperty(propertyName);
                 if (StringUtils.isNotBlank(interfaceName)) {

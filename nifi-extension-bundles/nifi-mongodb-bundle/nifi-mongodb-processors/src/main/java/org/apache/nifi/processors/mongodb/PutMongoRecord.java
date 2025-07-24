@@ -247,7 +247,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                     writeModels = new ArrayList<>();
                 }
             }
-            if (writeModels.size() > 0) {
+            if (!writeModels.isEmpty()) {
                 collection.bulkWrite(writeModels, bulkWriteOptions);
             }
         } catch (ProcessException | SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {

@@ -224,7 +224,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                 ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
                 final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
 
-                if (instanceResults != null && instanceResults.size() > 0) {
+                if (instanceResults != null && !instanceResults.isEmpty()) {
                     // return the validation results from the underlying instance
                     return instanceResults;
                 }

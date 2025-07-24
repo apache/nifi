@@ -129,7 +129,7 @@ public class StandardExtensionService implements ExtensionService {
 
     private <T>  void validate(T t, String invalidMessage) {
         final Set<ConstraintViolation<T>> violations = validator.validate(t);
-        if (violations.size() > 0) {
+        if (!violations.isEmpty()) {
             throw new ConstraintViolationException(invalidMessage, violations);
         }
     }

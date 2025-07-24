@@ -186,7 +186,7 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
 
         // Uses the first measurement (if any) as reference for repository metrics descriptors. The reference will be used
         // as a schema for creating descriptors. This is needed as the number of repositories are not predictable.
-        if (nodeStatusList.size() > 0) {
+        if (!nodeStatusList.isEmpty()) {
             final NodeStatus referenceNodeStatus = nodeStatusList.get(0);
 
             for (int i = 0; i < referenceNodeStatus.getContentRepositories().size(); i++) {
@@ -203,7 +203,7 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
         // Uses the first measurement (if any) as reference for GC metrics descriptors. The reference will be used
         // as a schema for creating descriptors. This is needed as the exact details of the garbage collector statuses
         // are not predictable.
-        if (gcStatusList.size() > 0) {
+        if (!gcStatusList.isEmpty()) {
             final List<GarbageCollectionStatus> gcStatuses = gcStatusList.get(0);
 
             for (int i = 0; i < gcStatuses.size(); i++) {
@@ -237,8 +237,8 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
                     snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), currentValue - previousValue);
                 }
             } else {
-                for (int j = 0; j < gcMetricDescriptorsDifferential.size(); j++) {
-                    snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), 0L);
+                for (MetricDescriptor<List<GarbageCollectionStatus>> listMetricDescriptor : gcMetricDescriptorsDifferential) {
+                    snapshot.addStatusMetric(listMetricDescriptor, 0L);
                 }
             }
 

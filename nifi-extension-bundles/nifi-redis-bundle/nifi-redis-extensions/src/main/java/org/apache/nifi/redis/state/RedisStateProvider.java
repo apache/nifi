@@ -261,7 +261,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
             // if we have a result then the replace succeeded
             // results can be null if the transaction has been aborted
-            if (results != null && results.size() > 0) {
+            if (results != null && !results.isEmpty()) {
                 replaced = true;
             }
 
