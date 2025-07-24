@@ -55,7 +55,20 @@ public class StandardClusterDetailsFactory implements ClusterDetailsFactory {
             connectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
         } else {
             logger.debug("Fetching Connection Status for Node Identifier {} from Cluster Coordinator", nodeIdentifier.getId());
-            connectionStatus = clusterCoordinator.fetchConnectionStatus(nodeIdentifier);
+            NodeConnectionStatus fetchedConnectionStatus;
+            try {
+                fetchedConnectionStatus = clusterCoordinator.fetchConnectionStatus(nodeIdentifier);
+            } catch (final Exception e) {
+                logger.debug("Failed to fetch Connection Status for Node Identifier {} from Cluster Coordinator", nodeIdentifier.getId(), e);
+                fetchedConnectionStatus = null;
+            }
+
+            if (fetchedConnectionStatus == null) {
+                logger.debug("Fetched Connection Status for Node Identifier {} is null; falling back to local state", nodeIdentifier.getId());
+                connectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
+            } else {
+                connectionStatus = fetchedConnectionStatus;
+            }
         }
 
         if (connectionStatus == null) {
