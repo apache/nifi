@@ -26,7 +26,7 @@ public enum DelegationStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    private DelegationStrategy(final String displayName, final String description) {
+    DelegationStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

@@ -96,7 +96,7 @@ public interface IdentityProviderUsage {
         private final int code;
         private String httpAuthScheme;
 
-        private AuthType(int statusCode, String httpAuthScheme) {
+        AuthType(int statusCode, String httpAuthScheme) {
             this.code = statusCode;
             this.httpAuthScheme = httpAuthScheme;
         }

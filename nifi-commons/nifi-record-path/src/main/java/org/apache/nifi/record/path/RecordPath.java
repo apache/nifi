@@ -74,7 +74,7 @@ public interface RecordPath {
      * @return the compiled RecordPath
      * @throws RecordPathException if the given text is not a valid RecordPath
      */
-    public static RecordPath compile(final String path) throws RecordPathException {
+    static RecordPath compile(final String path) throws RecordPathException {
         try {
             final CharStream input = new ANTLRStringStream(path);
             final RecordPathLexer lexer = new RecordPathLexer(input);

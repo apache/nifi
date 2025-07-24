@@ -23,7 +23,7 @@ public interface InvocationResult {
     String getYieldExplanation();
 
 
-    public static InvocationResult DO_NOT_YIELD = new InvocationResult() {
+    InvocationResult DO_NOT_YIELD = new InvocationResult() {
         @Override
         public boolean isYield() {
             return false;
@@ -35,7 +35,7 @@ public interface InvocationResult {
         }
     };
 
-    public static InvocationResult yield(final String explanation) {
+    static InvocationResult yield(final String explanation) {
         return new InvocationResult() {
             @Override
             public boolean isYield() {

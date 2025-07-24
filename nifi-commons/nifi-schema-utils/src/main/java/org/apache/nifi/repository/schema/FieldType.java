@@ -35,7 +35,7 @@ public enum FieldType {
     private final boolean lengthEncoded;
     private final Class<?> javaClass;
 
-    private FieldType(final int numBytes, final boolean lengthEncoded, final Class<?> javaClass) {
+    FieldType(final int numBytes, final boolean lengthEncoded, final Class<?> javaClass) {
         this.numBytes = numBytes;
         this.lengthEncoded = lengthEncoded;
         this.javaClass = javaClass;

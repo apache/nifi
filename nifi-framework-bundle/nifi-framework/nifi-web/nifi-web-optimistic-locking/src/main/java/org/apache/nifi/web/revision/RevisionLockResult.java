@@ -33,7 +33,7 @@ public enum RevisionLockResult {
 
     private final boolean successful;
 
-    private RevisionLockResult(final boolean successful) {
+    RevisionLockResult(final boolean successful) {
         this.successful = successful;
     }
 

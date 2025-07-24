@@ -18,5 +18,5 @@ package org.apache.nifi.processors.standard.util;
 
 public interface XmlElementNotifier {
 
-    public void onXmlElementFound(String xmlTree);
+    void onXmlElementFound(String xmlTree);
 }

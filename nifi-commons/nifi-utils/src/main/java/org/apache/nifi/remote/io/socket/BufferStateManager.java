@@ -101,7 +101,7 @@ public class BufferStateManager {
         direction = Direction.WRITE;
     }
 
-    public static enum Direction {
+    public enum Direction {
 
         READ, WRITE;
     }

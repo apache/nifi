@@ -26,7 +26,7 @@ public enum EvictionPolicy {
 
     private final Comparator<CacheRecord> comparator;
 
-    private EvictionPolicy(final Comparator<CacheRecord> comparator) {
+    EvictionPolicy(final Comparator<CacheRecord> comparator) {
         this.comparator = comparator;
     }
 

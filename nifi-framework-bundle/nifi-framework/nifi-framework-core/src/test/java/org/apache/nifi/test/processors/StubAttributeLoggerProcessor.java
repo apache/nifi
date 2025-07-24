@@ -64,7 +64,7 @@ public class StubAttributeLoggerProcessor extends AbstractProcessor {
             .build();
     // @formatter:on
 
-    public static enum DebugLevels {
+    public enum DebugLevels {
 
         trace, info, warn, debug, error
     }

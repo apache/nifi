@@ -43,7 +43,7 @@ public interface StorageResult {
      */
     Integer getEventsRolledOver();
 
-    public static StorageResult EMPTY = new StorageResult() {
+    StorageResult EMPTY = new StorageResult() {
         @Override
         public Map<ProvenanceEventRecord, StorageSummary> getStorageLocations() {
             return Collections.emptyMap();

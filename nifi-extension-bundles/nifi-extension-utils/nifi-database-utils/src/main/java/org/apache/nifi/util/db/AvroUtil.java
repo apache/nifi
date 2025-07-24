@@ -23,7 +23,7 @@ import org.apache.avro.file.CodecFactory;
  */
 public class AvroUtil {
 
-    public static enum CodecType {
+    public enum CodecType {
         BZIP2,
         DEFLATE,
         NONE,
