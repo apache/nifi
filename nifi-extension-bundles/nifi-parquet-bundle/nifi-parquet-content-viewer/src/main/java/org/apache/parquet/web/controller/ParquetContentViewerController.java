@@ -16,6 +16,7 @@
  */
 package org.apache.parquet.web.controller;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.servlet.ServletContext;
@@ -46,6 +47,7 @@ public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
     private static final long maxBytes = 1024 * 1024 * 2; //10MB
     private static final int bufferSize = 8 * 1024; // 8KB
+    private static final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
@@ -110,12 +112,10 @@ public class ParquetContentViewerController extends HttpServlet {
                     .withConf(conf)
                     .build();
 
-            //Get each column per record and save it to corresponding column list
+            //Format and write out each record
             GenericRecord record;
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+            objectMapper.getFactory().configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
             boolean firstRecord = true;
-
             while ((record = reader.read()) != null) {
                 if (firstRecord) {
                     firstRecord = false;
@@ -123,7 +123,7 @@ public class ParquetContentViewerController extends HttpServlet {
                     response.getOutputStream().write(",\n".getBytes());
                 }
 
-                response.getOutputStream().write(objectMapper.readTree(record.toString()).toPrettyString().getBytes());
+                objectMapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectMapper.readTree(record.toString()));
             }
         } catch (final Throwable t) {
             logger.warn("Unable to format FlowFile content", t);
