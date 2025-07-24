@@ -201,12 +201,10 @@ public class HL7Query {
     }
 
     private IntegerEvaluator buildIntegerEvaluator(final Tree tree) {
-        switch (tree.getType()) {
-            case NUMBER:
-                return new IntegerLiteralEvaluator(Integer.parseInt(tree.getText()));
-            default:
-                throw new HL7QueryParsingException("Failed to build Integer Evaluator for " + tree.getText());
+        if (tree.getType() == NUMBER) {
+            return new IntegerLiteralEvaluator(Integer.parseInt(tree.getText()));
         }
+        throw new HL7QueryParsingException("Failed to build Integer Evaluator for " + tree.getText());
     }
 
     private BooleanEvaluator buildBooleanEvaluator(final Tree tree) {

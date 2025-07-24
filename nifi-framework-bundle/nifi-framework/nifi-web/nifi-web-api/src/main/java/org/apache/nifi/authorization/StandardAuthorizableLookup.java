@@ -590,7 +590,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                     case Operation:
                         return new OperationAuthorizable(getAccessPolicy(baseResourceType, resource));
                 }
-
+            // fallthrough
             case Controller:
                 // Handle Nested Resource Types such as Flow Analysis Rules and Flow Registry Clients
                 final ResourceType nestedResourceType;

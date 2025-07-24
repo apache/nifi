@@ -292,12 +292,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         // validate the concurrent tasks based on the scheduling strategy
         if (isNotNull(config.getConcurrentlySchedulableTaskCount())) {
-            switch (schedulingStrategy) {
-                case TIMER_DRIVEN:
-                    if (config.getConcurrentlySchedulableTaskCount() <= 0) {
-                        validationErrors.add("Concurrent tasks must be greater than 0.");
-                    }
-                    break;
+            if (schedulingStrategy == SchedulingStrategy.TIMER_DRIVEN) {
+                if (config.getConcurrentlySchedulableTaskCount() <= 0) {
+                    validationErrors.add("Concurrent tasks must be greater than 0.");
+                }
             }
         }
 

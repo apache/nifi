@@ -97,9 +97,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         final GitLabAuthenticationType authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication type is required");
         final String authToken = Objects.requireNonNull(builder.authToken, "Authentication token is required");
 
-        final Constants.TokenType tokenType = switch (authenticationType) {
-            case ACCESS_TOKEN -> Constants.TokenType.ACCESS;
-        };
+        final Constants.TokenType tokenType = authenticationType == GitLabAuthenticationType.ACCESS_TOKEN ? Constants.TokenType.ACCESS : null;
 
         clientId = Objects.requireNonNull(builder.clientId, "Client Id is required");
         repoNamespace = Objects.requireNonNull(builder.repoNamespace, "Repository Group is required");

@@ -1514,7 +1514,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     case THROW_TIMEOUT_EXCEPTION:
                         throw e;
                     case TERMINATE:
-                    default:
                         ((ProcessorNode) component).terminate();
                         return;
                 }

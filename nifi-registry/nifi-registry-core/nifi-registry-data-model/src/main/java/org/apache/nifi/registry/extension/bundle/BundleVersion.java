@@ -82,15 +82,12 @@ public class BundleVersion extends LinkableEntity {
     public String getFilename() {
         final String filename = bundle.getArtifactId() + "-" + versionMetadata.getVersion();
 
-        switch (bundle.getBundleType()) {
-            case NIFI_NAR:
-                return filename + ".nar";
-            case MINIFI_CPP:
+        return switch (bundle.getBundleType()) {
+            case NIFI_NAR -> filename + ".nar";
+            case MINIFI_CPP ->
                 // TODO should CPP get a special extension
-                return filename;
-            default:
-                throw new IllegalStateException("Unknown bundle type: " + bundle.getBundleType());
-        }
+                    filename;
+        };
     }
 
 }

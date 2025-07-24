@@ -358,7 +358,6 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                         getLogger().error("Address not found in the database", anfe);
                         break;
                     case DEBUG:
-                    default:
                         getLogger().debug("Address not found in the database", anfe);
                         break;
                 }

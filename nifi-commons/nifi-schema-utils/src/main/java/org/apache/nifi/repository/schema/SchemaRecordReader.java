@@ -247,10 +247,8 @@ public class SchemaRecordReader {
                 final RecordField matchingField = fieldOption.get();
                 return readField(in, matchingField);
             }
-            default: {
-                throw new IOException("Unrecognized Field Type " + fieldType + " for field '" + fieldName + "'");
-            }
         }
+        throw new IOException("Unrecognized Field Type " + fieldType + " for field '" + fieldName + "'");
     }
 
     private int readInt(final InputStream in) throws IOException {

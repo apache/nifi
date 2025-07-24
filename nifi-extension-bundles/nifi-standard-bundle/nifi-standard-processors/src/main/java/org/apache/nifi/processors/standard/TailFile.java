@@ -1032,6 +1032,7 @@ public class TailFile extends AbstractProcessor {
                                 throw new NulCharacterEncounteredException(rePos);
                             }
                         }
+                        // fallthrough
                         default: {
                             if (seenCR) {
                                 seenCR = false;

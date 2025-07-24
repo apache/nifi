@@ -74,8 +74,6 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
                     count++;
                 }
                 break;
-            default:
-                throw new IllegalArgumentException("Unknown ResultOutputStrategy value: " + resultOutputStrategy);
         }
     }
 }

@@ -471,33 +471,30 @@ public class SiteToSiteRestApiClient implements Closeable {
         logger.debug("initiateTransaction responseCode={}", responseCode);
 
         String transactionUrl;
-        switch (responseCode) {
-            case RESPONSE_CODE_CREATED:
-                EntityUtils.consume(response.getEntity());
+        if (responseCode == RESPONSE_CODE_CREATED) {
+            EntityUtils.consume(response.getEntity());
 
-                transactionUrl = readTransactionUrl(response);
-                if (StringUtils.isEmpty(transactionUrl)) {
-                    throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
-                }
-                final Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
-                if (transportProtocolVersionHeader == null) {
-                    throw new ProtocolException("Server didn't return confirmed protocol version");
-                }
-                final int protocolVersionConfirmedByServer = Integer.parseInt(transportProtocolVersionHeader.getValue());
-                logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
-                transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
+            transactionUrl = readTransactionUrl(response);
+            if (StringUtils.isEmpty(transactionUrl)) {
+                throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
+            }
+            final Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
+            if (transportProtocolVersionHeader == null) {
+                throw new ProtocolException("Server didn't return confirmed protocol version");
+            }
+            final int protocolVersionConfirmedByServer = Integer.parseInt(transportProtocolVersionHeader.getValue());
+            logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
+            transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
 
-                final Header serverTransactionTtlHeader = response.getFirstHeader(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
-                if (serverTransactionTtlHeader == null) {
-                    throw new ProtocolException("Server didn't return " + HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
-                }
-                serverTransactionTtl = Integer.parseInt(serverTransactionTtlHeader.getValue());
-                break;
-
-            default:
-                try (InputStream content = response.getEntity().getContent()) {
-                    throw handleErrResponse(responseCode, content);
-                }
+            final Header serverTransactionTtlHeader = response.getFirstHeader(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
+            if (serverTransactionTtlHeader == null) {
+                throw new ProtocolException("Server didn't return " + HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
+            }
+            serverTransactionTtl = Integer.parseInt(serverTransactionTtlHeader.getValue());
+        } else {
+            try (InputStream content = response.getEntity().getContent()) {
+                throw handleErrResponse(responseCode, content);
+            }
         }
 
         logger.debug("initiateTransaction handshaking finished, transactionUrl={}", transactionUrl);
@@ -949,18 +946,15 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         final int responseCode = response.getStatusLine().getStatusCode();
-        switch (responseCode) {
-            case RESPONSE_CODE_ACCEPTED:
-                final String receivedChecksum = EntityUtils.toString(response.getEntity());
-                ((HttpInput) commSession.getInput()).setInputStream(new ByteArrayInputStream(receivedChecksum.getBytes()));
-                ((HttpCommunicationsSession) commSession).setChecksum(receivedChecksum);
-                logger.debug("receivedChecksum={}", receivedChecksum);
-                break;
-
-            default:
-                try (InputStream content = response.getEntity().getContent()) {
-                    throw handleErrResponse(responseCode, content);
-                }
+        if (responseCode == RESPONSE_CODE_ACCEPTED) {
+            final String receivedChecksum = EntityUtils.toString(response.getEntity());
+            ((HttpInput) commSession.getInput()).setInputStream(new ByteArrayInputStream(receivedChecksum.getBytes()));
+            ((HttpCommunicationsSession) commSession).setChecksum(receivedChecksum);
+            logger.debug("receivedChecksum={}", receivedChecksum);
+        } else {
+            try (InputStream content = response.getEntity().getContent()) {
+                throw handleErrResponse(responseCode, content);
+            }
         }
     }
 
@@ -1003,12 +997,10 @@ public class SiteToSiteRestApiClient implements Closeable {
             logger.debug("extendTransaction responseCode={}", responseCode);
 
             try (final InputStream content = response.getEntity().getContent()) {
-                switch (responseCode) {
-                    case RESPONSE_CODE_OK:
-                        return readResponse(content);
-                    default:
-                        throw handleErrResponse(responseCode, content);
+                if (responseCode == RESPONSE_CODE_OK) {
+                    return readResponse(content);
                 }
+                throw handleErrResponse(responseCode, content);
             }
         }
 
@@ -1039,12 +1031,10 @@ public class SiteToSiteRestApiClient implements Closeable {
             case PORT_NOT_IN_VALID_STATE:
                 return new PortNotRunningException(errEntity.getMessage());
             default:
-                switch (responseCode) {
-                    case RESPONSE_CODE_FORBIDDEN :
-                        return new HandshakeException(errEntity.getMessage());
-                    default:
-                        return new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
+                if (responseCode == RESPONSE_CODE_FORBIDDEN) {
+                    return new HandshakeException(errEntity.getMessage());
                 }
+                return new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
         }
     }
 

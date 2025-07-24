@@ -116,12 +116,10 @@ public class StatusLogger extends PeriodicStatusReporter {
                 }
 
             } catch (Exception e) {
-                switch (logLevel) {
-                    case ERROR:
-                        logger.error("Unexpected exception when attempting to report the status", e);
-                        break;
-                    default:
-                        logger.warn("Unexpected exception when attempting to report the status", e);
+                if (logLevel == LogLevel.ERROR) {
+                    logger.error("Unexpected exception when attempting to report the status", e);
+                } else {
+                    logger.warn("Unexpected exception when attempting to report the status", e);
                 }
             }
         }

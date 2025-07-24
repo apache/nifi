@@ -218,7 +218,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             case PARTITION_BY_ATTRIBUTE -> new CorrelationAttributePartitioner(partitioningAttribute);
             case ROUND_ROBIN -> new RoundRobinPartitioner();
             case SINGLE_NODE -> new FirstNodePartitioner();
-            default -> throw new IllegalArgumentException();
         };
         return partitioner;
     }

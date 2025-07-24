@@ -868,8 +868,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             case WRITE:
                 policy.setAction(WRITE_CODE);
                 break;
-            default:
-                break;
         }
 
         transferUsersAndGroups(accessPolicy, policy);
