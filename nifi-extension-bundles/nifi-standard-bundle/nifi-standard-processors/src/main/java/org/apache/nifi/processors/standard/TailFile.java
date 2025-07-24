@@ -1033,6 +1033,7 @@ public class TailFile extends AbstractProcessor {
                             }
                         }
                         // fallthrough
+                        // is intentional since if reReadOnNul is false, ASCII NUL is to be treated as a regular character
                         default: {
                             if (seenCR) {
                                 seenCR = false;
