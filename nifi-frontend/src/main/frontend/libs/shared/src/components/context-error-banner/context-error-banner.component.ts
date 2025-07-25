@@ -24,13 +24,14 @@ import { clearBannerErrors } from '../../state/error/error.actions';
 import { Observable } from 'rxjs';
 import { selectBannerErrors } from '../../state/error/error.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '@nifi/shared';
+import { ErrorBanner } from '../error-banner/error-banner.component';
 
 @Component({
     selector: 'context-error-banner',
     imports: [CommonModule, ErrorBanner],
     templateUrl: './context-error-banner.component.html',
-    styleUrl: './context-error-banner.component.scss'
+    styleUrl: './context-error-banner.component.scss',
+    standalone: true
 })
 export class ContextErrorBanner implements OnDestroy {
     private _context!: string;
