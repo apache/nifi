@@ -127,12 +127,12 @@
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-data</artifactId>
-            <version>7.0.1</version>
+            <version>7.0.2</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-ingest</artifactId>
-            <version>7.0.1</version>
+            <version>7.0.2</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
