@@ -3576,10 +3576,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             parameterEntity = currentParameterEntities.get(parameterName);
                             if (parameterEntity != null) {
                                 final ParameterDTO parameterDTO = parameterEntity.getParameter();
-                                // These three fields must be null in order for ParameterContextDAO to recognize this as a parameter deletion
+                                // These fields must be null in order for ParameterContextDAO to recognize this as a parameter deletion
                                 parameterDTO.setDescription(null);
                                 parameterDTO.setSensitive(null);
                                 parameterDTO.setValue(null);
+                                parameterDTO.setReferencedAssets(null);
                                 updatedParameterEntities.add(parameterEntity);
                             }
                         } else {
