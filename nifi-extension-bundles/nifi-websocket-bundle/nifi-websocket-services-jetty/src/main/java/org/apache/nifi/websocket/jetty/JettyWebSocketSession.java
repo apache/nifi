@@ -66,7 +66,12 @@ public class JettyWebSocketSession extends AbstractWebSocketSession {
 
     @Override
     public boolean isSecure() {
-        return session.isSecure();
+        try {
+            return session.isSecure();
+        } catch (NullPointerException e) {
+            // Handle the case where ServletApiRequest.getRequest() returns null
+            return false;
+        }
     }
 
 }
