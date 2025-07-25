@@ -569,8 +569,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             case DataTransfer:
             case ProvenanceData:
             case Operation:
-                final Authorizable authorizable = handleResourceTypeContainingOtherResourceType(resource, resourceType);
-                return authorizable;
+                return handleResourceTypeContainingOtherResourceType(resource, resourceType);
             case Controller:
                 // Handle Nested Resource Types such as Flow Analysis Rules and Flow Registry Clients
                 final ResourceType nestedResourceType;
@@ -623,7 +622,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             case DataTransfer -> new DataTransferAuthorizable(getAccessPolicy(baseResourceType, resource));
             case ProvenanceData -> new ProvenanceDataAuthorizable(getAccessPolicy(baseResourceType, resource));
             case Operation -> new OperationAuthorizable(getAccessPolicy(baseResourceType, resource));
-            default -> null;
+            default -> throw new IllegalArgumentException("Cannot use resource type %s in this method".formatted(resourceType));
         };
     }
 
