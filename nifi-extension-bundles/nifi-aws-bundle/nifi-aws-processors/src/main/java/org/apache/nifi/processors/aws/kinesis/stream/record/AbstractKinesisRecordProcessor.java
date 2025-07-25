@@ -135,6 +135,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
                 startProcessingRecords();
                 final int recordsTransformed = processRecordsWithRetries(records, flowFiles, session, stopWatch);
+                finishProcessingRecords(session, flowFiles, stopWatch);
                 transferTo(ConsumeKinesisStream.REL_SUCCESS, session, records.size(), recordsTransformed, flowFiles);
 
                 session.commitAsync(() -> {
@@ -157,14 +158,15 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         processingRecords = true;
     }
 
+    void finishProcessingRecords(final ProcessSession session, final List<FlowFile> flowFiles, final StopWatch stopWatch) { }
+
     private int processRecordsWithRetries(final List<KinesisClientRecord> records, final List<FlowFile> flowFiles,
                                            final ProcessSession session, final StopWatch stopWatch) {
         int recordsTransformed = 0;
-        for (int r = 0; r < records.size(); r++) {
-            final KinesisClientRecord kinesisRecord = records.get(r);
+        for (final KinesisClientRecord kinesisRecord : records) {
             boolean processedSuccessfully = false;
             for (int i = 0; !processedSuccessfully && i < numRetries; i++) {
-                processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, r == records.size() - 1, session, stopWatch);
+                processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, session, stopWatch);
             }
 
             if (processedSuccessfully) {
@@ -177,12 +179,14 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         return recordsTransformed;
     }
 
-    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
+    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                                          final ProcessSession session, final StopWatch stopWatch) {
         boolean processedSuccessfully = false;
         try {
-            processRecord(flowFiles, kinesisRecord, lastRecord, session, stopWatch);
+            processRecord(flowFiles, kinesisRecord, session, stopWatch);
             processedSuccessfully = true;
+        } catch (final KinesisBatchUnrecoverableException e) {
+            throw e;
         } catch (final Exception e) {
             log.error("Caught Exception while processing Kinesis record {}", kinesisRecord, e);
 
@@ -200,15 +204,13 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
     /**
      * Process an individual {@link Record} and serialise to {@link FlowFile}
      *
-     * @param flowFiles {@link List} of {@link FlowFile}s to be output after all processing is complete
+     * @param flowFiles     {@link List} of {@link FlowFile}s to be output after all processing is complete
      * @param kinesisRecord the Kinesis {@link Record} to be processed
-     * @param lastRecord whether this is the last {@link Record} to be processed in this batch
-     * @param session {@link ProcessSession} into which {@link FlowFile}s will be transferred
-     * @param stopWatch {@link StopWatch} tracking how much time has been spent processing the current batch
-     *
+     * @param session       {@link ProcessSession} into which {@link FlowFile}s will be transferred
+     * @param stopWatch     {@link StopWatch} tracking how much time has been spent processing the current batch
      * @throws RuntimeException if there are any unhandled Exceptions that should be retried
      */
-    abstract void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
+    abstract void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                                 final ProcessSession session, final StopWatch stopWatch);
 
     void reportProvenance(final ProcessSession session, final FlowFile flowFile, final String partitionKey,
@@ -344,5 +346,11 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
     void setProcessingRecords(final boolean processingRecords) {
         this.processingRecords = processingRecords;
+    }
+
+    protected static class KinesisBatchUnrecoverableException extends RuntimeException {
+        public KinesisBatchUnrecoverableException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
     }
 }

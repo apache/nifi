@@ -40,7 +40,7 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
+    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
         final String partitionKey = kinesisRecord.partitionKey();
         final String sequenceNumber = kinesisRecord.sequenceNumber();
