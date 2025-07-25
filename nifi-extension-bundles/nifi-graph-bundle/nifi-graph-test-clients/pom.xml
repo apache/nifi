@@ -28,7 +28,7 @@
         <gremlin.version>3.7.3</gremlin.version>
         <janusgraph.version>1.2.0-20250608-090535.869f248</janusgraph.version>
         <guava.version>33.4.8-jre</guava.version>
-        <amqp-client.version>5.25.0</amqp-client.version>
+        <amqp-client.version>5.26.0</amqp-client.version>
     </properties>
     <dependencyManagement>
         <dependencies>
