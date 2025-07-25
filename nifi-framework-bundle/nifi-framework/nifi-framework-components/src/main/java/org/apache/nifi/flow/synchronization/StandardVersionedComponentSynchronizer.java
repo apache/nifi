@@ -517,7 +517,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     .storageLocation(storageLocation)
                     .flowName(flowId)
                     .version(version)
-                    .flowSnapshot(syncOptions.isUpdateGroupVersionControlSnapshot() ? proposed : null)
+                    .flowSnapshot(null)
                     .status(new StandardVersionedFlowStatus(flowState, flowState.getDescription()))
                     .build();
 
