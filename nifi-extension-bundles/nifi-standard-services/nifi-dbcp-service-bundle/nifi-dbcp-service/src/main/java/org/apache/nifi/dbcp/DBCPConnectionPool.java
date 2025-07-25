@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.AbstractMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -37,6 +30,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
@@ -45,6 +41,21 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.File;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
@@ -203,7 +214,33 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         try {
             clazz = Class.forName(driverName);
         } catch (final ClassNotFoundException e) {
-            throw new ProcessException("Driver class " + driverName + " is not found", e);
+            // Enhanced error message with discovery
+            ResourceReferences driverResources = null;
+            try {
+                // Try to get driver resources from current context if available
+                if (getConfigurationContext() != null) {
+                    driverResources = getConfigurationContext().getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
+                }
+            } catch (Exception ignored) {
+                // Context might not be available, continue without it
+            }
+
+            final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? List.of() : discoverDriverClasses(driverResources);
+
+            String errorMessage = String.format("JDBC driver class '%s' not found.", driverName);
+
+            if (!availableDrivers.isEmpty()) {
+                errorMessage += String.format(" Available driver classes found in resources: %s.", String.join(", ", availableDrivers));
+            } else if (driverResources != null && driverResources.getCount() != 0) {
+                final List<ResourceReference> resourcesList = driverResources.asList();
+                if (resourcesList.stream().filter(r -> r.getResourceType() != ResourceType.URL).count() != 0) {
+                    errorMessage += " No JDBC driver classes found in the provided resources.";
+                }
+            } else if (driverResources == null) {
+                errorMessage += " The property 'Database Driver Location(s)' should be set.";
+            }
+
+            throw new ProcessException(errorMessage.toString(), e);
         }
 
         try {
@@ -219,6 +256,100 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
             } catch (final Exception e2) {
                 throw new ProcessException("Creating driver instance is failed", e2);
             }
+        }
+    }
+
+    /**
+     * Discovers all potential JDBC driver classes in the provided resources Since
+     * dynamicallyModifiesClasspath=true, we scan the resources directly rather than
+     * trying to load classes, as NiFi handles classpath modification
+     */
+    private List<String> discoverDriverClasses(final ResourceReferences driverResources) {
+        final Set<String> driverClasses = new TreeSet<>(); // Use TreeSet for sorted results
+
+        if (driverResources == null || driverResources.getCount() == 0) {
+            return new ArrayList<>();
+        }
+
+        for (final ResourceReference resource : driverResources.flattenRecursively().asList()) {
+            try {
+                final List<File> jarFiles = getJarFilesFromResource(resource);
+                for (final File jarFile : jarFiles) {
+                    driverClasses.addAll(scanJarForDriverClasses(jarFile));
+                }
+            } catch (final Exception e) {
+                getLogger().warn("Error processing resource {} for driver discovery", resource.getLocation(), e);
+            }
+        }
+
+        return new ArrayList<>(driverClasses);
+    }
+
+    /**
+     * Scans a JAR file for potential JDBC driver class names (without loading them)
+     */
+    private Set<String> scanJarForDriverClasses(final File jarFile) {
+        final Set<String> actualDriverClasses = new TreeSet<>();
+
+        try (JarFile jar = new JarFile(jarFile)) {
+            final Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                final JarEntry entry = entries.nextElement();
+                final String entryName = entry.getName();
+
+                // Look for .class files (exclude inner classes)
+                if (entryName.endsWith(".class") && !entryName.contains("$")) {
+                    String className = entryName.substring(0, entryName.length() - 6).replace('/', '.');
+
+                    // First filter with heuristics to avoid loading every class
+                    if (isPotentialDriverClass(className)) {
+                        // Now actually verify it's a JDBC driver
+                        if (isActualDriverClass(className)) {
+                            actualDriverClasses.add(className);
+                        }
+                    }
+                }
+            }
+        } catch (final Exception e) {
+            getLogger().warn("Error scanning JAR file {} for driver classes", jarFile.getAbsolutePath(), e);
+        }
+
+        return actualDriverClasses;
+    }
+
+    /**
+     * Uses heuristics to identify potential JDBC driver classes without loading
+     * them This is a first-pass filter to avoid loading every single class
+     */
+    private boolean isPotentialDriverClass(final String className) {
+        final String lowerClassName = className.toLowerCase();
+
+        // Common patterns for JDBC driver class names
+        boolean isCandidate = lowerClassName.contains("driver")
+                || lowerClassName.contains("jdbc")
+                || className.matches(".*\\.(mysql|postgres|postgresql|oracle|h2|hsql|derby|sqlite|mariadb|sqlserver|mssql|jtds)\\..*")
+                || className.matches(".*Driver$")
+                || className.matches(".*JdbcDriver$")
+                || className.matches(".*SQLServerDriver$");
+
+        return isCandidate;
+    }
+
+    /**
+     * Actually loads and checks if a class implements java.sql.Driver Since
+     * dynamicallyModifiesClasspath=true, the class should be available
+     */
+    private boolean isActualDriverClass(final String className) {
+        try {
+            final Class<?> clazz = Class.forName(className);
+
+            // Check if it implements Driver interface and is not abstract/interface
+            return Driver.class.isAssignableFrom(clazz)
+                    && !clazz.isInterface()
+                    && !java.lang.reflect.Modifier.isAbstract(clazz.getModifiers());
+        } catch (final Throwable e) {
+            // Class couldn't be loaded or has issues - not a valid driver
+            return false;
         }
     }
 }
