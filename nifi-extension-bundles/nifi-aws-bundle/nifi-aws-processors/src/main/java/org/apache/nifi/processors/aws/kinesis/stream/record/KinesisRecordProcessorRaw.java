@@ -21,13 +21,11 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.RecordProcessorBlocker;
-import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Map;
 
 public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
@@ -40,29 +38,29 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord,
-                       final ProcessSession session, final StopWatch stopWatch) {
+    void processRecord(final KinesisClientRecord kinesisRecord, final BatchProcessingContext batchProcessingContext) {
         final String partitionKey = kinesisRecord.partitionKey();
         final String sequenceNumber = kinesisRecord.sequenceNumber();
         final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         final ByteBuffer dataBuffer = kinesisRecord.data();
-        byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
+        final byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
         if (dataBuffer != null) {
             dataBuffer.get(data);
         }
 
-        FlowFile flowFile = session.create();
+        final ProcessSession session = batchProcessingContext.session();
+        final FlowFile flowFile = session.create();
         session.write(flowFile, out -> out.write(data));
 
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("Sequence No: {}, Partition Key: {}, Data: {}", sequenceNumber, partitionKey, BASE_64_ENCODER.encodeToString(data));
         }
 
-        reportProvenance(session, flowFile, partitionKey, sequenceNumber, stopWatch);
+        reportProvenance(session, flowFile, partitionKey, sequenceNumber, batchProcessingContext.stopWatch());
 
         final Map<String, String> attributes = getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
-        flowFile = session.putAllAttributes(flowFile, attributes);
+        final FlowFile attributedFlowFile = session.putAllAttributes(flowFile, attributes);
 
-        flowFiles.add(flowFile);
+        batchProcessingContext.flowFiles().add(attributedFlowFile);
     }
 }
