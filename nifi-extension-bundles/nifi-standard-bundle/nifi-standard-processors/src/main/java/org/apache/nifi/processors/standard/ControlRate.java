@@ -279,6 +279,7 @@ public class ControlRate extends AbstractProcessor {
                             .build());
                 }
             // fallthrough
+            // is intentional since the "Maximum Rate" property must be filled in when using either of DATA_RATE, FLOWFILE_RATE or ATTRIBUTE_RATE.
             case FLOWFILE_RATE:
                 validationResults.add(StandardValidators.POSITIVE_LONG_VALIDATOR.validate("Maximum Rate", context.getProperty(MAX_RATE).getValue(), context));
                 break;

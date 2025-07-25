@@ -569,28 +569,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             case DataTransfer:
             case ProvenanceData:
             case Operation:
-
-                // get the resource type
-                final String baseResource = StringUtils.substringAfter(resource, resourceType.getValue());
-                final ResourceType baseResourceType = ResourceType.fromRawValue(baseResource);
-
-                if (baseResourceType == null) {
-                    throw new ResourceNotFoundException("Unrecognized base resource: " + resource);
-                }
-
-                switch (resourceType) {
-                    case Policy:
-                        return new AccessPolicyAuthorizable(getAccessPolicy(baseResourceType, resource));
-                    case Data:
-                        return new DataAuthorizable(getAccessPolicy(baseResourceType, resource));
-                    case DataTransfer:
-                        return new DataTransferAuthorizable(getAccessPolicy(baseResourceType, resource));
-                    case ProvenanceData:
-                        return new ProvenanceDataAuthorizable(getAccessPolicy(baseResourceType, resource));
-                    case Operation:
-                        return new OperationAuthorizable(getAccessPolicy(baseResourceType, resource));
-                }
-            // fallthrough
+                return handleResourceTypeContainingOtherResourceType(resource, resourceType);
             case Controller:
                 // Handle Nested Resource Types such as Flow Analysis Rules and Flow Registry Clients
                 final ResourceType nestedResourceType;
@@ -626,6 +605,25 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             default:
                 return getAccessPolicy(resourceType, resource);
         }
+    }
+
+    private Authorizable handleResourceTypeContainingOtherResourceType(final String resource, final ResourceType resourceType) {
+        // get the resource type
+        final String baseResource = StringUtils.substringAfter(resource, resourceType.getValue());
+        final ResourceType baseResourceType = ResourceType.fromRawValue(baseResource);
+
+        if (baseResourceType == null) {
+            throw new ResourceNotFoundException("Unrecognized base resource: " + resource);
+        }
+
+        return switch (resourceType) {
+            case Policy -> new AccessPolicyAuthorizable(getAccessPolicy(baseResourceType, resource));
+            case Data -> new DataAuthorizable(getAccessPolicy(baseResourceType, resource));
+            case DataTransfer -> new DataTransferAuthorizable(getAccessPolicy(baseResourceType, resource));
+            case ProvenanceData -> new ProvenanceDataAuthorizable(getAccessPolicy(baseResourceType, resource));
+            case Operation -> new OperationAuthorizable(getAccessPolicy(baseResourceType, resource));
+            default -> throw new IllegalArgumentException("Cannot use resource type %s in this method".formatted(resourceType));
+        };
     }
 
     private Authorizable getAccessPolicy(final ResourceType resourceType, final String resource) {
