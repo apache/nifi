@@ -40,6 +40,10 @@
             Name of the theme file to be used.
         -->
         <frontend.theme.name>material</frontend.theme.name>
+        <!--
+            Source directory containing the theme icons. Can be external directory for modular themes.
+        -->
+        <frontend.theme.icons.dir>${frontend.working.dir}/libs/shared/src/assets/themes</frontend.theme.icons.dir>
         <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
@@ -261,8 +265,54 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <!--
+                        Copy modular theme structure.
+                    -->
+                    <execution>
+                        <id>copy-theme-structure</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.working.dir}/libs/shared/src/assets/themes</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.theme.dir}</directory>
+                                    <includes>
+                                        <include>**/*.scss</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <!--
+                        Copy theme icons.
+                    -->
+                    <execution>
+                        <id>copy-theme-icons</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.working.dir}/libs/shared/src/assets/icons</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.theme.icons.dir}</directory>
+                                    <includes>
+                                        <include>**/*.svg</include>
+                                        <include>**/*.png</include>
+                                        <include>**/*.jpg</include>
+                                        <include>**/*.jpeg</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
@@ -284,6 +334,7 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
