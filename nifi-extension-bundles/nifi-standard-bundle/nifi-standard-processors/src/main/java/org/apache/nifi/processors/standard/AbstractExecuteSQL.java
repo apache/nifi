@@ -28,12 +28,15 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
-import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.sql.ExecuteSQLConfiguration;
+import org.apache.nifi.processors.standard.sql.ResultSetFragments;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.db.JdbcCommon;
@@ -46,29 +49,27 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toMap;
 
 
-public abstract class AbstractExecuteSQL extends AbstractProcessor {
+public abstract class AbstractExecuteSQL extends AbstractSessionFactoryProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
     public static final String RESULT_QUERY_DURATION = "executesql.query.duration";
     public static final String RESULT_QUERY_EXECUTION_TIME = "executesql.query.executiontime";
     public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
+    public static final String END_OF_RESULTSET_FLAG = "executesql.end.of.resultset";
     public static final String RESULT_ERROR_MESSAGE = "executesql.error.message";
     public static final String INPUT_FLOWFILE_UUID = "input.flowfile.uuid";
-
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
     public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
     public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
@@ -234,46 +235,60 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile fileToProcess = null;
-        if (context.hasIncomingConnection()) {
-            fileToProcess = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession session = sessionFactory.createSession();
+        try {
+            onTrigger(context, session, sessionFactory);
+            session.commitAsync();
+        } catch (final Throwable t) {
+            session.rollback(true);
+            throw t;
+        }
+    }
 
-            // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
-            // However, if we have no FlowFile and we have connections coming from other Processors, then
-            // we know that we should run only if we have a FlowFile.
-            if (fileToProcess == null && context.hasNonLoopConnection()) {
-                return;
+    protected void onTrigger(final ProcessContext context, final ProcessSession session, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ExecuteSQLConfiguration config;
+
+        // Ensure that fileToProcess can only be accessed through resultSetFragments, because it might get removed
+        // while outputting in batches, because the session needs to be committed.
+        final ResultSetFragments resultSetFragments;
+        {
+            FlowFile fileToProcess = null;
+            if (context.hasIncomingConnection()) {
+                fileToProcess = session.get();
+
+                // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
+                // However, if we have no FlowFile and we have connections coming from other Processors, then
+                // we know that we should run only if we have a FlowFile.
+                if (fileToProcess == null && context.hasNonLoopConnection()) {
+                    return;
+                }
             }
+            config = new ExecuteSQLConfiguration(context, fileToProcess);
+            resultSetFragments = new ResultSetFragments(session, config, fileToProcess, sessionFactory);
         }
 
-        final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
-
         final ComponentLog logger = getLogger();
-        final int queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
-        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
-        List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
-        List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(resultSetFragments.getInputFlowFile()).getValue());
+        List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(resultSetFragments.getInputFlowFile()).getValue());
 
-        SqlWriter sqlWriter = configureSqlWriter(session, context, fileToProcess);
+        SqlWriter sqlWriter = configureSqlWriter(session, context, resultSetFragments.getInputFlowFile());
 
         String selectQuery;
         if (context.getProperty(SQL_QUERY).isSet()) {
-            selectQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+            selectQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions(resultSetFragments.getInputFlowFile()).getValue();
         } else {
             // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
+            final FlowFile fileToProcess = resultSetFragments.getInputFlowFile();
             final StringBuilder queryContents = new StringBuilder();
             session.read(fileToProcess, in -> queryContents.append(IOUtils.toString(in, Charset.defaultCharset())));
             selectQuery = queryContents.toString();
         }
 
         int resultCount = 0;
-        try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes())) {
+        try (final Connection con = dbcpService.getConnection(config.getInputFileAttributes())) {
             final boolean isAutoCommit = con.getAutoCommit();
             final boolean setAutoCommitValue = context.getProperty(AUTO_COMMIT).asBoolean();
             // Only set auto-commit if necessary, log any "feature not supported" exceptions
@@ -285,15 +300,15 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 }
             }
             try (final PreparedStatement st = con.prepareStatement(selectQuery)) {
-                if (fetchSize != null && fetchSize > 0) {
+                if (config.isFetchSizeSet()) {
                     try {
-                        st.setFetchSize(fetchSize);
+                        st.setFetchSize(config.getFetchSize());
                     } catch (SQLException se) {
                         // Not all drivers support this, just log the error (at debug level) and move on
-                        logger.debug("Cannot set fetch size to {} due to {}", fetchSize, se.getLocalizedMessage(), se);
+                        logger.debug("Cannot set fetch size to {} due to {}", config.getFetchSize(), se.getLocalizedMessage(), se);
                     }
                 }
-                st.setQueryTimeout(queryTimeout); // timeout in seconds
+                st.setQueryTimeout(config.getQueryTimeout()); // timeout in seconds
 
                 // Execute pre-query, throw exception and cleanup Flow Files if fail
                 Pair<String, SQLException> failure = executeConfigStatements(con, preQueries);
@@ -307,22 +322,20 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         .entrySet()
                         .stream()
                         .filter(e -> e.getKey().isDynamic())
-                        .collect(Collectors.toMap(e -> e.getKey().getName(), e -> new SensitiveValueWrapper(e.getValue(), e.getKey().isSensitive())));
+                        .collect(toMap(e -> e.getKey().getName(), e -> new SensitiveValueWrapper(e.getValue(), e.getKey().isSensitive())));
 
-                if (fileToProcess != null) {
-                    for (Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
-                        sqlParameters.put(entry.getKey(), new SensitiveValueWrapper(entry.getValue(), false));
-                    }
-                }
+                sqlParameters.putAll(
+                        config.getInputFileAttributes().entrySet().stream().collect(toMap(
+                            Map.Entry::getKey,
+                            entry -> new SensitiveValueWrapper(entry.getValue(), false)
+                        ))
+                );
 
                 if (!sqlParameters.isEmpty()) {
                     JdbcCommon.setSensitiveParameters(st, sqlParameters);
                 }
 
                 logger.debug("Executing query {}", selectQuery);
-
-                int fragmentIndex = 0;
-                final String fragmentId = UUID.randomUUID().toString();
 
                 final StopWatch executionTime = new StopWatch(true);
 
@@ -332,8 +345,6 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                 boolean hasUpdateCount = st.getUpdateCount() != -1;
 
-                Map<String, String> inputFileAttrMap = fileToProcess == null ? null : fileToProcess.getAttributes();
-                String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute(CoreAttributes.UUID.key());
                 while (hasResults || hasUpdateCount) {
                     //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
                     if (hasResults) {
@@ -344,12 +355,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                             do {
                                 final StopWatch fetchTime = new StopWatch(true);
 
-                                FlowFile resultSetFF;
-                                if (fileToProcess == null) {
-                                    resultSetFF = session.create();
-                                } else {
-                                    resultSetFF = session.create(fileToProcess);
-                                }
+                                FlowFile resultSetFF = resultSetFragments.createNewFlowFile();
 
                                 try {
                                     resultSetFF = session.write(resultSetFF, out -> {
@@ -361,7 +367,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     });
 
                                     // if fragmented ResultSet, determine if we should keep this fragment
-                                    if (maxRowsPerFlowFile > 0 && nrOfRows.get() == 0 && fragmentIndex > 0) {
+                                    if (config.isMaxRowsPerFlowFileSet() && nrOfRows.get() == 0 && !resultSetFragments.isFirst()) {
                                         // if row count is zero and this is not the first fragment, drop it instead of committing it.
                                         session.remove(resultSetFF);
                                         break;
@@ -370,23 +376,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     long fetchTimeElapsed = fetchTime.getElapsed(TimeUnit.MILLISECONDS);
 
                                     // set attributes
-                                    final Map<String, String> attributesToAdd = new HashMap<>();
-                                    if (inputFileAttrMap != null) {
-                                        attributesToAdd.putAll(inputFileAttrMap);
-                                    }
+                                    final Map<String, String> attributesToAdd = new HashMap<>(config.getInputFileAttributes());
                                     attributesToAdd.put(RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
                                     attributesToAdd.put(RESULT_QUERY_DURATION, String.valueOf(executionTimeElapsed + fetchTimeElapsed));
                                     attributesToAdd.put(RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
                                     attributesToAdd.put(RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
                                     attributesToAdd.put(RESULTSET_INDEX, String.valueOf(resultCount));
-                                    if (inputFileUUID != null) {
-                                        attributesToAdd.put(INPUT_FLOWFILE_UUID, inputFileUUID);
-                                    }
-                                    if (maxRowsPerFlowFile > 0) {
-                                        // if fragmented ResultSet, set fragment attributes
-                                        attributesToAdd.put(FRAGMENT_ID, fragmentId);
-                                        attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
-                                    }
                                     attributesToAdd.putAll(sqlWriter.getAttributesToAdd());
                                     resultSetFF = session.putAllAttributes(resultSetFF, attributesToAdd);
                                     sqlWriter.updateCounters(session);
@@ -399,41 +394,18 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     } else {
                                         session.getProvenanceReporter().receive(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
                                     }
-                                    resultSetFlowFiles.add(resultSetFF);
-
-                                    // If we've reached the batch size, send out the flow files
-                                    if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
-                                        session.transfer(resultSetFlowFiles, REL_SUCCESS);
-                                        // Need to remove the original input file if it exists
-                                        if (fileToProcess != null) {
-                                            session.remove(fileToProcess);
-                                            fileToProcess = null;
-                                        }
-
-                                        session.commitAsync();
-                                        resultSetFlowFiles.clear();
-                                    }
-
-                                    fragmentIndex++;
+                                    resultSetFragments.add(resultSetFF);
                                 } catch (Exception e) {
                                     // Remove any result set flow file(s) and propagate the exception
                                     session.remove(resultSetFF);
-                                    session.remove(resultSetFlowFiles);
+                                    resultSetFragments.removeAll();
                                     if (e instanceof ProcessException) {
                                         throw (ProcessException) e;
                                     } else {
                                         throw new ProcessException(e);
                                     }
                                 }
-                            } while (maxRowsPerFlowFile > 0 && nrOfRows.get() == maxRowsPerFlowFile);
-
-                            // If we are splitting results but not outputting batches, set count on all FlowFiles
-                            if (outputBatchSize == 0 && maxRowsPerFlowFile > 0) {
-                                for (int i = 0; i < resultSetFlowFiles.size(); i++) {
-                                    resultSetFlowFiles.set(i,
-                                            session.putAttribute(resultSetFlowFiles.get(i), FRAGMENT_COUNT, Integer.toString(fragmentIndex)));
-                                }
-                            }
+                            } while (config.isMaxRowsPerFlowFileSet() && nrOfRows.get() == config.getMaxRowsPerFlowFile());
                         } catch (final SQLException e) {
                             throw new ProcessException(e);
                         }
@@ -455,7 +427,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 failure = executeConfigStatements(con, postQueries);
                 if (failure != null) {
                     selectQuery = failure.getLeft();
-                    resultSetFlowFiles.forEach(session::remove);
+                    resultSetFragments.removeAll();
                     throw failure.getRight();
                 }
 
@@ -465,9 +437,10 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 }
 
                 // Transfer any remaining files to SUCCESS
-                session.transfer(resultSetFlowFiles, REL_SUCCESS);
-                resultSetFlowFiles.clear();
+                resultSetFragments.transferAllToSuccess();
 
+                // Safe to store fileToProcess, because beyond this point it won't be removed by ResultSetFragments
+                final FlowFile fileToProcess = resultSetFragments.getInputFlowFile();
                 if (fileToProcess != null) {
                     if (resultCount > 0) {
                         // If we had at least one result then it's OK to drop the original file
@@ -490,6 +463,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 }
             }
         } catch (final ProcessException | SQLException e) {
+            // Safe to store fileToProcess, because beyond this point it won't be removed by ResultSetFragments
+            FlowFile fileToProcess = resultSetFragments.getInputFlowFile();
             //If we had at least one result then it's OK to drop the original file, but if we had no results then
             //  pass the original flow file down the line to trigger downstream processors
             if (fileToProcess == null) {
@@ -556,7 +531,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
     protected abstract SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess);
 
-    enum ContentOutputStrategy implements DescribedValue {
+    public enum ContentOutputStrategy implements DescribedValue {
         EMPTY(
             "Empty",
             "Overwrite the input FlowFile content with an empty result set"
