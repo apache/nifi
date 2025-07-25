@@ -66,6 +66,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final String RESULT_QUERY_EXECUTION_TIME = "executesql.query.executiontime";
     public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
+    public static final String END_OF_RESULTSET_FLAG = "executesql.end.of.resultset";
     public static final String RESULT_ERROR_MESSAGE = "executesql.error.message";
     public static final String INPUT_FLOWFILE_UUID = "input.flowfile.uuid";
 
@@ -163,6 +164,17 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor ADD_SENTINEL_FLOW_FILE = new PropertyDescriptor.Builder()
+            .name("add-sentinel-flow-file")
+            .displayName("Add Sentinel Flow File")
+            .description("Create an extra Flow File, with no records, with '" + END_OF_RESULTSET_FLAG + "' attribute set to 'true'. " +
+                    "This has effect only if both 'Max Rows Per Flow File' and 'Output Batch Size' are set to a value. Can be used to " +
+                    "indicate EOF (End-Of-Fragments) to downstream processors.")
+            .defaultValue("false")
+            .required(true)
+            .allowableValues("true", "false")
+            .build();
+
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("esql-fetch-size")
             .displayName("Fetch Size")
@@ -254,6 +266,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
+        final boolean addSentinelFlowFile = context.getProperty(ADD_SENTINEL_FLOW_FILE).asBoolean();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
         List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
@@ -449,6 +462,39 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         hasResults = false;
                         hasUpdateCount = false;
                     }
+                }
+
+                // Adding the sentinel Flow File, if requested
+                if (addSentinelFlowFile && resultCount > 0 && maxRowsPerFlowFile > 0 && outputBatchSize > 0) {
+                    FlowFile resultSetFF;
+                    if (fileToProcess == null) {
+                        resultSetFF = session.create();
+                    } else {
+                        resultSetFF = session.create(fileToProcess);
+                    }
+
+                    // set attributes
+                    final Map<String, String> attributesToAdd = new HashMap<>();
+                    if (inputFileAttrMap != null) {
+                        attributesToAdd.putAll(inputFileAttrMap);
+                    }
+                    attributesToAdd.put(RESULT_ROW_COUNT, String.valueOf(0));
+                    attributesToAdd.put(RESULTSET_INDEX, String.valueOf(resultCount));
+                    if (inputFileUUID != null) {
+                        attributesToAdd.put(INPUT_FLOWFILE_UUID, inputFileUUID);
+                    }
+                    attributesToAdd.put(FRAGMENT_ID, fragmentId + 1);
+                    attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
+                    attributesToAdd.put(END_OF_RESULTSET_FLAG, "true");
+                    resultSetFF = session.putAllAttributes(resultSetFF, attributesToAdd);
+
+                    // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
+                    if (context.hasIncomingConnection()) {
+                        session.getProvenanceReporter().fetch(resultSetFF, "Adding extra sentinel Flow File");
+                    } else {
+                        session.getProvenanceReporter().receive(resultSetFF, "Adding extra sentinel Flow File");
+                    }
+                    resultSetFlowFiles.add(resultSetFF);
                 }
 
                 // Execute post-query, throw exception and cleanup Flow Files if fail
