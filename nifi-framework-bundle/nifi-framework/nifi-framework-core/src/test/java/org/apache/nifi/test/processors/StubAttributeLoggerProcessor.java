@@ -30,6 +30,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 
+//NOTE: Although this class seems not to be used from an IDE, it is actually  referenced
+// in some test flow definitions hence it should not be deleted.
 @SideEffectFree
 public class StubAttributeLoggerProcessor extends AbstractProcessor {
 
