@@ -17,7 +17,6 @@
 
 import { Injectable } from '@angular/core';
 import * as d3 from 'd3';
-import * as WebFont from 'webfontloader';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import { refreshBirdseyeView, transformComplete } from '../state/transform/transform.actions';
@@ -139,21 +138,19 @@ export class CanvasView {
     public init(svg: any, canvas: any): void {
         const self: CanvasView = this;
 
-        WebFont.load({
-            custom: {
-                families: ['Inter', 'flowfont', 'FontAwesome']
-            },
-            active: function () {
-                // re-render once the fonts have loaded, without the fonts
-                // positions of elements on the canvas may be incorrect
-                self.processorManager.render();
-                self.processGroupManager.render();
-                self.remoteProcessGroupManager.render();
-                self.portManager.render();
-                self.labelManager.render();
-                self.funnelManager.render();
-                self.connectionManager.render();
-            }
+        // Use document.fonts.ready if available, otherwise fallback to a resolved promise
+        const fontsReady = document.fonts?.ready || Promise.resolve();
+
+        fontsReady.then(() => {
+            // re-render once the fonts have loaded, without the fonts
+            // positions of elements on the canvas may be incorrect
+            self.processorManager.render();
+            self.processGroupManager.render();
+            self.remoteProcessGroupManager.render();
+            self.portManager.render();
+            self.labelManager.render();
+            self.funnelManager.render();
+            self.connectionManager.render();
         });
 
         this.svg = svg;
