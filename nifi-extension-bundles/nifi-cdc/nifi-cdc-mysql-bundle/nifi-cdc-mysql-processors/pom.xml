@@ -34,9 +34,9 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-security-utils-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.zendesk</groupId>
+            <groupId>io.debezium</groupId>
             <artifactId>mysql-binlog-connector-java</artifactId>
-            <version>0.30.1</version>
+            <version>0.40.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
