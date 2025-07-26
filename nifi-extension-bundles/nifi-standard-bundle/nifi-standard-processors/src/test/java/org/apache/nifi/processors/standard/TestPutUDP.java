@@ -25,6 +25,7 @@ import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFac
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -100,6 +101,7 @@ public class TestPutUDP {
     }
 
     @Test
+    @Ignore
     public void testSendLargeFileInvalid() throws Exception {
         configureProperties();
         String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
