@@ -131,6 +131,20 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             .required(true)
             .build();
 
+    public static final AllowableValue API_VERSION_V2 = new AllowableValue("V2", "API Version 2",
+            "Enables the Splunk Search API Version 2, which offers improved performance and features.");
+    public static final AllowableValue API_VERSION_V1 = new AllowableValue("V1", "API Version 1",
+            "Uses the Splunk Search API Version 1 (legacy).");
+
+    public static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
+            .name("API Version")
+            .description(
+                    "Select which version of the Splunk Search API to use for search operations. Version 2 is recommended for newer Splunk instances.")
+            .allowableValues(API_VERSION_V2, API_VERSION_V1)
+            .defaultValue(API_VERSION_V2.getValue())
+            .required(true)
+            .build();
+
     public static final AllowableValue EVENT_TIME_VALUE = new AllowableValue("Event Time", "Event Time",
             "Search based on the time of the event which may be different than when the event was indexed.");
     public static final AllowableValue INDEX_TIME_VALUE = new AllowableValue("Index Time", "Index Time",
@@ -271,26 +285,26 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-        SCHEME,
-        HOSTNAME,
-        PORT,
-        CONNECT_TIMEOUT,
-        READ_TIMEOUT,
-        QUERY,
-        TIME_FIELD_STRATEGY,
-        TIME_RANGE_STRATEGY,
-        EARLIEST_TIME,
-        LATEST_TIME,
-        TIME_ZONE,
-        APP,
-        OWNER,
-        TOKEN,
-        USERNAME,
-        PASSWORD,
-        SECURITY_PROTOCOL,
-        OUTPUT_MODE,
-        SSL_CONTEXT_SERVICE
-    );
+            SCHEME,
+            HOSTNAME,
+            PORT,
+            CONNECT_TIMEOUT,
+            READ_TIMEOUT,
+            QUERY,
+            API_VERSION,
+            TIME_FIELD_STRATEGY,
+            TIME_RANGE_STRATEGY,
+            EARLIEST_TIME,
+            LATEST_TIME,
+            TIME_ZONE,
+            APP,
+            OWNER,
+            TOKEN,
+            USERNAME,
+            PASSWORD,
+            SECURITY_PROTOCOL,
+            OUTPUT_MODE,
+            SSL_CONTEXT_SERVICE);
 
     private volatile String transitUri;
     private volatile boolean resetState = false;
@@ -574,6 +588,11 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         if (sslContextProvider != null) {
             Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
         }
+
+        final String chosenApiVersion = context.getProperty(API_VERSION).getValue();
+        final boolean enableV2SearchApi = API_VERSION_V2.getValue().equals(chosenApiVersion);
+
+        serviceArgs.add("enableV2SearchApi", enableV2SearchApi);
 
         return Service.connect(serviceArgs);
     }
