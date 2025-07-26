@@ -60,13 +60,6 @@
 
     <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
 
-    <!-- Suppress non-error messages from SSHJ which was emitting large amounts of INFO logs by default -->
-    <logger name="net.schmizz.sshj" level="WARN" />
-    <logger name="com.hierynomus.sshj" level="WARN" />
-
-    <!-- Suppress non-error messages from SMBJ which was emitting large amounts of INFO logs by default -->
-    <logger name="com.hierynomus.smbj" level="WARN" />
-
     <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
     <logger name="software.amazon.awssdk.kinesis" level="WARN" />
 

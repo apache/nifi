@@ -14,23 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.ssh;
+package org.apache.nifi.processors.standard.ssh.netty;
 
-import net.schmizz.sshj.SSHClient;
-import org.apache.nifi.context.PropertyContext;
+import io.netty.channel.ChannelHandlerAdapter;
+import org.apache.sshd.common.io.IoHandler;
+import org.apache.sshd.netty.NettyIoService;
+import org.apache.sshd.netty.NettyIoSession;
 
-import java.util.Map;
+import java.net.SocketAddress;
 
 /**
- * SSH Client Provider for abstracting initial connection configuration of SSH Client instances
+ * Standard extension of Netty IO Session supporting access to Channel Handler Adapter
  */
-public interface SSHClientProvider {
-    /**
-     * Get configured SSH Client using configured properties
-     *
-     * @param context Property Context
-     * @param attributes FlowFile attributes for property expression evaluation
-     * @return Configured SSH Client
-     */
-    SSHClient getClient(PropertyContext context, final Map<String, String> attributes);
+public class StandardNettyIoSession extends NettyIoSession {
+    public StandardNettyIoSession(final NettyIoService service, final IoHandler handler, final SocketAddress acceptanceAddress) {
+        super(service, handler, acceptanceAddress);
+    }
+
+    protected ChannelHandlerAdapter getAdapter() {
+        return adapter;
+    }
 }
