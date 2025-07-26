@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.parquet.stream;
+package org.apache.nifi.parquet.shared;
 
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.parquet.io.InputFile;
