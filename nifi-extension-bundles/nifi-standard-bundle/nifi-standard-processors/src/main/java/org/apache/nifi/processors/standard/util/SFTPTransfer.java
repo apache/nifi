@@ -783,6 +783,13 @@ public class SFTPTransfer implements FileTransfer {
             attributes.setGroup(group);
         }
 
+        // Set Attributes on temporary file path to avoid potential timing issues with retrieval and removal of transferred files
+        try {
+            sftpClient.setStat(tempPath, attributes);
+        } catch (final SftpException e) {
+            logger.warn("Failed to set attributes on Remote File [{}]", tempPath, e);
+        }
+
         if (!filename.equals(tempFilename)) {
             try {
                 // file was transferred to a temporary filename, attempt to delete destination filename before rename
@@ -801,13 +808,6 @@ public class SFTPTransfer implements FileTransfer {
                     throw new IOException("Failed to rename temporary file to [%s] and removal failed".formatted(fullPath), removeException);
                 }
             }
-        }
-
-        // Set Attributes after completing transfer and rename operations
-        try {
-            sftpClient.setStat(fullPath, attributes);
-        } catch (final SftpException e) {
-            logger.warn("Failed to set File Attributes [{}]", tempPath, e);
         }
 
         return fullPath;

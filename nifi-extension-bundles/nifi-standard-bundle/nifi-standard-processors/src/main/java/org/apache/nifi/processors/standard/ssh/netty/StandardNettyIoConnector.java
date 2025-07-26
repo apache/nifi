@@ -27,6 +27,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.proxy.HttpProxyHandler;
 import io.netty.handler.proxy.ProxyHandler;
 import io.netty.handler.proxy.Socks5ProxyHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.FactoryManager;
@@ -42,6 +43,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Standard extension of Netty IO Connector supporting Proxy Configuration
@@ -85,9 +87,6 @@ public class StandardNettyIoConnector extends NettyIoConnector {
         final int connectTimeoutMillis = Math.toIntExact(connectTimeout.toMillis());
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis);
 
-        final int channelTimeout = Math.round(socketTimeout.toMillis());
-        bootstrap.option(ChannelOption.SO_TIMEOUT, channelTimeout);
-
         // Start connection
         final ChannelFuture channelFuture;
         if (localAddress == null) {
@@ -127,6 +126,9 @@ public class StandardNettyIoConnector extends NettyIoConnector {
         protected void initChannel(final SocketChannel socketChannel) {
             final StandardNettyIoSession session = new StandardNettyIoSession(StandardNettyIoConnector.this, handler, null);
             final ChannelPipeline channelPipeline = socketChannel.pipeline();
+
+            // Add Read Timeout Handler to close channel after failure to receive data within configured interval
+            channelPipeline.addLast(new ReadTimeoutHandler(socketTimeout.toMillis(), TimeUnit.MILLISECONDS));
 
             // Add Proxy Handler when configured before other Handlers
             final Proxy.Type proxyType = proxyConfiguration.getProxyType();
