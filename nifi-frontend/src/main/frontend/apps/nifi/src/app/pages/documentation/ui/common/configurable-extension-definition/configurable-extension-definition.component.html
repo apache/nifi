@@ -53,8 +53,13 @@
         }
         <div>
             <div>Tags</div>
-            <div class="tertiary-color font-medium">{{ configurableExtensionDefinition.tags.join(', ') }}</div>
+            <div class="tertiary-color font-medium">
+                @if (configurableExtensionDefinition.tags) {
+                    {{ configurableExtensionDefinition.tags.join(', ') }}
+                }
+            </div>
         </div>
+      
         @if (configurableExtensionDefinition.propertyDescriptors) {
             <div>
                 <h2>Properties</h2>
