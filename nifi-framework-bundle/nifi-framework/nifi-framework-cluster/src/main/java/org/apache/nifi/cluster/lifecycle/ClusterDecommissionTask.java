@@ -135,13 +135,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
 
     private void waitForState(final Set<NodeConnectionState> acceptableStates) throws InterruptedException {
         while (true) {
-            final NodeConnectionStatus status = clusterCoordinator.fetchConnectionStatus(localNodeIdentifier);
-            if (status == null) {
-                logger.debug("Node connection status is null. Will wait {} seconds and check again", DELAY_SECONDS);
-                TimeUnit.SECONDS.sleep(DELAY_SECONDS);
-                continue;
-            }
-
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
             final NodeConnectionState state = status.getState();
             logger.debug("Node state is {}", state);
 
@@ -158,7 +152,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
 
         int iterations = 0;
         while (true) {
-            final NodeConnectionStatus status = clusterCoordinator.fetchConnectionStatus(localNodeIdentifier);
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
             final NodeConnectionState state = status.getState();
             if (state == NodeConnectionState.OFFLOADED) {
                 return;
@@ -190,7 +184,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
         logger.info("Waiting for Node to be completely removed from cluster");
 
         while (true) {
-            final NodeConnectionStatus status = clusterCoordinator.fetchConnectionStatus(localNodeIdentifier);
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
             if (status == null) {
                 return;
             }
