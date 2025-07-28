@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.record.schema_strategy;
+package org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy;
 
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.Record;
@@ -25,48 +25,48 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public abstract class BatchRecordSchemaStrategy<State, ActionContext, CompletionException extends Throwable> {
+public abstract class StateHandlerStrategy<State, ActionContext, FinalizeException extends Throwable> {
 
-    protected final FlowFileInitializer<State, ActionContext> flowFileInitializer;
-    protected final FlowFileCompleter<State, ActionContext, CompletionException> flowFileCompleter;
-    protected final Map<RecordSchema, State> flowFileStateMap = new HashMap<>();
+    protected final StateInitializerAction<State, ActionContext> stateInitializerAction;
+    protected final StateFinalizerAction<State, ActionContext, FinalizeException> stateFinalizerAction;
+    protected final Map<RecordSchema, State> activeStateMap = new HashMap<>();
 
-    public BatchRecordSchemaStrategy(final FlowFileInitializer<State, ActionContext> flowFileInitializer, final FlowFileCompleter<State, ActionContext, CompletionException> flowFileCompleter) {
-        this.flowFileInitializer = flowFileInitializer;
-        this.flowFileCompleter = flowFileCompleter;
+    public StateHandlerStrategy(final StateInitializerAction<State, ActionContext> stateInitializerAction, final StateFinalizerAction<State, ActionContext, FinalizeException> stateFinalizerAction) {
+        this.stateInitializerAction = stateInitializerAction;
+        this.stateFinalizerAction = stateFinalizerAction;
     }
 
-    abstract public State getOrCreate(final Record record, final ActionContext flowFileContext) throws CompletionException, IOException, SchemaNotFoundException;
+    abstract public State getOrCreate(final Record record, final ActionContext flowFileContext) throws FinalizeException, IOException, SchemaNotFoundException;
 
     public State create(final Record record, final ActionContext flowFileContext) throws IOException, SchemaNotFoundException {
-        final State previousState = flowFileStateMap.get(record.getSchema());
+        final State previousState = activeStateMap.get(record.getSchema());
         if (previousState != null) {
             throw new IllegalStateException(
                 "FlowFile state already exists for schema: " + record.getSchema() + ". This should not happen in a batch processing context."
             );
         }
-        final State newState = flowFileInitializer.init(record, flowFileContext);
-        flowFileStateMap.put(record.getSchema(), newState);
+        final State newState = stateInitializerAction.init(record, flowFileContext);
+        activeStateMap.put(record.getSchema(), newState);
         return newState;
     }
 
     public State pop() {
-        final Iterator<Map.Entry<RecordSchema, State>> iterator = flowFileStateMap.entrySet().iterator();
+        final Iterator<Map.Entry<RecordSchema, State>> iterator = activeStateMap.entrySet().iterator();
         if (!iterator.hasNext()) {
             return null;
         }
-        return flowFileStateMap.remove(iterator.next().getKey());
+        return activeStateMap.remove(iterator.next().getKey());
     }
 
     public void drop(final RecordSchema recordSchema) {
-        flowFileStateMap.remove(recordSchema);
+        activeStateMap.remove(recordSchema);
     }
 
-    public interface FlowFileInitializer<State, ActionContext> {
+    public interface StateInitializerAction<State, ActionContext> {
         State init(Record record, ActionContext flowFileContext) throws IOException, SchemaNotFoundException;
     }
 
-    public interface FlowFileCompleter<State, ActionContext, CompletionException extends Throwable> {
+    public interface StateFinalizerAction<State, ActionContext, CompletionException extends Throwable> {
         void complete(State flowFile, ActionContext flowFileContext) throws CompletionException;
     }
 }

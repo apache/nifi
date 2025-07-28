@@ -21,11 +21,13 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.aws.kinesis.property.FlowFileHandlingOnSchemaChangeStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.RecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
-import org.apache.nifi.processors.aws.kinesis.stream.record.schema_strategy.BatchRecordSchemaStrategy;
-import org.apache.nifi.processors.aws.kinesis.stream.record.schema_strategy.RollBatchRecordSchemaStrategy;
+import org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy.StateHandlerStrategy;
+import org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy.GroupStateHandlerStrategy;
+import org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy.RollStateHandlerStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -56,18 +58,15 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     private final RecordSetWriterFactory writerFactory;
     private final Map<String, String> schemaRetrievalVariables;
     private final RecordConverter recordConverter;
-
-    private BatchRecordSchemaStrategy<FlowFileState, BatchProcessingContext, FlowFileCompletionException> batchRecordSchemaStrategy = new RollBatchRecordSchemaStrategy<>(
-            this::initializeFlowFileState,
-            this::completeFlowFileStateBiConsumer
-    );
+    private final StateHandlerStrategy<FlowFileState, BatchProcessingContext, FlowFileCompletionException> stateHandlerStrategy;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
                                         final long checkpointIntervalMillis, final long retryWaitMillis,
                                         final int numRetries, final DateTimeFormatter dateTimeFormatter,
                                         final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory,
-                                        final RecordConverter recordConverter, final RecordProcessorBlocker recordProcessorBlocker) {
+                                        final RecordConverter recordConverter, final RecordProcessorBlocker recordProcessorBlocker,
+                                        final FlowFileHandlingOnSchemaChangeStrategy flowFileHandlingOnSchemaChangeStrategy) {
         super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
                 numRetries, dateTimeFormatter, recordProcessorBlocker);
         this.readerFactory = readerFactory;
@@ -75,13 +74,25 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
         schemaRetrievalVariables = Collections.singletonMap(KINESIS_RECORD_SCHEMA_KEY, streamName);
         this.recordConverter = recordConverter;
+        this.stateHandlerStrategy = switch (flowFileHandlingOnSchemaChangeStrategy) {
+            case ROLL_FLOW_FILES -> new RollStateHandlerStrategy<>(
+                    this::initializeFlowFileState,
+                    (flowFileState, flowFileLifecycleContext) ->
+                            completeFlowFileState(flowFileState, flowFileLifecycleContext.session(), flowFileLifecycleContext.flowFiles(), flowFileLifecycleContext.stopWatch())
+            );
+            case GROUP_FLOW_FILES -> new GroupStateHandlerStrategy<>(
+                    this::initializeFlowFileState,
+                    (flowFileState, flowFileLifecycleContext) ->
+                            completeFlowFileState(flowFileState, flowFileLifecycleContext.session(), flowFileLifecycleContext.flowFiles(), flowFileLifecycleContext.stopWatch())
+            );
+        };
     }
 
     @Override
     void startProcessingRecords() {
         super.startProcessingRecords();
         FlowFileState flowFileState;
-        while ((flowFileState = batchRecordSchemaStrategy.pop()) != null) {
+        while ((flowFileState = stateHandlerStrategy.pop()) != null) {
             // this may happen if the previous processing has not been completed successfully, close the leftover state
             closeSafe(flowFileState, "FlowFile State");
         }
@@ -93,7 +104,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         final ProcessSession session = batchProcessingContext.session();
         final List<FlowFile> flowFiles = batchProcessingContext.flowFiles();
         FlowFileState flowFileState;
-        while ((flowFileState = batchRecordSchemaStrategy.pop()) != null) {
+        while ((flowFileState = stateHandlerStrategy.pop()) != null) {
             if (!flowFiles.contains(flowFileState.flowFile)) {
                 // this is unexpected, flowFiles have been altered not in this class after the start of processing
                 throw new IllegalStateException("%s is not available in provided FlowFiles [%d]".formatted(flowFileState.flowFile, flowFiles.size()));
@@ -119,13 +130,13 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 FlowFileState flowFileState;
                 final Record outputRecord = recordConverter.convert(intermediateRecord, kinesisRecord, getStreamName(), getKinesisShardId());
                 try {
-                    flowFileState = batchRecordSchemaStrategy.getOrCreate(outputRecord, batchProcessingContext);
+                    flowFileState = stateHandlerStrategy.getOrCreate(outputRecord, batchProcessingContext);
                 } catch (final FlowFileCompletionException e) {
                     final FlowFileState failedFlowFileState = e.flowFileState;
-                    batchRecordSchemaStrategy.drop(failedFlowFileState.recordSchema);
+                    stateHandlerStrategy.drop(failedFlowFileState.recordSchema);
                     handleFlowFileCompletionException(batchProcessingContext.flowFiles(), batchProcessingContext.session(), e, failedFlowFileState);
                     //noinspection resource
-                    flowFileState = batchRecordSchemaStrategy.create(outputRecord, batchProcessingContext);
+                    flowFileState = stateHandlerStrategy.create(outputRecord, batchProcessingContext);
                 }
                 flowFileState.write(outputRecord, kinesisRecord);
             }
@@ -187,10 +198,6 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             throw e;
         }
         return new FlowFileState(flowFile, writer, outputStream, record.getSchema());
-    }
-
-    private void completeFlowFileStateBiConsumer(final FlowFileState flowFileState, final BatchProcessingContext flowFileLifecycleContext) throws FlowFileCompletionException {
-        completeFlowFileState(flowFileState, flowFileLifecycleContext.session(), flowFileLifecycleContext.flowFiles(), flowFileLifecycleContext.stopWatch());
     }
 
     private void completeFlowFileState(final FlowFileState flowFileState, final ProcessSession session, final List<FlowFile> flowFiles, final StopWatch stopWatch)

@@ -14,31 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.stream.record.schema_strategy;
+package org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy;
 
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.IOException;
 
-public class RollBatchRecordSchemaStrategy<State, ActionContext, CompletionException extends Throwable> extends BatchRecordSchemaStrategy<State, ActionContext, CompletionException> {
+public class RollStateHandlerStrategy<State, ActionContext, CompletionException extends Throwable> extends StateHandlerStrategy<State, ActionContext, CompletionException> {
 
-    public RollBatchRecordSchemaStrategy(final FlowFileInitializer<State, ActionContext> flowFileInitializer, final FlowFileCompleter<State, ActionContext, CompletionException> flowFileCompleter) {
-        super(flowFileInitializer, flowFileCompleter);
+    public RollStateHandlerStrategy(
+            final StateInitializerAction<State, ActionContext> stateInitializerAction,
+            final StateFinalizerAction<State, ActionContext, CompletionException> stateFinalizerAction) {
+        super(stateInitializerAction, stateFinalizerAction);
     }
 
     @Override
-    public State getOrCreate(Record record, ActionContext flowFileContext) throws CompletionException, IOException, SchemaNotFoundException {
-        final State previousState = flowFileStateMap.get(record.getSchema());
+    public State getOrCreate(final Record record, final ActionContext flowFileContext) throws CompletionException, IOException, SchemaNotFoundException {
+        final State previousState = activeStateMap.get(record.getSchema());
         if (previousState != null) {
             return previousState;
         }
         final State previousStateForDifferentSchema = pop();
         if (previousStateForDifferentSchema != null) {
-            flowFileCompleter.complete(previousStateForDifferentSchema, flowFileContext);
+            stateFinalizerAction.complete(previousStateForDifferentSchema, flowFileContext);
         }
-        final State newState = flowFileInitializer.init(record, flowFileContext);
-        flowFileStateMap.put(record.getSchema(), newState);
+        final State newState = stateInitializerAction.init(record, flowFileContext);
+        activeStateMap.put(record.getSchema(), newState);
         return newState;
     }
 }
