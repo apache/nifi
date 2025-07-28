@@ -706,26 +706,45 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final DBCPService dbcpService = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class);
-        final FlowFileFilter batchingDbcpServiceFlowFileFilter = dbcpService.getFlowFileFilter(batchSize);
-        final FlowFileFilter nonbatchingDbcpServiceFlowFileFilter = dbcpService.getFlowFileFilter();
+        final FlowFileFilter batchingFlowFileFilterForCollectingValidFlowFiles = dbcpService.getFlowFileFilter(batchSize);
+        final FlowFileFilter nonBatchingFlowFileFilterForCollectingInvalidFlowFiles = dbcpService.getFlowFileFilter();
 
         List<FlowFile> flowFiles;
         if (useTransactions) {
-            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter(batchingDbcpServiceFlowFileFilter);
-            flowFiles = session.get(filter);
-            fragmentedTransaction = filter.isFragmentedTransaction();
-        } else {
-            if (batchingDbcpServiceFlowFileFilter == null) {
-                flowFiles = session.get(batchSize);
+            final TransactionalFlowFileFilter transactionalFlowFileFilter = new TransactionalFlowFileFilter(batchingFlowFileFilterForCollectingValidFlowFiles);
+
+            if (batchingFlowFileFilterForCollectingValidFlowFiles == null || functionContext.isRollbackOnFailure()) {
+                flowFiles = session.get(transactionalFlowFileFilter);
+                fragmentedTransaction = transactionalFlowFileFilter.isFragmentedTransaction();
             } else {
-                PutSQLFlowFileFilter flowFileFilter = new PutSQLFlowFileFilter(
-                        batchingDbcpServiceFlowFileFilter,
-                        nonbatchingDbcpServiceFlowFileFilter
+                final ValidityBasedFlowFileFilter validityBasedFlowFileFilter = new ValidityBasedFlowFileFilter(
+                        transactionalFlowFileFilter,
+                        nonBatchingFlowFileFilterForCollectingInvalidFlowFiles
                 );
 
-                List<FlowFile> filteredFlowFiles = session.get(flowFileFilter);
+                List<FlowFile> filteredFlowFiles = session.get(validityBasedFlowFileFilter);
 
-                if (flowFileFilter.isCollectingInvalidFlowFiles()) {
+                if (validityBasedFlowFileFilter.isCollectingInvalidFlowFiles()) {
+                    result.routeTo(filteredFlowFiles, REL_FAILURE);
+                    flowFiles = Collections.emptyList();
+                } else {
+                    flowFiles = filteredFlowFiles;
+                }
+            }
+        } else {
+            if (batchingFlowFileFilterForCollectingValidFlowFiles == null) {
+                flowFiles = session.get(batchSize);
+            } else if (functionContext.isRollbackOnFailure()) {
+                flowFiles = session.get(batchingFlowFileFilterForCollectingValidFlowFiles);
+            } else {
+                final ValidityBasedFlowFileFilter validityBasedFlowFileFilter = new ValidityBasedFlowFileFilter(
+                        batchingFlowFileFilterForCollectingValidFlowFiles,
+                        nonBatchingFlowFileFilterForCollectingInvalidFlowFiles
+                );
+
+                List<FlowFile> filteredFlowFiles = session.get(validityBasedFlowFileFilter);
+
+                if (validityBasedFlowFileFilter.isCollectingInvalidFlowFiles()) {
                     result.routeTo(filteredFlowFiles, REL_FAILURE);
                     flowFiles = Collections.emptyList();
                 } else {
@@ -1122,18 +1141,18 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private class PutSQLFlowFileFilter implements FlowFileFilter {
-        private final FlowFileFilter batchingDbcpServiceFlowFileFilter;
-        private final FlowFileFilter nonbatchingDbcpServiceFlowFileFilter;
+    private class ValidityBasedFlowFileFilter implements FlowFileFilter {
+        private final FlowFileFilter flowFileFilterForCollectingValidFlowFiles;
+        private final FlowFileFilter flowFileFilterForCollectingInvalidFlowFiles;
 
         private volatile FlowFileFilter currentFilterStrategy = new FilterFirstFlowFile();
 
-        public PutSQLFlowFileFilter(
-                FlowFileFilter batchingDbcpServiceFlowFileFilter,
-                FlowFileFilter nonbatchingDbcpServiceFlowFileFilter
+        public ValidityBasedFlowFileFilter(
+                final FlowFileFilter flowFileFilterForCollectingValidFlowFiles,
+                final FlowFileFilter flowFileFilterForCollectingInvalidFlowFiles
         ) {
-            this.batchingDbcpServiceFlowFileFilter = batchingDbcpServiceFlowFileFilter;
-            this.nonbatchingDbcpServiceFlowFileFilter = nonbatchingDbcpServiceFlowFileFilter;
+            this.flowFileFilterForCollectingValidFlowFiles = flowFileFilterForCollectingValidFlowFiles;
+            this.flowFileFilterForCollectingInvalidFlowFiles = flowFileFilterForCollectingInvalidFlowFiles;
         }
 
         @Override
@@ -1149,7 +1168,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             @Override
             public FlowFileFilterResult filter(FlowFile flowFile) {
                 try {
-                    FlowFileFilterResult filterResult = batchingDbcpServiceFlowFileFilter.filter(flowFile);
+                    FlowFileFilterResult filterResult = flowFileFilterForCollectingValidFlowFiles.filter(flowFile);
                     currentFilterStrategy = new CollectValidFlowFiles();
                     return filterResult;
                 } catch (ProcessException e) {
@@ -1164,7 +1183,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             @Override
             public FlowFileFilterResult filter(FlowFile flowFile) {
                 try {
-                    return batchingDbcpServiceFlowFileFilter.filter(flowFile);
+                    return flowFileFilterForCollectingValidFlowFiles.filter(flowFile);
                 } catch (ProcessException e) {
                     getLogger().warn("FlowFile {} is invalid. Skipping.", getFlowFileUuid(flowFile), e);
                     return REJECT_AND_CONTINUE;
@@ -1176,7 +1195,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             @Override
             public FlowFileFilterResult filter(FlowFile flowFile) {
                 try {
-                    nonbatchingDbcpServiceFlowFileFilter.filter(flowFile);
+                    flowFileFilterForCollectingInvalidFlowFiles.filter(flowFile);
                     return REJECT_AND_CONTINUE;
                 } catch (ProcessException e) {
                     getLogger().warn("FlowFile {} is invalid. Collecting.", getFlowFileUuid(flowFile), e);
