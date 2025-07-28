@@ -108,7 +108,7 @@ public class Revision implements Serializable {
         if (this.version != null && this.version.equals(thatRevision.version)) {
             return true;
         } else {
-            return clientId != null && !clientId.trim().isEmpty() && clientId.equals(thatRevision.getClientId());
+            return clientId != null && !clientId.isBlank() && clientId.equals(thatRevision.getClientId());
         }
 
     }

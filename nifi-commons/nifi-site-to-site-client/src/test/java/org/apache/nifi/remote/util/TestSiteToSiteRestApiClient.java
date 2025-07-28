@@ -30,7 +30,7 @@ public class TestSiteToSiteRestApiClient {
 
     private static void assertSingleUri(final String expected, final Set<String> urls) {
         assertEquals(1, urls.size());
-        assertEquals(expected, urls.iterator().next().toString());
+        assertEquals(expected, urls.iterator().next());
     }
 
     @Test

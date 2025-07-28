@@ -59,7 +59,7 @@ public class NiFiRegistryPropertiesLoader {
      * @see NiFiRegistryPropertiesLoader#load(File)
      */
     public NiFiRegistryProperties load(String path) {
-        if (path != null && !path.trim().isEmpty()) {
+        if (path != null && !path.isBlank()) {
             return load(new File(path));
         } else {
             logger.error("Cannot read from '{}' -- path is null or empty", path);

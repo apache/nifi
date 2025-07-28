@@ -1162,7 +1162,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     }
 
     private String validateStatementType(final String statementType, final FlowFile flowFile) {
-        if (statementType == null || statementType.trim().isEmpty()) {
+        if (statementType == null || statementType.isBlank()) {
             throw new ProcessException("No Statement Type specified for " + flowFile);
         }
 

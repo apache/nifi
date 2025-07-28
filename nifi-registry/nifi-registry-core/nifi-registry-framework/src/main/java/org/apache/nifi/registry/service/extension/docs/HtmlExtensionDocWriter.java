@@ -340,7 +340,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                 xmlStreamWriter.writeEndElement();
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeAttribute("id", "description");
-                if (property.getDescription() != null && property.getDescription().trim().length() > 0) {
+                if (property.getDescription() != null && !property.getDescription().isBlank()) {
                     xmlStreamWriter.writeCharacters(property.getDescription());
                 } else {
                     xmlStreamWriter.writeCharacters("No Description Provided.");
@@ -353,7 +353,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
 
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
-                    String text = "Supports Expression Language: true";
+                    StringBuilder text = new StringBuilder("Supports Expression Language: true");
                     final String perFF = " (will be evaluated using flow file attributes and Environment variables)";
                     final String registry = " (will be evaluated using Environment variables only)";
                     final InputRequirement inputRequirement = extension.getInputRequirement();
@@ -361,21 +361,21 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                     switch (property.getExpressionLanguageScope()) {
                         case FLOWFILE_ATTRIBUTES:
                             if (inputRequirement != null && inputRequirement.equals(InputRequirement.INPUT_FORBIDDEN)) {
-                                text += registry;
+                                text.append(registry);
                             } else {
-                                text += perFF;
+                                text.append(perFF);
                             }
                             break;
                         case ENVIRONMENT:
-                            text += registry;
+                            text.append(registry);
                             break;
                         case NONE:
                             // in case legacy/deprecated method has been used to specify EL support
-                            text += " (undefined scope)";
+                            text.append(" (undefined scope)");
                             break;
                     }
 
-                    writeSimpleElement(xmlStreamWriter, "strong", text);
+                    writeSimpleElement(xmlStreamWriter, "strong", text.toString());
                 }
                 xmlStreamWriter.writeEndElement();
 

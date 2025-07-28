@@ -33,11 +33,11 @@ public class User {
         this.identifier = builder.identifier;
         this.identity = builder.identity;
 
-        if (identifier == null || identifier.trim().isEmpty()) {
+        if (identifier == null || identifier.isBlank()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
         }
 
-        if (identity == null || identity.trim().isEmpty()) {
+        if (identity == null || identity.isBlank()) {
             throw new IllegalArgumentException("Identity can not be null or empty");
         }
     }

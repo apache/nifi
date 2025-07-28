@@ -120,7 +120,7 @@ public class Throwables {
         msg = msg.trim();
         //append dot at the end if no others
         if (msg.length() > 0 && ".!:,;?".indexOf(msg.substring(msg.length() - 1)) == -1) {
-            msg += ".";
+            msg += "."; // NOPMD
         }
 
         //exception class name without package
@@ -139,12 +139,12 @@ public class Throwables {
                 if (newlen < msg.length()) {
                     msg = msg.substring(0, newlen);
                 }
-                msg = msg + ".." + msgSuffix;
+                msg = msg + ".." + msgSuffix; // NOPMD
             } else if (msg.length() > maxlen) {
                 msg = msg.substring(0, maxlen);
             }
         } else {
-            msg = msg + msgSuffix;
+            msg = msg + msgSuffix; // NOPMD
         }
 
         return msg;

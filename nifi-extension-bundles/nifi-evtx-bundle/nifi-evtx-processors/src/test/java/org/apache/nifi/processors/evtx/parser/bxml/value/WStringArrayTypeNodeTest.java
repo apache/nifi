@@ -28,26 +28,26 @@ public class WStringArrayTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testWStringArrayTypeNodeLengthArg() throws IOException {
         String[] array = new String[]{"one", "two"};
-        String expected = "";
+        StringBuilder expected = new StringBuilder();
         for (String s : array) {
-            expected += "<string>";
-            expected += s;
-            expected += "</string>";
+            expected.append("<string>");
+            expected.append(s);
+            expected.append("</string>");
         }
         String actual = new WStringArrayTypeNode(testBinaryReaderBuilder.putWString(String.join("\u0000", array)).build(), chunkHeader, parent, 14).getValue();
-        assertEquals(expected, actual);
+        assertEquals(expected.toString(), actual);
     }
 
     @Test
     public void testWStringArrayTypeNodeNoLengthArg() throws IOException {
         String[] array = new String[]{"one", "two"};
-        String expected = "";
+        StringBuilder expected = new StringBuilder();
         for (String s : array) {
-            expected += "<string>";
-            expected += s;
-            expected += "</string>";
+            expected.append("<string>");
+            expected.append(s);
+            expected.append("</string>");
         }
         String actual = new WStringArrayTypeNode(testBinaryReaderBuilder.putWord(14).putWString(String.join("\u0000", array)).build(), chunkHeader, parent, -1).getValue();
-        assertEquals(expected, actual);
+        assertEquals(expected.toString(), actual);
     }
 }

@@ -1219,7 +1219,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
 
-        if (bucketName == null || bucketName.trim().isEmpty()) {
+        if (bucketName == null || bucketName.isBlank()) {
             results.add(new ConfigVerificationResult.Builder()
                 .verificationStepName("Perform Listing")
                 .outcome(Outcome.FAILED)

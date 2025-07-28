@@ -39,7 +39,7 @@ public class SortParameter {
             throw new IllegalStateException("Field Name cannot be null");
         }
 
-        if (this.fieldName.trim().isEmpty()) {
+        if (this.fieldName.isBlank()) {
             throw new IllegalStateException("Field Name cannot be blank");
         }
 

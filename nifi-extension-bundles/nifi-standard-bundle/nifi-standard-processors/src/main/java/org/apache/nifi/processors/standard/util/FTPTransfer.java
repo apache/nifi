@@ -218,12 +218,12 @@ public class FTPTransfer implements FileTransfer {
         int count = 0;
         final FTPFile[] files;
 
-        if (path == null || path.trim().isEmpty()) {
+        if (path == null || path.isBlank()) {
             files = client.listFiles(".");
         } else {
             files = client.listFiles(path);
         }
-        if (files.length == 0 && path != null && !path.trim().isEmpty()) {
+        if (files.length == 0 && path != null && !path.isBlank()) {
             // throw exception if directory doesn't exist
             final boolean cdSuccessful = setWorkingDirectory(path);
             if (!cdSuccessful) {
@@ -421,7 +421,7 @@ public class FTPTransfer implements FileTransfer {
         }
 
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-        if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
+        if (lastModifiedTime != null && !lastModifiedTime.isBlank()) {
             try {
                 final DateTimeFormatter informat = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                 final OffsetDateTime fileModifyTime = OffsetDateTime.parse(lastModifiedTime, informat);
@@ -436,7 +436,7 @@ public class FTPTransfer implements FileTransfer {
             }
         }
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (permissions != null && !permissions.trim().isEmpty()) {
+        if (permissions != null && !permissions.isBlank()) {
             try {
                 int perms = numberPermissions(permissions);
                 if (perms >= 0) {

@@ -135,7 +135,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
 
                     String fullPathWithSlash = fullPathRef.get();
                     if (!fullPathWithSlash.startsWith("/")) {
-                        fullPathWithSlash = "/" + fullPathWithSlash;
+                        fullPathWithSlash = "/" + fullPathWithSlash; // NOPMD
                     }
                     final String destinationUri = transfer.getProtocolName() + "://" + hostname + fullPathWithSlash;
                     session.getProvenanceReporter().send(flowFile, destinationUri, millis);

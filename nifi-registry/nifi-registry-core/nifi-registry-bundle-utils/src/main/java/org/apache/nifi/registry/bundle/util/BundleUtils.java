@@ -19,7 +19,7 @@ package org.apache.nifi.registry.bundle.util;
 public class BundleUtils {
 
     public static boolean isBlank(final String value) {
-        return (value == null || value.trim().isEmpty());
+        return (value == null || value.isBlank());
     }
 
     public static void validateNotNull(String fieldName, Object value) {

@@ -183,7 +183,7 @@ public abstract class AbstractElasticsearchITBase {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(Paths.get(scriptPath))))) {
             String line = reader.readLine();
             while (line != null) {
-                if (!line.trim().isEmpty() && !line.trim().startsWith("#")) {
+                if (!line.isBlank() && !line.trim().startsWith("#")) {
                     final String verb = line.substring(0, line.indexOf(":"));
                     final String path = line.substring(verb.length() + 1, line.indexOf(":", verb.length() + 1));
                     final int loc = verb.length() + path.length() + 2;

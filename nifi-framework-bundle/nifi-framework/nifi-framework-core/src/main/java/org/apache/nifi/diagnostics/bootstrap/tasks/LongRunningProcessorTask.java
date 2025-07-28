@@ -48,12 +48,13 @@ public class LongRunningProcessorTask implements DiagnosticTask {
 
             for (final ActiveThreadInfo activeThread : activeThreads) {
                 if (activeThread.getActiveMillis() > MIN_ACTIVE_MILLIS) {
-                    String threadName = activeThread.getThreadName();
+                    StringBuilder threadName = new StringBuilder(activeThread.getThreadName());
                     if (activeThread.isTerminated()) {
-                        threadName = threadName + " (Terminated)";
+                        threadName.append(" (Terminated)");
                     }
 
-                    details.add(processorNode + " - " + threadName + " has been active for " + FormatUtils.formatMinutesSeconds(activeThread.getActiveMillis(), TimeUnit.MILLISECONDS) + " minutes");
+                    details.add("%s - %s has been active for %s minutes".formatted(processorNode, threadName,
+                            FormatUtils.formatMinutesSeconds(activeThread.getActiveMillis(), TimeUnit.MILLISECONDS)));
                 }
             }
         }

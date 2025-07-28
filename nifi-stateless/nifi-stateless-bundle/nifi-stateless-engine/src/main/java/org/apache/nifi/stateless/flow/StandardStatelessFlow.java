@@ -302,7 +302,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
             // Create executor for dataflow
             final String flowName = dataflowDefinition.getFlowName();
-            final String threadName = (flowName == null || flowName.trim().isEmpty()) ? "Run Dataflow" : "Run Dataflow " + flowName;
+            final String threadName = (flowName == null || flowName.isBlank()) ? "Run Dataflow" : "Run Dataflow " + flowName;
             runDataflowExecutor = Executors.newFixedThreadPool(1, createNamedThreadFactory(threadName, false));
 
             // Periodically log component statuses

@@ -86,7 +86,7 @@ public interface Authorizable {
         }
 
         final Map<String, String> userContext;
-        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
+        if (user.getClientAddress() != null && !user.getClientAddress().isBlank()) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
         } else {
@@ -198,7 +198,7 @@ public interface Authorizable {
         }
 
         final Map<String, String> userContext;
-        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
+        if (user.getClientAddress() != null && !user.getClientAddress().isBlank()) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
         } else {

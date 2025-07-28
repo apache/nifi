@@ -116,7 +116,7 @@ public class NiFiPropertiesLoader {
      * @see NiFiPropertiesLoader#load(File)
      */
     public NiFiProperties load(String path) {
-        if (path != null && !path.trim().isEmpty()) {
+        if (path != null && !path.isBlank()) {
             return load(new File(path));
         } else {
             return loadDefault();

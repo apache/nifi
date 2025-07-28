@@ -44,7 +44,7 @@ public class BundleCoordinate {
     }
 
     private boolean isBlank(String str) {
-        return str == null || str.trim().length() == 0;
+        return str == null || str.isBlank();
     }
 
     public String getGroup() {

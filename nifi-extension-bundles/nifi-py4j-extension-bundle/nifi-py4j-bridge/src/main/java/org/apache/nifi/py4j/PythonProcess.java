@@ -248,13 +248,13 @@ public class PythonProcess {
             commands.add("-S");
         }
 
-        String pythonPath = pythonApiDirectory.getAbsolutePath();
+        StringBuilder pythonPath = new StringBuilder(pythonApiDirectory.getAbsolutePath());
         final String absolutePath = virtualEnvHome.getAbsolutePath();
-        pythonPath = pythonPath + File.pathSeparator + absolutePath;
+        pythonPath.append(File.pathSeparator).append(absolutePath);
 
         if (isPackagedWithDependencies()) {
             final File dependenciesDir = new File(new File(absolutePath), "NAR-INF/bundled-dependencies");
-            pythonPath = pythonPath + File.pathSeparator + dependenciesDir.getAbsolutePath();
+            pythonPath.append(File.pathSeparator).append(dependenciesDir.getAbsolutePath());
         }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
@@ -264,7 +264,7 @@ public class PythonProcess {
             commands.add(processConfig.getDebugHost() + ":" + processConfig.getDebugPort());
             commands.add("--log-to-stderr");
 
-            pythonPath = pythonPath + File.pathSeparator + virtualEnvHome.getAbsolutePath();
+            pythonPath.append(File.pathSeparator).append(virtualEnvHome.getAbsolutePath());
         }
 
         commands.add(controllerPyFile.getAbsolutePath());
@@ -272,7 +272,7 @@ public class PythonProcess {
 
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
-        processBuilder.environment().put("PYTHONPATH", pythonPath);
+        processBuilder.environment().put("PYTHONPATH", pythonPath.toString());
         processBuilder.environment().put("PYTHON_CMD", pythonCommand);
         processBuilder.environment().put("AUTH_TOKEN", authToken);
 

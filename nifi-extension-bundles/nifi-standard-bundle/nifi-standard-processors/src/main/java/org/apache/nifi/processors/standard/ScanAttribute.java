@@ -151,7 +151,7 @@ public class ScanAttribute extends AbstractProcessor {
 
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.trim().isEmpty()) {
+                if (line.isBlank()) {
                     continue;
                 }
 

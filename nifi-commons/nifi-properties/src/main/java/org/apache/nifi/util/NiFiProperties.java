@@ -495,7 +495,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     public Integer getIntegerProperty(final String propertyName, final Integer defaultValue) {
         final String value = getProperty(propertyName);
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.isBlank()) {
             return defaultValue;
         }
 
@@ -937,7 +937,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     public File getKerberosConfigurationFile() {
         final String krb5File = getProperty(KERBEROS_KRB5_FILE);
-        if (krb5File != null && krb5File.trim().length() > 0) {
+        if (krb5File != null && !krb5File.isBlank()) {
             return new File(krb5File.trim());
         } else {
             return null;
@@ -1427,7 +1427,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     public String getProperty(final String key, final String defaultValue) {
         final String value = getProperty(key);
-        return (value == null || value.trim().isEmpty()) ? defaultValue : value;
+        return (value == null || value.isBlank()) ? defaultValue : value;
     }
 
     public String getBoredYieldDuration() {
@@ -1639,7 +1639,7 @@ public class NiFiProperties extends ApplicationProperties {
         long backPressureCount;
         try {
             String backPressureCountStr = getProperty(BACKPRESSURE_COUNT);
-            if (backPressureCountStr == null || backPressureCountStr.trim().isEmpty()) {
+            if (backPressureCountStr == null || backPressureCountStr.isBlank()) {
                 backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
             } else {
                 backPressureCount = Long.parseLong(backPressureCountStr);

@@ -40,6 +40,6 @@ public class FiletimeTypeNode extends VariantTypeNode {
 
     @Override
     public String getValue() {
-        return value.toString();
+        return value;
     }
 }

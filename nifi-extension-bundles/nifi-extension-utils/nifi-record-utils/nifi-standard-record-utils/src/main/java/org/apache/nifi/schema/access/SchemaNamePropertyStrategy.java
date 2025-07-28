@@ -54,7 +54,7 @@ public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
     @Override
     public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
         final String schemaName = schemaNamePropertyValue.evaluateAttributeExpressions(variables).getValue();
-        if (schemaName.trim().isEmpty()) {
+        if (schemaName.isBlank()) {
             throw new SchemaNotFoundException(String.format("%s did not provide appropriate Schema Name", schemaNamePropertyValue));
         }
 
