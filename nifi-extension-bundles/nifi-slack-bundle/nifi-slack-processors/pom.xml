@@ -36,7 +36,7 @@
         <dependency>
             <groupId>org.glassfish.tyrus.bundles</groupId>
             <artifactId>tyrus-standalone-client</artifactId>
-            <version>1.21</version>
+            <version>1.22</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
