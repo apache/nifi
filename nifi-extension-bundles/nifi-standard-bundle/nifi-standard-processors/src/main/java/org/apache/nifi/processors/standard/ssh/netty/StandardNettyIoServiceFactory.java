@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.standard.ssh.netty;
 
 import io.netty.channel.EventLoopGroup;
+import io.netty.util.concurrent.Future;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.sshd.common.FactoryManager;
+import org.apache.sshd.common.future.CloseFuture;
 import org.apache.sshd.common.io.IoConnector;
 import org.apache.sshd.common.io.IoHandler;
 import org.apache.sshd.netty.NettyIoServiceFactory;
@@ -48,5 +50,17 @@ class StandardNettyIoServiceFactory extends NettyIoServiceFactory {
     @Override
     public IoConnector createConnector(final IoHandler ioHandler) {
         return new StandardNettyIoConnector(this, ioHandler, eventLoopGroup, proxyConfiguration, socketTimeout, manager);
+    }
+
+    /**
+     * Close configured Netty Event Loop Group
+     *
+     * @return Close Future with configured listeners
+     */
+    @Override
+    protected CloseFuture doCloseGracefully() {
+        final Future<?> shutdownFuture = eventLoopGroup.shutdownGracefully();
+        shutdownFuture.addListener(future -> closeFuture.setClosed());
+        return closeFuture;
     }
 }

@@ -34,7 +34,9 @@ import java.util.concurrent.ThreadFactory;
  */
 public class StandardNettyIoServiceFactoryFactory extends AbstractIoServiceFactoryFactory {
 
-    private static final String THREAD_NAME_FORMAT = "SSH-%s:%d";
+    private static final String THREAD_NAME_FORMAT = "SFTP-%s:%d";
+
+    private static final int EVENT_LOOP_GROUP_THREADS = 1;
 
     private final ProxyConfiguration proxyConfiguration;
 
@@ -64,7 +66,7 @@ public class StandardNettyIoServiceFactoryFactory extends AbstractIoServiceFacto
 
     private EventLoopGroup createEventLoopGroup(final InetSocketAddress remoteAddress) {
         final String threadName = THREAD_NAME_FORMAT.formatted(remoteAddress.getHostString(), remoteAddress.getPort());
-        final ThreadFactory threadFactory = Thread.ofVirtual().name(threadName).factory();
-        return new MultiThreadIoEventLoopGroup(threadFactory, NioIoHandler.newFactory());
+        final ThreadFactory threadFactory = Thread.ofPlatform().name(threadName).factory();
+        return new MultiThreadIoEventLoopGroup(EVENT_LOOP_GROUP_THREADS, threadFactory, NioIoHandler.newFactory());
     }
 }

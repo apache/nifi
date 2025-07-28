@@ -224,6 +224,9 @@
     <!-- Suppress information from Lucene Memory Segment Provider related to native access configuration -->
     <logger name="org.apache.lucene.store.MemorySegmentIndexInputProvider" level="WARN" />
 
+    <!-- Suppress information messages from SSHD HostBoundPubkeyAuthentication which writes on every connection -->
+    <logger name="org.apache.sshd.common.kex.extension.parser.HostBoundPubkeyAuthentication" level="WARN" />
+
     <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
     <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
         <appender-ref ref="APP_FILE"/>
