@@ -27,8 +27,8 @@
             @if (error) {
                 <div>{{ error }}</div>
             } @else {
-                <div class="flex-1 min-h-[108px]">
-                    <ngx-codemirror formControlName="value" [options]="getOptions()"></ngx-codemirror>
+                <div class="min-h-[108px]">
+                    <codemirror formControlName="value" [config]="codemirrorConfig"> </codemirror>
                 </div>
             }
         } @else {

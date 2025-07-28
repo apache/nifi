@@ -18,12 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NfEditor } from './nf-editor.component';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { PropertyItem } from '../../property-table.component';
+import { PropertyItem } from '../../property-item';
+import { ElService } from '@nifi/shared';
 import { MockComponent } from 'ng-mocks';
-import { PropertyHint } from '@nifi/shared';
-
-import 'codemirror/addon/hint/show-hint';
+import { Codemirror } from '@nifi/shared';
+import { of } from 'rxjs';
 
 describe('NfEditor', () => {
     let component: NfEditor;
@@ -31,7 +30,15 @@ describe('NfEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NfEditor, HttpClientTestingModule, MockComponent(PropertyHint)]
+            imports: [NfEditor, MockComponent(Codemirror)],
+            providers: [
+                {
+                    provide: ElService,
+                    useValue: {
+                        getElGuide: () => of([])
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(NfEditor);
         component = fixture.componentInstance;

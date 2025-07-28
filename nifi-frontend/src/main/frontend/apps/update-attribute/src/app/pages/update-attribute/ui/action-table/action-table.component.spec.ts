@@ -16,10 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { ActionTable } from './action-table.component';
-
-import 'codemirror/addon/hint/show-hint';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('ActionTable', () => {

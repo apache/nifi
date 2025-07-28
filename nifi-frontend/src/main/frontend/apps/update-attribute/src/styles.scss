@@ -20,7 +20,6 @@
 @use '@angular/material' as mat;
 @use 'sass:map';
 @use 'libs/shared/src/assets/styles/app' as app;
-@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'app/pages/update-attribute/ui/rule-listing/rule-listing.component-theme' as rule-listing;
 @use 'app/pages/update-attribute/ui/ua-editor/ua-editor.component-theme' as ua-editor;
@@ -28,9 +27,6 @@
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-@use 'codemirror/lib/codemirror.css';
-@use 'codemirror/addon/fold/foldgutter.css';
-@use 'codemirror/addon/hint/show-hint.css';
 
 @use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
@@ -46,7 +42,6 @@
 html {
     @include app.generate-material-theme();
     @include listing-table.generate-theme();
-    @include codemirror-theme.generate-codemirror-theme();
     @include rule-listing.generate-theme();
     @include ua-editor.generate-theme();
     @include property-hint-tip.generate-theme();
@@ -54,7 +49,6 @@ html {
     .darkMode {
         @include app.generate-material-theme();
         @include listing-table.generate-theme();
-        @include codemirror-theme.generate-codemirror-theme();
         @include rule-listing.generate-theme();
         @include ua-editor.generate-theme();
         @include property-hint-tip.generate-theme();
