@@ -38,7 +38,6 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.io.ByteArrayInputStream;
@@ -77,13 +76,11 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         this.stateHandlerStrategy = switch (flowFileHandlingOnSchemaChangeStrategy) {
             case ROLL_FLOW_FILES -> new RollStateHandlerStrategy<>(
                     this::initializeFlowFileState,
-                    (flowFileState, flowFileLifecycleContext) ->
-                            completeFlowFileState(flowFileState, flowFileLifecycleContext.session(), flowFileLifecycleContext.flowFiles(), flowFileLifecycleContext.stopWatch())
+                    this::completeFlowFileState
             );
             case GROUP_FLOW_FILES -> new GroupStateHandlerStrategy<>(
                     this::initializeFlowFileState,
-                    (flowFileState, flowFileLifecycleContext) ->
-                            completeFlowFileState(flowFileState, flowFileLifecycleContext.session(), flowFileLifecycleContext.flowFiles(), flowFileLifecycleContext.stopWatch())
+                    this::completeFlowFileState
             );
         };
     }
@@ -110,7 +107,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 throw new IllegalStateException("%s is not available in provided FlowFiles [%d]".formatted(flowFileState.flowFile, flowFiles.size()));
             }
             try {
-                completeFlowFileState(flowFileState, session, flowFiles, batchProcessingContext.stopWatch());
+                completeFlowFileState(flowFileState, batchProcessingContext);
             } catch (final FlowFileCompletionException e) {
                 handleFlowFileCompletionException(flowFiles, session, e, flowFileState);
             }
@@ -200,8 +197,10 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         return new FlowFileState(flowFile, writer, outputStream, record.getSchema());
     }
 
-    private void completeFlowFileState(final FlowFileState flowFileState, final ProcessSession session, final List<FlowFile> flowFiles, final StopWatch stopWatch)
+    private void completeFlowFileState(final FlowFileState flowFileState, final BatchProcessingContext batchProcessingContext)
             throws FlowFileCompletionException {
+        final ProcessSession session = batchProcessingContext.session();
+        final List<FlowFile> flowFiles = batchProcessingContext.flowFiles();
         if (flowFileState.isFlowFileEmpty()) {
             dropFlowFileState(flowFileState, session, flowFiles);
             return;
@@ -209,7 +208,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         try {
             flowFileState.writer.finishRecordSet();
             closeSafe(flowFileState, "FlowFile State");
-            reportProvenance(session, flowFileState.flowFile, null, null, stopWatch);
+            reportProvenance(session, flowFileState.flowFile, null, null, batchProcessingContext.stopWatch());
 
             final Map<String, String> attributes = getDefaultAttributes(flowFileState.lastSuccessfulWriteInfo.kinesisRecord);
             attributes.put("record.count", String.valueOf(flowFileState.lastSuccessfulWriteInfo.writeResult.getRecordCount()));
