@@ -188,8 +188,8 @@
                         (exit)="closeEditor()"></combo-editor>
                 } @else {
                     <nf-editor
-                        [item]="editorItem"
                         [parameterConfig]="editorParameterConfig"
+                        [item]="editorItem"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"

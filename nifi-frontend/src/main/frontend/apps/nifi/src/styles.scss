@@ -19,7 +19,6 @@
 @use 'sass:map';
 
 @use 'libs/shared/src/assets/styles/app' as app;
-@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
 @use 'libs/shared/src/assets/styles/prism-theme' as prism-theme;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'libs/shared/src/components/resizable/resizeable-theme' as resizable;
@@ -59,9 +58,6 @@
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-@use 'codemirror/lib/codemirror.css';
-@use 'codemirror/addon/fold/foldgutter.css';
-@use 'codemirror/addon/hint/show-hint.css';
 
 @use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
@@ -76,7 +72,6 @@
 
 html {
     @include app.generate-material-theme();
-    @include codemirror-theme.generate-codemirror-theme();
     @include prism-theme.generate-prism-theme();
     @include app-component.generate-theme();
     @include listing-table.generate-theme();
@@ -109,7 +104,6 @@ html {
 
     .darkMode {
         @include app.generate-material-theme();
-        @include codemirror-theme.generate-codemirror-theme();
         @include prism-theme.generate-prism-theme();
         @include app-component.generate-theme();
         @include listing-table.generate-theme();
