@@ -23,7 +23,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditReportingTaskDialogRequest } from '../../../state/reporting-tasks';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
-import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 

@@ -15,27 +15,36 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
+.cm-s-nifi {
+    display: block;
+    height: 100%;
+    cursor: default;
 
-@mixin generate-theme() {
-    .jolt-transform-json-ui {
-        @include mat.button-density(-1);
+    .cm-editor {
+        height: 100%;
+        border-width: 1px;
+    }
 
-        .mat-mdc-form-field {
-            width: 100%;
+    .cm-content {
+        cursor: text;
+    }
+
+    // Only apply special rules to disabled/readonly states
+    &.editor-disabled,
+    &.editor-readonly {
+        font-style: italic;
+        opacity: 0.8;
+
+        // Universal override - this handles all cursor and interaction behavior
+        * {
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            user-select: none !important;
         }
 
-        .input-editor {
-            .cm-s-nifi {
-                height: calc(100vh - 414px);
-                min-height: 81px;
-            }
-        }
-
-        .attributes-editor {
-            height: calc(100vh - 362px);
-            min-height: 126px;
+        // Re-enable scrolling
+        .cm-scroller {
+            pointer-events: auto !important;
         }
     }
 }

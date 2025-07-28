@@ -35,7 +35,7 @@ import {
 } from '../state/advanced-ui-parameters/advanced-ui-parameters.actions';
 import { selectRulesState } from '../state/rules/rules.selectors';
 import { selectEvaluationContextState } from '../state/evaluation-context/evaluation-context.selectors';
-import { NfEl } from '../ui/ua-editor/modes/nfel';
+import { CodemirrorNifiLanguagePackage } from '@nifi/shared';
 
 @Component({
     selector: 'update-attribute',
@@ -50,7 +50,7 @@ export class UpdateAttribute implements OnDestroy {
 
     constructor(
         private store: Store<UpdateAttributeApplicationState>,
-        private nfel: NfEl // note: nfel is referenced here to ensure the el function details are loaded when the application loads
+        private nifiLanguagePackage: CodemirrorNifiLanguagePackage // note: nifiLanguagePackage is referenced here to ensure the el function details are loaded when the application loads
     ) {
         this.store
             .select(selectAdvancedUiParametersFromRoute)

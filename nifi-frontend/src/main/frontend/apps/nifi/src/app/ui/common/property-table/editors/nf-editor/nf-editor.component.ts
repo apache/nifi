@@ -15,21 +15,62 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, OnDestroy, Output, Renderer2, ViewContainerRef } from '@angular/core';
-import { PropertyItem } from '../../property-table.component';
+import { Component, EventEmitter, Input, Output, ViewContainerRef } from '@angular/core';
+import { PropertyItem } from '../../property-item';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { Resizable, Parameter, PropertyHint } from '@nifi/shared';
 import { ParameterConfig } from '../../../../../state/shared';
+import { Parameter, PropertyHintTipInput } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
-import { CodemirrorModule } from '@ctrl/ngx-codemirror';
-import { Editor } from 'codemirror';
-import { NfEl } from './modes/nfel';
-import { NfPr } from './modes/nfpr';
+import { Extension, EditorState, Prec } from '@codemirror/state';
+import {
+    keymap,
+    highlightActiveLine,
+    lineNumbers,
+    highlightSpecialChars,
+    highlightActiveLineGutter,
+    EditorView,
+    rectangularSelection,
+    crosshairCursor
+} from '@codemirror/view';
+import {
+    acceptCompletion,
+    autocompletion,
+    closeBrackets,
+    closeBracketsKeymap,
+    completionKeymap
+} from '@codemirror/autocomplete';
+import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
+import {
+    defaultHighlightStyle,
+    syntaxHighlighting,
+    indentOnInput,
+    bracketMatching,
+    foldKeymap,
+    StreamLanguage,
+    indentUnit,
+    LanguageDescription
+} from '@codemirror/language';
+import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
+import {
+    Codemirror,
+    CodeMirrorConfig,
+    PropertyHint,
+    Resizable,
+    elFunctionHighlightPlugin,
+    parameterHighlightPlugin,
+    highlightStyle,
+    CodemirrorNifiLanguagePackage,
+    NfLanguageConfig,
+    NfLanguageDefinition
+} from '@nifi/shared';
+import { markdown } from '@codemirror/lang-markdown';
+import { xml } from '@codemirror/lang-xml';
+import { foldGutter } from '@codemirror/language';
 
 @Component({
     selector: 'nf-editor',
@@ -42,13 +83,13 @@ import { NfPr } from './modes/nfpr';
         MatButtonModule,
         MatCheckboxModule,
         A11yModule,
-        CodemirrorModule,
         Resizable,
+        Codemirror,
         PropertyHint
     ],
     styleUrls: ['./nf-editor.component.scss']
 })
-export class NfEditor implements OnDestroy {
+export class NfEditor {
     @Input() set item(item: PropertyItem) {
         if (item.descriptor.sensitive && item.value !== null) {
             this.nfEditorForm.get('value')?.setValue('Sensitive value set');
@@ -68,18 +109,18 @@ export class NfEditor implements OnDestroy {
         this.setEmptyStringChanged();
 
         this.supportsEl = item.descriptor.supportsEl;
-        this.mode = this.supportsEl ? this.nfel.getLanguageId() : this.nfpr.getLanguageId();
-
         this.itemSet = true;
-        this.loadParameters();
+
+        this.initializeCodeMirror();
     }
 
     @Input() set parameterConfig(parameterConfig: ParameterConfig) {
         this.parameters = parameterConfig.parameters;
         this.supportsParameters = parameterConfig.supportsParameters;
 
-        this.getParametersSet = true;
-        this.loadParameters();
+        this.parameterConfigSet = true;
+
+        this.initializeCodeMirror();
     }
     @Input() width!: number;
     @Input() readonly: boolean = false;
@@ -88,25 +129,45 @@ export class NfEditor implements OnDestroy {
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     itemSet = false;
-    getParametersSet = false;
-
+    parameterConfigSet = false;
+    nfLanguageDefinition: NfLanguageDefinition | null = null;
     nfEditorForm: FormGroup;
     showSensitiveHelperText = false;
     supportsEl = false;
     supportsParameters = false;
     blank = false;
 
-    mode!: string;
     parameters: Parameter[] | null = null;
+    private _codemirrorConfig: CodeMirrorConfig = {
+        extensions: [],
+        autoFocus: true
+    };
 
-    editor!: Editor;
+    // Styling configuration
+    editorStyling = {
+        width: '100%',
+        height: '108px'
+    };
+
+    // Language configuration
+    languageConfig = {
+        language: this.nifiLanguagePackage.getLanguageId(),
+        languages: [] as LanguageDescription[]
+    };
+
+    // Dynamic config getter that includes disabled state
+    get codemirrorConfig(): CodeMirrorConfig {
+        return {
+            ...this._codemirrorConfig,
+            viewDisabled: this.readonly || this.blank,
+            readonly: this.readonly || this.blank
+        };
+    }
 
     constructor(
         private formBuilder: FormBuilder,
         private viewContainerRef: ViewContainerRef,
-        private renderer: Renderer2,
-        private nfel: NfEl,
-        private nfpr: NfPr
+        private nifiLanguagePackage: CodemirrorNifiLanguagePackage
     ) {
         this.nfEditorForm = this.formBuilder.group({
             value: new FormControl(''),
@@ -114,14 +175,84 @@ export class NfEditor implements OnDestroy {
         });
     }
 
-    codeMirrorLoaded(codeEditor: any): void {
-        this.editor = codeEditor.codeMirror;
+    initializeCodeMirror(): void {
+        if (this.itemSet && this.parameterConfigSet) {
+            const setup: Extension[] = [
+                lineNumbers(),
+                history(),
+                indentUnit.of('    '),
+                parameterHighlightPlugin,
+                elFunctionHighlightPlugin,
+                EditorView.lineWrapping,
+                rectangularSelection(),
+                crosshairCursor(),
+                EditorState.allowMultipleSelections.of(true),
+                indentOnInput(),
+                highlightSpecialChars(),
+                syntaxHighlighting(highlightStyle),
+                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                bracketMatching(),
+                closeBrackets(),
+                highlightActiveLine(),
+                highlightSelectionMatches(),
+                [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+                foldGutter(),
+                autocompletion(),
+                markdown(),
+                xml(),
+                EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
+                keymap.of([
+                    { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
+                    { key: 'Ctrl-Enter', run: () => true }, // ignore Ctrl-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
+                    { key: 'Mod-y', run: redoSelection },
+                    { key: 'Shift-Ctrl-k', run: deleteLine },
+                    {
+                        key: 'Enter',
+                        run: () => {
+                            if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
+                                this.okClicked();
+                                return true;
+                            }
+                            return false;
+                        }
+                    },
+                    ...closeBracketsKeymap,
+                    ...defaultKeymap,
+                    ...historyKeymap,
+                    ...foldKeymap,
+                    ...searchKeymap,
+                    ...completionKeymap
+                ])
+            ];
 
-        if (!this.readonly) {
-            this.editor.focus();
-            this.editor.execCommand('selectAll');
+            if (this.supportsEl || this.parameters) {
+                this.nfLanguageDefinition = {
+                    supportsEl: this.supportsEl
+                };
+
+                if (this.parameters) {
+                    this.nfLanguageDefinition.parameterListing = this.parameters;
+                }
+
+                const nfLanguageConfig: NfLanguageConfig = this.nifiLanguagePackage.getLanguageMode(
+                    this.nfLanguageDefinition
+                );
+
+                this._codemirrorConfig.extensions = [
+                    StreamLanguage.define(nfLanguageConfig.streamParser),
+                    autocompletion({
+                        override: [nfLanguageConfig.getAutocompletions(this.viewContainerRef)]
+                    }),
+                    Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
+                    setup
+                ];
+            } else {
+                this._codemirrorConfig.extensions = setup;
+            }
         }
+    }
 
+    codeMirrorLoaded(codemirror: Codemirror): void {
         if (this.showSensitiveHelperText) {
             const clearSensitiveHelperText = () => {
                 if (this.showSensitiveHelperText) {
@@ -131,63 +262,22 @@ export class NfEditor implements OnDestroy {
                 }
             };
 
-            this.editor.on('keydown', clearSensitiveHelperText);
+            codemirror.addEventListener('keydown', clearSensitiveHelperText);
         }
 
         // disabling of the input through the form isn't supported until codemirror
         // has loaded so we must disable again if the value is an empty string
         if (this.nfEditorForm.get('setEmptyString')?.value) {
             this.nfEditorForm.get('value')?.disable();
-            this.editor.setOption('readOnly', 'nocursor');
         }
     }
 
-    loadParameters(): void {
-        if (this.itemSet) {
-            this.nfel.setViewContainerRef(this.viewContainerRef, this.renderer);
-            this.nfpr.setViewContainerRef(this.viewContainerRef, this.renderer);
-
-            if (this.getParametersSet) {
-                if (this.parameters) {
-                    const parameters: Parameter[] = this.parameters;
-                    if (this.supportsEl) {
-                        this.nfel.enableParameters();
-                        this.nfel.setParameters(parameters);
-                        this.nfel.configureAutocomplete();
-                    } else {
-                        this.nfpr.enableParameters();
-                        this.nfpr.setParameters(parameters);
-                        this.nfpr.configureAutocomplete();
-                    }
-                } else {
-                    this.nfel.disableParameters();
-                    this.nfpr.disableParameters();
-
-                    if (this.supportsEl) {
-                        this.nfel.configureAutocomplete();
-                    } else {
-                        this.nfpr.configureAutocomplete();
-                    }
-                }
-            }
-        }
-    }
-
-    getOptions(): any {
+    getPropertyHintTipData(): PropertyHintTipInput {
         return {
-            mode: this.mode,
-            readOnly: this.readonly,
-            lineNumbers: true,
-            theme: 'nifi',
-            matchBrackets: true,
-            extraKeys: {
-                'Ctrl-Space': 'autocomplete',
-                Enter: () => {
-                    if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
-                        this.okClicked();
-                    }
-                }
-            }
+            supportsEl: this.supportsEl,
+            showParameters: true,
+            supportsParameters: this.supportsParameters,
+            hasParameterContext: this.parameters !== null
         };
     }
 
@@ -198,7 +288,8 @@ export class NfEditor implements OnDestroy {
         // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
         // and the resize handle. If the amount of spacing needed for additional UX is needed for the `.nf-editor` is
         // changed then this value should also be updated.
-        this.editor.setSize('100%', event.height - 132);
+        this.editorStyling.width = '100%';
+        this.editorStyling.height = `${event.height - 152}px`;
     }
 
     preventDrag(event: MouseEvent): void {
@@ -213,16 +304,8 @@ export class NfEditor implements OnDestroy {
             if (emptyStringChecked.value) {
                 this.nfEditorForm.get('value')?.setValue('');
                 this.nfEditorForm.get('value')?.disable();
-
-                if (this.editor) {
-                    this.editor.setOption('readOnly', 'nocursor');
-                }
             } else {
                 this.nfEditorForm.get('value')?.enable();
-
-                if (this.editor) {
-                    this.editor.setOption('readOnly', false);
-                }
             }
         }
     }
@@ -246,10 +329,5 @@ export class NfEditor implements OnDestroy {
 
     cancelClicked(): void {
         this.exit.next();
-    }
-
-    ngOnDestroy(): void {
-        this.nfpr.disableParameters();
-        this.nfel.disableParameters();
     }
 }

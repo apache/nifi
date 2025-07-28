@@ -19,13 +19,6 @@ import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { AppModule } from './app/app.module';
 
-import 'codemirror/mode/javascript/javascript.js';
-import 'codemirror/addon/lint/lint';
-import 'codemirror/addon/lint/json-lint';
-import * as jsonlint from 'jsonlint';
-
-(window as any).jsonlint = jsonlint;
-
 platformBrowserDynamic()
     .bootstrapModule(AppModule)
     .catch((err) => console.error(err));
