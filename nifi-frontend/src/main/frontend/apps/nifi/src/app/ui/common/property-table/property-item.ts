@@ -1,10 +1,10 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
+ * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * the License. You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -15,17 +15,15 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { Property } from '../../../state/shared';
 
-@Injectable({ providedIn: 'root' })
-export class ElService {
-    private static readonly DOCS: string = '../nifi-api';
-
-    constructor(private httpClient: HttpClient) {}
-
-    getElGuide(): Observable<any> {
-        return this.httpClient.get(`${ElService.DOCS}/html/expression-language-guide.html`, { responseType: 'text' });
-    }
+export interface PropertyItem extends Property {
+    id: number;
+    triggerEdit: boolean;
+    deleted: boolean;
+    dirty: boolean;
+    added: boolean;
+    type: 'required' | 'userDefined' | 'optional';
+    savedValue: string | null;
+    serviceLink?: string[];
 }

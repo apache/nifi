@@ -16,7 +16,7 @@
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { PropertyItem } from '../../property-table.component';
+import { PropertyItem } from '../../property-item';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';

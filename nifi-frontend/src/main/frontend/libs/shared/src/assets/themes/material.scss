@@ -144,6 +144,7 @@
 
     /* Nifi Light mode. Use these variables when applying colors to elements */
     --nf-success-default: #31975b; /* The success color  */
+    --nf-success-default-background: #bdf8e9;
     --nf-success-variant: #1390ca; /* The success variant color  */
     --nf-success-contrast: #ffffff; /* The success contrast color */
     --nf-caution-default: #cf9338; /* The caution color  */
@@ -162,34 +163,31 @@
     --nf-connection-drop-shadow: white; /* The connection drop shadow color */
     --nf-canvas-background: #e5ebed; /* The canvas background color */
     --nf-canvas-border-stroke-width: 1; /* The canvas border stroke width */
-    --nf-codemirror-gutters: #efefef; /* The codemirror gutters color */
-    --nf-codemirror-linenumber: #b4b4b4; /* The codemirror line number color */
-    --nf-codemirror-selection: rgba(128, 203, 196, 0.8); /* The codemirror selection color */
-    --nf-codemirror-header: #0000ff; /* The codemirror header color */
-    --nf-codemirror-quote: #009400; /* The codemirror quote color */
-    --nf-codemirror-negative: #de3535; /* The codemirror negative color */
-    --nf-codemirror-positive: #219a21; /* The codemirror positive color */
-    --nf-codemirror-bracket: #93937c; /* The codemirror bracket color */
-    --nf-codemirror-keyword: #6800ab; /* The codemirror keyword color */
-    --nf-codemirror-error-background-color: #ff8094; /* The codemirror error background color */
-    --nf-codemirror-error-color: rgba(0, 0, 0, 0); /* The codemirror error text color */
-    --nf-codemirror-link: #0000ce; /* The codemirror link color */
-    --nf-codemirror-invalidchar: #ff0000; /* The codemirror invalid character color */
-    --nf-codemirror-operator: #0083b9; /* The codemirror operator color */
-    --nf-codemirror-variable: #000; /* The codemirror variable color */
-    --nf-codemirror-variable-2: #0054a6; /* The codemirror variable 2 color */
-    --nf-codemirror-variable-3: #ad0007; /* The codemirror variable 3 color */
-    --nf-codemirror-builtin: #3400ad; /* The codemirror builtin color */
-    --nf-codemirror-atom: #bd2b00; /* The codemirror atom color */
-    --nf-codemirror-number: #c20021; /* The codemirror number color */
-    --nf-codemirror-def: #0553f8; /* The codemirror definition color */
-    --nf-codemirror-string: #ec000c; /* The codemirror string color */
-    --nf-codemirror-string2: #ec000c; /* The codemirror string 2 color */
-    --nf-codemirror-comment: #545454; /* The codemirror comment color */
-    --nf-codemirror-tag: #f8052e; /* The codemirror tag color */
-    --nf-codemirror-nonmatchingbracket: #a62020; /* The codemirror non matching bracket color */
-    --nf-codemirror-matchingtag: rgba(255, 150, 0, 0.3); /* The codemirror matching tag color */
-    --nf-codemirror-activeline-background: rgba(0, 0, 0, 0.5); /* The codemirror active line background color */
+    --nf-codemirror-fallback-black: var(--md-ref-palette-neutral-variant-0);
+    --nf-codemirror-comment: #545454;
+    --nf-codemirror-keyword: #6800ab;
+    --nf-codemirror-variable: #000;
+    --nf-codemirror-number: #c20021;
+    --nf-codemirror-string: #ec000c;
+    --nf-codemirror-string2: #ec000c;
+    --nf-codemirror-tag: #f8052e;
+    --nf-codemirror-link: #0000ce;
+    --nf-codemirror-linenumber: #b4b4b4;
+    --nf-codemirror-bracket: #93937c;
+    --nf-codemirror-parameter: #3400ad;
+    --nf-codemirror-el-function: #9712e8;
+    --nf-codemirror-invalidchar: #ff0000;
+    --nf-codemirror-atom: #bd2b00;
+    --nf-codemirror-header: #0000ff;
+    --nf-codemirror-gutters: #efefef;
+    --nf-codemirror-active-handler-border: #b67901;
+    --nf-codemirror-selected-background: #d6e6ff;
+    --nf-codemirror-selected-ui: #085bd7;
+    --nf-codemirror-selected-hover-text: #004cbe;
+    --nf-codemirror-selection-match-bg: #9fabc144;
+    --nf-codemirror-search-match-bg: #ffedcd;
+    --nf-codemirror-search-match-selected-bg: #ffedcd;
+    --nf-codemirror-executed-bg: #d6e6ff;
     --nf-prism-language-color: #ec000c; /* The prism language color */
     --nf-prism-token-comment: #545454; /* The prism token comment color */
     --nf-prism-token-punctuation: #6800ab; /* The prism token punctuation color */
@@ -629,6 +627,7 @@ html {
 
     /* Nifi Dark mode. Use these variables when applying colors to elements */
     --nf-success-default: #31975b; /* The success color  */
+    --nf-success-default-background: #bdf8e9;
     --nf-success-variant: #1390ca; /* The success variant color  */
     --nf-success-contrast: #ffffff; /* The success contrast color */
     --nf-caution-default: #cf9338; /* The caution color  */
@@ -647,34 +646,31 @@ html {
     --nf-connection-drop-shadow: black; /* The connection drop shadow color */
     --nf-canvas-background: #0d1411; /* The canvas background color */
     --nf-canvas-border-stroke-width: 2; /* The canvas border stroke width */
-    --nf-codemirror-gutters: #3b3b3b; /* The codemirror gutters color */
-    --nf-codemirror-linenumber: #bbbbbb; /* The codemirror line number color */
-    --nf-codemirror-selection: rgba(128, 203, 196, 0.2); /* The codemirror selection color */
-    --nf-codemirror-header: #b8b8ff; /* The codemirror header color */
-    --nf-codemirror-quote: #6bfd6b; /* The codemirror quote color */
-    --nf-codemirror-negative: #fc9797; /* The codemirror negative color */
-    --nf-codemirror-positive: #8cfd8c; /* The codemirror positive color */
-    --nf-codemirror-bracket: #93937c; /* The codemirror bracket color */
-    --nf-codemirror-keyword: #c792ea; /* The codemirror keyword color */
-    --nf-codemirror-error-background-color: #ff002a; /* The codemirror error background color */
-    --nf-codemirror-error-color: rgba(255, 255, 255, 1); /* The codemirror error text color */
-    --nf-codemirror-link: #8e8ef6; /* The codemirror link color */
-    --nf-codemirror-invalidchar: #ff9c9c; /* The codemirror invalid character color */
-    --nf-codemirror-operator: #89ddff; /* The codemirror operator color */
-    --nf-codemirror-variable: #fff; /* The codemirror variable color */
-    --nf-codemirror-variable-2: #72b6fc; /* The codemirror variable 2 color */
-    --nf-codemirror-variable-3: #f07178; /* The codemirror variable 3 color */
-    --nf-codemirror-builtin: #a280f3; /* The codemirror builtin color */
-    --nf-codemirror-atom: #f78c6c; /* The codemirror atom color */
-    --nf-codemirror-number: #fd758c; /* The codemirror number color */
-    --nf-codemirror-def: #82aaff; /* The codemirror definition color */
-    --nf-codemirror-string: #f07178; /* The codemirror string color */
-    --nf-codemirror-string2: #f07178; /* The codemirror string 2 color */
-    --nf-codemirror-comment: #d7d7d7; /* The codemirror comment color */
-    --nf-codemirror-tag: #fc768d; /* The codemirror tag color */
-    --nf-codemirror-nonmatchingbracket: #a62020; /* The codemirror non matching bracket color */
-    --nf-codemirror-matchingtag: rgba(255, 150, 0, 0.97); /* The codemirror matching tag color */
-    --nf-codemirror-activeline-background: rgba(255, 255, 255, 0.5); /* The codemirror active line background color */
+    --nf-codemirror-fallback-black: var(--md-ref-palette-neutral-variant-100);
+    --nf-codemirror-comment: #d7d7d7;
+    --nf-codemirror-keyword: #c792ea;
+    --nf-codemirror-variable: #fff;
+    --nf-codemirror-number: #fd758c;
+    --nf-codemirror-string: #f07178;
+    --nf-codemirror-string2: #f07178;
+    --nf-codemirror-tag: #fc768d;
+    --nf-codemirror-link: #8e8ef6;
+    --nf-codemirror-linenumber: #bbbbbb;
+    --nf-codemirror-bracket: #93937c;
+    --nf-codemirror-parameter: #a280f3;
+    --nf-codemirror-el-function: #de84ec;
+    --nf-codemirror-invalidchar: #ff9c9c;
+    --nf-codemirror-atom: #f78c6c;
+    --nf-codemirror-header: #b8b8ff;
+    --nf-codemirror-gutters: #3b3b3b;
+    --nf-codemirror-active-handler-border: #b67901;
+    --nf-codemirror-selected-background: #d6e6ff;
+    --nf-codemirror-selected-ui: #085bd7;
+    --nf-codemirror-selected-hover-text: #004cbe;
+    --nf-codemirror-selection-match-bg: #9fabc144;
+    --nf-codemirror-search-match-bg: #ffedcd;
+    --nf-codemirror-search-match-selected-bg: #ffedcd;
+    --nf-codemirror-executed-bg: #d6e6ff;
     --nf-prism-language-color: #f07178; /* The prism language color */
     --nf-prism-token-comment: #545454; /* The prism token comment color */
     --nf-prism-token-punctuation: #c792ea; /* The prism token punctuation color */
