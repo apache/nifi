@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TextEditor } from './text-editor.component';
 import { MockComponent } from 'ng-mocks';
-import { Codemirror } from '@nifi/shared';
+import { Codemirror } from '../../../codemirror/codemirror.component';
 
 describe('TextEditor', () => {
     let component: TextEditor;
