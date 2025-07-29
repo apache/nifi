@@ -16,18 +16,13 @@
  */
 
 import { ComponentRef, Injectable, ViewContainerRef } from '@angular/core';
-import { ElService } from '@nifi/shared';
+import { ElService } from './el.service';
 import { take } from 'rxjs';
 import { StreamParser, StringStream } from '@codemirror/language';
 import { Completion, CompletionContext, CompletionInfo, CompletionResult } from '@codemirror/autocomplete';
-import {
-    ElFunction,
-    ElFunctionTip,
-    ElFunctionTipInput,
-    Parameter,
-    ParameterTip,
-    ParameterTipInput
-} from '@nifi/shared';
+import { ElFunction, ElFunctionTipInput, Parameter, ParameterTipInput } from '../types';
+import { ElFunctionTip } from '../components/tooltips/el-function-tip/el-function-tip.component';
+import { ParameterTip } from '../components/tooltips/parameter-tip/parameter-tip.component';
 
 export interface NfLanguageDefinition {
     supportsEl: boolean;
