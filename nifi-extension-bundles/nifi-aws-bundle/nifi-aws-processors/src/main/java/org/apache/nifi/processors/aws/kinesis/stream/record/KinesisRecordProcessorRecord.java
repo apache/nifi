@@ -98,7 +98,6 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     @Override
     void finishProcessingRecords(final BatchProcessingContext batchProcessingContext) {
         super.finishProcessingRecords(batchProcessingContext);
-        final ProcessSession session = batchProcessingContext.session();
         final List<FlowFile> flowFiles = batchProcessingContext.flowFiles();
         FlowFileState flowFileState;
         while ((flowFileState = stateHandlerStrategy.pop()) != null) {
@@ -109,7 +108,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             try {
                 completeFlowFileState(flowFileState, batchProcessingContext);
             } catch (final FlowFileCompletionException e) {
-                handleFlowFileCompletionException(flowFiles, session, e, flowFileState);
+                handleFlowFileCompletionException(e, batchProcessingContext);
             }
         }
     }
@@ -129,9 +128,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 try {
                     flowFileState = stateHandlerStrategy.getOrCreate(outputRecord, batchProcessingContext);
                 } catch (final FlowFileCompletionException e) {
-                    final FlowFileState failedFlowFileState = e.flowFileState;
-                    stateHandlerStrategy.drop(failedFlowFileState.recordSchema);
-                    handleFlowFileCompletionException(batchProcessingContext.flowFiles(), batchProcessingContext.session(), e, failedFlowFileState);
+                    stateHandlerStrategy.drop(e.flowFileState.recordSchema);
+                    handleFlowFileCompletionException(e, batchProcessingContext);
                     //noinspection resource
                     flowFileState = stateHandlerStrategy.create(outputRecord, batchProcessingContext);
                 }
@@ -150,14 +148,14 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
     }
 
-    private void handleFlowFileCompletionException(List<FlowFile> flowFiles, ProcessSession session, FlowFileCompletionException e, FlowFileState failedFlowFileState) {
-        if (!failedFlowFileState.containsDataFromExactlyOneKinesisRecord()) {
+    private void handleFlowFileCompletionException(final FlowFileCompletionException e, final BatchProcessingContext batchProcessingContext) {
+        if (!e.flowFileState.containsDataFromExactlyOneKinesisRecord()) {
             throw new KinesisBatchUnrecoverableException("Not all KinesisClientRecords contained in FlowFile contents can be routed to Failure relationship", e);
         }
-        dropFlowFileState(failedFlowFileState, session, flowFiles);
-        final KinesisClientRecord failedKinesisRecord = failedFlowFileState.lastSuccessfulWriteInfo.kinesisRecord;
+        dropFlowFileState(e.flowFileState, batchProcessingContext);
+        final KinesisClientRecord failedKinesisRecord = e.flowFileState.lastSuccessfulWriteInfo.kinesisRecord;
         final byte[] failedRecordData = getData(failedKinesisRecord);
-        outputRawRecordOnException(session, failedRecordData, failedKinesisRecord, e);
+        outputRawRecordOnException(batchProcessingContext.session(), failedRecordData, failedKinesisRecord, e);
     }
 
     private static byte[] getData(final KinesisClientRecord kinesisRecord) {
@@ -173,8 +171,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
      * Initializes the FlowFile state for the current processing. This includes creating a new FlowFile, initializing the RecordSetWriter, and setting up the output stream.
      * In case of an exception during initialization, the FlowFile is removed from the session and the resources are closed properly.
      */
-    private FlowFileState initializeFlowFileState(final Record record, final BatchProcessingContext flowFileLifecycleContext) throws IOException, SchemaNotFoundException {
-        final ProcessSession session = flowFileLifecycleContext.session();
+    private FlowFileState initializeFlowFileState(final Record record, final BatchProcessingContext batchProcessingContext) throws IOException, SchemaNotFoundException {
+        final ProcessSession session = batchProcessingContext.session();
         FlowFile flowFile = null;
         OutputStream outputStream = null;
         RecordSetWriter writer = null;
@@ -185,7 +183,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             outputStream = session.write(flowFile);
             writer = writerFactory.createWriter(getLogger(), writeSchema, outputStream, flowFile);
             writer.beginRecordSet();
-            flowFileLifecycleContext.flowFiles().add(flowFile);
+            batchProcessingContext.flowFiles().add(flowFile);
         } catch (final Exception e) {
             if (flowFile != null) {
                 session.remove(flowFile);
@@ -202,7 +200,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         final ProcessSession session = batchProcessingContext.session();
         final List<FlowFile> flowFiles = batchProcessingContext.flowFiles();
         if (flowFileState.isFlowFileEmpty()) {
-            dropFlowFileState(flowFileState, session, flowFiles);
+            dropFlowFileState(flowFileState, batchProcessingContext);
             return;
         }
         try {
@@ -217,7 +215,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             final int flowFileIndex = flowFiles.indexOf(flowFileState.flowFile);
             flowFiles.set(flowFileIndex, session.putAllAttributes(flowFileState.flowFile, attributes));
         } catch (final IOException e) {
-            dropFlowFileState(flowFileState, session, flowFiles);
+            dropFlowFileState(flowFileState, batchProcessingContext);
             final String message = "Failed to complete a FlowFile containing records from Stream Name: %s, Shard Id: %s, Sequence/Subsequence No range: [%s/%d, %s/%d)".formatted(
                     getStreamName(),
                     getKinesisShardId(),
@@ -230,10 +228,10 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
     }
 
-    private void dropFlowFileState(FlowFileState flowFileState, final ProcessSession session, final List<FlowFile> flowFiles) {
+    private void dropFlowFileState(final FlowFileState flowFileState, final BatchProcessingContext batchProcessingContext) {
         closeSafe(flowFileState, "FlowFile State");
-        session.remove(flowFileState.flowFile);
-        flowFiles.remove(flowFileState.flowFile);
+        batchProcessingContext.session().remove(flowFileState.flowFile);
+        batchProcessingContext.flowFiles().remove(flowFileState.flowFile);
     }
 
     private void outputRawRecordOnException(final ProcessSession session, final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
