@@ -30,4 +30,43 @@ describe('Common', () => {
     it('should be created', () => {
         expect(service).toBeTruthy();
     });
+
+    describe('formatInteger', () => {
+        it('should format small numbers with commas', () => {
+            expect(service.formatInteger(0)).toBe('0');
+            expect(service.formatInteger(1)).toBe('1');
+            expect(service.formatInteger(123)).toBe('123');
+            expect(service.formatInteger(1234)).toBe('1,234');
+            expect(service.formatInteger(12345)).toBe('12,345');
+            expect(service.formatInteger(99999)).toBe('99,999');
+        });
+
+        it('should format numbers >= 100,000 with compact notation', () => {
+            expect(service.formatInteger(100000)).toBe('100K');
+            expect(service.formatInteger(150000)).toBe('150K');
+            expect(service.formatInteger(1000000)).toBe('1M');
+            expect(service.formatInteger(1250000)).toBe('1.25M');
+            expect(service.formatInteger(1000000000)).toBe('1B');
+            expect(service.formatInteger(2750000000)).toBe('2.75B');
+            expect(service.formatInteger(1000000000000)).toBe('1T');
+        });
+
+        it('should handle negative numbers correctly', () => {
+            expect(service.formatInteger(-1234)).toBe('-1,234');
+            expect(service.formatInteger(-99999)).toBe('-99,999');
+            expect(service.formatInteger(-100000)).toBe('-100K');
+            expect(service.formatInteger(-1250000)).toBe('-1.25M');
+        });
+
+        it('should handle edge cases around the 100,000 threshold', () => {
+            expect(service.formatInteger(99999)).toBe('99,999');
+            expect(service.formatInteger(100000)).toBe('100K');
+            expect(service.formatInteger(100001)).toBe('100K');
+        });
+
+        it('should format very large numbers with appropriate suffixes', () => {
+            expect(service.formatInteger(1234567890)).toBe('1.23B');
+            expect(service.formatInteger(12345678901234)).toBe('12.35T');
+        });
+    });
 });

@@ -658,6 +658,16 @@ export class NiFiCommon {
      */
     public formatInteger(integer: number): string {
         const locale: string = (navigator && navigator.language) || 'en';
+
+        // For values >= 100,000, use compact notation (100K, 1M, 2.5B, etc.)
+        if (Math.abs(integer) >= 100000) {
+            return new Intl.NumberFormat(locale, {
+                notation: 'compact',
+                maximumFractionDigits: 2
+            }).format(integer);
+        }
+
+        // For values < 100,000, use the existing format with commas
         return integer.toLocaleString(locale, { maximumFractionDigits: 0 });
     }
 
