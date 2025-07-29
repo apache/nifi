@@ -181,8 +181,8 @@
                                         <div class="chart-panel grow flex flex-col">
                                             @if (fieldDescriptors$ | async) {
                                                 <div class="selected-descriptor-container flex flex-col">
-                                                    <div>Metric</div>
                                                     <mat-form-field subscriptSizing="dynamic">
+                                                        <mat-label class="value-label">Metric</mat-label>
                                                         <mat-select formControlName="fieldDescriptor">
                                                             @for (descriptor of fieldDescriptors; track descriptor) {
                                                                 @if (descriptor.description) {

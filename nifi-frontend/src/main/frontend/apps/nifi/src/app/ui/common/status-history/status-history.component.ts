@@ -77,8 +77,7 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
         NgStyle,
         ContextErrorBanner
     ],
-    styleUrls: ['./status-history.component.scss'],
-    standalone: true
+    styleUrls: ['./status-history.component.scss']
 })
 export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterViewInit {
     request: StatusHistoryRequest;
@@ -197,9 +196,6 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
                     this.minDate = minDate;
                     this.maxDate = maxDate;
                     this.updateStartTimeOptions();
-
-                    // Initialize filtered instances with all instances
-                    this.filteredInstances.set(this.instances);
                 }
             });
         this.fieldDescriptors$
