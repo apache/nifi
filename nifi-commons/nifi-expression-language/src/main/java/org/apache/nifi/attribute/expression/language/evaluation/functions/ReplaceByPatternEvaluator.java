@@ -78,7 +78,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
 
     private List<PatternMapping> compilePatterns(final String argument) {
         final List<PatternMapping> result = new ArrayList<>();
-        if (argument == null || argument.trim().isEmpty()) {
+        if (argument == null || argument.isBlank()) {
             return result;
         }
 
@@ -88,11 +88,11 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
             String streamPattern = parts[0];
             String mappedTo = parts[1];
 
-            if (streamPattern == null || streamPattern.trim().isEmpty()) {
+            if (streamPattern == null || streamPattern.isBlank()) {
                 continue;
             }
 
-            if (mappedTo == null || mappedTo.trim().isEmpty()) {
+            if (mappedTo == null || mappedTo.isBlank()) {
                 continue;
             }
 

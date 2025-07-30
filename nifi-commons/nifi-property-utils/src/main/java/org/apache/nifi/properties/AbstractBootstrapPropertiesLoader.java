@@ -128,7 +128,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
 
         String systemPath = System.getProperty(systemPropertyName);
 
-        if (systemPath == null || systemPath.trim().isEmpty()) {
+        if (systemPath == null || systemPath.isBlank()) {
             systemPath = defaultRelativePath;
         }
 

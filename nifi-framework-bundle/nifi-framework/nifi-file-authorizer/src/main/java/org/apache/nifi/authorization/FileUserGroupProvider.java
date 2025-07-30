@@ -477,7 +477,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     @Override
     public synchronized void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
-        if (fingerprint == null || fingerprint.trim().isEmpty()) {
+        if (fingerprint == null || fingerprint.isBlank()) {
             logger.info("Inheriting Empty Users & Groups. Will backup existing Uesrs & Groups first.");
             backupUsersAndGroups();
             purgeUsersAndGroups();

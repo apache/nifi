@@ -364,7 +364,7 @@ public class ListenHTTPServlet extends HttpServlet {
 
             String sourceSystemFlowFileIdentifier = attributes.remove(CoreAttributes.UUID.key());
             if (sourceSystemFlowFileIdentifier != null) {
-                sourceSystemFlowFileIdentifier = "urn:nifi:" + sourceSystemFlowFileIdentifier;
+                sourceSystemFlowFileIdentifier = "urn:nifi:" + sourceSystemFlowFileIdentifier; //NOPMD
             }
 
             flowFile = session.putAllAttributes(flowFile, attributes);

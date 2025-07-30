@@ -1231,7 +1231,7 @@ public class StandardServiceFacade implements ServiceFacade {
     }
 
     private void validateDeleteOfRevisableEntity(final String identifier, final RevisionInfo revision, final String entityTypeName) {
-        if (identifier == null || identifier.trim().isEmpty()) {
+        if (identifier == null || identifier.isBlank()) {
             throw new IllegalArgumentException(entityTypeName + " identifier is required");
         }
 

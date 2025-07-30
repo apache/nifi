@@ -35,7 +35,7 @@ public class ReplaceEmptyEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final QueryResult<String> subjectResult = subjectEvaluator.evaluate(evaluationContext);
         final String subjectValue = subjectResult.getValue();
-        final boolean isEmpty = subjectValue == null || subjectValue.toString().trim().isEmpty();
+        final boolean isEmpty = subjectValue == null || subjectValue.isBlank();
         if (isEmpty) {
             return replacementEvaluator.evaluate(evaluationContext);
         } else {

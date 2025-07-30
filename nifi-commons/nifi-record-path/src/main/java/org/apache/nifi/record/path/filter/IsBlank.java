@@ -36,6 +36,6 @@ public class IsBlank extends FunctionFilter {
             return true;
         }
 
-        return fieldVal.trim().isEmpty();
+        return fieldVal.isBlank();
     }
 }

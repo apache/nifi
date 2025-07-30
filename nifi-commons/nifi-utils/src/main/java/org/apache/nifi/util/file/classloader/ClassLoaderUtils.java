@@ -88,7 +88,7 @@ public class ClassLoaderUtils {
     }
 
     private static boolean isNotBlank(final String value) {
-        return value != null && !value.trim().isEmpty();
+        return value != null && !value.isBlank();
     }
 
     protected static URL[] toURLs(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {

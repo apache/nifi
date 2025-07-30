@@ -69,12 +69,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         protocolListener.addHandler(this);
 
         String hostname = nifiProperties.getProperty(NiFiProperties.CLUSTER_NODE_ADDRESS);
-        if (hostname == null || hostname.trim().isEmpty()) {
+        if (hostname == null || hostname.isBlank()) {
             hostname = "localhost";
         }
 
         final String port = nifiProperties.getProperty(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT);
-        if (port == null || port.trim().isEmpty()) {
+        if (port == null || port.isBlank()) {
             throw new RuntimeException("Unable to determine which port Cluster Coordinator Protocol is listening on because the '"
                     + NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT + "' property is not set");
         }

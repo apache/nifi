@@ -91,10 +91,10 @@ public class TestSiteToSiteReportingRecordSink {
         String[] lines = new String(task.dataSent.get(0)).split("\n");
         assertNotNull(lines);
         assertEquals(2, lines.length);
-        String[] data = new String(lines[0]).split(",");
+        String[] data = lines[0].split(",");
         assertEquals("15", data[0]); // In the MockRecordWriter all values are strings
         assertEquals("Hello", data[1]);
-        data = new String(lines[1]).split(",");
+        data = lines[1].split(",");
         assertEquals("6", data[0]);
         assertEquals("World!", data[1]);
     }

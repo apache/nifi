@@ -121,7 +121,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
         String keyPrefix = context.getProperty(KEY_PREFIX).getValue();
         if (!keyPrefix.endsWith("/")) {
-            keyPrefix = keyPrefix + "/";
+            keyPrefix = keyPrefix + "/"; // NOPMD
         }
         this.keyPrefix = keyPrefix;
 

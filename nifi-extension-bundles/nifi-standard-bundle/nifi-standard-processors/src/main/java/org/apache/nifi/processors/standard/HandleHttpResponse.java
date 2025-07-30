@@ -165,7 +165,7 @@ public class HandleHttpResponse extends AbstractProcessor {
                 final String headerName = descriptor.getName();
                 final String headerValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
 
-                if (!headerValue.trim().isEmpty()) {
+                if (!headerValue.isBlank()) {
                     response.setHeader(headerName, headerValue);
                 }
             }
@@ -179,7 +179,7 @@ public class HandleHttpResponse extends AbstractProcessor {
             for (final Map.Entry<String, String> entry : attributes.entrySet()) {
                 final String key = entry.getKey();
                 if (pattern.matcher(key).matches()) {
-                    if (!entry.getValue().trim().isEmpty()) {
+                    if (!entry.getValue().isBlank()) {
                         response.setHeader(entry.getKey(), entry.getValue());
                     }
                 }

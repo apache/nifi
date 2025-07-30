@@ -153,7 +153,7 @@ public class NarBundleExtractor implements BundleExtractor {
     }
 
     public boolean isBlank(String value) {
-        return (value == null || value.trim().isEmpty());
+        return (value == null || value.isBlank());
     }
 
     private void parseExtensionDocs(final JarInputStream jarInputStream, final BundleDetails.Builder builder) throws IOException {

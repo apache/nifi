@@ -414,7 +414,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 if (createIfNotExists && primaryKeyFields != null) {
                     primaryKeyColumnNames = new HashSet<>();
                     Arrays.stream(primaryKeyFields.split(","))
-                            .filter(path -> path != null && !path.trim().isEmpty())
+                            .filter(path -> path != null && !path.isBlank())
                             .map(String::trim)
                             .forEach(primaryKeyColumnNames::add);
                 } else {

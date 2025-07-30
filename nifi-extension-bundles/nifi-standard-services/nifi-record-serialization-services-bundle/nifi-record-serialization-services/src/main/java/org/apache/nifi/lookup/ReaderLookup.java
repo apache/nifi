@@ -153,7 +153,7 @@ public class ReaderLookup extends AbstractControllerService implements RecordRea
                 throws MalformedRecordException, IOException, SchemaNotFoundException {
 
         final String serviceName = serviceToUseValue.evaluateAttributeExpressions(variables).getValue();
-        if (serviceName.trim().isEmpty()) {
+        if (serviceName.isBlank()) {
             throw new ProcessException("Unable to determine which Record Reader to use: after evaluating the property value against supplied variables, got an empty value");
         }
 

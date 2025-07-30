@@ -1338,10 +1338,11 @@ public class SiteToSiteRestApiClient implements Closeable {
             uriPath = uriPath.substring(0, uriPath.length() - 1);
         }
 
+        final StringBuilder uriPathBuilder = new StringBuilder(uriPath);
         if (uriPath.endsWith("/nifi")) {
-            uriPath += "-api";
+            uriPathBuilder.append("-api");
         } else if (!uriPath.endsWith("/nifi-api")) {
-            uriPath += "/nifi-api";
+            uriPathBuilder.append("/nifi-api");
         }
 
         try {
@@ -1349,7 +1350,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                     .setScheme(clusterUrl.getScheme())
                     .setHost(clusterUrl.getHost())
                     .setPort(clusterUrl.getPort())
-                    .setPath(uriPath)
+                    .setPath(uriPathBuilder.toString())
                     .build()
                     .toString();
         } catch (URISyntaxException e) {

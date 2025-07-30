@@ -305,7 +305,7 @@ public class TestEvaluateXQuery {
         for (int i = 0; i < expectedResults.size(); i++) {
             String key = "xquery";
             if (expectedResults.size() > 1) {
-                key += "." + (i + 1);
+                key += "." + (i + 1); //NOPMD
             }
             final String actual = out.getAttribute(key).replaceAll(">\\s+<", "><");
             final String expected = expectedResults.get(i).replaceAll(">\\s+<", "><");

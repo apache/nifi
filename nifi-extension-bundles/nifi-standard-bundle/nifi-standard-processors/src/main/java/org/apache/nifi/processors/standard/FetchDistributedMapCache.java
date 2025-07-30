@@ -240,7 +240,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                         String attributeName = context.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
                         if (!singleKey) {
                             // Append key to attribute name if multiple keys
-                            attributeName += "." + cacheValueEntry.getKey();
+                            attributeName += "." + cacheValueEntry.getKey(); //NOPMD
                         }
                         String attributeValue = new String(cacheValue, context.getProperty(CHARACTER_SET).getValue());
 

@@ -371,7 +371,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     private File getPropertyAsFile(String key) {
         final String filePath = getProperty(key);
-        if (filePath != null && filePath.trim().length() > 0) {
+        if (filePath != null && !filePath.isBlank()) {
             return new File(filePath.trim());
         } else {
             return null;

@@ -439,7 +439,7 @@ public final class SnippetUtils {
             for (final PortDTO portDTO : snippetContents.getInputPorts()) {
                 String portName = portDTO.getName();
                 while (existingPortNames.contains(portName)) {
-                    portName = "Copy of " + portName;
+                    portName = "Copy of " + portName; // NOPMD
                 }
                 portDTO.setName(portName);
                 existingPortNames.add(portDTO.getName());
@@ -449,7 +449,7 @@ public final class SnippetUtils {
             for (final PortDTO portDTO : snippetContents.getOutputPorts()) {
                 String portName = portDTO.getName();
                 while (existingPortNames.contains(portName)) {
-                    portName = "Copy of " + portName;
+                    portName = "Copy of " + portName; // NOPMD
                 }
                 portDTO.setName(portName);
                 existingPortNames.add(portDTO.getName());
@@ -471,7 +471,7 @@ public final class SnippetUtils {
                 if (groupDTO.getVersionControlInformation() == null) {
                     String groupName = groupDTO.getName();
                     while (groupNames.contains(groupName)) {
-                        groupName = "Copy of " + groupName;
+                        groupName = "Copy of " + groupName; // NOPMD
                     }
                     groupDTO.setName(groupName);
                 }
@@ -491,9 +491,9 @@ public final class SnippetUtils {
         if (snippetContents.getProcessGroups() != null) {
             for (final ProcessGroupDTO processGroupDTO : snippetContents.getProcessGroups()) {
                 String logFileSuffix = processGroupDTO.getLogFileSuffix();
-                if (logFileSuffix != null && !logFileSuffix.trim().isEmpty()) {
+                if (logFileSuffix != null && !logFileSuffix.isBlank()) {
                     while (existingLogFileSuffixes.contains(logFileSuffix)) {
-                        logFileSuffix = "Copy_of_" + logFileSuffix;
+                        logFileSuffix = "Copy_of_" + logFileSuffix; // NOPMD
                     }
                     processGroupDTO.setLogFileSuffix(logFileSuffix);
                     existingLogFileSuffixes.add(processGroupDTO.getLogFileSuffix());

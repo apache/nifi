@@ -159,7 +159,7 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
 
     private RecordSetWriterFactory getRecordSetWriterFactory(Map<String, String> variables) {
         final String serviceName = serviceToUseValue.evaluateAttributeExpressions(variables).getValue();
-        if (serviceName.trim().isEmpty()) {
+        if (serviceName.isBlank()) {
             throw new ProcessException("Unable to determine which Record Writer to use: after evaluating the property value against supplied variables, got an empty value");
         }
 

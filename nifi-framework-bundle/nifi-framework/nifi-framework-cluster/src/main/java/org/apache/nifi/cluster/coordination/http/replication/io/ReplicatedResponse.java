@@ -190,7 +190,7 @@ public class ReplicatedResponse extends Response {
     @Override
     public Set<String> getAllowedMethods() {
         final String allowHeader = getHeaderString("Allow");
-        if (allowHeader == null || allowHeader.trim().isEmpty()) {
+        if (allowHeader == null || allowHeader.isBlank()) {
             return Collections.emptySet();
         }
 

@@ -363,7 +363,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             } else {
                 // validate the each rule
                 for (final Rule rule : rules) {
-                    if (rule.getName() == null || rule.getName().trim().isEmpty()) {
+                    if (rule.getName() == null || rule.getName().isBlank()) {
                         reasons.add(new ValidationResult.Builder().valid(false).explanation("A rule name was not specified.").build());
                     }
 

@@ -251,7 +251,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                     + "' property is missing from the NiFi Properties file");
         }
 
-        if (providerId.trim().isEmpty()) {
+        if (providerId.isBlank()) {
             throw new IllegalStateException("Cannot create " + scope + " Provider because the '" + providerIdPropertyName
                     + "' property in the NiFi Properties file has no value set. This is a required property and must reference the identifier of one of the "
                     + scope + " elements in the State Management Configuration File (" + configFile + ")");

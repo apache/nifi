@@ -125,13 +125,13 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         if (extensionManifest == null) {
             throw new IllegalArgumentException("Extension manifest is required");
         }
-        if (extensionManifest.getGroupId() == null || extensionManifest.getGroupId().trim().isEmpty()) {
+        if (extensionManifest.getGroupId() == null || extensionManifest.getGroupId().isBlank()) {
             throw new IllegalArgumentException("Extension manifest groupId is required");
         }
-        if (extensionManifest.getArtifactId() == null || extensionManifest.getArtifactId().trim().isEmpty()) {
+        if (extensionManifest.getArtifactId() == null || extensionManifest.getArtifactId().isBlank()) {
             throw new IllegalArgumentException("Extension manifest artifactId is required");
         }
-        if (extensionManifest.getVersion() == null || extensionManifest.getVersion().trim().isEmpty()) {
+        if (extensionManifest.getVersion() == null || extensionManifest.getVersion().isBlank()) {
             throw new IllegalArgumentException("Extension manifest version is required");
         }
 
