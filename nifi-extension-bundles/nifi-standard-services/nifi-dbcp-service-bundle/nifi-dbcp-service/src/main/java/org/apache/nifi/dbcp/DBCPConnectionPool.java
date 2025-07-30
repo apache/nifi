@@ -327,7 +327,6 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         // Common patterns for JDBC driver class names
         boolean isCandidate = lowerClassName.contains("driver")
                 || lowerClassName.contains("jdbc")
-                || className.matches(".*\\.(mysql|postgres|postgresql|oracle|h2|hsql|derby|sqlite|mariadb|sqlserver|mssql|jtds)\\..*")
                 || className.matches(".*Driver$")
                 || className.matches(".*JdbcDriver$")
                 || className.matches(".*SQLServerDriver$");
