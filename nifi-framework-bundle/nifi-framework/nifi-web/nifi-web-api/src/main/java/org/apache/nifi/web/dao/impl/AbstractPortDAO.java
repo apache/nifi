@@ -103,7 +103,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     private List<String> validateProposedConfiguration(final Port port, final PortDTO portDTO) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (isNotNull(portDTO.getName()) && portDTO.getName().trim().isEmpty()) {
+        if (isNotNull(portDTO.getName()) && portDTO.getName().isBlank()) {
             validationErrors.add("The name of the port must be specified.");
         }
         if (isNotNull(portDTO.getConcurrentlySchedulableTaskCount()) && portDTO.getConcurrentlySchedulableTaskCount() <= 0) {

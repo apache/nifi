@@ -232,7 +232,7 @@ public class PropertiesFileEngineConfigurationParser {
 
     private SslContextDefinition parseSslContextDefinition(final Properties properties) {
         final String truststoreFile = properties.getProperty(TRUSTSTORE_FILE);
-        if (truststoreFile == null || truststoreFile.trim().isEmpty()) {
+        if (truststoreFile == null || truststoreFile.isBlank()) {
             return null;
         }
 
@@ -243,7 +243,7 @@ public class PropertiesFileEngineConfigurationParser {
         sslContextDefinition.setTruststoreType(properties.getProperty(TRUSTSTORE_TYPE));
 
         final String keystoreFile = properties.getProperty(KEYSTORE_FILE);
-        if (keystoreFile != null && !keystoreFile.trim().isEmpty()) {
+        if (keystoreFile != null && !keystoreFile.isBlank()) {
             sslContextDefinition.setKeystoreFile(keystoreFile);
             sslContextDefinition.setKeystoreType(properties.getProperty(KEYSTORE_TYPE));
 
@@ -251,7 +251,7 @@ public class PropertiesFileEngineConfigurationParser {
             sslContextDefinition.setKeystorePass(keystorePass);
 
             final String explicitKeyPass = properties.getProperty(KEY_PASSWORD);
-            final String keyPass = (explicitKeyPass == null || explicitKeyPass.trim().isEmpty()) ? keystorePass : explicitKeyPass;
+            final String keyPass = (explicitKeyPass == null || explicitKeyPass.isBlank()) ? keystorePass : explicitKeyPass;
             sslContextDefinition.setKeyPass(keyPass);
         }
 
@@ -260,7 +260,7 @@ public class PropertiesFileEngineConfigurationParser {
 
     private String getRequired(final Properties properties, final String key) throws StatelessConfigurationException {
         final String propertyValue = properties.getProperty(key);
-        if (propertyValue == null || propertyValue.trim().isEmpty()) {
+        if (propertyValue == null || propertyValue.isBlank()) {
             throw new StatelessConfigurationException("Properties file is missing required property " + key);
         }
 

@@ -224,7 +224,7 @@ public class PutFile extends AbstractProcessor {
                     while (!Files.exists(existing)) {
                         existing = existing.getParent();
                     }
-                    if (permissions != null && !permissions.trim().isEmpty()) {
+                    if (permissions != null && !permissions.isBlank()) {
                         try {
                             String perms = stringPermissions(permissions, true);
                             if (!perms.isEmpty()) {
@@ -242,8 +242,8 @@ public class PutFile extends AbstractProcessor {
                         Files.createDirectories(rootDirPath);
                     }
 
-                    boolean chOwner = owner != null && !owner.trim().isEmpty();
-                    boolean chGroup = group != null && !group.trim().isEmpty();
+                    boolean chOwner = owner != null && !owner.isBlank();
+                    boolean chGroup = group != null && !group.isBlank();
                     if (chOwner || chGroup) {
                         Path currentPath = rootDirPath;
                         while (!currentPath.equals(existing)) {
@@ -316,7 +316,7 @@ public class PutFile extends AbstractProcessor {
             session.exportTo(flowFile, dotCopyFile, false);
 
             final String lastModifiedTime = context.getProperty(CHANGE_LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-            if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
+            if (lastModifiedTime != null && !lastModifiedTime.isBlank()) {
                 try {
                     final OffsetDateTime fileModifyTime = OffsetDateTime.parse(lastModifiedTime, DATE_TIME_FORMATTER);
                     dotCopyFile.toFile().setLastModified(fileModifyTime.toInstant().toEpochMilli());
@@ -325,7 +325,7 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            if (permissions != null && !permissions.trim().isEmpty()) {
+            if (permissions != null && !permissions.isBlank()) {
                 try {
                     String perms = stringPermissions(permissions, false);
                     if (!perms.isEmpty()) {
@@ -336,7 +336,7 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            if (owner != null && !owner.trim().isEmpty()) {
+            if (owner != null && !owner.isBlank()) {
                 try {
                     UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
                     Files.setOwner(dotCopyFile, lookupService.lookupPrincipalByName(owner));
@@ -345,7 +345,7 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            if (group != null && !group.trim().isEmpty()) {
+            if (group != null && !group.isBlank()) {
                 try {
                     UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
                     PosixFileAttributeView view = Files.getFileAttributeView(dotCopyFile, PosixFileAttributeView.class);

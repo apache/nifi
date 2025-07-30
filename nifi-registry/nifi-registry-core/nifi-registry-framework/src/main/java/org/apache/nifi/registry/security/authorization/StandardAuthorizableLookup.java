@@ -224,19 +224,15 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private Authorizable getAuthorizableByChildResource(final ResourceType baseResourceType, final String childResourceId) {
         Authorizable authorizable;
-        switch (baseResourceType) {
-            case Bucket:
-                String[] childResourcePathParts = childResourceId.split("/");
-                if (childResourcePathParts.length >= 1) {
-                    final String bucketId = childResourcePathParts[1];
-                    authorizable = getBucketAuthorizable(bucketId);
-                    break;
-                }
-            default:
-                throw new IllegalArgumentException("Unexpected lookup for child resource authorizable for base resource type " + baseResourceType.getValue());
+        if (baseResourceType == ResourceType.Bucket) {
+            String[] childResourcePathParts = childResourceId.split("/");
+            if (childResourcePathParts.length >= 1) {
+                final String bucketId = childResourcePathParts[1];
+                authorizable = getBucketAuthorizable(bucketId);
+                return authorizable;
+            }
         }
-
-        return authorizable;
+        throw new IllegalArgumentException("Unexpected lookup for child resource authorizable for base resource type " + baseResourceType.getValue());
     }
 
     /**

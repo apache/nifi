@@ -174,7 +174,7 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
         }
 
         // include any errors
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             results.setErrors(errors);
         }
 

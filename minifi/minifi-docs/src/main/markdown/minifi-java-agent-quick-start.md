@@ -88,18 +88,21 @@ This launches MiNiFi and leaves it running in the foreground. To shut down NiFi,
 # Working with DataFlows
 When you are working with a MiNiFi dataflow, you should design it, add any additional configuration your environment or use case requires, and then deploy your dataflow. MiNiFi is not designed to accommodate substantial mid-dataflow configuration.
 
-## Setting up Your DataFlow
+## Setting Up Your DataFlow
 
 ### Manually from a NiFi Dataflow
 You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, and any NiFi instance to set up the dataflow you want MiNiFi to run:
 
 1. Launch NiFi
 2. Create a dataflow.
-3. Export the dataflow in JSON format.
-4. Move your new .json file to `minifi/conf`.
-5. Rename your .json file _flow.json.raw_.
+3. Download a flow definition to create a JSON-formatted file.
+4. Transform the downloaded JSON file using the MiNiFi Toolkit:
+   ```
+   minifi-toolkit/bin/config.sh transform-nifi SOURCE_NIFI_JSON_FLOW_FILE TARGET_MINIFI_JSON_FLOW_FILE
+   ```
+5. Move or copy the transformed flow definition file to `minifi/conf/flow.json.raw`.
 
-**Note:** You can use one template at a time, per MiNiFi instance.
+**Note:** You can use one flow definition at a time, per MiNiFi instance.
 
 **Result:** Once you have your _flow.json.raw_ file in the `minifi/conf` directory, launch that instance of MiNiFi and your dataflow begins automatically.
 
@@ -298,9 +301,9 @@ You can secure your MiNiFi dataflow using keystore or trust store SSL protocols,
 
 To run a MiNiFi dataflow securely:
 
-1. Create your dataflow template as discussed above.
-2. Move it to `minifi/conf` and rename _flow.json.raw_.
-3. Fill in the following properties in bootstrap.conf. The flow definition will automatically pick up the necessary properties
+1. Create your dataflow definition as discussed above in [Setting Up Your DataFlow](#setting-up-your-dataflow)
+2. After transforming it, move or copy it to `minifi/conf/flow.json.raw`.
+3. Fill in the following properties in _bootstrap.conf_. The flow definition will automatically pick up the necessary properties.
 ```
 nifi.minifi.security.keystore=
 nifi.minifi.security.keystoreType=

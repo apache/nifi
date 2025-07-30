@@ -31,7 +31,7 @@ public interface EventIterator extends Closeable {
     Optional<ProvenanceEventRecord> nextEvent() throws IOException;
 
 
-    public static EventIterator EMPTY = new EventIterator() {
+    EventIterator EMPTY = new EventIterator() {
         @Override
         public void close() throws IOException {
         }
@@ -42,7 +42,7 @@ public interface EventIterator extends Closeable {
         }
     };
 
-    public static EventIterator of(final ProvenanceEventRecord... events) {
+    static EventIterator of(final ProvenanceEventRecord... events) {
         final Iterator<ProvenanceEventRecord> itr = Arrays.asList(events).iterator();
         return new EventIterator() {
             @Override

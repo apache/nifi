@@ -24,9 +24,9 @@ import java.io.InputStream;
  */
 public interface ViewableContent {
 
-    public static final String CONTENT_REQUEST_ATTRIBUTE = "org.apache.nifi.web.content";
+    String CONTENT_REQUEST_ATTRIBUTE = "org.apache.nifi.web.content";
 
-    public enum DisplayMode {
+    enum DisplayMode {
 
         Original,
         Formatted,

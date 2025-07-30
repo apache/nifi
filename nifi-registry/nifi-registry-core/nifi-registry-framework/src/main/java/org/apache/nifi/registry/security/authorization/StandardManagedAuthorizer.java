@@ -233,7 +233,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         }
     }
 
-    private final FingerprintHolder parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
+    private FingerprintHolder parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
 
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.web.search.query.SearchQuery;
 
@@ -43,6 +43,6 @@ public class TransmissionStatusMatcher implements AttributeMatcher<RemoteProcess
     }
 
     private boolean containsKeyword(final SearchQuery query, final Set<String> keywords) {
-        return keywords.stream().anyMatch(keyword -> StringUtils.containsIgnoreCase(keyword, query.getTerm()));
+        return keywords.stream().anyMatch(keyword -> Strings.CI.contains(keyword, query.getTerm()));
     }
 }

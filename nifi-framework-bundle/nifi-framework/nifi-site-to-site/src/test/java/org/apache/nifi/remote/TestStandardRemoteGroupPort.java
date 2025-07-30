@@ -103,18 +103,10 @@ public class TestStandardRemoteGroupPort {
 
         eventReporter = mock(EventReporter.class);
 
-        final ConnectableType connectableType;
-        switch (direction) {
-            case SEND:
-                connectableType = ConnectableType.REMOTE_INPUT_PORT;
-                break;
-            case RECEIVE:
-                connectableType = ConnectableType.OUTPUT_PORT;
-                break;
-            default:
-                connectableType = null;
-                break;
-        }
+        final ConnectableType connectableType = switch (direction) {
+            case SEND -> ConnectableType.REMOTE_INPUT_PORT;
+            case RECEIVE -> ConnectableType.OUTPUT_PORT;
+        };
 
         port = spy(new StandardRemoteGroupPort(ID, ID, NAME, remoteGroup, direction, connectableType, null, scheduler));
 
@@ -340,8 +332,7 @@ public class TestStandardRemoteGroupPort {
 
         // Execute onTrigger while offering new flow files.
         final List<MockFlowFile> flowFiles = new ArrayList<>();
-        for (int i = 0; i < expectedNumberOfPackets.length; i++) {
-            int numOfPackets = expectedNumberOfPackets[i];
+        for (int numOfPackets : expectedNumberOfPackets) {
             int startF = flowFiles.size();
             int endF = startF + numOfPackets;
             IntStream.range(startF, endF).forEach(f -> {
@@ -374,11 +365,10 @@ public class TestStandardRemoteGroupPort {
             final List<DataPacket> dataPackets = sentPackets.get(i);
             assertEquals(expectedNumberOfPackets[i], dataPackets.size());
 
-            for (int p = 0; p < dataPackets.size(); p++) {
+            for (DataPacket dataPacket : dataPackets) {
                 final FlowFile flowFile = flowFiles.get(f);
 
                 // Assert sent packet
-                final DataPacket dataPacket = dataPackets.get(p);
                 assertEquals(flowFile.getSize(), dataPacket.getSize());
 
                 // Assert provenance events (SEND and DROP)

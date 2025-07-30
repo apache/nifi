@@ -48,8 +48,7 @@ public class TagCountResult extends AbstractWritableResult<List<TagCount>> {
                 .column("Count", 5, 20, false)
                 .build();
 
-        for (int i = 0; i < tagCounts.size(); ++i) {
-            final TagCount tagCount = tagCounts.get(i);
+        for (final TagCount tagCount : tagCounts) {
             table.addRow(tagCount.getTag(), String.valueOf(tagCount.getCount()));
         }
 

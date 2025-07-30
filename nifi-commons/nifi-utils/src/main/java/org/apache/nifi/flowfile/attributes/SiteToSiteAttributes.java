@@ -29,7 +29,7 @@ public enum SiteToSiteAttributes implements FlowFileAttributeKey {
 
     private final String key;
 
-    private SiteToSiteAttributes(final String key) {
+    SiteToSiteAttributes(final String key) {
         this.key = key;
     }
 

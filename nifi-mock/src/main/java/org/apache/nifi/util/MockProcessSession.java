@@ -1166,7 +1166,7 @@ public class MockProcessSession implements ProcessSession {
                 continue; // don't want to capture parent uuid of this. Something can't be a child of itself
             }
             final String sourceUuid = source.getAttribute(CoreAttributes.UUID.key());
-            if (sourceUuid != null && !sourceUuid.trim().isEmpty()) {
+            if (sourceUuid != null && !sourceUuid.isBlank()) {
                 uuidsCaptured++;
                 if (parentUuidBuilder.length() > 0) {
                     parentUuidBuilder.append(",");

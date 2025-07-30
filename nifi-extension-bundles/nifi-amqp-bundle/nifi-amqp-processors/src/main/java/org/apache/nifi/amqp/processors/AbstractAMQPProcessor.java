@@ -287,7 +287,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     private AMQPResource<T> createResource(final ProcessContext context) {
         Connection connection = null;
         try {
-            ExecutorService executor = Executors.newSingleThreadExecutor(new BasicThreadFactory.Builder()
+            ExecutorService executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
                     .namingPattern("AMQP Consumer: " + getIdentifier())
                     .build());
             connection = createConnection(context, executor);

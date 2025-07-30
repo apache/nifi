@@ -2418,6 +2418,11 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return resetValue;
     }
 
+    public List<Counter> resetAllCounters() {
+        final CounterRepository counterRepo = counterRepositoryRef.get();
+        return counterRepo.resetAllCounters();
+    }
+
     public class GroupStatusCounts {
         private int queuedCount = 0;
         private long queuedContentSize = 0;

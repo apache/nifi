@@ -37,5 +37,5 @@ public interface GCPCredentialsService extends ControllerService {
      * @return Valid Google Credentials suitable for authorizing requests on the platform.
      * @throws ProcessException process exception in case there is problem in getting credentials
      */
-    public GoogleCredentials getGoogleCredentials() throws ProcessException;
+    GoogleCredentials getGoogleCredentials() throws ProcessException;
 }

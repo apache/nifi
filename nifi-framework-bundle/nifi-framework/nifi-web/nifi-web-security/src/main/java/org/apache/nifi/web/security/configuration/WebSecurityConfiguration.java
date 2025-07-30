@@ -54,8 +54,8 @@ import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatchers;
@@ -80,7 +80,7 @@ public class WebSecurityConfiguration {
     );
 
     private static final RequestMatcher UNFILTERED_PATHS_REQUEST_MATCHER = new OrRequestMatcher(
-            UNFILTERED_PATHS.stream().map(AntPathRequestMatcher::new).collect(Collectors.toList())
+            UNFILTERED_PATHS.stream().map(PathPatternRequestMatcher.withDefaults()::matcher).collect(Collectors.toList())
     );
 
     /**

@@ -17,8 +17,8 @@
 package org.apache.nifi.controller.asana;
 
 import com.asana.models.Project;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.StringUtils;
@@ -87,16 +87,17 @@ public class StandardAsanaClientProviderServiceTest {
     private MockWebServer mockWebServer;
 
     @BeforeEach
-    public void init() throws InitializationException {
+    public void init() throws InitializationException, IOException {
         runner = newTestRunner(NoOpProcessor.class);
         service = new StandardAsanaClientProviderService();
         runner.addControllerService(AsanaClientProviderService.class.getName(), service);
         mockWebServer = new MockWebServer();
+        mockWebServer.start();
     }
 
     @AfterEach
     public void shutdownServer() throws IOException {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
@@ -145,8 +146,14 @@ public class StandardAsanaClientProviderServiceTest {
         runner.setProperty(service, PROP_ASANA_WORKSPACE_NAME, "My Workspace");
         runner.setProperty(service, PROP_ASANA_API_BASE_URL, getMockWebServerUrl());
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(WORKSPACES));
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(PROJECTS));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(WORKSPACES)
+                .build());
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(PROJECTS)
+                .build());
 
         runner.enableControllerService(service);
         final Map<String, Project> projects = service.createClient().getProjects()
@@ -157,7 +164,7 @@ public class StandardAsanaClientProviderServiceTest {
         assertEquals("Another Project Again", projects.get("1202986168388325").name);
 
         assertEquals(2, mockWebServer.getRequestCount());
-        assertEquals("Bearer 12345", mockWebServer.takeRequest().getHeader("Authorization"));
+        assertEquals("Bearer 12345", mockWebServer.takeRequest().getHeaders().get("Authorization"));
         assertTrue(mockWebServer.takeRequest().getRequestLine().contains("workspace=1202898619267352"));
     }
 
@@ -167,8 +174,14 @@ public class StandardAsanaClientProviderServiceTest {
         runner.setProperty(service, PROP_ASANA_WORKSPACE_NAME, "Company or Team Name");
         runner.setProperty(service, PROP_ASANA_API_BASE_URL, getMockWebServerUrl());
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(WORKSPACES));
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(PROJECTS));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(WORKSPACES)
+                .build());
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(PROJECTS)
+                .build());
 
         runner.enableControllerService(service);
         assertThrows(RuntimeException.class, service::createClient);

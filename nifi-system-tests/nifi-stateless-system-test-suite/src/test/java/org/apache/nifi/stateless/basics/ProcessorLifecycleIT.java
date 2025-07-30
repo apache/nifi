@@ -143,12 +143,8 @@ public class ProcessorLifecycleIT extends StatelessSystemIT {
         assertTrue(optionalTriggerResult.isEmpty());
         trigger.cancel();
 
-        // Give it 2 seconds to finish its processing and make sure that we see no counters incremented.
-        // We expect no counters to be incremented because, even though the we should see an attempt to increment
-        // the counter, the ProcessSession should have been terminated, disallowing the call to ProcessSession.adjustCounter()
-        Thread.sleep(2000L);
-        final Map<String, Long> counters = dataflow.getCounters(Pattern.compile(".+"));
-        assertTrue(counters.isEmpty(), "Expected no counters to be incremented but found: " + counters);
+        // We expect Failure counter to get incremented because the processor the processor is being terminated
+        assertCounters(dataflow, generate.getIdentifier(), RUNNING_AND_FAILURE);
     }
 
     @Test

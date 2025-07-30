@@ -78,7 +78,7 @@ class Saml2SingleLogoutFilterTest {
 
     @Test
     void testDoFilterInternal() throws ServletException, IOException {
-        httpServletRequest.setPathInfo(SamlUrlPath.SINGLE_LOGOUT_REQUEST.getPath());
+        httpServletRequest.setRequestURI(SamlUrlPath.SINGLE_LOGOUT_REQUEST.getPath());
 
         final Cookie cookie = new Cookie(ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER.getCookieName(), REQUEST_IDENTIFIER);
         httpServletRequest.setCookies(cookie);

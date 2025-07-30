@@ -24,5 +24,5 @@ import java.io.IOException;
 
 public interface SequenceFileReader<T> {
 
-    public T readSequenceFile(Path file, Configuration configuration, FileSystem fileSystem) throws IOException;
+    T readSequenceFile(Path file, Configuration configuration, FileSystem fileSystem) throws IOException;
 }

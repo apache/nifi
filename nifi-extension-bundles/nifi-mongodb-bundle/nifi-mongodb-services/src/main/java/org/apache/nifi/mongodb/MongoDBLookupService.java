@@ -131,7 +131,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
             ));
         Document query = new Document(clean);
 
-        if (coordinates.size() == 0) {
+        if (coordinates.isEmpty()) {
             throw new LookupFailureException("No keys were configured. Mongo query would return random documents.");
         }
 

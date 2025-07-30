@@ -30,6 +30,8 @@ import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.util.NiFiProperties;
@@ -67,12 +69,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         protocolListener.addHandler(this);
 
         String hostname = nifiProperties.getProperty(NiFiProperties.CLUSTER_NODE_ADDRESS);
-        if (hostname == null || hostname.trim().isEmpty()) {
+        if (hostname == null || hostname.isBlank()) {
             hostname = "localhost";
         }
 
         final String port = nifiProperties.getProperty(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT);
-        if (port == null || port.trim().isEmpty()) {
+        if (port == null || port.isBlank()) {
             throw new RuntimeException("Unable to determine which port Cluster Coordinator Protocol is listening on because the '"
                     + NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT + "' property is not set");
         }
@@ -136,14 +138,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
     @Override
     public ProtocolMessage handle(final ProtocolMessage msg, Set<String> nodeIds) throws ProtocolException {
-        switch (msg.getType()) {
-            case HEARTBEAT:
-                return handleHeartbeat((HeartbeatMessage) msg);
-            case CLUSTER_WORKLOAD_REQUEST:
-                return handleClusterWorkload((ClusterWorkloadRequestMessage) msg);
-            default:
-                throw new ProtocolException("Cannot handle message of type " + msg.getType());
-        }
+        return switch (msg.getType()) {
+            case HEARTBEAT -> handleHeartbeat((HeartbeatMessage) msg);
+            case CLUSTER_WORKLOAD_REQUEST -> handleClusterWorkload((ClusterWorkloadRequestMessage) msg);
+            case NODE_STATUSES_REQUEST -> handleNodeStatuses((NodeStatusesRequestMessage) msg);
+            default -> throw new ProtocolException("Cannot handle message of type " + msg.getType());
+        };
     }
 
     private ProtocolMessage handleHeartbeat(final HeartbeatMessage msg) {
@@ -203,6 +203,15 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         return response;
     }
 
+    private ProtocolMessage handleNodeStatuses(final NodeStatusesRequestMessage msg) {
+        logger.debug("Received Node Statuses Request Message");
+        final NodeStatusesResponseMessage response = new NodeStatusesResponseMessage();
+        final List<NodeConnectionStatus> nodeStatuses = clusterCoordinator.getConnectionStatuses();
+        response.setNodeStatuses(nodeStatuses == null ? Collections.emptyList() : nodeStatuses);
+        logger.debug("Responding with Node Statuses: {}", response.getNodeStatuses());
+        return response;
+    }
+
     private List<NodeConnectionStatus> getUpdatedStatuses(final List<NodeConnectionStatus> nodeStatusList) {
         // Map node's statuses by NodeIdentifier for quick & easy lookup
         final Map<NodeIdentifier, NodeConnectionStatus> nodeStatusMap = nodeStatusList.stream()
@@ -235,6 +244,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
     @Override
     public boolean canHandle(ProtocolMessage msg) {
-        return msg.getType() == MessageType.HEARTBEAT || msg.getType() == MessageType.CLUSTER_WORKLOAD_REQUEST;
+        return msg.getType() == MessageType.HEARTBEAT || msg.getType() == MessageType.CLUSTER_WORKLOAD_REQUEST || msg.getType() == MessageType.NODE_STATUSES_REQUEST;
     }
 }

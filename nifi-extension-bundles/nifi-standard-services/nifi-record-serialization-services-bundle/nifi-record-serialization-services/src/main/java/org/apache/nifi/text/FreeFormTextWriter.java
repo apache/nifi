@@ -68,8 +68,7 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
     private void write(final Record record, final OutputStream out, final List<String> columnNames) throws IOException {
         final int numCols = columnNames.size();
         final Map<String, String> values = new HashMap<>(numCols);
-        for (int i = 0; i < numCols; i++) {
-            final String columnName = columnNames.get(i);
+        for (final String columnName : columnNames) {
             final String columnValue = record.getAsString(columnName);
             values.put(columnName, columnValue);
         }

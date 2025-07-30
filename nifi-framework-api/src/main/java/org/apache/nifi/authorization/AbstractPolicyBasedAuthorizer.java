@@ -382,7 +382,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      */
     @Override
     public final void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
-        if (fingerprint == null || fingerprint.trim().isEmpty()) {
+        if (fingerprint == null || fingerprint.isBlank()) {
             return;
         }
 
@@ -402,7 +402,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
     @Override
     public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
-        if (fingerprint == null || fingerprint.trim().isEmpty()) {
+        if (fingerprint == null || fingerprint.isBlank()) {
             logger.info("Inheriting Empty Policies, Users & Groups. Will backup existing Policies, Users & Groups first.");
             backupPoliciesUsersAndGroups();
             purgePoliciesUsersAndGroups();

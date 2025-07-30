@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.regions.Regions;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
@@ -267,7 +266,7 @@ public class TestConsumeKinesisStream {
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.GRACEFUL_SHUTDOWN_TIMEOUT, "50 millis");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
-        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Region.EU_WEST_2.id());
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.TIMEOUT, "5 secs");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, "TRIM_HORIZON");
 

@@ -273,7 +273,7 @@ class GitFlowMetaData {
             return;
         }
 
-        final ThreadFactory threadFactory = new BasicThreadFactory.Builder()
+        final ThreadFactory threadFactory = BasicThreadFactory.builder()
                 .daemon(true).namingPattern(getClass().getSimpleName() + " Push thread").build();
 
         // Use scheduled fixed delay to control the minimum interval between push activities.

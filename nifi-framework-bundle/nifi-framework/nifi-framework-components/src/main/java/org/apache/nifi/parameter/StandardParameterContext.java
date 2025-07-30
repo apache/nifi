@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
@@ -629,7 +629,7 @@ public class StandardParameterContext implements ParameterContext {
             if (currentEffectiveParameters.containsKey(proposedParameterDescriptor)) {
                 final Parameter currentParameter = currentEffectiveParameters.get(proposedParameterDescriptor);
                 if (!currentParameter.equals(proposedParameter) || currentParameter.getDescriptor().isSensitive() != proposedParameter.getDescriptor().isSensitive()
-                        || !StringUtils.equals(currentParameter.getDescriptor().getDescription(), proposedParameter.getDescriptor().getDescription())) {
+                        || !Strings.CS.equals(currentParameter.getDescriptor().getDescription(), proposedParameter.getDescriptor().getDescription())) {
                     // The parameter has been updated in some way
                     effectiveParameterUpdates.put(proposedParameterDescriptor.getName(), proposedParameter);
                 }
@@ -662,8 +662,8 @@ public class StandardParameterContext implements ParameterContext {
         }
 
         final String parameterName = parameter.getDescriptor().getName();
-        return parameterReferenceManager.getProcessorsReferencing(this, parameterName).size() > 0
-                || parameterReferenceManager.getControllerServicesReferencing(this, parameterName).size() > 0;
+        return !parameterReferenceManager.getProcessorsReferencing(this, parameterName).isEmpty()
+                || !parameterReferenceManager.getControllerServicesReferencing(this, parameterName).isEmpty();
     }
 
     @Override

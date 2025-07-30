@@ -1,0 +1,10 @@
+[
+    {
+        "id": "rec-1",
+        "op": null,
+        "index": "test_index",
+        "type": "message",
+        "msg": "Hello",
+        "script_stringified": "{\"source\":\"some script\",\"language\":\"painless\",\"params\":{\"param\":1}}"
+    }
+]

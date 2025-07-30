@@ -20,7 +20,7 @@ import java.util.Map;
 
 public interface Evaluator<T> {
 
-    public static final String MESSAGE_KEY = "message";
+    String MESSAGE_KEY = "message";
 
     T evaluate(Map<String, Object> objectMap);
 

@@ -228,9 +228,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     static final PropertyDescriptor CATALOG_NAME = new Builder()
             .name("put-db-record-catalog-name")
-            .displayName("Catalog Name")
-            .description("The name of the catalog that the statement should update. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
-                    + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
+            .displayName("Database Name")
+            .description("""
+                    The name of the database (or the name of the catalog, depending on the destination system) that the statement should update. This may not apply
+                    for the database that you are updating. In this case, leave the field empty. Note that if the  property is set and the database is case-sensitive,
+                    the catalog name must match the database's catalog name exactly.
+                    """)
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -1159,7 +1162,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     }
 
     private String validateStatementType(final String statementType, final FlowFile flowFile) {
-        if (statementType == null || statementType.trim().isEmpty()) {
+        if (statementType == null || statementType.isBlank()) {
             throw new ProcessException("No Statement Type specified for " + flowFile);
         }
 

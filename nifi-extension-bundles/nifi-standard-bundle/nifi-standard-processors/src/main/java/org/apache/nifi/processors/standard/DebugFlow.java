@@ -550,7 +550,7 @@ public class DebugFlow extends AbstractProcessor {
             try {
                 if (sleepMillis > 0) {
                     sleep(sleepMillis, context.getProperty(IGNORE_INTERRUPTS).asBoolean());
-                    getLogger().info("DebugFlow finishes sleeping at completion of its onTrigger() method");
+                    getLogger().info("DebugFlow finished sleeping at completion of its onTrigger() method");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

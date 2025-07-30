@@ -295,7 +295,7 @@ public class TestExecuteProcess {
      */
     private boolean isCommandFailed(final TestRunner runner) {
         final List<LogMessage> errorMessages = runner.getLogger().getErrorMessages();
-        return (errorMessages.size() > 0
+        return (!errorMessages.isEmpty()
                 && errorMessages.stream()
                     .anyMatch(m -> m.getMsg().contains("Failed to create process")));
     }

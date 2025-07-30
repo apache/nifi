@@ -73,9 +73,9 @@ public class NumberCastEvaluator extends NumberEvaluator {
                         }
                         return new NumberQueryResult(resultValue);
                     case NOT_NUMBER:
-                    default:
                         return new NumberQueryResult(null);
                 }
+                // fallthrough
             case DATE:
                 return new NumberQueryResult(((DateQueryResult) result).getValue().getTime());
             case INSTANT:

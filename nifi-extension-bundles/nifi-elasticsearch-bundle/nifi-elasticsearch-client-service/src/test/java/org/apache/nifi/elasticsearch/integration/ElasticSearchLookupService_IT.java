@@ -66,11 +66,7 @@ class ElasticSearchLookupService_IT extends AbstractElasticsearch_IT {
     }
 
     void setTypeOnLookupService() {
-        if (getElasticMajorVersion() == 6) {
-            runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, type);
-        } else {
-            runner.removeProperty(lookupService, ElasticSearchLookupService.TYPE);
-        }
+        runner.removeProperty(lookupService, ElasticSearchLookupService.TYPE);
     }
 
     @Test

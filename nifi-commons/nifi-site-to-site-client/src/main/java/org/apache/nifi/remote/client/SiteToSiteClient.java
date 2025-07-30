@@ -637,21 +637,17 @@ public interface SiteToSiteClient extends Closeable {
                 throw new IllegalStateException("Must specify either Port Name or Port Identifier to build Site-to-Site client");
             }
 
-            switch (transportProtocol) {
-                case RAW:
-                    return new SocketClient(buildConfig());
-                case HTTP:
-                    return new HttpClient(buildConfig());
-                default:
-                    throw new IllegalStateException("Transport protocol '" + transportProtocol + "' is not supported.");
-            }
+            return switch (transportProtocol) {
+                case RAW -> new SocketClient(buildConfig());
+                case HTTP -> new HttpClient(buildConfig());
+            };
         }
 
         /**
          * @return the configured URL for the remote NiFi instance
          */
         public String getUrl() {
-            if (urls != null && urls.size() > 0) {
+            if (urls != null && !urls.isEmpty()) {
                 return urls.iterator().next();
             }
             return null;

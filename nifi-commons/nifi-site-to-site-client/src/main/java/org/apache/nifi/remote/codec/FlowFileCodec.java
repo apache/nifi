@@ -40,7 +40,7 @@ public interface FlowFileCodec extends VersionedRemoteResource {
      *
      * @return all supported versions
      */
-    public List<Integer> getSupportedVersions();
+    List<Integer> getSupportedVersions();
 
     /**
      * Encodes a DataPacket and its content as a single stream of data and

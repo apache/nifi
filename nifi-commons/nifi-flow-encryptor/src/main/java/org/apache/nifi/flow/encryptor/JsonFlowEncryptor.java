@@ -93,8 +93,6 @@ public class JsonFlowEncryptor extends AbstractFlowEncryptor {
                 case VALUE_NULL:
                     generator.writeNull();
                     break;
-                default:
-                    throw new IllegalStateException(String.format("Token unrecognized [%s]", token));
             }
             token = parser.nextToken();
         }

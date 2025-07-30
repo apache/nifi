@@ -87,7 +87,7 @@ public class StandardRevisableEntityService implements RevisableEntityService {
             throw new IllegalArgumentException("Revision info is required");
         }
 
-        if (userIdentity == null || userIdentity.trim().isEmpty()) {
+        if (userIdentity == null || userIdentity.isBlank()) {
             throw new IllegalArgumentException("User identity is required");
         }
 
@@ -106,7 +106,7 @@ public class StandardRevisableEntityService implements RevisableEntityService {
 
     @Override
     public <T extends RevisableEntity> T delete(final String entityIdentifier, final RevisionInfo revisionInfo, final Supplier<T> deleteEntity) {
-        if (entityIdentifier == null || entityIdentifier.trim().isEmpty()) {
+        if (entityIdentifier == null || entityIdentifier.isBlank()) {
             throw new IllegalArgumentException("Entity identifier is required");
         }
 

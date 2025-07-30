@@ -53,6 +53,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
@@ -540,6 +541,12 @@ public abstract class AbstractEventAccess implements EventAccess {
 
         final VersionControlInformation vci = group.getVersionControlInformation();
         if (vci != null) {
+            final RegisteredFlowSnapshotMetadata registeredFlowSnapshotMetadata = new RegisteredFlowSnapshotMetadata();
+            registeredFlowSnapshotMetadata.setBranch(vci.getBranch());
+            registeredFlowSnapshotMetadata.setBucketIdentifier(vci.getBucketIdentifier());
+            registeredFlowSnapshotMetadata.setFlowIdentifier(vci.getFlowIdentifier());
+            registeredFlowSnapshotMetadata.setVersion(vci.getVersion());
+            status.setRegisteredFlowSnapshotMetadata(registeredFlowSnapshotMetadata);
             try {
                 final VersionedFlowStatus flowStatus = vci.getStatus();
                 if (flowStatus != null && flowStatus.getState() != null) {

@@ -98,7 +98,7 @@ public class HDFSListing {
 
         int counter = 0;
         for (final String path : matchingPaths) {
-            map.put(StateKeys.PATH_PREFIX + String.valueOf(counter++), path);
+            map.put(StateKeys.PATH_PREFIX + counter++, path);
         }
 
         return map;

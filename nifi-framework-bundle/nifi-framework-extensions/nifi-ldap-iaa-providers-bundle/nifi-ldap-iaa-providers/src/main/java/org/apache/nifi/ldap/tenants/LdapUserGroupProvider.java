@@ -146,7 +146,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     @Override
     public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
         final String namingPattern = String.format("%s (%s) - background sync thread", getClass().getSimpleName(), initializationContext.getIdentifier());
-        final ThreadFactory threadFactory = new BasicThreadFactory.Builder()
+        final ThreadFactory threadFactory = BasicThreadFactory.builder()
                 .daemon(true)
                 .namingPattern(namingPattern)
                 .build();

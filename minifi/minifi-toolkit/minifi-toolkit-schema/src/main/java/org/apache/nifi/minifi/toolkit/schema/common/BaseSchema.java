@@ -216,7 +216,7 @@ public abstract class BaseSchema implements Schema {
     public static void checkForDuplicates(Consumer<String> duplicateMessageConsumer, String errorMessagePrefix, List<String> strings) {
         if (strings != null) {
             CollectionOverlap<String> collectionOverlap = new CollectionOverlap<>(strings);
-            if (collectionOverlap.getDuplicates().size() > 0) {
+            if (!collectionOverlap.getDuplicates().isEmpty()) {
                 duplicateMessageConsumer.accept(errorMessagePrefix + collectionOverlap.getDuplicates().stream().collect(Collectors.joining(", ")));
             }
         }

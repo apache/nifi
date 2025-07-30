@@ -24,10 +24,12 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class OffsetTracker {
     private final Map<TopicPartitionSummary, OffsetSummary> offsets = new HashMap<>();
     private final Map<String, Long> recordCounts = new HashMap<>();
+    private final AtomicLong totalRecordSize = new AtomicLong();
 
     public void update(final ByteRecord consumerRecord) {
         final TopicPartitionSummary topicPartitionSummary = new TopicPartitionSummary(consumerRecord.getTopic(), consumerRecord.getPartition());
@@ -35,6 +37,16 @@ public class OffsetTracker {
         final OffsetSummary offsetSummary = offsets.computeIfAbsent(topicPartitionSummary, (summary) -> new OffsetSummary(offset));
         offsetSummary.setOffset(offset);
         recordCounts.merge(consumerRecord.getTopic(), consumerRecord.getBundledCount(), Long::sum);
+
+        // Update Total Record Size with Key and Value length
+        consumerRecord.getKey()
+                .map(key -> key.length)
+                .ifPresent(totalRecordSize::addAndGet);
+        totalRecordSize.addAndGet(consumerRecord.getValue().length);
+    }
+
+    public long getTotalRecordSize() {
+        return totalRecordSize.get();
     }
 
     public Map<String, Long> getRecordCounts() {

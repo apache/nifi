@@ -19,7 +19,7 @@ package org.apache.nifi.web.security.saml2.web.authentication.logout;
 import org.apache.nifi.web.security.logout.StandardLogoutFilter;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 /**
  * SAML 2 Logout Filter completes application Logout Requests
  */
@@ -27,6 +27,6 @@ public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
     public Saml2LocalLogoutFilter(
             final LogoutSuccessHandler logoutSuccessHandler
     ) {
-        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
+        super(PathPatternRequestMatcher.withDefaults().matcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
     }
 }

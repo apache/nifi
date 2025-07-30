@@ -46,7 +46,7 @@ public class IndexOperationResponse implements OperationResponse {
     @SuppressWarnings("unchecked")
     public static IndexOperationResponse fromJsonResponse(final String response) throws IOException {
         final Map<String, Object> parsedResponse = OBJECT_MAPPER.readValue(response, Map.class);
-        // took should be an int, but could be a long (bg in Elasticsearch 8.15.0)
+        // took should be an int, but could be a long (bug in Elasticsearch 8.15.0)
         final long took = Long.parseLong(String.valueOf(parsedResponse.get("took")));
         final boolean hasErrors = (boolean) parsedResponse.get("errors");
         final List<Map<String, Object>> items = (List<Map<String, Object>>) parsedResponse.get("items");

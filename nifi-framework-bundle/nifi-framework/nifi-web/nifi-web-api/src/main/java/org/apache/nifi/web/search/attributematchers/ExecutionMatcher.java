@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.web.search.query.SearchQuery;
@@ -29,7 +29,7 @@ public class ExecutionMatcher implements AttributeMatcher<ProcessorNode>  {
 
     @Override
     public void match(final ProcessorNode component, final SearchQuery query, final List<String> matches) {
-        if (ExecutionNode.PRIMARY.equals(component.getExecutionNode()) && StringUtils.containsIgnoreCase(SEARCH_TERM, query.getTerm())) {
+        if (ExecutionNode.PRIMARY.equals(component.getExecutionNode()) && Strings.CI.contains(SEARCH_TERM, query.getTerm())) {
             matches.add(MATCH_LABEL);
         }
     }

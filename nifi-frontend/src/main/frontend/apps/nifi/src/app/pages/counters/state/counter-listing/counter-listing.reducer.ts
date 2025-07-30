@@ -21,6 +21,7 @@ import {
     counterListingApiError,
     loadCounters,
     loadCountersSuccess,
+    resetAllCountersSuccess,
     resetCounterState,
     resetCounterSuccess
 } from './counter-listing.actions';
@@ -59,6 +60,12 @@ export const counterListingReducer = createReducer(
             }
         });
     }),
+    on(resetAllCountersSuccess, (state, { response }) => ({
+        ...state,
+        counters: response.counters,
+        loadedTimestamp: response.loadedTimestamp,
+        status: 'success' as const
+    })),
     on(resetCounterState, () => ({
         ...initialState
     }))

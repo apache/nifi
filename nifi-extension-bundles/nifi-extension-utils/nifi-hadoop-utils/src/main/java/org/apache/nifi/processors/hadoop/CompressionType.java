@@ -42,7 +42,7 @@ public enum CompressionType {
 
     private final String description;
 
-    private CompressionType(String description) {
+    CompressionType(String description) {
         this.description = description;
     }
 

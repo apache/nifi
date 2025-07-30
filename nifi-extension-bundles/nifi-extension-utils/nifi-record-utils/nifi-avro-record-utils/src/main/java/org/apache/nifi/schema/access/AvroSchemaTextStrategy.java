@@ -43,7 +43,7 @@ public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
     public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
         final String schemaText;
         schemaText = schemaTextPropertyValue.evaluateAttributeExpressions(variables).getValue();
-        if (schemaText == null || schemaText.trim().isEmpty()) {
+        if (schemaText == null || schemaText.isBlank()) {
             throw new SchemaNotFoundException("FlowFile did not contain appropriate attributes to determine Schema Text");
         }
 

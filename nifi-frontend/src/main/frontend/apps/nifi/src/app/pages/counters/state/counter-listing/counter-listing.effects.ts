@@ -72,7 +72,7 @@ export class CounterListingEffects {
                         ...SMALL_DIALOG,
                         data: {
                             title: 'Reset Counter',
-                            message: `Reset counter '${request.counter.name}' to default value?`
+                            message: `Reset counter '${request.counter.name}' to 0?`
                         }
                     });
 
@@ -97,6 +97,49 @@ export class CounterListingEffects {
                     map((response) =>
                         CounterListingActions.resetCounterSuccess({
                             response
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(CounterListingActions.counterListingApiError({ errorResponse }))
+                    )
+                )
+            )
+        )
+    );
+
+    promptResetAllCounters$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(CounterListingActions.promptResetAllCounters),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
+                        data: {
+                            title: 'Reset All Counters',
+                            message: `Reset all counters to 0? This will reset ${request.counterCount} counters.`
+                        }
+                    });
+
+                    dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(CounterListingActions.resetAllCounters());
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    resetAllCounters$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(CounterListingActions.resetAllCounters),
+            switchMap(() =>
+                from(this.countersService.resetAllCounters()).pipe(
+                    map((response) =>
+                        CounterListingActions.resetAllCountersSuccess({
+                            response: {
+                                counters: response.counters.aggregateSnapshot.counters,
+                                loadedTimestamp: response.counters.aggregateSnapshot.generated
+                            }
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>

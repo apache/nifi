@@ -106,4 +106,16 @@ public class StandardCounterRepository implements CounterRepository {
         }
         return null;
     }
+
+    @Override
+    public List<Counter> resetAllCounters() {
+        final List<Counter> resetCounters = new ArrayList<>();
+        for (final ConcurrentMap<String, Counter> counters : processorCounters.values()) {
+            for (final Counter counter : counters.values()) {
+                counter.reset();
+                resetCounters.add(StandardCounter.unmodifiableCounter(counter));
+            }
+        }
+        return resetCounters;
+    }
 }

@@ -26,6 +26,7 @@ import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFHyperlink;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
@@ -53,6 +54,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -236,6 +238,38 @@ public class TestSplitExcel {
 
             dateCells.stream().flatMap(Collection::stream)
                     .forEach(dateCell -> assertTrue(DateUtil.isCellDateFormatted(dateCell)));
+        }
+    }
+
+    @Test
+    void testHyperlinks() throws IOException {
+        final Path hyperlinksFile = Paths.get("src/test/resources/excel/hyperlinks.xlsx");
+        runner.enqueue(hyperlinksFile);
+
+        runner.run();
+
+        runner.assertTransferCount(SplitExcel.REL_SPLIT, 1);
+        runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT).getFirst();
+        try (XSSFWorkbook workbook = new XSSFWorkbook(flowFile.getContentStream())) {
+            final Sheet sheet = workbook.getSheetAt(0);
+            assertEquals("Sheet1", sheet.getSheetName());
+
+            final List<XSSFHyperlink> hyperlinks = (List<XSSFHyperlink>) sheet.getHyperlinkList();
+            assertIterableEquals(
+                    List.of(
+                            "http://google.com/",
+                            "https://apache.org/",
+                            "https://en.wikipedia.org/",
+                            "Sheet1",
+                            "http://twitter.com/#!/apacheorg",
+                            "http://www.bailii.org/databases.html#ie",
+                            "https://en.wikipedia.org/wiki/Apache_POI#See_also"
+                    ),
+                    hyperlinks.stream().map(XSSFHyperlink::getAddress).toList()
+            );
         }
     }
 

@@ -163,7 +163,7 @@ public class ZooKeeperClientConfig {
 
     public static ZooKeeperClientConfig createConfig(final NiFiProperties nifiProperties) {
         final String connectString = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING);
-        if (connectString == null || connectString.trim().isEmpty()) {
+        if (connectString == null || connectString.isBlank()) {
             throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property is not set in nifi.properties");
         }
         final String cleanedConnectString = cleanConnectString(connectString);

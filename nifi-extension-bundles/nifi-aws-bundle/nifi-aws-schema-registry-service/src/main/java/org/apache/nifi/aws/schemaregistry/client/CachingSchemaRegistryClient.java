@@ -23,11 +23,13 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.time.Duration;
+import java.util.UUID;
 
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryClient client;
     private final LoadingCache<String, RecordSchema> nameCache;
     private final LoadingCache<Pair<String, Long>, RecordSchema> nameVersionCache;
+    private final LoadingCache<UUID, RecordSchema> schemaVersionIdCache;
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
         this.client = toWrap;
@@ -40,6 +42,10 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
                 .build(key -> client.getSchema(key.getLeft(), key.getRight()));
+        schemaVersionIdCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(expirationNanos))
+                .build(client::getSchema);
     }
 
     @Override
@@ -48,7 +54,12 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName, long version) {
+    public RecordSchema getSchema(final String schemaName, final long version) {
         return nameVersionCache.get(Pair.of(schemaName, version));
+    }
+
+    @Override
+    public RecordSchema getSchema(final UUID schemaVersionId) {
+        return schemaVersionIdCache.get(schemaVersionId);
     }
 }

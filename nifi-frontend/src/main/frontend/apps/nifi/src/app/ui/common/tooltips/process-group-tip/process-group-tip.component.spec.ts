@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.shared.login;
 
-import org.apache.nifi.context.PropertyContext;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-/**
- * Kerberos Delegating Login Module implementation of configuration provider
- */
-public class KerberosDelegatingLoginConfigProvider implements LoginConfigProvider {
-    private static final LoginConfigProvider USER_SERVICE_PROVIDER = new KerberosUserServiceLoginConfigProvider();
+import { ProcessGroupTip } from './process-group-tip.component';
 
-    /**
-     * Get JAAS configuration using configured Kerberos credentials
-     *
-     * @param context Property Context
-     * @return JAAS configuration with Kerberos Login Module
-     */
-    @Override
-    public String getConfiguration(final PropertyContext context) {
-        return USER_SERVICE_PROVIDER.getConfiguration(context);
-    }
-}
+describe('ProcessGroupTip', () => {
+    let component: ProcessGroupTip;
+    let fixture: ComponentFixture<ProcessGroupTip>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [ProcessGroupTip]
+        });
+        fixture = TestBed.createComponent(ProcessGroupTip);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

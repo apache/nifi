@@ -33,7 +33,7 @@ public class IsEmptyEvaluator extends BooleanEvaluator {
     @Override
     public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
         final Object subjectValue = subjectEvaluator.evaluate(evaluationContext).getValue();
-        return new BooleanQueryResult(subjectValue == null || subjectValue.toString().trim().isEmpty());
+        return new BooleanQueryResult(subjectValue == null || subjectValue.toString().isBlank());
     }
 
     @Override

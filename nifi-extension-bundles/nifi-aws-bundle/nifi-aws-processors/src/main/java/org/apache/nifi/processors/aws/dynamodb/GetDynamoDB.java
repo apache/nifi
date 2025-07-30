@@ -201,7 +201,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
-        if (flowFiles == null || flowFiles.size() == 0) {
+        if (flowFiles == null || flowFiles.isEmpty()) {
             return;
         }
 

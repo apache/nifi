@@ -110,7 +110,7 @@ public class StateManagerConfiguration {
             throw new ConfigParseException("State Management config file " + configFile + " is not a valid configuration file, "
                 + "as a " + elementName + " element does not contain an \"id\" element");
         }
-        if (id.trim().isEmpty()) {
+        if (id.isBlank()) {
             throw new ConfigParseException("State Management config file " + configFile + " is not a valid configuration file, "
                 + "as a " + elementName + "'s \"id\" element is empty");
         }
@@ -120,7 +120,7 @@ public class StateManagerConfiguration {
             throw new ConfigParseException("State Management config file " + configFile + " is not a valid configuration file, "
                 + "as a " + elementName + " element does not contain an \"class\" element");
         }
-        if (className.trim().isEmpty()) {
+        if (className.isBlank()) {
             throw new ConfigParseException("State Management config file " + configFile + " is not a valid configuration file, "
                 + "as a " + elementName + "'s \"class\" element is empty");
         }

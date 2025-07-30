@@ -125,15 +125,22 @@ public interface KafkaClientComponent {
             .description("Service supporting SSL communication with Kafka brokers")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
+            .dependsOn(
+                    SECURITY_PROTOCOL,
+                    SecurityProtocol.SSL.name(),
+                    SecurityProtocol.SASL_SSL.name())
             .build();
 
     PropertyDescriptor KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
             .displayName("Kerberos Service Name")
             .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS configuration")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.GSSAPI)
             .build();
 
     PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
@@ -141,7 +148,10 @@ public interface KafkaClientComponent {
             .displayName("Kerberos User Service")
             .description("Service supporting user authentication with Kerberos")
             .identifiesControllerService(SelfContainedKerberosUserService.class)
-            .required(false)
+            .required(true)
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.GSSAPI)
             .build();
 
     PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE = new PropertyDescriptor.Builder()

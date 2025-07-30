@@ -77,7 +77,7 @@ public abstract class AbstractNiFiActivateCommand<C extends ComponentEntity, S e
             }
         }
 
-        if (exceptions.size() > 0) {
+        if (!exceptions.isEmpty()) {
             throw new CommandException(exceptions.size() + " components could not be " + state.toLowerCase() + ", " +
                     "run command with -verbose to obtain more details");
         }

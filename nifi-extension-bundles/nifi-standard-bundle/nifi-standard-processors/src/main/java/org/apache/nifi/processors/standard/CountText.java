@@ -318,7 +318,7 @@ public class CountText extends AbstractProcessor {
             return 0;
         } else {
             Pattern regex = splitWordsOnSymbols ? SYMBOL_PATTERN : WHITESPACE_ONLY_PATTERN;
-            final Stream<String> wordsStream = regex.splitAsStream(line).filter(item -> !item.trim().isEmpty());
+            final Stream<String> wordsStream = regex.splitAsStream(line).filter(item -> !item.isBlank());
             if (getLogger().isDebugEnabled()) {
                 final List<String> words = wordsStream.collect(Collectors.toList());
                 getLogger().debug("Split [{}] to [{}] ({})", line, StringUtils.join(words, ", "), words.size());

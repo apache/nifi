@@ -272,7 +272,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
         Record record;
         while ((record = recordReader.nextRecord()) != null) {
             final String key = record.getAsString("key");
-            if (key == null || key.trim().isEmpty()) {
+            if (key == null || key.isBlank()) {
                 throw new MalformedRecordException("Field record missing a key field: " + record);
             }
 
@@ -288,7 +288,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractProcessor {
                 for (Object option : iterable) {
                     if (option instanceof Record optionRecord) {
                         final String optionKey = optionRecord.getAsString("key");
-                        if (optionKey != null && !optionKey.trim().isEmpty()) {
+                        if (optionKey != null && !optionKey.isBlank()) {
                             options.add(new BoxAIExtractFieldOption(optionKey));
                         } else {
                             getLogger().warn("Option record missing a valid 'key': {}", optionRecord);

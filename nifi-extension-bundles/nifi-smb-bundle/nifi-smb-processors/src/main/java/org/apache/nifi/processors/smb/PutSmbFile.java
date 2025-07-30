@@ -309,7 +309,7 @@ public class PutSmbFile extends AbstractProcessor {
                 String destinationFullPath;
 
                 // build destination path for the flowfile
-                if (destinationDirectory == null || destinationDirectory.trim().isEmpty()) {
+                if (destinationDirectory == null || destinationDirectory.isBlank()) {
                     destinationFullPath = destinationFilename;
                 } else {
                     destinationFullPath = new java.io.File(destinationDirectory, destinationFilename).getPath();
@@ -344,16 +344,16 @@ public class PutSmbFile extends AbstractProcessor {
 
                 // handle temporary suffix
                 final String renameSuffixValue = context.getProperty(RENAME_SUFFIX).getValue();
-                final Boolean renameSuffix = renameSuffixValue != null && !renameSuffixValue.trim().isEmpty();
-                String finalDestinationFullPath = destinationFullPath;
+                final boolean renameSuffix = renameSuffixValue != null && !renameSuffixValue.isBlank();
+                StringBuilder finalDestinationFullPath = new StringBuilder(destinationFullPath);
                 if (renameSuffix) {
-                    finalDestinationFullPath += renameSuffixValue;
+                    finalDestinationFullPath.append(renameSuffixValue);
                 }
 
                 // handle the transfer
                 try (
                     File shareDestinationFile = share.openFile(
-                        finalDestinationFullPath,
+                        finalDestinationFullPath.toString(),
                         EnumSet.of(AccessMask.GENERIC_WRITE),
                         EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                         sharedAccess,
@@ -371,7 +371,7 @@ public class PutSmbFile extends AbstractProcessor {
                 // handle the rename
                 if (renameSuffix) {
                     try (DiskEntry fileDiskEntry = share.open(
-                        finalDestinationFullPath,
+                        finalDestinationFullPath.toString(),
                         EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
                         EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                         sharedAccess,

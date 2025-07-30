@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.web.search.query.SearchQuery;
@@ -40,14 +40,14 @@ public class PortScheduledStateMatcher implements AttributeMatcher<Port> {
         final String searchTerm = query.getTerm();
 
         if (ScheduledState.DISABLED.equals(component.getScheduledState())) {
-            if (StringUtils.containsIgnoreCase(SEARCH_TERM_DISABLED, searchTerm)) {
+            if (Strings.CI.contains(SEARCH_TERM_DISABLED, searchTerm)) {
                 matches.add(MATCH_PREFIX + MATCH_DISABLED);
             }
-        } else if (StringUtils.containsIgnoreCase(SEARCH_TERM_INVALID, searchTerm) && !component.isValid()) {
+        } else if (Strings.CI.contains(SEARCH_TERM_INVALID, searchTerm) && !component.isValid()) {
             matches.add(MATCH_PREFIX + MATCH_INVALID);
-        } else if (ScheduledState.RUNNING.equals(component.getScheduledState()) && StringUtils.containsIgnoreCase(SEARCH_TERM_RUNNING, searchTerm)) {
+        } else if (ScheduledState.RUNNING.equals(component.getScheduledState()) && Strings.CI.contains(SEARCH_TERM_RUNNING, searchTerm)) {
             matches.add(MATCH_PREFIX + MATCH_RUNNING);
-        } else if (ScheduledState.STOPPED.equals(component.getScheduledState()) && StringUtils.containsIgnoreCase(SEARCH_TERM_STOPPED, searchTerm)) {
+        } else if (ScheduledState.STOPPED.equals(component.getScheduledState()) && Strings.CI.contains(SEARCH_TERM_STOPPED, searchTerm)) {
             matches.add(MATCH_PREFIX + MATCH_STOPPED);
         }
     }

@@ -15,34 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.web.revision;
+import { Component, Input } from '@angular/core';
+import { BoundProcessGroup } from '../../../../state/shared';
+import { ProcessGroupReferences } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/process-group-references/process-group-references.component';
 
-public enum RevisionLockResult {
-
-    /**
-     * A lock was obtained for all Revisions for which a lock was requested.
-     */
-    LOCK_OBTAINED(true),
-
-    /**
-     * No lock was obtained because one or more of the Revisions was not up to date.
-     */
-    INVALID_REVISION(false);
-
-
-
-    private final boolean successful;
-
-    private RevisionLockResult(final boolean successful) {
-        this.successful = successful;
-    }
-
-    /**
-     * Indicates whether or not the result provides a successful lock
-     *
-     * @return <code>true</code> if a lock was successfully obtained, <code>false</code> otherwise
-     */
-    public boolean isSuccess() {
-        return successful;
-    }
+@Component({
+    selector: 'process-group-tip',
+    templateUrl: './process-group-tip.component.html',
+    imports: [ProcessGroupReferences],
+    styleUrls: ['./process-group-tip.component.scss']
+})
+export class ProcessGroupTip {
+    @Input() data: BoundProcessGroup[] | undefined;
 }

@@ -27,7 +27,7 @@ public enum ReferralStrategy {
 
     private final String value;
 
-    private ReferralStrategy(String value) {
+    ReferralStrategy(String value) {
         this.value = value;
     }
 

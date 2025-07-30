@@ -29,7 +29,7 @@ public enum DropFlowFileState {
 
     private final String description;
 
-    private DropFlowFileState(final String description) {
+    DropFlowFileState(final String description) {
         this.description = description;
     }
 

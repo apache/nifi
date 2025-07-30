@@ -145,7 +145,7 @@ public class GrokRecordReader implements RecordReader {
                 if (rawValue instanceof List) {
                     final List<?> list = (List<?>) rawValue;
                     List<?> nonNullElements = list.stream().filter(Objects::nonNull).collect(Collectors.toList());
-                    if (nonNullElements.size() == 0) {
+                    if (nonNullElements.isEmpty()) {
                         normalizedValue = null;
                     } else if (nonNullElements.size() == 1) {
                         normalizedValue = nonNullElements.get(0).toString();

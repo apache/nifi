@@ -290,7 +290,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                             String value = formatItem(item, context);
                             String attributeName = entry.getKey();
                             if (result.size() > 1) {
-                                attributeName += "." + index++;
+                                attributeName += "." + index++; //NOPMD
                             }
                             xQueryResults.put(attributeName, value);
                         }

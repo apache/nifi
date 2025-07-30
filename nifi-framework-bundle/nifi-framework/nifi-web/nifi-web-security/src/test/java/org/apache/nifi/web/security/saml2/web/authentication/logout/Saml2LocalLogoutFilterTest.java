@@ -65,7 +65,7 @@ class Saml2LocalLogoutFilterTest {
 
     @Test
     void testDoFilterInternal() throws ServletException, IOException {
-        httpServletRequest.setPathInfo(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath());
+        httpServletRequest.setRequestURI(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath());
         filter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         verify(logoutSuccessHandler).onLogoutSuccess(eq(httpServletRequest), eq(httpServletResponse), isNull());

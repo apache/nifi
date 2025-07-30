@@ -380,8 +380,8 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             }
 
             Object valueToLookAt = null;
-            for (int i = 0; i < values.length; i++) {
-                valueToLookAt = values[i];
+            for (Object value : values) {
+                valueToLookAt = value;
                 if (valueToLookAt != null) {
                     break;
                 }

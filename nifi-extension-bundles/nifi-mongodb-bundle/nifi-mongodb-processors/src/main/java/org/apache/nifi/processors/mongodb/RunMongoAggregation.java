@@ -161,7 +161,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         configureMapper(jsonTypeSetting, dateFormat);
 
         Map<String, String> attrs = new HashMap<>();
-        if (queryAttr != null && !queryAttr.trim().isEmpty()) {
+        if (queryAttr != null && !queryAttr.isBlank()) {
             attrs.put(queryAttr, query);
         }
 

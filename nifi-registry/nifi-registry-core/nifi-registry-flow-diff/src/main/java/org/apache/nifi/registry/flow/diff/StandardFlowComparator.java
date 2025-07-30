@@ -728,7 +728,7 @@ public class StandardFlowComparator implements FlowComparator {
     }
 
 
-    private static interface ComponentComparator<T extends VersionedComponent> {
+    private interface ComponentComparator<T extends VersionedComponent> {
         void compare(T componentA, T componentB, Set<FlowDifference> differences);
     }
 }

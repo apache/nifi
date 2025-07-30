@@ -169,8 +169,7 @@ public class TestSocketFlowFileServerProtocol {
             final int numPeers = dis.readInt();
             assertEquals(nodeInfoList.size(), numPeers);
 
-            for (int i = 0; i < nodeInfoList.size(); i++) {
-                final NodeInformation node = nodeInfoList.get(i);
+            for (final NodeInformation node : nodeInfoList) {
                 assertEquals(node.getSiteToSiteHostname(), dis.readUTF());
                 assertEquals(node.getSiteToSitePort().intValue(), dis.readInt());
                 assertEquals(node.isSiteToSiteSecure(), dis.readBoolean());

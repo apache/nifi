@@ -33,11 +33,11 @@ public class StandardUpdateResult<T> implements UpdateResult<T> {
             throw new IllegalArgumentException("Entity is required");
         }
 
-        if (this.entityId == null || this.entityId.trim().isEmpty()) {
+        if (this.entityId == null || this.entityId.isBlank()) {
             throw new IllegalArgumentException("Entity id is required");
         }
 
-        if (this.updaterIdentity == null || this.updaterIdentity.trim().isEmpty()) {
+        if (this.updaterIdentity == null || this.updaterIdentity.isBlank()) {
             throw new IllegalArgumentException("Updater identity is required");
         }
     }

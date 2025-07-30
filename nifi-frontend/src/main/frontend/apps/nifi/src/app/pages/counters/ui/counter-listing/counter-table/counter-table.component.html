@@ -16,26 +16,45 @@
 -->
 <div class="counter-table h-full flex flex-col">
     <div class="counter-table-filter-container">
-        <form [formGroup]="filterForm" class="my-2">
-            <div class="flex">
-                <div class="mr-2">
-                    <mat-form-field subscriptSizing="dynamic">
-                        <mat-label>Filter</mat-label>
-                        <input matInput type="text" class="small" formControlName="filterTerm" />
-                    </mat-form-field>
-                </div>
-                <div>
-                    <mat-form-field subscriptSizing="dynamic">
-                        <mat-label>Filter By</mat-label>
-                        <mat-select formControlName="filterColumn">
-                            <mat-option value="name"> name </mat-option>
-                            <mat-option value="context"> context </mat-option>
-                        </mat-select>
-                    </mat-form-field>
-                </div>
+        <div class="flex justify-between items-start">
+            <div class="flex-1">
+                <form [formGroup]="filterForm" class="my-2">
+                    <div class="flex justify-between">
+                        <div class="flex">
+                            <div class="mr-2">
+                                <mat-form-field subscriptSizing="dynamic">
+                                    <mat-label>Filter</mat-label>
+                                    <input matInput type="text" class="small" formControlName="filterTerm" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field subscriptSizing="dynamic">
+                                    <mat-label>Filter By</mat-label>
+                                    <mat-select formControlName="filterColumn">
+                                        <mat-option value="name"> name </mat-option>
+                                        <mat-option value="context"> context </mat-option>
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+                        </div>
+                        @if (canModifyCounters) {
+                            <div class="flex items-center my-auto ml-4">
+                                <button
+                                    mat-button
+                                    type="button"
+                                    title="Reset All Counters"
+                                    data-qa="reset-all-counters-button"
+                                    [disabled]="totalCount === 0"
+                                    (click)="resetAllClicked()">
+                                    <i class="fa fa-undo mr-2" aria-hidden="true"></i>Reset All
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </form>
+                <div class="my-2 tertiary-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
             </div>
-        </form>
-        <div class="my-2 tertiary-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+        </div>
     </div>
     <div class="flex-1 relative">
         <div class="listing-table overflow-y-auto absolute inset-0">

@@ -56,7 +56,7 @@ public abstract class WhitelistFilteringEventHookProvider
      */
     @Override
     public boolean shouldHandle(EventType eventType) {
-        if (whiteListEvents != null && whiteListEvents.size() > 0) {
+        if (whiteListEvents != null && !whiteListEvents.isEmpty()) {
             if (whiteListEvents.contains(eventType)) {
                 return true;
             }

@@ -141,7 +141,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
                 final String streamName = entry.getKey();
                 final List<Record> records = entry.getValue();
 
-                if (records.size() > 0) {
+                if (!records.isEmpty()) {
                     // Send the batch
                     final PutRecordBatchRequest putRecordBatchRequest = PutRecordBatchRequest.builder()
                             .deliveryStreamName(streamName)
@@ -174,11 +174,11 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
                 }
             }
 
-            if (failedFlowFiles.size() > 0) {
+            if (!failedFlowFiles.isEmpty()) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
                 getLogger().error("Failed to publish to kinesis firehose {}", failedFlowFiles);
             }
-            if (successfulFlowFiles.size() > 0) {
+            if (!successfulFlowFiles.isEmpty()) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
                 getLogger().info("Successfully published to kinesis firehose {}", successfulFlowFiles);
             }

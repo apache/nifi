@@ -70,7 +70,7 @@ public enum ResponseCode {
     private final String description;
     private final boolean containsMessage;
 
-    private ResponseCode(final int code, final String description, final boolean containsMessage) {
+    ResponseCode(final int code, final String description, final boolean containsMessage) {
         this.codeSequence = new byte[]{CODE_SEQUENCE_VALUE_1, CODE_SEQUENCE_VALUE_2, (byte) code};
         this.code = code;
         this.description = description;

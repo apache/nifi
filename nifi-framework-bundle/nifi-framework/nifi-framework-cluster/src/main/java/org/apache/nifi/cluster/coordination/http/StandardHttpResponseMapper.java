@@ -230,7 +230,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         final Set<NodeResponse> problematicResponses = nodeResponses.stream().filter(p -> !p.is2xx()).collect(Collectors.toSet());
 
         final NodeResponse clientResponse;
-        if ("GET".equalsIgnoreCase(httpMethod) && problematicResponses.size() > 0) {
+        if ("GET".equalsIgnoreCase(httpMethod) && !problematicResponses.isEmpty()) {
             // If there are problematic responses, at least one of the nodes couldn't complete the request
             clientResponse = problematicResponses.stream().filter(p -> p.getStatus() >= 400 && p.getStatus() < 500).findFirst().orElse(
                     problematicResponses.stream().filter(p -> p.getStatus() > 500).findFirst().orElse(problematicResponses.iterator().next()));

@@ -143,7 +143,7 @@ public class TestBinaryReaderBuilder {
     }
 
     public byte[] toByteArray() throws IOException {
-        if (data.size() == 0) {
+        if (data.isEmpty()) {
             return new byte[0];
         } else if (data.size() == 1) {
             return data.get(0);

@@ -34,12 +34,14 @@ under the License.
 
     <rule ref="category/java/bestpractices.xml/AvoidMessageDigestField" />
     <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables" />
-
+    <rule ref="category/java/bestpractices.xml/ExhaustiveSwitchHasDefault" />
+    <rule ref="category/java/bestpractices.xml/ForLoopCanBeForeach" />
     <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation" />
     <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion" />
     <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
     <rule ref="category/java/bestpractices.xml/UnnecessaryVarargsArrayCreation" />
     <rule ref="category/java/bestpractices.xml/UnusedLocalVariable" />
+    <rule ref="category/java/bestpractices.xml/UseCollectionIsEmpty" />
     <rule ref="category/java/bestpractices.xml/UseStandardCharsets" />
 
     <rule ref="category/java/codestyle.xml/AvoidDollarSigns" />
@@ -47,6 +49,12 @@ under the License.
     <rule ref="category/java/codestyle.xml/IdenticalCatchBranches" />
     <rule ref="category/java/codestyle.xml/ForLoopShouldBeWhileLoop" />
     <rule ref="category/java/codestyle.xml/UnnecessaryImport" />
+    <rule ref="category/java/codestyle.xml/UnnecessaryModifier">
+        <!--The following xpath excludes try with resources that use a final modifier when defining variable(s) -->
+        <properties>
+            <property name="violationSuppressXPath" value="./ancestor::ResourceList/Resource/LocalVariableDeclaration/ModifierList[contains(@ExplicitModifiers, 'final')]"/>
+        </properties>
+    </rule>
     <rule ref="category/java/codestyle.xml/UnnecessarySemicolon" />
     <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
     <rule ref="category/java/codestyle.xml/UseExplicitTypes" />
@@ -59,6 +67,7 @@ under the License.
     <rule ref="category/java/errorprone.xml/ClassCastExceptionWithToArray" />
     <rule ref="category/java/errorprone.xml/DontUseFloatTypeForLoopIndices" />
     <rule ref="category/java/errorprone.xml/EmptyCatchBlock" />
+    <rule ref="category/java/errorprone.xml/ImplicitSwitchFallThrough" />
     <rule ref="category/java/errorprone.xml/JumbledIncrementer" />
     <rule ref="category/java/errorprone.xml/MisplacedNullCheck" />
     <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock" />
@@ -72,4 +81,14 @@ under the License.
     <rule ref="category/java/multithreading.xml/UnsynchronizedStaticFormatter" />
 
     <rule ref="category/java/performance.xml/BigIntegerInstantiation" />
+    <rule ref="category/java/performance.xml/InefficientEmptyStringCheck" />
+    <rule ref="category/java/performance.xml/StringInstantiation" />
+    <rule ref="category/java/performance.xml/StringToString" />
+    <rule ref="category/java/performance.xml/TooFewBranchesForSwitch">
+        <properties>
+            <property name="minimumNumberCaseForASwitch" value="2" />
+        </properties>
+    </rule>
+    <rule ref="category/java/performance.xml/UselessStringValueOf" />
+    <rule ref="category/java/performance.xml/UseStringBufferForStringAppends" />
 </ruleset>

@@ -16,30 +16,13 @@
  */
 package org.apache.nifi.processors.hubspot;
 
-import static org.apache.nifi.processors.hubspot.GetHubSpot.CURSOR_KEY;
-import static org.apache.nifi.processors.hubspot.GetHubSpot.END_INCREMENTAL_KEY;
-import static org.apache.nifi.processors.hubspot.GetHubSpot.START_INCREMENTAL_KEY;
-import static org.apache.nifi.processors.hubspot.HubSpotObjectType.COMPANIES;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
@@ -55,6 +38,24 @@ import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvi
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import static org.apache.nifi.processors.hubspot.GetHubSpot.CURSOR_KEY;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.END_INCREMENTAL_KEY;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.START_INCREMENTAL_KEY;
+import static org.apache.nifi.processors.hubspot.HubSpotObjectType.COMPANIES;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GetHubSpotTest {
 
@@ -87,7 +88,7 @@ class GetHubSpotTest {
     @AfterEach
     void tearDown() throws IOException {
         if (server != null) {
-            server.shutdown();
+            server.close();
             server = null;
         }
     }
@@ -96,7 +97,9 @@ class GetHubSpotTest {
     void testFlowFileContainsResultsArray() throws IOException {
 
         final String response = getResourceAsString("simple_response.json");
-        server.enqueue(new MockResponse().setBody(response));
+        server.enqueue(new MockResponse.Builder()
+                .body(response)
+                .build());
 
         runner.run(1);
 
@@ -118,7 +121,9 @@ class GetHubSpotTest {
     void testFlowFileNotCreatedWhenZeroResult() throws IOException {
 
         final String response = getResourceAsString("zero_result.json");
-        server.enqueue(new MockResponse().setBody(response));
+        server.enqueue(new MockResponse.Builder()
+                .body(response)
+                .build());
 
         runner.run(1);
 
@@ -132,7 +137,10 @@ class GetHubSpotTest {
     void testExceptionIsThrownWhenTooManyRequest() throws IOException {
 
         final String response = getResourceAsString("zero_result.json");
-        server.enqueue(new MockResponse().setBody(response).setResponseCode(429));
+        server.enqueue(new MockResponse.Builder()
+                .code(429)
+                .body(response)
+                .build());
 
         assertThrows(AssertionError.class, () -> runner.run(1));
         assertTrue(runner.getProvenanceEvents().isEmpty());
@@ -141,7 +149,9 @@ class GetHubSpotTest {
     @Test
     void testSimpleIncrementalLoadingFilter() throws IOException, InterruptedException {
         final String response = getResourceAsString("simple_response.json");
-        server.enqueue(new MockResponse().setBody(response));
+        server.enqueue(new MockResponse.Builder()
+                .body(response)
+                .build());
 
         final String limit = "2";
         final int defaultDelay = 30000;
@@ -155,7 +165,7 @@ class GetHubSpotTest {
 
         runner.run(1);
 
-        final String requestBodyString = new String(server.takeRequest().getBody().readByteArray());
+        final String requestBodyString = new String(server.takeRequest().getBody().toByteArray());
 
         final ObjectNode startTimeNode = OBJECT_MAPPER.createObjectNode();
         startTimeNode.put("propertyName", "hs_lastmodifieddate");
@@ -185,7 +195,9 @@ class GetHubSpotTest {
     @Test
     void testIncrementalLoadingFilterWithPagingCursor() throws IOException, InterruptedException {
         final String response = getResourceAsString("simple_response.json");
-        server.enqueue(new MockResponse().setBody(response));
+        server.enqueue(new MockResponse.Builder()
+                .body(response)
+                .build());
 
         final String limit = "2";
         final String after = "nextPage";
@@ -203,7 +215,7 @@ class GetHubSpotTest {
 
         runner.run(1);
 
-        final String requestBodyString = new String(server.takeRequest().getBody().readByteArray());
+        final String requestBodyString = new String(server.takeRequest().getBody().toByteArray());
 
         final ObjectNode startTimeNode = OBJECT_MAPPER.createObjectNode();
         startTimeNode.put("propertyName", "hs_lastmodifieddate");

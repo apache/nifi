@@ -66,9 +66,9 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
                         }
                         return new DecimalQueryResult(resultValue.doubleValue());
                     case NOT_NUMBER:
-                    default:
                         return new DecimalQueryResult(null);
                 }
+                // fallthrough
             case DATE:
                 Long timestamp = ((DateQueryResult) result).getValue().getTime();
                 return new DecimalQueryResult(timestamp.doubleValue());

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -87,7 +88,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
+@SupportsBatching
+@Tags({"json", "elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries. " +
         "Each Record within the FlowFile is converted into a document to be sent to the Elasticsearch _bulk APi. " +
         "Multiple documents can be batched into each Request sent to Elasticsearch. Each document's Bulk operation can be configured using Record Path expressions.")
@@ -275,6 +277,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     "If \"" + NOT_FOUND_IS_SUCCESSFUL.getDisplayName() + "\" is \"false\" then records associated with \"not_found\" " +
                     "Elasticsearch document responses will also be send to the \"" + REL_ERRORS.getName() + "\" relationship.")
             .defaultValue("false")
+            .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .required(false)
             .dependsOn(RESULT_RECORD_WRITER)
@@ -685,7 +688,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             final FieldValue fieldValue = value.get();
             final Map<String, Object> map;
             if (DataTypeUtils.isMapTypeCompatible(fieldValue.getValue())) {
-                map = DataTypeUtils.toMap(fieldValue.getValue(), path.getPath());
+                map = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(fieldValue.getValue(), fieldValue.getField().getDataType());
             } else {
                 try {
                     map = mapper.readValue(fieldValue.getValue().toString(), Map.class);

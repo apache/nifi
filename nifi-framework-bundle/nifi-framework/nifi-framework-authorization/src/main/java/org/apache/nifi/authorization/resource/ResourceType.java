@@ -48,7 +48,7 @@ public enum ResourceType {
 
     final String value;
 
-    private ResourceType(final String value) {
+    ResourceType(final String value) {
         this.value = value;
     }
 

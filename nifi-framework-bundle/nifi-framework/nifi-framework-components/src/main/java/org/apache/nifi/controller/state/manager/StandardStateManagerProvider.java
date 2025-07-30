@@ -251,7 +251,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                     + "' property is missing from the NiFi Properties file");
         }
 
-        if (providerId.trim().isEmpty()) {
+        if (providerId.isBlank()) {
             throw new IllegalStateException("Cannot create " + scope + " Provider because the '" + providerIdPropertyName
                     + "' property in the NiFi Properties file has no value set. This is a required property and must reference the identifier of one of the "
                     + scope + " elements in the State Management Configuration File (" + configFile + ")");
@@ -385,7 +385,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(type);
-            if (bundles.size() == 0) {
+            if (bundles.isEmpty()) {
                 throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
             if (bundles.size() > 1) {

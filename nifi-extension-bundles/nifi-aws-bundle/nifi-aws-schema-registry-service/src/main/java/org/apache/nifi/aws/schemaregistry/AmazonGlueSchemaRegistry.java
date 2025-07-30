@@ -186,6 +186,13 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
                 () -> new SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present")
         );
 
+        if (WireFormatAwsGlueSchemaId.isWireFormatName(schemaName)) {
+            final WireFormatAwsGlueSchemaId schemaVersionId = WireFormatAwsGlueSchemaId.fromSchemaName(schemaName).orElseThrow(
+                    () -> new SchemaNotFoundException("Cannot retrieve schema because Schema Name does not contain a valid Schema Version ID: " + schemaName)
+            );
+            return client.getSchema(schemaVersionId.id());
+        }
+
         final OptionalInt version = schemaIdentifier.getVersion();
 
         if (version.isPresent()) {

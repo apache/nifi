@@ -521,7 +521,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 rollback();
             } catch (final Throwable t2) {
                 t.addSuppressed(t2);
-                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
             }
 
             throw t;
@@ -1192,7 +1191,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     @Override
     public void rollback(final boolean penalize) {
         rollback(penalize, false);
-        verifyTaskActive();
     }
 
     protected synchronized void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
@@ -1838,7 +1836,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public void adjustCounter(final String name, final long delta, final boolean immediate) {
-        verifyTaskActive();
+        // If we are adjusting the counter immediately, allow it even if the task is terminated. The contract states:
+        // "the counter will be updated immediately, without regard to whether the session is committed or rolled back"
+        // so we need to ensure that we allow adjusting the counter even after the task is terminated.
+        if (!immediate) {
+            verifyTaskActive();
+        }
 
         final Map<String, Long> counters;
         if (immediate) {
@@ -1863,11 +1866,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private void adjustCounter(final String name, final long delta, final Map<String, Long> map) {
         Long curVal = map.get(name);
         if (curVal == null) {
-            curVal = Long.valueOf(0L);
+            curVal = 0L;
         }
 
-        final long newValue = curVal.longValue() + delta;
-        map.put(name, Long.valueOf(newValue));
+        final long newValue = curVal + delta;
+        map.put(name, newValue);
     }
 
     @Override
@@ -3862,7 +3865,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
      * Callback interface used to poll a FlowFileQueue, in order to perform
      * functional programming-type of polling a queue
      */
-    private static interface ConnectionPoller {
+    private interface ConnectionPoller {
 
         List<FlowFileRecord> poll(Connection connection, Set<FlowFileRecord> expiredRecords);
     }

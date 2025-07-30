@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.update.attributes.api;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.update.attributes.Action;
 import org.apache.nifi.update.attributes.Condition;
 import org.apache.nifi.update.attributes.Criteria;
@@ -417,7 +417,7 @@ public class RuleResource {
         if (rules != null) {
             ruleDtos = new ArrayList<>(rules.size());
             for (final Rule rule : rules) {
-                if (StringUtils.containsIgnoreCase(rule.getName(), term)) {
+                if (Strings.CI.contains(rule.getName(), term)) {
                     final RuleDTO ruleDto = DtoFactory.createRuleDTO(rule);
                     ruleDtos.add(ruleDto);
                 }

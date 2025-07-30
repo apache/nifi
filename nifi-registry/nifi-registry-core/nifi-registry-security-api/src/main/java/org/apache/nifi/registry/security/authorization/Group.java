@@ -39,11 +39,11 @@ public class Group {
         this.name = builder.name;
         this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
 
-        if (this.identifier == null || this.identifier.trim().isEmpty()) {
+        if (this.identifier == null || this.identifier.isBlank()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
         }
 
-        if (this.name == null || this.name.trim().isEmpty()) {
+        if (this.name == null || this.name.isBlank()) {
             throw new IllegalArgumentException("Name can not be null or empty");
         }
     }

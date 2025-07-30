@@ -190,7 +190,7 @@ public class TestFlowContentSerializer {
 
         assertNotNull(processGroup);
         assertNotNull(processGroup.getProcessors());
-        assertTrue(processGroup.getProcessors().size() > 0);
+        assertFalse(processGroup.getProcessors().isEmpty());
         //System.out.printf("processGroup=" + processGroup);
     }
 
@@ -212,7 +212,7 @@ public class TestFlowContentSerializer {
 
         assertNotNull(processGroup);
         assertNotNull(processGroup.getProcessors());
-        assertTrue(processGroup.getProcessors().size() > 0);
+        assertFalse(processGroup.getProcessors().isEmpty());
         //System.out.printf("processGroup=" + processGroup);
     }
 

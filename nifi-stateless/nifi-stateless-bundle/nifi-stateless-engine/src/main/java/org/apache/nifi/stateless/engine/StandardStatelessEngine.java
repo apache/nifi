@@ -457,7 +457,7 @@ public class StandardStatelessEngine implements StatelessEngine {
 
     private BundleCoordinate determineBundleCoordinate(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
         final String explicitCoordinates = extensionDefinition.getBundleCoordinates();
-        if (explicitCoordinates != null && !explicitCoordinates.trim().isEmpty()) {
+        if (explicitCoordinates != null && !explicitCoordinates.isBlank()) {
             final String resolvedClassName = resolveExtensionClassName(extensionDefinition, extensionType);
             extensionDefinition.setType(resolvedClassName);
 
@@ -768,7 +768,7 @@ public class StandardStatelessEngine implements StatelessEngine {
     }
 
     static Duration parseDuration(final String durationValue) {
-        if (durationValue == null || durationValue.trim().isEmpty()) {
+        if (durationValue == null || durationValue.isBlank()) {
             return null;
         }
 

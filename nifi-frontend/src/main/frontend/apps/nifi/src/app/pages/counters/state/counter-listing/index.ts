@@ -35,6 +35,10 @@ export interface LoadCounterListingResponse {
     loadedTimestamp: string;
 }
 
+export interface ResetAllCountersRequest {
+    counterCount: number;
+}
+
 export interface ResetCounterRequest {
     counter: CounterEntity;
 }

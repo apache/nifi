@@ -81,7 +81,7 @@ public class FlowEncodingVersion {
      *             version is not an integer, or if either the major or minor version is less than 0.
      */
     public static FlowEncodingVersion parse(final String version) {
-        if (version == null || version.trim().isEmpty()) {
+        if (version == null || version.isBlank()) {
             return null;
         }
 

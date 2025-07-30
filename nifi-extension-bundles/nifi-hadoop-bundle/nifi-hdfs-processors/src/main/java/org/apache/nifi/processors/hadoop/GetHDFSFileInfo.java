@@ -909,7 +909,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
                 appendProperty(sb, "status", this.error);
             }
 
-            if (this.getChildren() != null && this.getChildren().size() > 0) {
+            if (this.getChildren() != null && !this.getChildren().isEmpty()) {
                 sb.append(",\"content\":[");
                 for (HDFSObjectInfoDetails c : this.getChildren()) {
                     c.toJsonString(sb).append(",");

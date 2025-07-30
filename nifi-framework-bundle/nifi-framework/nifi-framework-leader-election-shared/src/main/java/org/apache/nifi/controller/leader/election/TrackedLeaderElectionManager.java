@@ -142,6 +142,6 @@ public abstract class TrackedLeaderElectionManager implements LeaderElectionMana
      * @return Participating status
      */
     protected boolean isParticipating(final String participantId) {
-        return participantId != null && !participantId.trim().isEmpty();
+        return participantId != null && !participantId.isBlank();
     }
 }

@@ -79,8 +79,6 @@ public class BlobServiceClientFactory extends AbstractStorageClientFactory<Azure
                 TokenCredential credential = tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
                 clientBuilder.credential(credential);
                 break;
-            default:
-                throw new IllegalArgumentException("Unhandled credentials type: " + credentialsDetails.getCredentialsType());
         }
     }
 }

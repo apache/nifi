@@ -19,5 +19,5 @@ package org.apache.nifi.cs.tests.system;
 import org.apache.nifi.controller.ControllerService;
 
 public interface BaseFakeService extends ControllerService {
-    public void foo();
+    void foo();
 }

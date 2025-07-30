@@ -17,10 +17,10 @@
 package org.apache.nifi.services.zendesk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.common.zendesk.ZendeskAuthenticationType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -98,7 +98,7 @@ public class ZendeskRecordSinkTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        server.shutdown();
+        server.close();
     }
 
     private void initSingleTestRecord() {
@@ -170,14 +170,17 @@ public class ZendeskRecordSinkTest {
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
 
         initSingleTestRecord();
         WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
@@ -195,7 +198,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
 
     @Test
@@ -205,14 +208,17 @@ public class ZendeskRecordSinkTest {
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
 
         initMultipleTestRecord();
         WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKETS_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKETS_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(2, writeResult.getRecordCount());
@@ -233,7 +239,7 @@ public class ZendeskRecordSinkTest {
                 "  } ]\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
 
     @Test
@@ -245,14 +251,17 @@ public class ZendeskRecordSinkTest {
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
 
         initSingleTestRecord();
         WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
@@ -275,7 +284,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
 
     @Test
@@ -287,14 +296,17 @@ public class ZendeskRecordSinkTest {
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
 
         initSingleTestRecord();
         WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
@@ -317,7 +329,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
 
     @Test
@@ -326,14 +338,17 @@ public class ZendeskRecordSinkTest {
         testRunner.assertValid(sinkZendeskTicket);
         testRunner.enableControllerService(sinkZendeskTicket);
 
-        server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
+        server.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(EMPTY_RESPONSE)
+                .build());
 
         initDuplicateRecords();
         WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
         RecordedRequest recordedRequest = server.takeRequest();
-        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getPath());
+        assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
@@ -348,7 +363,7 @@ public class ZendeskRecordSinkTest {
                 "  }\n" +
                 "}";
 
-        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().inputStream()));
+        assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
 
     class TestZendeskRecordSink extends ZendeskRecordSink {

@@ -46,7 +46,7 @@ public final class Netflowv5Parser {
         this.portNumber = (portNumber.isPresent()) ? portNumber.getAsInt() : 0;
     }
 
-    public final int parse(final byte[] buffer) throws Throwable {
+    public int parse(final byte[] buffer) throws Throwable {
         if (!isValid(buffer.length)) {
             throw new Exception("Invalid Packet Length");
         }
@@ -97,7 +97,7 @@ public final class Netflowv5Parser {
         return count;
     }
 
-    private final Object parseField(final byte[] buffer, final int startOffset, final int length, final int type) {
+    private Object parseField(final byte[] buffer, final int startOffset, final int length, final int type) {
         Object value = null;
         switch (type) {
             case SHORT_TYPE:

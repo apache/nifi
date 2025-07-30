@@ -108,7 +108,7 @@ public class TweetStreamService {
         final String basePath = context.getProperty(ConsumeTwitter.BASE_PATH).getValue();
         api.getApiClient().setBasePath(basePath);
 
-        threadFactory = new BasicThreadFactory.Builder().namingPattern(ConsumeTwitter.class.getSimpleName()).build();
+        threadFactory = BasicThreadFactory.builder().namingPattern(ConsumeTwitter.class.getSimpleName()).build();
     }
 
     public String getTransitUri(final String endpoint) {

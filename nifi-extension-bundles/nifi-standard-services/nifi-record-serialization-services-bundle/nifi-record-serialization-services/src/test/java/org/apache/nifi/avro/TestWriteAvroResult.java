@@ -338,8 +338,8 @@ public abstract class TestWriteAvroResult {
                 assertEquals(objectArray.length, bb.remaining(),
                         "For field " + fieldName + ", byte buffer remaining should have been " + objectArray.length + " but was " + bb.remaining());
 
-                for (int i = 0; i < objectArray.length; i++) {
-                    assertEquals(objectArray[i], bb.get());
+                for (Object o : objectArray) {
+                    assertEquals(o, bb.get());
                 }
             } else if (recordValue instanceof Object[]) {
                 assertInstanceOf(Array.class, avroValue, fieldName + " should have been instanceof Array");

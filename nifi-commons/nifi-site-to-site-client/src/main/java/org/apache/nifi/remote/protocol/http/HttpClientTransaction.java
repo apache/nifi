@@ -124,13 +124,10 @@ public class HttpClientTransaction extends AbstractTransaction {
                     logger.debug("{} Canceling transaction. explanation={}", this, explanation);
                     TransactionResultEntity resultEntity = apiClient.commitReceivingFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION, null);
                     ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
-                    switch (cancelResponse) {
-                        case CANCEL_TRANSACTION:
-                            logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
-                            break;
-                        default:
-                            logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
-                            break;
+                    if (cancelResponse == ResponseCode.CANCEL_TRANSACTION) {
+                        logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
+                    } else {
+                        logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
                     }
                     break;
             }
@@ -143,14 +140,11 @@ public class HttpClientTransaction extends AbstractTransaction {
                 case BAD_CHECKSUM: {
                         TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);
                         ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
-                        switch (badChecksumCancelResponse) {
-                            case CANCEL_TRANSACTION:
-                                logger.debug("{} BAD_CHECKSUM, The transaction is canceled on server properly.", this);
-                                break;
-                            default:
-                                logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.", this, badChecksumCancelResponse);
-                                break;
-                        }
+                    if (badChecksumCancelResponse == ResponseCode.CANCEL_TRANSACTION) {
+                        logger.debug("{} BAD_CHECKSUM, The transaction is canceled on server properly.", this);
+                    } else {
+                        logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.", this, badChecksumCancelResponse);
+                    }
 
                     }
                     break;
@@ -162,14 +156,11 @@ public class HttpClientTransaction extends AbstractTransaction {
                         logger.debug("{} Canceling transaction.", this);
                         TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION);
                         ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
-                        switch (cancelResponse) {
-                            case CANCEL_TRANSACTION:
-                                logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
-                                break;
-                            default:
-                                logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
-                                break;
-                        }
+                    if (cancelResponse == ResponseCode.CANCEL_TRANSACTION) {
+                        logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
+                    } else {
+                        logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
+                    }
                     }
                     break;
             }

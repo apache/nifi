@@ -69,7 +69,7 @@ public interface RecordSet {
         };
     }
 
-    public static RecordSet of(final RecordSchema schema, final Record... records) {
+    static RecordSet of(final RecordSchema schema, final Record... records) {
         return new RecordSet() {
             private int index = 0;
 

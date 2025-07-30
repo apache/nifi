@@ -24,6 +24,8 @@ import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.io.socket.SocketConfiguration;
@@ -154,6 +156,23 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         }
 
         throw new ProtocolException("Expected message type '" + MessageType.CLUSTER_WORKLOAD_RESPONSE + "' but found '" + responseMessage.getType() + "'");
+    }
+
+    @Override
+    public NodeStatusesResponseMessage nodeStatuses(final NodeStatusesRequestMessage msg) throws ProtocolException {
+        final InetSocketAddress serviceAddress;
+        try {
+            serviceAddress = getServiceAddress();
+        } catch (IOException e) {
+            throw new ProtocolException("Failed to get Service Address", e);
+        }
+
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, serviceAddress.getHostName(), serviceAddress.getPort(), new CommsTimingDetails());
+        if (MessageType.NODE_STATUSES_RESPONSE == responseMessage.getType()) {
+            return (NodeStatusesResponseMessage) responseMessage;
+        }
+
+        throw new ProtocolException("Expected message type '" + MessageType.NODE_STATUSES_RESPONSE + "' but found '" + responseMessage.getType() + "'");
     }
 
     private Socket createSocket(final InetSocketAddress socketAddress) {

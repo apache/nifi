@@ -21,7 +21,7 @@ package org.apache.nifi.authentication;
  */
 public interface LoginIdentityProviderInitializationContext {
 
-    public String getIdentifier();
+    String getIdentifier();
 
-    public LoginIdentityProviderLookup getAuthorityProviderLookup();
+    LoginIdentityProviderLookup getAuthorityProviderLookup();
 }

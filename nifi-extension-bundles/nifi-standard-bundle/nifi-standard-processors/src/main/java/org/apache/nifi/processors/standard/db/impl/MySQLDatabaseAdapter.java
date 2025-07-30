@@ -80,8 +80,8 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
                 .collect(Collectors.joining(", "));
 
         List<String> updateValues = new ArrayList<>();
-        for (int i = 0; i < columnNames.size(); i++) {
-            updateValues.add(columnNames.get(i) + " = ?");
+        for (String columnName : columnNames) {
+            updateValues.add(columnName + " = ?");
         }
         String parameterizedUpdateValues = String.join(", ", updateValues);
 

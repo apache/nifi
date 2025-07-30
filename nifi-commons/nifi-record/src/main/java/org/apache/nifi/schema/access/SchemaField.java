@@ -28,7 +28,7 @@ public enum SchemaField {
 
     private final String description;
 
-    private SchemaField(final String description) {
+    SchemaField(final String description) {
         this.description = description;
     }
 

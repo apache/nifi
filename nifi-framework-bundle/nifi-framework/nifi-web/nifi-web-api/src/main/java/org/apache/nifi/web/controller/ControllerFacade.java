@@ -702,6 +702,15 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Resets all counters atomically.
+     *
+     * @return the list of reset counters
+     */
+    public List<Counter> resetAllCounters() {
+        return flowController.resetAllCounters();
+    }
+
+    /**
      * Gets the status of this controller.
      *
      * @return the status of this controller

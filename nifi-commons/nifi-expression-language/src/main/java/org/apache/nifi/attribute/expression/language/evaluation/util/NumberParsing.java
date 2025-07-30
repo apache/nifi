@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 
 public class NumberParsing {
 
-    public static enum ParseResultType {
+    public enum ParseResultType {
         NOT_NUMBER, WHOLE_NUMBER, DECIMAL;
     }
     private static final String OptionalSign  = "[\\-\\+]?";

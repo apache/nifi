@@ -50,7 +50,6 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
     private final String timestampFormat;
 
     private final CsvWriter csvWriter;
-    private final OutputStreamWriter streamWriter;
 
     private final String[] fieldValues;
     private final boolean includeHeaderLine;
@@ -75,10 +74,10 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         this.timestampFormat = timestampFormat;
         this.includeHeaderLine = includeHeaderLine;
 
-        this.streamWriter = new OutputStreamWriter(out, charSet);
+        final OutputStreamWriter streamWriter = new OutputStreamWriter(out, charSet);
 
         CsvWriter.CsvWriterBuilder builder = CsvWriter.builder()
-            .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
+                .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter());
 
         QuoteMode quoteMode = (csvFormat.getQuoteMode() == null) ? MINIMAL : csvFormat.getQuoteMode();
@@ -133,7 +132,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
 
     @Override
     public void flush() throws IOException {
-        streamWriter.flush();
+        csvWriter.flush();
     }
 
     @Override

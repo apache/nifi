@@ -29,7 +29,7 @@ public enum ListFlowFileState {
 
     private final String description;
 
-    private ListFlowFileState(final String description) {
+    ListFlowFileState(final String description) {
         this.description = description;
     }
 

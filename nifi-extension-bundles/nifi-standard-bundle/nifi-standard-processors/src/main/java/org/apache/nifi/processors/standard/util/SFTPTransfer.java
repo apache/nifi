@@ -713,7 +713,7 @@ public class SFTPTransfer implements FileTransfer {
 
         int perms;
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (permissions == null || permissions.trim().isEmpty()) {
+        if (permissions == null || permissions.isBlank()) {
             sftpClient.getFileTransfer().setPreserveAttributes(false); //We will accept whatever the default permissions are of the destination
             perms = 0;
         } else {
@@ -729,7 +729,7 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-        if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
+        if (lastModifiedTime != null && !lastModifiedTime.isBlank()) {
             try {
                 final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                 final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
@@ -748,7 +748,7 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final String owner = ctx.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-        if (owner != null && !owner.trim().isEmpty()) {
+        if (owner != null && !owner.isBlank()) {
             try {
                 sftpClient.chown(tempPath, Integer.parseInt(owner));
             } catch (final Exception e) {
@@ -757,7 +757,7 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final String group = ctx.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-        if (group != null && !group.trim().isEmpty()) {
+        if (group != null && !group.isBlank()) {
             try {
                 sftpClient.chgrp(tempPath, Integer.parseInt(group));
             } catch (final Exception e) {

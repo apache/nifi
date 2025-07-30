@@ -2481,9 +2481,9 @@ public class PutDatabaseRecordTest {
 
         @Override
         public String toString() {
-            return "autoCommit=" + String.valueOf(autoCommit) +
-                    "; rollbackOnFailure=" + String.valueOf(rollbackOnFailure) +
-                    "; batchSize=" + String.valueOf(batchSize);
+            return "autoCommit=" + autoCommit +
+                    "; rollbackOnFailure=" + rollbackOnFailure +
+                    "; batchSize=" + batchSize;
         }
     }
 }

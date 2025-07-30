@@ -83,6 +83,6 @@ public class BootstrapProperties extends StandardReadableProperties {
     }
 
     private static boolean isBlank(final String string) {
-        return (string == null) || string.isEmpty() || string.trim().isEmpty();
+        return (string == null) || string.isBlank();
     }
 }

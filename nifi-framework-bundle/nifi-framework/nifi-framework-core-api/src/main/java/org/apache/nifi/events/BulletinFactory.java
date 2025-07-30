@@ -54,13 +54,14 @@ public final class BulletinFactory {
         if (group == null) {
             return null;
         } else {
-            String path = group.getName();
+            StringBuilder path = new StringBuilder(group.getName());
             ProcessGroup parent = group.getParent();
             while (parent != null) {
-                path = parent.getName() + " / " + path;
+                path.insert(0, " / ");
+                path.insert(0, parent.getName());
                 parent = parent.getParent();
             }
-            return path;
+            return path.toString();
         }
     }
 

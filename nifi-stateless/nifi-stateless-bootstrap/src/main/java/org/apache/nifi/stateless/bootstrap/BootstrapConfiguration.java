@@ -199,7 +199,7 @@ public class BootstrapConfiguration {
         }
 
         final String contextAndParameterName = nameAndValueSplits[0];
-        if (contextAndParameterName.trim().isEmpty()) {
+        if (contextAndParameterName.isBlank()) {
             throw new IllegalArgumentException("Invalid parameter: argument has no parameter name: " + argument);
         }
 

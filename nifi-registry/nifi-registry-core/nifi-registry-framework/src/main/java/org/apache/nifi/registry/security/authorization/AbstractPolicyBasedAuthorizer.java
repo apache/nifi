@@ -359,7 +359,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      */
     @Override
     public final void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
-        if (fingerprint == null || fingerprint.trim().isEmpty()) {
+        if (fingerprint == null || fingerprint.isBlank()) {
             return;
         }
 

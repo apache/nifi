@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.aws.lambda;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.util.Base64;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
@@ -36,6 +34,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
 
 import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,7 +80,7 @@ public class TestPutLambda {
 
         final InvokeResponse invokeResult = InvokeResponse.builder()
                 .statusCode(200)
-                .logResult(Base64.encodeAsString("test-log-result".getBytes()))
+                .logResult(Base64.getEncoder().encodeToString("test-log-result".getBytes()))
                 .payload(SdkBytes.fromString("test-payload", Charset.defaultCharset()))
                 .build();
         when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenReturn(invokeResult);
@@ -139,7 +138,7 @@ public class TestPutLambda {
     public void testPutLambdaAmazonException() {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
         runner.enqueue("TestContent");
-        when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenThrow(new AmazonServiceException("TestFail"));
+        when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenThrow(new RuntimeException("TestFail"));
 
         runner.assertValid();
         runner.run(1);

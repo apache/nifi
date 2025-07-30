@@ -37,4 +37,8 @@ export class CountersService {
     resetCounter(counterResetRequest: ResetCounterRequest): Observable<any> {
         return this.httpClient.put(`${CountersService.API}/counters/${counterResetRequest.counter.id}`, null);
     }
+
+    resetAllCounters(): Observable<any> {
+        return this.httpClient.put(`${CountersService.API}/counters`, null);
+    }
 }

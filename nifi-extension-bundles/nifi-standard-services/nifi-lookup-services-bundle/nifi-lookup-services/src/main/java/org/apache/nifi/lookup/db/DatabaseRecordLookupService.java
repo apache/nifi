@@ -187,7 +187,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
     }
 
     private static boolean isNotBlank(final String value) {
-        return value != null && !value.trim().isEmpty();
+        return value != null && !value.isBlank();
     }
 
     @Override

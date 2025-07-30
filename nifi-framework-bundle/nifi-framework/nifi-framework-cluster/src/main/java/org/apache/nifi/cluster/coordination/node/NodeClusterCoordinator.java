@@ -54,6 +54,8 @@ import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeStatusesResponseMessage;
 import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
@@ -274,6 +276,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return nodeId;
     }
 
+    @Override
     public NodeIdentifier waitForElectedClusterCoordinator() {
         return waitForNodeIdentifier(() -> getElectedActiveCoordinatorNode(false));
     }
@@ -632,6 +635,22 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public NodeConnectionStatus getConnectionStatus(final NodeIdentifier nodeId) {
         return nodeStatuses.get(nodeId.getId());
+    }
+
+    @Override
+    public NodeConnectionStatus fetchConnectionStatus(final NodeIdentifier nodeId) {
+        final NodeStatusesResponseMessage responseMessage = nodeProtocolSender.nodeStatuses(new NodeStatusesRequestMessage());
+        if (responseMessage == null || responseMessage.getNodeStatuses() == null) {
+            logger.warn("Failed to fetch connection status for {}", nodeId);
+            return null;
+        }
+
+        logger.debug("Received Node Statuses Response [{}]", responseMessage.getNodeStatuses());
+
+        return responseMessage.getNodeStatuses().stream()
+                .filter(s -> s.getNodeIdentifier().equals(nodeId))
+                .findFirst()
+                .orElse(null);
     }
 
     private NodeConnectionState getConnectionState(final NodeIdentifier nodeId) {

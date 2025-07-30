@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { LoadCounterListingResponse, ResetCounterRequest, ResetCounterSuccess } from './index';
+import { LoadCounterListingResponse, ResetAllCountersRequest, ResetCounterRequest, ResetCounterSuccess } from './index';
 import { HttpErrorResponse } from '@angular/common/http';
 
 const COUNTER_PREFIX = '[Counter Listing]';
@@ -46,3 +46,15 @@ export const resetCounterSuccess = createAction(
 );
 
 export const resetCounterState = createAction(`${COUNTER_PREFIX} Reset Counter State`);
+
+export const promptResetAllCounters = createAction(
+    `${COUNTER_PREFIX} Prompt Reset All Counters`,
+    props<{ request: ResetAllCountersRequest }>()
+);
+
+export const resetAllCounters = createAction(`${COUNTER_PREFIX} Reset All Counters`);
+
+export const resetAllCountersSuccess = createAction(
+    `${COUNTER_PREFIX} Reset All Counters Success`,
+    props<{ response: LoadCounterListingResponse }>()
+);

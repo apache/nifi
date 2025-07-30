@@ -31,7 +31,7 @@ public interface UsersAndAccessPolicies {
      * @param action the action to retrieve policies for
      * @return the access policy for the given resource and action
      */
-    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action);
+    AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action);
 
     /**
      * Retrieves a user by an identity string.
@@ -39,7 +39,7 @@ public interface UsersAndAccessPolicies {
      * @param identity the identity of the user to retrieve
      * @return the user with the given identity
      */
-    public User getUser(final String identity);
+    User getUser(final String identity);
 
     /**
      * Retrieves the groups for a given user identity.
@@ -47,6 +47,6 @@ public interface UsersAndAccessPolicies {
      * @param userIdentity a user identity
      * @return the set of groups for the given user identity
      */
-    public Set<Group> getGroups(final String userIdentity);
+    Set<Group> getGroups(final String userIdentity);
 
 }

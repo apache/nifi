@@ -27,10 +27,7 @@ public interface EventReporter extends Serializable {
     /**
      * An Event Reporter that performs no action and ignores all given input
      */
-    public static final EventReporter NO_OP = new EventReporter() {
-        @Override
-        public void reportEvent(Severity severity, String category, String message) {
-        }
+    EventReporter NO_OP = (severity, category, message) -> {
     };
 
     void reportEvent(Severity severity, String category, String message);

@@ -51,8 +51,7 @@ public class ExtensionMetadataResult extends AbstractWritableResult<List<Extensi
                 .column("Version", 8, 40, false)
                 .build();
 
-        for (int i = 0; i < extensionMetadata.size(); ++i) {
-            final ExtensionMetadata metadata = extensionMetadata.get(i);
+        for (final ExtensionMetadata metadata : extensionMetadata) {
             table.addRow(
                     metadata.getDisplayName(),
                     metadata.getBundleInfo().getBucketName(),

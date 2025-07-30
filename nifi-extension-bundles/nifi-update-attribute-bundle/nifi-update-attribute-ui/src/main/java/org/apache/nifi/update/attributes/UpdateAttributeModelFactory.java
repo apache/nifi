@@ -43,7 +43,7 @@ public class UpdateAttributeModelFactory {
         if (dto.getName() == null) {
             throw new IllegalArgumentException("Rule name must be specified.");
         }
-        if (dto.getName().trim().isEmpty()) {
+        if (dto.getName().isBlank()) {
             throw new IllegalArgumentException("Rule name cannot be blank.");
         }
 

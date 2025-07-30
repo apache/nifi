@@ -175,7 +175,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
                         if (!ipOrHostLine.equals(ipCidr)) {
                             logger.debug("Resolved host '{}' to ip '{}'", ipOrHostLine, ipCidr);
                         }
-                        ipCidr += "/32";
+                        ipCidr += "/32"; // NOPMD
                         logger.debug("Adding CIDR to exact IP: '{}'", ipCidr);
                     } catch (final UnknownHostException uhe) {
                         logger.warn("Firewall is skipping unknown host address: '{}'", ipOrHostLine);

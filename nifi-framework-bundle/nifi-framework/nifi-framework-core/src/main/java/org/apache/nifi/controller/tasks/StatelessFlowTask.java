@@ -359,16 +359,16 @@ public class StatelessFlowTask {
 
         boolean stopped = false;
         if (cause instanceof TerminatedTaskException) {
-            final String input = inputFlowFiles.isEmpty() ? "no input FlowFile" : inputFlowFiles.toString();
+            final String input = inputFlowFiles.isEmpty() ? "no input FlowFile" : "input FlowFiles " + inputFlowFiles;
 
             // A TerminatedTaskException will happen for 2 reasons: the group was stopped, or it timed out.
             // If it was stopped, just log at an INFO level, as this is expected. If it timed out, log an error.
             final ScheduledState desiredState = this.statelessGroupNode.getDesiredState();
             if (desiredState == ScheduledState.STOPPED) {
-                logger.info("Stateless Flow canceled while running with input {}", input);
+                logger.info("Stateless Flow canceled while running with {}", input);
                 stopped = true;
             } else {
-                logger.error("Stateless Flow timed out while running with input {}", input);
+                logger.error("Stateless Flow timed out while running with {}", input);
             }
         } else {
             final String input = inputFlowFiles.isEmpty() ? "with no input FlowFile" : " for input " + inputFlowFiles;

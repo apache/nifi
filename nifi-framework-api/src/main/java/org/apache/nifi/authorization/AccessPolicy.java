@@ -45,7 +45,7 @@ public class AccessPolicy {
         this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
         this.groups = Collections.unmodifiableSet(new HashSet<>(builder.groups));
 
-        if (this.identifier == null || this.identifier.trim().isEmpty()) {
+        if (this.identifier == null || this.identifier.isBlank()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
         }
 

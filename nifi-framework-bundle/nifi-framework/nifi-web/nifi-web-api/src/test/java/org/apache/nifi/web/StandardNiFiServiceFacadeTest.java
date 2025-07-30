@@ -37,6 +37,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -75,6 +76,9 @@ import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.web.api.dto.CounterDTO;
+import org.apache.nifi.web.api.dto.CountersDTO;
+import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -1034,9 +1038,8 @@ public class StandardNiFiServiceFacadeTest {
 
     }
 
-
     @Test
-    public void testGetRuleViolationsForGroupIsRecursive() throws Exception {
+    public void testGetRuleViolationsForRoot() {
         // GIVEN
         int ruleViolationCounter = 0;
 
@@ -1076,8 +1079,138 @@ public class StandardNiFiServiceFacadeTest {
                 grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
         ));
 
+        when(processGroupDAO.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS)).thenReturn(processGroup);
+        when(ruleViolationsManager.getAllRuleViolations()).thenReturn(expected);
+
         // WHEN
         Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(processGroup.getIdentifier()).collect(Collectors.toSet());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testGetRuleViolationsForRootWithAlias() {
+        // GIVEN
+        int ruleViolationCounter = 0;
+
+        String groupId = "groupId";
+        String childGroupId = "childGroupId";
+        String grandChildGroupId = "grandChildGroupId";
+
+        RuleViolation ruleViolation1 = createRuleViolation(groupId, ruleViolationCounter++);
+        RuleViolation ruleViolation2 = createRuleViolation(groupId, ruleViolationCounter++);
+
+        RuleViolation childRuleViolation1 = createRuleViolation(childGroupId, ruleViolationCounter++);
+        RuleViolation childRuleViolation2 = createRuleViolation(childGroupId, ruleViolationCounter++);
+
+        RuleViolation grandChildRuleViolation1 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation2 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation3 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+
+        ProcessGroup grandChildProcessGroup = mockProcessGroup(
+                grandChildGroupId,
+                Collections.emptyList(),
+                Arrays.asList(grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+        ProcessGroup childProcessGroup = mockProcessGroup(
+                childGroupId,
+                Arrays.asList(grandChildProcessGroup),
+                Arrays.asList(childRuleViolation1, childRuleViolation2)
+        );
+        ProcessGroup processGroup = mockProcessGroup(
+                groupId,
+                Arrays.asList(childProcessGroup),
+                Arrays.asList(ruleViolation1, ruleViolation2)
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(Arrays.asList(
+                ruleViolation1, ruleViolation2,
+                childRuleViolation1, childRuleViolation2,
+                grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
+        ));
+
+        when(processGroupDAO.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS)).thenReturn(processGroup);
+        when(ruleViolationsManager.getAllRuleViolations()).thenReturn(expected);
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(FlowManager.ROOT_GROUP_ID_ALIAS).collect(Collectors.toSet());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    public void testGetRuleViolationsEmpty() {
+        // GIVEN
+        String groupId = "groupId";
+
+        ProcessGroup processGroup = mockProcessGroup(
+                groupId,
+                Arrays.asList(),
+                Arrays.asList()
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(List.of());
+
+        when(ruleViolationsManager.isEmpty()).thenReturn(true);
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(processGroup.getIdentifier()).collect(Collectors.toSet());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testGetRuleViolationsForGroupIsRecursive() {
+        // GIVEN
+        int ruleViolationCounter = 0;
+
+        String rootGroupId = "groupId";
+        String childGroupId = "childGroupId";
+        String grandChildGroupId = "grandChildGroupId";
+
+        RuleViolation ruleViolation1 = createRuleViolation(rootGroupId, ruleViolationCounter++);
+        RuleViolation ruleViolation2 = createRuleViolation(rootGroupId, ruleViolationCounter++);
+
+        RuleViolation childRuleViolation1 = createRuleViolation(childGroupId, ruleViolationCounter++);
+        RuleViolation childRuleViolation2 = createRuleViolation(childGroupId, ruleViolationCounter++);
+
+        RuleViolation grandChildRuleViolation1 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation2 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation3 = createRuleViolation(grandChildGroupId, ruleViolationCounter);
+
+        ProcessGroup grandChildProcessGroup = mockProcessGroup(
+                grandChildGroupId,
+                Collections.emptyList(),
+                Arrays.asList(grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+        ProcessGroup childProcessGroup = mockProcessGroup(
+                childGroupId,
+                Arrays.asList(grandChildProcessGroup),
+                Arrays.asList(childRuleViolation1, childRuleViolation2)
+        );
+        mockProcessGroup(
+                rootGroupId,
+                Arrays.asList(childProcessGroup),
+                Arrays.asList(ruleViolation1, ruleViolation2)
+        );
+
+        when(ruleViolationsManager.getRuleViolationsForGroups(Set.of(childGroupId, grandChildGroupId))).thenReturn(
+                Arrays.asList(
+                        childRuleViolation1, childRuleViolation2,
+                        grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(Arrays.asList(
+                childRuleViolation1, childRuleViolation2,
+                grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
+        ));
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolationStream(childProcessGroup.getIdentifier()).collect(Collectors.toSet());
 
         // THEN
         assertEquals(expected, actual);
@@ -1148,5 +1281,100 @@ public class StandardNiFiServiceFacadeTest {
         assertNotEquals(originalReportingTaskId, reportingTask.getIdentifier());
 
         assertEquals(service.getInstanceIdentifier(), reportingTask.getProperties().get(serviceDescriptor.getName()));
+    }
+
+    @Test
+    public void testUpdateAllCounters() {
+        // Mock ControllerFacade to return a list of reset counters
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        final List<Counter> mockCounters = new ArrayList<>();
+
+        // Create mock counters that would be returned after reset
+        final Counter counter1 = mock(Counter.class);
+        when(counter1.getIdentifier()).thenReturn("counter1-id");
+        when(counter1.getName()).thenReturn("counter1");
+        when(counter1.getContext()).thenReturn("context1");
+        when(counter1.getValue()).thenReturn(0L); // Should be 0 after reset
+
+        final Counter counter2 = mock(Counter.class);
+        when(counter2.getIdentifier()).thenReturn("counter2-id");
+        when(counter2.getName()).thenReturn("counter2");
+        when(counter2.getContext()).thenReturn("context2");
+        when(counter2.getValue()).thenReturn(0L); // Should be 0 after reset
+
+        mockCounters.add(counter1);
+        mockCounters.add(counter2);
+
+        when(controllerFacade.resetAllCounters()).thenReturn(mockCounters);
+
+        // Mock DtoFactory to create CounterDTOs
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        final CounterDTO counterDto1 = new CounterDTO();
+        counterDto1.setId("counter1-id");
+        counterDto1.setName("counter1");
+        counterDto1.setContext("context1");
+        counterDto1.setValue("0");
+
+        final CounterDTO counterDto2 = new CounterDTO();
+        counterDto2.setId("counter2-id");
+        counterDto2.setName("counter2");
+        counterDto2.setContext("context2");
+        counterDto2.setValue("0");
+
+        when(dtoFactory.createCounterDto(counter1)).thenReturn(counterDto1);
+        when(dtoFactory.createCounterDto(counter2)).thenReturn(counterDto2);
+
+        final CountersSnapshotDTO snapshotDto = new CountersSnapshotDTO();
+        snapshotDto.setCounters(Set.of(counterDto1, counterDto2));
+        when(dtoFactory.createCountersDto(any())).thenReturn(snapshotDto);
+
+        // Set up the facade
+        serviceFacade.setControllerFacade(controllerFacade);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        // Test the updateAllCounters method
+        final CountersDTO result = serviceFacade.updateAllCounters();
+
+        // Verify the result
+        assertNotNull(result);
+        assertNotNull(result.getAggregateSnapshot());
+        assertEquals(2, result.getAggregateSnapshot().getCounters().size());
+
+        // Verify that resetAllCounters was called on the controller facade
+        verify(controllerFacade, times(1)).resetAllCounters();
+
+        // Verify that DTOs were created for each counter
+        verify(dtoFactory, times(1)).createCounterDto(counter1);
+        verify(dtoFactory, times(1)).createCounterDto(counter2);
+        verify(dtoFactory, times(1)).createCountersDto(any());
+    }
+
+    @Test
+    public void testUpdateAllCountersWithEmptyCounters() {
+        // Mock ControllerFacade to return empty list
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        when(controllerFacade.resetAllCounters()).thenReturn(new ArrayList<>());
+
+        // Mock DtoFactory
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        final CountersSnapshotDTO snapshotDto = new CountersSnapshotDTO();
+        snapshotDto.setCounters(Collections.emptySet());
+        when(dtoFactory.createCountersDto(any())).thenReturn(snapshotDto);
+
+        // Set up the facade
+        serviceFacade.setControllerFacade(controllerFacade);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        // Test the updateAllCounters method
+        final CountersDTO result = serviceFacade.updateAllCounters();
+
+        // Verify the result
+        assertNotNull(result);
+        assertNotNull(result.getAggregateSnapshot());
+        assertTrue(result.getAggregateSnapshot().getCounters().isEmpty());
+
+        // Verify that resetAllCounters was called
+        verify(controllerFacade, times(1)).resetAllCounters();
+        verify(dtoFactory, times(1)).createCountersDto(any());
     }
 }
