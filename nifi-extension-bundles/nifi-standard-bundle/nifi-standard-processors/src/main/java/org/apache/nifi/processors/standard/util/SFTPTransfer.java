@@ -766,7 +766,7 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-        if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
+        if (lastModifiedTime != null && !lastModifiedTime.isBlank()) {
             final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
             final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
             final FileTime modifyTime = FileTime.from(offsetDateTime.toInstant());
