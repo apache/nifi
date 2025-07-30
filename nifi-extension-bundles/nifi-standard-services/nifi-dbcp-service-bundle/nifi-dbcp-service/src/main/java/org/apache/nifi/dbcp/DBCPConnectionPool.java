@@ -225,19 +225,19 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
                 // Context might not be available, continue without it
             }
 
-            final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? List.of() : discoverDriverClasses(driverResources);
+            final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? discoverDriverClasses(driverResources) : List.of();
 
-            String errorMessage = String.format("JDBC driver class '%s' not found.", driverName);
+            StringBuilder errorMessage = new StringBuilder(String.format("JDBC driver class '%s' not found.", driverName));
 
             if (!availableDrivers.isEmpty()) {
-                errorMessage += String.format(" Available driver classes found in resources: %s.", String.join(", ", availableDrivers));
+                errorMessage.append(String.format(" Available driver classes found in resources: %s.", String.join(", ", availableDrivers)));
             } else if (driverResources != null && driverResources.getCount() != 0) {
                 final List<ResourceReference> resourcesList = driverResources.asList();
                 if (resourcesList.stream().filter(r -> r.getResourceType() != ResourceType.URL).count() != 0) {
-                    errorMessage += " No JDBC driver classes found in the provided resources.";
+                    errorMessage.append(" No JDBC driver classes found in the provided resources.");
                 }
             } else if (driverResources == null) {
-                errorMessage += " The property 'Database Driver Location(s)' should be set.";
+                errorMessage.append(" The property 'Database Driver Location(s)' should be set.");
             }
 
             throw new ProcessException(errorMessage.toString(), e);
@@ -327,7 +327,6 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         // Common patterns for JDBC driver class names
         boolean isCandidate = lowerClassName.contains("driver")
                 || lowerClassName.contains("jdbc")
-                || className.matches(".*\\.(mysql|postgres|postgresql|oracle|h2|hsql|derby|sqlite|mariadb|sqlserver|mssql|jtds)\\..*")
                 || className.matches(".*Driver$")
                 || className.matches(".*JdbcDriver$")
                 || className.matches(".*SQLServerDriver$");

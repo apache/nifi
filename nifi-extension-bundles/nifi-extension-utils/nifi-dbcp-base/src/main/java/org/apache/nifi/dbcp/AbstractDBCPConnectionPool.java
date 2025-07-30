@@ -44,7 +44,6 @@ import java.sql.Driver;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -114,12 +113,8 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                         .build());
             }
         } catch (final Exception e) {
-            String message = "Failed to configure Data Source.";
-            if (e.getCause() instanceof ClassNotFoundException) {
-                message += String.format(" Ensure changes to the '%s' property are applied before verifying.",
-                        DB_DRIVER_LOCATION.getDisplayName());
-            }
-            verificationLogger.error(message, e);
+            StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
+            verificationLogger.error(messageBuilder.toString(), e);
 
             final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
             final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
@@ -127,15 +122,21 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
                 List<String> availableDrivers = discoverDriverClassesStatic(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
-                    message += String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
-                            driverName, String.join(", ", availableDrivers));
+                    messageBuilder.append(String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
+                            driverName, String.join(", ", availableDrivers)));
+                } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
+                    messageBuilder.append(" Driver found but ensure you apply the controller service configuration before verifying again.");
+                } else {
+                    messageBuilder.append(String.format(" Exception: %s", e.getMessage()));
                 }
+            } else {
+                messageBuilder.append(String.format(" No driver name specified or no driver resources provided. Exception: %s", e.getMessage()));
             }
 
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(FAILED)
-                    .explanation(message + " Exception: " + e.getMessage())
+                    .explanation(messageBuilder.toString())
                     .build());
         } finally {
             try {
@@ -340,7 +341,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         final Set<String> driverClasses = new TreeSet<>();
 
         try (final JarFile jar = new JarFile(jarFile)) {
-            // First, check META-INF/services/java.sql.Driver for registered drivers
+            // Check META-INF/services/java.sql.Driver for registered drivers
             // This is the most reliable method
             final JarEntry servicesEntry = jar.getJarEntry("META-INF/services/java.sql.Driver");
             if (servicesEntry != null) {
@@ -355,81 +356,13 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 }
             }
 
-            // If we found drivers via META-INF/services, prefer those (most reliable)
-            if (!driverClasses.isEmpty()) {
-                getLogger().debug("Found {} drivers via META-INF/services, using those", driverClasses.size());
-                return driverClasses;
-            }
+            return driverClasses;
 
-            // Fallback: scan for classes with very specific driver patterns
-            getLogger().debug("No META-INF/services found, falling back to pattern matching");
-            final Enumeration<JarEntry> entries = jar.entries();
-            while (entries.hasMoreElements()) {
-                final JarEntry entry = entries.nextElement();
-                final String entryName = entry.getName();
-
-                // Look for .class files (exclude inner classes)
-                if (entryName.endsWith(".class") && !entryName.contains("$")) {
-                    final String className = entryName.substring(0, entryName.length() - 6).replace('/', '.');
-
-                    // Use very specific patterns for actual JDBC drivers
-                    if (isVeryLikelyDriverClass(className)) {
-                        driverClasses.add(className);
-                        getLogger().debug("Found potential driver by strict pattern: {}", className);
-                    }
-                }
-            }
         } catch (final Exception e) {
             getLogger().warn("Error scanning JAR file {} for driver classes", jarFile.getAbsolutePath(), e);
         }
 
         return driverClasses;
-    }
-
-    /**
-     * Very strict heuristics to identify only actual JDBC driver classes
-     */
-    private boolean isVeryLikelyDriverClass(final String className) {
-        // Must end with "Driver" and be in a reasonable package structure
-        if (!className.endsWith("Driver")) {
-            return false;
-        }
-
-        // Must be in a package (not default package)
-        if (!className.contains(".")) {
-            return false;
-        }
-
-        // Known driver class names (exact matches)
-        final Set<String> knownDrivers = Set.of(
-                "com.mysql.cj.jdbc.Driver",
-                "com.mysql.jdbc.Driver",
-                "org.postgresql.Driver",
-                "oracle.jdbc.driver.OracleDriver",
-                "oracle.jdbc.OracleDriver",
-                "com.microsoft.sqlserver.jdbc.SQLServerDriver",
-                "org.apache.derby.jdbc.EmbeddedDriver",
-                "org.apache.derby.jdbc.ClientDriver",
-                "org.h2.Driver",
-                "org.hsqldb.jdbc.JDBCDriver",
-                "org.sqlite.JDBC",
-                "org.mariadb.jdbc.Driver",
-                "net.sourceforge.jtds.jdbc.Driver");
-
-        if (knownDrivers.contains(className)) {
-            return true;
-        }
-
-        // Pattern-based matching for common driver structures
-        final String lowerClassName = className.toLowerCase();
-
-        // Must be in jdbc/driver related package AND end with Driver
-        final boolean hasDriverPackage = lowerClassName.matches(".*\\.(jdbc|driver)\\.[^.]*driver$");
-
-        // Known vendor patterns
-        final boolean hasVendorPattern = className.matches(".*\\.(mysql|postgresql|oracle|microsoft|apache|mariadb|h2|hsqldb|sqlite|jtds)\\..*Driver$");
-
-        return hasDriverPackage || hasVendorPattern;
     }
 
     /**
