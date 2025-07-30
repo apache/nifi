@@ -83,9 +83,9 @@ import { foldGutter } from '@codemirror/language';
         MatButtonModule,
         MatCheckboxModule,
         A11yModule,
-        Resizable,
         Codemirror,
-        PropertyHint
+        PropertyHint,
+        Resizable
     ],
     styleUrls: ['./nf-editor.component.scss']
 })
@@ -139,8 +139,8 @@ export class NfEditor {
 
     parameters: Parameter[] | null = null;
     private _codemirrorConfig: CodeMirrorConfig = {
-        extensions: [],
-        autoFocus: true
+        plugins: [],
+        focusOnInit: true
     };
 
     // Styling configuration
@@ -159,8 +159,8 @@ export class NfEditor {
     get codemirrorConfig(): CodeMirrorConfig {
         return {
             ...this._codemirrorConfig,
-            viewDisabled: this.readonly || this.blank,
-            readonly: this.readonly || this.blank
+            disabled: this.readonly || this.blank,
+            readOnly: this.readonly || this.blank
         };
     }
 
@@ -238,7 +238,7 @@ export class NfEditor {
                     this.nfLanguageDefinition
                 );
 
-                this._codemirrorConfig.extensions = [
+                this._codemirrorConfig.plugins = [
                     StreamLanguage.define(nfLanguageConfig.streamParser),
                     autocompletion({
                         override: [nfLanguageConfig.getAutocompletions(this.viewContainerRef)]
@@ -247,7 +247,7 @@ export class NfEditor {
                     setup
                 ];
             } else {
-                this._codemirrorConfig.extensions = setup;
+                this._codemirrorConfig.plugins = setup;
             }
         }
     }
