@@ -117,6 +117,7 @@ public class FetchSFTP extends FetchFileTransfer {
             SFTPTransfer.USE_COMPRESSION,
             SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
             FILE_NOT_FOUND_LOG_LEVEL,
+            SFTPTransfer.ALGORITHM_CONFIGURATION,
             SFTPTransfer.CIPHERS_ALLOWED,
             SFTPTransfer.KEY_ALGORITHMS_ALLOWED,
             SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED,
@@ -132,6 +133,7 @@ public class FetchSFTP extends FetchFileTransfer {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        SFTPTransfer.migrateAlgorithmProperties(config);
     }
 
     @Override

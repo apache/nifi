@@ -16,20 +16,7 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import com.hierynomus.sshj.sftp.RemoteResourceSelector;
-import net.schmizz.sshj.DefaultConfig;
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.common.Factory;
-import net.schmizz.sshj.sftp.FileAttributes;
-import net.schmizz.sshj.sftp.FileMode;
-import net.schmizz.sshj.sftp.RemoteFile;
-import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import net.schmizz.sshj.sftp.Response;
-import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.sftp.SFTPEngine;
-import net.schmizz.sshj.sftp.SFTPException;
-import net.schmizz.sshj.xfer.FilePermission;
-import net.schmizz.sshj.xfer.LocalSourceFile;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -40,24 +27,39 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.PermissionDeniedException;
-import org.apache.nifi.processors.standard.ssh.SSHClientProvider;
-import org.apache.nifi.processors.standard.ssh.StandardSSHClientProvider;
+import org.apache.nifi.processors.standard.ssh.SshClientProvider;
+import org.apache.nifi.processors.standard.ssh.StandardSshClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.cipher.BuiltinCiphers;
+import org.apache.sshd.common.kex.BuiltinDHFactories;
+import org.apache.sshd.common.mac.BuiltinMacs;
+import org.apache.sshd.common.signature.BuiltinSignatures;
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClientFactory;
+import org.apache.sshd.sftp.common.SftpConstants;
+import org.apache.sshd.sftp.common.SftpException;
+import org.apache.sshd.sftp.common.SftpHelper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -68,34 +70,28 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SFTPTransfer implements FileTransfer {
-    private static final SSHClientProvider SSH_CLIENT_PROVIDER = new StandardSSHClientProvider();
+    private static final SshClientProvider CLIENT_PROVIDER = new StandardSshClientProvider();
 
     private static final String DOT_PREFIX = ".";
     private static final String RELATIVE_CURRENT_DIRECTORY = DOT_PREFIX;
     private static final String RELATIVE_PARENT_DIRECTORY = "..";
 
-    private static final Set<String> DEFAULT_KEY_ALGORITHM_NAMES;
-    private static final Set<String> DEFAULT_CIPHER_NAMES;
-    private static final Set<String> DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES;
-    private static final Set<String> DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES;
-
-    static {
-        DefaultConfig defaultConfig = new DefaultConfig();
-
-        DEFAULT_KEY_ALGORITHM_NAMES = defaultConfig.getKeyAlgorithms().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-        DEFAULT_CIPHER_NAMES = defaultConfig.getCipherFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = defaultConfig.getMACFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = defaultConfig.getKeyExchangeFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-    }
+    private static final Set<String> DEFAULT_KEY_ALGORITHM_NAMES = BuiltinSignatures.VALUES.stream()
+            .map(BuiltinSignatures::getName)
+            .collect(Collectors.toSet());
+    private static final Set<String> DEFAULT_CIPHER_NAMES = BuiltinCiphers.VALUES.stream()
+            .map(BuiltinCiphers::getName)
+            .collect(Collectors.toSet());
+    private static final Set<String> DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = BuiltinMacs.VALUES.stream()
+            .map(BuiltinMacs::getName)
+            .collect(Collectors.toSet());
+    private static final Set<String> DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = BuiltinDHFactories.VALUES.stream()
+            .map(BuiltinDHFactories::getName)
+            .collect(Collectors.toSet());
 
     /**
      * Converts a set of names into an alphabetically ordered comma separated value list.
@@ -120,10 +116,6 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         return path + "/" + filename;
-    }
-
-    private static boolean isDirectory(FileAttributes attributes) {
-        return attributes.getType() == FileMode.Type.DIRECTORY;
     }
 
     public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
@@ -173,6 +165,14 @@ public class SFTPTransfer implements FileTransfer {
         .required(true)
         .build();
 
+    public static final PropertyDescriptor ALGORITHM_CONFIGURATION = new PropertyDescriptor.Builder()
+            .name("Algorithm Negotiation")
+            .description("Configuration strategy for SSH algorithm negotiation")
+            .required(true)
+            .allowableValues(AlgorithmConfiguration.class)
+            .defaultValue(AlgorithmConfiguration.DEFAULT)
+            .build();
+
     public static final PropertyDescriptor KEY_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Key Algorithms Allowed")
             .displayName("Key Algorithms Allowed")
@@ -181,6 +181,7 @@ public class SFTPTransfer implements FileTransfer {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(ALGORITHM_CONFIGURATION, AlgorithmConfiguration.CUSTOM)
             .build();
 
     public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
@@ -190,6 +191,7 @@ public class SFTPTransfer implements FileTransfer {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(ALGORITHM_CONFIGURATION, AlgorithmConfiguration.CUSTOM)
             .build();
 
     public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
@@ -200,6 +202,7 @@ public class SFTPTransfer implements FileTransfer {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(ALGORITHM_CONFIGURATION, AlgorithmConfiguration.CUSTOM)
             .build();
 
     public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
@@ -210,11 +213,12 @@ public class SFTPTransfer implements FileTransfer {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(ALGORITHM_CONFIGURATION, AlgorithmConfiguration.CUSTOM)
             .build();
 
     /**
-     * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link SFTPClient#ls(String)} before calling
-     * {@link SFTPClient#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
+     * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a list before calling mkdir.
+     * In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
      * exception.
      */
     public static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder()
@@ -232,6 +236,33 @@ public class SFTPTransfer implements FileTransfer {
         .defaultValue("false")
         .build();
 
+    public enum AlgorithmConfiguration implements DescribedValue {
+        DEFAULT("Default algorithm negotiation based on standard settings for general compatibility with SSH servers"),
+
+        CUSTOM("Custom algorithm negotiation based on defined settings");
+
+        private final String description;
+
+        AlgorithmConfiguration(final String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return name();
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS_AUTH};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
@@ -239,8 +270,8 @@ public class SFTPTransfer implements FileTransfer {
 
     private final PropertyContext ctx;
 
-    private SSHClient sshClient;
-    private SFTPClient sftpClient;
+    private ClientSession clientSession;
+    private SftpClient sftpClient;
 
     private volatile boolean closed = false;
     private String homeDir;
@@ -258,7 +289,20 @@ public class SFTPTransfer implements FileTransfer {
         this.logger = logger;
 
         final PropertyValue disableListing = propertyContext.getProperty(DISABLE_DIRECTORY_LISTING);
-        disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.equals(disableListing.asBoolean());
+        disableDirectoryListing = disableListing != null && Boolean.TRUE.equals(disableListing.asBoolean());
+    }
+
+    public static void migrateAlgorithmProperties(final PropertyConfiguration propertyConfiguration) {
+        if (!propertyConfiguration.hasProperty(ALGORITHM_CONFIGURATION)) {
+            final boolean customAlgorithmConfiguration =
+                    propertyConfiguration.isPropertySet(KEY_ALGORITHMS_ALLOWED)
+                            || propertyConfiguration.isPropertySet(CIPHERS_ALLOWED)
+                            || propertyConfiguration.isPropertySet(MESSAGE_AUTHENTICATION_CODES_ALLOWED)
+                            || propertyConfiguration.isPropertySet(KEY_EXCHANGE_ALGORITHMS_ALLOWED);
+            if (customAlgorithmConfiguration) {
+                propertyConfiguration.setProperty(ALGORITHM_CONFIGURATION, AlgorithmConfiguration.CUSTOM.getValue());
+            }
+        }
     }
 
     public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
@@ -290,8 +334,13 @@ public class SFTPTransfer implements FileTransfer {
         return listing;
     }
 
-    protected void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing,
-                              final boolean applyFilters) throws IOException {
+    protected void getListing(
+            final String path,
+            final int depth,
+            final int maxResults,
+            final List<FileInfo> listing,
+            final boolean applyFilters
+    ) throws IOException {
         if (maxResults < 1 || listing.size() >= maxResults) {
             return;
         }
@@ -313,78 +362,84 @@ public class SFTPTransfer implements FileTransfer {
         // check if this directory path matches the PATH_FILTER_REGEX
         boolean pathFilterMatches = true;
         if (pathPattern != null) {
-            Path reldir = path == null ? Paths.get(RELATIVE_CURRENT_DIRECTORY) : Paths.get(path);
+            Path relativeDir = path == null ? Paths.get(RELATIVE_CURRENT_DIRECTORY) : Paths.get(path);
             if (remotePath != null) {
-                reldir = Paths.get(remotePath).relativize(reldir);
+                relativeDir = Paths.get(remotePath).relativize(relativeDir);
             }
-            if (reldir != null && !reldir.toString().isEmpty()) {
-                if (!pathPattern.matcher(reldir.toString().replace("\\", "/")).matches()) {
+            if (!relativeDir.toString().isEmpty()) {
+                if (!pathPattern.matcher(relativeDir.toString().replace("\\", "/")).matches()) {
                     pathFilterMatches = false;
                 }
             }
         }
 
-        final SFTPClient sftpClient = getSFTPClient(null);
+        final SftpClient sftpClient = getSFTPClient(null);
         final boolean pathMatched = pathFilterMatches;
         final boolean filteringDisabled = !applyFilters;
 
-        final List<RemoteResourceInfo> subDirectoryPaths = new ArrayList<>();
+        final List<SftpClient.DirEntry> subDirectoryPaths = new ArrayList<>();
         try {
-            final RemoteResourceSelector selector = (entry) -> {
-                final String entryFilename = entry.getName();
+            final String directory;
+            if (path == null || path.isBlank()) {
+                directory = RELATIVE_CURRENT_DIRECTORY;
+            } else {
+                directory = path;
+            }
 
-                // skip over 'this directory' and 'parent directory' special files regardless of ignoring dot files
+            for (final SftpClient.DirEntry dirEntry : sftpClient.readDir(directory)) {
+                final String entryFilename = dirEntry.getFilename();
+
                 if (RELATIVE_CURRENT_DIRECTORY.equals(entryFilename) || RELATIVE_PARENT_DIRECTORY.equals(entryFilename)) {
-                    return RemoteResourceSelector.Result.CONTINUE;
+                    continue;
                 }
 
-                // skip files and directories that begin with a dot if we're ignoring them
                 if (ignoreDottedFiles && entryFilename.startsWith(DOT_PREFIX)) {
-                    return RemoteResourceSelector.Result.CONTINUE;
+                    continue;
                 }
 
                 // remember directory for later recursive listing
-                if (isIncludedDirectory(entry, recurse, symlink)) {
-                    subDirectoryPaths.add(entry);
-                    return RemoteResourceSelector.Result.CONTINUE;
+                if (isIncludedDirectory(dirEntry, recurse, symlink)) {
+                    subDirectoryPaths.add(dirEntry);
+                    continue;
                 }
 
                 // add regular files matching our filter to the result
-                if (isIncludedFile(entry, symlink) && (filteringDisabled || pathMatched)) {
+                if (isIncludedFile(dirEntry, symlink) && (filteringDisabled || pathMatched)) {
                     if (filteringDisabled || fileFilterPattern == null || fileFilterPattern.matcher(entryFilename).matches()) {
-                        listing.add(newFileInfo(path, entry.getName(), entry.getAttributes()));
+                        listing.add(newFileInfo(path, entryFilename, dirEntry.getAttributes()));
 
                         // abort further processing once we've reached the configured amount of maxResults
                         if (listing.size() >= maxResults) {
-                            return RemoteResourceSelector.Result.BREAK;
+                            break;
                         }
                     }
                 }
-
-                // SSHJ does not need to keep track as we collect the results ourselves, continue with next entry instead
-                return RemoteResourceSelector.Result.CONTINUE;
-            };
-
-            if (path == null || path.isBlank()) {
-                sftpClient.ls(RELATIVE_CURRENT_DIRECTORY, selector);
-            } else {
-                sftpClient.ls(path, selector);
             }
-        } catch (final SFTPException e) {
-            final String pathDesc = path == null ? "current directory" : path;
-            switch (e.getStatusCode()) {
-                case NO_SUCH_FILE:
-                    throw new FileNotFoundException("Could not perform listing on " + pathDesc + " because could not find the file on the remote server");
-                case PERMISSION_DENIED:
-                    throw new PermissionDeniedException("Could not perform listing on " + pathDesc + " due to insufficient permissions");
+        } catch (final UncheckedIOException | SftpException e) {
+            final String resolvedPath = path == null ? "current directory" : path;
+
+            final int status;
+            if (e instanceof SftpException sftpException) {
+                status = sftpException.getStatus();
+            } else if (e.getCause() instanceof SftpException sftpException) {
+                status = sftpException.getStatus();
+            } else {
+                status = SftpConstants.SSH_FX_FAILURE;
+            }
+
+            switch (status) {
+                case SftpConstants.SSH_FX_INVALID_HANDLE:
+                case SftpConstants.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("No such file or directory [%s] on remote system".formatted(resolvedPath));
+                case SftpConstants.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Insufficient permissions to read directory [%s]".formatted(resolvedPath), e);
                 default:
-                    throw new IOException(String.format("Failed to obtain file listing for %s due to unexpected SSH_FXP_STATUS (%d)",
-                            pathDesc, e.getStatusCode().getCode()), e);
+                    throw new IOException("Failed to read directory [%s]".formatted(resolvedPath), e);
             }
         }
 
-        for (final RemoteResourceInfo entry : subDirectoryPaths) {
-            final String entryFilename = entry.getName();
+        for (final SftpClient.DirEntry dirEntry : subDirectoryPaths) {
+            final String entryFilename = dirEntry.getFilename();
             final File newFullPath = new File(path, entryFilename);
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
@@ -399,32 +454,34 @@ public class SFTPTransfer implements FileTransfer {
     /**
      * Include remote resources when regular file found or when symbolic links are enabled and the resource is a link
      *
-     * @param remoteResourceInfo Remote Resource Information
+     * @param dirEntry Remote Directory Entry
      * @param symlinksEnabled Follow symbolic links enabled
      * @return Included file status
      */
-    private boolean isIncludedFile(final RemoteResourceInfo remoteResourceInfo, final boolean symlinksEnabled) {
-        return remoteResourceInfo.isRegularFile() || (remoteResourceInfo.getAttributes().getMode().getType() == FileMode.Type.UNKNOWN) || (symlinksEnabled && isSymlink(remoteResourceInfo));
+    private boolean isIncludedFile(final SftpClient.DirEntry dirEntry, final boolean symlinksEnabled) {
+        final SftpClient.Attributes attributes = dirEntry.getAttributes();
+        return attributes.isRegularFile() || attributes.isOther() || (symlinksEnabled && attributes.isSymbolicLink());
     }
 
     /**
      * Include remote resources when recursion is enabled or when symbolic links are enabled and the resource is a directory link
      *
-     * @param remoteResourceInfo Remote Resource Information
+     * @param dirEntry Remote Directory Entry
      * @param recursionEnabled Recursion enabled status
      * @param symlinksEnabled Follow symbolic links enabled
      * @return Included directory status
      */
-    private boolean isIncludedDirectory(final RemoteResourceInfo remoteResourceInfo, final boolean recursionEnabled, final boolean symlinksEnabled) {
+    private boolean isIncludedDirectory(final SftpClient.DirEntry dirEntry, final boolean recursionEnabled, final boolean symlinksEnabled) {
         boolean includedDirectory = false;
 
-        if (remoteResourceInfo.isDirectory()) {
+        final SftpClient.Attributes entryAttributes = dirEntry.getAttributes();
+        if (entryAttributes.isDirectory()) {
             includedDirectory = recursionEnabled;
-        } else if (symlinksEnabled && isSymlink(remoteResourceInfo)) {
-            final String path = remoteResourceInfo.getPath();
+        } else if (symlinksEnabled && entryAttributes.isSymbolicLink()) {
+            final String path = dirEntry.getFilename();
             try {
-                final FileAttributes pathAttributes = sftpClient.stat(path);
-                includedDirectory = FileMode.Type.DIRECTORY == pathAttributes.getMode().getType();
+                final SftpClient.Attributes attributes = sftpClient.stat(path);
+                includedDirectory = attributes.isDirectory();
             } catch (final IOException e) {
                 logger.warn("Read symbolic link attributes failed [{}]", path, e);
             }
@@ -433,42 +490,38 @@ public class SFTPTransfer implements FileTransfer {
         return includedDirectory;
     }
 
-    private boolean isSymlink(final RemoteResourceInfo remoteResourceInfo) {
-        return FileMode.Type.SYMLINK == remoteResourceInfo.getAttributes().getType();
-    }
-
-    private FileInfo newFileInfo(String path, String filename, final FileAttributes attributes) {
+    private FileInfo newFileInfo(String path, String filename, final SftpClient.Attributes attributes) {
         final File newFullPath = new File(path, filename);
         final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
         final StringBuilder permsBuilder = new StringBuilder();
-        final Set<FilePermission> permissions = attributes.getPermissions();
+        final Set<PosixFilePermission> filePermissions = SftpHelper.permissionsToAttributes(attributes.getPermissions());
 
-        appendPermission(permsBuilder, permissions, FilePermission.USR_R, "r");
-        appendPermission(permsBuilder, permissions, FilePermission.USR_W, "w");
-        appendPermission(permsBuilder, permissions, FilePermission.USR_X, "x");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.OWNER_READ, "r");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.OWNER_WRITE, "w");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.OWNER_EXECUTE, "x");
 
-        appendPermission(permsBuilder, permissions, FilePermission.GRP_R, "r");
-        appendPermission(permsBuilder, permissions, FilePermission.GRP_W, "w");
-        appendPermission(permsBuilder, permissions, FilePermission.GRP_X, "x");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.GROUP_READ, "r");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.GROUP_WRITE, "w");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.GROUP_EXECUTE, "x");
 
-        appendPermission(permsBuilder, permissions, FilePermission.OTH_R, "r");
-        appendPermission(permsBuilder, permissions, FilePermission.OTH_W, "w");
-        appendPermission(permsBuilder, permissions, FilePermission.OTH_X, "x");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.OTHERS_READ, "r");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.OTHERS_WRITE, "w");
+        appendPermission(permsBuilder, filePermissions, PosixFilePermission.OTHERS_EXECUTE, "x");
 
         final FileInfo.Builder builder = new FileInfo.Builder()
             .filename(filename)
             .fullPathFileName(newFullForwardPath)
-            .directory(isDirectory(attributes))
+            .directory(attributes.isDirectory())
             .size(attributes.getSize())
-            .lastModifiedTime(attributes.getMtime() * 1000L)
+            .lastModifiedTime(attributes.getModifyTime().toMillis())
             .permissions(permsBuilder.toString())
-            .owner(Integer.toString(attributes.getUID()))
-            .group(Integer.toString(attributes.getGID()));
+            .owner(Integer.toString(attributes.getUserId()))
+            .group(Integer.toString(attributes.getGroupId()));
         return builder.build();
     }
 
-    private void appendPermission(final StringBuilder builder, final Set<FilePermission> permissions, final FilePermission filePermission, final String permString) {
+    private void appendPermission(final StringBuilder builder, final Set<PosixFilePermission> permissions, final PosixFilePermission filePermission, final String permString) {
         if (permissions.contains(filePermission)) {
             builder.append(permString);
         } else {
@@ -478,55 +531,52 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
-        final SFTPClient sftpClient = getSFTPClient(origFlowFile);
+        final SftpClient sftpClient = getSFTPClient(origFlowFile);
 
-        try (RemoteFile rf = sftpClient.open(remoteFileName);
-             RemoteFile.ReadAheadRemoteFileInputStream rfis = rf.new ReadAheadRemoteFileInputStream(16)) {
-            return session.write(origFlowFile, out -> StreamUtils.copy(rfis, out));
-        } catch (final SFTPException e) {
-            switch (e.getStatusCode()) {
-                case NO_SUCH_FILE:
-                    throw new FileNotFoundException("Could not find file " + remoteFileName + " on remote SFTP Server");
-                case PERMISSION_DENIED:
-                    throw new PermissionDeniedException("Insufficient permissions to read file " + remoteFileName + " from remote SFTP Server", e);
+        try (InputStream inputStream = sftpClient.read(remoteFileName)) {
+            return session.write(origFlowFile, out -> StreamUtils.copy(inputStream, out));
+        } catch (final SftpException e) {
+            final int status = e.getStatus();
+            switch (status) {
+                case SftpConstants.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("No such file or directory [%s] on remote system".formatted(remoteFileName));
+                case SftpConstants.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Insufficient permissions to read [%s]".formatted(remoteFileName), e);
                 default:
-                    throw new IOException("Failed to obtain file content for " + remoteFileName, e);
+                    throw new IOException("Failed to read [%s]".formatted(remoteFileName), e);
             }
         }
     }
 
     @Override
     public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
+        final SftpClient sftpClient = getSFTPClient(flowFile);
         final String fullPath = buildFullPath(path, remoteFileName);
         try {
-            sftpClient.rm(fullPath);
-        } catch (final SFTPException e) {
-            switch (e.getStatusCode()) {
-                case NO_SUCH_FILE:
-                    throw new FileNotFoundException("Could not find file " + remoteFileName + " to remove from remote SFTP Server");
-                case PERMISSION_DENIED:
-                    throw new PermissionDeniedException("Insufficient permissions to delete file " + remoteFileName + " from remote SFTP Server", e);
+            sftpClient.remove(fullPath);
+        } catch (final SftpException e) {
+            final int status = e.getStatus();
+            switch (status) {
+                case SftpConstants.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("No such file or directory [%s] on remote system".formatted(fullPath));
+                case SftpConstants.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Insufficient permissions to delete [%s]".formatted(fullPath), e);
                 default:
-                    throw new IOException("Failed to delete remote file " + fullPath, e);
+                    throw new IOException("Failed to delete [%s]".formatted(fullPath), e);
             }
         }
     }
 
     @Override
     public void deleteDirectory(final FlowFile flowFile, final String remoteDirectoryName) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
-        try {
-            sftpClient.rmdir(remoteDirectoryName);
-        } catch (final SFTPException e) {
-            throw new IOException("Failed to delete remote directory " + remoteDirectoryName, e);
-        }
+        final SftpClient sftpClient = getSFTPClient(flowFile);
+        sftpClient.rmdir(remoteDirectoryName);
     }
 
     @Override
     public void ensureDirectoryExists(final FlowFile flowFile, final File directoryName) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
-        final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
+        final SftpClient sftpClient = getSFTPClient(flowFile);
+        final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.:", "");
 
         // if we disable the directory listing, we just want to blindly perform the mkdir command,
         // eating failure exceptions thrown (like if the directory already exists).
@@ -536,16 +586,16 @@ public class SFTPTransfer implements FileTransfer {
                 sftpClient.mkdir(remoteDirectory);
                 // The remote directory did not exist, and was created successfully.
                 return;
-            } catch (SFTPException e) {
-                if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
-                    // No Such File. This happens when parent directory was not found.
-                    logger.debug("Could not create {} due to 'No such file'. Will try to create the parent dir.", remoteDirectory);
-                } else if (e.getStatusCode() == Response.StatusCode.FAILURE) {
-                    // Swallow '4: Failure' including the remote directory already exists.
-                    logger.debug("Could not blindly create remote directory", e);
+            } catch (final SftpException e) {
+                final int status = e.getStatus();
+                final String statusName = SftpConstants.getStatusName(status);
+                if (SftpConstants.SSH_FX_NO_SUCH_FILE == status) {
+                    logger.debug("Failed to create directory [{}] Status [{}] attempting to create parent directory", directoryName, statusName);
+                } else if (SftpConstants.SSH_FX_FAILURE == status) {
+                    logger.debug("Failed to create directory [{}] Status [{}]", remoteDirectory, statusName);
                     return;
                 } else {
-                    throw new IOException("Could not blindly create remote directory due to " + e.getMessage(), e);
+                    throw new IOException("Failed to create directory [%s] Status [%s]".formatted(remoteDirectory, statusName), e);
                 }
             }
         } else {
@@ -554,9 +604,10 @@ public class SFTPTransfer implements FileTransfer {
                 sftpClient.stat(remoteDirectory);
                 // The remote directory already exists.
                 return;
-            } catch (final SFTPException e) {
-                if (e.getStatusCode() != Response.StatusCode.NO_SUCH_FILE) {
-                    throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + getMessage(e), e);
+            } catch (final SftpException e) {
+                final int status = e.getStatus();
+                if (SftpConstants.SSH_FX_NO_SUCH_FILE != status) {
+                    throw new IOException("Failed to determine remote directory existence [%s]".formatted(remoteDirectory), e);
                 }
             }
         }
@@ -566,23 +617,11 @@ public class SFTPTransfer implements FileTransfer {
             ensureDirectoryExists(flowFile, directoryName.getParentFile());
         }
         logger.debug("Remote Directory {} does not exist; creating it", remoteDirectory);
-        try {
-            sftpClient.mkdir(remoteDirectory);
-            logger.debug("Created {}", remoteDirectory);
-        } catch (final SFTPException e) {
-            throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + getMessage(e), e);
-        }
+        sftpClient.mkdir(remoteDirectory);
+        logger.debug("Created {}", remoteDirectory);
     }
 
-    private String getMessage(final SFTPException e) {
-        if (e.getStatusCode() != null) {
-            return e.getStatusCode().getCode() + ": " + e.getMessage();
-        } else {
-            return e.getMessage();
-        }
-    }
-
-    protected SFTPClient getSFTPClient(final FlowFile flowFile) throws IOException {
+    protected SftpClient getSFTPClient(final FlowFile flowFile) throws IOException {
         final String evaledHostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String evaledPort = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).getValue();
         final String evaledUsername = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -609,8 +648,11 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final Map<String, String> attributes = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
-        this.sshClient = SSH_CLIENT_PROVIDER.getClient(ctx, attributes);
-        this.sftpClient = new SFTPClient(new SFTPEngine(sshClient).init());
+        this.clientSession = CLIENT_PROVIDER.getClientSession(ctx, attributes);
+
+        final SftpClientFactory sftpClientFactory = SftpClientFactory.instance();
+        sftpClient = sftpClientFactory.createSftpClient(clientSession);
+
         activeHostname = evaledHostname;
         activePort = evaledPort;
         activePassword = evaledPassword;
@@ -619,14 +661,9 @@ public class SFTPTransfer implements FileTransfer {
         activePrivateKeyPassphrase = evaledPrivateKeyPassphrase;
         this.closed = false;
 
-        // Configure timeout for sftp operations
-        final int dataTimeout = ctx.getProperty(FileTransfer.DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        this.sftpClient.getSFTPEngine().setTimeoutMs(dataTimeout);
-
-        // Attempt to get the home dir
         try {
-            this.homeDir = sftpClient.canonicalize("");
-        } catch (IOException e) {
+            this.homeDir = sftpClient.canonicalPath("");
+        } catch (final IOException e) {
             this.homeDir = "";
             // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
             // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
@@ -659,13 +696,13 @@ public class SFTPTransfer implements FileTransfer {
         sftpClient = null;
 
         try {
-            if (null != sshClient) {
-                sshClient.disconnect();
+            if (clientSession != null) {
+                clientSession.close();
             }
-        } catch (final Exception ex) {
-            logger.warn("Failed to close SSHClient", ex);
+        } catch (final Exception e) {
+            logger.warn("Failed to close SSH Client", e);
         }
-        sshClient = null;
+        clientSession = null;
     }
 
     @Override
@@ -675,30 +712,33 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, String filename) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
+        final SftpClient sftpClient = getSFTPClient(flowFile);
+
+        final FileInfo fileInfo;
 
         final String fullPath = buildFullPath(path, filename);
-        final FileAttributes fileAttributes;
         try {
-            fileAttributes = sftpClient.stat(fullPath);
-        } catch (final SFTPException e) {
-            if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
+            final SftpClient.Attributes fileAttributes = sftpClient.stat(fullPath);
+            if (fileAttributes.isDirectory()) {
+                fileInfo = null;
+            } else {
+                fileInfo = newFileInfo(path, filename, fileAttributes);
+            }
+        } catch (final SftpException e) {
+            final int status = e.getStatus();
+            if (SftpConstants.SSH_FX_NO_SUCH_FILE == status) {
                 return null;
             } else {
-                throw new IOException("Failed to obtain file listing for " + path, e);
+                throw new IOException("Failed to read remote attributes [%s]".formatted(fullPath), e);
             }
         }
 
-        if (fileAttributes == null || isDirectory(fileAttributes)) {
-            return null;
-        } else {
-            return newFileInfo(path, filename, fileAttributes);
-        }
+        return fileInfo;
     }
 
     @Override
     public String put(final FlowFile flowFile, final String path, final String filename, final InputStream content) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
+        final SftpClient sftpClient = getSFTPClient(flowFile);
 
         // destination path + filename
         final String fullPath = buildFullPath(path, filename);
@@ -711,76 +751,61 @@ public class SFTPTransfer implements FileTransfer {
         }
         final String tempPath = buildFullPath(path, tempFilename);
 
-        int perms;
-        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (permissions == null || permissions.isBlank()) {
-            sftpClient.getFileTransfer().setPreserveAttributes(false); //We will accept whatever the default permissions are of the destination
-            perms = 0;
-        } else {
-            sftpClient.getFileTransfer().setPreserveAttributes(true); //We will use the permissions supplied by evaluating processor property expression
-            perms = numberPermissions(permissions);
+        final SftpClient.Attributes attributes;
+        try {
+            sftpClient.put(content, tempPath);
+            attributes = sftpClient.stat(tempPath);
+        } catch (final SftpException e) {
+            throw new IOException("Failed to transfer content to [%s]".formatted(fullPath), e);
         }
 
-        try {
-            final LocalSourceFile sourceFile = new SFTPFlowFileSourceFile(filename, content, perms);
-            sftpClient.put(sourceFile, tempPath);
-        } catch (final SFTPException e) {
-            throw new IOException("Unable to put content to " + fullPath + " due to " + getMessage(e), e);
+        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isNotEmpty(permissions)) {
+            final int perms = numberPermissions(permissions);
+            attributes.setPermissions(perms);
         }
 
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
         if (lastModifiedTime != null && !lastModifiedTime.isBlank()) {
-            try {
-                final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
-                int time = (int) offsetDateTime.toEpochSecond();
-
-                final FileAttributes tempAttributes = sftpClient.stat(tempPath);
-
-                final FileAttributes modifiedAttributes = new FileAttributes.Builder()
-                        .withAtimeMtime(tempAttributes.getAtime(), time)
-                        .build();
-
-                sftpClient.setattr(tempPath, modifiedAttributes);
-            } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", tempPath, lastModifiedTime, e);
-            }
+            final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+            final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
+            final FileTime modifyTime = FileTime.from(offsetDateTime.toInstant());
+            attributes.setModifyTime(modifyTime);
         }
 
         final String owner = ctx.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-        if (owner != null && !owner.isBlank()) {
-            try {
-                sftpClient.chown(tempPath, Integer.parseInt(owner));
-            } catch (final Exception e) {
-                logger.error("Failed to set owner on {} to {} due to {}", tempPath, owner, e);
-            }
+        if (StringUtils.isNotEmpty(owner)) {
+            attributes.setOwner(owner);
         }
 
         final String group = ctx.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-        if (group != null && !group.isBlank()) {
-            try {
-                sftpClient.chgrp(tempPath, Integer.parseInt(group));
-            } catch (final Exception e) {
-                logger.error("Failed to set group on {} to {} due to {}", tempPath, group, e);
-            }
+        if (StringUtils.isNotEmpty(group)) {
+            attributes.setGroup(group);
+        }
+
+        // Set Attributes on temporary file path to avoid potential timing issues with retrieval and removal of transferred files
+        try {
+            sftpClient.setStat(tempPath, attributes);
+        } catch (final SftpException e) {
+            logger.warn("Failed to set attributes on Remote File [{}]", tempPath, e);
         }
 
         if (!filename.equals(tempFilename)) {
             try {
                 // file was transferred to a temporary filename, attempt to delete destination filename before rename
-                sftpClient.rm(fullPath);
-            } catch (final SFTPException e) {
+                sftpClient.remove(fullPath);
+            } catch (final SftpException e) {
                 logger.debug("Failed to remove {} before renaming temporary file", fullPath, e);
             }
 
             try {
                 sftpClient.rename(tempPath, fullPath);
-            } catch (final SFTPException e) {
+            } catch (final SftpException e) {
                 try {
-                    sftpClient.rm(tempPath);
-                    throw new IOException("Failed to rename dot-file to " + fullPath + " due to " + getMessage(e), e);
-                } catch (final SFTPException e1) {
-                    throw new IOException("Failed to rename dot-file to " + fullPath + " and failed to delete it when attempting to clean up", e1);
+                    sftpClient.remove(tempPath);
+                    throw new IOException("Failed to rename temporary file to [%s]".formatted(fullPath), e);
+                } catch (final SftpException removeException) {
+                    throw new IOException("Failed to rename temporary file to [%s] and removal failed".formatted(fullPath), removeException);
                 }
             }
         }
@@ -790,17 +815,18 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
+        final SftpClient sftpClient = getSFTPClient(flowFile);
         try {
             sftpClient.rename(source, target);
-        } catch (final SFTPException e) {
-            switch (e.getStatusCode()) {
-                case NO_SUCH_FILE:
-                    throw new FileNotFoundException("No such file or directory");
-                case PERMISSION_DENIED:
-                    throw new PermissionDeniedException("Could not rename remote file " + source + " to " + target + " due to insufficient permissions");
+        } catch (final SftpException e) {
+            final int status = e.getStatus();
+            switch (status) {
+                case SftpConstants.SSH_FX_NO_SUCH_FILE:
+                    throw new FileNotFoundException("No such file or directory [%s] on remote system".formatted(source));
+                case SftpConstants.SSH_FX_PERMISSION_DENIED:
+                    throw new PermissionDeniedException("Insufficient permissions to rename [%s] to [%s]".formatted(source, target), e);
                 default:
-                    throw new IOException(e);
+                    throw new IOException("Failed to rename [%s] to [%s]".formatted(source, target), e);
             }
         }
     }
