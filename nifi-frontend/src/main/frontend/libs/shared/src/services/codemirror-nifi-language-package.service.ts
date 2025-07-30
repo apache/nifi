@@ -1046,9 +1046,6 @@ export class CodemirrorNifiLanguagePackage {
                     let options: string[] = [];
                     let useFunctionDetails = true;
 
-                    // determine the options based on the detected context
-                    console.log('detectedContext', detectedContext);
-
                     if (isParameterReference(detectedContext) && self.parametersSupported) {
                         options = self.parameters;
                         useFunctionDetails = false;

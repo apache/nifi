@@ -26,7 +26,7 @@ import {
     MapTableEntry,
     Codemirror,
     CodeMirrorConfig,
-    highlightStyle
+    highlightStyle, parameterHighlightPlugin, elFunctionHighlightPlugin
 } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
@@ -245,6 +245,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             rectangularSelection(),
             crosshairCursor(),
+            parameterHighlightPlugin,
+            elFunctionHighlightPlugin,
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
@@ -256,13 +258,12 @@ export class JoltTransformJsonUi implements OnDestroy {
             highlightSelectionMatches(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             foldGutter(),
-            autocompletion(),
             json(),
             linter(jsonParseLinter()),
             EditorView.contentAttributes.of({ 'aria-label': 'Jolt Specification Editor' }),
             keymap.of([
                 {
-                    key: 'Shift-Ctrl-f',
+                    key: 'Shift-Mod-f',
                     run: () => {
                         this.formatSpecification();
                         return true;
@@ -286,6 +287,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             rectangularSelection(),
             crosshairCursor(),
+            parameterHighlightPlugin,
+            elFunctionHighlightPlugin,
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
@@ -296,13 +299,11 @@ export class JoltTransformJsonUi implements OnDestroy {
             highlightActiveLine(),
             highlightSelectionMatches(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-            foldGutter(),
-            autocompletion(),
             json(),
             EditorView.contentAttributes.of({ 'aria-label': 'Example Data Editor' }),
             keymap.of([
                 {
-                    key: 'Shift-Ctrl-f',
+                    key: 'Shift-Mod-f',
                     run: () => {
                         this.formatInput();
                         return true;
@@ -329,7 +330,6 @@ export class JoltTransformJsonUi implements OnDestroy {
             bracketMatching(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-            foldGutter(),
             json(),
             EditorView.contentAttributes.of({ 'aria-label': 'Output Viewer' })
         ];
