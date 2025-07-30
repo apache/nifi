@@ -233,7 +233,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final AffectedComponentSet existing = activeSet.toExistingSet();
         final AffectedComponentSet noLongerExisting = activeSet.minus(existing);
         if (!noLongerExisting.isEmpty()) {
-            logger.info("After synchronizing flow, the followinging components will not be restarted because they no longer exist: {}", noLongerExisting);
+            logger.info("After synchronizing flow, the following components will not be restarted because they no longer exist: {}", noLongerExisting);
         }
 
         final AffectedComponentSet startable = existing.toStartableSet();
