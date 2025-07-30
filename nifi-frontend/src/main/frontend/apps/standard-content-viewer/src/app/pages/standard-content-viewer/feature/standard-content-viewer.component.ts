@@ -61,16 +61,16 @@ export class StandardContentViewer {
     contentFormGroup: FormGroup;
 
     private _codemirrorConfig: CodeMirrorConfig = {
-        extensions: [],
-        autoFocus: true
+        plugins: [],
+        focusOnInit: true
     };
 
     // Dynamic config getter that includes runtime state
     get codemirrorConfig(): CodeMirrorConfig {
         return {
             ...this._codemirrorConfig,
-            viewDisabled: true,
-            readonly: true
+            disabled: true,
+            readOnly: true
         };
     }
 
@@ -165,7 +165,7 @@ export class StandardContentViewer {
             }
 
             // Combine base extensions with language-specific extensions
-            this._codemirrorConfig.extensions = [...baseExtensions, ...languageExtensions];
+            this._codemirrorConfig.plugins = [...baseExtensions, ...languageExtensions];
 
             this.contentLoaded = false;
 
