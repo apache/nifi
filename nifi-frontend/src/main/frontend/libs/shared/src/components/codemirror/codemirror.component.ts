@@ -39,30 +39,15 @@ import { LanguageDescription } from '@codemirror/language';
 export const External = Annotation.define<boolean>();
 
 export interface CodeMirrorConfig {
-    /** The editor's theme. */
-    theme?: Extension;
-    /** Whether focus on the editor after init. Don't support change dynamically! */
-    autoFocus?: boolean;
-    /** The editor's value. */
-    value?: string;
-    /** Whether the editor is disabled. */
-    viewDisabled?: boolean;
-    /** Whether the editor is readonly. */
-    readonly?: boolean;
-    /** Extensions to be appended to the root extensions. */
-    extensions?: Extension[];
-    /**
-     * An array of language descriptions for known language-data.
-     * Don't support change dynamically!
-     */
-    languages?: LanguageDescription[];
-    /** The editor's language. You should set the languages prop at first. */
-    language?: string;
+    appearance?: Extension;
+    focusOnInit?: boolean;
+    content?: string;
+    disabled?: boolean;
+    readOnly?: boolean;
+    plugins?: Extension[];
+    syntaxModes?: LanguageDescription[];
+    syntaxMode?: string;
 }
-
-type ConfigPropertyKey = keyof CodeMirrorConfig;
-type EventListenerCallback = (() => void) | null;
-type ChangeCallback = ((value: string) => void) | null;
 
 @Component({
     selector: 'codemirror',
@@ -83,113 +68,73 @@ type ChangeCallback = ((value: string) => void) | null;
     ]
 })
 export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAccessor {
-    /**
-     * EditorView's [root](https://codemirror.net/docs/ref/#view.EditorView.root).
-     *
-     * Don't support change dynamically!
-     */
-    @Input() root?: Document | ShadowRoot;
-
-    /** CodeMirror configuration object */
-    @Input() config: CodeMirrorConfig = {
-        theme: defaultTheme,
-        autoFocus: false,
-        value: '',
-        viewDisabled: false,
-        readonly: false,
-        extensions: [],
-        languages: languages,
-        language: ''
+    @Input() documentRoot?: Document | ShadowRoot;
+    @Input() settings: CodeMirrorConfig = {
+        appearance: defaultTheme,
+        focusOnInit: false,
+        content: '',
+        disabled: false,
+        readOnly: false,
+        plugins: [],
+        syntaxModes: languages,
+        syntaxMode: ''
     };
 
-    /** Event emitted when the editor's value changes. */
-    @Output() valueChange = new EventEmitter<string>();
+    @Output() contentChange = new EventEmitter<string>();
+    @Output() ready = new EventEmitter<Codemirror>();
+    @Output() focused = new EventEmitter<void>();
+    @Output() blurred = new EventEmitter<void>();
 
-    /** Event emitted after the editor's view has been created. */
-    @Output() loaded = new EventEmitter<Codemirror>();
+    view: EditorView | null = null;
+    isInitialized = false;
+    onTouched: (() => void) | null = null;
+    onChange: ((value: string) => void) | null = null;
 
-    /** Event emitted when focus on the editor. */
-    @Output() editorFocus = new EventEmitter<void>();
+    private editableCompartment = new Compartment();
+    private readonlyCompartment = new Compartment();
+    private themeCompartment = new Compartment();
+    private languageCompartment = new Compartment();
 
-    /** Event emitted when the editor has lost focus. */
-    @Output() editorBlur = new EventEmitter<void>();
-
-    onTouched: EventListenerCallback = null;
-    onChange: ChangeCallback = null;
-
-    // Private properties
-    private view: EditorView | null = null;
-    private isInitialized = false;
-    private readonly CSS_CLASSES = {
-        READONLY: 'editor-readonly',
-        DISABLED: 'editor-disabled'
-    } as const;
-
-    // Extension compartments for dynamic configuration
-    private readonly editableCompartment = new Compartment();
-    private readonly readonlyCompartment = new Compartment();
-    private readonly themeCompartment = new Compartment();
-    private readonly languageCompartment = new Compartment();
-
-    // Update listener for tracking document changes
-    private readonly updateListener = EditorView.updateListener.of((viewUpdate) => {
+    private updateListener = EditorView.updateListener.of((viewUpdate) => {
         if (viewUpdate.docChanged && !viewUpdate.transactions.some((tr) => tr.annotation(External))) {
             const currentValue = viewUpdate.state.doc.toString();
             this.onChange?.(currentValue);
-            this.valueChange.emit(currentValue);
+            this.contentChange.emit(currentValue);
         }
     });
 
-    constructor(private readonly elementRef: ElementRef<Element>) {}
+    constructor(private elementRef: ElementRef<Element>) {}
 
-    // Computed properties with better performance and null safety
     get theme(): Extension {
-        return this.config.theme ?? defaultTheme;
+        return this.settings.appearance ?? defaultTheme;
     }
 
     get autoFocus(): boolean {
-        return this.config.autoFocus ?? false;
+        return this.settings.focusOnInit ?? false;
     }
 
     get value(): string {
-        return this.config.value ?? '';
+        return this.settings.content ?? '';
     }
 
     get viewDisabled(): boolean {
-        return this.config.viewDisabled ?? false;
+        return this.settings.disabled ?? false;
     }
 
     get readonly(): boolean {
-        return this.config.readonly ?? false;
+        return this.settings.readOnly ?? false;
     }
 
     get extensions(): Extension[] {
-        return this.config.extensions ?? [];
+        return this.settings.plugins ?? [];
     }
 
     get languages(): LanguageDescription[] {
-        return this.config.languages ?? languages;
+        return this.settings.syntaxModes ?? languages;
     }
 
     get language(): string {
-        return this.config.language ?? '';
-    }
-
-    ngOnChanges(changes: SimpleChanges): void {
-        if (!this.isInitialized || !changes['config']) {
-            return;
-        }
-
-        const configChange = changes['config'];
-        if (!configChange.currentValue) {
-            return;
-        }
-
-        const previousConfig = configChange.previousValue || {};
-        const currentConfig = configChange.currentValue;
-
-        // Process config changes efficiently
-        this.processConfigChanges(previousConfig, currentConfig);
+        return this.settings.syntaxMode ?? '';
     }
 
     ngOnInit(): void {
@@ -197,30 +142,49 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         this.setupEventListeners();
         this.applyInitialConfiguration();
         this.isInitialized = true;
-        this.loaded.emit(this);
+        this.ready.emit(this);
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (!this.isInitialized || !changes['settings']) {
+            return;
+        }
+
+        const configChange = changes['settings'];
+        if (!configChange.currentValue) {
+            return;
+        }
+
+        const previousConfig = configChange.previousValue || {};
+        const currentConfig = configChange.currentValue;
+
+        this.processConfigChanges(previousConfig, currentConfig);
     }
 
     ngOnDestroy(): void {
-        this.cleanupEditor();
+        if (this.view) {
+            this.view.destroy();
+            this.view = null;
+            this.isInitialized = false;
+        }
     }
 
-    // ControlValueAccessor implementation
     writeValue(value: string): void {
         if (this.view && value !== undefined && value !== null) {
             this.setValue(value);
         }
     }
 
-    registerOnChange(onChange: ChangeCallback): void {
+    registerOnChange(onChange: (value: string) => void): void {
         this.onChange = onChange;
     }
 
-    registerOnTouched(onTouch: EventListenerCallback): void {
+    registerOnTouched(onTouch: () => void): void {
         this.onTouched = onTouch;
     }
 
     setDisabledState(isDisabled: boolean): void {
-        this.config = { ...this.config, viewDisabled: isDisabled };
+        this.settings = { ...this.settings, disabled: isDisabled };
         if (this.isInitialized) {
             this.setEditable(!isDisabled);
         }
@@ -232,14 +196,13 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         }
     }
 
-    // Private methods for better organization
     private initializeEditor(): void {
         if (!this.elementRef.nativeElement) {
             return;
         }
 
         this.view = new EditorView({
-            root: this.root,
+            root: this.documentRoot,
             parent: this.elementRef.nativeElement,
             state: EditorState.create({
                 doc: this.value,
@@ -261,12 +224,12 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
 
         contentDOM.addEventListener('focus', () => {
             this.onTouched?.();
-            this.editorFocus.emit();
+            this.focused.emit();
         });
 
         contentDOM.addEventListener('blur', () => {
             this.onTouched?.();
-            this.editorBlur.emit();
+            this.blurred.emit();
         });
     }
 
@@ -279,30 +242,30 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         this.setReadonly(this.readonly);
         this.setTheme(this.theme);
 
-        // Only set language if we have a language specified and languages available
         if (this.language && this.languages.length > 0) {
             this.setLanguage(this.language);
         }
     }
 
     private processConfigChanges(previousConfig: CodeMirrorConfig, currentConfig: CodeMirrorConfig): void {
-        const changedProperties: Array<{
-            key: ConfigPropertyKey;
-            handler: (value: any) => void;
-        }> = [
-            { key: 'value', handler: (value) => this.setValue(value) },
-            { key: 'viewDisabled', handler: (disabled) => this.setEditable(!disabled) },
-            { key: 'readonly', handler: (readonly) => this.setReadonly(readonly) },
-            { key: 'theme', handler: (theme) => this.setTheme(theme) },
-            { key: 'extensions', handler: () => this.setExtensions(this.getAllExtensions()) },
-            { key: 'language', handler: (language) => this.setLanguage(language) }
-        ];
-
-        changedProperties.forEach(({ key, handler }) => {
-            if (currentConfig[key] !== previousConfig[key]) {
-                handler(currentConfig[key]);
-            }
-        });
+        if (currentConfig.content !== previousConfig.content) {
+            this.setValue(currentConfig.content || '');
+        }
+        if (currentConfig.disabled !== previousConfig.disabled) {
+            this.setEditable(!(currentConfig.disabled ?? false));
+        }
+        if (currentConfig.readOnly !== previousConfig.readOnly) {
+            this.setReadonly(currentConfig.readOnly ?? false);
+        }
+        if (currentConfig.appearance !== previousConfig.appearance) {
+            this.setTheme(currentConfig.appearance ?? defaultTheme);
+        }
+        if (currentConfig.plugins !== previousConfig.plugins) {
+            this.setExtensions(this.getAllExtensions());
+        }
+        if (currentConfig.syntaxMode !== previousConfig.syntaxMode) {
+            this.setLanguage(currentConfig.syntaxMode || '');
+        }
     }
 
     private getAllExtensions(): Extension[] {
@@ -314,14 +277,6 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
             this.languageCompartment.of([]),
             ...this.extensions
         ];
-    }
-
-    private cleanupEditor(): void {
-        if (this.view) {
-            this.view.destroy();
-            this.view = null;
-            this.isInitialized = false;
-        }
     }
 
     private selectAll(): void {
@@ -372,7 +327,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
             effects: this.readonlyCompartment.reconfigure(EditorState.readOnly.of(isReadonly))
         });
 
-        this.toggleCSSClass(this.CSS_CLASSES.READONLY, isReadonly);
+        this.toggleCSSClass('editor-readonly', isReadonly);
 
         if (!isReadonly) {
             this.selectAll();
@@ -388,7 +343,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
             effects: this.editableCompartment.reconfigure(EditorView.editable.of(isEditable))
         });
 
-        this.toggleCSSClass(this.CSS_CLASSES.DISABLED, !isEditable);
+        this.toggleCSSClass('editor-disabled', !isEditable);
 
         if (isEditable) {
             this.selectAll();
@@ -415,8 +370,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
             return;
         }
 
-        // Only attempt to set language if languages are available
-        const languagesArray = this.config.languages || [];
+        const languagesArray = this.settings.syntaxModes || [];
         if (languagesArray.length === 0) {
             return;
         }
@@ -440,7 +394,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
     private findLanguageDescription(languageName: string): LanguageDescription | null {
         const normalizedName = languageName.toLowerCase();
 
-        for (const languageDesc of this.config.languages || []) {
+        for (const languageDesc of this.settings.syntaxModes || []) {
             const allNames = [languageDesc.name, ...languageDesc.alias];
             const hasMatch = allNames.some((name) => name.toLowerCase() === normalizedName);
 

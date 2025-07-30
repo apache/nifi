@@ -89,8 +89,8 @@ export class TextEditor {
     blank = false;
     itemSet = false;
     codemirrorConfig: CodeMirrorConfig = {
-        extensions: [],
-        autoFocus: true
+        plugins: [],
+        focusOnInit: true
     };
 
     // Styling configuration
@@ -103,9 +103,9 @@ export class TextEditor {
     get codemirrorConfigWithState(): CodeMirrorConfig {
         return {
             ...this.codemirrorConfig,
-            extensions: this.getExtensions(),
-            viewDisabled: this.readonly,
-            readonly: this.readonly
+            plugins: this.getExtensions(),
+            disabled: this.readonly,
+            readOnly: this.readonly
         };
     }
 

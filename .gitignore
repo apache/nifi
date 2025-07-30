@@ -20,3 +20,4 @@ nb-configuration.xml
 .java-version
 /nifi-nar-bundles/nifi-py4j-bundle/nifi-python-extension-api/src/main/python/dist/
 __pycache__
+.cursor/

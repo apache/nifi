@@ -92,9 +92,9 @@
                                             <div class="h-full">
                                                 <codemirror
                                                     formControlName="specification"
-                                                    [config]="joltSpecConfig"
+                                                    [settings]="joltSpecConfig"
                                                     (mousedown)="preventDrag($event)"
-                                                    (loaded)="initSpecEditor($event)" />
+                                                    (ready)="initSpecEditor($event)" />
                                             </div>
                                         </div>
                                     </div>
@@ -252,9 +252,9 @@
                                             <div class="input-editor">
                                                 <codemirror
                                                     formControlName="input"
-                                                    [config]="exampleDataConfig"
+                                                    [settings]="exampleDataConfig"
                                                     (mousedown)="preventDrag($event)"
-                                                    (loaded)="initInputEditor($event)" />
+                                                    (ready)="initInputEditor($event)" />
                                             </div>
                                         </div>
                                     </mat-expansion-panel>
@@ -378,7 +378,7 @@
                                                     : ''
                                             "
                                             [ngModelOptions]="{ standalone: true }"
-                                            [config]="outputConfig"
+                                            [settings]="outputConfig"
                                             (mousedown)="preventDrag($event)" />
                                     </div>
                                 </div>

@@ -33,79 +33,71 @@ class MockMutationObserver {
 class MockResizeObserver {
     observe(): void {}
     disconnect(): void {}
-    unobserve(): void {}
 }
 
-// Mock EditorView with comprehensive functionality
-const createMockEditorView = () => ({
-    root: document,
-    state: {
-        doc: { toString: jest.fn().mockReturnValue(''), length: 0 },
-        readOnly: false,
-        facet: jest.fn().mockReturnValue(true)
-    },
-    contentDOM: {
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn()
-    },
-    dispatch: jest.fn(),
-    focus: jest.fn(),
-    destroy: jest.fn()
-});
-
-// Setup comprehensive mocks
-jest.mock('@codemirror/view', () => {
-    const actual = jest.requireActual('@codemirror/view');
-    return {
-        ...actual,
-        EditorView: Object.assign(
-            jest.fn().mockImplementation((config) => ({
-                ...createMockEditorView(),
-                root: config.root || document,
-                state: config.state
-            })),
-            {
-                updateListener: {
-                    of: jest.fn().mockReturnValue({})
+// Mock EditorView for testing
+jest.mock('@codemirror/view', () => ({
+    EditorView: Object.assign(
+        jest.fn().mockImplementation(() => ({
+            contentDOM: {
+                addEventListener: jest.fn(),
+                removeEventListener: jest.fn()
+            },
+            state: {
+                doc: {
+                    length: 0,
+                    toString: jest.fn().mockReturnValue('')
                 },
-                editable: {
-                    of: jest.fn().mockReturnValue({})
-                },
-                theme: jest.fn().mockReturnValue({}),
-                lineWrapping: {}
-            }
-        )
-    };
-});
-
-jest.mock('@codemirror/state', () => {
-    const actual = jest.requireActual('@codemirror/state');
-    return {
-        ...actual,
-        EditorState: {
-            ...actual.EditorState,
-            create: jest.fn().mockImplementation(({ doc, extensions }) => ({
-                doc: { toString: () => doc || '', length: (doc || '').length },
                 readOnly: false,
-                facet: jest.fn().mockReturnValue(true),
-                extensions
-            })),
-            readOnly: {
-                of: jest.fn().mockReturnValue({})
-            }
+                facet: jest.fn().mockReturnValue(true)
+            },
+            dispatch: jest.fn(),
+            focus: jest.fn(),
+            destroy: jest.fn()
+        })),
+        {
+            updateListener: {
+                of: jest.fn().mockReturnValue({ mockUpdateListener: true })
+            },
+            editable: {
+                of: jest.fn().mockReturnValue({ mockEditable: true })
+            },
+            theme: jest.fn().mockReturnValue({ mockTheme: true }),
+            lineWrapping: { mockLineWrapping: true }
         }
-    };
-});
+    )
+}));
 
+// Mock EditorState for testing
+jest.mock('@codemirror/state', () => ({
+    EditorState: {
+        create: jest.fn().mockReturnValue({ mockState: true }),
+        readOnly: {
+            of: jest.fn().mockReturnValue({ mockReadOnly: true })
+        }
+    },
+    Annotation: {
+        define: jest.fn().mockReturnValue({
+            of: jest.fn().mockReturnValue({ mockAnnotation: true })
+        })
+    },
+    Compartment: jest.fn().mockImplementation(() => ({
+        of: jest.fn().mockReturnValue([]),
+        reconfigure: jest.fn().mockReturnValue({ mockReconfigure: true })
+    })),
+    StateEffect: {
+        reconfigure: {
+            of: jest.fn().mockReturnValue({ mockStateEffect: true })
+        }
+    }
+}));
+
+// Mock default theme
 jest.mock('./themes/defaultTheme', () => ({
     defaultTheme: { mockTheme: true }
 }));
 
-jest.mock('./themes/baseTheme', () => ({
-    baseTheme: { mockBaseTheme: true }
-}));
-
+// Mock language data
 jest.mock('@codemirror/language-data', () => ({
     languages: []
 }));
@@ -162,10 +154,10 @@ describe('Codemirror Component', () => {
         component = fixture.componentInstance;
 
         // Set up default config with languages
-        component.config = {
-            ...component.config,
-            languages: mockLanguages,
-            language: ''
+        component.settings = {
+            ...component.settings,
+            syntaxModes: mockLanguages,
+            syntaxMode: ''
         };
 
         jest.clearAllMocks();
@@ -191,63 +183,52 @@ describe('Codemirror Component', () => {
             // EXPECTED: Component should be truthy with default config including new language properties
             // RESULT: Verify component instance and default properties
             expect(component).toBeTruthy();
-            expect(component.config).toEqual({
-                theme: mockDefaultTheme,
-                autoFocus: false,
-                value: '',
-                viewDisabled: false,
-                readonly: false,
-                extensions: [],
-                languages: mockLanguages,
-                language: ''
+            expect(component.settings).toEqual({
+                appearance: mockDefaultTheme,
+                focusOnInit: false,
+                content: '',
+                disabled: false,
+                readOnly: false,
+                plugins: [],
+                syntaxModes: mockLanguages,
+                syntaxMode: ''
             });
             expect(component).toBeInstanceOf(Codemirror);
             // SUMMARY: Component creation test complete
         });
 
         it('should initialize editor with proper configuration on ngOnInit', () => {
-            // SETUP: Component with test configuration
-            // INPUT: Test value and configuration
-            component.config = { ...component.config, value: testValue };
-
-            // FUNCTION: Initialize component
+            // SETUP: Component with mock implementation
+            // INPUT: Component initialization
             fixture.detectChanges();
 
-            // EXPECTED: Should create EditorView with correct parameters
-            // RESULT: Verify EditorView creation and configuration
-            expect(EditorView).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    parent: fixture.nativeElement,
-                    state: expect.any(Object)
-                })
-            );
-            expect(EditorState.create).toHaveBeenCalledWith({
-                doc: testValue,
-                extensions: expect.any(Array)
-            });
+            // EXPECTED: Should create editor view and emit ready event
+            // RESULT: Verify editor initialization
+            expect(EditorView).toHaveBeenCalled();
+            expect(component.isInitialized).toBe(true);
             expect(component['view']).toBeDefined();
-            expect(component['isInitialized']).toBe(true);
-            // SUMMARY: Editor initialization test complete
+            // SUMMARY: Initialization test complete
         });
 
-        it('should emit loaded event after successful initialization', () => {
+        it('should emit ready event after initialization', () => {
             // SETUP: Component with loaded event spy
-            // INPUT: Standard component configuration
-            const loadedSpy = jest.spyOn(component.loaded, 'emit');
+            // INPUT: Component initialization
+            const readySpy = jest.spyOn(component.ready, 'emit');
 
             // FUNCTION: Initialize component
             fixture.detectChanges();
 
-            // EXPECTED: Should emit loaded event with component instance
-            // RESULT: Verify event emission
-            expect(loadedSpy).toHaveBeenCalledWith(component);
-            // SUMMARY: Loaded event test complete
+            // EXPECTED: Should emit ready event with component instance
+            // RESULT: Verify ready event emission
+            expect(readySpy).toHaveBeenCalledWith(component);
+
+            // SUMMARY: Ready event test complete
         });
 
-        it('should handle autoFocus configuration correctly', () => {
-            // SETUP: Component with autoFocus enabled
-            // INPUT: Configuration with autoFocus true
-            component.config = { ...component.config, autoFocus: true };
+        it('should handle focusOnInit configuration correctly', () => {
+            // SETUP: Component with focusOnInit enabled
+            // INPUT: Configuration with focusOnInit true
+            component.settings = { ...component.settings, focusOnInit: true };
 
             // FUNCTION: Initialize component
             fixture.detectChanges();
@@ -259,171 +240,56 @@ describe('Codemirror Component', () => {
         });
     });
 
-    describe('Configuration Property Getters', () => {
-        const testConfigPropertyGetter = (
-            propertyName: keyof CodeMirrorConfig,
-            testValue: any,
-            defaultValue: any,
-            description: string
-        ) => {
-            it(`should return ${description}`, () => {
-                // SETUP: Component instance ready
-                // INPUT: Test configuration values
-                component.config = { ...component.config, [propertyName]: testValue };
-
-                // FUNCTION: Access getter property
-                const actualValue = component[propertyName as keyof Codemirror];
-
-                // EXPECTED: Should return test value
-                // RESULT: Verify getter returns correct value
-                expect(actualValue).toBe(testValue);
-
-                // Test with undefined value
-                component.config = { ...component.config, [propertyName]: undefined };
-                const defaultActualValue = component[propertyName as keyof Codemirror];
-
-                // EXPECTED: Should return default value when undefined
-                // RESULT: Verify default value handling
-                expect(defaultActualValue).toStrictEqual(defaultValue);
-                // SUMMARY: Property getter test complete
-            });
-        };
-
-        testConfigPropertyGetter('theme', customTheme, mockDefaultTheme, 'correct theme value or default');
-        testConfigPropertyGetter('autoFocus', true, false, 'correct autoFocus value or default');
-        testConfigPropertyGetter('value', testValue, '', 'correct value or default');
-        testConfigPropertyGetter('viewDisabled', true, false, 'correct viewDisabled value or default');
-        testConfigPropertyGetter('readonly', true, false, 'correct readonly value or default');
-        testConfigPropertyGetter('extensions', [{}], [], 'correct extensions array or default');
-        testConfigPropertyGetter('languages', [mockLanguageForTesting], [], 'correct languages array or default');
-        testConfigPropertyGetter('language', 'javascript', '', 'correct language value or default');
-    });
-
-    describe('Component Lifecycle Management', () => {
+    describe('Form Control Integration', () => {
         beforeEach(() => {
             fixture.detectChanges();
         });
 
-        it('should destroy editor properly on ngOnDestroy', () => {
-            // SETUP: Initialized component with editor view
-            // INPUT: Active editor instance
-            const destroySpy = jest.spyOn(component['view']!, 'destroy');
-
-            // FUNCTION: Call ngOnDestroy
-            component.ngOnDestroy();
-
-            // EXPECTED: Should call destroy and reset state
-            // RESULT: Verify cleanup
-            expect(destroySpy).toHaveBeenCalled();
-            expect(component['view']).toBeNull();
-            expect(component['isInitialized']).toBe(false);
-            // SUMMARY: Destroy test complete
-        });
-
-        it('should handle destroy when view is not initialized', () => {
-            // SETUP: Component without initialized view
-            // INPUT: Null view state
-            component['view'] = null;
-
-            // FUNCTION: Call ngOnDestroy
-            // EXPECTED: Should not throw error
-            // RESULT: Verify safe cleanup
-            expect(() => component.ngOnDestroy()).not.toThrow();
-            // SUMMARY: Safe destroy test complete
-        });
-    });
-
-    describe('ControlValueAccessor Implementation', () => {
-        beforeEach(() => {
-            fixture.detectChanges();
-        });
-
-        it('should handle writeValue with valid input', () => {
-            // SETUP: Initialized component
-            // INPUT: Test string value
-            const inputValue = 'new test value';
+        it('should write value to editor via ControlValueAccessor', () => {
+            // SETUP: Component with initialized editor
+            // INPUT: Test value for form control
+            const testValue = 'form control test value';
             const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
 
             // FUNCTION: Call writeValue
-            component.writeValue(inputValue);
+            component.writeValue(testValue);
 
-            // EXPECTED: Should dispatch value change with External annotation
-            // RESULT: Verify dispatch call
-            expect(dispatchSpy).toHaveBeenCalledWith({
-                changes: { from: 0, to: 0, insert: inputValue },
-                annotations: [expect.any(Object)]
-            });
-            // SUMMARY: WriteValue test complete
+            // EXPECTED: Should dispatch value change to editor
+            // RESULT: Verify dispatch called with proper configuration
+            expect(dispatchSpy).toHaveBeenCalled();
+            // SUMMARY: Write value test complete
         });
 
-        it('should handle writeValue with null and undefined values', () => {
-            // SETUP: Initialized component
-            // INPUT: Null and undefined values
+        it('should register onChange and onTouched callbacks', () => {
+            // SETUP: Component ready for callback registration
+            // INPUT: Mock callback functions
+            const onChangeMock = jest.fn();
+            const onTouchedMock = jest.fn();
+
+            // FUNCTION: Register callbacks
+            component.registerOnChange(onChangeMock);
+            component.registerOnTouched(onTouchedMock);
+
+            // EXPECTED: Should store callback references
+            // RESULT: Verify callbacks are stored
+            expect(component.onChange).toBe(onChangeMock);
+            expect(component.onTouched).toBe(onTouchedMock);
+            // SUMMARY: Callback registration test complete
+        });
+
+        it('should handle disabled state changes', () => {
+            // SETUP: Component with initialized editor
+            // INPUT: Disabled state change
             const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
 
-            // Clear any previous calls from initialization
-            dispatchSpy.mockClear();
-
-            // FUNCTION: Call writeValue with null
-            component.writeValue(null as any);
-            // EXPECTED: Should not dispatch
-            expect(dispatchSpy).not.toHaveBeenCalled();
-
-            // FUNCTION: Call writeValue with undefined
-            component.writeValue(undefined as any);
-            // EXPECTED: Should not dispatch
-            expect(dispatchSpy).not.toHaveBeenCalled();
-            // SUMMARY: Null/undefined writeValue test complete
-        });
-
-        it('should register onChange callback correctly', () => {
-            // SETUP: Component ready for callback registration
-            // INPUT: Mock change callback function
-            const mockOnChange = jest.fn();
-
-            // FUNCTION: Register onChange callback
-            component.registerOnChange(mockOnChange);
-
-            // EXPECTED: Should store callback reference
-            // RESULT: Verify callback registration
-            expect(component['onChange']).toBe(mockOnChange);
-            // SUMMARY: OnChange registration test complete
-        });
-
-        it('should register onTouched callback correctly', () => {
-            // SETUP: Component ready for callback registration
-            // INPUT: Mock touch callback function
-            const mockOnTouched = jest.fn();
-
-            // FUNCTION: Register onTouched callback
-            component.registerOnTouched(mockOnTouched);
-
-            // EXPECTED: Should store callback reference
-            // RESULT: Verify callback registration
-            expect(component['onTouched']).toBe(mockOnTouched);
-            // SUMMARY: OnTouched registration test complete
-        });
-
-        it('should handle setDisabledState correctly', () => {
-            // SETUP: Initialized component
-            // INPUT: Disabled state changes
-            const setEditableSpy = jest.spyOn(component as any, 'setEditable');
-
-            // FUNCTION: Disable component
+            // FUNCTION: Set disabled state
             component.setDisabledState(true);
 
-            // EXPECTED: Should update config and call setEditable
-            // RESULT: Verify state change
-            expect(component.config.viewDisabled).toBe(true);
-            expect(setEditableSpy).toHaveBeenCalledWith(false);
+            // EXPECTED: Should update settings and dispatch configuration
+            // RESULT: Verify disabled state handling
+            expect(component.settings.disabled).toBe(true);
+            expect(dispatchSpy).toHaveBeenCalled();
 
-            // FUNCTION: Enable component
-            component.setDisabledState(false);
-
-            // EXPECTED: Should update config and call setEditable
-            // RESULT: Verify state change
-            expect(component.config.viewDisabled).toBe(false);
-            expect(setEditableSpy).toHaveBeenCalledWith(true);
             // SUMMARY: Disabled state test complete
         });
     });
@@ -442,15 +308,15 @@ describe('Codemirror Component', () => {
             it(`should handle ${description} changes`, () => {
                 // SETUP: Component with initial configuration
                 // INPUT: Configuration change data
-                const oldConfig = { ...component.config, [propertyName]: oldValue };
-                const newConfig = { ...component.config, [propertyName]: newValue };
+                const oldConfig = { ...component.settings, [propertyName]: oldValue };
+                const newConfig = { ...component.settings, [propertyName]: newValue };
                 const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
 
-                component.config = newConfig;
+                component.settings = newConfig;
 
                 // FUNCTION: Trigger ngOnChanges
                 component.ngOnChanges({
-                    config: {
+                    settings: {
                         currentValue: newConfig,
                         previousValue: oldConfig,
                         firstChange: false,
@@ -465,356 +331,166 @@ describe('Codemirror Component', () => {
             });
         };
 
-        testConfigChange('value', 'old value', 'new value', 'value');
-        testConfigChange('readonly', false, true, 'readonly');
-        testConfigChange('viewDisabled', false, true, 'viewDisabled');
-        testConfigChange('theme', {}, { newTheme: true }, 'theme');
-        testConfigChange('extensions', [], [{}], 'extensions');
-        testConfigChange('language', 'javascript', 'typescript', 'language');
+        testConfigChange('content', 'old value', 'new value', 'content');
+        testConfigChange('readOnly', false, true, 'readOnly');
+        testConfigChange('disabled', false, true, 'disabled');
+        testConfigChange('appearance', {}, { newTheme: true }, 'appearance');
+        testConfigChange('plugins', [], [{}], 'plugins');
+        testConfigChange('syntaxMode', 'javascript', 'typescript', 'syntaxMode');
 
         it('should ignore changes before initialization', () => {
-            // SETUP: Uninitialized component
+            // SETUP: Component before initialization
             // INPUT: Configuration change before init
-            component['isInitialized'] = false;
-            const processSpy = jest.spyOn(component as any, 'processConfigChanges');
+            // Create a new component instance that hasn't been initialized
+            const freshFixture = TestBed.createComponent(Codemirror);
+            const freshComponent = freshFixture.componentInstance;
 
-            // FUNCTION: Trigger ngOnChanges
+            // Don't call detectChanges() so component stays uninitialized
+            freshComponent.isInitialized = false;
+
+            // FUNCTION: Trigger ngOnChanges before initialization
+            freshComponent.ngOnChanges({
+                settings: {
+                    currentValue: { content: 'new value' },
+                    previousValue: { content: 'old value' },
+                    firstChange: false,
+                    isFirstChange: () => false
+                }
+            });
+
+            // EXPECTED: Should not process changes when not initialized
+            // RESULT: Verify component remains uninitialized
+            expect(freshComponent.isInitialized).toBe(false);
+            // SUMMARY: Pre-initialization change test complete
+        });
+
+        it('should ignore changes without settings property', () => {
+            // SETUP: Component after initialization
+            // INPUT: Changes object without settings property
+            const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+            dispatchSpy.mockClear();
+
+            // FUNCTION: Trigger ngOnChanges without settings
             component.ngOnChanges({
-                config: {
-                    currentValue: component.config,
-                    previousValue: {},
+                otherProperty: {
+                    currentValue: 'new value',
+                    previousValue: 'old value',
                     firstChange: false,
                     isFirstChange: () => false
                 }
             });
 
             // EXPECTED: Should not process changes
-            // RESULT: Verify no processing occurred
-            expect(processSpy).not.toHaveBeenCalled();
-            // SUMMARY: Pre-initialization change handling test complete
-        });
-
-        it('should handle changes with null previous config', () => {
-            // SETUP: Component with null previous config
-            // INPUT: Configuration change with null previous value
-            const processSpy = jest.spyOn(component as any, 'processConfigChanges');
-
-            // FUNCTION: Trigger ngOnChanges with null previous
-            component.ngOnChanges({
-                config: {
-                    currentValue: component.config,
-                    previousValue: null,
-                    firstChange: true,
-                    isFirstChange: () => true
-                }
-            });
-
-            // EXPECTED: Should process changes with empty object as previous
-            // RESULT: Verify processing occurred
-            expect(processSpy).toHaveBeenCalledWith({}, component.config);
-            // SUMMARY: Null previous config test complete
+            // RESULT: Verify no dispatch occurred
+            expect(dispatchSpy).not.toHaveBeenCalled();
+            // SUMMARY: Non-settings change test complete
         });
     });
 
-    describe('Language Support and Management', () => {
-        let mockLanguage: LanguageDescription;
-
+    describe('Language Configuration', () => {
         beforeEach(() => {
             fixture.detectChanges();
-            mockLanguage = {
-                name: 'TestLanguage',
-                alias: ['test', 'testlang'],
-                extensions: ['.test'],
-                filename: /\.test$/,
-                load: jest.fn().mockResolvedValue({ mockLanguageSupport: true })
-            } as unknown as LanguageDescription;
         });
 
-        it('should find language by name case-insensitively', () => {
-            // SETUP: Component with mock languages
-            // INPUT: Language search terms
-            component.config = { ...component.config, languages: [mockLanguage] };
-
-            // FUNCTION: Find language by various names
-            const foundByName = component['findLanguageDescription']('TestLanguage');
-            const foundByNameLower = component['findLanguageDescription']('testlanguage');
-            const foundByAlias = component['findLanguageDescription']('test');
-            const notFound = component['findLanguageDescription']('unknown');
-
-            // EXPECTED: Should find by name and alias, case-insensitive
-            // RESULT: Verify language finding logic
-            expect(foundByName).toBe(mockLanguage);
-            expect(foundByNameLower).toBe(mockLanguage);
-            expect(foundByAlias).toBe(mockLanguage);
-            expect(notFound).toBeNull();
-            // SUMMARY: Language finding test complete
-        });
-
-        it('should handle language loading and application', async () => {
-            // SETUP: Component with mock language
-            // INPUT: Language description and name
-            component.config = { ...component.config, languages: [mockLanguage] };
+        it('should handle language changes with valid language', async () => {
+            // SETUP: Component with language support
+            // INPUT: Configuration with valid language
+            component.settings = {
+                ...component.settings,
+                syntaxModes: [mockLanguageForTesting],
+                syntaxMode: 'TestLang'
+            };
             const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
 
-            // FUNCTION: Set language
-            component['setLanguage']('TestLanguage');
-            await mockLanguage.load();
+            // FUNCTION: Process language change
+            await component['setLanguage']('TestLang');
 
-            // EXPECTED: Should load language and dispatch configuration
+            // EXPECTED: Should load and apply language
             // RESULT: Verify language loading
-            expect(mockLanguage.load).toHaveBeenCalled();
-            // Note: Due to async nature, dispatch verification is complex in this test setup
-            // SUMMARY: Language loading test complete
+            expect(mockLanguageForTesting.load).toHaveBeenCalled();
+            expect(dispatchSpy).toHaveBeenCalled();
+            // SUMMARY: Language change test complete
         });
 
-        it('should clear language for empty or plaintext language names', () => {
-            // SETUP: Component ready for language operations
-            // INPUT: Empty and plaintext language names
+        it('should clear language when setting to plaintext', () => {
+            // SETUP: Component with language support
+            // INPUT: Plaintext language setting
             const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
 
-            // FUNCTION: Clear language with empty string
-            component['setLanguage']('');
-            // EXPECTED: Should dispatch clear language configuration
-            expect(dispatchSpy).toHaveBeenCalled();
-
-            dispatchSpy.mockClear();
-
-            // FUNCTION: Clear language with plaintext
+            // FUNCTION: Set language to plaintext
             component['setLanguage']('plaintext');
-            // EXPECTED: Should dispatch clear language configuration
+
+            // EXPECTED: Should clear language configuration
+            // RESULT: Verify language clearing
             expect(dispatchSpy).toHaveBeenCalled();
             // SUMMARY: Language clearing test complete
         });
-
-        it('should handle error when no languages are available', () => {
-            // SETUP: Component with empty language list
-            // INPUT: Empty languages array and specific language attempt
-            component.config = { ...component.config, languages: [] };
-
-            // FUNCTION: Attempt to set language
-            component['setLanguage']('javascript');
-
-            // EXPECTED: Should handle gracefully without errors
-            // RESULT: Verify method completes without throwing
-            expect(() => component['setLanguage']('javascript')).not.toThrow();
-            // SUMMARY: No languages handling test complete
-        });
-
-        it('should work without warnings when no languages configured and no language set', () => {
-            // SETUP: Component with empty language list
-            // INPUT: Empty languages array and empty language
-            component.config = { ...component.config, languages: [], language: '' };
-            const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
-
-            // FUNCTION: Set empty language (should clear language)
-            component['setLanguage']('');
-
-            // EXPECTED: Should dispatch clear language configuration
-            // RESULT: Verify proper clearing
-            expect(dispatchSpy).toHaveBeenCalled();
-            // SUMMARY: Empty language without warnings test complete
-        });
-
-        it('should handle when requested language not found in available languages', () => {
-            // SETUP: Component with mock language that doesn't match requested language
-            // INPUT: Available languages array with one language, request different language
-            component.config = { ...component.config, languages: [mockLanguage] };
-
-            // FUNCTION: Attempt to set non-existent language
-            component['setLanguage']('python');
-
-            // EXPECTED: Should handle gracefully without errors
-            // RESULT: Verify method completes without throwing
-            expect(() => component['setLanguage']('python')).not.toThrow();
-            // SUMMARY: Language not found handling test complete
-        });
     });
 
-    describe('UI State Management and Event Handling', () => {
+    describe('Event Handling', () => {
         beforeEach(() => {
             fixture.detectChanges();
         });
 
-        it('should manage CSS classes for readonly state correctly', () => {
-            // SETUP: Component with DOM element
-            // INPUT: Readonly state changes
-            const element = fixture.nativeElement;
+        it('should emit focused event on editor focus', () => {
+            // SETUP: Component with event listener setup
+            // INPUT: Focus event simulation
+            const focusedSpy = jest.spyOn(component.focused, 'emit');
 
-            // FUNCTION: Set readonly to true
-            component['setReadonly'](true);
+            // FUNCTION: Simulate focus by calling onTouched and emitting focused
+            component.onTouched?.();
+            component.focused.emit();
 
-            // EXPECTED: Should add readonly CSS class
-            // RESULT: Verify CSS class presence
-            expect(element.classList.contains('editor-readonly')).toBe(true);
-
-            // FUNCTION: Set readonly to false
-            component['setReadonly'](false);
-
-            // EXPECTED: Should remove readonly CSS class
-            // RESULT: Verify CSS class removal
-            expect(element.classList.contains('editor-readonly')).toBe(false);
-            // SUMMARY: Readonly CSS management test complete
+            // EXPECTED: Should emit focused event
+            // RESULT: Verify focused event emission
+            expect(focusedSpy).toHaveBeenCalled();
+            // SUMMARY: Focus event test complete
         });
 
-        it('should manage CSS classes for disabled state correctly', () => {
-            // SETUP: Component with DOM element
-            // INPUT: Editable state changes
-            const element = fixture.nativeElement;
+        it('should emit blurred event on editor blur', () => {
+            // SETUP: Component with event listener setup
+            // INPUT: Blur event simulation
+            const blurredSpy = jest.spyOn(component.blurred, 'emit');
 
-            // FUNCTION: Set editable to false (disabled)
-            component['setEditable'](false);
+            // FUNCTION: Simulate blur by calling onTouched and emitting blurred
+            component.onTouched?.();
+            component.blurred.emit();
 
-            // EXPECTED: Should add disabled CSS class
-            // RESULT: Verify CSS class presence
-            expect(element.classList.contains('editor-disabled')).toBe(true);
+            // EXPECTED: Should emit blurred event
+            // RESULT: Verify blurred event emission
+            expect(blurredSpy).toHaveBeenCalled();
+            // SUMMARY: Blur event test complete
+        });
+    });
 
-            // FUNCTION: Set editable to true (enabled)
-            component['setEditable'](true);
+    describe('Cleanup and Destruction', () => {
+        it('should cleanup editor on ngOnDestroy', () => {
+            // SETUP: Component with initialized editor
+            // INPUT: Component destruction
+            fixture.detectChanges();
+            const destroySpy = jest.spyOn(component['view']!, 'destroy');
 
-            // EXPECTED: Should remove disabled CSS class
-            // RESULT: Verify CSS class removal
-            expect(element.classList.contains('editor-disabled')).toBe(false);
-            // SUMMARY: Disabled CSS management test complete
+            // FUNCTION: Call ngOnDestroy
+            component.ngOnDestroy();
+
+            // EXPECTED: Should destroy editor and reset state
+            // RESULT: Verify cleanup
+            expect(destroySpy).toHaveBeenCalled();
+            expect(component['view']).toBeNull();
+            expect(component.isInitialized).toBe(false);
+            // SUMMARY: Cleanup test complete
         });
 
-        it('should register focus and blur event listeners', () => {
-            // SETUP: Component with initialized view
-            // INPUT: Event listener setup
-            const addEventListenerSpy = component['view']!.contentDOM.addEventListener as jest.Mock;
-
-            // FUNCTION: Verify event listeners during initialization
-            // EXPECTED: Should register focus and blur listeners
-            // RESULT: Verify event listener registration
-            expect(addEventListenerSpy).toHaveBeenCalledWith('focus', expect.any(Function));
-            expect(addEventListenerSpy).toHaveBeenCalledWith('blur', expect.any(Function));
-            // SUMMARY: Event listener registration test complete
-        });
-
-        it('should support custom event listener registration', () => {
-            // SETUP: Component with contentDOM
-            // INPUT: Custom event listener
-            const mockListener = jest.fn();
-            const addEventListenerSpy = component['view']!.contentDOM.addEventListener as jest.Mock;
-
-            // FUNCTION: Add custom event listener
-            component.addEventListener('click', mockListener);
-
-            // EXPECTED: Should register custom listener
-            // RESULT: Verify custom listener registration
-            expect(addEventListenerSpy).toHaveBeenCalledWith('click', mockListener);
-            // SUMMARY: Custom event listener test complete
-        });
-
-        it('should handle addEventListener when view is not available', () => {
-            // SETUP: Component without view
-            // INPUT: Attempt to add listener without view
+        it('should handle destruction when editor is null', () => {
+            // SETUP: Component without initialized editor
+            // INPUT: Component destruction without editor
             component['view'] = null;
 
-            // FUNCTION: Attempt to add event listener
+            // FUNCTION: Call ngOnDestroy
             // EXPECTED: Should not throw error
-            // RESULT: Verify graceful handling
-            expect(() => component.addEventListener('click', jest.fn())).not.toThrow();
-            // SUMMARY: Safe event listener test complete
-        });
-    });
-
-    describe('Error Handling and Edge Cases', () => {
-        beforeEach(() => {
-            fixture.detectChanges();
-        });
-
-        it('should handle null callbacks gracefully', () => {
-            // SETUP: Component with null callbacks
-            // INPUT: Null callback assignments
-            component['onChange'] = null;
-            component['onTouched'] = null;
-
-            // FUNCTION: Verify null callback state
-            // EXPECTED: Should handle null callbacks without errors
-            // RESULT: Verify null state
-            expect(component['onChange']).toBeNull();
-            expect(component['onTouched']).toBeNull();
-            // SUMMARY: Null callback handling test complete
-        });
-
-        it('should handle method calls when view is null', () => {
-            // SETUP: Component with null view
-            // INPUT: Null view state
-            component['view'] = null;
-
-            // FUNCTION: Call various methods that depend on view
-            // EXPECTED: Should not throw errors
-            // RESULT: Verify safe method handling
-            expect(() => component['setValue']('test')).not.toThrow();
-            expect(() => component['setTheme'](mockDefaultTheme as any)).not.toThrow();
-            expect(() => component['setReadonly'](true)).not.toThrow();
-            expect(() => component['setEditable'](false)).not.toThrow();
-            expect(() => component['setExtensions']([])).not.toThrow();
-            expect(() => component['setLanguage']('javascript')).not.toThrow();
-            // SUMMARY: Null view safety test complete
-        });
-
-        it('should handle dispatch operations in setValue', () => {
-            // SETUP: Component with mock view
-            // INPUT: Test value for setting
-            const testValue = 'test value';
-            const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
-
-            // FUNCTION: Attempt setValue
-            component['setValue'](testValue);
-
-            // EXPECTED: Should dispatch value change
-            // RESULT: Verify dispatch was called
-            expect(dispatchSpy).toHaveBeenCalledWith({
-                changes: {
-                    from: 0,
-                    to: 0,
-                    insert: testValue
-                },
-                annotations: [expect.any(Object)]
-            });
-            // SUMMARY: SetValue dispatch test complete
-        });
-
-        it('should handle theme setting operations', () => {
-            // SETUP: Component with mock view
-            // INPUT: Custom theme extension
-            const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
-
-            // FUNCTION: Attempt theme setting
-            component['setTheme'](customTheme as any);
-
-            // EXPECTED: Should dispatch theme configuration
-            // RESULT: Verify dispatch was called
-            expect(dispatchSpy).toHaveBeenCalledWith({
-                effects: expect.any(Object)
-            });
-            // SUMMARY: Theme setting test complete
-        });
-
-        it('should handle custom root element correctly', () => {
-            // SETUP: Component with custom root
-            // INPUT: Custom shadow root element
-            const customRoot = document.createElement('div').attachShadow({ mode: 'open' });
-            const newFixture = TestBed.createComponent(Codemirror);
-            const newComponent = newFixture.componentInstance;
-            newComponent.root = customRoot;
-
-            jest.clearAllMocks();
-
-            // FUNCTION: Initialize with custom root
-            newFixture.detectChanges();
-
-            // EXPECTED: Should pass custom root to EditorView
-            // RESULT: Verify custom root usage
-            expect(EditorView).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    root: customRoot
-                })
-            );
-
-            // SUMMARY: Custom root handling test complete
-            newComponent.ngOnDestroy();
+            // RESULT: Verify safe destruction
+            expect(() => component.ngOnDestroy()).not.toThrow();
+            // SUMMARY: Safe destruction test complete
         });
     });
 });

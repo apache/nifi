@@ -109,43 +109,43 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     // CodeMirror v6 configurations
     private _joltSpecConfig: CodeMirrorConfig = {
-        extensions: this.getJoltSpecExtensions(),
-        autoFocus: false
+        plugins: this.getJoltSpecExtensions(),
+        focusOnInit: false
     };
 
     private _exampleDataConfig: CodeMirrorConfig = {
-        extensions: this.getExampleDataExtensions(),
-        autoFocus: false
+        plugins: this.getExampleDataExtensions(),
+        focusOnInit: false
     };
 
     private _outputConfig: CodeMirrorConfig = {
-        extensions: this.getOutputExtensions(),
-        autoFocus: false,
-        readonly: true
+        plugins: this.getOutputExtensions(),
+        focusOnInit: false,
+        readOnly: true
     };
 
     // Dynamic config getters that include editable state
     get joltSpecConfig(): CodeMirrorConfig {
         return {
             ...this._joltSpecConfig,
-            viewDisabled: !this.editable || this._joltSpecConfig.viewDisabled,
-            readonly: !this.editable || this._joltSpecConfig.readonly
+            disabled: !this.editable || this._joltSpecConfig.disabled,
+            readOnly: !this.editable || this._joltSpecConfig.readOnly
         };
     }
 
     get exampleDataConfig(): CodeMirrorConfig {
         return {
             ...this._exampleDataConfig,
-            viewDisabled: !this.editable,
-            readonly: !this.editable
+            disabled: !this.editable,
+            readOnly: !this.editable
         };
     }
 
     get outputConfig(): CodeMirrorConfig {
         return {
             ...this._outputConfig,
-            viewDisabled: true,
-            readonly: true
+            disabled: true,
+            readOnly: true
         };
     }
 
@@ -478,7 +478,7 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     initSpecEditor(codeEditor: Codemirror): void {
         // Listen to editor value changes to clear messages
-        codeEditor.valueChange.subscribe((value: string) => {
+        codeEditor.contentChange.subscribe((value: string) => {
             const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
 
             // Only clear messages if it's not a sort transform with empty content
@@ -502,7 +502,7 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     initInputEditor(codeEditor: Codemirror): void {
         // Listen to editor value changes to clear messages
-        codeEditor.valueChange.subscribe(() => {
+        codeEditor.contentChange.subscribe(() => {
             this.clearMessages();
         });
     }
@@ -516,8 +516,8 @@ export class JoltTransformJsonUi implements OnDestroy {
         const isReadonly = transform === 'jolt-transform-sort';
 
         // Update the editor's readonly and disabled state
-        this._joltSpecConfig.readonly = isReadonly;
-        this._joltSpecConfig.viewDisabled = isReadonly;
+        this._joltSpecConfig.readOnly = isReadonly;
+        this._joltSpecConfig.disabled = isReadonly;
 
         this.clearMessages();
     }

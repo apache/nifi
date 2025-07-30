@@ -29,11 +29,11 @@
                 <div [class.sensitive]="showSensitiveHelperText">
                     <codemirror
                         formControlName="value"
-                        [config]="codemirrorConfig"
+                        [settings]="codemirrorConfig"
                         [style.width]="editorStyling.width"
                         [style.height]="editorStyling.height"
                         (mousedown)="preventDrag($event)"
-                        (loaded)="codeMirrorLoaded($event)" />
+                        (ready)="codeMirrorLoaded($event)" />
                 </div>
                 @if (!readonly) {
                     <mat-checkbox

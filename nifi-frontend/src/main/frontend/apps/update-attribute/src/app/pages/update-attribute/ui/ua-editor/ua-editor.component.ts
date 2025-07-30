@@ -120,8 +120,8 @@ export class UaEditor {
     uaEditorForm: FormGroup;
     nfLanguageDefinition: NfLanguageDefinition | null = null;
     private _codemirrorConfig: CodeMirrorConfig = {
-        extensions: [],
-        autoFocus: true
+        plugins: [],
+        focusOnInit: true
     };
 
     // Styling configuration
@@ -140,8 +140,8 @@ export class UaEditor {
     get codemirrorConfig(): CodeMirrorConfig {
         return {
             ...this._codemirrorConfig,
-            viewDisabled: this.readonly,
-            readonly: this.readonly
+            disabled: this.readonly,
+            readOnly: this.readonly
         };
     }
 
@@ -217,7 +217,7 @@ export class UaEditor {
                     this.nfLanguageDefinition
                 );
 
-                this._codemirrorConfig.extensions = [
+                this._codemirrorConfig.plugins = [
                     StreamLanguage.define(nfLanguageConfig.streamParser),
                     autocompletion({
                         override: [nfLanguageConfig.getAutocompletions(this.viewContainerRef)]
@@ -226,7 +226,7 @@ export class UaEditor {
                     setup
                 ];
             } else {
-                this._codemirrorConfig.extensions = setup;
+                this._codemirrorConfig.plugins = setup;
             }
         }
     }
