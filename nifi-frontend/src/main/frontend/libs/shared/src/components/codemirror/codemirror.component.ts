@@ -33,8 +33,6 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Annotation, Compartment, EditorState, Extension, StateEffect } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { defaultTheme } from './themes/defaultTheme';
-import { languages } from '@codemirror/language-data';
-import { LanguageDescription } from '@codemirror/language';
 
 export const External = Annotation.define<boolean>();
 
@@ -45,8 +43,6 @@ export interface CodeMirrorConfig {
     disabled?: boolean;
     readOnly?: boolean;
     plugins?: Extension[];
-    syntaxModes?: LanguageDescription[];
-    syntaxMode?: string;
 }
 
 @Component({
@@ -69,15 +65,22 @@ export interface CodeMirrorConfig {
 })
 export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAccessor {
     @Input() documentRoot?: Document | ShadowRoot;
-    @Input() settings: CodeMirrorConfig = {
+    @Input() config: CodeMirrorConfig = {
         appearance: defaultTheme,
         focusOnInit: false,
         content: '',
         disabled: false,
         readOnly: false,
-        plugins: [],
-        syntaxModes: languages,
-        syntaxMode: ''
+        plugins: []
+    };
+
+    private readonly defaultConfig: CodeMirrorConfig = {
+        appearance: defaultTheme,
+        focusOnInit: false,
+        content: '',
+        disabled: false,
+        readOnly: false,
+        plugins: []
     };
 
     @Output() contentChange = new EventEmitter<string>();
@@ -85,56 +88,17 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
     @Output() focused = new EventEmitter<void>();
     @Output() blurred = new EventEmitter<void>();
 
-    view: EditorView | null = null;
-    isInitialized = false;
-    onTouched: (() => void) | null = null;
-    onChange: ((value: string) => void) | null = null;
-
-    private editableCompartment = new Compartment();
-    private readonlyCompartment = new Compartment();
+    private view: EditorView | null = null;
+    public isInitialized = false;
     private themeCompartment = new Compartment();
-    private languageCompartment = new Compartment();
-
-    private updateListener = EditorView.updateListener.of((viewUpdate) => {
-        if (viewUpdate.docChanged && !viewUpdate.transactions.some((tr) => tr.annotation(External))) {
-            const currentValue = viewUpdate.state.doc.toString();
-            this.onChange?.(currentValue);
-            this.contentChange.emit(currentValue);
-        }
-    });
+    private editableCompartment = new Compartment();
+    private readOnlyCompartment = new Compartment();
+    private pluginCompartment = new Compartment();
 
     constructor(private elementRef: ElementRef<Element>) {}
 
-    get theme(): Extension {
-        return this.settings.appearance ?? defaultTheme;
-    }
-
-    get autoFocus(): boolean {
-        return this.settings.focusOnInit ?? false;
-    }
-
-    get value(): string {
-        return this.settings.content ?? '';
-    }
-
-    get viewDisabled(): boolean {
-        return this.settings.disabled ?? false;
-    }
-
-    get readonly(): boolean {
-        return this.settings.readOnly ?? false;
-    }
-
-    get extensions(): Extension[] {
-        return this.settings.plugins ?? [];
-    }
-
-    get languages(): LanguageDescription[] {
-        return this.settings.syntaxModes ?? languages;
-    }
-
-    get language(): string {
-        return this.settings.syntaxMode ?? '';
+    get settings(): CodeMirrorConfig {
+        return { ...this.defaultConfig, ...this.config };
     }
 
     ngOnInit(): void {
@@ -146,105 +110,234 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (!this.isInitialized || !changes['settings']) {
+        if (!this.isInitialized || !changes['config']) {
             return;
         }
 
-        const configChange = changes['settings'];
-        if (!configChange.currentValue) {
-            return;
-        }
-
-        const previousConfig = configChange.previousValue || {};
-        const currentConfig = configChange.currentValue;
+        const previousConfig = { ...this.defaultConfig, ...changes['config'].previousValue };
+        const currentConfig = { ...this.defaultConfig, ...changes['config'].currentValue };
 
         this.processConfigChanges(previousConfig, currentConfig);
     }
 
     ngOnDestroy(): void {
-        if (this.view) {
-            this.view.destroy();
-            this.view = null;
-            this.isInitialized = false;
-        }
+        this.view?.destroy();
+        this.view = null;
     }
 
+    // ControlValueAccessor implementation
     writeValue(value: string): void {
-        if (this.view && value !== undefined && value !== null) {
+        if (this.view && value !== this.view.state.doc.toString()) {
             this.setValue(value);
         }
     }
 
-    registerOnChange(onChange: (value: string) => void): void {
-        this.onChange = onChange;
+    registerOnChange(fn: (value: string) => void): void {
+        this.onChange = fn;
     }
 
-    registerOnTouched(onTouch: () => void): void {
-        this.onTouched = onTouch;
+    registerOnTouched(fn: () => void): void {
+        this.onTouched = fn;
     }
 
     setDisabledState(isDisabled: boolean): void {
-        this.settings = { ...this.settings, disabled: isDisabled };
-        if (this.isInitialized) {
-            this.setEditable(!isDisabled);
-        }
+        this.setEditable(!isDisabled);
     }
 
+    // Public API methods for developers
+
+    /**
+     * Add an event listener to the editor's content DOM
+     * @param type Event type (e.g., 'keydown', 'click', 'focus')
+     * @param listener Event listener function
+     */
     addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
         if (this.view?.contentDOM) {
             this.view.contentDOM.addEventListener(type, listener);
         }
     }
 
-    private initializeEditor(): void {
-        if (!this.elementRef.nativeElement) {
-            return;
+    /**
+     * Remove an event listener from the editor's content DOM
+     * @param type Event type
+     * @param listener Event listener function
+     */
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
+        if (this.view?.contentDOM) {
+            this.view.contentDOM.removeEventListener(type, listener);
         }
+    }
 
-        this.view = new EditorView({
-            root: this.documentRoot,
-            parent: this.elementRef.nativeElement,
-            state: EditorState.create({
-                doc: this.value,
-                extensions: this.getAllExtensions()
-            })
+    /**
+     * Focus the editor
+     */
+    focus(): void {
+        if (this.view) {
+            this.view.focus();
+        }
+    }
+
+    /**
+     * Get the current value of the editor
+     * @returns Current editor content as string
+     */
+    getValue(): string {
+        return this.view?.state.doc.toString() || '';
+    }
+
+    /**
+     * Set the editor value programmatically
+     * @param value New content for the editor
+     */
+    setEditorValue(value: string): void {
+        this.setValue(value);
+    }
+
+    /**
+     * Select all text in the editor
+     */
+    selectAll(): void {
+        if (this.view) {
+            this.view.dispatch({
+                selection: { anchor: 0, head: this.view.state.doc.length }
+            });
+        }
+    }
+
+    /**
+     * Get the current selection range
+     * @returns Object with 'from' and 'to' positions
+     */
+    getSelection(): { from: number; to: number } | null {
+        if (this.view) {
+            const selection = this.view.state.selection.main;
+            return { from: selection.from, to: selection.to };
+        }
+        return null;
+    }
+
+    /**
+     * Set the selection range
+     * @param from Start position
+     * @param to End position (optional, defaults to from for cursor placement)
+     */
+    setSelection(from: number, to?: number): void {
+        if (this.view) {
+            this.view.dispatch({
+                selection: { anchor: from, head: to ?? from }
+            });
+        }
+    }
+
+    /**
+     * Insert text at the current cursor position
+     * @param text Text to insert
+     */
+    insertText(text: string): void {
+        if (this.view) {
+            const selection = this.view.state.selection.main;
+            this.view.dispatch({
+                changes: {
+                    from: selection.from,
+                    to: selection.to,
+                    insert: text
+                }
+            });
+        }
+    }
+
+    /**
+     * Replace text in a specific range
+     * @param from Start position
+     * @param to End position
+     * @param text Replacement text
+     */
+    replaceRange(from: number, to: number, text: string): void {
+        if (this.view) {
+            this.view.dispatch({
+                changes: { from, to, insert: text }
+            });
+        }
+    }
+
+    /**
+     * Check if the editor is focused
+     * @returns True if editor has focus
+     */
+    hasFocus(): boolean {
+        return this.view?.hasFocus || false;
+    }
+
+    /**
+     * Get the current line count
+     * @returns Number of lines in the editor
+     */
+    getLineCount(): number {
+        return this.view?.state.doc.lines || 0;
+    }
+
+    /**
+     * Get text content of a specific line
+     * @param lineNumber Line number (1-based)
+     * @returns Line content or empty string if line doesn't exist
+     */
+    getLine(lineNumber: number): string {
+        if (this.view && lineNumber > 0 && lineNumber <= this.view.state.doc.lines) {
+            return this.view.state.doc.line(lineNumber).text;
+        }
+        return '';
+    }
+
+    private onChange?: (value: string) => void;
+    private onTouched?: () => void;
+
+    private initializeEditor(): void {
+        const state = EditorState.create({
+            doc: this.settings.content || '',
+            extensions: [
+                this.themeCompartment.of(this.settings.appearance || defaultTheme),
+                this.editableCompartment.of(EditorView.editable.of(!this.settings.disabled)),
+                this.readOnlyCompartment.of(EditorState.readOnly.of(this.settings.readOnly || false)),
+                this.pluginCompartment.of(this.settings.plugins || []),
+                EditorView.updateListener.of((update) => {
+                    if (update.docChanged && !update.transactions.some((tr) => tr.annotation(External))) {
+                        const newValue = update.state.doc.toString();
+                        this.contentChange.emit(newValue);
+                        this.onChange?.(newValue);
+                    }
+                })
+            ]
         });
 
-        if (this.autoFocus && this.view) {
+        this.view = new EditorView({
+            state,
+            parent: this.elementRef.nativeElement,
+            root: this.documentRoot
+        });
+
+        if (this.settings.focusOnInit) {
             this.view.focus();
         }
     }
 
     private setupEventListeners(): void {
-        if (!this.view?.contentDOM) {
-            return;
-        }
+        if (!this.view) return;
 
-        const contentDOM = this.view.contentDOM;
-
-        contentDOM.addEventListener('focus', () => {
-            this.onTouched?.();
+        this.view.contentDOM.addEventListener('focus', () => {
             this.focused.emit();
+            this.onTouched?.();
         });
 
-        contentDOM.addEventListener('blur', () => {
-            this.onTouched?.();
+        this.view.contentDOM.addEventListener('blur', () => {
             this.blurred.emit();
         });
     }
 
     private applyInitialConfiguration(): void {
-        if (!this.view) {
-            return;
-        }
-
-        this.setEditable(!this.viewDisabled);
-        this.setReadonly(this.readonly);
-        this.setTheme(this.theme);
-
-        if (this.language && this.languages.length > 0) {
-            this.setLanguage(this.language);
-        }
+        this.setTheme(this.settings.appearance || defaultTheme);
+        this.setEditable(!this.settings.disabled);
+        this.setReadonly(this.settings.readOnly || false);
+        this.setPlugins(this.settings.plugins || []);
     }
 
     private processConfigChanges(previousConfig: CodeMirrorConfig, currentConfig: CodeMirrorConfig): void {
@@ -261,158 +354,55 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
             this.setTheme(currentConfig.appearance ?? defaultTheme);
         }
         if (currentConfig.plugins !== previousConfig.plugins) {
-            this.setExtensions(this.getAllExtensions());
-        }
-        if (currentConfig.syntaxMode !== previousConfig.syntaxMode) {
-            this.setLanguage(currentConfig.syntaxMode || '');
+            this.setPlugins(currentConfig.plugins ?? []);
         }
     }
 
-    private getAllExtensions(): Extension[] {
-        return [
-            this.updateListener,
-            this.editableCompartment.of([]),
-            this.readonlyCompartment.of([]),
-            this.themeCompartment.of([]),
-            this.languageCompartment.of([]),
-            ...this.extensions
-        ];
-    }
+    private setValue(content: string): void {
+        if (!this.view) return;
 
-    private selectAll(): void {
-        if (!this.view) {
-            return;
-        }
-
-        this.view.dispatch({
-            selection: { anchor: 0, head: this.view.state.doc.length }
-        });
-    }
-
-    private setTheme(themeExtension: Extension): void {
-        if (!this.view) {
-            return;
-        }
-
-        this.view.dispatch({
-            effects: this.themeCompartment.reconfigure(themeExtension)
-        });
-    }
-
-    private setValue(newValue: string): void {
-        if (!this.view) {
-            return;
-        }
-
-        this.view.dispatch({
+        const transaction = this.view.state.update({
             changes: {
                 from: 0,
                 to: this.view.state.doc.length,
-                insert: newValue
+                insert: content
             },
             annotations: [External.of(true)]
         });
 
-        if (!this.readonly) {
-            this.selectAll();
-        }
+        this.view.dispatch(transaction);
     }
 
-    private setReadonly(isReadonly: boolean): void {
-        if (!this.view) {
-            return;
-        }
+    private setTheme(theme: Extension): void {
+        if (!this.view) return;
 
         this.view.dispatch({
-            effects: this.readonlyCompartment.reconfigure(EditorState.readOnly.of(isReadonly))
-        });
-
-        this.toggleCSSClass('editor-readonly', isReadonly);
-
-        if (!isReadonly) {
-            this.selectAll();
-        }
-    }
-
-    private setEditable(isEditable: boolean): void {
-        if (!this.view) {
-            return;
-        }
-
-        this.view.dispatch({
-            effects: this.editableCompartment.reconfigure(EditorView.editable.of(isEditable))
-        });
-
-        this.toggleCSSClass('editor-disabled', !isEditable);
-
-        if (isEditable) {
-            this.selectAll();
-        }
-    }
-
-    private setExtensions(extensionArray: Extension[]): void {
-        if (!this.view) {
-            return;
-        }
-
-        this.view.dispatch({
-            effects: StateEffect.reconfigure.of(extensionArray)
+            effects: this.themeCompartment.reconfigure(theme)
         });
     }
 
-    private setLanguage(languageName: string): void {
-        if (!this.view) {
-            return;
-        }
-
-        if (!languageName || languageName === 'plaintext') {
-            this.clearLanguage();
-            return;
-        }
-
-        const languagesArray = this.settings.syntaxModes || [];
-        if (languagesArray.length === 0) {
-            return;
-        }
-
-        const languageDescription = this.findLanguageDescription(languageName);
-        if (languageDescription) {
-            this.loadAndApplyLanguage(languageDescription);
-        }
-    }
-
-    private clearLanguage(): void {
-        if (!this.view) {
-            return;
-        }
+    private setEditable(editable: boolean): void {
+        if (!this.view) return;
 
         this.view.dispatch({
-            effects: this.languageCompartment.reconfigure([])
+            effects: this.editableCompartment.reconfigure(EditorView.editable.of(editable))
         });
     }
 
-    private findLanguageDescription(languageName: string): LanguageDescription | null {
-        const normalizedName = languageName.toLowerCase();
+    private setReadonly(readonly: boolean): void {
+        if (!this.view) return;
 
-        for (const languageDesc of this.settings.syntaxModes || []) {
-            const allNames = [languageDesc.name, ...languageDesc.alias];
-            const hasMatch = allNames.some((name) => name.toLowerCase() === normalizedName);
-
-            if (hasMatch) {
-                return languageDesc;
-            }
-        }
-
-        return null;
+        this.view.dispatch({
+            effects: this.readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly))
+        });
     }
 
-    private async loadAndApplyLanguage(languageDescription: LanguageDescription): Promise<void> {
-        const languageSupport = await languageDescription.load();
-        if (this.view) {
-            this.view.dispatch({
-                effects: this.languageCompartment.reconfigure([languageSupport])
-            });
-        }
+    private setPlugins(plugins: Extension[]): void {
+        if (!this.view) return;
+
+        this.view.dispatch({
+            effects: this.pluginCompartment.reconfigure(plugins)
+        });
     }
 
     private toggleCSSClass(className: string, shouldAdd: boolean): void {
