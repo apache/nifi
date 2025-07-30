@@ -54,7 +54,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     private final RecordSetWriterFactory writerFactory;
     private final Map<String, String> schemaRetrievalVariables;
     private final RecordConverter recordConverter;
-    private final StateHandlerStrategy<FlowFileState, BatchProcessingContext, FlowFileCompletionException> stateHandlerStrategy;
+    private final StateHandlerStrategy stateHandlerStrategy;
 
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
@@ -70,7 +70,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
         schemaRetrievalVariables = Collections.singletonMap(KINESIS_RECORD_SCHEMA_KEY, streamName);
         this.recordConverter = recordConverter;
-        this.stateHandlerStrategy = new StateHandlerStrategy<>(schemaDifferenceHandlingStrategy, this::initializeFlowFileState, this::completeFlowFileState);
+        this.stateHandlerStrategy = new StateHandlerStrategy(schemaDifferenceHandlingStrategy, this::initializeFlowFileState, this::completeFlowFileState);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         FlowFileState flowFileState;
         while ((flowFileState = stateHandlerStrategy.pop()) != null) {
             // this may happen if the previous processing has not been completed successfully, close the leftover state
-            closeSafe(flowFileState, "FlowFile State");
+            closeSafe(flowFileState.asClosable(), "FlowFile State");
         }
     }
 
@@ -118,7 +118,6 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 } catch (final FlowFileCompletionException e) {
                     stateHandlerStrategy.drop(e.flowFileState.recordSchema);
                     handleFlowFileCompletionException(e, batchProcessingContext);
-                    //noinspection resource
                     flowFileState = stateHandlerStrategy.create(outputRecord, batchProcessingContext);
                 }
                 flowFileState.write(outputRecord, kinesisRecord);
@@ -180,7 +179,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             closeSafe(outputStream, "Output Stream");
             throw e;
         }
-        return new FlowFileState(flowFile, writer, outputStream, record.getSchema());
+        return new FlowFileState(flowFile, writer, outputStream, record.getSchema(), getLogger());
     }
 
     private void completeFlowFileState(final FlowFileState flowFileState, final BatchProcessingContext batchProcessingContext)
@@ -193,7 +192,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         }
         try {
             flowFileState.writer.finishRecordSet();
-            closeSafe(flowFileState, "FlowFile State");
+            closeSafe(flowFileState.asClosable(), "FlowFile State");
             reportProvenance(session, flowFileState.flowFile, null, null, batchProcessingContext.stopWatch());
 
             final Map<String, String> attributes = getDefaultAttributes(flowFileState.lastSuccessfulWriteInfo.kinesisRecord);
@@ -217,7 +216,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     }
 
     private void dropFlowFileState(final FlowFileState flowFileState, final BatchProcessingContext batchProcessingContext) {
-        closeSafe(flowFileState, "FlowFile State");
+        closeSafe(flowFileState.asClosable(), "FlowFile State");
         batchProcessingContext.session().remove(flowFileState.flowFile);
         batchProcessingContext.flowFiles().remove(flowFileState.flowFile);
     }
@@ -240,42 +239,48 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     }
 
     private void closeSafe(final Closeable closeable, final String closeableName) {
+        closeSafe(closeable, closeableName, getLogger());
+    }
+
+    private static void closeSafe(final Closeable closeable, final String closeableName, final ComponentLog logger) {
         if (closeable != null) {
             try {
                 closeable.close();
             } catch (final IOException e) {
-                getLogger().warn("Failed to close {}", closeableName, e);
+                logger.warn("Failed to close {}", closeableName, e);
             }
         }
     }
 
-    private record SuccessfulWriteInfo(KinesisClientRecord kinesisRecord, WriteResult writeResult) { }
+    record SuccessfulWriteInfo(KinesisClientRecord kinesisRecord, WriteResult writeResult) { }
 
-    private class FlowFileState implements Closeable {
+    static class FlowFileState {
         private final FlowFile flowFile;
         private final RecordSetWriter writer;
         private final OutputStream outputStream;
         private final RecordSchema recordSchema;
+        private final ComponentLog componentLog;
         private SuccessfulWriteInfo firstSuccessfulWriteInfo;
         private SuccessfulWriteInfo lastSuccessfulWriteInfo;
 
-        public FlowFileState(final FlowFile flowFile, final RecordSetWriter writer, final OutputStream outputStream, final RecordSchema recordSchema) {
+        private FlowFileState(final FlowFile flowFile, final RecordSetWriter writer, final OutputStream outputStream, final RecordSchema recordSchema, final ComponentLog componentLog) {
             this.flowFile = flowFile;
             this.writer = writer;
             this.outputStream = outputStream;
             this.recordSchema = recordSchema;
+            this.componentLog = componentLog;
         }
 
-        public boolean isFlowFileEmpty() {
+        private boolean isFlowFileEmpty() {
             return lastSuccessfulWriteInfo == null;
         }
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-        public boolean containsDataFromExactlyOneKinesisRecord() {
+        private boolean containsDataFromExactlyOneKinesisRecord() {
             return !isFlowFileEmpty() && firstSuccessfulWriteInfo.kinesisRecord == lastSuccessfulWriteInfo.kinesisRecord;
         }
 
-        public void write(final Record outputRecord, final KinesisClientRecord kinesisRecord) throws IOException {
+        private void write(final Record outputRecord, final KinesisClientRecord kinesisRecord) throws IOException {
             final WriteResult writeResult = writer.write(outputRecord);
             firstSuccessfulWriteInfo = firstSuccessfulWriteInfo == null
                     ? new SuccessfulWriteInfo(kinesisRecord, writeResult)
@@ -283,13 +288,15 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             lastSuccessfulWriteInfo = new SuccessfulWriteInfo(kinesisRecord, writeResult);
         }
 
-        public void close() {
-            closeSafe(writer, "Record Writer");
-            closeSafe(outputStream, "Output Stream");
+        private Closeable asClosable() {
+            return () -> {
+                closeSafe(writer, "Record Writer", componentLog);
+                closeSafe(outputStream, "Output Stream", componentLog);
+            };
         }
     }
 
-    public static class FlowFileCompletionException extends Exception {
+    static class FlowFileCompletionException extends Exception {
         private final FlowFileState flowFileState;
 
         private FlowFileCompletionException(final String message, final Throwable cause, final FlowFileState flowFileState) {

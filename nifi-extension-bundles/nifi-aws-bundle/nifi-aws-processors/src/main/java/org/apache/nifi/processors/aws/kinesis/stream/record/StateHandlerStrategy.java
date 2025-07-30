@@ -17,6 +17,9 @@
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
 import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
+import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor.BatchProcessingContext;
+import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord.FlowFileCompletionException;
+import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord.FlowFileState;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -29,93 +32,80 @@ import java.util.Map;
 /**
  * StateHandlerStrategy is responsible for managing the state of FlowFiles created for Records processed in a single batch. In general this class decides what should happen when a new RecordSchema
  * is encountered — whether previous State should be completed and new state created or only a new state should be created.
- *
- * @param <State> the state type that is being managed
- * @param <ActionContext> the context type that provides additional information for state initialization and finalization
- * @param <FinalizeException> the type of exception that can be thrown during state finalization
  */
-class StateHandlerStrategy<State, ActionContext, FinalizeException extends Throwable> {
+class StateHandlerStrategy {
 
     private final SchemaDifferenceHandlingStrategy strategy;
-    private final StateInitializerAction<State, ActionContext> stateInitializerAction;
-    private final StateFinalizerAction<State, ActionContext, FinalizeException> stateFinalizerAction;
-    private final Map<RecordSchema, State> activeStateMap = new HashMap<>();
+    private final StateInitializerAction stateInitializerAction;
+    private final StateFinalizerAction stateFinalizerAction;
+    private final Map<RecordSchema, FlowFileState> activeStateMap = new HashMap<>();
 
-    StateHandlerStrategy(final SchemaDifferenceHandlingStrategy strategy, final StateInitializerAction<State, ActionContext> stateInitializerAction, final StateFinalizerAction<State, ActionContext, FinalizeException> stateFinalizerAction) {
+    StateHandlerStrategy(final SchemaDifferenceHandlingStrategy strategy, final StateInitializerAction stateInitializerAction, final StateFinalizerAction stateFinalizerAction) {
         this.strategy = strategy;
         this.stateInitializerAction = stateInitializerAction;
         this.stateFinalizerAction = stateFinalizerAction;
     }
 
-    /**
-     *
-     * @param record
-     * @param flowFileContext
-     * @return
-     * @throws FinalizeException
-     * @throws IOException
-     * @throws SchemaNotFoundException
-     */
-    public State getOrCreate(final Record record, final ActionContext flowFileContext) throws FinalizeException, IOException, SchemaNotFoundException {
+    FlowFileState getOrCreate(final Record record, final BatchProcessingContext flowFileContext) throws FlowFileCompletionException, IOException, SchemaNotFoundException {
         return switch (strategy) {
             case ROLL_FLOW_FILES -> getOrFinalizeAndCreateNewState(record, flowFileContext);
             case GROUP_FLOW_FILES -> getOrCreateNewState(record, flowFileContext);
         };
     }
 
-    private State getOrFinalizeAndCreateNewState(final Record record, final ActionContext flowFileContext) throws FinalizeException, IOException, SchemaNotFoundException {
-        final State previousState = activeStateMap.get(record.getSchema());
+    private FlowFileState getOrFinalizeAndCreateNewState(final Record record, final BatchProcessingContext flowFileContext) throws FlowFileCompletionException, IOException, SchemaNotFoundException {
+        final FlowFileState previousState = activeStateMap.get(record.getSchema());
         if (previousState != null) {
             return previousState;
         }
-        final State previousStateForDifferentSchema = pop();
+        final FlowFileState previousStateForDifferentSchema = pop();
         if (previousStateForDifferentSchema != null) {
             stateFinalizerAction.complete(previousStateForDifferentSchema, flowFileContext);
         }
-        final State newState = stateInitializerAction.init(record, flowFileContext);
+        final FlowFileState newState = stateInitializerAction.init(record, flowFileContext);
         activeStateMap.put(record.getSchema(), newState);
         return newState;
     }
 
-    private State getOrCreateNewState(final Record record, final ActionContext flowFileContext) throws IOException, SchemaNotFoundException {
-        final State previousState = activeStateMap.get(record.getSchema());
+    private FlowFileState getOrCreateNewState(final Record record, final BatchProcessingContext flowFileContext) throws IOException, SchemaNotFoundException {
+        final FlowFileState previousState = activeStateMap.get(record.getSchema());
         if (previousState != null) {
             return previousState;
         }
-        final State newState = stateInitializerAction.init(record, flowFileContext);
+        final FlowFileState newState = stateInitializerAction.init(record, flowFileContext);
         activeStateMap.put(record.getSchema(), newState);
         return newState;
     }
 
-    public State create(final Record record, final ActionContext flowFileContext) throws IOException, SchemaNotFoundException {
-        final State previousState = activeStateMap.get(record.getSchema());
+    FlowFileState create(final Record record, final BatchProcessingContext flowFileContext) throws IOException, SchemaNotFoundException {
+        final FlowFileState previousState = activeStateMap.get(record.getSchema());
         if (previousState != null) {
             throw new IllegalStateException(
                 "FlowFile state already exists for schema: " + record.getSchema() + ". This should not happen in a batch processing context."
             );
         }
-        final State newState = stateInitializerAction.init(record, flowFileContext);
+        final FlowFileState newState = stateInitializerAction.init(record, flowFileContext);
         activeStateMap.put(record.getSchema(), newState);
         return newState;
     }
 
-    public State pop() {
-        final Iterator<Map.Entry<RecordSchema, State>> iterator = activeStateMap.entrySet().iterator();
+    FlowFileState pop() {
+        final Iterator<Map.Entry<RecordSchema, FlowFileState>> iterator = activeStateMap.entrySet().iterator();
         if (!iterator.hasNext()) {
             return null;
         }
         return activeStateMap.remove(iterator.next().getKey());
     }
 
-    public void drop(final RecordSchema recordSchema) {
+    void drop(final RecordSchema recordSchema) {
         activeStateMap.remove(recordSchema);
     }
 
-    public interface StateInitializerAction<State, ActionContext> {
-        State init(Record record, ActionContext flowFileContext) throws IOException, SchemaNotFoundException;
+    interface StateInitializerAction {
+        FlowFileState init(Record record, BatchProcessingContext flowFileContext) throws IOException, SchemaNotFoundException;
     }
 
-    public interface StateFinalizerAction<State, ActionContext, CompletionException extends Throwable> {
-        void complete(State flowFile, ActionContext flowFileContext) throws CompletionException;
+    interface StateFinalizerAction {
+        void complete(FlowFileState flowFile, BatchProcessingContext flowFileContext) throws FlowFileCompletionException;
     }
 }
