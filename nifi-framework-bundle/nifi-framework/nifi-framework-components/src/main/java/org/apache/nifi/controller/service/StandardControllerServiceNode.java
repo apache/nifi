@@ -648,7 +648,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
 
                     if (completeExceptionallyOnFailure) {
-                        future.completeExceptionally(new IllegalStateException("Cannot enable " + this + " because it is not valid"));
+                        future.completeExceptionally(new IllegalStateException("Cannot enable " + StandardControllerServiceNode.this + " because it is not valid"));
                     }
 
                     return;
