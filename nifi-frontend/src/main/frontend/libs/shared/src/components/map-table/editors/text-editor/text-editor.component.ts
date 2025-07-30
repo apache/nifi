@@ -198,9 +198,8 @@ export class TextEditor {
             EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
             keymap.of([
                 { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
-                { key: 'Ctrl-Enter', run: () => true }, // ignore Ctrl-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
                 { key: 'Mod-y', run: redoSelection },
-                { key: 'Shift-Ctrl-k', run: deleteLine },
+                { key: 'Shift-Mod-k', run: deleteLine },
                 {
                     key: 'Enter',
                     run: () => {
