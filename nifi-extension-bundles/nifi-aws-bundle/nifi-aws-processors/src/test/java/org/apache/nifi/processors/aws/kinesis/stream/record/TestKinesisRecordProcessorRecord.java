@@ -21,7 +21,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processors.aws.kinesis.property.FlowFileHandlingOnSchemaChangeStrategy;
+import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.StandardRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterIdentity;
@@ -114,7 +114,7 @@ public class TestKinesisRecordProcessorRecord {
         runner.setProperty(ConsumeKinesisStream.RECORD_WRITER, "record-writer");
     }
 
-    private KinesisRecordProcessorRecord defaultFixtureWithStrategy(final FlowFileHandlingOnSchemaChangeStrategy strategy) {
+    private KinesisRecordProcessorRecord defaultFixtureWithStrategy(final SchemaDifferenceHandlingStrategy strategy) {
         // default test fixture will try operations twice with very little wait in between
         return new KinesisRecordProcessorRecord(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER,
@@ -128,8 +128,8 @@ public class TestKinesisRecordProcessorRecord {
     }
 
     @ParameterizedTest
-    @EnumSource(FlowFileHandlingOnSchemaChangeStrategy.class)
-    public void testProcessRecordsEmpty(final FlowFileHandlingOnSchemaChangeStrategy strategy) {
+    @EnumSource(SchemaDifferenceHandlingStrategy.class)
+    public void testProcessRecordsEmpty(final SchemaDifferenceHandlingStrategy strategy) {
         fixture = defaultFixtureWithStrategy(strategy);
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
                 .records(Collections.emptyList())
@@ -159,7 +159,7 @@ public class TestKinesisRecordProcessorRecord {
                 Pair.of("Using Schema Wrapper", true),
                 Pair.of("Default Schema", false)
         );
-        final List<Pair<String, FlowFileHandlingOnSchemaChangeStrategy>> schemaChangeStrategy = Arrays.stream(FlowFileHandlingOnSchemaChangeStrategy.values())
+        final List<Pair<String, SchemaDifferenceHandlingStrategy>> schemaChangeStrategy = Arrays.stream(SchemaDifferenceHandlingStrategy.values())
                 .map(strategy -> Pair.of(strategy.name(), strategy))
                 .toList();
         return endpointOverriden.stream()
@@ -175,7 +175,7 @@ public class TestKinesisRecordProcessorRecord {
 
     @ParameterizedTest
     @MethodSource("testProcessRecordsArgs")
-    void processMultipleRecordsAssertProvenance(final boolean endpointOverridden, final boolean useWrapper, final FlowFileHandlingOnSchemaChangeStrategy strategy) {
+    void processMultipleRecordsAssertProvenance(final boolean endpointOverridden, final boolean useWrapper, final SchemaDifferenceHandlingStrategy strategy) {
         fixture = defaultFixtureWithStrategy(strategy);
         final Instant referenceInstant = Instant.parse("2021-01-01T00:00:00.000Z");
         final Date firstDate = Date.from(referenceInstant.minus(1, ChronoUnit.MINUTES));
@@ -253,8 +253,8 @@ public class TestKinesisRecordProcessorRecord {
     }
 
     @ParameterizedTest
-    @EnumSource(FlowFileHandlingOnSchemaChangeStrategy.class)
-    public void testProcessPoisonPillRecordButNoRawOutputWithCheckpoint(final FlowFileHandlingOnSchemaChangeStrategy strategy) throws ShutdownException, InvalidStateException {
+    @EnumSource(SchemaDifferenceHandlingStrategy.class)
+    public void testProcessPoisonPillRecordButNoRawOutputWithCheckpoint(final SchemaDifferenceHandlingStrategy strategy) throws ShutdownException, InvalidStateException {
         fixture = defaultFixtureWithStrategy(strategy);
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
                 .records(Arrays.asList(
@@ -334,10 +334,10 @@ public class TestKinesisRecordProcessorRecord {
                         unparsableRecordMock
                 )
         );
-        return Arrays.stream(FlowFileHandlingOnSchemaChangeStrategy.values())
+        return Arrays.stream(SchemaDifferenceHandlingStrategy.values())
                 .flatMap(strategy -> recordLists.stream().map(recordList -> Pair.of(strategy, recordList)))
                 .map(pair -> {
-                    final FlowFileHandlingOnSchemaChangeStrategy strategy = pair.getLeft();
+                    final SchemaDifferenceHandlingStrategy strategy = pair.getLeft();
                     final List<KinesisClientRecord> inputRecords = pair.getRight();
                     String position = "Middle";
                     if (inputRecords.getFirst() == unparsableRecordMock) {
@@ -365,7 +365,7 @@ public class TestKinesisRecordProcessorRecord {
     void testProcessUnparsableRecordWithRawOutputWithCheckpoint(
             final List<KinesisClientRecord> inputRecords,
             final KinesisClientRecord kinesisRecord,
-            final FlowFileHandlingOnSchemaChangeStrategy strategy) throws ShutdownException, InvalidStateException {
+            final SchemaDifferenceHandlingStrategy strategy) throws ShutdownException, InvalidStateException {
         fixture = defaultFixtureWithStrategy(strategy);
         final ProcessRecordsInput processRecordsInput = ProcessRecordsInput.builder()
                 .records(inputRecords)
@@ -413,8 +413,8 @@ public class TestKinesisRecordProcessorRecord {
     }
 
     @ParameterizedTest
-    @EnumSource(FlowFileHandlingOnSchemaChangeStrategy.class)
-    void testProcessMultipleRecordInSingleKinesisRecord(final FlowFileHandlingOnSchemaChangeStrategy strategy) throws ShutdownException, InvalidStateException {
+    @EnumSource(SchemaDifferenceHandlingStrategy.class)
+    void testProcessMultipleRecordInSingleKinesisRecord(final SchemaDifferenceHandlingStrategy strategy) throws ShutdownException, InvalidStateException {
         fixture = defaultFixtureWithStrategy(strategy);
         testFlowFileContents(List.of("[{\"record\":1},{\"record\":2},{\"record\":3}]"), List.of(EmittedFlowFile.of("{\"record\":1}\n{\"record\":2}\n{\"record\":3}", 3)));
     }
@@ -432,7 +432,7 @@ public class TestKinesisRecordProcessorRecord {
 
         @Test
         void testProcessIncompatibleSchemaKinesisRecordsStrategyGrouping() throws ShutdownException, InvalidStateException {
-            fixture = defaultFixtureWithStrategy(FlowFileHandlingOnSchemaChangeStrategy.GROUP_FLOW_FILES);
+            fixture = defaultFixtureWithStrategy(SchemaDifferenceHandlingStrategy.GROUP_FLOW_FILES);
             final List<String> inputJsonRecords = inputJsonRecords();
             testFlowFileContents(
                     inputJsonRecords,
@@ -445,7 +445,7 @@ public class TestKinesisRecordProcessorRecord {
 
         @Test
         void testProcessIncompatibleSchemaKinesisRecordsStrategyRolling() throws ShutdownException, InvalidStateException {
-            fixture = defaultFixtureWithStrategy(FlowFileHandlingOnSchemaChangeStrategy.ROLL_FLOW_FILES);
+            fixture = defaultFixtureWithStrategy(SchemaDifferenceHandlingStrategy.ROLL_FLOW_FILES);
             final List<String> inputJsonRecords = inputJsonRecords();
             testFlowFileContents(
                     inputJsonRecords,

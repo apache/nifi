@@ -21,13 +21,10 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processors.aws.kinesis.property.FlowFileHandlingOnSchemaChangeStrategy;
+import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.RecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
-import org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy.StateHandlerStrategy;
-import org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy.GroupStateHandlerStrategy;
-import org.apache.nifi.processors.aws.kinesis.stream.record.statehandlerstrategy.RollStateHandlerStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -65,7 +62,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                                         final int numRetries, final DateTimeFormatter dateTimeFormatter,
                                         final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory,
                                         final RecordConverter recordConverter, final RecordProcessorBlocker recordProcessorBlocker,
-                                        final FlowFileHandlingOnSchemaChangeStrategy flowFileHandlingOnSchemaChangeStrategy) {
+                                        final SchemaDifferenceHandlingStrategy schemaDifferenceHandlingStrategy) {
         super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
                 numRetries, dateTimeFormatter, recordProcessorBlocker);
         this.readerFactory = readerFactory;
@@ -73,16 +70,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
         schemaRetrievalVariables = Collections.singletonMap(KINESIS_RECORD_SCHEMA_KEY, streamName);
         this.recordConverter = recordConverter;
-        this.stateHandlerStrategy = switch (flowFileHandlingOnSchemaChangeStrategy) {
-            case ROLL_FLOW_FILES -> new RollStateHandlerStrategy<>(
-                    this::initializeFlowFileState,
-                    this::completeFlowFileState
-            );
-            case GROUP_FLOW_FILES -> new GroupStateHandlerStrategy<>(
-                    this::initializeFlowFileState,
-                    this::completeFlowFileState
-            );
-        };
+        this.stateHandlerStrategy = new StateHandlerStrategy<>(schemaDifferenceHandlingStrategy, this::initializeFlowFileState, this::completeFlowFileState);
     }
 
     @Override

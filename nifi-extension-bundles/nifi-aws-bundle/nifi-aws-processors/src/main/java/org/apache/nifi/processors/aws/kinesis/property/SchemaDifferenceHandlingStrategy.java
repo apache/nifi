@@ -18,16 +18,16 @@ package org.apache.nifi.processors.aws.kinesis.property;
 
 import org.apache.nifi.components.DescribedValue;
 
-public enum FlowFileHandlingOnSchemaChangeStrategy implements DescribedValue {
+public enum SchemaDifferenceHandlingStrategy implements DescribedValue {
     ROLL_FLOW_FILES("Roll FlowFile", "Create a new FlowFile for each record with a different schema. The previous FlowFile will be completed with the records that have the previous schema. Emitted" +
             " FlowFiles will contain continuous record sequences."),
-    GROUP_FLOW_FILES("Group FlowFiles", "Group records with the same schema into a single FlowFile. If a record with a different schema is encountered, a new FlowFile will be created for the new" +
-            " schema. Emitted FlowFiles may contain non-sequential records. This strategy is useful when the schema changes frequently and highest performance is required.");
+    GROUP_FLOW_FILES("Group Records By Schema", "Group records with the same schema into a single FlowFile. If a record with a different schema is encountered, a new FlowFile will be created for" +
+            " the new schema. Emitted FlowFiles may contain non-sequential records. This strategy is useful when the schema changes frequently and highest performance is required.");
 
     private final String displayName;
     private final String description;
 
-    FlowFileHandlingOnSchemaChangeStrategy(final String displayName, final String description) {
+    SchemaDifferenceHandlingStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

@@ -49,7 +49,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.kinesis.property.FlowFileHandlingOnSchemaChangeStrategy;
+import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
 import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.StandardRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
@@ -324,8 +324,8 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             .name("FlowFile Handling On Schema Change Strategy")
             .description("The strategy used when records in a Kinesis Stream change their schema in a single batch.")
             .required(true)
-            .defaultValue(FlowFileHandlingOnSchemaChangeStrategy.ROLL_FLOW_FILES)
-            .allowableValues(FlowFileHandlingOnSchemaChangeStrategy.class)
+            .defaultValue(SchemaDifferenceHandlingStrategy.ROLL_FLOW_FILES)
+            .allowableValues(SchemaDifferenceHandlingStrategy.class)
             .dependsOn(RECORD_WRITER)
             .build();
 
@@ -738,14 +738,14 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 final RecordConverter recordConverter = OutputStrategy.USE_WRAPPER == outputStrategy
                         ? new RecordConverterWrapper()
                         : new RecordConverterIdentity();
-                final FlowFileHandlingOnSchemaChangeStrategy flowFileHandlingOnSchemaChangeStrategy = context.getProperty(FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY)
-                        .asAllowableValue(FlowFileHandlingOnSchemaChangeStrategy.class);
+                final SchemaDifferenceHandlingStrategy schemaDifferenceHandlingStrategy = context.getProperty(FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY)
+                        .asAllowableValue(SchemaDifferenceHandlingStrategy.class);
                 return new KinesisRecordProcessorRecord(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
                         getReaderFactory(context), getWriterFactory(context), recordConverter, recordProcessorBlocker,
-                        flowFileHandlingOnSchemaChangeStrategy);
+                        schemaDifferenceHandlingStrategy);
             } else {
                 return new KinesisRecordProcessorRaw(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
