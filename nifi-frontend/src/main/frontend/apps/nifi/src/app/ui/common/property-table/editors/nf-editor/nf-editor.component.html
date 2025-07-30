@@ -29,7 +29,7 @@
                 <div [class.sensitive]="showSensitiveHelperText">
                     <codemirror
                         formControlName="value"
-                        [settings]="codemirrorConfig"
+                        [config]="codemirrorConfig"
                         [style.width]="editorStyling.width"
                         [style.height]="editorStyling.height"
                         (mousedown)="preventDrag($event)"

@@ -92,7 +92,7 @@
                                             <div class="h-full">
                                                 <codemirror
                                                     formControlName="specification"
-                                                    [settings]="joltSpecConfig"
+                                                    [config]="joltSpecConfig"
                                                     (mousedown)="preventDrag($event)"
                                                     (ready)="initSpecEditor($event)" />
                                             </div>
@@ -252,7 +252,7 @@
                                             <div class="input-editor">
                                                 <codemirror
                                                     formControlName="input"
-                                                    [settings]="exampleDataConfig"
+                                                    [config]="exampleDataConfig"
                                                     (mousedown)="preventDrag($event)"
                                                     (ready)="initInputEditor($event)" />
                                             </div>
@@ -378,7 +378,7 @@
                                                     : ''
                                             "
                                             [ngModelOptions]="{ standalone: true }"
-                                            [settings]="outputConfig"
+                                            [config]="outputConfig"
                                             (mousedown)="preventDrag($event)" />
                                     </div>
                                 </div>
