@@ -655,9 +655,20 @@ export class NiFiCommon {
      * point this does not take into account any locales.
      *
      * @param {integer} integer
+     * @param {boolean} useCompactNotation - Whether to use compact notation (100K, 1M, etc.) for large numbers
      */
-    public formatInteger(integer: number): string {
+    public formatInteger(integer: number, useCompactNotation: boolean = false): string {
         const locale: string = (navigator && navigator.language) || 'en';
+
+        // For values >= 100,000 and when compact notation is requested, use compact notation (100K, 1M, 2.5B, etc.)
+        if (useCompactNotation && Math.abs(integer) >= 100000) {
+            return new Intl.NumberFormat(locale, {
+                notation: 'compact',
+                maximumFractionDigits: 2
+            }).format(integer);
+        }
+
+        // For all other cases, use the traditional format with commas
         return integer.toLocaleString(locale, { maximumFractionDigits: 0 });
     }
 
