@@ -447,7 +447,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor RESPONSE_GENERATION_REQUIRED = new PropertyDescriptor.Builder()
             .name("Response Generation Required")
-            .description("Enable generation and transfer of a FlowFile to the Response relationship regardless of HTTP response received.")
+            .description("Enable generation and transfer of a FlowFile to the Response relationship regardless of HTTP response status code received.")
             .required(false)
             .defaultValue(Boolean.FALSE.toString())
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
@@ -542,7 +542,11 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final Relationship RESPONSE = new Relationship.Builder()
             .name("Response")
-            .description("Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
+            .description("""
+            Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.
+            Enabling [Response Generation Required] changes routing behavior and sends FlowFiles to the Response relationship regardless of status code received.
+            """
+            )
             .build();
 
     public static final Relationship RETRY = new Relationship.Builder()
