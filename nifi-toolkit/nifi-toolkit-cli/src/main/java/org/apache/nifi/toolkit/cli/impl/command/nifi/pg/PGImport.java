@@ -63,12 +63,14 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
                 + "If only one registry client exists in NiFi, then it does not need to be specified and will be "
                 + "automatically selected. The x and y coordinates for the position of the imported process group may be "
                 + "optionally specified. If left blank, the position will automatically be selected to avoid overlapping "
-                + "with existing process groups.";
+                + "with existing process groups. If a process group name is specified, the imported process group will be "
+                + "renamed with the specified name.";
     }
 
     @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.PG_ID.createOption());
+        addOption(CommandOption.PG_NAME.createOption());
         addOption(CommandOption.INPUT_SOURCE.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
         addOption(CommandOption.BUCKET_ID.createOption());
@@ -216,6 +218,12 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             JsonNode flowContentsNode = rootNode.path("flowContents");
             String pgName = flowContentsNode.path("name").asText();
             createdEntity = pgClient.upload(parentPgId, input, pgName, posDto.getX(), posDto.getY());
+        }
+
+        final String pgName = getArg(properties, CommandOption.PG_NAME);
+        if (StringUtils.isNotBlank(pgName)) {
+            final PGRename pgRename = new PGRename();
+            pgRename.rename(pgName, pgClient, createdEntity);
         }
 
         return new StringResult(createdEntity.getId(), getContext().isInteractive());
