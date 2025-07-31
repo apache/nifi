@@ -43,7 +43,7 @@
         <!--
             Source directory containing the theme icons. Can be external directory for modular themes.
         -->
-        <frontend.theme.icons.dir>${frontend.working.dir}/libs/shared/src/assets/themes</frontend.theme.icons.dir>
+        <frontend.theme.icons.dir></frontend.theme.icons.dir>
         <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
