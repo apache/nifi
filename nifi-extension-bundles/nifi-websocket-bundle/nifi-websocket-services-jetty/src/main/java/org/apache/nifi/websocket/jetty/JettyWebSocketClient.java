@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -374,6 +375,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             }
             final RoutingWebSocketListener listener = new RoutingWebSocketListener(router);
             listener.setSessionId(sessionId);
+            listener.setSecure("wss".equalsIgnoreCase(webSocketUri.getScheme()));
 
             final ClientUpgradeRequest request = new ClientUpgradeRequest();
 
@@ -482,9 +484,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         final int inputBufferSize = context.getProperty(INPUT_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxTextMessageSize = context.getProperty(MAX_TEXT_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxBinaryMessageSize = context.getProperty(MAX_BINARY_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
+        final long idleTimeoutMillis = context.getProperty(IDLE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
         policy.setInputBufferSize(inputBufferSize);
         policy.setMaxTextMessageSize(maxTextMessageSize);
         policy.setMaxBinaryMessageSize(maxBinaryMessageSize);
+        policy.setIdleTimeout(Duration.ofMillis(idleTimeoutMillis));
     }
 
     public double getBackoffJitter(final double min, final double max) {
