@@ -27,6 +27,7 @@ import org.apache.nifi.service.lookup.AbstractSingleAttributeBasedControllerServ
 
 import java.sql.Connection;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
@@ -69,14 +70,38 @@ public class DBCPConnectionPoolLookup
 
     @Override
     public FlowFileFilter getFlowFileFilter() {
-        final AtomicReference<String> ref = new AtomicReference<>();
+        final AtomicBoolean firstFlowFile = new AtomicBoolean(true);
+        final AtomicBoolean collectingInvalidFlowFiles = new AtomicBoolean(false);
+
+        final AtomicReference<String> currentDBName = new AtomicReference<>();
+
         return flowFile -> {
             final String flowFileDBName = flowFile.getAttribute(DATABASE_NAME_ATTRIBUTE);
-            if (StringUtils.isEmpty(flowFileDBName)) {
-                throw new ProcessException("FlowFile attributes must contain an attribute name '" + DATABASE_NAME_ATTRIBUTE + "'");
+
+            if (firstFlowFile.get()) {
+                firstFlowFile.set(false);
+
+                if (StringUtils.isEmpty(flowFileDBName)) {
+                    collectingInvalidFlowFiles.set(true);
+                    return ACCEPT_AND_CONTINUE;
+                }
+                final String databaseName = currentDBName.compareAndSet(null, flowFileDBName) ? flowFileDBName : currentDBName.get();
+                return flowFileDBName.equals(databaseName) ? ACCEPT_AND_CONTINUE : REJECT_AND_CONTINUE;
+            } else {
+                if (collectingInvalidFlowFiles.get()) {
+                    if (StringUtils.isEmpty(flowFileDBName)) {
+                        return ACCEPT_AND_CONTINUE;
+                    } else {
+                        return REJECT_AND_CONTINUE;
+                    }
+                } else {
+                    if (StringUtils.isEmpty(flowFileDBName)) {
+                        return REJECT_AND_CONTINUE;
+                    }
+                    final String databaseName = currentDBName.compareAndSet(null, flowFileDBName) ? flowFileDBName : currentDBName.get();
+                    return flowFileDBName.equals(databaseName) ? ACCEPT_AND_CONTINUE : REJECT_AND_CONTINUE;
+                }
             }
-            final String databaseName = ref.compareAndSet(null, flowFileDBName) ? flowFileDBName : ref.get();
-            return flowFileDBName.equals(databaseName) ? ACCEPT_AND_CONTINUE : REJECT_AND_CONTINUE;
         };
     }
 }
