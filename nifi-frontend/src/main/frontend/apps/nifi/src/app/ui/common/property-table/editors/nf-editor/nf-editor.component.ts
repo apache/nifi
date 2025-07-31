@@ -50,12 +50,10 @@ import {
     syntaxHighlighting,
     indentOnInput,
     bracketMatching,
-    foldKeymap,
     StreamLanguage,
     indentUnit,
     LanguageDescription
 } from '@codemirror/language';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import {
     Codemirror,
     CodeMirrorConfig,
@@ -68,9 +66,6 @@ import {
     NfLanguageConfig,
     NfLanguageDefinition
 } from '@nifi/shared';
-import { markdown } from '@codemirror/lang-markdown';
-import { xml } from '@codemirror/lang-xml';
-import { foldGutter } from '@codemirror/language';
 
 @Component({
     selector: 'nf-editor',
@@ -194,7 +189,6 @@ export class NfEditor {
                 bracketMatching(),
                 closeBrackets(),
                 highlightActiveLine(),
-                highlightSelectionMatches(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 autocompletion(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
@@ -215,8 +209,6 @@ export class NfEditor {
                     ...closeBracketsKeymap,
                     ...defaultKeymap,
                     ...historyKeymap,
-                    ...foldKeymap,
-                    ...searchKeymap,
                     ...completionKeymap
                 ])
             ];

@@ -59,16 +59,6 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         'z-index': 1,
         border: 'none'
     },
-    '.cm-search-container': {
-        ...boxStyle,
-        backgroundColor: 'var(--mat-sys-surface-bright)',
-        position: 'absolute',
-        right: '20px',
-        top: '0'
-    },
-    '.cm-search-container:first-child': {
-        borderRadius: '6px'
-    },
     '.cm-cursor': {
         borderLeftColor: 'var(--mat-sys-on-surface)'
     },
