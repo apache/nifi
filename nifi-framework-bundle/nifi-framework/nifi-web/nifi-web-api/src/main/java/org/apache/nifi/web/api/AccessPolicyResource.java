@@ -476,7 +476,10 @@ public class AccessPolicyResource extends ApplicationResource {
                     accessPolicy.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // ensure write permission to the policy for the parent process group
-                    accessPolicy.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final Authorizable parentAuthorizable = accessPolicy.getParentAuthorizable();
+                    if (parentAuthorizable != null) {
+                        parentAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
                 },
                 null,
                 (revision, accessPolicyEntity) -> {
