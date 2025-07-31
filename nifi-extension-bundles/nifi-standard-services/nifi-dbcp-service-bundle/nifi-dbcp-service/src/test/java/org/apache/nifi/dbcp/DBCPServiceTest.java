@@ -213,25 +213,6 @@ public class DBCPServiceTest {
     }
 
     @Test
-    public void testInvalidDriverDerby() throws URISyntaxException {
-        final URL driverURL = org.apache.derby.jdbc.EmbeddedDriver.class
-                .getProtectionDomain()
-                .getCodeSource()
-                .getLocation();
-
-        final File jarFile = new File(driverURL.toURI());
-
-        runner.setProperty(service, DBCPProperties.DB_DRIVER_LOCATION, jarFile.getAbsolutePath());
-        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "a.very.bad.jdbc.Driver");
-
-        final Collection<ConfigVerificationResult> verificationResults = runner.verify(service, Map.of());
-        assertEquals(1, verificationResults.size());
-
-        final ConfigVerificationResult result = verificationResults.stream().filter(r -> r.getVerificationStepName().equals("Configure Data Source")).findFirst().get();
-        assertTrue(result.getExplanation().contains("org.apache.derby.jdbc.EmbeddedDriver"));
-    }
-
-    @Test
     public void testInvalidDirverH2() throws URISyntaxException {
         final URL driverURL = org.h2.Driver.class
                 .getProtectionDomain()

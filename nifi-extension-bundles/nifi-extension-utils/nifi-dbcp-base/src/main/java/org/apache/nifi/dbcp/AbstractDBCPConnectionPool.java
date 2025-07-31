@@ -113,8 +113,8 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                         .build());
             }
         } catch (final Exception e) {
-            StringBuilder message = new StringBuilder("Failed to configure Data Source.");
-            verificationLogger.error(message.toString(), e);
+            StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
+            verificationLogger.error(messageBuilder.toString(), e);
 
             final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
             final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
@@ -122,21 +122,21 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
                 List<String> availableDrivers = discoverDriverClassesStatic(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
-                    message.append(String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
+                    messageBuilder.append(String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
                             driverName, String.join(", ", availableDrivers)));
                 } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
-                    message.append(" Driver found but ensure you apply the controller service configuration before verifying again.");
+                    messageBuilder.append(" Driver found but ensure you apply the controller service configuration before verifying again.");
                 } else {
-                    message.append(String.format(" Exception: %s", e.getMessage()));
+                    messageBuilder.append(String.format(" Exception: %s", e.getMessage()));
                 }
             } else {
-                message.append(String.format(" No driver name specified or no driver resources provided. Exception: %s", e.getMessage()));
+                messageBuilder.append(String.format(" No driver name specified or no driver resources provided. Exception: %s", e.getMessage()));
             }
 
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(FAILED)
-                    .explanation(message.toString())
+                    .explanation(messageBuilder.toString())
                     .build());
         } finally {
             try {
