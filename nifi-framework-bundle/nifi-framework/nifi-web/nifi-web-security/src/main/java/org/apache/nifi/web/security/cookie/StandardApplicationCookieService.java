@@ -39,7 +39,7 @@ public class StandardApplicationCookieService implements ApplicationCookieServic
 
     private static final Duration MAX_AGE_REMOVE = Duration.ZERO;
 
-    private static final Duration MAX_AGE_STANDARD = Duration.ofSeconds(60);
+    private static final Duration MAX_AGE_STANDARD = Duration.ofMinutes(5);
 
     private static final String DEFAULT_PATH = "/";
 

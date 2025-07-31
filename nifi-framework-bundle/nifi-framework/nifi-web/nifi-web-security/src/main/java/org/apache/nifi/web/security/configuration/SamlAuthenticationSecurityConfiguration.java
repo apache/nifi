@@ -86,7 +86,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration
 public class SamlAuthenticationSecurityConfiguration {
-    private static final Duration REQUEST_EXPIRATION = Duration.ofSeconds(60);
+    private static final Duration REQUEST_EXPIRATION = Duration.ofMinutes(5);
 
     private static final long REQUEST_MAXIMUM_CACHE_SIZE = 1000;
 

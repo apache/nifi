@@ -53,7 +53,7 @@ public class StandardApplicationCookieServiceTest {
 
     private static final String CONTEXT_RESOURCE_URI = String.format("https://%s%s", DOMAIN, CONTEXT_PATH);
 
-    private static final int EXPECTED_MAX_AGE = 60;
+    private static final int EXPECTED_MAX_AGE = 300;
 
     private static final int SESSION_MAX_AGE = -1;
 
