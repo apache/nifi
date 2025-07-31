@@ -45,9 +45,13 @@ import java.net.HttpURLConnection;
 
 public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
-    private static final long maxBytes = 1024 * 1024 * 2; //10MB
-    private static final int bufferSize = 8 * 1024; // 8KB
+    private static final long MAX_CONTENT_SIZE = 1024 * 1024 * 2; // 10MB
+    private static final int BUFFER_SIZE = 8 * 1024; // 8KB
     private static final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
+    static {
+        objectMapper.getFactory().configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+    }
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
@@ -75,30 +79,12 @@ public class ParquetContentViewerController extends HttpServlet {
 
         response.setStatus(HttpServletResponse.SC_OK);
 
-        final boolean formatted = Boolean.parseBoolean(request.getParameter("formatted"));
-        if (!formatted) {
-            final InputStream contentStream = downloadableContent.getContent();
-            contentStream.transferTo(response.getOutputStream());
-            return;
-        }
-
-        // allow the user to drive the data type but fall back to the content type if necessary
-        String displayName = request.getParameter("mimeTypeDisplayName");
-        if (displayName == null) {
-            displayName = downloadableContent.getType();
-        }
-
-        if (displayName == null || !(displayName.equals("parquet") || displayName.equals("application/vnd.apache.parquet"))) {
-            response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Unknown content type");
-            return;
-        }
-
         try {
             //Convert InputStream to a seekable InputStream
             byte[] data = getInputStreamBytes(downloadableContent.getContent());
 
             if (data.length == 0) {
-                response.getOutputStream().write("Content size is too large to display.".getBytes());
+                response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Content size is too large to display.");
                 return;
             }
 
@@ -114,8 +100,8 @@ public class ParquetContentViewerController extends HttpServlet {
 
             //Format and write out each record
             GenericRecord record;
-            objectMapper.getFactory().configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
             boolean firstRecord = true;
+            response.getOutputStream().write("[\n".getBytes());
             while ((record = reader.read()) != null) {
                 if (firstRecord) {
                     firstRecord = false;
@@ -125,6 +111,7 @@ public class ParquetContentViewerController extends HttpServlet {
 
                 objectMapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectMapper.readTree(record.toString()));
             }
+            response.getOutputStream().write("\n]".getBytes());
         } catch (final Throwable t) {
             logger.warn("Unable to format FlowFile content", t);
             response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Unable to format FlowFile content");
@@ -133,11 +120,11 @@ public class ParquetContentViewerController extends HttpServlet {
 
     private byte[] getInputStreamBytes(final InputStream inputStream) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[bufferSize];
+        byte[] buffer = new byte[BUFFER_SIZE];
         long totalRead = 0;
 
-        while (totalRead < maxBytes) {
-            int bytesRead = inputStream.read(buffer, 0, bufferSize);
+        while (totalRead < MAX_CONTENT_SIZE) {
+            int bytesRead = inputStream.read(buffer, 0, BUFFER_SIZE);
             if (bytesRead == -1) {
                 break;
             }
@@ -146,7 +133,7 @@ public class ParquetContentViewerController extends HttpServlet {
         }
 
         // Return empty array if inputStream has more data beyond maxBytes
-        if (totalRead >= maxBytes && inputStream.read() != -1) {
+        if (totalRead >= MAX_CONTENT_SIZE && inputStream.read() != -1) {
             return new byte[0];
         }
 
