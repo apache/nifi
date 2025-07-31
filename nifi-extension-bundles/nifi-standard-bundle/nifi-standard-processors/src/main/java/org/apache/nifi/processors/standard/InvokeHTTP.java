@@ -544,7 +544,8 @@ public class InvokeHTTP extends AbstractProcessor {
             .name("Response")
             .description("""
             Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.
-            Enabling [Response Generation Required] changes routing behavior and sends FlowFiles to the Response relationship regardless of status code received.
+            Enabling [Response Generation Required] changes routing behavior, sending unsuccessful responses to their corresponding relationships
+            and also sending FlowFiles to the Response relationship as well, regardless of status code received.
             """
             )
             .build();
