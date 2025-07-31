@@ -26,7 +26,9 @@ import {
     MapTableEntry,
     Codemirror,
     CodeMirrorConfig,
-    highlightStyle, parameterHighlightPlugin, elFunctionHighlightPlugin
+    highlightStyle,
+    parameterHighlightPlugin,
+    elFunctionHighlightPlugin
 } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
@@ -57,7 +59,7 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import {
     defaultHighlightStyle,
@@ -68,7 +70,6 @@ import {
     foldGutter,
     indentUnit
 } from '@codemirror/language';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { json, jsonParseLinter } from '@codemirror/lang-json';
 import { linter } from '@codemirror/lint';
 import {
@@ -255,7 +256,6 @@ export class JoltTransformJsonUi implements OnDestroy {
             bracketMatching(),
             closeBrackets(),
             highlightActiveLine(),
-            highlightSelectionMatches(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             foldGutter(),
             json(),
@@ -273,7 +273,6 @@ export class JoltTransformJsonUi implements OnDestroy {
                 ...defaultKeymap,
                 ...historyKeymap,
                 ...foldKeymap,
-                ...searchKeymap,
                 ...completionKeymap
             ])
         ];
@@ -295,9 +294,10 @@ export class JoltTransformJsonUi implements OnDestroy {
             bracketMatching(),
             closeBrackets(),
             highlightActiveLine(),
-            highlightSelectionMatches(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+            foldGutter(),
             json(),
+            linter(jsonParseLinter()),
             EditorView.contentAttributes.of({ 'aria-label': 'Example Data Editor' }),
             keymap.of([
                 {
@@ -311,7 +311,6 @@ export class JoltTransformJsonUi implements OnDestroy {
                 ...defaultKeymap,
                 ...historyKeymap,
                 ...foldKeymap,
-                ...searchKeymap,
                 ...completionKeymap
             ])
         ];
@@ -330,6 +329,7 @@ export class JoltTransformJsonUi implements OnDestroy {
             bracketMatching(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+            foldGutter(),
             json(),
             EditorView.contentAttributes.of({ 'aria-label': 'Output Viewer' })
         ];

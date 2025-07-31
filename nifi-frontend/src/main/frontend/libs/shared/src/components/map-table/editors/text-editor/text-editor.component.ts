@@ -36,8 +36,6 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { markdown } from '@codemirror/lang-markdown';
-import { xml } from '@codemirror/lang-xml';
 import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
 import {
@@ -45,11 +43,8 @@ import {
     syntaxHighlighting,
     indentOnInput,
     bracketMatching,
-    foldGutter,
-    foldKeymap,
     indentUnit
 } from '@codemirror/language';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { MatLabel } from '@angular/material/form-field';
 import { MapTableItem } from '../../../../types';
 
@@ -190,11 +185,7 @@ export class TextEditor {
             bracketMatching(),
             closeBrackets(),
             highlightActiveLine(),
-            highlightSelectionMatches(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-            foldGutter(),
-            markdown(),
-            xml(),
             EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
             keymap.of([
                 { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
@@ -213,8 +204,6 @@ export class TextEditor {
                 ...closeBracketsKeymap,
                 ...defaultKeymap,
                 ...historyKeymap,
-                ...foldKeymap,
-                ...searchKeymap,
                 ...completionKeymap
             ])
         ];

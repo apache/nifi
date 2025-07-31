@@ -62,9 +62,6 @@ import {
     closeBracketsKeymap,
     completionKeymap
 } from '@codemirror/autocomplete';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
-import { markdown } from '@codemirror/lang-markdown';
-import { xml } from '@codemirror/lang-xml';
 
 @Component({
     selector: 'ua-editor',
@@ -177,12 +174,9 @@ export class UaEditor {
                 bracketMatching(),
                 closeBrackets(),
                 highlightActiveLine(),
-                highlightSelectionMatches(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 foldGutter(),
                 autocompletion(),
-                markdown(),
-                xml(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
                 keymap.of([
                     { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
@@ -202,7 +196,6 @@ export class UaEditor {
                     ...defaultKeymap,
                     ...historyKeymap,
                     ...foldKeymap,
-                    ...searchKeymap,
                     ...completionKeymap
                 ])
             ];
