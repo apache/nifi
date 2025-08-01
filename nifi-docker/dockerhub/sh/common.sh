@@ -34,7 +34,7 @@ uncomment() {
 # 3 - file to perform replacement inline
 prop_add_or_replace () {
   target_file=${3:-${nifi_props_file}}
-  property_found=$(awk -v property="${1}" 'index($0, property) == 1')
+  property_found=$(grep -E "^${1}=" "${target_file}")
   if [ -z "${property_found}" ]; then
     echo "File [${target_file}] adding [${1}]"
     echo "$1=$2" >> ${target_file}
