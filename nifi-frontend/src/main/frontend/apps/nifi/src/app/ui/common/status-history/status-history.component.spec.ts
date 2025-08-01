@@ -15,32 +15,131 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
 import { StatusHistory } from './status-history.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { initialState as initialStatusHistoryState } from '../../../state/status-history/status-history.reducer';
+import {
+    StatusHistoryAggregateSnapshot,
+    StatusHistoryEntity,
+    statusHistoryFeatureKey
+} from '../../../state/status-history';
+import { ComponentType } from '@nifi/shared';
+import { NiFiCommon } from '@nifi/shared';
+
+const now = new Date().getTime();
+function minutes(x: number) {
+    return x * NiFiCommon.MILLIS_PER_MINUTE;
+}
+
+const snapshots: StatusHistoryAggregateSnapshot[] = [
+    { timestamp: now - minutes(61), statusMetrics: { freeHeap: 829569792, usedHeap: 244172032 } },
+    { timestamp: now - minutes(30), statusMetrics: { freeHeap: 829569792, usedHeap: 244172032 } },
+    { timestamp: now - minutes(10), statusMetrics: { freeHeap: 829569792, usedHeap: 244172032 } },
+    { timestamp: now - minutes(5), statusMetrics: { freeHeap: 829569792, usedHeap: 244172032 } },
+    { timestamp: now, statusMetrics: { freeHeap: 829569792, usedHeap: 244172032 } }
+];
 
 describe('StatusHistory', () => {
-    let component: StatusHistory;
-    let fixture: ComponentFixture<StatusHistory>;
+    const statusHistoryEntity: StatusHistoryEntity = {
+        canRead: true,
+        statusHistory: {
+            generated: 'generated',
+            componentDetails: {
+                'Group Id': 'local',
+                Name: 'local',
+                Id: 'id',
+                Type: ComponentType.Processor
+            },
+            fieldDescriptors: [
+                {
+                    field: 'freeHeap',
+                    label: 'Free Heap',
+                    description: 'The amount of free memory in the heap that can be used by the Java virtual machine.',
+                    formatter: 'DATA_SIZE'
+                },
+                {
+                    field: 'usedHeap',
+                    label: 'Used Heap',
+                    description: 'The amount of used memory in the heap that is used by the Java virtual machine.',
+                    formatter: 'DATA_SIZE'
+                }
+            ],
+            aggregateSnapshots: snapshots,
+            nodeSnapshots: [
+                { nodeId: '1', address: 'http://one.local/nifi', apiPort: '8001', statusSnapshots: snapshots },
+                { nodeId: '2', address: 'http://one.local/nifi', apiPort: '8002', statusSnapshots: snapshots }
+            ]
+        }
+    };
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
+    async function setup({ statusHistoryState = initialStatusHistoryState } = {}) {
+        await TestBed.configureTestingModule({
             imports: [HttpClientTestingModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: {} },
-                provideMockStore({}),
+                provideMockStore({
+                    initialState: {
+                        [statusHistoryFeatureKey]: statusHistoryState
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
-        });
-        fixture = TestBed.createComponent(StatusHistory);
-        component = fixture.componentInstance;
+        }).compileComponents();
+        const store: MockStore = TestBed.inject(MockStore);
+        const fixture = TestBed.createComponent(StatusHistory);
+        const component = fixture.componentInstance;
         fixture.detectChanges();
+        return { component, fixture, store };
+    }
+
+    it('should create', async () => {
+        const { component } = await setup();
+        expect(component).toBeTruthy();
     });
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
+    it('it should filter instances based on start time selected', async () => {
+        const { component, fixture } = await setup({
+            statusHistoryState: {
+                statusHistory: statusHistoryEntity,
+                status: 'success',
+                loadedTimestamp: ''
+            }
+        });
+
+        let filtered = component.filteredInstances();
+        expect(component.instances.length).toBe(3);
+        expect(component.instances[0].snapshots.length).toBe(5);
+        expect(component.instances[1].snapshots.length).toBe(5);
+        expect(component.instances[2].snapshots.length).toBe(5);
+        expect(filtered[0].snapshots.length).toBe(5);
+        expect(filtered[1].snapshots.length).toBe(5);
+        expect(filtered[2].snapshots.length).toBe(5);
+
+        expect(component.maxDate).toBe(now);
+
+        // The 'All' option should be initially selected
+        expect(component.statusHistoryForm.get('start')?.value).toBe(0);
+
+        component.statusHistoryForm.get('start')?.setValue(minutes(5));
+        component.startChanged(minutes(5));
+        fixture.detectChanges();
+
+        filtered = component.filteredInstances();
+        expect(filtered[0].snapshots.length).toBe(2);
+        expect(filtered[1].snapshots.length).toBe(2);
+        expect(filtered[2].snapshots.length).toBe(2);
+
+        component.statusHistoryForm.get('start')?.setValue(minutes(30));
+        component.startChanged(minutes(30));
+        fixture.detectChanges();
+
+        filtered = component.filteredInstances();
+        expect(filtered[0].snapshots.length).toBe(4);
+        expect(filtered[1].snapshots.length).toBe(4);
+        expect(filtered[2].snapshots.length).toBe(4);
     });
 });
