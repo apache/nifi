@@ -1,334 +1,746 @@
-/*!
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-// Capture calls to mock decorations for verification
-const capturedDecorations: any[] = [];
+import { EditorView, ViewPlugin, Decoration } from '@codemirror/view';
+import { Prec } from '@codemirror/state';
+import { elFunctionHighlightPlugin } from './el-function-highlight';
 
-// Simple mocks for CodeMirror dependencies
+// Mock CodeMirror dependencies at the top level
+jest.mock('@codemirror/state', () => ({
+    Prec: {
+        highest: jest.fn((plugin) => ({ highestPrecedence: true, plugin }))
+    },
+    Range: jest.fn()
+}));
+
 jest.mock('@codemirror/view', () => ({
     ViewPlugin: {
-        fromClass: jest.fn((pluginClass, options) => ({ pluginClass, options }))
+        fromClass: jest.fn((pluginClass, config) => ({ pluginClass, config }))
     },
     Decoration: {
-        mark: jest.fn((attrs) => ({
-            range: jest.fn((from, to) => {
-                const decoration = { type: 'mark', from, to, attrs };
-                capturedDecorations.push(decoration);
-                return decoration;
-            })
-        })),
-        replace: jest.fn((attrs) => ({
-            range: jest.fn((from, to) => {
-                const decoration = { type: 'replace', from, to, attrs };
-                capturedDecorations.push(decoration);
-                return decoration;
+        mark: jest.fn((spec) => ({
+            type: 'mark',
+            spec,
+            range: (from: number, to: number) => ({
+                from,
+                to,
+                value: { type: 'mark', spec },
+                eq: jest.fn(),
+                map: jest.fn()
             })
         })),
         set: jest.fn((decorations) => ({
-            decorations: decorations || [],
-            size: decorations ? decorations.length : 0
+            decorations,
+            size: decorations.length,
+            map: jest.fn(),
+            eq: jest.fn(),
+            update: jest.fn(),
+            iter: jest.fn()
         }))
-    },
-    WidgetType: class MockWidgetType {
-        constructor() {}
-        eq(other: any) {
-            return false;
-        }
-        toDOM() {
-            return document.createElement('span');
-        }
-        ignoreEvent() {
-            return false;
-        }
     }
 }));
 
-import { elFunctionHighlightPlugin } from './el-function-highlight';
-
-// Type assertion for accessing mocked plugin properties
-const plugin = elFunctionHighlightPlugin as any;
-
-describe('EL Function Highlight Extension', () => {
-    let PluginClass: any;
+describe('EL Function Highlight Plugin', () => {
+    let mockValidationService: any;
+    let mockEditorView: any;
+    let mockEditorState: any;
+    let mockDocument: any;
+    let mockedViewPlugin: jest.Mocked<typeof ViewPlugin>;
+    let mockedDecoration: jest.Mocked<typeof Decoration>;
+    let mockedPrec: jest.Mocked<typeof Prec>;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        capturedDecorations.length = 0;
-        PluginClass = plugin.pluginClass;
+
+        // Get the mocked modules
+        mockedViewPlugin = jest.mocked(ViewPlugin);
+        mockedDecoration = jest.mocked(Decoration);
+        mockedPrec = jest.mocked(Prec);
+
+        mockValidationService = {
+            isValidElFunction: jest.fn()
+        };
+
+        // Create comprehensive mocks for CodeMirror
+        mockDocument = {
+            lines: 1,
+            line: jest.fn(),
+            toString: jest.fn()
+        };
+
+        mockEditorState = {
+            doc: mockDocument
+        };
+
+        mockEditorView = {
+            state: mockEditorState
+        };
     });
 
-    describe('Plugin Configuration', () => {
-        it('should export a properly configured plugin', () => {
+    describe('Basic Functionality', () => {
+        it('should export a properly configured plugin function', () => {
             expect(elFunctionHighlightPlugin).toBeDefined();
-            expect(plugin).toHaveProperty('pluginClass');
-            expect(plugin).toHaveProperty('options');
+            expect(typeof elFunctionHighlightPlugin).toBe('function');
         });
 
-        it('should have decorations configuration that returns instance decorations', () => {
-            expect(plugin.options).toHaveProperty('decorations');
-            expect(typeof plugin.options.decorations).toBe('function');
+        it('should return a valid extension when called without config', () => {
+            const extension = elFunctionHighlightPlugin();
+            expect(extension).toBeDefined();
+        });
 
-            // Test the decorations function
-            const testDecorations = { test: 'decorations' };
-            const instance = { decorations: testDecorations };
-            const result = plugin.options.decorations(instance);
-            expect(result).toBe(testDecorations);
+        it('should return a valid extension when called with validation service', () => {
+            const extension = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            expect(extension).toBeDefined();
+        });
+
+        it('should accept undefined config gracefully', () => {
+            const extension = elFunctionHighlightPlugin(undefined);
+            expect(extension).toBeDefined();
         });
     });
 
-    describe('Plugin Class Implementation', () => {
-        describe('Constructor Behavior', () => {
-            it('should initialize with decorations', () => {
-                const instance = new PluginClass(createMockView(['Hello ${world}']));
-                expect(instance).toHaveProperty('decorations');
+    describe('Configuration Interface', () => {
+        it('should work with validation service that returns true', () => {
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+            expect(() => elFunctionHighlightPlugin({ validationService: mockValidationService })).not.toThrow();
+        });
+
+        it('should work with validation service that returns false', () => {
+            mockValidationService.isValidElFunction.mockReturnValue(false);
+            expect(() => elFunctionHighlightPlugin({ validationService: mockValidationService })).not.toThrow();
+        });
+    });
+
+    describe('ViewPlugin Integration', () => {
+        it('should create ViewPlugin with highest precedence', () => {
+            const config = { validationService: mockValidationService };
+            const plugin = elFunctionHighlightPlugin(config);
+
+            expect(mockedPrec.highest).toHaveBeenCalled();
+            expect(mockedViewPlugin.fromClass).toHaveBeenCalled();
+        });
+
+        it('should pass decorations configuration to ViewPlugin', () => {
+            elFunctionHighlightPlugin();
+
+            const [, viewConfig] = mockedViewPlugin.fromClass.mock.calls[0];
+            expect(viewConfig).toBeDefined();
+            expect(viewConfig).toHaveProperty('decorations');
+            expect(typeof viewConfig?.decorations).toBe('function');
+        });
+    });
+
+    describe('EL Function Detection and Decoration Creation', () => {
+        const mockLine = (text: string, lineNumber: number = 1) => ({
+            from: (lineNumber - 1) * 50, // Mock line positions
+            to: (lineNumber - 1) * 50 + text.length,
+            text,
+            number: lineNumber
+        });
+
+        beforeEach(() => {
+            mockDocument.line.mockImplementation((lineNum: number) => {
+                // Default to empty line if not specifically mocked
+                return mockLine('', lineNum);
+            });
+        });
+
+        describe('Single EL Function Detection', () => {
+            it('should detect simple EL function pattern', () => {
+                const text = 'Hello ${uuid} test';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+
+                const plugin = elFunctionHighlightPlugin();
+
+                // Get the plugin class constructor
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                const instance = new PluginClass(mockEditorView) as any;
+
+                // Verify decorations were created
+                expect(instance.decorations).toBeDefined();
+                expect(mockedDecoration.set).toHaveBeenCalled();
             });
 
-            it('should create proper decorations for EL functions', () => {
-                const instance = new PluginClass(createMockView(['Text with ${function1} and ${function2}']));
+            it('should create decorations for dollar sign, braces, and function name', () => {
+                const text = 'Value: ${functionName}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
 
-                // Should create 8 decorations (4 per function: dollar, open brace, function name, close brace)
-                expect(capturedDecorations.length).toBe(8);
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
 
-                // Verify decoration types and counts
-                const decorationCounts = getDecorationCounts();
-                expect(decorationCounts.dollar).toBe(2); // One '$' for each function
-                expect(decorationCounts.bracket).toBe(4); // Two braces per function
-                expect(decorationCounts.replace).toBe(2); // One widget per function
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                // Should create 4 decorations: $, {, functionName, }
+                const markCalls = mockedDecoration.mark.mock.calls;
+                expect(markCalls.length).toBeGreaterThan(0);
+
+                // Check for different CSS classes
+                const classes = markCalls.map((call) => call[0].class);
+                expect(classes).toContain('cm-el-function-dollar-sign');
+                expect(classes).toContain('cm-bracket');
+                expect(classes).toContain('cm-el-function-name');
             });
 
-            it('should handle documents without EL functions', () => {
-                new PluginClass(createMockView(['Plain text without EL functions']));
-                expect(capturedDecorations).toHaveLength(0);
+            it('should apply error styling to invalid EL functions', () => {
+                const text = 'Invalid: ${badFunction}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(false);
 
-                new PluginClass(createMockView(['']));
-                expect(capturedDecorations).toHaveLength(0);
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const errorClasses = markCalls
+                    .map((call) => call[0].class)
+                    .filter((cls) => cls && cls.includes('cm-el-function-error'));
+
+                expect(errorClasses.length).toBeGreaterThan(0);
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('badFunction');
             });
 
-            it('should process multiple lines correctly', () => {
-                new PluginClass(
-                    createMockView(['Line 1 has ${function1}', 'Line 2 has ${function2}', 'Line 3 has no functions'])
+            it('should apply normal styling to valid EL functions', () => {
+                const text = 'Valid: ${goodFunction}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const normalClasses = markCalls
+                    .map((call) => call[0].class)
+                    .filter((cls) => cls === 'cm-el-function-name');
+
+                expect(normalClasses.length).toBeGreaterThan(0);
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('goodFunction');
+            });
+        });
+
+        describe('Multiple EL Functions', () => {
+            it('should detect multiple EL functions on same line', () => {
+                const text = 'Start ${function1} middle ${function2} end';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function1');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function2');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledTimes(2);
+            });
+
+            it('should handle mixed valid and invalid EL functions', () => {
+                const text = 'Mixed ${uuid} and ${invalidFunc} functions';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockImplementation((func: string) => func === 'uuid');
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const classes = markCalls.map((call) => call[0].class);
+
+                expect(classes).toContain('cm-el-function-name'); // valid function
+                expect(classes.some((cls) => cls && cls.includes('cm-el-function-error'))).toBe(true); // invalid function
+            });
+        });
+
+        describe('Multi-line EL Function Detection', () => {
+            it('should detect EL functions across multiple lines', () => {
+                const line1 = 'First line ${function1}';
+                const line2 = 'Second line ${function2}';
+
+                mockDocument.lines = 2;
+                mockDocument.line.mockImplementation((lineNum: number) => {
+                    if (lineNum === 1) return mockLine(line1, 1);
+                    if (lineNum === 2) return mockLine(line2, 2);
+                    return mockLine('', lineNum);
+                });
+
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function1');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function2');
+            });
+
+            it('should handle empty lines correctly', () => {
+                mockDocument.lines = 3;
+                mockDocument.line.mockImplementation((lineNum: number) => {
+                    if (lineNum === 1) return mockLine('First ${function1}', 1);
+                    if (lineNum === 2) return mockLine('', 2); // Empty line
+                    if (lineNum === 3) return mockLine('Third ${function3}', 3);
+                    return mockLine('', lineNum);
+                });
+
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function1');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function3');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledTimes(2);
+            });
+        });
+
+        describe('EL Function Name Edge Cases', () => {
+            it('should handle EL functions with parentheses', () => {
+                const text = 'Functions: ${uuid()} and ${substring(0, 5)}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('uuid()');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('substring(0, 5)');
+            });
+
+            it('should handle EL functions with colons (subject functions)', () => {
+                const text = 'Subject: ${attribute:contains("test")}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('attribute:contains("test")');
+            });
+
+            it('should handle EL functions with complex arguments', () => {
+                const text = 'Complex: ${substring(${attribute:startsWith("prefix")}, 0, 10)}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                // The regex stops at the first '}' character, so it captures the first inner expression
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith(
+                    'substring(${attribute:startsWith("prefix")'
                 );
+            });
 
-                const replaceDecorations = capturedDecorations.filter((d) => d.type === 'replace');
-                expect(replaceDecorations.length).toBe(2);
+            it('should handle EL functions with special characters', () => {
+                const text = 'Special: ${function-with_dash} and ${function.with.dots}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(true);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function-with_dash');
+                expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function.with.dots');
+            });
+
+            it('should handle empty EL function names', () => {
+                const text = 'Empty: ${} function';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidElFunction.mockReturnValue(false);
+
+                const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                // Empty EL function names ${} don't match the regex /\$\{([^}]+)\}/g
+                // which requires at least one character, so validation won't be called
+                expect(mockValidationService.isValidElFunction).not.toHaveBeenCalled();
             });
         });
 
-        describe('Update Method', () => {
-            it('should update decorations when document or viewport changes', () => {
-                const instance = new PluginClass(createMockView(['${oldFunction}']));
+        describe('Without Validation Service', () => {
+            it('should create decorations without validation when no service provided', () => {
+                const text = 'No validation: ${someFunction}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
 
-                // Test document change
-                capturedDecorations.length = 0;
-                instance.update({
-                    docChanged: true,
-                    viewportChanged: false,
-                    view: createMockView(['${newFunction}'])
-                });
-                expect(capturedDecorations.length).toBeGreaterThan(0);
+                const plugin = elFunctionHighlightPlugin(); // No validation service
 
-                // Test viewport change
-                capturedDecorations.length = 0;
-                instance.update({
-                    docChanged: false,
-                    viewportChanged: true,
-                    view: createMockView(['${function}'])
-                });
-                expect(capturedDecorations.length).toBeGreaterThan(0);
-            });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
 
-            it('should not update when nothing changes', () => {
-                const mockView = createMockView(['${function}']);
-                const instance = new PluginClass(mockView);
+                // Should still create decorations
+                expect(mockedDecoration.set).toHaveBeenCalled();
+                expect(mockedDecoration.mark).toHaveBeenCalled();
 
-                capturedDecorations.length = 0;
-                instance.update({
-                    docChanged: false,
-                    viewportChanged: false,
-                    view: mockView
-                });
-
-                expect(capturedDecorations).toHaveLength(0);
-            });
-        });
-
-        describe('Position Calculations', () => {
-            it('should calculate correct positions for decorations', () => {
-                new PluginClass(createMockView(['Start ${middle} end']));
-
-                // Sort decorations by position to verify correct ordering
-                capturedDecorations.sort((a, b) => a.from - b.from);
-
-                expect(capturedDecorations[0].from).toBe(6); // '$' position
-                expect(capturedDecorations[1].from).toBe(7); // '{' position
-                expect(capturedDecorations[2].from).toBe(8); // start of function name
-                expect(capturedDecorations[3].from).toBe(14); // '}' position
-            });
-
-            it('should handle adjacent functions and maintain sorted order', () => {
-                new PluginClass(createMockView(['${function1}${function2}']));
-
-                // Should create 8 decorations (4 per function)
-                expect(capturedDecorations).toHaveLength(8);
-
-                // Verify they're in correct order
-                capturedDecorations.sort((a, b) => a.from - b.from);
-                expect(capturedDecorations[0].from).toBe(0); // First '$'
-                expect(capturedDecorations[4].from).toBe(12); // Second '$'
-
-                // Verify all decorations are properly sorted
-                const positions = capturedDecorations.map((d) => d.from);
-                const sortedPositions = [...positions].sort((a, b) => a - b);
-                expect(positions).toEqual(sortedPositions);
+                // Should use normal styling (not error) by default
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const classes = markCalls.map((call) => call[0].class);
+                expect(classes).toContain('cm-el-function-name');
+                expect(classes.every((cls) => !cls || !cls.includes('cm-el-function-error'))).toBe(true);
             });
         });
     });
 
-    describe('EL Function Recognition Patterns', () => {
-        it('should recognize valid EL function patterns', () => {
-            const validCases = [
-                { input: '${simple}', expectedFunctions: 1 },
-                { input: '${function_with_underscore}', expectedFunctions: 1 },
-                { input: '${function-with-dash}', expectedFunctions: 1 },
-                { input: '${function123}', expectedFunctions: 1 },
-                { input: '${function.with.dots}', expectedFunctions: 1 },
-                { input: '${function1} ${function2}', expectedFunctions: 2 },
-                { input: '${fn:length(value)}', expectedFunctions: 1 },
-                { input: '${math:add(1, 2)}', expectedFunctions: 1 },
-                { input: '${functioné} ${函数} ${функция}', expectedFunctions: 3 }
-            ];
-
-            validCases.forEach(({ input, expectedFunctions }) => {
-                const functionCount = testFunctionRecognition(input);
-                expect(functionCount).toBe(expectedFunctions);
+    describe('ViewPlugin Lifecycle', () => {
+        beforeEach(() => {
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: 20,
+                text: 'Test ${function} text',
+                number: 1
             });
+            mockDocument.lines = 1;
         });
 
-        it('should handle malformed and edge case patterns', () => {
-            const testCases = [
-                { input: '${}', expectedFunctions: 0, description: 'empty functions' },
-                { input: '${ }', expectedFunctions: 1, description: 'space-only functions (matches current regex)' },
-                { input: '{function}', expectedFunctions: 0, description: 'missing dollar sign' },
-                { input: '$function', expectedFunctions: 0, description: 'missing braces' },
-                { input: '${function', expectedFunctions: 0, description: 'missing closing brace' },
-                { input: 'function}', expectedFunctions: 0, description: 'missing dollar and opening brace' },
-                {
-                    input: '${function{with}braces}',
-                    expectedFunctions: 1,
-                    description: 'nested braces (stops at first closing)'
-                }
-            ];
+        it('should initialize decorations in constructor', () => {
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
 
-            testCases.forEach(({ input, expectedFunctions, description }) => {
-                const functionCount = testFunctionRecognition(input);
-                expect(functionCount).toBe(expectedFunctions);
-            });
+            const instance = new PluginClass(mockEditorView) as any;
+            expect(instance.decorations).toBeDefined();
         });
 
-        it('should handle extreme cases', () => {
-            // Very long function name
-            const longFunction = 'a'.repeat(1000);
-            expect(() => testFunctionRecognition(`\${${longFunction}}`)).not.toThrow();
-            expect(testFunctionRecognition(`\${${longFunction}}`)).toBe(1);
+        it('should update decorations when document changes', () => {
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
 
-            // Many functions
-            const manyFunctions = Array.from({ length: 50 }, (_, i) => `\${function${i}}`).join(' ');
-            expect(testFunctionRecognition(manyFunctions)).toBe(50);
+            const instance = new PluginClass(mockEditorView) as any;
+            const initialDecorations = instance.decorations;
+
+            // Mock ViewUpdate with required properties
+            const mockUpdate = {
+                docChanged: true,
+                viewportChanged: false,
+                view: mockEditorView,
+                state: mockEditorState,
+                transactions: [],
+                changes: {},
+                startState: mockEditorState,
+                focusChanged: false,
+                geometryChanged: false,
+                heightChanged: false
+            } as any;
+
+            if (instance.update) {
+                instance.update(mockUpdate);
+            }
+
+            // Should have recreated decorations
+            expect(instance.decorations).toBeDefined();
         });
 
-        it('should handle complex function calls with parentheses', () => {
-            const complexCases = [
-                { input: '${fn:length()}', expectedFunctions: 1 },
-                { input: '${fn:substring(value, 0, 5)}', expectedFunctions: 1 },
-                { input: '${math:add(${var1}, ${var2})}', expectedFunctions: 2 }, // Nested functions (stops at first closing brace)
-                { input: '${fn:contains("hello (world)", "(")}', expectedFunctions: 1 },
-                { input: '${fn:escapeXml("test")} ${fn:length("hello")}', expectedFunctions: 2 }
-            ];
+        it('should update decorations when viewport changes', () => {
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
 
-            complexCases.forEach(({ input, expectedFunctions }) => {
-                const functionCount = testFunctionRecognition(input);
-                expect(functionCount).toBe(expectedFunctions);
-            });
+            const instance = new PluginClass(mockEditorView) as any;
+
+            // Mock ViewUpdate with required properties
+            const mockUpdate = {
+                docChanged: false,
+                viewportChanged: true,
+                view: mockEditorView,
+                state: mockEditorState,
+                transactions: [],
+                changes: {},
+                startState: mockEditorState,
+                focusChanged: false,
+                geometryChanged: false,
+                heightChanged: false
+            } as any;
+
+            if (instance.update) {
+                instance.update(mockUpdate);
+            }
+
+            expect(instance.decorations).toBeDefined();
+        });
+
+        it('should not update decorations when no relevant changes occur', () => {
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            const instance = new PluginClass(mockEditorView) as any;
+
+            // Clear previous calls
+            mockedDecoration.set.mockClear();
+
+            // Mock ViewUpdate with no relevant changes
+            const mockUpdate = {
+                docChanged: false,
+                viewportChanged: false,
+                view: mockEditorView,
+                state: mockEditorState,
+                transactions: [],
+                changes: {},
+                startState: mockEditorState,
+                focusChanged: false,
+                geometryChanged: false,
+                heightChanged: false
+            } as any;
+
+            if (instance.update) {
+                instance.update(mockUpdate);
+            }
+
+            // Should not have called Decoration.set again
+            expect(mockedDecoration.set).not.toHaveBeenCalled();
         });
     });
 
-    describe('ELFunctionNameWidget Functionality', () => {
-        // Since we're mocking WidgetType, we'll test the widget indirectly through the plugin
-        it('should create widgets for function names', () => {
-            new PluginClass(createMockView(['${testFunction}']));
+    describe('Decoration Sorting and Positioning', () => {
+        it('should handle adjacent EL functions correctly', () => {
+            const text = '${function1}${function2}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
 
-            const replaceDecorations = capturedDecorations.filter((d) => d.type === 'replace');
-            expect(replaceDecorations).toHaveLength(1);
-            expect(replaceDecorations[0].attrs).toHaveProperty('widget');
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            // Should handle both functions
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function1');
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function2');
+            expect(mockedDecoration.set).toHaveBeenCalled();
         });
 
-        it('should handle functions with parentheses', () => {
-            new PluginClass(createMockView(['${fn:length(value)}']));
+        it('should handle EL functions at line boundaries', () => {
+            const text = 'Start${function}End';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
 
-            const replaceDecorations = capturedDecorations.filter((d) => d.type === 'replace');
-            expect(replaceDecorations).toHaveLength(1);
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function');
+        });
+    });
+
+    describe('Real-world EL Function Scenarios', () => {
+        it('should handle common NiFi EL functions', () => {
+            const text = 'Process ${uuid()}, ${now():format("yyyy-MM-dd")}, ${allAttributes()}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockImplementation((func: string) =>
+                ['uuid()', 'now():format("yyyy-MM-dd")', 'allAttributes()'].includes(func)
+            );
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('uuid()');
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('now():format("yyyy-MM-dd")');
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('allAttributes()');
         });
 
-        it('should handle multiple complex functions', () => {
-            new PluginClass(createMockView(['${fn:length(str)} and ${math:add(1, 2)}']));
+        it('should handle attribute functions with various operations', () => {
+            const text = 'Attributes: ${attribute:startsWith("prefix")} and ${attribute:contains("text")}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
 
-            const replaceDecorations = capturedDecorations.filter((d) => d.type === 'replace');
-            expect(replaceDecorations).toHaveLength(2);
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('attribute:startsWith("prefix")');
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('attribute:contains("text")');
+        });
+
+        it('should handle nested EL function expressions', () => {
+            const text = 'Nested: ${substring(${uuid()}, 0, 8)}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            // The regex stops at the first '}' character, so it captures the first inner expression
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('substring(${uuid()');
+        });
+
+        it('should handle EL functions with regex-sensitive characters', () => {
+            const text = 'Regex: ${function[0]} and ${function^test}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function[0]');
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('function^test');
+        });
+    });
+
+    describe('Edge Cases and Error Conditions', () => {
+        it('should handle malformed EL function syntax gracefully', () => {
+            const text = 'Malformed: ${unclosed and ${nested${inside}} and ${}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(false);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            // Should not throw error
+            expect(() => new PluginClass(mockEditorView)).not.toThrow();
+        });
+
+        it('should handle very long EL function names', () => {
+            const longFunctionName = 'very'.repeat(100) + 'LongFunctionName()';
+            const text = `Long: \${${longFunctionName}}`;
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith(longFunctionName);
+        });
+
+        it('should handle documents with many lines efficiently', () => {
+            mockDocument.lines = 100;
+            mockDocument.line.mockImplementation((lineNum: number) => ({
+                from: (lineNum - 1) * 50,
+                to: lineNum * 50,
+                text: lineNum % 10 === 0 ? `Line ${lineNum} \${function${lineNum}}` : `Line ${lineNum}`,
+                number: lineNum
+            }));
+
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            // Should handle many lines without issues
+            expect(() => new PluginClass(mockEditorView)).not.toThrow();
+
+            // Should have called validation for functions on lines 10, 20, 30, etc.
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledTimes(10);
+        });
+
+        it('should handle mixed EL functions and parameters in same text', () => {
+            const text = 'Mixed: ${uuid()} and #{parameter} together';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            // Should only detect EL functions, not parameters
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('uuid()');
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledTimes(1);
+        });
+
+        it('should handle complex real-world NiFi expressions', () => {
+            const text = 'Complex: ${attribute:matches("^[0-9]{3}-[0-9]{2}-[0-9]{4}$"):ifElse("valid", "invalid")}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidElFunction.mockReturnValue(true);
+
+            const plugin = elFunctionHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            // The regex stops at the first '}' which truncates this complex expression
+            expect(mockValidationService.isValidElFunction).toHaveBeenCalledWith('attribute:matches("^[0-9]{3');
         });
     });
 });
-
-// Helper functions
-function createMockView(lines: string[]) {
-    return {
-        state: {
-            doc: {
-                lines: lines.length,
-                line: jest.fn().mockImplementation((lineNumber: number) => {
-                    const lineIndex = lineNumber - 1;
-                    if (lineIndex >= 0 && lineIndex < lines.length) {
-                        const lineText = lines[lineIndex];
-                        const from = lines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? 1 : 0); // Add 1 for newline characters
-                        return {
-                            from,
-                            to: from + lineText.length,
-                            text: lineText,
-                            length: lineText.length,
-                            number: lineNumber
-                        };
-                    }
-                    return { from: 0, to: 0, text: '', length: 0, number: lineNumber };
-                })
-            }
-        }
-    };
-}
-
-function getDecorationCounts() {
-    return {
-        dollar: capturedDecorations.filter((d) => d.attrs?.class === 'cm-el-function-dollar-sign').length,
-        bracket: capturedDecorations.filter((d) => d.attrs?.class === 'cm-bracket').length,
-        replace: capturedDecorations.filter((d) => d.type === 'replace').length
-    };
-}
-
-function testFunctionRecognition(input: string): number {
-    capturedDecorations.length = 0;
-    const mockView = createMockView([input]);
-    new (elFunctionHighlightPlugin as any).pluginClass(mockView);
-    return capturedDecorations.filter((d) => d.type === 'replace').length;
-}

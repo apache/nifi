@@ -28,7 +28,8 @@ import {
     CodeMirrorConfig,
     highlightStyle,
     parameterHighlightPlugin,
-    elFunctionHighlightPlugin
+    elFunctionHighlightPlugin,
+    CodemirrorNifiLanguagePackage
 } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
@@ -170,7 +171,8 @@ export class JoltTransformJsonUi implements OnDestroy {
     constructor(
         private formBuilder: FormBuilder,
         private store: Store<NiFiJoltTransformJsonUiState>,
-        private mapTableHelperService: MapTableHelperService
+        private mapTableHelperService: MapTableHelperService,
+        private nifiLanguagePackage: CodemirrorNifiLanguagePackage
     ) {
         // Select the processor id from the query params and GET processor details
         this.store
@@ -246,8 +248,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             rectangularSelection(),
             crosshairCursor(),
-            parameterHighlightPlugin,
-            elFunctionHighlightPlugin,
+            parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+            elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
@@ -322,8 +324,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             EditorState.readOnly.of(true),
             highlightSpecialChars(),
-            parameterHighlightPlugin,
-            elFunctionHighlightPlugin,
+            parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+            elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
             syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
