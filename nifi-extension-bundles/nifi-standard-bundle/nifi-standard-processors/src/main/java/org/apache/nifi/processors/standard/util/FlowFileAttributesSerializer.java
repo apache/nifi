@@ -38,7 +38,7 @@ public class FlowFileAttributesSerializer implements Deserializer<Map<String, St
     private static final String ATTRIBUTE_SEPARATOR = "<|--|>";
 
     @Override
-    public Map<String, String> deserialize(final byte[] input) throws DeserializationException, IOException {
+    public Map<String, String> deserialize(final byte[] input) throws DeserializationException {
         if (input == null || input.length == 0) {
             return null;
         }

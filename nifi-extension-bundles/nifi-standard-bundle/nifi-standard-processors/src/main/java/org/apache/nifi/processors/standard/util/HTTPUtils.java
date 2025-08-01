@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfiguration;
-
-import java.net.Proxy;
 import java.util.Map;
 
 public class HTTPUtils {
@@ -45,25 +36,6 @@ public class HTTPUtils {
             return "http://" + client + "@" + server + ":" + port + uri;
         } else {
             return "https://" + client + "@" + server + ":" + port + uri;
-        }
-    }
-
-
-    public static void setProxy(final ProcessContext context, final HttpClientBuilder clientBuilder, final CredentialsProvider credentialsProvider) {
-        // Set the proxy if specified
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
-
-        if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
-            final String host = proxyConfig.getProxyServerHost();
-            final int port = proxyConfig.getProxyServerPort();
-            clientBuilder.setProxy(new HttpHost(host, port));
-
-            if (proxyConfig.hasCredential()) {
-                final AuthScope proxyAuthScope = new AuthScope(host, port);
-                final UsernamePasswordCredentials proxyCredential
-                        = new UsernamePasswordCredentials(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
-                credentialsProvider.setCredentials(proxyAuthScope, proxyCredential);
-            }
         }
     }
 }
