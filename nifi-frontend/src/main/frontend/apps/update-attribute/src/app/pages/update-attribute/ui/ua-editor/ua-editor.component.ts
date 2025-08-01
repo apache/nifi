@@ -36,8 +36,6 @@ import { EditorState, Extension, Prec } from '@codemirror/state';
 import {
     bracketMatching,
     defaultHighlightStyle,
-    foldGutter,
-    foldKeymap,
     indentOnInput,
     indentUnit,
     LanguageDescription,
@@ -175,7 +173,6 @@ export class UaEditor {
                 closeBrackets(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-                foldGutter(),
                 autocompletion(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
                 keymap.of([
@@ -195,7 +192,6 @@ export class UaEditor {
                     ...closeBracketsKeymap,
                     ...defaultKeymap,
                     ...historyKeymap,
-                    ...foldKeymap,
                     ...completionKeymap
                 ])
             ];
