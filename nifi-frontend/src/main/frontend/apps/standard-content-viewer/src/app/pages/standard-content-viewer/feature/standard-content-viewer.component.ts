@@ -44,7 +44,6 @@ import {
     rectangularSelection
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import { markdown } from '@codemirror/lang-markdown';
 import { xml } from '@codemirror/lang-xml';
 import { yaml } from '@codemirror/lang-yaml';
@@ -124,7 +123,6 @@ export class StandardContentViewer {
                 syntaxHighlighting(highlightStyle),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 highlightActiveLine(),
-                highlightSelectionMatches(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 foldGutter(),
                 bracketMatching(),
@@ -135,7 +133,6 @@ export class StandardContentViewer {
                     ...defaultKeymap,
                     ...historyKeymap,
                     ...foldKeymap,
-                    ...searchKeymap,
                     ...completionKeymap
                 ])
             ];
