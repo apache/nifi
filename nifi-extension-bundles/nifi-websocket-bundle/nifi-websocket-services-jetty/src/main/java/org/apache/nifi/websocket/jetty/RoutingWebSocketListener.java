@@ -27,6 +27,7 @@ import java.util.UUID;
 public class RoutingWebSocketListener extends AbstractAutoDemanding {
     private final WebSocketMessageRouter router;
     private String sessionId;
+    private boolean secure;
 
     public RoutingWebSocketListener(final WebSocketMessageRouter router) {
         this.router = router;
@@ -40,7 +41,8 @@ public class RoutingWebSocketListener extends AbstractAutoDemanding {
             // So that existing sesionId can be reused when reconnecting.
             sessionId = UUID.randomUUID().toString();
         }
-        final JettyWebSocketSession webSocketSession = new JettyWebSocketSession(sessionId, session);
+        final boolean secureConnection = secure || isSessionSecure(session);
+        final JettyWebSocketSession webSocketSession = new JettyWebSocketSession(sessionId, session, secureConnection);
         router.captureSession(webSocketSession);
     }
 
@@ -64,7 +66,19 @@ public class RoutingWebSocketListener extends AbstractAutoDemanding {
         this.sessionId = sessionId;
     }
 
+    public void setSecure(final boolean secure) {
+        this.secure = secure;
+    }
+
     public String getSessionId() {
         return sessionId;
+    }
+
+    private boolean isSessionSecure(final Session session) {
+        try {
+            return session.isSecure();
+        } catch (final Exception e) {
+            return false;
+        }
     }
 }

@@ -49,10 +49,20 @@ public abstract class AbstractJettyWebSocketService extends AbstractWebSocketSer
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor IDLE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Idle Timeout")
+            .description("The maximum amount of time that a WebSocket connection may remain idle before it is closed. "
+                    + "A value of 0 sec disables the timeout.")
+            .required(true)
+            .defaultValue("0 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             INPUT_BUFFER_SIZE,
             MAX_TEXT_MESSAGE_SIZE,
-            MAX_BINARY_MESSAGE_SIZE
+            MAX_BINARY_MESSAGE_SIZE,
+            IDLE_TIMEOUT
     );
 
     static List<PropertyDescriptor> getAbstractPropertyDescriptors() {
