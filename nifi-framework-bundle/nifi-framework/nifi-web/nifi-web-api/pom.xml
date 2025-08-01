@@ -203,13 +203,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site-client</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient</artifactId>
-            <version>${prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -301,7 +299,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -313,7 +310,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-authorization-providers</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -560,13 +556,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-python-framework-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

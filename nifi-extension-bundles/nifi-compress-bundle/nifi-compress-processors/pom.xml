@@ -38,7 +38,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.github.luben</groupId>
             <artifactId>zstd-jni</artifactId>
-            <version>${com.github.luben.zstd-jni.version}</version>
         </dependency>
         <dependency>
             <groupId>com.aayushatharva.brotli4j</groupId>
