@@ -40,11 +40,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class MockValidationContext extends MockControllerServiceLookup implements ValidationContext, ControllerServiceLookup {
+public class MockValidationContext extends MockControllerServiceLookup implements ValidationContext {
 
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final StateManager stateManager;
+    private final ParameterLookup parameterLookup;
     private volatile boolean validateExpressions = true;
 
     public MockValidationContext(final MockProcessContext processContext) {
@@ -52,8 +53,13 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     }
 
     public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager) {
+        this(processContext, stateManager, ParameterLookup.EMPTY);
+    }
+
+    public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final ParameterLookup parameterLookup) {
         this.context = processContext;
         this.stateManager = stateManager;
+        this.parameterLookup = parameterLookup != null ? parameterLookup : ParameterLookup.EMPTY;
 
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
@@ -79,13 +85,13 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler(ParameterLookup.EMPTY);
+        return new StandardExpressionLanguageCompiler(parameterLookup);
     }
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
         final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, context.getEnvironmentVariables());
-        final MockValidationContext serviceValidationContext =  new MockValidationContext(serviceProcessContext, stateManager);
+        final MockValidationContext serviceValidationContext =  new MockValidationContext(serviceProcessContext, stateManager, parameterLookup);
         serviceValidationContext.setValidateExpressions(validateExpressions);
         return serviceValidationContext;
     }
