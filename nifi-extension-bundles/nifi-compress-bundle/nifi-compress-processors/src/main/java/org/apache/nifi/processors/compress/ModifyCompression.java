@@ -275,11 +275,9 @@ public class ModifyCompression extends AbstractProcessor {
         return switch (compressionFormat) {
             case LZMA -> new LzmaInputStream(parentInputStream, new Decoder());
             case XZ_LZMA2 -> new XZInputStream(parentInputStream);
-            case BZIP2 -> {
-                // need this two-arg constructor to support concatenated streams
-                yield new BZip2CompressorInputStream(parentInputStream, true);
-            }
-            case GZIP -> new GzipCompressorInputStream(parentInputStream, true);
+            case BZIP2 -> // need this two-arg constructor to support concatenated streams
+                    new BZip2CompressorInputStream(parentInputStream, true);
+            case GZIP -> GzipCompressorInputStream.builder().setInputStream(parentInputStream).setDecompressConcatenated(true).get();
             case DEFLATE -> new InflaterInputStream(parentInputStream);
             case SNAPPY -> new SnappyInputStream(parentInputStream);
             case SNAPPY_HADOOP -> throw new IOException("Cannot decompress snappy-hadoop");
@@ -349,7 +347,7 @@ public class ModifyCompression extends AbstractProcessor {
             }
             case ZSTD -> {
                 final int outputCompressionLevel = compressionLevel * 2;
-                compressionOut = new ZstdCompressorOutputStream(parentOutputStream, outputCompressionLevel);
+                compressionOut = ZstdCompressorOutputStream.builder().setOutputStream(parentOutputStream).setLevel(outputCompressionLevel).get();
                 mimeTypeRef.set(CompressionStrategy.ZSTD.getMimeTypes()[0]);
             }
             case BROTLI -> {
