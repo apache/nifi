@@ -19,13 +19,7 @@ import { ComponentRef, Injectable, ViewContainerRef } from '@angular/core';
 import { ElService } from './el.service';
 import { take } from 'rxjs';
 import { StreamParser, StringStream } from '@codemirror/language';
-import {
-    Completion,
-    CompletionContext,
-    CompletionInfo,
-    CompletionResult,
-    closeCompletion
-} from '@codemirror/autocomplete';
+import { Completion, CompletionContext, CompletionInfo, CompletionResult } from '@codemirror/autocomplete';
 import { ElFunction, ElFunctionTipInput, Parameter, ParameterTipInput } from '../types';
 import { ElFunctionTip } from '../components/tooltips/el-function-tip/el-function-tip.component';
 import { ParameterTip } from '../components/tooltips/parameter-tip/parameter-tip.component';
@@ -78,7 +72,6 @@ export class CodemirrorNifiLanguagePackage {
 
     // Tooltip configuration
     private static readonly TOOLTIP_ATTRIBUTE = 'data-nifi-tooltip';
-    private static readonly TOOLTIP_VALUE_ACTIVE = 'active';
 
     // Expression Language function and parameter state
     private readonly parameterKeyRegex = CodemirrorNifiLanguagePackage.PARAMETER_KEY_REGEX;
@@ -1195,17 +1188,148 @@ export class CodemirrorNifiLanguagePackage {
                 return null;
             }
 
-            const word = context.matchBefore(/\w*/);
-            if (!word) {
+            // Find the expression boundaries and current text
+            const expressionInfo = this.findExpressionBoundaries(context, cursorContext);
+            if (!expressionInfo) {
                 return null;
             }
 
-            const completions = this.createCompletions(options, word.text, cursorContext, viewContainerRef, context);
+            const completions = this.createCompletions(
+                options,
+                expressionInfo.currentText,
+                cursorContext,
+                viewContainerRef,
+                context
+            );
+
+            // Auto-insert if there's only one exact match
+            if (completions.length === 1 && context.explicit && context.view) {
+                const completion = completions[0];
+                context.view.dispatch({
+                    changes: {
+                        from: expressionInfo.from,
+                        to: expressionInfo.to,
+                        insert: completion.label
+                    }
+                });
+                return null; // Return null to close the completion popup
+            }
 
             return {
-                from: word.from,
+                from: expressionInfo.from,
+                to: expressionInfo.to,
                 options: completions
             };
+        };
+    }
+
+    /**
+     * Finds the boundaries of the current expression being edited.
+     *
+     * @param context - The completion context
+     * @param cursorContext - The analyzed cursor context
+     * @returns Expression boundary information or null
+     */
+    private findExpressionBoundaries(
+        context: CompletionContext,
+        cursorContext: any
+    ): {
+        from: number;
+        to: number;
+        currentText: string;
+    } | null {
+        const cursorPos = context.pos;
+        const doc = context.state.doc;
+        const lineInfo = doc.lineAt(cursorPos);
+        const cursorInLine = cursorPos - lineInfo.from;
+
+        // Find the expression boundaries based on context type
+        if (cursorContext.type === CodemirrorNifiLanguagePackage.CONTEXT_PARAMETER) {
+            return this.findParameterBoundaries(lineInfo.text, cursorInLine, lineInfo.from);
+        } else if (cursorContext.type === CodemirrorNifiLanguagePackage.CONTEXT_EXPRESSION) {
+            return this.findElFunctionBoundaries(lineInfo.text, cursorInLine, lineInfo.from);
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds parameter expression boundaries.
+     */
+    private findParameterBoundaries(
+        lineText: string,
+        cursorInLine: number,
+        lineFrom: number
+    ): {
+        from: number;
+        to: number;
+        currentText: string;
+    } | null {
+        // Find the most recent #{
+        let startPos = -1;
+        for (let i = cursorInLine - 1; i >= 1; i--) {
+            if (lineText.charAt(i) === '{' && lineText.charAt(i - 1) === '#') {
+                startPos = i + 1; // Position after #{
+                break;
+            }
+        }
+
+        if (startPos === -1) {
+            return null;
+        }
+
+        // Find the closing }
+        let endPos = lineText.indexOf('}', startPos);
+        if (endPos === -1) {
+            endPos = lineText.length; // If no closing brace, go to end of line
+        }
+
+        const currentText = lineText.substring(startPos, Math.min(endPos, cursorInLine));
+
+        return {
+            from: lineFrom + startPos,
+            to: lineFrom + endPos,
+            currentText: currentText
+        };
+    }
+
+    /**
+     * Finds EL function expression boundaries.
+     */
+    private findElFunctionBoundaries(
+        lineText: string,
+        cursorInLine: number,
+        lineFrom: number
+    ): {
+        from: number;
+        to: number;
+        currentText: string;
+    } | null {
+        // Find the most recent ${
+        let startPos = -1;
+        for (let i = cursorInLine - 1; i >= 1; i--) {
+            if (lineText.charAt(i) === '{' && lineText.charAt(i - 1) === '$') {
+                startPos = i + 1; // Position after ${
+                break;
+            }
+        }
+
+        if (startPos === -1) {
+            return null;
+        }
+
+        // Find the closing }
+        let endPos = lineText.indexOf('}', startPos);
+        if (endPos === -1) {
+            endPos = lineText.length; // If no closing brace, go to end of line
+        }
+
+        const currentText = lineText.substring(startPos, Math.min(endPos, cursorInLine));
+
+        return {
+            from: lineFrom + startPos,
+            to: lineFrom + endPos,
+            currentText: currentText
         };
     }
 
@@ -1294,9 +1418,8 @@ export class CodemirrorNifiLanguagePackage {
         viewContainerRef: ViewContainerRef,
         context: CompletionContext
     ): Completion[] {
-        const filteredOptions = options.filter(
-            (opt) => tokenValue === '' || opt.toLowerCase().startsWith(tokenValue.toLowerCase().trim())
-        );
+        // Use improved partial matching that handles spaces
+        const filteredOptions = this.filterOptionsWithSpaceSupport(options, tokenValue.trim());
 
         return filteredOptions.map((opt) => ({
             label: opt,
@@ -1307,12 +1430,109 @@ export class CodemirrorNifiLanguagePackage {
     }
 
     /**
+     * Filters options with improved matching that supports partial matches with spaces.
+     *
+     * @param options - Available options to filter
+     * @param input - User input to match against
+     * @returns Filtered array of matching options
+     */
+    private filterOptionsWithSpaceSupport(options: string[], input: string): string[] {
+        if (!input) {
+            return options;
+        }
+
+        const lowerInput = input.toLowerCase();
+
+        return options.filter((option) => {
+            const lowerOption = option.toLowerCase();
+
+            // Exact match or starts with match
+            if (lowerOption === lowerInput || lowerOption.startsWith(lowerInput)) {
+                return true;
+            }
+
+            // For partial matches with spaces, check if the input matches the beginning
+            // of words in the option (space-separated matching)
+            const inputWords = lowerInput.split(/\s+/);
+            const optionWords = lowerOption.split(/\s+/);
+
+            // Check if input words match the beginning of option words in order
+            let inputIndex = 0;
+            for (let i = 0; i < optionWords.length && inputIndex < inputWords.length; i++) {
+                if (optionWords[i].startsWith(inputWords[inputIndex])) {
+                    inputIndex++;
+                }
+            }
+
+            return inputIndex === inputWords.length;
+        });
+    }
+
+    /**
+     * Checks if a parameter exists in the current parameter listing.
+     *
+     * @param parameterName - The parameter name to check
+     * @returns True if the parameter exists
+     */
+    public isValidParameter(parameterName: string): boolean {
+        return this.parametersSupported && this.parameters.includes(parameterName);
+    }
+
+    /**
+     * Checks if an EL function exists in the current function listing.
+     *
+     * @param functionName - The function name to check
+     * @returns True if the function exists
+     */
+    public isValidElFunction(functionName: string): boolean {
+        // If EL is not supported, consider all functions valid (no error styling)
+        if (!this.functionSupported) {
+            return true;
+        }
+
+        // If functions haven't been loaded yet, consider all functions valid to avoid false errors
+        if (this.subjectlessFunctions.length === 0 && this.functions.length === 0) {
+            return true;
+        }
+
+        // Extract just the function name from complex expressions like "allAttributes()" or "attribute:contains('test')"
+        const baseFunctionName = this.extractBaseFunctionName(functionName);
+
+        return this.subjectlessFunctions.includes(baseFunctionName) || this.functions.includes(baseFunctionName);
+    }
+
+    /**
+     * Extracts the base function name from a complex expression.
+     * Examples: "allAttributes()" -> "allAttributes", "attribute:contains('test')" -> "contains"
+     *
+     * @param functionExpression - The full function expression
+     * @returns The base function name
+     */
+    private extractBaseFunctionName(functionExpression: string): string {
+        // Handle subject:function() format - extract function name after colon
+        if (functionExpression.includes(':')) {
+            const parts = functionExpression.split(':');
+            if (parts.length >= 2) {
+                const functionPart = parts[1].trim();
+                // Extract function name before parentheses if present
+                const match = functionPart.match(/^([a-zA-Z][a-zA-Z0-9]*)/);
+                return match ? match[1] : functionPart;
+            }
+        }
+
+        // Handle simple function() format - extract function name before parentheses
+        const match = functionExpression.match(/^([a-zA-Z][a-zA-Z0-9]*)/);
+        return match ? match[1] : functionExpression;
+    }
+
+    /**
      * Creates tooltip information for a completion option.
      *
      * @param option - The completion option
      * @param cursorContext - The cursor context
      * @param viewContainerRef - Angular view container
      * @param context - The completion context
+     * @param matchInfo - Information about the content to be replaced
      * @returns The tooltip information object
      */
     private createTooltipInfo(
@@ -1323,8 +1543,6 @@ export class CodemirrorNifiLanguagePackage {
     ): CompletionInfo {
         const componentRef = this.createTooltipComponent(option, cursorContext, viewContainerRef);
         const tooltipElement = componentRef.location.nativeElement;
-
-        this.setupTooltipKeyboardHandling(tooltipElement, viewContainerRef, context);
 
         return {
             dom: tooltipElement,
@@ -1366,53 +1584,6 @@ export class CodemirrorNifiLanguagePackage {
 
         componentRef.changeDetectorRef.detectChanges();
         return componentRef;
-    }
-
-    /**
-     * Sets up keyboard handling for tooltips, including Esc key support.
-     *
-     * @param tooltipElement - The tooltip DOM element
-     * @param viewContainerRef - Angular view container
-     * @param context - The completion context
-     */
-    private setupTooltipKeyboardHandling(
-        tooltipElement: HTMLElement,
-        viewContainerRef: ViewContainerRef,
-        context: CompletionContext
-    ): void {
-        tooltipElement.setAttribute(
-            CodemirrorNifiLanguagePackage.TOOLTIP_ATTRIBUTE,
-            CodemirrorNifiLanguagePackage.TOOLTIP_VALUE_ACTIVE
-        );
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                const activeTooltips = document.querySelectorAll(
-                    `[${CodemirrorNifiLanguagePackage.TOOLTIP_ATTRIBUTE}="${CodemirrorNifiLanguagePackage.TOOLTIP_VALUE_ACTIVE}"]`
-                );
-                if (activeTooltips.length > 0) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-
-                    this.cleanupTooltip(tooltipElement);
-                    viewContainerRef.clear();
-                    document.removeEventListener('keydown', handleKeyDown, true);
-
-                    if (context.view) {
-                        closeCompletion(context.view);
-                        context.view.focus();
-                    }
-                }
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown, true);
-
-        if (!tooltipElement.hasAttribute('tabindex')) {
-            tooltipElement.setAttribute('tabindex', '-1');
-        }
-        tooltipElement.focus();
     }
 
     /**

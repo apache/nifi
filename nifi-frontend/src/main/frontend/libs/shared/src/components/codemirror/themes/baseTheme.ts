@@ -45,7 +45,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '&': {
         maxWidth: '100%',
         maxHeight: '100%',
-        backgroundColor: 'var(--mat-sys-surface-bright)'
+        backgroundColor: 'var(--mat-sys-background)'
     },
 
     '.cm-scroller': codeFontStyle,
@@ -138,8 +138,14 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '.cm-parameter-name': {
         color: 'var(--nf-codemirror-parameter)'
     },
+    '.cm-parameter-error': {
+        color: 'var(--mat-sys-error)'
+    },
     '.cm-el-function-name': {
         color: 'var(--nf-codemirror-el-function)'
+    },
+    '.cm-el-function-error': {
+        color: 'var(--mat-sys-error)'
     },
     '.cm-tooltip-autocomplete.cm-tooltip': {
         ...boxStyle,

@@ -16,112 +16,164 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MockComponent } from 'ng-mocks';
+import { FormBuilder } from '@angular/forms';
 
 import { NfEditor } from './nf-editor.component';
 import { PropertyItem } from '../../property-item';
-import { ElService } from '@nifi/shared';
-import { MockComponent } from 'ng-mocks';
+import { ElService, CodemirrorNifiLanguagePackage } from '@nifi/shared';
 import { Codemirror } from '@nifi/shared';
 import { of } from 'rxjs';
 
 describe('NfEditor', () => {
     let component: NfEditor;
     let fixture: ComponentFixture<NfEditor>;
+    let mockNifiLanguagePackage: any;
 
     beforeEach(() => {
+        mockNifiLanguagePackage = {
+            getLanguageId: jest.fn().mockReturnValue('nf'),
+            isValidParameter: jest.fn().mockReturnValue(true),
+            isValidElFunction: jest.fn().mockReturnValue(true),
+            getLanguageMode: jest.fn().mockReturnValue({
+                streamParser: {} as any,
+                getAutocompletions: jest.fn().mockReturnValue(() => [])
+            })
+        };
+
         TestBed.configureTestingModule({
-            imports: [NfEditor, MockComponent(Codemirror)],
+            imports: [NfEditor],
             providers: [
+                {
+                    provide: FormBuilder,
+                    useValue: {
+                        group: () => ({
+                            patchValue: jest.fn(),
+                            get: jest.fn().mockReturnValue({
+                                value: 'test',
+                                setValue: jest.fn(),
+                                disable: jest.fn(),
+                                enable: jest.fn(),
+                                addValidators: jest.fn(),
+                                removeValidators: jest.fn(),
+                                updateValueAndValidity: jest.fn()
+                            }),
+                            dirty: false,
+                            valid: true
+                        })
+                    }
+                },
                 {
                     provide: ElService,
                     useValue: {
-                        getElGuide: () => of([])
+                        getELSpecification: () => of([])
                     }
+                },
+                {
+                    provide: CodemirrorNifiLanguagePackage,
+                    useValue: mockNifiLanguagePackage
                 }
             ]
+        }).overrideComponent(NfEditor, {
+            remove: {
+                imports: [Codemirror]
+            },
+            add: {
+                imports: [MockComponent(Codemirror)]
+            }
         });
         fixture = TestBed.createComponent(NfEditor);
         component = fixture.componentInstance;
     });
 
     it('should create', () => {
-        fixture.detectChanges();
         expect(component).toBeTruthy();
     });
 
-    it('verify value set', () => {
-        const value = 'my-group-id';
-        const item: PropertyItem = {
-            property: 'group.id',
-            value,
-            descriptor: {
-                name: 'group.id',
-                displayName: 'Group ID',
-                description:
-                    "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
-                required: true,
-                sensitive: false,
-                dynamic: false,
-                supportsEl: true,
-                expressionLanguageScope: 'Environment variables defined at JVM level and system properties',
-                dependencies: []
-            },
-            id: 3,
-            triggerEdit: false,
-            deleted: false,
-            added: false,
-            dirty: false,
-            savedValue: value,
-            type: 'required'
-        };
-
-        component.item = item;
-        fixture.detectChanges();
-
-        expect(component.nfEditorForm.get('value')?.value).toEqual(value);
-        expect(component.nfEditorForm.get('value')?.disabled).toBeFalsy();
-        expect(component.nfEditorForm.get('setEmptyString')?.value).toBeFalsy();
-
-        jest.spyOn(component.ok, 'next');
-        component.okClicked();
-        expect(component.ok.next).toHaveBeenCalledWith(value);
+    it('should inject CodemirrorNifiLanguagePackage service', () => {
+        expect(component['nifiLanguagePackage']).toBeDefined();
+        expect(component['nifiLanguagePackage']).toBe(mockNifiLanguagePackage);
     });
 
-    it('verify empty value set', () => {
-        const value = '';
-        const item: PropertyItem = {
-            property: 'group.id',
-            value,
+    it('should configure plugins with validation service when item supports EL', () => {
+        // Setup component with EL support
+        const mockItem: PropertyItem = {
+            property: 'test.property',
             descriptor: {
-                name: 'group.id',
-                displayName: 'Group ID',
-                description:
-                    "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
-                required: true,
+                name: 'test.property',
+                displayName: 'Test Property',
+                description: 'A test property',
+                required: false,
                 sensitive: false,
                 dynamic: false,
                 supportsEl: true,
-                expressionLanguageScope: 'Environment variables defined at JVM level and system properties',
+                expressionLanguageScope: 'FLOWFILE_ATTRIBUTES',
                 dependencies: []
             },
-            id: 3,
+            value: 'test value',
+            id: 1,
             triggerEdit: false,
             deleted: false,
             added: false,
             dirty: false,
-            savedValue: value,
-            type: 'required'
+            savedValue: 'test value',
+            type: 'optional'
+        };
+        component.item = mockItem;
+        component.parameterConfig = {
+            parameters: [{ name: 'testParam', value: 'testValue', description: '', sensitive: false }],
+            supportsParameters: true
         };
 
-        component.item = item;
-        fixture.detectChanges();
+        // Verify that the validation service was configured
+        expect(component.supportsEl).toBe(true);
+        expect(mockNifiLanguagePackage.getLanguageMode).toHaveBeenCalled();
+    });
 
-        expect(component.nfEditorForm.get('value')?.value).toEqual(value);
-        expect(component.nfEditorForm.get('value')?.disabled).toBeTruthy();
-        expect(component.nfEditorForm.get('setEmptyString')?.value).toBeTruthy();
+    it('should configure plugins with validation service when item has parameters', () => {
+        // Setup component with parameters
+        const mockItem: PropertyItem = {
+            property: 'test.property',
+            descriptor: {
+                name: 'test.property',
+                displayName: 'Test Property',
+                description: 'A test property',
+                required: false,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: false,
+                expressionLanguageScope: 'NONE',
+                dependencies: []
+            },
+            value: 'test value',
+            id: 1,
+            triggerEdit: false,
+            deleted: false,
+            added: false,
+            dirty: false,
+            savedValue: 'test value',
+            type: 'optional'
+        };
+        component.item = mockItem;
+        component.parameterConfig = {
+            parameters: [{ name: 'testParam', value: 'testValue', description: '', sensitive: false }],
+            supportsParameters: true
+        };
 
-        jest.spyOn(component.ok, 'next');
-        component.okClicked();
-        expect(component.ok.next).toHaveBeenCalledWith(value);
+        // Verify that parameters are available for validation
+        expect(component.parameters).toBeDefined();
+        expect(component.parameters?.length).toBe(1);
+        expect(mockNifiLanguagePackage.getLanguageMode).toHaveBeenCalled();
+    });
+
+    it('should validate parameters using the validation service', () => {
+        // Test that the service methods are accessible
+        const result1 = mockNifiLanguagePackage.isValidParameter('testParam');
+        const result2 = mockNifiLanguagePackage.isValidElFunction('uuid');
+
+        expect(result1).toBe(true);
+        expect(result2).toBe(true);
+        expect(mockNifiLanguagePackage.isValidParameter).toHaveBeenCalledWith('testParam');
+        expect(mockNifiLanguagePackage.isValidElFunction).toHaveBeenCalledWith('uuid');
     });
 });

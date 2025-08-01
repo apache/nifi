@@ -15,79 +15,21 @@
  *  limitations under the License.
  */
 
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
-import { Range } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { Range, Prec } from '@codemirror/state';
+import { CodemirrorNifiLanguagePackage } from '../../../services/codemirror-nifi-language-package.service';
 
 /**
- * Widget for EL function names that prevents built-in syntax highlighting
+ * Configuration for EL function highlighting
  */
-class ELFunctionNameWidget extends WidgetType {
-    constructor(private readonly functionName: string) {
-        super();
-    }
-
-    override eq(other: ELFunctionNameWidget): boolean {
-        return other.functionName === this.functionName;
-    }
-
-    toDOM(): HTMLElement {
-        const container = document.createElement('span');
-        container.className = 'cm-el-function-name';
-
-        // Parse the function name to identify parentheses and style them separately
-        const parts = this.parseFunction(this.functionName);
-
-        parts.forEach((part) => {
-            const span = document.createElement('span');
-            if (part.type === 'parenthesis') {
-                span.className = 'cm-matchingBracket';
-            } else {
-                span.className = 'cm-el-function-name';
-            }
-            span.textContent = part.text;
-            container.appendChild(span);
-        });
-
-        return container;
-    }
-
-    private parseFunction(functionName: string): Array<{ type: 'text' | 'parenthesis'; text: string }> {
-        const parts: Array<{ type: 'text' | 'parenthesis'; text: string }> = [];
-        let currentText = '';
-
-        for (let i = 0; i < functionName.length; i++) {
-            const char = functionName[i];
-
-            if (char === '(' || char === ')') {
-                // If we have accumulated text, add it as a text part
-                if (currentText) {
-                    parts.push({ type: 'text', text: currentText });
-                    currentText = '';
-                }
-                // Add the parenthesis as a separate part
-                parts.push({ type: 'parenthesis', text: char });
-            } else {
-                currentText += char;
-            }
-        }
-
-        // Add any remaining text
-        if (currentText) {
-            parts.push({ type: 'text', text: currentText });
-        }
-
-        return parts;
-    }
-
-    override ignoreEvent(): boolean {
-        return false;
-    }
+export interface ELFunctionHighlightConfig {
+    validationService?: CodemirrorNifiLanguagePackage;
 }
 
 /**
- * Alternative approach using mark decorations instead of widgets
+ * Creates EL function mark decorations with validation support
  */
-function createELFunctionMarkDecorations(view: EditorView): DecorationSet {
+function createELFunctionMarkDecorations(view: EditorView, config?: ELFunctionHighlightConfig): DecorationSet {
     const decorations: Range<Decoration>[] = [];
     const doc = view.state.doc;
 
@@ -112,33 +54,46 @@ function createELFunctionMarkDecorations(view: EditorView): DecorationSet {
             const closeBracePos = fullEnd - 1; // Position of '}'
             const functionName = match[1];
 
+            // Validate function if validation service is provided
+            let isValid = true;
+            if (config?.validationService) {
+                isValid = config.validationService.isValidElFunction(functionName);
+            }
+
             // Add decorations in the correct order (sorted by position)
-            // 1. Dollar sign '$'
+            // 1. Dollar sign '$' - always normal styling
             decorations.push(
                 Decoration.mark({
                     class: 'cm-el-function-dollar-sign'
                 }).range(dollarPos, dollarPos + 1)
             );
 
-            // 2. Opening brace '{'
+            // 2. Opening brace '{' - always normal styling
             decorations.push(
                 Decoration.mark({
                     class: 'cm-bracket'
                 }).range(openBracePos, openBracePos + 1)
             );
 
-            // 3. Function name (use replace decoration to override built-in highlighting)
-            decorations.push(
-                Decoration.replace({
-                    widget: new ELFunctionNameWidget(functionName),
-                    inclusive: false
-                }).range(functionStart, functionEnd)
-            );
+            // 3. Function name - apply error styling only if invalid
+            if (!isValid) {
+                decorations.push(
+                    Decoration.mark({
+                        class: 'cm-el-function-name cm-el-function-error'
+                    }).range(functionStart, functionEnd)
+                );
+            } else {
+                decorations.push(
+                    Decoration.mark({
+                        class: 'cm-el-function-name'
+                    }).range(functionStart, functionEnd)
+                );
+            }
 
-            // 4. Closing brace '}'
+            // 4. Closing brace '}' - always normal styling
             decorations.push(
                 Decoration.mark({
-                    class: 'cm-bracket' // Reuse parameter brace styling
+                    class: 'cm-bracket'
                 }).range(closeBracePos, closeBracePos + 1)
             );
         }
@@ -151,23 +106,27 @@ function createELFunctionMarkDecorations(view: EditorView): DecorationSet {
 }
 
 /**
- * View plugin that manages EL function highlighting decorations
+ * Creates EL function highlight plugin with optional configuration
  */
-export const elFunctionHighlightPlugin = ViewPlugin.fromClass(
-    class {
-        decorations: DecorationSet;
+export function elFunctionHighlightPlugin(config?: ELFunctionHighlightConfig) {
+    return Prec.highest(
+        ViewPlugin.fromClass(
+            class {
+                decorations: DecorationSet;
 
-        constructor(view: EditorView) {
-            this.decorations = createELFunctionMarkDecorations(view);
-        }
+                constructor(view: EditorView) {
+                    this.decorations = createELFunctionMarkDecorations(view, config);
+                }
 
-        update(update: ViewUpdate) {
-            if (update.docChanged || update.viewportChanged) {
-                this.decorations = createELFunctionMarkDecorations(update.view);
+                update(update: ViewUpdate) {
+                    if (update.docChanged || update.viewportChanged) {
+                        this.decorations = createELFunctionMarkDecorations(update.view, config);
+                    }
+                }
+            },
+            {
+                decorations: (v) => v.decorations
             }
-        }
-    },
-    {
-        decorations: (v) => v.decorations
-    }
-);
+        )
+    );
+}
