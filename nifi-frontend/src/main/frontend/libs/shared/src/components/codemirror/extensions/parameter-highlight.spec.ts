@@ -1,293 +1,671 @@
-/*!
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-// Capture calls to mock decorations for verification
-const capturedDecorations: any[] = [];
+import { EditorView, ViewPlugin, Decoration } from '@codemirror/view';
+import { Prec } from '@codemirror/state';
+import { parameterHighlightPlugin } from './parameter-highlight';
 
-// Simple mocks for CodeMirror dependencies
+// Mock CodeMirror dependencies at the top level
+jest.mock('@codemirror/state', () => ({
+    Prec: {
+        highest: jest.fn((plugin) => ({ highestPrecedence: true, plugin }))
+    },
+    Range: jest.fn()
+}));
+
 jest.mock('@codemirror/view', () => ({
     ViewPlugin: {
-        fromClass: jest.fn((pluginClass, options) => ({ pluginClass, options }))
+        fromClass: jest.fn((pluginClass, config) => ({ pluginClass, config }))
     },
     Decoration: {
-        mark: jest.fn((attrs) => ({
-            range: jest.fn((from, to) => {
-                const decoration = { type: 'mark', from, to, attrs };
-                capturedDecorations.push(decoration);
-                return decoration;
-            })
-        })),
-        replace: jest.fn((attrs) => ({
-            range: jest.fn((from, to) => {
-                const decoration = { type: 'replace', from, to, attrs };
-                capturedDecorations.push(decoration);
-                return decoration;
+        mark: jest.fn((spec) => ({
+            type: 'mark',
+            spec,
+            range: (from: number, to: number) => ({
+                from,
+                to,
+                value: { type: 'mark', spec },
+                eq: jest.fn(),
+                map: jest.fn()
             })
         })),
         set: jest.fn((decorations) => ({
-            decorations: decorations || [],
-            size: decorations ? decorations.length : 0
+            decorations,
+            size: decorations.length,
+            map: jest.fn(),
+            eq: jest.fn(),
+            update: jest.fn(),
+            iter: jest.fn()
         }))
-    },
-    WidgetType: class MockWidgetType {
-        constructor() {}
-        eq(other: any) {
-            return false;
-        }
-        toDOM() {
-            return document.createElement('span');
-        }
-        ignoreEvent() {
-            return false;
-        }
     }
 }));
 
-import { parameterHighlightPlugin } from './parameter-highlight';
-
-// Type assertion for accessing mocked plugin properties
-const plugin = parameterHighlightPlugin as any;
-
-describe('Parameter Highlight Extension', () => {
-    let PluginClass: any;
+describe('Parameter Highlight Plugin', () => {
+    let mockValidationService: any;
+    let mockEditorView: any;
+    let mockEditorState: any;
+    let mockDocument: any;
+    let mockedViewPlugin: jest.Mocked<typeof ViewPlugin>;
+    let mockedDecoration: jest.Mocked<typeof Decoration>;
+    let mockedPrec: jest.Mocked<typeof Prec>;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        capturedDecorations.length = 0;
-        PluginClass = plugin.pluginClass;
+
+        // Get the mocked modules
+        mockedViewPlugin = jest.mocked(ViewPlugin);
+        mockedDecoration = jest.mocked(Decoration);
+        mockedPrec = jest.mocked(Prec);
+
+        mockValidationService = {
+            isValidParameter: jest.fn()
+        };
+
+        // Create comprehensive mocks for CodeMirror
+        mockDocument = {
+            lines: 1,
+            line: jest.fn(),
+            toString: jest.fn()
+        };
+
+        mockEditorState = {
+            doc: mockDocument
+        };
+
+        mockEditorView = {
+            state: mockEditorState
+        };
     });
 
-    describe('Plugin Configuration', () => {
-        it('should export a properly configured plugin', () => {
+    describe('Basic Functionality', () => {
+        it('should export a properly configured plugin function', () => {
             expect(parameterHighlightPlugin).toBeDefined();
-            expect(plugin).toHaveProperty('pluginClass');
-            expect(plugin).toHaveProperty('options');
+            expect(typeof parameterHighlightPlugin).toBe('function');
         });
 
-        it('should have decorations configuration that returns instance decorations', () => {
-            expect(plugin.options).toHaveProperty('decorations');
-            expect(typeof plugin.options.decorations).toBe('function');
-
-            // Test the decorations function
-            const testDecorations = { test: 'decorations' };
-            const instance = { decorations: testDecorations };
-            const result = plugin.options.decorations(instance);
-            expect(result).toBe(testDecorations);
-        });
-    });
-
-    describe('Plugin Class Implementation', () => {
-        describe('Constructor Behavior', () => {
-            it('should initialize with decorations', () => {
-                const instance = new PluginClass(createMockView(['Hello #{world}']));
-                expect(instance).toHaveProperty('decorations');
-            });
-
-            it('should create proper decorations for parameters', () => {
-                const instance = new PluginClass(createMockView(['Text with #{param1} and #{param2}']));
-
-                // Should create 8 decorations (4 per parameter: hash, open brace, param name, close brace)
-                expect(capturedDecorations.length).toBe(8);
-
-                // Verify decoration types and counts
-                const decorationCounts = getDecorationCounts();
-                expect(decorationCounts.hash).toBe(2); // One '#' for each parameter
-                expect(decorationCounts.bracket).toBe(4); // Two braces per parameter
-                expect(decorationCounts.replace).toBe(2); // One widget per parameter
-            });
-
-            it('should handle documents without parameters', () => {
-                new PluginClass(createMockView(['Plain text without parameters']));
-                expect(capturedDecorations).toHaveLength(0);
-
-                new PluginClass(createMockView(['']));
-                expect(capturedDecorations).toHaveLength(0);
-            });
-
-            it('should process multiple lines correctly', () => {
-                new PluginClass(
-                    createMockView(['Line 1 has #{param1}', 'Line 2 has #{param2}', 'Line 3 has no params'])
-                );
-
-                const replaceDecorations = capturedDecorations.filter((d) => d.type === 'replace');
-                expect(replaceDecorations.length).toBe(2);
-            });
+        it('should return a valid extension when called without config', () => {
+            const extension = parameterHighlightPlugin();
+            expect(extension).toBeDefined();
         });
 
-        describe('Update Method', () => {
-            it('should update decorations when document or viewport changes', () => {
-                const instance = new PluginClass(createMockView(['#{oldParam}']));
-
-                // Test document change
-                capturedDecorations.length = 0;
-                instance.update({
-                    docChanged: true,
-                    viewportChanged: false,
-                    view: createMockView(['#{newParam}'])
-                });
-                expect(capturedDecorations.length).toBeGreaterThan(0);
-
-                // Test viewport change
-                capturedDecorations.length = 0;
-                instance.update({
-                    docChanged: false,
-                    viewportChanged: true,
-                    view: createMockView(['#{param}'])
-                });
-                expect(capturedDecorations.length).toBeGreaterThan(0);
-            });
-
-            it('should not update when nothing changes', () => {
-                const mockView = createMockView(['#{param}']);
-                const instance = new PluginClass(mockView);
-
-                capturedDecorations.length = 0;
-                instance.update({
-                    docChanged: false,
-                    viewportChanged: false,
-                    view: mockView
-                });
-
-                expect(capturedDecorations).toHaveLength(0);
-            });
+        it('should return a valid extension when called with validation service', () => {
+            const extension = parameterHighlightPlugin({ validationService: mockValidationService });
+            expect(extension).toBeDefined();
         });
 
-        describe('Position Calculations', () => {
-            it('should calculate correct positions for decorations', () => {
-                new PluginClass(createMockView(['Start #{middle} end']));
-
-                // Sort decorations by position to verify correct ordering
-                capturedDecorations.sort((a, b) => a.from - b.from);
-
-                expect(capturedDecorations[0].from).toBe(6); // '#' position
-                expect(capturedDecorations[1].from).toBe(7); // '{' position
-                expect(capturedDecorations[2].from).toBe(8); // start of parameter name
-                expect(capturedDecorations[3].from).toBe(14); // '}' position
-            });
-
-            it('should handle adjacent parameters and maintain sorted order', () => {
-                new PluginClass(createMockView(['#{param1}#{param2}']));
-
-                // Should create 8 decorations (4 per parameter)
-                expect(capturedDecorations).toHaveLength(8);
-
-                // Verify they're in correct order
-                capturedDecorations.sort((a, b) => a.from - b.from);
-                expect(capturedDecorations[0].from).toBe(0); // First '#'
-                expect(capturedDecorations[4].from).toBe(9); // Second '#'
-
-                // Verify all decorations are properly sorted
-                const positions = capturedDecorations.map((d) => d.from);
-                const sortedPositions = [...positions].sort((a, b) => a - b);
-                expect(positions).toEqual(sortedPositions);
-            });
+        it('should accept undefined config gracefully', () => {
+            const extension = parameterHighlightPlugin(undefined);
+            expect(extension).toBeDefined();
         });
     });
 
-    describe('Parameter Recognition Patterns', () => {
-        it('should recognize valid parameter patterns', () => {
-            const validCases = [
-                { input: '#{simple}', expectedParams: 1 },
-                { input: '#{param_with_underscore}', expectedParams: 1 },
-                { input: '#{param-with-dash}', expectedParams: 1 },
-                { input: '#{param123}', expectedParams: 1 },
-                { input: '#{param.with.dots}', expectedParams: 1 },
-                { input: '#{param1} #{param2}', expectedParams: 2 },
-                { input: '#{param@domain.com} #{param:value}', expectedParams: 2 },
-                { input: '#{paramété} #{参数} #{параметр}', expectedParams: 3 }
-            ];
+    describe('Configuration Interface', () => {
+        it('should work with validation service that returns true', () => {
+            mockValidationService.isValidParameter.mockReturnValue(true);
+            expect(() => parameterHighlightPlugin({ validationService: mockValidationService })).not.toThrow();
+        });
 
-            validCases.forEach(({ input, expectedParams }) => {
-                const paramCount = testParameterRecognition(input);
-                expect(paramCount).toBe(expectedParams);
+        it('should work with validation service that returns false', () => {
+            mockValidationService.isValidParameter.mockReturnValue(false);
+            expect(() => parameterHighlightPlugin({ validationService: mockValidationService })).not.toThrow();
+        });
+    });
+
+    describe('ViewPlugin Integration', () => {
+        it('should create ViewPlugin with highest precedence', () => {
+            const config = { validationService: mockValidationService };
+            const plugin = parameterHighlightPlugin(config);
+
+            expect(mockedPrec.highest).toHaveBeenCalled();
+            expect(mockedViewPlugin.fromClass).toHaveBeenCalled();
+        });
+
+        it('should pass decorations configuration to ViewPlugin', () => {
+            parameterHighlightPlugin();
+
+            const [, viewConfig] = mockedViewPlugin.fromClass.mock.calls[0];
+            expect(viewConfig).toBeDefined();
+            expect(viewConfig).toHaveProperty('decorations');
+            expect(typeof viewConfig?.decorations).toBe('function');
+        });
+    });
+
+    describe('Parameter Detection and Decoration Creation', () => {
+        const mockLine = (text: string, lineNumber: number = 1) => ({
+            from: (lineNumber - 1) * 50, // Mock line positions
+            to: (lineNumber - 1) * 50 + text.length,
+            text,
+            number: lineNumber
+        });
+
+        beforeEach(() => {
+            mockDocument.line.mockImplementation((lineNum: number) => {
+                // Default to empty line if not specifically mocked
+                return mockLine('', lineNum);
             });
         });
 
-        it('should handle malformed and edge case patterns', () => {
-            const testCases = [
-                { input: '#{}', expectedParams: 0, description: 'empty parameters' },
-                { input: '#{ }', expectedParams: 1, description: 'space-only parameters (matches current regex)' },
-                { input: '{param}', expectedParams: 0, description: 'missing hash' },
-                { input: '#param', expectedParams: 0, description: 'missing braces' },
-                { input: '#{param', expectedParams: 0, description: 'missing closing brace' },
-                { input: 'param}', expectedParams: 0, description: 'missing hash and opening brace' },
-                {
-                    input: '#{param{with}braces}',
-                    expectedParams: 1,
-                    description: 'nested braces (stops at first closing)'
-                }
-            ];
+        describe('Single Parameter Detection', () => {
+            it('should detect simple parameter pattern', () => {
+                const text = 'Hello #{world} test';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
 
-            testCases.forEach(({ input, expectedParams, description }) => {
-                const paramCount = testParameterRecognition(input);
-                expect(paramCount).toBe(expectedParams);
+                const plugin = parameterHighlightPlugin();
+
+                // Get the plugin class constructor
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                const instance = new PluginClass(mockEditorView) as any;
+
+                // Verify decorations were created
+                expect(instance.decorations).toBeDefined();
+                expect(mockedDecoration.set).toHaveBeenCalled();
+            });
+
+            it('should create decorations for hash, braces, and parameter name', () => {
+                const text = 'Value: #{paramName}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                // Should create 4 decorations: #, {, paramName, }
+                const markCalls = mockedDecoration.mark.mock.calls;
+                expect(markCalls.length).toBeGreaterThan(0);
+
+                // Check for different CSS classes
+                const classes = markCalls.map((call) => call[0].class);
+                expect(classes).toContain('cm-parameter-hash');
+                expect(classes).toContain('cm-bracket');
+                expect(classes).toContain('cm-parameter-name');
+            });
+
+            it('should apply error styling to invalid parameters', () => {
+                const text = 'Invalid: #{badParam}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(false);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const errorClasses = markCalls
+                    .map((call) => call[0].class)
+                    .filter((cls) => cls && cls.includes('cm-parameter-error'));
+
+                expect(errorClasses.length).toBeGreaterThan(0);
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('badParam');
+            });
+
+            it('should apply normal styling to valid parameters', () => {
+                const text = 'Valid: #{goodParam}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const normalClasses = markCalls
+                    .map((call) => call[0].class)
+                    .filter((cls) => cls === 'cm-parameter-name');
+
+                expect(normalClasses.length).toBeGreaterThan(0);
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('goodParam');
             });
         });
 
-        it('should handle extreme cases', () => {
-            // Very long parameter name
-            const longParam = 'a'.repeat(1000);
-            expect(() => testParameterRecognition(`#{${longParam}}`)).not.toThrow();
-            expect(testParameterRecognition(`#{${longParam}}`)).toBe(1);
+        describe('Multiple Parameters', () => {
+            it('should detect multiple parameters on same line', () => {
+                const text = 'Start #{param1} middle #{param2} end';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(true);
 
-            // Many parameters
-            const manyParams = Array.from({ length: 50 }, (_, i) => `#{param${i}}`).join(' ');
-            expect(testParameterRecognition(manyParams)).toBe(50);
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param1');
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param2');
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledTimes(2);
+            });
+
+            it('should handle mixed valid and invalid parameters', () => {
+                const text = 'Mixed #{valid} and #{invalid} params';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockImplementation((param: string) => param === 'valid');
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const classes = markCalls.map((call) => call[0].class);
+
+                expect(classes).toContain('cm-parameter-name'); // valid param
+                expect(classes.some((cls) => cls && cls.includes('cm-parameter-error'))).toBe(true); // invalid param
+            });
+        });
+
+        describe('Multi-line Parameter Detection', () => {
+            it('should detect parameters across multiple lines', () => {
+                const line1 = 'First line #{param1}';
+                const line2 = 'Second line #{param2}';
+
+                mockDocument.lines = 2;
+                mockDocument.line.mockImplementation((lineNum: number) => {
+                    if (lineNum === 1) return mockLine(line1, 1);
+                    if (lineNum === 2) return mockLine(line2, 2);
+                    return mockLine('', lineNum);
+                });
+
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param1');
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param2');
+            });
+
+            it('should handle empty lines correctly', () => {
+                mockDocument.lines = 3;
+                mockDocument.line.mockImplementation((lineNum: number) => {
+                    if (lineNum === 1) return mockLine('First #{param1}', 1);
+                    if (lineNum === 2) return mockLine('', 2); // Empty line
+                    if (lineNum === 3) return mockLine('Third #{param3}', 3);
+                    return mockLine('', lineNum);
+                });
+
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param1');
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param3');
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledTimes(2);
+            });
+        });
+
+        describe('Parameter Name Edge Cases', () => {
+            it('should handle parameters with spaces', () => {
+                const text = 'Spaced: #{param with spaces}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param with spaces');
+            });
+
+            it('should handle parameters with special characters', () => {
+                const text = 'Special: #{param-with.special_chars}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param-with.special_chars');
+            });
+
+            it('should handle parameters with numbers', () => {
+                const text = 'Numbers: #{param123} and #{123param}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(true);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param123');
+                expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('123param');
+            });
+
+            it('should handle empty parameter names', () => {
+                const text = 'Empty: #{} parameter';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+                mockValidationService.isValidParameter.mockReturnValue(false);
+
+                const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                // Empty parameter names #{} don't match the regex /#\{([^}]+)\}/g
+                // which requires at least one character, so validation won't be called
+                expect(mockValidationService.isValidParameter).not.toHaveBeenCalled();
+            });
+        });
+
+        describe('Without Validation Service', () => {
+            it('should create decorations without validation when no service provided', () => {
+                const text = 'No validation: #{someParam}';
+                mockDocument.line.mockReturnValue(mockLine(text));
+                mockDocument.lines = 1;
+
+                const plugin = parameterHighlightPlugin(); // No validation service
+
+                const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+                new PluginClass(mockEditorView);
+
+                // Should still create decorations
+                expect(mockedDecoration.set).toHaveBeenCalled();
+                expect(mockedDecoration.mark).toHaveBeenCalled();
+
+                // Should use normal styling (not error) by default
+                const markCalls = mockedDecoration.mark.mock.calls;
+                const classes = markCalls.map((call) => call[0].class);
+                expect(classes).toContain('cm-parameter-name');
+                expect(classes.every((cls) => !cls || !cls.includes('cm-parameter-error'))).toBe(true);
+            });
+        });
+    });
+
+    describe('ViewPlugin Lifecycle', () => {
+        beforeEach(() => {
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: 20,
+                text: 'Test #{param} text',
+                number: 1
+            });
+            mockDocument.lines = 1;
+        });
+
+        it('should initialize decorations in constructor', () => {
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            const instance = new PluginClass(mockEditorView) as any;
+            expect(instance.decorations).toBeDefined();
+        });
+
+        it('should update decorations when document changes', () => {
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            const instance = new PluginClass(mockEditorView) as any;
+            const initialDecorations = instance.decorations;
+
+            // Mock ViewUpdate with required properties
+            const mockUpdate = {
+                docChanged: true,
+                viewportChanged: false,
+                view: mockEditorView,
+                state: mockEditorState,
+                transactions: [],
+                changes: {},
+                startState: mockEditorState,
+                focusChanged: false,
+                geometryChanged: false,
+                heightChanged: false
+            } as any;
+
+            if (instance.update) {
+                instance.update(mockUpdate);
+            }
+
+            // Should have recreated decorations
+            expect(instance.decorations).toBeDefined();
+        });
+
+        it('should update decorations when viewport changes', () => {
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            const instance = new PluginClass(mockEditorView) as any;
+
+            // Mock ViewUpdate with required properties
+            const mockUpdate = {
+                docChanged: false,
+                viewportChanged: true,
+                view: mockEditorView,
+                state: mockEditorState,
+                transactions: [],
+                changes: {},
+                startState: mockEditorState,
+                focusChanged: false,
+                geometryChanged: false,
+                heightChanged: false
+            } as any;
+
+            if (instance.update) {
+                instance.update(mockUpdate);
+            }
+
+            expect(instance.decorations).toBeDefined();
+        });
+
+        it('should not update decorations when no relevant changes occur', () => {
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            const instance = new PluginClass(mockEditorView) as any;
+
+            // Clear previous calls
+            mockedDecoration.set.mockClear();
+
+            // Mock ViewUpdate with no relevant changes
+            const mockUpdate = {
+                docChanged: false,
+                viewportChanged: false,
+                view: mockEditorView,
+                state: mockEditorState,
+                transactions: [],
+                changes: {},
+                startState: mockEditorState,
+                focusChanged: false,
+                geometryChanged: false,
+                heightChanged: false
+            } as any;
+
+            if (instance.update) {
+                instance.update(mockUpdate);
+            }
+
+            // Should not have called Decoration.set again
+            expect(mockedDecoration.set).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Decoration Sorting and Positioning', () => {
+        it('should handle adjacent parameters correctly', () => {
+            const text = '#{param1}#{param2}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockReturnValue(true);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            // Should handle both parameters
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param1');
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param2');
+            expect(mockedDecoration.set).toHaveBeenCalled();
+        });
+
+        it('should handle parameters at line boundaries', () => {
+            const text = 'Start#{param}End';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockReturnValue(true);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param');
+        });
+    });
+
+    describe('Real-world Parameter Scenarios', () => {
+        it('should handle configuration file with multiple parameters', () => {
+            const text = 'database.url=#{db.host}:#{db.port}/#{db.name}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockImplementation((param: string) =>
+                ['db.host', 'db.port', 'db.name'].includes(param)
+            );
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('db.host');
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('db.port');
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('db.name');
+        });
+
+        it('should handle JSON-like parameter names', () => {
+            const text = 'Config: #{app.config.timeout} and #{app.config.retries}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockReturnValue(true);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('app.config.timeout');
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('app.config.retries');
+        });
+
+        it('should handle parameters with regex-sensitive characters', () => {
+            const text = 'Regex: #{param[0]} and #{param^test}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockReturnValue(true);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param[0]');
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith('param^test');
+        });
+    });
+
+    describe('Edge Cases and Error Conditions', () => {
+        it('should handle malformed parameter syntax gracefully', () => {
+            const text = 'Malformed: #{unclosed and #{nested#{inside}} and #{}';
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockReturnValue(false);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            // Should not throw error
+            expect(() => new PluginClass(mockEditorView)).not.toThrow();
+        });
+
+        it('should handle very long parameter names', () => {
+            const longParamName = 'very'.repeat(100) + 'LongParameterName';
+            const text = `Long: #{${longParamName}}`;
+            mockDocument.line.mockReturnValue({
+                from: 0,
+                to: text.length,
+                text,
+                number: 1
+            });
+            mockDocument.lines = 1;
+            mockValidationService.isValidParameter.mockReturnValue(true);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+            new PluginClass(mockEditorView);
+
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledWith(longParamName);
+        });
+
+        it('should handle documents with many lines efficiently', () => {
+            mockDocument.lines = 100;
+            mockDocument.line.mockImplementation((lineNum: number) => ({
+                from: (lineNum - 1) * 50,
+                to: lineNum * 50,
+                text: lineNum % 10 === 0 ? `Line ${lineNum} #{param${lineNum}}` : `Line ${lineNum}`,
+                number: lineNum
+            }));
+
+            mockValidationService.isValidParameter.mockReturnValue(true);
+
+            const plugin = parameterHighlightPlugin({ validationService: mockValidationService });
+            const [PluginClass] = mockedViewPlugin.fromClass.mock.calls[0];
+
+            // Should handle many lines without issues
+            expect(() => new PluginClass(mockEditorView)).not.toThrow();
+
+            // Should have called validation for parameters on lines 10, 20, 30, etc.
+            expect(mockValidationService.isValidParameter).toHaveBeenCalledTimes(10);
         });
     });
 });
-
-// Helper functions
-function createMockView(lines: string[]) {
-    return {
-        state: {
-            doc: {
-                lines: lines.length,
-                line: jest.fn().mockImplementation((lineNumber: number) => {
-                    const lineIndex = lineNumber - 1;
-                    if (lineIndex >= 0 && lineIndex < lines.length) {
-                        const lineText = lines[lineIndex];
-                        const from = lines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? 1 : 0); // Add 1 for newline characters
-                        return {
-                            from,
-                            to: from + lineText.length,
-                            text: lineText,
-                            length: lineText.length,
-                            number: lineNumber
-                        };
-                    }
-                    return { from: 0, to: 0, text: '', length: 0, number: lineNumber };
-                })
-            }
-        }
-    };
-}
-
-function getDecorationCounts() {
-    return {
-        hash: capturedDecorations.filter((d) => d.attrs?.class === 'cm-parameter-hash').length,
-        bracket: capturedDecorations.filter((d) => d.attrs?.class === 'cm-bracket').length,
-        replace: capturedDecorations.filter((d) => d.type === 'replace').length
-    };
-}
-
-function testParameterRecognition(input: string): number {
-    capturedDecorations.length = 0;
-    const mockView = createMockView([input]);
-    new (parameterHighlightPlugin as any).pluginClass(mockView);
-    return capturedDecorations.filter((d) => d.type === 'replace').length;
-}

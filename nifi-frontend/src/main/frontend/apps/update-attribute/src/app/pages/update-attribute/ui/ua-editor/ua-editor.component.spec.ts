@@ -32,7 +32,9 @@ describe('UaEditor', () => {
                 {
                     provide: CodemirrorNifiLanguagePackage,
                     useValue: {
-                        getLanguageId: () => 'nf'
+                        getLanguageId: () => 'nf',
+                        isValidParameter: jest.fn().mockReturnValue(true),
+                        isValidElFunction: jest.fn().mockReturnValue(true)
                     }
                 }
             ]

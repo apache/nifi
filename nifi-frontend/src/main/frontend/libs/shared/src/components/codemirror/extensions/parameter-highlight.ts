@@ -15,37 +15,21 @@
  *  limitations under the License.
  */
 
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
-import { Range } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { Range, Prec } from '@codemirror/state';
+import { CodemirrorNifiLanguagePackage } from '../../../services/codemirror-nifi-language-package.service';
 
 /**
- * Widget for parameter names that prevents built-in syntax highlighting
+ * Configuration for parameter highlighting
  */
-class ParameterNameWidget extends WidgetType {
-    constructor(private readonly paramName: string) {
-        super();
-    }
-
-    override eq(other: ParameterNameWidget): boolean {
-        return other.paramName === this.paramName;
-    }
-
-    toDOM(): HTMLElement {
-        const span = document.createElement('span');
-        span.className = 'cm-parameter-name';
-        span.textContent = this.paramName;
-        return span;
-    }
-
-    override ignoreEvent(): boolean {
-        return false;
-    }
+export interface ParameterHighlightConfig {
+    validationService?: CodemirrorNifiLanguagePackage;
 }
 
 /**
- * Alternative approach using mark decorations instead of widgets
+ * Creates parameter mark decorations with validation support
  */
-function createParameterMarkDecorations(view: EditorView): DecorationSet {
+function createParameterMarkDecorations(view: EditorView, config?: ParameterHighlightConfig): DecorationSet {
     const decorations: Range<Decoration>[] = [];
     const doc = view.state.doc;
 
@@ -68,31 +52,45 @@ function createParameterMarkDecorations(view: EditorView): DecorationSet {
             const paramStart = line.from + match.index + 2; // Skip '#{'
             const paramEnd = fullEnd - 1; // Skip '}'
             const closeBracePos = fullEnd - 1; // Position of '}'
+            const parameterName = match[1];
+
+            // Validate parameter if validation service is provided
+            let isValid = true;
+            if (config?.validationService) {
+                isValid = config.validationService.isValidParameter(parameterName);
+            }
 
             // Add decorations in the correct order (sorted by position)
-            // 1. Hash character '#'
+            // 1. Hash character '#' - always normal styling
             decorations.push(
                 Decoration.mark({
                     class: 'cm-parameter-hash'
                 }).range(hashPos, hashPos + 1)
             );
 
-            // 2. Opening brace '{'
+            // 2. Opening brace '{' - always normal styling
             decorations.push(
                 Decoration.mark({
                     class: 'cm-bracket'
                 }).range(openBracePos, openBracePos + 1)
             );
 
-            // 3. Parameter name (comes after opening brace)
-            decorations.push(
-                Decoration.replace({
-                    widget: new ParameterNameWidget(match[1]),
-                    inclusive: false
-                }).range(paramStart, paramEnd)
-            );
+            // 3. Parameter name - apply error styling only if invalid
+            if (!isValid) {
+                decorations.push(
+                    Decoration.mark({
+                        class: 'cm-parameter-name cm-parameter-error'
+                    }).range(paramStart, paramEnd)
+                );
+            } else {
+                decorations.push(
+                    Decoration.mark({
+                        class: 'cm-parameter-name'
+                    }).range(paramStart, paramEnd)
+                );
+            }
 
-            // 4. Closing brace '}'
+            // 4. Closing brace '}' - always normal styling
             decorations.push(
                 Decoration.mark({
                     class: 'cm-bracket'
@@ -108,23 +106,27 @@ function createParameterMarkDecorations(view: EditorView): DecorationSet {
 }
 
 /**
- * View plugin that manages parameter highlighting decorations
+ * Creates parameter highlight plugin with optional configuration
  */
-export const parameterHighlightPlugin = ViewPlugin.fromClass(
-    class {
-        decorations: DecorationSet;
+export function parameterHighlightPlugin(config?: ParameterHighlightConfig) {
+    return Prec.highest(
+        ViewPlugin.fromClass(
+            class {
+                decorations: DecorationSet;
 
-        constructor(view: EditorView) {
-            this.decorations = createParameterMarkDecorations(view);
-        }
+                constructor(view: EditorView) {
+                    this.decorations = createParameterMarkDecorations(view, config);
+                }
 
-        update(update: ViewUpdate) {
-            if (update.docChanged || update.viewportChanged) {
-                this.decorations = createParameterMarkDecorations(update.view);
+                update(update: ViewUpdate) {
+                    if (update.docChanged || update.viewportChanged) {
+                        this.decorations = createParameterMarkDecorations(update.view, config);
+                    }
+                }
+            },
+            {
+                decorations: (v) => v.decorations
             }
-        }
-    },
-    {
-        decorations: (v) => v.decorations
-    }
-);
+        )
+    );
+}
