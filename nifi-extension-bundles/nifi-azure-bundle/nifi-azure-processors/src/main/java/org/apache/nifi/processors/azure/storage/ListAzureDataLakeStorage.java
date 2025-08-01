@@ -300,7 +300,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
                             .build())
                     .filter(fileInfo -> applyFilters)
                     .filter(fileInfo -> filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches())
-                    .filter(fileInfo -> pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches())
+                    .filter(fileInfo -> pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst((CharSequence) fileInfo.getDirectory(), baseDirectoryPattern)).matches())
                     .toList();
         } catch (final Exception e) {
             getLogger().error("Failed to list directory on Azure Data Lake Storage", e);
