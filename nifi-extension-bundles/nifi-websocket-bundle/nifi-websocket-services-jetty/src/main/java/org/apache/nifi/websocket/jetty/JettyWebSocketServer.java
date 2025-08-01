@@ -262,18 +262,13 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
     }
 
     private static int getPort(JettyServerUpgradeRequest servletUpgradeRequest) {
-        final Object localSocketAddress = servletUpgradeRequest.getLocalSocketAddress();
-        if (localSocketAddress == null) {
-            throw new RuntimeException("Local socket address is null");
+        Object localSocketAddress = servletUpgradeRequest.getLocalSocketAddress();
+        if (localSocketAddress instanceof InetSocketAddress inetSocketAddress) {
+            return inetSocketAddress.getPort();
         }
-
-        // Check if the local socket address is an instance of InetSocketAddress
-        if (!(localSocketAddress instanceof InetSocketAddress)) {
-            throw new RuntimeException("Local socket address is not an instance of InetSocketAddress: " + localSocketAddress.getClass().getName());
-        }
-
-        final int port = ((InetSocketAddress) localSocketAddress).getPort();
-        return port;
+        throw new IllegalStateException(
+                "Expected InetSocketAddress but got: %s".formatted(
+                        localSocketAddress == null ? "null" : localSocketAddress.getClass().getName()));
     }
 
     @OnEnabled

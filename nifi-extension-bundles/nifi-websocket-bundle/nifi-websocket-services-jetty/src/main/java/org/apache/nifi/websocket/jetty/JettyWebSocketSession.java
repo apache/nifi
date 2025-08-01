@@ -31,7 +31,7 @@ public class JettyWebSocketSession extends AbstractWebSocketSession {
     private final boolean secure;
 
     public JettyWebSocketSession(final String sessionId, final Session session) {
-        this(sessionId, session, checkSecure(session));
+        this(sessionId, session, isSessionSecure(session));
     }
 
     public JettyWebSocketSession(final String sessionId, final Session session, final boolean secure) {
@@ -75,7 +75,7 @@ public class JettyWebSocketSession extends AbstractWebSocketSession {
         return secure;
     }
 
-    private static boolean checkSecure(final Session session) {
+    private static boolean isSessionSecure(final Session session) {
         try {
             return session.isSecure();
         } catch (final Exception e) {
