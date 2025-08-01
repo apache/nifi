@@ -1067,14 +1067,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
             }, 0L, 30L, TimeUnit.SECONDS);
 
-            // Parse flowcontroller sync delay/interval using FormatUtils
-            final String syncIntervalStr = nifiProperties.getProperty("nifi.flowcontroller.registry.sync.interval", "30 min");
+            final String registrySyncInterval = nifiProperties.getProperty("nifi.flowcontroller.registry.sync.interval", "30 min");
+            final long registrySyncIntervalSeconds = FormatUtils.getTimeDuration(registrySyncInterval, TimeUnit.SECONDS);
 
-            // Convert to seconds
-            final long syncIntervalSec = FormatUtils.getTimeDuration(syncIntervalStr, TimeUnit.SECONDS);
-
-            // Log resolved values
-            LOG.info("Flow registry will sync every {}", syncIntervalStr);
+            LOG.info("Scheduled Flow Registry synchronization every {}", registrySyncInterval);
 
             // Schedule the flow registry synchronization task
             timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
