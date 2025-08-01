@@ -160,7 +160,7 @@ export class UaEditor {
                 lineNumbers(),
                 history(),
                 indentUnit.of('    '),
-                elFunctionHighlightPlugin,
+                elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
                 EditorView.lineWrapping,
                 rectangularSelection(),
                 crosshairCursor(),
