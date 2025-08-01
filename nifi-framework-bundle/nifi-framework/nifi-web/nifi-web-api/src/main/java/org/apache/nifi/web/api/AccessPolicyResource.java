@@ -54,6 +54,8 @@ import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
@@ -66,6 +68,8 @@ import java.net.URI;
 @Path("/policies")
 @Tag(name = "Policies")
 public class AccessPolicyResource extends ApplicationResource {
+
+    private static final Logger logger = LoggerFactory.getLogger(AccessPolicyResource.class);
 
     private final NiFiServiceFacade serviceFacade;
     private final Authorizer authorizer;
@@ -476,7 +480,12 @@ public class AccessPolicyResource extends ApplicationResource {
                     accessPolicy.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // ensure write permission to the policy for the parent process group
-                    accessPolicy.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final Authorizable parentAuthorizable = accessPolicy.getParentAuthorizable();
+                    if (parentAuthorizable != null) {
+                        parentAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    } else {
+                        logger.warn("Access policy with id {} has no parent authorizable, skipping parent's authorization and removing policy.", id);
+                    }
                 },
                 null,
                 (revision, accessPolicyEntity) -> {
