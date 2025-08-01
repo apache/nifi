@@ -135,7 +135,7 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
             case 'LOAD_BALANCE_INACTIVE':
                 return 'Inactive';
             default:
-                return 'unknown';
+                return connection.connectionStatusSnapshot.loadBalanceStatus;
 
             }
     }
