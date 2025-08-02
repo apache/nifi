@@ -498,6 +498,7 @@ public class StatusMerger {
             target.setSourceName(toMerge.getSourceName());
             target.setDestinationId(toMerge.getDestinationId());
             target.setDestinationName(toMerge.getDestinationName());
+            target.setLoadBalanceStatus(toMerge.getLoadBalanceStatus());
         }
 
         target.setFlowFilesIn(target.getFlowFilesIn() + toMerge.getFlowFilesIn());
