@@ -52,12 +52,16 @@ function createParameterMarkDecorations(view: EditorView, config?: ParameterHigh
             const paramStart = line.from + match.index + 2; // Skip '#{'
             const paramEnd = fullEnd - 1; // Skip '}'
             const closeBracePos = fullEnd - 1; // Position of '}'
-            const parameterName = match[1];
+            const parameterContent = match[1];
 
-            // Validate parameter if validation service is provided
+            // Parse parameter content to separate name from parentheses
+            const baseParamName = parameterContent.replace(/\(\)$/, '');
+            const hasParens = parameterContent.endsWith('()');
+
+            // Validate parameter using the base name (without parentheses)
             let isValid = true;
             if (config?.validationService) {
-                isValid = config.validationService.isValidParameter(parameterName);
+                isValid = config.validationService.isValidParameter(baseParamName);
             }
 
             // Add decorations in the correct order (sorted by position)
@@ -75,22 +79,32 @@ function createParameterMarkDecorations(view: EditorView, config?: ParameterHigh
                 }).range(openBracePos, openBracePos + 1)
             );
 
-            // 3. Parameter name - apply error styling only if invalid
+            // 3. Parameter name (without parentheses) - apply error styling only if invalid
+            const paramNameEnd = hasParens ? paramStart + baseParamName.length : paramEnd;
             if (!isValid) {
                 decorations.push(
                     Decoration.mark({
                         class: 'cm-parameter-name cm-parameter-error'
-                    }).range(paramStart, paramEnd)
+                    }).range(paramStart, paramNameEnd)
                 );
             } else {
                 decorations.push(
                     Decoration.mark({
                         class: 'cm-parameter-name'
-                    }).range(paramStart, paramEnd)
+                    }).range(paramStart, paramNameEnd)
                 );
             }
 
-            // 4. Closing brace '}' - always normal styling
+            // 4. Parentheses (if present) - separate styling
+            if (hasParens) {
+                decorations.push(
+                    Decoration.mark({
+                        class: 'cm-parameter-parens'
+                    }).range(paramNameEnd, paramEnd)
+                );
+            }
+
+            // 5. Closing brace '}' - always normal styling
             decorations.push(
                 Decoration.mark({
                     class: 'cm-bracket'

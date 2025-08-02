@@ -33,68 +33,61 @@ function createELFunctionMarkDecorations(view: EditorView, config?: ELFunctionHi
     const decorations: Range<Decoration>[] = [];
     const doc = view.state.doc;
 
-    // Regular expression to match ${functionName} patterns
-    const elFunctionRegex = /\$\{([^}]+)\}/g;
-
     for (let i = 1; i <= doc.lines; i++) {
         const line = doc.line(i);
         const text = line.text;
-        let match;
 
-        // Reset regex for each line
-        elFunctionRegex.lastIndex = 0;
+        // Find all EL expressions in the line
+        const elExpressions = findELExpressions(text);
 
-        while ((match = elFunctionRegex.exec(text)) !== null) {
-            const fullStart = line.from + match.index;
-            const fullEnd = line.from + match.index + match[0].length;
-            const dollarPos = fullStart; // Position of '$'
-            const openBracePos = fullStart + 1; // Position of '{'
-            const functionStart = line.from + match.index + 2; // Skip '${'
-            const functionEnd = fullEnd - 1; // Skip '}'
-            const closeBracePos = fullEnd - 1; // Position of '}'
-            const functionName = match[1];
+        for (const expr of elExpressions) {
+            const fullStart = line.from + expr.start;
+            const fullEnd = line.from + expr.end;
 
-            // Validate function if validation service is provided
-            let isValid = true;
-            if (config?.validationService) {
-                isValid = config.validationService.isValidElFunction(functionName);
-            }
-
-            // Add decorations in the correct order (sorted by position)
-            // 1. Dollar sign '$' - always normal styling
+            // Add decorations for the EL expression structure
+            // 1. Dollar sign '$'
             decorations.push(
                 Decoration.mark({
                     class: 'cm-el-function-dollar-sign'
-                }).range(dollarPos, dollarPos + 1)
+                }).range(fullStart, fullStart + 1)
             );
 
-            // 2. Opening brace '{' - always normal styling
+            // 2. Opening brace '{'
             decorations.push(
                 Decoration.mark({
                     class: 'cm-bracket'
-                }).range(openBracePos, openBracePos + 1)
+                }).range(fullStart + 1, fullStart + 2)
             );
 
-            // 3. Function name - apply error styling only if invalid
-            if (!isValid) {
+            // 3. Parse and style function names within the expression
+            const contentStart = fullStart + 2; // After '${'
+            const contentEnd = fullEnd - 1; // Before '}'
+            const content = text.substring(expr.start + 2, expr.end - 1);
+
+            const functionNames = extractFunctionNames(content);
+            for (const funcName of functionNames) {
+                const funcStart = contentStart + funcName.start;
+                const funcEnd = contentStart + funcName.end;
+
+                // Validate function if validation service is provided
+                let isValid = true;
+                if (config?.validationService) {
+                    isValid = config.validationService.isValidElFunction(funcName.name);
+                }
+
+                // Apply styling to function name only
                 decorations.push(
                     Decoration.mark({
-                        class: 'cm-el-function-name cm-el-function-error'
-                    }).range(functionStart, functionEnd)
-                );
-            } else {
-                decorations.push(
-                    Decoration.mark({
-                        class: 'cm-el-function-name'
-                    }).range(functionStart, functionEnd)
+                        class: isValid ? 'cm-el-function-name' : 'cm-el-function-name cm-el-function-error'
+                    }).range(funcStart, funcEnd)
                 );
             }
 
-            // 4. Closing brace '}' - always normal styling
+            // 4. Closing brace '}'
             decorations.push(
                 Decoration.mark({
                     class: 'cm-bracket'
-                }).range(closeBracePos, closeBracePos + 1)
+                }).range(fullEnd - 1, fullEnd)
             );
         }
     }
@@ -103,6 +96,143 @@ function createELFunctionMarkDecorations(view: EditorView, config?: ELFunctionHi
     decorations.sort((a, b) => a.from - b.from);
 
     return Decoration.set(decorations);
+}
+
+/**
+ * Finds all EL expressions in a text, handling nested braces properly
+ */
+function findELExpressions(text: string): Array<{ start: number; end: number }> {
+    const expressions: Array<{ start: number; end: number }> = [];
+    let i = 0;
+
+    while (i < text.length - 1) {
+        if (text[i] === '$' && text[i + 1] === '{') {
+            const start = i;
+            let braceCount = 1;
+            let j = i + 2;
+
+            // Find matching closing brace, handling nesting
+            while (j < text.length && braceCount > 0) {
+                if (text[j] === '{') {
+                    braceCount++;
+                } else if (text[j] === '}') {
+                    braceCount--;
+                }
+                j++;
+            }
+
+            if (braceCount === 0) {
+                expressions.push({ start, end: j });
+                i = j;
+            } else {
+                i++;
+            }
+        } else {
+            i++;
+        }
+    }
+
+    return expressions;
+}
+
+/**
+ * Extracts function names and their positions from EL expression content
+ */
+function extractFunctionNames(content: string): Array<{ name: string; start: number; end: number }> {
+    const functionNames: Array<{ name: string; start: number; end: number }> = [];
+
+    // Handle nested expressions recursively
+    let i = 0;
+    while (i < content.length) {
+        // Skip nested ${...} expressions
+        if (content[i] === '$' && i + 1 < content.length && content[i + 1] === '{') {
+            let braceCount = 1;
+            let j = i + 2;
+
+            while (j < content.length && braceCount > 0) {
+                if (content[j] === '{') {
+                    braceCount++;
+                } else if (content[j] === '}') {
+                    braceCount--;
+                }
+                j++;
+            }
+
+            // Recursively process nested content
+            if (braceCount === 0) {
+                const nestedContent = content.substring(i + 2, j - 1);
+                const nestedFunctions = extractFunctionNames(nestedContent);
+                for (const nested of nestedFunctions) {
+                    functionNames.push({
+                        name: nested.name,
+                        start: i + 2 + nested.start,
+                        end: i + 2 + nested.end
+                    });
+                }
+            }
+
+            i = j;
+            continue;
+        }
+
+        // Look for function name patterns
+        if (/[a-zA-Z_]/.test(content[i])) {
+            const start = i;
+
+            // Read the identifier
+            while (i < content.length && /[a-zA-Z0-9_]/.test(content[i])) {
+                i++;
+            }
+
+            const identifier = content.substring(start, i);
+
+            // Check if this looks like a function name
+            // It could be:
+            // 1. A standalone function: functionName
+            // 2. After a colon: subject:functionName
+            // 3. Before parentheses: functionName()
+
+            let isFunction = false;
+
+            // Check if followed by parentheses (function call)
+            if (i < content.length && content[i] === '(') {
+                isFunction = true;
+            }
+
+            // Check if preceded by colon (subject:function pattern)
+            if (start > 0 && content[start - 1] === ':') {
+                isFunction = true;
+            }
+
+            // If no clear indicators, assume it's a function if it's not clearly something else
+            if (!isFunction) {
+                // Simple heuristic: if it's not followed by operators or whitespace suggesting it's a value,
+                // treat it as a function name
+                const nextChar = i < content.length ? content[i] : '';
+                if (
+                    nextChar === '' ||
+                    nextChar === ',' ||
+                    nextChar === ')' ||
+                    nextChar === '}' ||
+                    /\s/.test(nextChar)
+                ) {
+                    isFunction = true;
+                }
+            }
+
+            if (isFunction) {
+                functionNames.push({
+                    name: identifier,
+                    start: start,
+                    end: i
+                });
+            }
+        } else {
+            i++;
+        }
+    }
+
+    return functionNames;
 }
 
 /**
