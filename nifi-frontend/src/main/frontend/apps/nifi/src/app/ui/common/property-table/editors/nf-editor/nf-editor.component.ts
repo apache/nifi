@@ -37,13 +37,7 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import {
-    acceptCompletion,
-    autocompletion,
-    closeBrackets,
-    closeBracketsKeymap,
-    completionKeymap
-} from '@codemirror/autocomplete';
+import { acceptCompletion, autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
 import {
     defaultHighlightStyle,
@@ -59,8 +53,6 @@ import {
     CodeMirrorConfig,
     PropertyHint,
     Resizable,
-    elFunctionHighlightPlugin,
-    parameterHighlightPlugin,
     highlightStyle,
     CodemirrorNifiLanguagePackage,
     NfLanguageConfig,
@@ -176,8 +168,8 @@ export class NfEditor {
                 lineNumbers(),
                 history(),
                 indentUnit.of('    '),
-                parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
-                elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+                // parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+                // elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
                 EditorView.lineWrapping,
                 rectangularSelection(),
                 crosshairCursor(),
@@ -187,7 +179,6 @@ export class NfEditor {
                 syntaxHighlighting(highlightStyle),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 bracketMatching(),
-                closeBrackets(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 autocompletion(),
@@ -206,7 +197,6 @@ export class NfEditor {
                             return false;
                         }
                     },
-                    ...closeBracketsKeymap,
                     ...defaultKeymap,
                     ...historyKeymap,
                     ...completionKeymap

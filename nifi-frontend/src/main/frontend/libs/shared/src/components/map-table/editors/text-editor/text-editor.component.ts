@@ -36,7 +36,7 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
 import {
     defaultHighlightStyle,
@@ -183,7 +183,6 @@ export class TextEditor {
             syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
-            closeBrackets(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
@@ -201,7 +200,6 @@ export class TextEditor {
                         return false;
                     }
                 },
-                ...closeBracketsKeymap,
                 ...defaultKeymap,
                 ...historyKeymap,
                 ...completionKeymap

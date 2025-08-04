@@ -48,7 +48,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { xml } from '@codemirror/lang-xml';
 import { yaml } from '@codemirror/lang-yaml';
 import { json } from '@codemirror/lang-json';
-import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'standard-content-viewer',
@@ -126,15 +126,8 @@ export class StandardContentViewer {
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 foldGutter(),
                 bracketMatching(),
-                closeBrackets(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
-                keymap.of([
-                    ...closeBracketsKeymap,
-                    ...defaultKeymap,
-                    ...historyKeymap,
-                    ...foldKeymap,
-                    ...completionKeymap
-                ])
+                keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap, ...completionKeymap])
             ];
 
             // Add language-specific extensions based on mimeTypeDisplayName
