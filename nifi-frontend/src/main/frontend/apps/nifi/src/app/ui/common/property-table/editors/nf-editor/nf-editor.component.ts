@@ -168,8 +168,6 @@ export class NfEditor {
                 lineNumbers(),
                 history(),
                 indentUnit.of('    '),
-                // parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
-                // elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
                 EditorView.lineWrapping,
                 rectangularSelection(),
                 crosshairCursor(),
