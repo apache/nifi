@@ -321,10 +321,10 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             .build();
 
     public static final PropertyDescriptor FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("FlowFile Handling On Schema Change Strategy")
+            .name("FlowFile Handling On Schema Difference")
             .description("The strategy used when records in a Kinesis Stream change their schema in a single batch.")
             .required(true)
-            .defaultValue(SchemaDifferenceHandlingStrategy.ROLL_FLOW_FILES)
+            .defaultValue(SchemaDifferenceHandlingStrategy.CREATE_FLOW_FILE)
             .allowableValues(SchemaDifferenceHandlingStrategy.class)
             .dependsOn(RECORD_WRITER)
             .build();

@@ -432,7 +432,7 @@ public class TestKinesisRecordProcessorRecord {
 
         @Test
         void testProcessIncompatibleSchemaKinesisRecordsStrategyGrouping() throws ShutdownException, InvalidStateException {
-            fixture = defaultFixtureWithStrategy(SchemaDifferenceHandlingStrategy.GROUP_FLOW_FILES);
+            fixture = defaultFixtureWithStrategy(SchemaDifferenceHandlingStrategy.GROUP_RECORDS);
             final List<String> inputJsonRecords = inputJsonRecords();
             testFlowFileContents(
                     inputJsonRecords,
@@ -445,7 +445,7 @@ public class TestKinesisRecordProcessorRecord {
 
         @Test
         void testProcessIncompatibleSchemaKinesisRecordsStrategyRolling() throws ShutdownException, InvalidStateException {
-            fixture = defaultFixtureWithStrategy(SchemaDifferenceHandlingStrategy.ROLL_FLOW_FILES);
+            fixture = defaultFixtureWithStrategy(SchemaDifferenceHandlingStrategy.CREATE_FLOW_FILE);
             final List<String> inputJsonRecords = inputJsonRecords();
             testFlowFileContents(
                     inputJsonRecords,

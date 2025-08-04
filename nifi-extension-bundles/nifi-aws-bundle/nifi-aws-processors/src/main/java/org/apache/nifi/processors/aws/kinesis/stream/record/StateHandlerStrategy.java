@@ -47,34 +47,22 @@ class StateHandlerStrategy {
     }
 
     FlowFileState getOrCreate(final Record record, final BatchProcessingContext flowFileContext) throws FlowFileCompletionException, IOException, SchemaNotFoundException {
-        return switch (strategy) {
-            case ROLL_FLOW_FILES -> getOrFinalizeAndCreateNewState(record, flowFileContext);
-            case GROUP_FLOW_FILES -> getOrCreateNewState(record, flowFileContext);
-        };
-    }
-
-    private FlowFileState getOrFinalizeAndCreateNewState(final Record record, final BatchProcessingContext flowFileContext) throws FlowFileCompletionException, IOException, SchemaNotFoundException {
         final FlowFileState previousState = activeStateMap.get(record.getSchema());
         if (previousState != null) {
             return previousState;
         }
-        final FlowFileState previousStateForDifferentSchema = pop();
-        if (previousStateForDifferentSchema != null) {
+        if (strategy == SchemaDifferenceHandlingStrategy.CREATE_FLOW_FILE) {
+            // for create flow file strategy we need to complete the possible previous state before creating a new one
+            completeAllAvailableFlowFileStates(flowFileContext);
+        }
+        return create(record, flowFileContext);
+    }
+
+    private void completeAllAvailableFlowFileStates(BatchProcessingContext flowFileContext) throws FlowFileCompletionException {
+        FlowFileState previousStateForDifferentSchema;
+        while ((previousStateForDifferentSchema = pop()) != null) {
             stateFinalizerAction.complete(previousStateForDifferentSchema, flowFileContext);
         }
-        final FlowFileState newState = stateInitializerAction.init(record, flowFileContext);
-        activeStateMap.put(record.getSchema(), newState);
-        return newState;
-    }
-
-    private FlowFileState getOrCreateNewState(final Record record, final BatchProcessingContext flowFileContext) throws IOException, SchemaNotFoundException {
-        final FlowFileState previousState = activeStateMap.get(record.getSchema());
-        if (previousState != null) {
-            return previousState;
-        }
-        final FlowFileState newState = stateInitializerAction.init(record, flowFileContext);
-        activeStateMap.put(record.getSchema(), newState);
-        return newState;
     }
 
     FlowFileState create(final Record record, final BatchProcessingContext flowFileContext) throws IOException, SchemaNotFoundException {
@@ -82,6 +70,12 @@ class StateHandlerStrategy {
         if (previousState != null) {
             throw new IllegalStateException(
                 "FlowFile state already exists for schema: " + record.getSchema() + ". This should not happen in a batch processing context."
+            );
+        }
+        if (strategy == SchemaDifferenceHandlingStrategy.CREATE_FLOW_FILE && !activeStateMap.isEmpty()) {
+            throw new IllegalStateException(
+                "An uncompleted FlowFileState found while using SchemaDifferenceHandlingStrategy: " +
+                        SchemaDifferenceHandlingStrategy.CREATE_FLOW_FILE + ". Cannot create a new state until previous is completed or dropped."
             );
         }
         final FlowFileState newState = stateInitializerAction.init(record, flowFileContext);
