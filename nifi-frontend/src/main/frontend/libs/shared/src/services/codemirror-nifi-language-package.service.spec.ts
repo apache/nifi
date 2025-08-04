@@ -429,6 +429,38 @@ describe('CodemirrorNifiLanguagePackage', () => {
             });
         });
 
+        it('should not delete text after cursor when autocompletion boundaries are detected for parameters', () => {
+            // Scenario: user types "#{" at the beginning of "example text"
+            // Cursor is at position 2 (after "#{")
+            const result = service['findParameterBoundaries']('#{example text', 2, 0);
+
+            expect(result).toBeDefined();
+            expect(result?.from).toBe(2); // Position after #{
+            expect(result?.to).toBe(2); // Should only replace up to cursor, not the "example text"
+            expect(result?.currentText).toBe(''); // Empty text between #{ and cursor
+        });
+
+        it('should not delete text after cursor when parameter has no closing brace', () => {
+            // Scenario: user types "#{param" in the middle of "some example text"
+            // Cursor is at position 8 (at "m" of "more")
+            const result = service['findParameterBoundaries']('#{param more text', 8, 0);
+
+            expect(result).toBeDefined();
+            expect(result?.from).toBe(2); // Position after #{
+            expect(result?.to).toBe(8); // Should only replace up to cursor
+            expect(result?.currentText).toBe('param '); // Text between #{ and cursor (includes space)
+        });
+
+        it('should properly handle parameter boundaries when closing brace exists after cursor', () => {
+            // Scenario: "#{param} more text" with cursor at position 7 (between 'm' and '}')
+            const result = service['findParameterBoundaries']('#{param} more text', 7, 0);
+
+            expect(result).toBeDefined();
+            expect(result?.from).toBe(2); // Position after #{
+            expect(result?.to).toBe(7); // Should only replace up to cursor, not to closing brace
+            expect(result?.currentText).toBe('param'); // Text between #{ and cursor
+        });
+
         it('should handle findElFunctionBoundaries with complex scenarios', () => {
             const testCases = [
                 { text: 'start ${func1()} end', cursor: 10, expected: 'func1()' },
@@ -444,6 +476,38 @@ describe('CodemirrorNifiLanguagePackage', () => {
                     expect(result).toBeDefined();
                 }
             });
+        });
+
+        it('should not delete text after cursor when autocompletion boundaries are detected for EL functions', () => {
+            // Scenario: user types "${" at the beginning of "example text"
+            // Cursor is at position 2 (after "${")
+            const result = service['findElFunctionBoundaries']('${example text', 2, 0);
+
+            expect(result).toBeDefined();
+            expect(result?.from).toBe(2); // Position after ${
+            expect(result?.to).toBe(2); // Should only replace up to cursor, not the "example text"
+            expect(result?.currentText).toBe(''); // Empty text between ${ and cursor
+        });
+
+        it('should not delete text after cursor when EL function has no closing brace', () => {
+            // Scenario: user types "${uuid" in the middle of "some example text"
+            // Cursor is at position 6 (after "${uuid")
+            const result = service['findElFunctionBoundaries']('${uuid more text', 6, 0);
+
+            expect(result).toBeDefined();
+            expect(result?.from).toBe(2); // Position after ${
+            expect(result?.to).toBe(6); // Should only replace up to cursor
+            expect(result?.currentText).toBe('uuid'); // Text between ${ and cursor
+        });
+
+        it('should properly handle EL function boundaries when closing brace exists after cursor', () => {
+            // Scenario: "${uuid()} more text" with cursor at position 7 (at closing parenthesis ')')
+            const result = service['findElFunctionBoundaries']('${uuid()} more text', 7, 0);
+
+            expect(result).toBeDefined();
+            expect(result?.from).toBe(2); // Position after ${
+            expect(result?.to).toBe(7); // Should only replace up to cursor, not to closing brace
+            expect(result?.currentText).toBe('uuid('); // Text between ${ and cursor (up to ')')
         });
 
         it('should handle analyzeCursorContext with nested expressions', () => {
@@ -524,6 +588,89 @@ describe('CodemirrorNifiLanguagePackage', () => {
 
             const result = service['getCompletionOptions'](cursorContext);
             expect(Array.isArray(result)).toBe(true);
+        });
+
+        it('should position cursor at end of inserted text when completion is applied', () => {
+            const options = ['uuid'];
+            const completions = service['createCompletions'](
+                options,
+                'u',
+                { useFunctionDetails: true },
+                mockViewContainerRef,
+                createMockCompletionContext('${u}', 3, true)
+            );
+
+            expect(completions).toHaveLength(1);
+            expect(completions[0].apply).toBeDefined();
+
+            // Mock view object with dispatch method
+            const mockView = {
+                dispatch: jest.fn()
+            };
+
+            // Apply the completion
+            const from = 10;
+            const to = 11;
+            if (typeof completions[0].apply === 'function') {
+                completions[0].apply(mockView as any, completions[0], from, to);
+            }
+
+            // Verify that dispatch was called with cursor positioned at end of inserted text
+            expect(mockView.dispatch).toHaveBeenCalledWith({
+                changes: {
+                    from: from,
+                    to: to,
+                    insert: 'uuid'
+                },
+                selection: { anchor: from + 'uuid'.length } // Cursor at end of 'uuid'
+            });
+        });
+
+        it('should position cursor correctly for auto-insertion with single match', () => {
+            // This test verifies the auto-insertion logic in createAutocompletionHandler
+            const mockView = {
+                dispatch: jest.fn()
+            };
+
+            const mockContext = {
+                ...createMockCompletionContext('${exact}', 7, true),
+                view: mockView
+            };
+
+            // Mock analyzeCursorContext to return expression context
+            jest.spyOn(service as any, 'analyzeCursorContext').mockReturnValue({
+                type: CodemirrorNifiLanguagePackage['CONTEXT_EXPRESSION'],
+                useFunctionDetails: true
+            });
+
+            // Mock getCompletionOptions to return single match
+            jest.spyOn(service as any, 'getCompletionOptions').mockReturnValue(['exactMatch']);
+
+            // Mock findExpressionBoundaries to return boundary info
+            jest.spyOn(service as any, 'findExpressionBoundaries').mockReturnValue({
+                from: 5,
+                to: 10,
+                currentText: 'exact'
+            });
+
+            // Create autocompletion handler
+            const handler = service['createAutocompletionHandler'](mockViewContainerRef);
+
+            // Call the handler
+            const result = handler(mockContext);
+
+            // Should return null because of auto-insertion
+            expect(result).toBeNull();
+
+            // Verify dispatch was called with cursor positioning
+            expect(mockView.dispatch).toHaveBeenCalledWith({
+                changes: {
+                    from: 5,
+                    to: 10,
+                    insert: 'exactMatch'
+                },
+                selection: { anchor: 5 + 'exactMatch'.length } // Cursor at end
+            });
         });
     });
 

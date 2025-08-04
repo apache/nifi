@@ -1205,12 +1205,16 @@ export class CodemirrorNifiLanguagePackage {
             // Auto-insert if there's only one exact match
             if (completions.length === 1 && context.explicit && context.view) {
                 const completion = completions[0];
+                const insertText = completion.label;
+                const cursorPos = expressionInfo.from + insertText.length;
+
                 context.view.dispatch({
                     changes: {
                         from: expressionInfo.from,
                         to: expressionInfo.to,
-                        insert: completion.label
-                    }
+                        insert: insertText
+                    },
+                    selection: { anchor: cursorPos }
                 });
                 return null; // Return null to close the completion popup
             }
@@ -1280,11 +1284,12 @@ export class CodemirrorNifiLanguagePackage {
 
         // Find the closing }
         let endPos = lineText.indexOf('}', startPos);
-        if (endPos === -1) {
-            endPos = lineText.length; // If no closing brace, go to end of line
+        if (endPos === -1 || endPos > cursorInLine) {
+            // If no closing brace or closing brace is after cursor, only replace up to cursor
+            endPos = cursorInLine;
         }
 
-        const currentText = lineText.substring(startPos, Math.min(endPos, cursorInLine));
+        const currentText = lineText.substring(startPos, endPos);
 
         return {
             from: lineFrom + startPos,
@@ -1320,11 +1325,12 @@ export class CodemirrorNifiLanguagePackage {
 
         // Find the closing }
         let endPos = lineText.indexOf('}', startPos);
-        if (endPos === -1) {
-            endPos = lineText.length; // If no closing brace, go to end of line
+        if (endPos === -1 || endPos > cursorInLine) {
+            // If no closing brace or closing brace is after cursor, only replace up to cursor
+            endPos = cursorInLine;
         }
 
-        const currentText = lineText.substring(startPos, Math.min(endPos, cursorInLine));
+        const currentText = lineText.substring(startPos, endPos);
 
         return {
             from: lineFrom + startPos,
@@ -1425,7 +1431,20 @@ export class CodemirrorNifiLanguagePackage {
             label: opt,
             type: cursorContext.useFunctionDetails ? 'function' : 'variable',
             boost: filteredOptions.length === 1 ? 1 : 0,
-            info: (): CompletionInfo => this.createTooltipInfo(opt, cursorContext, viewContainerRef, context)
+            info: (): CompletionInfo => this.createTooltipInfo(opt, cursorContext, viewContainerRef, context),
+            apply: (view: any, completion: any, from: number, to: number) => {
+                const insertText = completion.label;
+                const cursorPos = from + insertText.length;
+
+                view.dispatch({
+                    changes: {
+                        from: from,
+                        to: to,
+                        insert: insertText
+                    },
+                    selection: { anchor: cursorPos }
+                });
+            }
         }));
     }
 
