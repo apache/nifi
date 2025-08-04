@@ -1067,6 +1067,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
             }, 0L, 30L, TimeUnit.SECONDS);
 
+            final String registrySyncInterval = nifiProperties.getProperty("nifi.flowcontroller.registry.sync.interval", "30 min");
+            final long registrySyncIntervalSeconds = FormatUtils.getTimeDuration(registrySyncInterval, TimeUnit.SECONDS);
+
+            LOG.info("Scheduled Flow Registry synchronization every {}", registrySyncInterval);
+
+            // Schedule the flow registry synchronization task
             timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
                 final ProcessGroup rootGroup = flowManager.getRootGroup();
                 final List<ProcessGroup> allGroups = rootGroup.findAllProcessGroups();
@@ -1079,7 +1085,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                         LOG.error("Failed to synchronize {} with Flow Registry", group, e);
                     }
                 }
-            }, 5, 30, TimeUnit.MINUTES);
+            }, 300, registrySyncIntervalSeconds, TimeUnit.SECONDS);
 
             initialized.set(true);
         } finally {
