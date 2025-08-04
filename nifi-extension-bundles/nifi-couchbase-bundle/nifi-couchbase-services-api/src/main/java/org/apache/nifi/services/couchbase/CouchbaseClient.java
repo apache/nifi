@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.services.couchbase;
 
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
+import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 
-import java.io.Closeable;
+public interface CouchbaseClient {
 
-public interface CouchbaseClusterService<T extends Closeable> extends ControllerService {
+    CouchbaseGetResult getDocument(String documentId) throws CouchbaseException;
 
-     T getCluster();
+    long upsertDocument(String documentId, byte[] content) throws CouchbaseException;
+
+    CouchbaseErrorHandler getErrorHandler();
 }

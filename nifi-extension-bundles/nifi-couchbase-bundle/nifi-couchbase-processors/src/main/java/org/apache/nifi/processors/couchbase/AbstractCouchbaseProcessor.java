@@ -26,6 +26,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.services.couchbase.CouchbaseClient;
+import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
+import org.apache.nifi.services.couchbase.utils.DocumentType;
 import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
 import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
@@ -35,8 +38,6 @@ import java.util.List;
 import java.util.Set;
 
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
-
-    private CouchbaseErrorHandler errorHandler;
 
     public static final PropertyDescriptor DOCUMENT_ID = new PropertyDescriptor.Builder()
             .name("Document Id")
@@ -50,6 +51,41 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .description("A Couchbase Connection Service which manages connections to a Couchbase cluster.")
             .required(true)
             .identifiesControllerService(CouchbaseConnectionService.class)
+            .build();
+
+    public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder()
+            .name("Bucket Name")
+            .description("The name of bucket.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue("default")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor SCOPE_NAME = new PropertyDescriptor.Builder()
+            .name("Scope Name")
+            .description("The name of scope.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue("_default")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
+            .name("Collection Name")
+            .description("The name of collection.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue("_default")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
+            .name("Document Type")
+            .description("The type of contents.")
+            .required(true)
+            .allowableValues(DocumentType.values())
+            .defaultValue(DocumentType.Json.toString())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -69,6 +105,10 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             DOCUMENT_ID,
+            BUCKET_NAME,
+            SCOPE_NAME,
+            COLLECTION_NAME,
+            DOCUMENT_TYPE,
             COUCHBASE_CONNECTION_SERVICE
     );
 
@@ -84,10 +124,11 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
+    protected CouchbaseConnectionService connectionService;
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final CouchbaseConnectionService connectionService = context.getProperty(COUCHBASE_CONNECTION_SERVICE).asControllerService(CouchbaseConnectionService.class);
-        errorHandler = connectionService.getErrorHandler();
+        connectionService = context.getProperty(COUCHBASE_CONNECTION_SERVICE).asControllerService(CouchbaseConnectionService.class);
     }
 
     protected byte[] readFlowFileContent(ProcessSession session, FlowFile flowFile) {
@@ -97,10 +138,14 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         return content;
     }
 
-    protected void handleCouchbaseException(final ProcessContext context, final ProcessSession session, final ComponentLog logger,
-                                            FlowFile flowFile, CouchbaseException e, final String errorMessage) {
+    protected String createTransitUrl(CouchbaseContext couchbaseContext, String documentId) {
+        return String.join(".", couchbaseContext.bucket(), couchbaseContext.scope(), couchbaseContext.collection(), documentId);
+    }
+
+    protected void handleCouchbaseException(CouchbaseClient couchbaseClient, ProcessContext context, ProcessSession session,
+                                            ComponentLog logger, FlowFile flowFile, CouchbaseException e, String errorMessage) {
         logger.error(errorMessage, e.getCause());
-        final CouchbaseErrorHandler.ErrorHandlingStrategy strategy = errorHandler.getStrategy(e);
+        final CouchbaseErrorHandler.ErrorHandlingStrategy strategy = couchbaseClient.getErrorHandler().getStrategy(e);
         switch (strategy) {
             case ROLLBACK -> session.rollback();
             case FAILURE -> {

@@ -14,12 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.couchbase;
+package org.apache.nifi.services.couchbase.utils;
 
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
-
-public interface CouchbaseConnectionService extends ControllerService {
-
-    CouchbaseClient getClient(CouchbaseContext context);
+public record CouchbaseContext(String bucket, String scope, String collection, DocumentType documentType) {
 }

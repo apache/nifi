@@ -16,7 +16,5 @@
  */
 package org.apache.nifi.services.couchbase.utils;
 
-import java.util.Map;
-
-public record CouchbaseGetResult(byte[] resultContent, Map<String, String> attributes, String transitUrl) {
+public record CouchbaseGetResult(byte[] resultContent, long cas) {
 }

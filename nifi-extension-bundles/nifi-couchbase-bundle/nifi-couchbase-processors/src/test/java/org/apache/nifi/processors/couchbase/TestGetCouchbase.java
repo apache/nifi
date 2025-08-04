@@ -19,6 +19,7 @@ package org.apache.nifi.processors.couchbase;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.couchbase.CouchbaseClient;
 import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
 import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
@@ -31,15 +32,23 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Map.entry;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.BUCKET_NAME;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.COLLECTION_NAME;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.COUCHBASE_CONNECTION_SERVICE;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.DOCUMENT_ID;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.SCOPE_NAME;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCOPE_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -49,8 +58,8 @@ import static org.mockito.Mockito.when;
 
 public class TestGetCouchbase {
 
-    private static final String SERVICE_ID = "couchbaseClusterService";
-    private static final String TEST_TRANSIT_URL = "test.transit.url";
+    private static final String SERVICE_ID = "couchbaseConnectionService";
+    private static final long TEST_CAS = 1L;
 
     private TestRunner runner;
 
@@ -64,18 +73,15 @@ public class TestGetCouchbase {
         final String documentId = "test-document-id";
         final String content = "{\"key\":\"value\"}";
 
-        final Map<String, String> attributes = Map.ofEntries(
-                entry("attribute_1", "value_1"),
-                entry("attribute_2", "value_2"),
-                entry("attribute_3", "value_3")
-        );
+        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
 
-        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), attributes, TEST_TRANSIT_URL);
+        final CouchbaseClient client = mock(CouchbaseClient.class);
+        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.getDocument(anyString())).thenReturn(result);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
-        when(service.getDocument(anyString())).thenReturn(result);
+        when(service.getClient(any())).thenReturn(client);
 
         runner.addControllerService(SERVICE_ID, service);
         runner.enableControllerService(service);
@@ -84,22 +90,23 @@ public class TestGetCouchbase {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        verify(service, times(1)).getDocument(eq(documentId));
+        verify(client, times(1)).getDocument(eq(documentId));
 
         runner.assertTransferCount(REL_SUCCESS, 1);
         runner.assertTransferCount(REL_FAILURE, 0);
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals("attribute_1", "value_1");
-        outFile.assertAttributeEquals("attribute_2", "value_2");
-        outFile.assertAttributeEquals("attribute_3", "value_3");
+        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, "default");
+        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(CAS_ATTRIBUTE, String.valueOf(TEST_CAS));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord receiveEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.FETCH, receiveEvent.getEventType());
-        assertEquals(TEST_TRANSIT_URL, receiveEvent.getTransitUri());
+        assertEquals("default._default._default.test-document-id", receiveEvent.getTransitUri());
     }
 
     @Test
@@ -107,18 +114,15 @@ public class TestGetCouchbase {
         final String documentId = "flowfile-document-id";
         final String content = "{\"key\":\"value\"}";
 
-        final Map<String, String> attributes = Map.ofEntries(
-                entry("attribute_1", "value_1"),
-                entry("attribute_2", "value_2"),
-                entry("attribute_3", "value_3")
-        );
+        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
 
-        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), attributes, TEST_TRANSIT_URL);
+        final CouchbaseClient client = mock(CouchbaseClient.class);
+        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.getDocument(anyString())).thenReturn(result);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
-        when(service.getDocument(anyString())).thenReturn(result);
+        when(service.getClient(any())).thenReturn(client);
 
         runner.addControllerService(SERVICE_ID, service);
         runner.enableControllerService(service);
@@ -128,24 +132,75 @@ public class TestGetCouchbase {
         runner.enqueue(input);
         runner.run();
 
-        verify(service, times(1)).getDocument(eq(documentId));
+        verify(client, times(1)).getDocument(eq(documentId));
 
         runner.assertTransferCount(REL_SUCCESS, 1);
         runner.assertTransferCount(REL_FAILURE, 0);
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals("attribute_1", "value_1");
-        outFile.assertAttributeEquals("attribute_2", "value_2");
-        outFile.assertAttributeEquals("attribute_3", "value_3");
+        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, "default");
+        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(CAS_ATTRIBUTE, String.valueOf(TEST_CAS));
+    }
+
+    @Test
+    public void testWithFlowfileAttributes() throws CouchbaseException, InitializationException {
+        final String documentId = "test-document-id";
+        final String content = "{\"key\":\"value\"}";
+        final String testBucket = "test-bucket";
+        final String testScope = "test-scope";
+        final String testCollection = "test-collection";
+
+        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
+
+        final CouchbaseClient client = mock(CouchbaseClient.class);
+        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.getDocument(anyString())).thenReturn(result);
+
+        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
+        when(service.getIdentifier()).thenReturn(SERVICE_ID);
+        when(service.getClient(any())).thenReturn(client);
+
+        runner.addControllerService(SERVICE_ID, service);
+        runner.enableControllerService(service);
+        runner.setProperty(DOCUMENT_ID, documentId);
+        runner.setProperty(BUCKET_NAME, "${bucket.attribute}");
+        runner.setProperty(SCOPE_NAME, "${scope.attribute}");
+        runner.setProperty(COLLECTION_NAME, "${collection.attribute}");
+        runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("bucket.attribute", testBucket);
+        attributes.put("scope.attribute", testScope);
+        attributes.put("collection.attribute", testCollection);
+        final byte[] input = documentId.getBytes(StandardCharsets.UTF_8);
+        runner.enqueue(input, attributes);
+        runner.run();
+
+        verify(client, times(1)).getDocument(eq(documentId));
+
+        runner.assertTransferCount(REL_SUCCESS, 1);
+        runner.assertTransferCount(REL_FAILURE, 0);
+
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        outFile.assertContentEquals(content);
+        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, testBucket);
+        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, testScope);
+        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, testCollection);
+        outFile.assertAttributeEquals(CAS_ATTRIBUTE, String.valueOf(TEST_CAS));
     }
 
     @Test
     public void testWithFailure() throws CouchbaseException, InitializationException {
+        final CouchbaseClient client = mock(CouchbaseClient.class);
+        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.getDocument(anyString())).thenThrow(new CouchbaseException("Test exception"));
+
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
-        when(service.getDocument(anyString())).thenThrow(new CouchbaseException("Test exception"));
+        when(service.getClient(any())).thenReturn(client);
 
         runner.setProperty(DOCUMENT_ID, "test-document-id");
         runner.addControllerService(SERVICE_ID, service);

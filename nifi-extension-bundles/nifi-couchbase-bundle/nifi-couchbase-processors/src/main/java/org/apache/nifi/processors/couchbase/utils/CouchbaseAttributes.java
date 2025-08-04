@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.couchbase.utils;
+package org.apache.nifi.processors.couchbase.utils;
 
 public class CouchbaseAttributes {
 
-    public static String BUCKET_ATTRIBUTE = "couchbase.bucket";
-    public static String SCOPE_ATTRIBUTE = "couchbase.scope";
-    public static String COLLECTION_ATTRIBUTE = "couchbase.collection";
-    public static String DOCUMENT_ID_ATTRIBUTE = "couchbase.document.id";
-    public static String CAS_ATTRIBUTE = "couchbase.cas";
-    public static String EXPIRY_ATTRIBUTE = "couchbase.expiry";
+    public static final String BUCKET_ATTRIBUTE = "couchbase.bucket";
+    public static final String SCOPE_ATTRIBUTE = "couchbase.scope";
+    public static final String COLLECTION_ATTRIBUTE = "couchbase.collection";
+    public static final String DOCUMENT_ID_ATTRIBUTE = "couchbase.document.id";
+    public static final String CAS_ATTRIBUTE = "couchbase.document.cas";
 
 }

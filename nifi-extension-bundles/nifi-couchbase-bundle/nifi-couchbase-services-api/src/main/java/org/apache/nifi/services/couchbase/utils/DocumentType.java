@@ -16,7 +16,22 @@
  */
 package org.apache.nifi.services.couchbase.utils;
 
-import java.util.Map;
+/**
+ * Couchbase document types.
+ */
+public enum DocumentType {
 
-public record CouchbasePutResult(Map<String, String> attributes, String transitUrl) {
+    Json( "application/json"),
+    Binary( "application/octet-stream");
+
+    private final String mimeType;
+
+    DocumentType(String mimeType) {
+        this.mimeType = mimeType;
+    }
+
+    public String getMimeType() {
+        return mimeType;
+    }
+
 }
