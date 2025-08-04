@@ -129,23 +129,8 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '.cm-nonmatchingBracket': {
         color: 'var(--mat-sys-on-surface)'
     },
-    '.cm-parameter-hash, .cm-el-function-dollar-sign': {
-        color: 'var(--nf-codemirror-bracket)'
-    },
     '.cm-bracket': {
         color: 'var(--nf-codemirror-bracket)'
-    },
-    '.cm-parameter-name': {
-        color: 'var(--nf-codemirror-parameter)'
-    },
-    '.cm-parameter-error': {
-        color: 'var(--mat-sys-error)'
-    },
-    '.cm-el-function-name': {
-        color: 'var(--nf-codemirror-el-function)'
-    },
-    '.cm-el-function-error': {
-        color: 'var(--mat-sys-error)'
     },
     '.cm-tooltip-autocomplete.cm-tooltip': {
         ...boxStyle,

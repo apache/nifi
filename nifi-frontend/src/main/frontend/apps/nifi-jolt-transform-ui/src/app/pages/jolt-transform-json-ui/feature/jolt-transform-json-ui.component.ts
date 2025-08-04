@@ -27,8 +27,6 @@ import {
     Codemirror,
     CodeMirrorConfig,
     highlightStyle,
-    parameterHighlightPlugin,
-    elFunctionHighlightPlugin,
     CodemirrorNifiLanguagePackage
 } from '@nifi/shared';
 import {
@@ -60,7 +58,7 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import {
     defaultHighlightStyle,
@@ -248,15 +246,14 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             rectangularSelection(),
             crosshairCursor(),
-            parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
-            elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+            // parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+            // elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
             syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
-            closeBrackets(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             foldGutter(),
@@ -271,7 +268,6 @@ export class JoltTransformJsonUi implements OnDestroy {
                         return true;
                     }
                 },
-                ...closeBracketsKeymap,
                 ...defaultKeymap,
                 ...historyKeymap,
                 ...foldKeymap,
@@ -294,7 +290,6 @@ export class JoltTransformJsonUi implements OnDestroy {
             syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
-            closeBrackets(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             foldGutter(),
@@ -309,7 +304,6 @@ export class JoltTransformJsonUi implements OnDestroy {
                         return true;
                     }
                 },
-                ...closeBracketsKeymap,
                 ...defaultKeymap,
                 ...historyKeymap,
                 ...foldKeymap,
@@ -324,8 +318,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             EditorState.readOnly.of(true),
             highlightSpecialChars(),
-            parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
-            elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+            // parameterHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+            // elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
             syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),

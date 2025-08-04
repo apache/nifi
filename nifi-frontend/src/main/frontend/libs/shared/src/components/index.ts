@@ -23,8 +23,6 @@ export * from './new-map-table-entry-dialog/new-map-table-entry-dialog.component
 export * from './property-hint/property-hint.component';
 export * from './resizable/resizable.component';
 export * from './codemirror/codemirror.component';
-export * from './codemirror/extensions/el-function-highlight';
-export * from './codemirror/extensions/parameter-highlight';
 export * from './codemirror/themes/defaultTheme';
 export * from './codemirror/themes/baseTheme';
 export * from './yes-no-dialog/yes-no-dialog.component';
