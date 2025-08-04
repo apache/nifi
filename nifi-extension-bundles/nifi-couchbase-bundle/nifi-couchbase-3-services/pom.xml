@@ -26,6 +26,10 @@
     <artifactId>nifi-couchbase-3-services</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <couchbase.version>3.8.2</couchbase.version>
+    </properties>
+
     <dependencies>
         <!-- Internal dependencies -->
         <dependency>

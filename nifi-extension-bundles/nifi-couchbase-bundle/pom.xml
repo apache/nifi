@@ -27,10 +27,6 @@
     <artifactId>nifi-couchbase-bundle</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <couchbase.version>3.8.2</couchbase.version>
-    </properties>
-
     <modules>
         <module>nifi-couchbase-processors</module>
         <module>nifi-couchbase-nar</module>
