@@ -371,6 +371,10 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         });
 
         this.view.dispatch(transaction);
+
+        if (!this.settings.readOnly) {
+            this.selectAll();
+        }
     }
 
     private setTheme(theme: Extension): void {
@@ -387,6 +391,10 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         this.view.dispatch({
             effects: this.editableCompartment.reconfigure(EditorView.editable.of(editable))
         });
+
+        if (editable) {
+            this.selectAll();
+        }
     }
 
     private setReadonly(readonly: boolean): void {
@@ -395,6 +403,10 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         this.view.dispatch({
             effects: this.readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly))
         });
+
+        if (!readonly) {
+            this.selectAll();
+        }
     }
 
     private setPlugins(plugins: Extension[]): void {

@@ -959,74 +959,23 @@ export class CodemirrorNifiLanguagePackage {
             },
             getAutocompletions: (viewContainerRef: ViewContainerRef) => {
                 return (context: CompletionContext): CompletionResult | null => {
-                    if (!context.explicit) {
+                    if (!context.explicit || currentState === CodemirrorNifiLanguagePackage.INVALID) {
                         return null;
                     }
-
-                    // Analyze the text around the cursor position to determine context
-                    const cursorPos = context.pos;
-                    const doc = context.state.doc;
-                    const lineInfo = doc.lineAt(cursorPos);
-                    const lineText = lineInfo.text;
-                    const cursorInLine = cursorPos - lineInfo.from;
-
-                    // Function to determine if cursor is within specific syntax
-                    const getCursorContext = (): string => {
-                        // Look backward from cursor to find opening syntax
-                        let parameterStart = -1;
-                        let elStart = -1;
-                        let parameterEnd = -1;
-                        let elEnd = -1;
-
-                        // Find the most recent parameter or EL function start before cursor
-                        for (let i = cursorInLine - 1; i >= 0; i--) {
-                            if (lineText.charAt(i) === '{' && i > 0) {
-                                if (lineText.charAt(i - 1) === '#' && parameterStart === -1) {
-                                    parameterStart = i - 1;
-                                }
-                                if (lineText.charAt(i - 1) === '$' && elStart === -1) {
-                                    elStart = i - 1;
-                                }
-                            }
-                        }
-
-                        // Find the next closing brace after cursor
-                        for (let i = cursorInLine; i < lineText.length; i++) {
-                            if (lineText.charAt(i) === '}') {
-                                if (parameterStart !== -1 && parameterEnd === -1) {
-                                    parameterEnd = i;
-                                }
-                                if (elStart !== -1 && elEnd === -1) {
-                                    elEnd = i;
-                                }
-                                break;
-                            }
-                        }
-
-                        // Determine which context we're in based on the most recent opening
-                        if (parameterStart !== -1 && parameterEnd !== -1) {
-                            if (elStart === -1 || parameterStart > elStart) {
-                                return CodemirrorNifiLanguagePackage.PARAMETER;
-                            }
-                        }
-
-                        if (elStart !== -1 && elEnd !== -1) {
-                            if (parameterStart === -1 || elStart > parameterStart) {
-                                return CodemirrorNifiLanguagePackage.EXPRESSION;
-                            }
-                        }
-
-                        return CodemirrorNifiLanguagePackage.INVALID;
-                    };
-
-                    const detectedContext = getCursorContext();
 
                     // whether the current context is within a function
                     const isFunction = (context: string): boolean => {
                         // attempting to match a function name or already successfully matched a function name
                         return (
                             context === CodemirrorNifiLanguagePackage.FUNCTION ||
-                            context === CodemirrorNifiLanguagePackage.ARGUMENTS ||
+                            context === CodemirrorNifiLanguagePackage.ARGUMENTS
+                        );
+                    };
+
+                    // whether the current context is within a subject-less funciton
+                    const isSubjectlessFunction = (context: string): boolean => {
+                        // within an expression when no characters are found or when the string may be an attribute or a function
+                        return (
                             context === CodemirrorNifiLanguagePackage.EXPRESSION ||
                             context === CodemirrorNifiLanguagePackage.SUBJECT_OR_FUNCTION
                         );
@@ -1045,15 +994,16 @@ export class CodemirrorNifiLanguagePackage {
                     let options: string[] = [];
                     let useFunctionDetails = true;
 
-                    // determine the options based on the detected context
-                    console.log('detectedContext', detectedContext);
+                    // determine the options based on the current context
+                    console.log('currentContext', currentState);
 
-                    if (isParameterReference(detectedContext) && self.parametersSupported) {
+                    if (isSubjectlessFunction(currentState)) {
+                        options = self.subjectlessFunctions;
+                    } else if (isParameterReference(currentState)) {
                         options = self.parameters;
                         useFunctionDetails = false;
-                    } else if (isFunction(detectedContext) && self.functionSupported) {
-                        // Prefer subjectless functions in expressions, but include all functions
-                        options = [...self.subjectlessFunctions, ...self.functions];
+                    } else if (isFunction(currentState)) {
+                        options = self.functions;
                     }
 
                     // if there are no options, return null
@@ -1066,7 +1016,7 @@ export class CodemirrorNifiLanguagePackage {
                         return null;
                     }
 
-                    const tokenValue = word.text.toLowerCase().trim();
+                    let tokenValue = word.text.toLowerCase().trim();
 
                     const completions: Completion[] = options
                         .filter((opt) => tokenValue === '' || opt.toLowerCase().startsWith(tokenValue))
@@ -1164,6 +1114,6 @@ export class CodemirrorNifiLanguagePackage {
      * @returns {string} language id
      */
     public getLanguageId(): string {
-        return 'nf';
+        return 'nfel';
     }
 }
