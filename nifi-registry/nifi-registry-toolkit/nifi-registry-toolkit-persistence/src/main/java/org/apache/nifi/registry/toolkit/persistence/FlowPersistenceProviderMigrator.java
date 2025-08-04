@@ -78,7 +78,10 @@ public class FlowPersistenceProviderMigrator {
             commandLine = parser.parse(options, args);
         } catch (ParseException e) {
             log.error("Unable to parse command line.", e);
-            HelpFormatter.builder().get().printHelp("persistence-toolkit [args]", null, options, null, false);
+            HelpFormatter.builder()
+                    .setShowSince(false)
+                    .get()
+                    .printHelp("persistence-toolkit [args]", null, options, null, false);
             System.exit(PARSE_EXCEPTION);
         }
 
