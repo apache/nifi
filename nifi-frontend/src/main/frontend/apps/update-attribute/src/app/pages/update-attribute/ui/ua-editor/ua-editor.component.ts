@@ -22,14 +22,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import {
-    Codemirror,
-    CodeMirrorConfig,
-    Resizable,
-    PropertyHint,
-    highlightStyle,
-    elFunctionHighlightPlugin
-} from '@nifi/shared';
+import { Codemirror, CodeMirrorConfig, Resizable, PropertyHint, highlightStyle } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorNifiLanguagePackage, NfLanguageConfig, NfLanguageDefinition } from '@nifi/shared';
 import { EditorState, Extension, Prec } from '@codemirror/state';
@@ -53,13 +46,7 @@ import {
     rectangularSelection
 } from '@codemirror/view';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
-import {
-    acceptCompletion,
-    autocompletion,
-    closeBrackets,
-    closeBracketsKeymap,
-    completionKeymap
-} from '@codemirror/autocomplete';
+import { acceptCompletion, autocompletion, completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'ua-editor',
@@ -160,7 +147,7 @@ export class UaEditor {
                 lineNumbers(),
                 history(),
                 indentUnit.of('    '),
-                elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
+                // elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
                 EditorView.lineWrapping,
                 rectangularSelection(),
                 crosshairCursor(),
@@ -170,7 +157,6 @@ export class UaEditor {
                 syntaxHighlighting(highlightStyle),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 bracketMatching(),
-                closeBrackets(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 autocompletion(),
@@ -189,7 +175,6 @@ export class UaEditor {
                             return false;
                         }
                     },
-                    ...closeBracketsKeymap,
                     ...defaultKeymap,
                     ...historyKeymap,
                     ...completionKeymap
