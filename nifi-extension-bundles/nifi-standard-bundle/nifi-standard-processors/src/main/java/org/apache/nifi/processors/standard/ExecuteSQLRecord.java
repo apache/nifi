@@ -100,7 +100,10 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
         @WritesAttribute(attribute = "input.flowfile.uuid", description = "If the processor has an incoming connection, outgoing FlowFiles will have this attribute "
                 + "set to the value of the input FlowFile's UUID. If there is no incoming connection, the attribute will not be added."),
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
-        @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer.")
+        @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer."),
+        @WritesAttribute(attribute = "executesql.end.of.resultset", description = "This attribute is added to the very last created FlowFile, to indicate end of " +
+                "results. This is primarily serving the downstream processors, when 'Output Batch Size' is set, in which case no other information is available " +
+                "about the total number of fragments created from a single result set.")
 })
 @SupportsSensitiveDynamicProperties
 @DynamicProperties({
