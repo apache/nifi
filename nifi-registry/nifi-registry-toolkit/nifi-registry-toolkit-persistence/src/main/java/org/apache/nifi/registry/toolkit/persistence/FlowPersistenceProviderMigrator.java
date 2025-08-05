@@ -19,9 +19,9 @@ package org.apache.nifi.registry.toolkit.persistence;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.help.HelpFormatter;
 import org.apache.nifi.registry.NiFiRegistry;
 import org.apache.nifi.registry.db.DataSourceFactory;
 import org.apache.nifi.registry.db.DatabaseMetadataService;
@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+
+import java.io.IOException;
 import java.util.Properties;
 
 public class FlowPersistenceProviderMigrator {
@@ -66,7 +68,7 @@ public class FlowPersistenceProviderMigrator {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Options options = new Options();
         options.addOption("t", "to", true, "Providers xml to migrate to.");
         CommandLineParser parser = new DefaultParser();
@@ -76,9 +78,10 @@ public class FlowPersistenceProviderMigrator {
             commandLine = parser.parse(options, args);
         } catch (ParseException e) {
             log.error("Unable to parse command line.", e);
-
-            new HelpFormatter().printHelp("persistence-toolkit [args]", options);
-
+            HelpFormatter.builder()
+                    .setShowSince(false)
+                    .get()
+                    .printHelp("persistence-toolkit [args]", null, options, null, false);
             System.exit(PARSE_EXCEPTION);
         }
 
