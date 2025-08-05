@@ -16,13 +16,12 @@
  */
 package org.apache.parquet.web.controller;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.conf.Configuration;
@@ -42,16 +41,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
     private static final long MAX_CONTENT_SIZE = 1024 * 1024 * 2; // 10MB
     private static final int BUFFER_SIZE = 8 * 1024; // 8KB
-    private static final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
-    static {
-        objectMapper.getFactory().configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
-    }
+    private static final String indent = "    ";
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
@@ -101,17 +98,27 @@ public class ParquetContentViewerController extends HttpServlet {
             //Format and write out each record
             GenericRecord record;
             boolean firstRecord = true;
-            response.getOutputStream().write("[\n".getBytes());
-            while ((record = reader.read()) != null) {
-                if (firstRecord) {
-                    firstRecord = false;
-                } else {
-                    response.getOutputStream().write(",\n".getBytes());
-                }
+            final List<Schema.Field> fields = new ArrayList<>();
+            try (ServletOutputStream outputStream = response.getOutputStream()) {
+                outputStream.write("[\n".getBytes());
+                while ((record = reader.read()) != null) {
+                    if (firstRecord) {
+                        firstRecord = false;
+                        fields.addAll(record.getSchema().getFields());
+                    } else {
+                        outputStream.write(",\n".getBytes());
+                    }
 
-                objectMapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectMapper.readTree(record.toString()));
+                    outputStream.write((indent + "{\n").getBytes());
+                    for (Schema.Field field : fields) {
+                        outputStream.write((indent + indent).getBytes());
+                        outputStream.write(("\"" + field.name() + "\": ").getBytes());
+                        outputStream.write(("\"" + record.get(field.name()) + "\" \n").getBytes());
+                    }
+                    outputStream.write((indent + "}").getBytes());
+                }
+                outputStream.write("\n]".getBytes());
             }
-            response.getOutputStream().write("\n]".getBytes());
         } catch (final Throwable t) {
             logger.warn("Unable to format FlowFile content", t);
             response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Unable to format FlowFile content");
