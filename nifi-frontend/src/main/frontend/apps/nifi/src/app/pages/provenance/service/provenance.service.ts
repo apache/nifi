@@ -124,7 +124,9 @@ export class ProvenanceService {
 
         const contentViewerParameters: any = {
             ref: dataUri,
-            clientId: this.client.getClientId()
+            clientId: this.client.getClientId(),
+            eventId: eventId,
+            clusterNodeId: clusterNodeId
         };
 
         if (mimeType) {
