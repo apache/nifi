@@ -25,7 +25,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-rules';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
-import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { HarnessLoader } from '@angular/cdk/testing';

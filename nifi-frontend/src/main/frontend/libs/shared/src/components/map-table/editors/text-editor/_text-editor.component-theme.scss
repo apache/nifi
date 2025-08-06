@@ -21,11 +21,5 @@
 @mixin generate-theme() {
     .text-editor {
         @include mat.button-density(-1);
-
-        .editor {
-            &.blank {
-                cursor: not-allowed !important;
-            }
-        }
     }
 }

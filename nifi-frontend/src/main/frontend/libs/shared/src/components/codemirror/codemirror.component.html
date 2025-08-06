@@ -14,16 +14,3 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
-<div class="tooltip parameter-tip">
-    @if (data?.parameter; as parameter) {
-        <div class="flex flex-col gap-y-3">
-            <div class="parameter-name text-lg font-bold">{{ parameter.name }}</div>
-            @if (hasDescription(parameter)) {
-                <div>{{ parameter.description }}</div>
-            } @else {
-                <div class="unset neutral-color">No description provided</div>
-            }
-        </div>
-    }
-</div>

@@ -15,29 +15,27 @@
  * limitations under the License.
  */
 
-import { ComponentRef, Injectable, Renderer2, ViewContainerRef } from '@angular/core';
-import * as CodeMirror from 'codemirror';
-import { Editor, Hint, Hints, StringStream } from 'codemirror';
+import { ComponentRef, Injectable, ViewContainerRef } from '@angular/core';
 import { ElService } from './el.service';
 import { take } from 'rxjs';
-import { NiFiCommon, ElFunction, Parameter, ParameterTip, ElFunctionTip } from '@nifi/shared';
+import { StreamParser, StringStream } from '@codemirror/language';
+import { Completion, CompletionContext, CompletionInfo, CompletionResult } from '@codemirror/autocomplete';
+import { ElFunction, ElFunctionTipInput, Parameter, ParameterTipInput } from '../types';
+import { ElFunctionTip, ParameterTip } from '../components';
 
-export interface NfElHint extends Hint {
-    parameterDetails?: Parameter;
-    functionDetails?: ElFunction;
+export interface NfLanguageDefinition {
+    supportsEl: boolean;
+    parameterListing?: Parameter[];
+}
+
+export interface NfLanguageConfig {
+    streamParser: StreamParser<unknown>;
+    getAutocompletions: (viewContainerRef: ViewContainerRef) => (context: CompletionContext) => CompletionResult | null;
 }
 
 @Injectable({ providedIn: 'root' })
-export class NfEl {
-    private viewContainerRef: ViewContainerRef | undefined;
-    private renderer: Renderer2 | undefined;
-
-    constructor(
-        private elService: ElService,
-        private nifiCommon: NiFiCommon
-    ) {
-        const self: NfEl = this;
-
+export class CodemirrorNifiLanguagePackage {
+    constructor(private elService: ElService) {
         this.elService
             .getElGuide()
             .pipe(take(1))
@@ -57,13 +55,13 @@ export class NfEl {
 
                         // Determine if this function supports running subjectless
                         if (subjectless) {
-                            self.subjectlessFunctions.push(name);
+                            this.subjectlessFunctions.push(name);
                             subject = 'None';
                         }
 
                         // Determine if this function supports running with a subject
                         if (subjectSpan) {
-                            self.functions.push(name);
+                            this.functions.push(name);
                             subject = subjectSpan.textContent ?? '';
                         }
 
@@ -79,7 +77,7 @@ export class NfEl {
                         });
 
                         // record the function details
-                        self.functionDetails[name] = {
+                        this.functionDetails[name] = {
                             name: name,
                             description: description,
                             args: args,
@@ -90,58 +88,298 @@ export class NfEl {
                 },
                 complete: () => {
                     // build the regex for all functions discovered
-                    self.subjectlessFunctionRegex = new RegExp('^((' + self.subjectlessFunctions.join(')|(') + '))$');
-                    self.functionRegex = new RegExp('^((' + self.functions.join(')|(') + '))$');
+                    this.subjectlessFunctionRegex = new RegExp('^((' + this.subjectlessFunctions.join(')|(') + '))$');
+                    this.functionRegex = new RegExp('^((' + this.functions.join(')|(') + '))$');
                 }
             });
+    }
 
-        // register this custom mode
-        CodeMirror.defineMode(this.getLanguageId(), function () {
-            // builds the states based off the specified initial value
-            const buildStates = function (initialStates: any): any {
-                // each state has a context
-                const states = initialStates;
+    private parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
 
-                return {
-                    copy: function () {
-                        const copy: any[] = [];
-                        for (let i = 0; i < states.length; i++) {
-                            copy.push({
-                                context: states[i].context
-                            });
-                        }
-                        return copy;
-                    },
-                    get: function () {
-                        if (states.length === 0) {
-                            return {
-                                context: null
-                            };
-                        } else {
-                            return states[states.length - 1];
-                        }
-                    },
-                    push: function (state: any) {
-                        return states.push(state);
-                    },
-                    pop: function () {
-                        return states.pop();
+    private parameters: string[] = [];
+    private parameterRegex = new RegExp('^$');
+
+    private parameterDetails: { [key: string]: Parameter } = {};
+    private parametersSupported = false;
+
+    private subjectlessFunctions: string[] = [];
+    private functions: string[] = [];
+
+    private subjectlessFunctionRegex = new RegExp('^$');
+    private functionRegex = new RegExp('^$');
+
+    private functionDetails: { [key: string]: ElFunction } = {};
+    private functionSupported = false;
+
+    // valid context states
+    private static readonly SUBJECT: string = 'subject';
+    private static readonly FUNCTION: string = 'function';
+    private static readonly SUBJECT_OR_FUNCTION: string = 'subject-or-function';
+    private static readonly EXPRESSION: string = 'expression';
+    private static readonly ARGUMENTS: string = 'arguments';
+    private static readonly ARGUMENT: string = 'argument';
+    private static readonly PARAMETER: string = 'parameter';
+    private static readonly SINGLE_QUOTE_PARAMETER: string = 'single-quote-parameter';
+    private static readonly DOUBLE_QUOTE_PARAMETER: string = 'double-quote-parameter';
+    private static readonly INVALID: string = 'invalid';
+
+    /**
+     * Handles dollars identifies on the stream.
+     *
+     * @param {string} startChar    The start character
+     * @param {string} context      The context to transition to if we match on the specified start character
+     * @param {object} stream       The character stream
+     * @param {object} states       The states
+     */
+    private handleStart(startChar: string, context: string, stream: any, states: any): null | string {
+        // determine the number of sequential start chars
+        let startCharCount = 0;
+        stream.eatWhile((ch: string) => {
+            if (ch === startChar) {
+                startCharCount++;
+                return true;
+            }
+            return false;
+        });
+
+        // if there is an even number of consecutive start chars this expression is escaped
+        if (startCharCount % 2 === 0) {
+            // do not style an escaped expression
+            return null;
+        }
+
+        // if there was an odd number of consecutive start chars and there was more than 1
+        if (startCharCount > 1) {
+            // back up one char so we can process the start sequence next iteration
+            stream.backUp(1);
+
+            // do not style the preceding start chars
+            return null;
+        }
+
+        // if the next character isn't the start of an expression
+        if (stream.peek() === '{') {
+            // consume the open curly
+            stream.next();
+
+            if (CodemirrorNifiLanguagePackage.PARAMETER === context) {
+                // there may be an optional single/double quote
+                if (stream.peek() === "'") {
+                    // consume the single quote
+                    stream.next();
+
+                    // new expression start
+                    states.push({
+                        context: CodemirrorNifiLanguagePackage.SINGLE_QUOTE_PARAMETER
+                    });
+                } else if (stream.peek() === '"') {
+                    // consume the double quote
+                    stream.next();
+
+                    // new expression start
+                    states.push({
+                        context: CodemirrorNifiLanguagePackage.DOUBLE_QUOTE_PARAMETER
+                    });
+                } else {
+                    // new expression start
+                    states.push({
+                        context: CodemirrorNifiLanguagePackage.PARAMETER
+                    });
+                }
+            } else {
+                // new expression start
+                states.push({
+                    context: context
+                });
+            }
+
+            // consume any addition whitespace
+            stream.eatSpace();
+
+            return 'bracket';
+        }
+        // not a valid start sequence
+        return null;
+    }
+
+    public getLanguageMode(config: NfLanguageDefinition): NfLanguageConfig {
+        const self: CodemirrorNifiLanguagePackage = this;
+        let currentState: string = CodemirrorNifiLanguagePackage.INVALID;
+
+        // establish parameter support
+        if (config.parameterListing) {
+            this.enableParameters();
+            this.setParameters(config.parameterListing);
+        } else {
+            this.disableParameters();
+        }
+
+        // establish el support
+        if (config.supportsEl) {
+            this.enableEl();
+        } else {
+            this.disableEl();
+        }
+
+        /**
+         * Handles dollars identifies on the stream.
+         *
+         * @param {StringStream} stream   The character stream
+         * @param {object} state    The current state
+         */
+        const handleStringLiteral = (stream: any, state: any): string | null => {
+            const current: string | null = stream.next();
+            let foundTrailing = false;
+            let foundEscapeChar = false;
+
+            // locate a closing string delimitor
+            const foundStringLiteral: boolean = stream.eatWhile((ch: string) => {
+                // we've just found the trailing delimitor, stop
+                if (foundTrailing) {
+                    return false;
+                }
+
+                // if this is the trailing delimitor, only consume
+                // if we did not see the escape character on the
+                // previous iteration
+                if (ch === current) {
+                    foundTrailing = !foundEscapeChar;
+                }
+
+                // reset the escape character flag
+                foundEscapeChar = false;
+
+                // if this is the escape character, set the flag
+                if (ch === '\\') {
+                    foundEscapeChar = true;
+                }
+
+                // consume this character
+                return true;
+            });
+
+            // if we found the trailing delimitor
+            if (foundStringLiteral) {
+                return 'string';
+            }
+
+            // there is no trailing delimitor... clear the current context
+            state.context = CodemirrorNifiLanguagePackage.INVALID;
+            currentState = CodemirrorNifiLanguagePackage.INVALID;
+
+            stream.skipToEnd();
+            return null;
+        };
+
+        const handleParameterEnd = (
+            stream: any,
+            state: any,
+            states: any,
+            parameterPredicate: () => boolean
+        ): string | null => {
+            if (parameterPredicate()) {
+                // consume the single/double quote
+                stream.next();
+
+                // verify the next character closes the parameter reference
+                if (stream.peek() === '}') {
+                    // -----------------
+                    // end of expression
+                    // -----------------
+
+                    // consume the close
+                    stream.next();
+
+                    // signifies the end of a parameter reference
+                    if (typeof states.pop() === 'undefined') {
+                        return null;
+                    } else {
+                        // style as expression
+                        return 'bracket';
                     }
-                };
-            };
+                } else {
+                    // ----------
+                    // unexpected
+                    // ----------
+
+                    // consume and move along
+                    stream.skipToEnd();
+                    state.context = CodemirrorNifiLanguagePackage.INVALID;
+                    currentState = CodemirrorNifiLanguagePackage.INVALID;
+
+                    // unexpected...
+                    return null;
+                }
+            } else {
+                // ----------
+                // unexpected
+                // ----------
+
+                // consume and move along
+                stream.skipToEnd();
+                state.context = CodemirrorNifiLanguagePackage.INVALID;
+                currentState = CodemirrorNifiLanguagePackage.INVALID;
+
+                // unexpected...
+                return null;
+            }
+        };
+
+        // builds the states based off the specified initial value
+        const buildStates = (initialStates: any): any => {
+            // each state has a context
+            const states = initialStates;
 
             return {
-                startState: function () {
+                copy: () => {
+                    const copy: any[] = [];
+                    for (let i = 0; i < states.length; i++) {
+                        copy.push({
+                            context: states[i].context
+                        });
+                    }
+                    return copy;
+                },
+                get: () => {
+                    if (states.length === 0) {
+                        return {
+                            context: null
+                        };
+                    } else {
+                        return states[states.length - 1];
+                    }
+                },
+                push: (state: any) => {
+                    currentState = state.context;
+                    return states.push(state);
+                },
+                pop: () => {
+                    const state = states.pop();
+
+                    // now get the next last item and save the context if appropriate
+                    const current = states.at(-1);
+                    if (current) {
+                        currentState = current.context;
+                    }
+
+                    return state;
+                }
+            };
+        };
+
+        return {
+            streamParser: {
+                startState: () => {
                     // build states with an empty array
                     return buildStates([]);
                 },
 
-                copyState: function (state: any) {
+                copyState: (state: any) => {
                     // build states with
                     return buildStates(state.copy());
                 },
 
-                token: function (stream: StringStream, states: any) {
+                token: (stream: StringStream, states: any) => {
                     // consume any whitespace
                     if (stream.eatSpace()) {
                         return null;
@@ -153,14 +391,14 @@ export class NfEl {
                     }
 
                     // get the current character
-                    const current: string | null = stream.peek();
+                    const current: string | undefined = stream.peek();
 
                     // if we've hit some comments... will consume the remainder of the line
                     if (current === '#') {
                         // consume the pound
                         stream.next();
 
-                        const afterPound: string | null = stream.peek();
+                        const afterPound: string | undefined = stream.peek();
                         if (afterPound !== '{') {
                             stream.skipToEnd();
                             return 'comment';
@@ -174,21 +412,21 @@ export class NfEl {
                     const state: any = states.get();
 
                     // the current input is invalid
-                    if (state.context === NfEl.INVALID) {
+                    if (state.context === CodemirrorNifiLanguagePackage.INVALID) {
                         stream.skipToEnd();
                         return null;
                     }
 
                     // within an expression
-                    if (state.context === NfEl.EXPRESSION) {
+                    if (state.context === CodemirrorNifiLanguagePackage.EXPRESSION) {
                         const attributeOrSubjectlessFunctionExpression =
                             /^[^'"#${}()[\],:;\/*\\\s\t\r\n0-9][^'"#${}()[\],:;\/*\\\s\t\r\n]*/;
 
                         // attempt to extract a function name
-                        const attributeOrSubjectlessFunctionName: string[] = stream.match(
+                        const attributeOrSubjectlessFunctionName: RegExpMatchArray | null = stream.match(
                             attributeOrSubjectlessFunctionExpression,
                             false
-                        );
+                        ) as RegExpMatchArray | null;
 
                         // if the result returned a match
                         if (
@@ -200,6 +438,7 @@ export class NfEl {
 
                             // if the result returned a match and is followed by a (
                             if (
+                                self.functionSupported &&
                                 self.subjectlessFunctionRegex.test(attributeOrSubjectlessFunctionName[0]) &&
                                 stream.peek() === '('
                             ) {
@@ -208,7 +447,8 @@ export class NfEl {
                                 // --------------------
 
                                 // context change to function
-                                state.context = NfEl.ARGUMENTS;
+                                state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                                currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
 
                                 // style for function
                                 return 'builtin';
@@ -218,7 +458,8 @@ export class NfEl {
                                 // ---------------------
 
                                 // context change to function or subject... not sure yet
-                                state.context = NfEl.SUBJECT_OR_FUNCTION;
+                                state.context = CodemirrorNifiLanguagePackage.SUBJECT_OR_FUNCTION;
+                                currentState = CodemirrorNifiLanguagePackage.SUBJECT_OR_FUNCTION;
 
                                 // this could be an attribute or a partial function name... style as attribute until we know
                                 return 'variable-2';
@@ -229,12 +470,13 @@ export class NfEl {
                             // --------------
 
                             // handle the string literal
-                            const expressionStringResult: string | null = self.handleStringLiteral(stream, state);
+                            const expressionStringResult: string | null = handleStringLiteral(stream, state);
 
                             // considered a quoted variable
                             if (expressionStringResult !== null) {
                                 // context change to function
-                                state.context = NfEl.SUBJECT;
+                                state.context = CodemirrorNifiLanguagePackage.SUBJECT;
+                                currentState = CodemirrorNifiLanguagePackage.SUBJECT;
                             }
 
                             return expressionStringResult;
@@ -245,7 +487,7 @@ export class NfEl {
 
                             const expressionDollarResult: string | null = self.handleStart(
                                 '$',
-                                NfEl.EXPRESSION,
+                                CodemirrorNifiLanguagePackage.EXPRESSION,
                                 stream,
                                 states
                             );
@@ -253,7 +495,8 @@ export class NfEl {
                             // if we've found an embedded expression we need to...
                             if (expressionDollarResult !== null) {
                                 // transition back to subject when this expression completes
-                                state.context = NfEl.SUBJECT;
+                                state.context = CodemirrorNifiLanguagePackage.SUBJECT;
+                                currentState = CodemirrorNifiLanguagePackage.SUBJECT;
                             }
 
                             return expressionDollarResult;
@@ -263,12 +506,18 @@ export class NfEl {
                             // --------------------------
 
                             // handle the nested parameter reference
-                            const parameterReferenceResult = self.handleStart('#', NfEl.PARAMETER, stream, states);
+                            const parameterReferenceResult = self.handleStart(
+                                '#',
+                                CodemirrorNifiLanguagePackage.PARAMETER,
+                                stream,
+                                states
+                            );
 
                             // if we've found an embedded parameter reference we need to...
                             if (parameterReferenceResult !== null) {
                                 // transition back to subject when this parameter reference completes
-                                state.context = NfEl.SUBJECT;
+                                state.context = CodemirrorNifiLanguagePackage.SUBJECT;
+                                currentState = CodemirrorNifiLanguagePackage.SUBJECT;
                             }
 
                             return parameterReferenceResult;
@@ -294,7 +543,8 @@ export class NfEl {
 
                             // consume to move along
                             stream.skipToEnd();
-                            state.context = NfEl.INVALID;
+                            state.context = CodemirrorNifiLanguagePackage.INVALID;
+                            currentState = CodemirrorNifiLanguagePackage.INVALID;
 
                             // unexpected...
                             return null;
@@ -302,7 +552,10 @@ export class NfEl {
                     }
 
                     // within a subject
-                    if (state.context === NfEl.SUBJECT || state.context === NfEl.SUBJECT_OR_FUNCTION) {
+                    if (
+                        state.context === CodemirrorNifiLanguagePackage.SUBJECT ||
+                        state.context === CodemirrorNifiLanguagePackage.SUBJECT_OR_FUNCTION
+                    ) {
                         // if the next character indicates the start of a function call
                         if (current === ':') {
                             // -------------------------
@@ -311,7 +564,8 @@ export class NfEl {
 
                             // consume the colon and update the context
                             stream.next();
-                            state.context = NfEl.FUNCTION;
+                            state.context = CodemirrorNifiLanguagePackage.FUNCTION;
+                            currentState = CodemirrorNifiLanguagePackage.FUNCTION;
 
                             // consume any addition whitespace
                             stream.eatSpace();
@@ -340,7 +594,8 @@ export class NfEl {
 
                             // consume to move along
                             stream.skipToEnd();
-                            state.context = NfEl.INVALID;
+                            state.context = CodemirrorNifiLanguagePackage.INVALID;
+                            currentState = CodemirrorNifiLanguagePackage.INVALID;
 
                             // unexpected...
                             return null;
@@ -348,9 +603,12 @@ export class NfEl {
                     }
 
                     // within a function
-                    if (state.context === NfEl.FUNCTION) {
+                    if (state.context === CodemirrorNifiLanguagePackage.FUNCTION) {
                         // attempt to extract a function name
-                        const functionName = stream.match(/^[a-zA-Z]+/, false);
+                        const functionName: RegExpMatchArray | null = stream.match(
+                            /^[a-zA-Z]+/,
+                            false
+                        ) as RegExpMatchArray | null;
 
                         // if the result returned a match
                         if (functionName !== null && functionName.length === 1) {
@@ -362,13 +620,18 @@ export class NfEl {
                             stream.match(/^[a-zA-Z]+/);
 
                             // see if this matches a known function and is followed by (
-                            if (self.functionRegex.test(functionName[0]) && stream.peek() === '(') {
+                            if (
+                                self.functionSupported &&
+                                self.functionRegex.test(functionName[0]) &&
+                                stream.peek() === '('
+                            ) {
                                 // --------
                                 // function
                                 // --------
 
                                 // change context to arguments
-                                state.context = NfEl.ARGUMENTS;
+                                state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                                currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
 
                                 // style for function
                                 return 'builtin';
@@ -387,7 +650,8 @@ export class NfEl {
 
                             // consume and move along
                             stream.skipToEnd();
-                            state.context = NfEl.INVALID;
+                            state.context = CodemirrorNifiLanguagePackage.INVALID;
+                            currentState = CodemirrorNifiLanguagePackage.INVALID;
 
                             // unexpected...
                             return null;
@@ -395,7 +659,7 @@ export class NfEl {
                     }
 
                     // within arguments
-                    if (state.context === NfEl.ARGUMENTS) {
+                    if (state.context === CodemirrorNifiLanguagePackage.ARGUMENTS) {
                         if (current === '(') {
                             // --------------
                             // argument start
@@ -405,7 +669,8 @@ export class NfEl {
                             stream.next();
 
                             // change context to handle an argument
-                            state.context = NfEl.ARGUMENT;
+                            state.context = CodemirrorNifiLanguagePackage.ARGUMENT;
+                            currentState = CodemirrorNifiLanguagePackage.ARGUMENT;
 
                             // start of arguments
                             return null;
@@ -418,7 +683,8 @@ export class NfEl {
                             stream.next();
 
                             // change context to subject for potential chaining
-                            state.context = NfEl.SUBJECT;
+                            state.context = CodemirrorNifiLanguagePackage.SUBJECT;
+                            currentState = CodemirrorNifiLanguagePackage.SUBJECT;
 
                             // end of arguments
                             return null;
@@ -431,7 +697,8 @@ export class NfEl {
                             stream.next();
 
                             // change context back to argument
-                            state.context = NfEl.ARGUMENT;
+                            state.context = CodemirrorNifiLanguagePackage.ARGUMENT;
+                            currentState = CodemirrorNifiLanguagePackage.ARGUMENT;
 
                             // argument separator
                             return null;
@@ -442,7 +709,8 @@ export class NfEl {
 
                             // consume and move along
                             stream.skipToEnd();
-                            state.context = NfEl.INVALID;
+                            state.context = CodemirrorNifiLanguagePackage.INVALID;
+                            currentState = CodemirrorNifiLanguagePackage.INVALID;
 
                             // unexpected...
                             return null;
@@ -450,19 +718,20 @@ export class NfEl {
                     }
 
                     // within a specific argument
-                    if (state.context === NfEl.ARGUMENT) {
+                    if (state.context === CodemirrorNifiLanguagePackage.ARGUMENT) {
                         if (current === "'" || current === '"') {
                             // --------------
                             // string literal
                             // --------------
 
                             // handle the string literal
-                            const argumentStringResult: string | null = self.handleStringLiteral(stream, state);
+                            const argumentStringResult: string | null = handleStringLiteral(stream, state);
 
                             // successfully processed a string literal...
                             if (argumentStringResult !== null) {
                                 // change context back to arguments
-                                state.context = NfEl.ARGUMENTS;
+                                state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                                currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
                             }
 
                             return argumentStringResult;
@@ -484,7 +753,8 @@ export class NfEl {
                             // fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
                             // change context back to arguments
-                            state.context = NfEl.ARGUMENTS;
+                            state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                            currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
 
                             // style for decimal (use same as number)
                             return 'number';
@@ -494,7 +764,8 @@ export class NfEl {
                             // -------------
 
                             // change context back to arguments
-                            state.context = NfEl.ARGUMENTS;
+                            state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                            currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
 
                             // style for integers
                             return 'number';
@@ -504,7 +775,8 @@ export class NfEl {
                             // -------------
 
                             // change context back to arguments
-                            state.context = NfEl.ARGUMENTS;
+                            state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                            currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
 
                             // style for boolean (use same as number)
                             return 'number';
@@ -517,7 +789,8 @@ export class NfEl {
                             stream.next();
 
                             // change context to subject for potential chaining
-                            state.context = NfEl.SUBJECT;
+                            state.context = CodemirrorNifiLanguagePackage.SUBJECT;
+                            currentState = CodemirrorNifiLanguagePackage.SUBJECT;
 
                             // end of arguments
                             return null;
@@ -529,7 +802,7 @@ export class NfEl {
                             // handle the nested expression
                             const argumentDollarResult: string | null = self.handleStart(
                                 '$',
-                                NfEl.EXPRESSION,
+                                CodemirrorNifiLanguagePackage.EXPRESSION,
                                 stream,
                                 states
                             );
@@ -537,7 +810,8 @@ export class NfEl {
                             // if we've found an embedded expression we need to...
                             if (argumentDollarResult !== null) {
                                 // transition back to arguments when then expression completes
-                                state.context = NfEl.ARGUMENTS;
+                                state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                                currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
                             }
 
                             return argumentDollarResult;
@@ -549,7 +823,7 @@ export class NfEl {
                             // handle the nested parameter reference
                             const parameterReferenceResult: string | null = self.handleStart(
                                 '#',
-                                NfEl.PARAMETER,
+                                CodemirrorNifiLanguagePackage.PARAMETER,
                                 stream,
                                 states
                             );
@@ -557,7 +831,8 @@ export class NfEl {
                             // if we've found an embedded parameter reference we need to...
                             if (parameterReferenceResult !== null) {
                                 // transition back to arguments when this parameter reference completes
-                                state.context = NfEl.ARGUMENTS;
+                                state.context = CodemirrorNifiLanguagePackage.ARGUMENTS;
+                                currentState = CodemirrorNifiLanguagePackage.ARGUMENTS;
                             }
 
                             return parameterReferenceResult;
@@ -568,7 +843,8 @@ export class NfEl {
 
                             // consume and move along
                             stream.skipToEnd();
-                            state.context = NfEl.INVALID;
+                            state.context = CodemirrorNifiLanguagePackage.INVALID;
+                            currentState = CodemirrorNifiLanguagePackage.INVALID;
 
                             // unexpected...
                             return null;
@@ -577,12 +853,15 @@ export class NfEl {
 
                     // within a parameter reference
                     if (
-                        state.context === NfEl.PARAMETER ||
-                        state.context === NfEl.SINGLE_QUOTE_PARAMETER ||
-                        state.context === NfEl.DOUBLE_QUOTE_PARAMETER
+                        state.context === CodemirrorNifiLanguagePackage.PARAMETER ||
+                        state.context === CodemirrorNifiLanguagePackage.SINGLE_QUOTE_PARAMETER ||
+                        state.context === CodemirrorNifiLanguagePackage.DOUBLE_QUOTE_PARAMETER
                     ) {
                         // attempt to extract a parameter name
-                        const parameterName: string[] = stream.match(self.parameterKeyRegex, false);
+                        const parameterName: RegExpMatchArray | null = stream.match(
+                            self.parameterKeyRegex,
+                            false
+                        ) as RegExpMatchArray | null;
 
                         // if the result returned a match
                         if (parameterName !== null && parameterName.length === 1) {
@@ -611,12 +890,12 @@ export class NfEl {
                             }
                         }
 
-                        if (state.context === NfEl.SINGLE_QUOTE_PARAMETER) {
-                            return self.handleParameterEnd(stream, state, states, () => current === "'");
+                        if (state.context === CodemirrorNifiLanguagePackage.SINGLE_QUOTE_PARAMETER) {
+                            return handleParameterEnd(stream, state, states, () => current === "'");
                         }
 
-                        if (state.context === NfEl.DOUBLE_QUOTE_PARAMETER) {
-                            return self.handleParameterEnd(stream, state, states, () => current === '"');
+                        if (state.context === CodemirrorNifiLanguagePackage.DOUBLE_QUOTE_PARAMETER) {
+                            return handleParameterEnd(stream, state, states, () => current === '"');
                         }
 
                         if (current === '}') {
@@ -641,7 +920,8 @@ export class NfEl {
 
                             // consume and move along
                             stream.skipToEnd();
-                            state.context = NfEl.INVALID;
+                            state.context = CodemirrorNifiLanguagePackage.INVALID;
+                            currentState = CodemirrorNifiLanguagePackage.INVALID;
 
                             // unexpected...
                             return null;
@@ -650,12 +930,12 @@ export class NfEl {
 
                     // signifies the potential start of an expression
                     if (current === '$') {
-                        return self.handleStart('$', NfEl.EXPRESSION, stream, states);
+                        return self.handleStart('$', CodemirrorNifiLanguagePackage.EXPRESSION, stream, states);
                     }
 
                     // signifies the potential start of a parameter reference
                     if (current === '#' && self.parametersSupported) {
-                        return self.handleStart('#', NfEl.PARAMETER, stream, states);
+                        return self.handleStart('#', CodemirrorNifiLanguagePackage.PARAMETER, stream, states);
                     }
 
                     // signifies the end of an expression
@@ -676,375 +956,126 @@ export class NfEl {
                     stream.next();
                     return null;
                 }
-            };
-        });
-    }
+            },
+            getAutocompletions: (viewContainerRef: ViewContainerRef) => {
+                return (context: CompletionContext): CompletionResult | null => {
+                    if (!context.explicit || currentState === CodemirrorNifiLanguagePackage.INVALID) {
+                        return null;
+                    }
 
-    private parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
+                    // whether the current context is within a function
+                    const isFunction = (context: string): boolean => {
+                        // attempting to match a function name or already successfully matched a function name
+                        return (
+                            context === CodemirrorNifiLanguagePackage.FUNCTION ||
+                            context === CodemirrorNifiLanguagePackage.ARGUMENTS
+                        );
+                    };
 
-    private parameters: string[] = [];
-    private parameterRegex = new RegExp('^$');
+                    // whether the current context is within a subject-less funciton
+                    const isSubjectlessFunction = (context: string): boolean => {
+                        // within an expression when no characters are found or when the string may be an attribute or a function
+                        return (
+                            context === CodemirrorNifiLanguagePackage.EXPRESSION ||
+                            context === CodemirrorNifiLanguagePackage.SUBJECT_OR_FUNCTION
+                        );
+                    };
 
-    private parameterDetails: { [key: string]: Parameter } = {};
-    private parametersSupported = false;
+                    // whether the current context is within a parameter reference
+                    const isParameterReference = (context: string): boolean => {
+                        // attempting to match a parameter name or already successfully matched a parameter name
+                        return (
+                            context === CodemirrorNifiLanguagePackage.PARAMETER ||
+                            context === CodemirrorNifiLanguagePackage.SINGLE_QUOTE_PARAMETER ||
+                            context === CodemirrorNifiLanguagePackage.DOUBLE_QUOTE_PARAMETER
+                        );
+                    };
 
-    private subjectlessFunctions: string[] = [];
-    private functions: string[] = [];
+                    let options: string[] = [];
+                    let useFunctionDetails = true;
 
-    private subjectlessFunctionRegex = new RegExp('^$');
-    private functionRegex = new RegExp('^$');
+                    // determine the options based on the current context
+                    console.log('currentContext', currentState);
 
-    private functionDetails: { [key: string]: ElFunction } = {};
+                    if (isSubjectlessFunction(currentState)) {
+                        options = self.subjectlessFunctions;
+                    } else if (isParameterReference(currentState)) {
+                        options = self.parameters;
+                        useFunctionDetails = false;
+                    } else if (isFunction(currentState)) {
+                        options = self.functions;
+                    }
 
-    // valid context states
-    private static readonly SUBJECT: string = 'subject';
-    private static readonly FUNCTION: string = 'function';
-    private static readonly SUBJECT_OR_FUNCTION: string = 'subject-or-function';
-    private static readonly EXPRESSION: string = 'expression';
-    private static readonly ARGUMENTS: string = 'arguments';
-    private static readonly ARGUMENT: string = 'argument';
-    private static readonly PARAMETER: string = 'parameter';
-    private static readonly SINGLE_QUOTE_PARAMETER: string = 'single-quote-parameter';
-    private static readonly DOUBLE_QUOTE_PARAMETER: string = 'double-quote-parameter';
-    private static readonly INVALID: string = 'invalid';
+                    // if there are no options, return null
+                    if (options.length === 0) {
+                        return null;
+                    }
 
-    /**
-     * Handles dollars identifies on the stream.
-     *
-     * @param {string} startChar    The start character
-     * @param {string} context      The context to transition to if we match on the specified start character
-     * @param {object} stream       The character stream
-     * @param {object} states       The states
-     */
-    private handleStart(startChar: string, context: string, stream: StringStream, states: any): null | string {
-        // determine the number of sequential start chars
-        let startCharCount = 0;
-        stream.eatWhile(function (ch: string) {
-            if (ch === startChar) {
-                startCharCount++;
-                return true;
-            }
-            return false;
-        });
+                    const word = context.matchBefore(/\w*/);
+                    if (!word) {
+                        return null;
+                    }
 
-        // if there is an even number of consecutive start chars this expression is escaped
-        if (startCharCount % 2 === 0) {
-            // do not style an escaped expression
-            return null;
-        }
+                    let tokenValue = word.text.toLowerCase().trim();
 
-        // if there was an odd number of consecutive start chars and there was more than 1
-        if (startCharCount > 1) {
-            // back up one char so we can process the start sequence next iteration
-            stream.backUp(1);
-
-            // do not style the preceding start chars
-            return null;
-        }
-
-        // if the next character isn't the start of an expression
-        if (stream.peek() === '{') {
-            // consume the open curly
-            stream.next();
-
-            if (NfEl.PARAMETER === context) {
-                // there may be an optional single/double quote
-                if (stream.peek() === "'") {
-                    // consume the single quote
-                    stream.next();
-
-                    // new expression start
-                    states.push({
-                        context: NfEl.SINGLE_QUOTE_PARAMETER
-                    });
-                } else if (stream.peek() === '"') {
-                    // consume the double quote
-                    stream.next();
-
-                    // new expression start
-                    states.push({
-                        context: NfEl.DOUBLE_QUOTE_PARAMETER
-                    });
-                } else {
-                    // new expression start
-                    states.push({
-                        context: NfEl.PARAMETER
-                    });
-                }
-            } else {
-                // new expression start
-                states.push({
-                    context: context
-                });
-            }
-
-            // consume any addition whitespace
-            stream.eatSpace();
-
-            return 'bracket';
-        }
-        // not a valid start sequence
-        return null;
-    }
-
-    /**
-     * Handles dollars identifies on the stream.
-     *
-     * @param {StringStream} stream   The character stream
-     * @param {object} state    The current state
-     */
-    private handleStringLiteral(stream: StringStream, state: any): string | null {
-        const current: string | null = stream.next();
-        let foundTrailing = false;
-        let foundEscapeChar = false;
-
-        // locate a closing string delimitor
-        const foundStringLiteral: boolean = stream.eatWhile(function (ch: string) {
-            // we've just found the trailing delimitor, stop
-            if (foundTrailing) {
-                return false;
-            }
-
-            // if this is the trailing delimitor, only consume
-            // if we did not see the escape character on the
-            // previous iteration
-            if (ch === current) {
-                foundTrailing = !foundEscapeChar;
-            }
-
-            // reset the escape character flag
-            foundEscapeChar = false;
-
-            // if this is the escape character, set the flag
-            if (ch === '\\') {
-                foundEscapeChar = true;
-            }
-
-            // consume this character
-            return true;
-        });
-
-        // if we found the trailing delimitor
-        if (foundStringLiteral) {
-            return 'string';
-        }
-
-        // there is no trailing delimitor... clear the current context
-        state.context = NfEl.INVALID;
-        stream.skipToEnd();
-        return null;
-    }
-
-    private handleParameterEnd(
-        stream: StringStream,
-        state: any,
-        states: any,
-        parameterPredicate: () => boolean
-    ): string | null {
-        if (parameterPredicate()) {
-            // consume the single/double quote
-            stream.next();
-
-            // verify the next character closes the parameter reference
-            if (stream.peek() === '}') {
-                // -----------------
-                // end of expression
-                // -----------------
-
-                // consume the close
-                stream.next();
-
-                // signifies the end of a parameter reference
-                if (typeof states.pop() === 'undefined') {
-                    return null;
-                } else {
-                    // style as expression
-                    return 'bracket';
-                }
-            } else {
-                // ----------
-                // unexpected
-                // ----------
-
-                // consume and move along
-                stream.skipToEnd();
-                state.context = NfEl.INVALID;
-
-                // unexpected...
-                return null;
-            }
-        } else {
-            // ----------
-            // unexpected
-            // ----------
-
-            // consume and move along
-            stream.skipToEnd();
-            state.context = NfEl.INVALID;
-
-            // unexpected...
-            return null;
-        }
-    }
-
-    public setViewContainerRef(viewContainerRef: ViewContainerRef, renderer: Renderer2): void {
-        this.viewContainerRef = viewContainerRef;
-        this.renderer = renderer;
-    }
-
-    public configureAutocomplete(): void {
-        const self: NfEl = this;
-
-        CodeMirror.commands.autocomplete = function (cm: Editor) {
-            CodeMirror.showHint(cm, function (editor: Editor) {
-                // Find the token at the cursor
-                const cursor: CodeMirror.Position = editor.getCursor();
-                const token: CodeMirror.Token = editor.getTokenAt(cursor);
-                let includeAll = false;
-                const state = token.state.get();
-
-                // whether the current context is within a function
-                const isFunction = function (context: string): boolean {
-                    // attempting to match a function name or already successfully matched a function name
-                    return context === NfEl.FUNCTION || context === NfEl.ARGUMENTS;
-                };
-
-                // whether the current context is within a subject-less funciton
-                const isSubjectlessFunction = function (context: string): boolean {
-                    // within an expression when no characters are found or when the string may be an attribute or a function
-                    return context === NfEl.EXPRESSION || context === NfEl.SUBJECT_OR_FUNCTION;
-                };
-
-                // whether the current context is within a parameter reference
-                const isParameterReference = function (context: string): boolean {
-                    // attempting to match a function name or already successfully matched a function name
-                    return (
-                        context === NfEl.PARAMETER ||
-                        context === NfEl.SINGLE_QUOTE_PARAMETER ||
-                        context === NfEl.DOUBLE_QUOTE_PARAMETER
-                    );
-                };
-
-                // only support suggestion in certain cases
-                const context: string = state.context;
-                if (!isSubjectlessFunction(context) && !isFunction(context) && !isParameterReference(context)) {
-                    return null;
-                }
-
-                // lower case for case-insensitive comparison
-                const value: string = token.string.toLowerCase();
-
-                // trim to ignore extra whitespace
-                const trimmed: string = value.trim();
-
-                // identify potential patterns and increment the start location appropriately
-                if (trimmed === '${' || trimmed === ':' || trimmed === '#{' || trimmed === "#{'" || trimmed === '#{"') {
-                    includeAll = true;
-                    token.start += value.length;
-                }
-
-                let options: string[] = self.functions;
-                let useFunctionDetails = true;
-                if (isSubjectlessFunction(context)) {
-                    options = self.subjectlessFunctions;
-                } else if (isParameterReference(context)) {
-                    options = self.parameters;
-                    useFunctionDetails = false;
-                }
-
-                const getCompletions = function (options: string[]): Hint[] {
-                    const found: NfElHint[] = [];
-
-                    options.forEach((opt: string) => {
-                        if (!found.some((item) => item.text == opt)) {
-                            if (includeAll || opt.toLowerCase().indexOf(value) === 0) {
+                    const completions: Completion[] = options
+                        .filter((opt) => tokenValue === '' || opt.toLowerCase().startsWith(tokenValue))
+                        .map((opt) => ({
+                            label: opt,
+                            type: useFunctionDetails ? 'function' : 'variable',
+                            info: (): CompletionInfo => {
+                                // create and configure the tooltip
+                                let componentRef: ComponentRef<any>;
                                 if (useFunctionDetails) {
-                                    found.push({
-                                        text: opt,
-                                        functionDetails: self.functionDetails[opt],
-                                        render: function (element: HTMLElement, hints: Hints, data: any): void {
-                                            element.textContent = data.text;
-                                        }
-                                    });
+                                    componentRef = viewContainerRef.createComponent(ElFunctionTip);
                                 } else {
-                                    found.push({
-                                        text: opt,
-                                        parameterDetails: self.parameterDetails[opt],
-                                        render: function (element: HTMLElement, hints: Hints, data: any): void {
-                                            element.textContent = data.text;
-                                        }
-                                    });
+                                    componentRef = viewContainerRef.createComponent(ParameterTip);
                                 }
+
+                                if (useFunctionDetails) {
+                                    const data: ElFunctionTipInput = {
+                                        elFunction: self.functionDetails[opt]
+                                    };
+                                    componentRef.setInput('data', data);
+                                } else {
+                                    const data: ParameterTipInput = {
+                                        parameter: self.parameterDetails[opt]
+                                    };
+                                    componentRef.setInput('data', data);
+                                }
+
+                                componentRef.changeDetectorRef.detectChanges();
+
+                                return {
+                                    dom: componentRef.location.nativeElement,
+                                    destroy: () => {
+                                        viewContainerRef.clear();
+                                    }
+                                };
                             }
-                        }
-                    });
+                        }));
 
-                    return found;
+                    return {
+                        from: word.from,
+                        options: completions
+                    };
                 };
-
-                // get the suggestions for the current context
-                let completionList: Hint[] = getCompletions(options);
-                completionList = completionList.sort((a, b) => {
-                    return self.nifiCommon.compareString(a.text, b.text);
-                });
-
-                const completions: Hints = {
-                    list: completionList,
-                    from: {
-                        line: cursor.line,
-                        ch: token.start
-                    },
-                    to: {
-                        line: cursor.line,
-                        ch: token.end
-                    }
-                };
-
-                CodeMirror.on(completions, 'select', function (completion: any, element: any) {
-                    if (self.viewContainerRef && self.renderer) {
-                        const { x, y, width, height } = element.getBoundingClientRect();
-
-                        // clear any existing tooltips
-                        self.viewContainerRef.clear();
-
-                        // create and configure the tooltip
-                        let componentRef: ComponentRef<any> | undefined;
-                        if (completion.parameterDetails) {
-                            componentRef = self.viewContainerRef.createComponent(ParameterTip);
-                            componentRef.setInput('bottom', window.innerHeight - (y + height));
-                            componentRef.setInput('left', x + width + 20);
-                            componentRef.setInput('data', {
-                                parameter: completion.parameterDetails
-                            });
-                        } else if (completion.functionDetails) {
-                            componentRef = self.viewContainerRef.createComponent(ElFunctionTip);
-                            componentRef.setInput('bottom', window.innerHeight - (y + height));
-                            componentRef.setInput('left', x + width + 20);
-                            componentRef.setInput('data', {
-                                elFunction: completion.functionDetails
-                            });
-                        }
-
-                        if (componentRef) {
-                            // move the newly created component, so it's co-located with the completion list... this
-                            // is helpful when it comes to ensuring the tooltip is cleaned up appropriately
-                            self.renderer.appendChild(element.parentElement, componentRef.location.nativeElement);
-                        }
-                    }
-                });
-                CodeMirror.on(completions, 'close', function () {
-                    self.viewContainerRef?.clear();
-                });
-
-                return completions;
-            });
+            }
         };
+    }
+
+    private enableEl(): void {
+        this.functionSupported = true;
+    }
+
+    private disableEl(): void {
+        this.functionSupported = false;
     }
 
     /**
      * Enables parameter referencing.
      */
-    public enableParameters(): void {
+    private enableParameters(): void {
         this.parameters = [];
         this.parameterRegex = new RegExp('^$');
         this.parameterDetails = {};
@@ -1057,7 +1088,7 @@ export class NfEl {
      *
      * @param parameterListing
      */
-    public setParameters(parameterListing: Parameter[]): void {
+    private setParameters(parameterListing: Parameter[]): void {
         parameterListing.forEach((parameter) => {
             this.parameters.push(parameter.name);
             this.parameterDetails[parameter.name] = parameter;
@@ -1069,7 +1100,7 @@ export class NfEl {
     /**
      * Disables parameter referencing.
      */
-    public disableParameters(): void {
+    private disableParameters(): void {
         this.parameters = [];
         this.parameterRegex = new RegExp('^$');
         this.parameterDetails = {};
@@ -1084,23 +1115,5 @@ export class NfEl {
      */
     public getLanguageId(): string {
         return 'nfel';
-    }
-
-    /**
-     * Returns whether this editor mode supports EL.
-     *
-     * @returns {boolean}   Whether the editor supports EL
-     */
-    public supportsEl(): boolean {
-        return true;
-    }
-
-    /**
-     * Returns whether this editor mode supports parameter reference.
-     *
-     * @returns {boolean}   Whether the editor supports parameter reference
-     */
-    public supportsParameterReference(): boolean {
-        return this.parametersSupported;
     }
 }
