@@ -88,7 +88,7 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
             SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, INFER_SCHEMA
         };
 
-        properties.add(buildStrategyProperty(strategies));
+        properties.add(buildSchemaAccessStrategyProperty(strategies));
 
         properties.add(SCHEMA_REGISTRY);
         properties.add(SCHEMA_NAME);

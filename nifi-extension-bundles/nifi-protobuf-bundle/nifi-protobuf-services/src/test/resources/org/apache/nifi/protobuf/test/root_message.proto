@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package org.apache.nifi.protobuf.test;
+
+message RootMessage {
+  .org.apache.nifi.protobuf.test.NestedMessage nestedMessage = 1;
+}
+
+message NestedMessage {
+  .org.apache.nifi.protobuf.test.TestEnum testEnum = 2;
+
+}
+
+enum TestEnum {
+  ENUM_VALUE_1 = 0;
+  ENUM_VALUE_2 = 1;
+  ENUM_VALUE_3 = 2;
+}

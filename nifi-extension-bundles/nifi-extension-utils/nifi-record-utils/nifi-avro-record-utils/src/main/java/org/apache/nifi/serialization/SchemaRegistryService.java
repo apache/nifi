@@ -94,13 +94,13 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         final List<PropertyDescriptor> properties = new ArrayList<>();
 
         final AllowableValue[] strategies = getSchemaAccessStrategyValues().toArray(new AllowableValue[0]);
-        properties.add(buildStrategyProperty(strategies));
+        properties.add(buildSchemaAccessStrategyProperty(strategies));
 
         properties.add(SCHEMA_REGISTRY);
         properties.add(SCHEMA_NAME);
         properties.add(SCHEMA_VERSION);
         properties.add(SCHEMA_BRANCH_NAME);
-        properties.add(SCHEMA_TEXT);
+        properties.add(buildSchemaTextProperty());
         properties.add(SCHEMA_REFERENCE_READER);
 
         return properties;
@@ -126,7 +126,11 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
     }
 
-    protected PropertyDescriptor buildStrategyProperty(final AllowableValue[] values) {
+    protected PropertyDescriptor buildSchemaTextProperty() {
+        return SCHEMA_TEXT;
+    }
+
+    protected PropertyDescriptor buildSchemaAccessStrategyProperty(final AllowableValue[] values) {
         return new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
                 .allowableValues(values)

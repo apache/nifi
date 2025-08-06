@@ -54,15 +54,17 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"protobuf", "record", "reader", "parser"})
-@CapabilityDescription("Parses a Protocol Buffers message from binary format.")
+@CapabilityDescription("Parses a Protocol Buffers message from binary format. " +
+        "If schema can be fetched from schema registry or pasted inline into property, UniversalProtobufReader should be used instead. " +
+        "Note that UniversalProtobufReader has the limitation that when used on multinode configuration, proto files need to be copied to every node manually.")
 public class ProtobufReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    private static final String ANY_PROTO = "google/protobuf/any.proto";
-    private static final String DURATION_PROTO = "google/protobuf/duration.proto";
-    private static final String EMPTY_PROTO = "google/protobuf/empty.proto";
-    private static final String STRUCT_PROTO = "google/protobuf/struct.proto";
-    private static final String TIMESTAMP_PROTO = "google/protobuf/timestamp.proto";
-    private static final String WRAPPERS_PROTO = "google/protobuf/wrappers.proto";
+    static final String ANY_PROTO = "google/protobuf/any.proto";
+    static final String DURATION_PROTO = "google/protobuf/duration.proto";
+    static final String EMPTY_PROTO = "google/protobuf/empty.proto";
+    static final String STRUCT_PROTO = "google/protobuf/struct.proto";
+    static final String TIMESTAMP_PROTO = "google/protobuf/timestamp.proto";
+    static final String WRAPPERS_PROTO = "google/protobuf/wrappers.proto";
 
     private static final AllowableValue GENERATE_FROM_PROTO_FILE = new AllowableValue("generate-from-proto-file",
             "Generate from Proto file", "The record schema is generated from the provided proto file");

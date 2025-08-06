@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package org.apache.nifi.protobuf.test;
+
+message UserProfile {
+  string user_id = 1;
+  int32 age = 4;
+  UserStatus status = 5;
+  Address address = 7;
+}
+
+message Address {
+  string street = 1;
+}
+
+enum UserStatus {
+  INACTIVE = 0;
+  ACTIVE = 1;
+} 

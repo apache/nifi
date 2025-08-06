@@ -30,6 +30,7 @@ import java.util.Map;
 
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRootMessageSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -77,6 +78,19 @@ public class TestProtobufDataConverter {
         assertNull(nestedRecord2.getValue("stringOption"));
         assertNull(nestedRecord2.getValue("booleanOption"));
         assertEquals(3, nestedRecord2.getValue("int32Option"));
+    }
+
+    // Test to ensure that ProtobufDataConverter can handle nested messages.
+    @Test
+    public void testDataConverterForRootMessage() throws Descriptors.DescriptorValidationException, IOException {
+        final Schema schema = loadRootMessageSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("org.apache.nifi.protobuf.test.RootMessage");
+
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "org.apache.nifi.protobuf.test.RootMessage", recordSchema, false, false);
+        final MapRecord record = dataConverter.createRecord(ProtoTestUtil.generateInputDataForRootMessage());
+
+        final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
+        assertEquals("ENUM_VALUE_3", nestedRecord.getValue("testEnum"));
     }
 
     @Test

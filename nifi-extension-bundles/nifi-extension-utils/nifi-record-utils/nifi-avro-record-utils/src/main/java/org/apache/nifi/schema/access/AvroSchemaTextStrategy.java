@@ -28,7 +28,6 @@ import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-
 public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
 
