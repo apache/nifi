@@ -16,9 +16,14 @@
  */
 package org.apache.nifi.processors.aws.kinesis3;
 
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
@@ -55,6 +60,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
@@ -64,7 +70,12 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.RECORD_COUNT;
+import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.RECORD_ERROR_MESSAGE;
+import static org.apache.nifi.processors.aws.kinesis3.JsonRecordAssert.assertFlowFileRecordPayloads;
+import static org.apache.nifi.processors.aws.kinesis3.JsonRecordAssert.assertFlowFileRecords;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -335,6 +346,43 @@ class ConsumeKinesis3StreamIT {
         flowFiles.getLast().assertContentEquals(secondMessage);
     }
 
+    @Test
+    void testRecordProcessingWithSchemaChangesAndInvalidRecords() throws InitializationException {
+        streamClient.createStream(1);
+
+        final TestRunner recordRunner = createRecordTestRunner(streamName, applicationName);
+
+        final List<String> testRecords = List.of(
+                "{\"name\":\"John\",\"age\":30}", // Schema A
+                "{\"name\":\"Jane\",\"age\":25}", // Schema A
+                "{invalid json}",
+                "{\"id\":\"123\",\"value\":\"test\"}" // Schema B
+        );
+
+        testRecords.forEach(record -> streamClient.putRecord("key", record));
+
+        runProcessorWithInitAndWaitForFiles(recordRunner, 3);
+
+        recordRunner.assertTransferCount(REL_SUCCESS, 2);
+        final List<MockFlowFile> successFlowFiles = recordRunner.getFlowFilesForRelationship(REL_SUCCESS);
+
+        final MockFlowFile firstFlowFile = successFlowFiles.getFirst();
+        assertEquals("2", firstFlowFile.getAttribute(RECORD_COUNT));
+        assertFlowFileRecordPayloads(firstFlowFile, testRecords.getFirst(), testRecords.get(1));
+
+        final MockFlowFile secondFlowFile = successFlowFiles.get(1);
+        assertEquals("1", secondFlowFile.getAttribute(RECORD_COUNT));
+        assertFlowFileRecordPayloads(secondFlowFile, testRecords.getLast());
+
+        // Verify failure record
+        recordRunner.assertTransferCount(REL_PARSE_FAILURE, 1);
+        final List<MockFlowFile> parseFailureFlowFiles = recordRunner.getFlowFilesForRelationship(REL_PARSE_FAILURE);
+        final MockFlowFile parseFailureFlowFile = parseFailureFlowFiles.getFirst();
+        
+        parseFailureFlowFile.assertContentEquals(testRecords.get(2));
+        assertNotNull(parseFailureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
+    }
+
     private TestRunner createTestRunner(final String streamName, final String applicationName) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesis3Stream.class);
 
@@ -363,28 +411,53 @@ class ConsumeKinesis3StreamIT {
         return runner;
     }
 
-    private void runProcessorWithInitAndWaitForFiles(final TestRunner runner, final int expectedRecordCount) {
-        runProcessorAndWaitForFiles(runner, expectedRecordCount, true);
+    private TestRunner createRecordTestRunner(final String streamName, final String applicationName) throws InitializationException {
+        final TestRunner runner = createTestRunner(streamName, applicationName);
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("json-reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("json-writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA.getValue());
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ConsumeKinesis3Stream.RECORD_READER, "json-reader");
+        runner.setProperty(ConsumeKinesis3Stream.RECORD_WRITER, "json-writer");
+
+        runner.assertValid();
+        return runner;
     }
 
-    private void runProcessorAndWaitForFiles(final TestRunner runner, final int expectedRecordCount) {
-        runProcessorAndWaitForFiles(runner, expectedRecordCount, false);
+    private void runProcessorWithInitAndWaitForFiles(final TestRunner runner, final int expectedFlowFileCount) {
+        runProcessorAndWaitForFiles(runner, expectedFlowFileCount, true);
     }
 
-    private void runProcessorAndWaitForFiles(final TestRunner runner, final int expectedRecordCount, final boolean withInit) {
-        logger.info("Running processor and waiting for {} files", expectedRecordCount);
+    private void runProcessorAndWaitForFiles(final TestRunner runner, final int expectedFlowFileCount) {
+        runProcessorAndWaitForFiles(runner, expectedFlowFileCount, false);
+    }
+
+    private void runProcessorAndWaitForFiles(final TestRunner runner, final int expectedFlowFileCount, final boolean withInit) {
+        logger.info("Running processor and waiting for {} files", expectedFlowFileCount);
 
         if (withInit) {
             runner.run(1, false, true);
         }
 
+        final Set<Relationship> relationships = runner.getProcessor().getRelationships();
+
         while (true) {
             runner.run(1, false, false);
 
-            final int currentCount = runner.getFlowFilesForRelationship(REL_SUCCESS).size();
-            logger.info("Current files count: {}, expected: {}", currentCount, expectedRecordCount);
+            final int currentCount = relationships.stream()
+                    .map(runner::getFlowFilesForRelationship)
+                    .mapToInt(Collection::size)
+                    .sum();
+            logger.info("Current files count: {}, expected: {}", currentCount, expectedFlowFileCount);
 
-            if (currentCount >= expectedRecordCount) {
+            if (currentCount >= expectedFlowFileCount) {
                 return;
             }
 

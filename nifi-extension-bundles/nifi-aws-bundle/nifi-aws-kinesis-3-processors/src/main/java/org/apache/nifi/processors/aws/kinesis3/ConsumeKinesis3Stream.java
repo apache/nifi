@@ -40,6 +40,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.kinesis3.ReaderRecordProcessor.ProcessingResult;
 import org.apache.nifi.processors.aws.kinesis3.RecordBuffer.ShardBufferId;
 import org.apache.nifi.processors.aws.kinesis3.RecordBuffer.ShardBufferLease;
 import org.apache.nifi.processors.aws.region.RegionUtilV2;
@@ -302,8 +303,8 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
             .description("FlowFiles that failed to parse using the configured Record Reader.")
             .build();
 
-    private static final Set<Relationship> RAW_FILE_PROPERTIES = Set.of(REL_SUCCESS);
-    private static final Set<Relationship> RECORD_FILE_PROPERTIES = Set.of(REL_SUCCESS, REL_PARSE_FAILURE);
+    private static final Set<Relationship> RAW_FILE_RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RECORD_FILE_RELATIONSHIPS = Set.of(REL_SUCCESS, REL_PARSE_FAILURE);
 
     private volatile DynamoDbAsyncClient dynamoDbClient;
     private volatile CloudWatchAsyncClient cloudWatchClient;
@@ -311,6 +312,7 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
     private volatile Scheduler kinesisScheduler;
 
     private volatile RecordBuffer recordBuffer;
+    private volatile Optional<ReaderRecordProcessor> readerRecordProcessor = Optional.empty();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -319,16 +321,16 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return RAW_FILE_PROPERTIES;
+        return readerRecordProcessor.isPresent() ? RECORD_FILE_RELATIONSHIPS : RAW_FILE_RELATIONSHIPS;
     }
 
     @OnScheduled
     public void setup(final ProcessContext context) {
-// TODO: support Record Reader and Writer.
-//        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-//        if (recordReaderFactory != null) {
-//            final RecordSetWriterFactory recordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-//        }
+        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        if (recordReaderFactory != null) {
+            final RecordSetWriterFactory recordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            readerRecordProcessor = Optional.of(new ReaderRecordProcessor(recordReaderFactory, recordWriterFactory, getLogger()));
+        }
 
         final Region region = Region.of(context.getProperty(REGION).getValue());
         final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
@@ -461,6 +463,7 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
         }
 
         recordBuffer = null;
+        readerRecordProcessor = Optional.empty();
     }
 
     @Override
@@ -483,15 +486,10 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
             }
 
             final String shardId = lease.shardId();
-
-            processRecordsAsRaw(session, shardId, records);
-
-            // TODO support Record Reader and Writer.
-//            if (recordProcessor == null) {
-//                processRecordsAsRaw(session, shardId, records);
-//            } else {
-//                processRecordsWithRecordProcessor(recordProcessor, session, shardId, records);
-//            }
+            readerRecordProcessor.ifPresentOrElse(
+                    p -> processRecordsWithReader(p, session, shardId, records),
+                    () -> processRecordsAsRaw(session, shardId, records)
+            );
 
             session.adjustCounter("Records Processed", records.size(), false);
 
@@ -515,13 +513,20 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
 
     private static void processRecordsAsRaw(final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
         for (final KinesisClientRecord record : records) {
-            final FlowFile flowFile = session.create();
-            session.putAllAttributes(flowFile, ConsumeKinesis3StreamAttributes.fromKinesisRecord(shardId, record));
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, ConsumeKinesis3StreamAttributes.fromKinesisRecord(shardId, record));
 
-            session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
+            flowFile = session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
 
             session.transfer(flowFile, REL_SUCCESS);
         }
+    }
+    
+    private static void processRecordsWithReader(final ReaderRecordProcessor recordProcessor, final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
+        final ProcessingResult result = recordProcessor.processRecords(session, shardId, records);
+        
+        session.transfer(result.successFlowFiles(), REL_SUCCESS);
+        session.transfer(result.parseFailureFlowFiles(), REL_PARSE_FAILURE);
     }
 
     /**
