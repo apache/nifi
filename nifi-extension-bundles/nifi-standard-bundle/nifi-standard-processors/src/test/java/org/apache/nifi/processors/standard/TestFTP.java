@@ -182,8 +182,8 @@ public class TestFTP {
 
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        HashMap<String, String> map1 = new HashMap<>();
-        HashMap<String, String> map2 = new HashMap<>();
+        Map<String, String> map1 = new HashMap<>();
+        Map<String, String> map2 = new HashMap<>();
         map1.put(CoreAttributes.FILENAME.key(), "randombytes-xx");
         map2.put(CoreAttributes.FILENAME.key(), "randombytes-yy");
 

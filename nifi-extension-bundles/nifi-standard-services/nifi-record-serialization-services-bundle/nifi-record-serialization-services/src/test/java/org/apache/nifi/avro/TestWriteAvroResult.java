@@ -20,6 +20,7 @@ package org.apache.nifi.avro;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -343,7 +344,7 @@ public abstract class TestWriteAvroResult {
                 }
             } else if (recordValue instanceof Object[]) {
                 assertInstanceOf(Array.class, avroValue, fieldName + " should have been instanceof Array");
-                final Array<?> avroArray = (Array<?>) avroValue;
+                final GenericArray<?> avroArray = (GenericArray<?>) avroValue;
                 final Object[] recordArray = (Object[]) recordValue;
                 assertEquals(recordArray.length, avroArray.size(),
                         fieldName + " not equal");

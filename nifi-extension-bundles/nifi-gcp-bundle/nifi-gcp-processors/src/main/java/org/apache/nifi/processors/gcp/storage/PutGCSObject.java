@@ -398,7 +398,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                     blobWriteOptions.add(Storage.BlobWriteOption.disableGzipContent());
                 }
 
-                final HashMap<String, String> userMetadata = new HashMap<>();
+                final Map<String, String> userMetadata = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
                     if (entry.getKey().isDynamic()) {
                         final String value = context.getProperty(

@@ -175,7 +175,7 @@ final class BufferedStatusHistoryStorage implements StatusHistoryStorage {
         }
 
         private <T> void flush(final BlockingQueue<T> source, final Consumer<Collection<T>> target) {
-            final ArrayList<T> statusEntries = new ArrayList<>(persistBatchSize);
+            final List<T> statusEntries = new ArrayList<>(persistBatchSize);
             source.drainTo(statusEntries, persistBatchSize);
 
             if (!statusEntries.isEmpty()) {

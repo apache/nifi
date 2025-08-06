@@ -78,7 +78,7 @@ public class CredentialsFactory {
      */
     public Collection<ValidationResult> validate(final ValidationContext validationContext) {
         final CredentialsStrategy selectedStrategy = selectPrimaryStrategy(validationContext);
-        final ArrayList<ValidationResult> validationFailureResults = new ArrayList<>();
+        final List<ValidationResult> validationFailureResults = new ArrayList<>();
 
         for (CredentialsStrategy strategy : strategies) {
             final Collection<ValidationResult> strategyValidationFailures = strategy.validate(validationContext,

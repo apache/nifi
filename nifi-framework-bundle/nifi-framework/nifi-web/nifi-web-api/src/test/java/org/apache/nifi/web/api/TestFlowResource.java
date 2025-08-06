@@ -59,7 +59,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -521,7 +520,7 @@ public class TestFlowResource {
     }
 
     private Map<String, List<Sample>> convertJsonResponseToMap(final Response response) throws IOException {
-        final TypeReference<HashMap<String, List<Sample>>> typeReference = new TypeReference<>() {
+        final TypeReference<Map<String, List<Sample>>> typeReference = new TypeReference<>() {
         };
         final ObjectMapper mapper = new ObjectMapper();
         final SimpleModule module = new SimpleModule();

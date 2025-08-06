@@ -140,8 +140,8 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
 
         final List<FlowFile> flowFiles = KinesisProcessorUtils.filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, AWS_KINESIS_ERROR_MESSAGE, getLogger());
 
-        final HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
-        final HashMap<String, List<PutRecordsRequestEntry>> recordHash = new HashMap<>();
+        final Map<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
+        final Map<String, List<PutRecordsRequestEntry>> recordHash = new HashMap<>();
 
         final KinesisClient client = getClient(context);
 

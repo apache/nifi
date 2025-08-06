@@ -91,7 +91,7 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        ArrayList<ValidationResult> problems = new ArrayList<>();
+        List<ValidationResult> problems = new ArrayList<>();
 
         boolean fileName = validationContext.getProperty(FILE_NAME).isSet();
         boolean query    = validationContext.getProperty(QUERY).isSet();

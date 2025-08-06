@@ -242,7 +242,7 @@ public class SplitContent extends AbstractProcessor {
         });
 
         long lastOffsetPlusSize = -1L;
-        final ArrayList<FlowFile> splitList = new ArrayList<>();
+        final List<FlowFile> splitList = new ArrayList<>();
 
         if (splits.isEmpty()) {
             FlowFile clone = session.clone(flowFile);
@@ -298,7 +298,7 @@ public class SplitContent extends AbstractProcessor {
         final String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
 
         final String fragmentId = UUID.randomUUID().toString();
-        final ArrayList<FlowFile> newList = new ArrayList<>(splits);
+        final List<FlowFile> newList = new ArrayList<>(splits);
         splits.clear();
         for (int i = 1; i <= newList.size(); i++) {
             FlowFile ff = newList.get(i - 1);

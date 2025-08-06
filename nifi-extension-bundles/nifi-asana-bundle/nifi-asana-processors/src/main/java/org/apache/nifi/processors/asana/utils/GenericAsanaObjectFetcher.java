@@ -80,7 +80,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Abst
     @Override
     public void loadState(Map<String, String> state) {
         if (state.containsKey(this.getClass().getName() + LAST_FINGERPRINTS)) {
-            Type type = new TypeToken<HashMap<String, String>>() { }.getType();
+            Type type = new TypeToken<Map<String, String>>() { }.getType();
             try {
                 lastFingerprints = Json.getInstance().fromJson(decompress(state.get(this.getClass().getName() + LAST_FINGERPRINTS)), type);
             } catch (IOException e) {

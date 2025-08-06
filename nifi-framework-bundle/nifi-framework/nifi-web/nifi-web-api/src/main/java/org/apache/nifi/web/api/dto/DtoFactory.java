@@ -474,7 +474,7 @@ public final class DtoFactory {
        final StateMapDTO dto = new StateMapDTO();
        dto.setScope(scope.toString());
 
-       final TreeMap<String, String> sortedState = new TreeMap<>(SortedStateUtils.getKeyComparator());
+       final Map<String, String> sortedState = new TreeMap<>(SortedStateUtils.getKeyComparator());
        final Map<String, String> state = stateMap.toMap();
        sortedState.putAll(state);
 

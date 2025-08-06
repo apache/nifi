@@ -74,7 +74,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
                 .map(serviceNode -> flowMapper.mapControllerService(serviceNode, controllerServiceProvider, new HashSet<>(), new HashMap<>()))
                 .collect(Collectors.toSet());
 
-        final Stack<Set<VersionedControllerService>> serviceHierarchyStack = new Stack<>();
+        final Stack<Set<VersionedControllerService>> serviceHierarchyStack = new Stack<>(); //NOPMD
         serviceHierarchyStack.push(ancestorServices);
 
         final Set<String> unresolvedServices = new HashSet<>();
@@ -84,7 +84,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
     private void resolveInheritedControllerServices(final FlowSnapshotContainer flowSnapshotContainer, final VersionedProcessGroup versionedGroup,
                                                     final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
-                                                    final Stack<Set<VersionedControllerService>> serviceHierarchyStack,
+                                                    final Stack<Set<VersionedControllerService>> serviceHierarchyStack, //NOPMD
                                                     final Set<String> unresolvedServices) {
 
         final Set<VersionedControllerService> currentGroupServices = versionedGroup.getControllerServices() == null ? Collections.emptySet() : versionedGroup.getControllerServices();

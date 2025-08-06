@@ -367,7 +367,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
         // If any NARs being loaded are parents of other NARs being loaded, we need to ensure parents load before children, otherwise a child NAR may
         // select a compatible parent NAR from the other NARs provided by NiFi, rather than selecting the parent NAR from within the NAR Manager
         final int numNarInfos = narInfos.size();
-        final Stack<NarPersistenceInfo> narHierarchy = new Stack<>();
+        final Stack<NarPersistenceInfo> narHierarchy = new Stack<>(); //NOPMD
         createNarHierarchy(narInfos, narHierarchy);
 
         // Create a new list and add the layers of the Stack from top to bottom which gets parents ahead of children
@@ -381,7 +381,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
         return orderedNarInfos;
     }
 
-    private void createNarHierarchy(final Collection<NarPersistenceInfo> narInfos, final Stack<NarPersistenceInfo> narHierarchy) {
+    private void createNarHierarchy(final Collection<NarPersistenceInfo> narInfos, final Stack<NarPersistenceInfo> narHierarchy) { //NOPMD
         if (narInfos == null || narInfos.isEmpty()) {
             return;
         }

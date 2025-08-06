@@ -36,6 +36,22 @@ under the License.
     <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables" />
     <rule ref="category/java/bestpractices.xml/ExhaustiveSwitchHasDefault" />
     <rule ref="category/java/bestpractices.xml/ForLoopCanBeForeach" />
+    <rule ref="category/java/bestpractices.xml/LooseCoupling">
+        <!--Classes below excluded from this rule due to their prevalence within the code base.-->
+        <properties>
+            <property name="allowedTypes"
+                      value="java.util.EnumSet,
+                             java.util.Properties,
+                             java.util.jar.Attributes,
+                             jakarta.ws.rs.core.MultivaluedHashMap,
+                             com.google.api.services.drive.model.File,
+                             org.bson.Document,
+                             com.nimbusds.oauth2.sdk.Scope,
+                             org.apache.nifi.attribute.expression.language.ValueLookup
+                             org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue
+            " />
+        </properties>
+    </rule>
     <rule ref="category/java/bestpractices.xml/MissingOverride" />
     <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation" />
     <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion" />

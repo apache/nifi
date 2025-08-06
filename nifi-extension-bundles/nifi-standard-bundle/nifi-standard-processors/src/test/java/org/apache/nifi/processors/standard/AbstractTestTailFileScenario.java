@@ -56,7 +56,7 @@ public class AbstractTestTailFileScenario {
     protected AtomicLong timeAdjustment;
     protected AtomicBoolean rolloverSwitchPending;
 
-    protected LinkedList<Long> nulPositions;
+    protected List<Long> nulPositions;
 
     protected List<String> expected;
     private Random random;

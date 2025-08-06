@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,13 +50,13 @@ import java.util.Optional;
 public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
     private final ComponentLog logger;
-    private final LinkedHashMap<String, JsonPath> jsonPaths;
+    private final Map<String, JsonPath> jsonPaths;
     private final InputStream in;
     private final RecordSchema schema;
     private final Configuration providerConfiguration;
 
     public JsonPathRowRecordReader(
-            final LinkedHashMap<String, JsonPath> jsonPaths,
+            final Map<String, JsonPath> jsonPaths,
             final RecordSchema schema,
             final InputStream in,
             final ComponentLog logger,

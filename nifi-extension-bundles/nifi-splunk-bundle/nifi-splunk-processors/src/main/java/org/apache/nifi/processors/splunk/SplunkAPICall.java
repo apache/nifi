@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+@SuppressWarnings("PMD.LooseCoupling")
 abstract class SplunkAPICall extends AbstractProcessor {
     private static final String REQUEST_CHANNEL_HEADER_NAME = "X-Splunk-Request-Channel";
 
