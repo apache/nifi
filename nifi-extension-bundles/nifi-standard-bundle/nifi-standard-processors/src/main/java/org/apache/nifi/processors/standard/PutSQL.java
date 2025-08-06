@@ -32,7 +32,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -65,7 +64,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -236,17 +234,17 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         if (auto_commit.equalsIgnoreCase("true")) {
             if (support_transactions.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
-                        .subject(SUPPORT_TRANSACTIONS.getDisplayName())
-                        .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
+                                .subject(SUPPORT_TRANSACTIONS.getDisplayName())
+                                .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
                                         + "Transactions for batch updates cannot be supported when auto commit is set to 'true'",
-                                SUPPORT_TRANSACTIONS.getDisplayName(), AUTO_COMMIT.getDisplayName()))
-                        .build());
+                                        SUPPORT_TRANSACTIONS.getDisplayName(), AUTO_COMMIT.getDisplayName()))
+                                .build());
             }
             if (rollback_on_failure.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
                         .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
                         .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
-                                        + "Transaction rollbacks for batch updates cannot be supported when auto commit is set to 'true'",
+                                + "Transaction rollbacks for batch updates cannot be supported when auto commit is set to 'true'",
                                 RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName(), AUTO_COMMIT.getDisplayName()))
                         .build());
             }
@@ -479,11 +477,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     break;
                 case Retry:
                     getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                            flowFile, exception, exception);
+                           flowFile, exception, exception);
                     addErrorAttributesToFlowFile(session, flowFile, exception);
                     break;
                 case Self:
-                    getLogger().error("Failed to update database for {} due to {};", flowFile, exception, exception);
+                    getLogger().error("Failed to update database for {} due to {};",  flowFile, exception, exception);
                     break;
             }
         });
@@ -517,8 +515,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     private List<FlowFile> addErrorAttributesToFlowFilesInGroup(ProcessSession session, List<FlowFile> flowFilesOnRelationship, List<FlowFile> flowFilesInGroup, Exception exception) {
         return flowFilesOnRelationship.stream()
-                .map(ff -> flowFilesInGroup.contains(ff) ? addErrorAttributesToFlowFile(session, ff, exception) : ff)
-                .collect(toList());
+                    .map(ff ->  flowFilesInGroup.contains(ff) ? addErrorAttributesToFlowFile(session, ff, exception) : ff)
+                    .collect(toList());
     }
 
     private ExceptionHandler.OnError<FunctionContext, StatementFlowFileEnclosure> onBatchUpdateError(
@@ -703,7 +701,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final FlowFileFilter dbcpServiceFlowFileFilter = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class).getFlowFileFilter(batchSize);
-        final List<FlowFile> validFlowFiles;
         final List<FlowFile> selectedFlowFiles;
         if (useTransactions) {
             final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter(dbcpServiceFlowFileFilter);
@@ -717,19 +714,23 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             }
         }
 
-        boolean selectedFlowFilesShouldHaveDataBaseNameButDont = dbcpServiceFlowFileFilter != null
-                && !selectedFlowFiles.isEmpty()
-                && selectedFlowFiles.stream().findAny().get().getAttribute("database.name") == null;
-
-        if (selectedFlowFilesShouldHaveDataBaseNameButDont) {
+        final List<FlowFile> validFlowFiles;
+        // The ConnectionPool service has a FlowFileFilter when, and only when it is a DBCPConnectionPoolLookup.
+        // As such, it requires incoming FileFiles to have a 'database.name' attribute
+        if (
+                dbcpServiceFlowFileFilter != null
+                        && !selectedFlowFiles.isEmpty()
+                        // The filtered FlowFiles are homogenous. If one lacks 'database.name', all do.
+                        && selectedFlowFiles.getFirst().getAttribute("database.name") == null
+        ) {
             selectedFlowFiles.forEach(flowFile -> getLogger().warn(
-                    "FlowFile {} is invalid because it's missing a 'database.name' attribute. Routing to '{}'.",
-                    flowFile.getAttribute(CoreAttributes.UUID.key()),
+                    "{} missing attribute named [database.name] Routing to [{}]",
+                    flowFile,
                     REL_FAILURE.getName()
             ));
 
             result.routeTo(selectedFlowFiles, REL_FAILURE);
-            validFlowFiles = Collections.emptyList();
+            validFlowFiles = List.of();
         } else {
             validFlowFiles = selectedFlowFiles;
         }
@@ -770,7 +771,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
      *
      * @param stmt the statement that generated a key
      * @return the key that was generated from the given statement, or <code>null</code> if no key
-     * was generated, or it could not be determined.
+     *         was generated, or it could not be determined.
      */
     private String determineGeneratedKey(final PreparedStatement stmt) {
         try {
@@ -788,7 +789,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     /**
      * Determines the SQL statement that should be executed for the given FlowFile
      *
-     * @param session  the session that can be used to access the given FlowFile
+     * @param session the session that can be used to access the given FlowFile
      * @param flowFile the FlowFile whose SQL statement should be executed
      *
      * @return the SQL that is associated with the given FlowFile
@@ -807,11 +808,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
      * transaction information not being present. If the FlowFiles should be processed and not transferred
      * to any particular relationship yet, will return <code>null</code>
      *
-     * @param flowFiles                the FlowFiles whose relationship is to be determined
+     * @param flowFiles the FlowFiles whose relationship is to be determined
      * @param transactionTimeoutMillis the maximum amount of time (in milliseconds) that we should wait
-     *                                 for all FlowFiles in a transaction to be present before routing to failure
+     *            for all FlowFiles in a transaction to be present before routing to failure
      * @return the appropriate relationship to route the FlowFiles to, or <code>null</code> if the FlowFiles
-     * should instead be processed
+     *         should instead be processed
      */
     boolean isFragmentedTransactionReady(final List<FlowFile> flowFiles, final Long transactionTimeoutMillis) throws IllegalArgumentException {
         int selectedNumFragments = 0;
@@ -825,7 +826,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 return true;
             } else if (fragmentCount == null) {
                 throw illegal.apply("Cannot process %s because there are %d FlowFiles with the same fragment.identifier "
-                        + "attribute but not all FlowFiles have a fragment.count attribute", new Object[]{flowFile, flowFiles.size()});
+                        + "attribute but not all FlowFiles have a fragment.count attribute", new Object[] {flowFile, flowFiles.size()});
             }
 
             final int numFragments;
@@ -833,24 +834,24 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 numFragments = Integer.parseInt(fragmentCount);
             } catch (final NumberFormatException nfe) {
                 throw illegal.apply("Cannot process %s because the fragment.count attribute has a value of '%s', which is not an integer",
-                        new Object[]{flowFile, fragmentCount});
+                        new Object[] {flowFile, fragmentCount});
             }
 
             if (numFragments < 1) {
                 throw illegal.apply("Cannot process %s because the fragment.count attribute has a value of '%s', which is not a positive integer",
-                        new Object[]{flowFile, fragmentCount});
+                        new Object[] {flowFile, fragmentCount});
             }
 
             if (selectedNumFragments == 0) {
                 selectedNumFragments = numFragments;
             } else if (numFragments != selectedNumFragments) {
                 throw illegal.apply("Cannot process %s because the fragment.count attribute has different values for different FlowFiles with the same fragment.identifier",
-                        new Object[]{flowFile});
+                        new Object[] {flowFile});
             }
 
             final String fragmentIndex = flowFile.getAttribute(FRAGMENT_INDEX_ATTR);
             if (fragmentIndex == null) {
-                throw illegal.apply("Cannot process %s because the fragment.index attribute is missing", new Object[]{flowFile});
+                throw illegal.apply("Cannot process %s because the fragment.index attribute is missing", new Object[] {flowFile});
             }
 
             final int idx;
@@ -858,17 +859,17 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 idx = Integer.parseInt(fragmentIndex);
             } catch (final NumberFormatException nfe) {
                 throw illegal.apply("Cannot process %s because the fragment.index attribute has a value of '%s', which is not an integer",
-                        new Object[]{flowFile, fragmentIndex});
+                        new Object[] {flowFile, fragmentIndex});
             }
 
             if (idx < 0) {
                 throw illegal.apply("Cannot process %s because the fragment.index attribute has a value of '%s', which is not a positive integer",
-                        new Object[]{flowFile, fragmentIndex});
+                        new Object[] {flowFile, fragmentIndex});
             }
 
             if (bitSet.get(idx)) {
                 throw illegal.apply("Cannot process %s because it has the same value for the fragment.index attribute as another FlowFile with the same fragment.identifier",
-                        new Object[]{flowFile});
+                        new Object[] {flowFile});
             }
 
             bitSet.set(idx);
@@ -887,7 +888,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         if (transactionTimeoutMillis != null) {
             if (latestQueueTime > 0L && System.currentTimeMillis() - latestQueueTime > transactionTimeoutMillis) {
-                throw illegal.apply("The transaction timeout has expired for the following FlowFiles; they will be routed to failure: %s", new Object[]{flowFiles});
+                throw illegal.apply("The transaction timeout has expired for the following FlowFiles; they will be routed to failure: %s", new Object[] {flowFiles});
             }
         }
 
