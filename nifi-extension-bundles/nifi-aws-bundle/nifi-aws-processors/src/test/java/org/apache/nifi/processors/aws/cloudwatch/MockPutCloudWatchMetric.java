@@ -35,6 +35,7 @@ public class MockPutCloudWatchMetric extends PutCloudWatchMetric {
     protected int putMetricDataCallCount = 0;
 
 
+    @Override
     protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) {
         putMetricDataCallCount++;
         actualNamespace = metricDataRequest.namespace();

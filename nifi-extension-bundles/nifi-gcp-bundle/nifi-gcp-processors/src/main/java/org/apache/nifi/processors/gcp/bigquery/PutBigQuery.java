@@ -359,12 +359,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             this.appendContext = appendContext;
         }
 
+        @Override
         public void onSuccess(AppendRowsResponse response) {
             getLogger().info("Append success with offset: {}", appendContext.getOffset());
             appendSuccessCount.incrementAndGet();
             inflightRequestCount.arriveAndDeregister();
         }
 
+        @Override
         public void onFailure(Throwable throwable) {
             // If the state is INTERNAL, CANCELLED, or ABORTED, you can retry. For more information,
             // see: https://grpc.github.io/grpc-java/javadoc/io/grpc/StatusRuntimeException.html

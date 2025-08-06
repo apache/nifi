@@ -209,6 +209,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
     }
 
     @OnScheduled
+    @Override
     public void setup(final ProcessContext context) {
         super.setup(context);
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();

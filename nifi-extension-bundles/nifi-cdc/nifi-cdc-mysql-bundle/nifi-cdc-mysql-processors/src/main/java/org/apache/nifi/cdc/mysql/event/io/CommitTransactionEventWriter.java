@@ -40,6 +40,7 @@ public class CommitTransactionEventWriter extends AbstractBinlogEventWriter<Comm
         return sequenceId;
     }
 
+    @Override
     protected void writeJson(CommitTransactionEventInfo event) throws IOException {
         super.writeJson(event);
         if (event.getDatabaseName() != null) {

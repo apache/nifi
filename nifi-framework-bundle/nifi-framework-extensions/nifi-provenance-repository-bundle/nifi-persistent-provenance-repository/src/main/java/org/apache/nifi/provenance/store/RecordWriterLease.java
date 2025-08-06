@@ -126,6 +126,7 @@ public class RecordWriterLease {
         }
     }
 
+    @Override
     public String toString() {
         // Call super.toString() so that we have a unique hash/address added to the toString, but also include the file being written to.
         // When comparing the toString() of two different leases, this helps to compare whether or not the two leases are the same object

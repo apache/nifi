@@ -139,6 +139,7 @@ public class NexusExtensionClient implements ExtensionClient {
         return sb.toString();
     }
 
+    @Override
     public String toString() {
         return "NexusExtensionClient[baseUrl=" + baseUrl + "]";
     }

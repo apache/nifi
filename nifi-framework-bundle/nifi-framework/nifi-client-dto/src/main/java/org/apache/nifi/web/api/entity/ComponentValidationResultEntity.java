@@ -27,10 +27,12 @@ public class ComponentValidationResultEntity extends ComponentEntity implements 
     /**
      * @return variable referencing components that is being serialized
      */
+    @Override
     public ComponentValidationResultDTO getComponent() {
         return validationResult;
     }
 
+    @Override
     public void setComponent(ComponentValidationResultDTO component) {
         this.validationResult = component;
     }

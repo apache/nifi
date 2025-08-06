@@ -62,10 +62,12 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
         }
     }
 
+    @Override
     protected void startNow(final ReportingTaskNode reportingTask) {
         reportingTask.start();
     }
 
+    @Override
     protected void startNow(final ProcessGroup statelessGroup) {
         statelessGroup.startProcessing();
     }

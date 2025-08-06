@@ -350,6 +350,7 @@ public class LuceneEventIndex implements EventIndex {
         return -1L;
     }
 
+    @Override
     public boolean isReindexNecessary() {
         // If newest index is defunct, there's no reason to re-index, as it will happen in the background thread
         logger.info("Will avoid re-indexing Provenance Events because the newest index is defunct, so it will be re-indexed in the background");

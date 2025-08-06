@@ -40,6 +40,7 @@ public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<A
         super(logger, proxyOptions);
     }
 
+    @Override
     protected DataLakeServiceClient createStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
         final String accountName = credentialsDetails.getAccountName();
         final String accountKey = credentialsDetails.getAccountKey();

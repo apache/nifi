@@ -139,6 +139,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         this.isSiteToSiteSecure = Boolean.TRUE.equals(nifiProperties.isSiteToSiteSecure());
     }
 
+    @Override
     public Port createPublicInputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
@@ -149,6 +150,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
+    @Override
     public Port createPublicOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
@@ -164,6 +166,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
      *
      * @return input ports
      */
+    @Override
     public Set<Port> getPublicInputPorts() {
         return getPublicPorts(ProcessGroup::getInputPorts);
     }
@@ -173,6 +176,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
      *
      * @return output ports
      */
+    @Override
     public Set<Port> getPublicOutputPorts() {
         return getPublicPorts(ProcessGroup::getOutputPorts);
     }
@@ -214,6 +218,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return Optional.empty();
     }
 
+    @Override
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
         final String expirationPeriod = nifiProperties.getProperty(NiFiProperties.REMOTE_CONTENTS_CACHE_EXPIRATION, "30 secs");
         final long remoteContentsCacheExpirationMillis = FormatUtils.getTimeDuration(expirationPeriod, TimeUnit.MILLISECONDS);
@@ -235,10 +240,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
     }
 
+    @Override
     public Label createLabel(final String id, final String text) {
         return new StandardLabel(requireNonNull(id).intern(), text);
     }
 
+    @Override
     public Funnel createFunnel(final String id) {
         final int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
         final int maxBatchSize = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
@@ -246,6 +253,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return new StandardFunnel(id.intern(), maxConcurrentTasks, maxBatchSize);
     }
 
+    @Override
     public Port createLocalInputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
@@ -258,6 +266,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return new LocalPort(id, name, ConnectableType.INPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
     }
 
+    @Override
     public Port createLocalOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
@@ -270,6 +279,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return new LocalPort(id, name, ConnectableType.OUTPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
     }
 
+    @Override
     public ProcessGroup createProcessGroup(final String id) {
         final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
@@ -282,7 +292,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return group;
     }
 
-
+    @Override
     public void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto) throws ProcessorInstantiationException {
         requireNonNull(group);
         requireNonNull(dto);
@@ -294,6 +304,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
     }
 
+    @Override
     public FlowFilePrioritizer createPrioritizer(final String type) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         FlowFilePrioritizer prioritizer;
 
@@ -377,6 +388,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return procNode;
     }
 
+    @Override
     public Connection createConnection(final String id, final String name, final Connectable source, final Connectable destination, final Collection<String> relationshipNames) {
         return flowController.createConnection(id, name, source, destination, relationshipNames);
     }
@@ -464,6 +476,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         getExtensionManager().removeInstanceClassLoader(clientNode.getIdentifier());
     }
 
+    @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
                                                  final boolean firstTimeAdded, final boolean register, final String classloaderIsolationKey) {
         requireNonNull(type);
@@ -639,10 +652,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return parameterProviderNode;
     }
 
+    @Override
     public Set<ControllerServiceNode> getRootControllerServices() {
         return new HashSet<>(rootControllerServices.values());
     }
 
+    @Override
     public void addRootControllerService(final ControllerServiceNode serviceNode) {
         final ControllerServiceNode existing = rootControllerServices.putIfAbsent(serviceNode.getIdentifier(), serviceNode);
         if (existing != null) {
@@ -650,10 +665,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
     }
 
+    @Override
     public ControllerServiceNode getRootControllerService(final String serviceIdentifier) {
         return rootControllerServices.get(serviceIdentifier);
     }
 
+    @Override
     public void removeRootControllerService(final ControllerServiceNode service) {
         final ControllerServiceNode existing = rootControllerServices.get(requireNonNull(service).getIdentifier());
         if (existing == null) {
@@ -697,6 +714,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         logger.info("{} removed from Flow Controller", service);
     }
 
+    @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                          final boolean registerLogObserver, final String classloaderIsolationKey) {
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader

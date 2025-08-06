@@ -39,7 +39,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
         this.timeValueInference = timeValueInference;
     }
 
-
+    @Override
     protected DataType getDataType(final JsonNode jsonNode) {
         if (jsonNode.isTextual()) {
             final String text = jsonNode.textValue();

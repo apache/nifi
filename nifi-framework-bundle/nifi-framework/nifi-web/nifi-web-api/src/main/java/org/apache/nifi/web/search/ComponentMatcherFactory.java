@@ -73,6 +73,7 @@ public class ComponentMatcherFactory {
         private static final String DEFAULT_NAME_PREFIX = "From source ";
         private static final String SEPARATOR = ", ";
 
+        @Override
         public String apply(final Connection component) {
             String result = null;
 

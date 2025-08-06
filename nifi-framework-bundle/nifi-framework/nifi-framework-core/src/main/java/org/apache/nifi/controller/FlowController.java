@@ -1472,6 +1472,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @return the ExtensionManager used for instantiating Processors,
      * Prioritizers, etc.
      */
+    @Override
     public ExtensionManager getExtensionManager() {
         return extensionManager;
     }

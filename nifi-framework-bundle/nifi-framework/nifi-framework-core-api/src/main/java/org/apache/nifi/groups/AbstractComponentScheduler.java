@@ -215,6 +215,7 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
         return serviceProvider;
     }
 
+    @Override
     public void startReportingTask(final ReportingTaskNode reportingTask) {
         if (isPaused()) {
             logger.debug("{} called to start {} but paused so will queue it for start later", this, reportingTask);

@@ -37,10 +37,12 @@ public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO
      *
      * @return The LabelDTO object
      */
+    @Override
     public LabelDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(LabelDTO component) {
         this.component = component;
     }

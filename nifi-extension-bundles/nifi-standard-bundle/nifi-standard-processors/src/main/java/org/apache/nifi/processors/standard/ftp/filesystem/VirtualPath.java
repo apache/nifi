@@ -70,6 +70,7 @@ public class VirtualPath {
         return new VirtualPath(path.resolve(otherPath).normalize().toString());
     }
 
+    @Override
     public String toString() {
         return path.toString();
     }

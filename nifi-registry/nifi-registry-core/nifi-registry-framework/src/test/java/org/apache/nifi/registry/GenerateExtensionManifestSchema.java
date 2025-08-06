@@ -42,6 +42,7 @@ public class GenerateExtensionManifestSchema {
 
     public static class MySchemaOutputResolver extends SchemaOutputResolver {
 
+        @Override
         public Result createOutput(String namespaceURI, String suggestedFileName) throws IOException {
             File file = new File("./target", suggestedFileName);
             StreamResult result = new StreamResult(file);

@@ -37,10 +37,12 @@ public class ComponentReferenceDTO extends ComponentDTO {
      */
     @Schema(description = "The id of the component."
     )
+    @Override
     public String getId() {
         return this.id;
     }
 
+    @Override
     public void setId(final String id) {
         this.id = id;
     }
@@ -50,10 +52,12 @@ public class ComponentReferenceDTO extends ComponentDTO {
      */
     @Schema(description = "The id of parent process group of this component if applicable."
     )
+    @Override
     public String getParentGroupId() {
         return parentGroupId;
     }
 
+    @Override
     public void setParentGroupId(String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }

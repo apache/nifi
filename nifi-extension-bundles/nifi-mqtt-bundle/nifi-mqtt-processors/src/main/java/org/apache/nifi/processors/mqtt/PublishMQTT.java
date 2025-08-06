@@ -174,6 +174,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
     }
 
     @OnScheduled
+    @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
     }

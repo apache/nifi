@@ -95,6 +95,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         this.maxInHeapSerializationBytes = maxInHeapSerializationBytes;
     }
 
+    @Override
     public void dispose() {
         logger.debug("Deleting Journal {} because it is now encapsulated in the latest Snapshot", journalFile.getName());
         if (!journalFile.delete() && journalFile.exists()) {

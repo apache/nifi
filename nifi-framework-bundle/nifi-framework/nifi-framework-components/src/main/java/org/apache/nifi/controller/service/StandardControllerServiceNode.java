@@ -246,6 +246,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return processGroup;
     }
 
+    @Override
     public Optional<ProcessGroup> getParentProcessGroup() {
         return Optional.ofNullable(this.processGroup);
     }

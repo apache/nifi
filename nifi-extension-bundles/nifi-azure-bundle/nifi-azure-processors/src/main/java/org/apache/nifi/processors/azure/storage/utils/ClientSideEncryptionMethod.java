@@ -43,6 +43,7 @@ public enum ClientSideEncryptionMethod implements DescribedValue {
         return this.name();
     }
 
+    @Override
     public String getDescription() {
         return description;
     }

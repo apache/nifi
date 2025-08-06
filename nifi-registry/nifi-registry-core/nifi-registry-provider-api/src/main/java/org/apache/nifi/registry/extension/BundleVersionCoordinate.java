@@ -51,5 +51,6 @@ public interface BundleVersionCoordinate {
     /**
      * @return the string representation of the coordinate
      */
+    @Override
     String toString();
 }

@@ -45,10 +45,12 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
     /**
      * @return RelationshipDTO that is being serialized
      */
+    @Override
     public ConnectionDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ConnectionDTO component) {
         this.component = component;
     }

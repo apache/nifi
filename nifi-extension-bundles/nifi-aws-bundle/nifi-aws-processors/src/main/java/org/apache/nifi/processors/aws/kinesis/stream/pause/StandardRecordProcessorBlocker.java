@@ -46,6 +46,7 @@ public class StandardRecordProcessorBlocker implements RecordProcessorBlocker {
         this.timeoutBase = timestampProvider.get();
     }
 
+    @Override
     public void await() throws InterruptedException {
         final long nowTimestamp = timestampProvider.get();
         if (!isAfterTimeout(nowTimestamp)) {

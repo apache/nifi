@@ -38,6 +38,7 @@ public abstract class WholeConfigDifferentiator {
     }
 
     public static class ByteBufferInputDifferentiator extends WholeConfigDifferentiator implements Differentiator<ByteBuffer> {
+        @Override
         public boolean isNew(ByteBuffer newFlowConfig) {
             AtomicReference<ByteBuffer> currentFlowConfigReference = configurationFileHolder.getConfigFileReference();
             ByteBuffer currentFlowConfig = currentFlowConfigReference.get();

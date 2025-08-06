@@ -1425,6 +1425,7 @@ public class NiFiProperties extends ApplicationProperties {
         return getProperty(MAX_APPENDABLE_CLAIM_SIZE, DEFAULT_MAX_APPENDABLE_CLAIM_SIZE);
     }
 
+    @Override
     public String getProperty(final String key, final String defaultValue) {
         final String value = getProperty(key);
         return (value == null || value.isBlank()) ? defaultValue : value;
