@@ -50,7 +50,7 @@ final class VarintUtils {
      * @return the decoded varint value
      * @throws IOException if unable to read from stream or invalid varint format
      */
-    public static int readVarintFromStream(final InputStream inputStream) throws IOException {
+    static int readVarintFromStream(final InputStream inputStream) throws IOException {
         final int firstByte = inputStream.read();
         if (firstByte == -1) {
             throw new IOException("Unexpected end of stream while reading varint");
@@ -66,7 +66,7 @@ final class VarintUtils {
      * @return the decoded varint value
      * @throws IOException if unable to read from stream or invalid varint format
      */
-    public static int readVarintFromStreamAfterFirstByteConsumed(final InputStream inputStream, final int firstByte) throws IOException {
+    static int readVarintFromStreamAfterFirstByteConsumed(final InputStream inputStream, final int firstByte) throws IOException {
         // accumulated result
         int value = 0;
 
@@ -115,7 +115,7 @@ final class VarintUtils {
      * @param encodedValue the zigzag encoded value
      * @return the decoded integer value
      */
-    public static int decodeZigZag(final int encodedValue) {
+    static int decodeZigZag(final int encodedValue) {
         return (encodedValue >>> 1) ^ -(encodedValue & 1);
     }
 
@@ -127,7 +127,7 @@ final class VarintUtils {
      * @param value the integer value to encode
      * @return byte array containing the zigzag encoded varint
      */
-    public static byte[] writeZigZagVarint(final int value) {
+    static byte[] writeZigZagVarint(final int value) {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(4);
 
         // Zigzag encode

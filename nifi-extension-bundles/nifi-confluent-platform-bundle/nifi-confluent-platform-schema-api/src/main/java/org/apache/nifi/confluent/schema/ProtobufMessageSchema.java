@@ -21,7 +21,7 @@ import java.util.Optional;
 
 /**
  * Basic abstraction over Protobuf schema message entity.
- * It contains only the fields that are needed for crude schema insights. It's useful when the
+ * It only represents the fields that are needed for crude schema insights. It's useful when the
  * message name resolver needs to pinpoint specific messages by message indexes encoded on the wire.
  * <p>
  * <a href="https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#wire-format">See the Confluent protobuf wire format.</a>

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class ConfluentSchemaRegistryTest {
+class ConfluentSchemaRegistryTest {
 
     private static final String SERVICE_ID = ConfluentSchemaRegistry.class.getSimpleName();
 

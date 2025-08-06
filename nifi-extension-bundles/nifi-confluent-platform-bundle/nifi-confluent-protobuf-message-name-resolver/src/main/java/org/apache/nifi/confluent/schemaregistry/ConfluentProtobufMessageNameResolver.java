@@ -28,7 +28,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schemaregistry.services.MessageName;
-import org.apache.nifi.schemaregistry.services.MessageNameResolver;
+import org.apache.nifi.schemaregistry.services.MessageNameResolverService;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.StandardMessageName;
 
@@ -51,7 +51,7 @@ import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFro
     Resolves Protobuf message names from Confluent Schema Registry wire format by decoding message indexes and looking up the fully qualified name in the schema definition
     For Confluent wire format reference see: https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#wire-format
     """)
-public class ConfluentProtobufMessageNameResolver extends AbstractControllerService implements MessageNameResolver {
+public class ConfluentProtobufMessageNameResolver extends AbstractControllerService implements MessageNameResolverService {
 
     private static final int MAXIMUM_SUPPORTED_ARRAY_LENGTH = 100;
     private static final int MAXIMUM_CACHE_SIZE = 1000;
