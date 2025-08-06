@@ -38,6 +38,7 @@ public class MapBasedSearchQuery implements SearchQuery {
 
     }
 
+    @Override
     public String getTerm() {
         return term;
     }

@@ -18,6 +18,7 @@ package org.apache.nifi.hl7.query.evaluator;
 
 public abstract class StringEvaluator implements Evaluator<String> {
 
+    @Override
     public Class<? extends String> getType() {
         return String.class;
     }

@@ -233,7 +233,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
     }
 
-
+    @Override
     public void registerEventListener(final ClusterTopologyEventListener eventListener) {
         this.eventListeners.add(eventListener);
     }
@@ -1050,6 +1050,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return future;
     }
 
+    @Override
     public void validateHeartbeat(final NodeHeartbeat heartbeat) {
         final long localUpdateCount = revisionManager.getRevisionUpdateCount();
         final long nodeUpdateCount = heartbeat.getRevisionUpdateCount();

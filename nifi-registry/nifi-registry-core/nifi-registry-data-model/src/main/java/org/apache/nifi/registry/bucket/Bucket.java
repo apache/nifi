@@ -49,10 +49,12 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
     private RevisionInfo revision;
 
     @Schema(description = "An ID to uniquely identify this object.", accessMode = Schema.AccessMode.READ_ONLY)
+    @Override
     public String getIdentifier() {
         return identifier;
     }
 
+    @Override
     public void setIdentifier(String identifier) {
         this.identifier = identifier;
     }

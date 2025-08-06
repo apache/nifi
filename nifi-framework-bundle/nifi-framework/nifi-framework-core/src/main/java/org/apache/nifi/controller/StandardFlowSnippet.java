@@ -93,6 +93,7 @@ public class StandardFlowSnippet implements FlowSnippet {
         this.extensionManager = extensionManager;
     }
 
+    @Override
     public void validate(final ProcessGroup group) {
         // validate the names of Input Ports
         for (final PortDTO port : dto.getInputPorts()) {
@@ -113,6 +114,7 @@ public class StandardFlowSnippet implements FlowSnippet {
         SnippetUtils.verifyNoVersionControlConflicts(dto, group);
     }
 
+    @Override
     public void verifyComponentTypesInSnippet() {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
         for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(Processor.class)) {
@@ -152,6 +154,7 @@ public class StandardFlowSnippet implements FlowSnippet {
         }
     }
 
+    @Override
     public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group) throws ProcessorInstantiationException {
         instantiate(flowManager, flowController, group, true);
     }

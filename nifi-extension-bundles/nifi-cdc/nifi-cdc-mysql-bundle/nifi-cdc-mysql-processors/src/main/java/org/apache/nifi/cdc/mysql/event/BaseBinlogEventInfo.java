@@ -38,14 +38,17 @@ public class BaseBinlogEventInfo extends BaseEventInfo implements BinlogEventInf
         this.binlogGtidSet = binlogGtidSet;
     }
 
+    @Override
     public String getBinlogFilename() {
         return binlogFilename;
     }
 
+    @Override
     public Long getBinlogPosition() {
         return binlogPosition;
     }
 
+    @Override
     public String getBinlogGtidSet() {
         return binlogGtidSet;
     }

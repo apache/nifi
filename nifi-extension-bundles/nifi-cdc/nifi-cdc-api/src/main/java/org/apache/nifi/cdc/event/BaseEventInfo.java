@@ -31,10 +31,12 @@ public class BaseEventInfo implements EventInfo {
     }
 
 
+    @Override
     public String getEventType() {
         return eventType;
     }
 
+    @Override
     public Long getTimestamp() {
         return timestamp;
     }

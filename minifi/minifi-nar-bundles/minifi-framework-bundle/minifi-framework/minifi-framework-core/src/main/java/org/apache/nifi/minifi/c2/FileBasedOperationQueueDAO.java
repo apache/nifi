@@ -40,6 +40,7 @@ public class FileBasedOperationQueueDAO implements OperationQueueDAO {
         this.objectMapper = objectMapper;
     }
 
+    @Override
     public void save(OperationQueue operationQueue) {
         LOGGER.info("Saving C2 operations to file");
         LOGGER.debug("C2 Operation Queue: {}", operationQueue);
@@ -51,6 +52,7 @@ public class FileBasedOperationQueueDAO implements OperationQueueDAO {
         }
     }
 
+    @Override
     public Optional<OperationQueue> load() {
         LOGGER.info("Reading queued c2 operations from file");
         if (requestedOperationsFile.exists()) {
@@ -67,6 +69,7 @@ public class FileBasedOperationQueueDAO implements OperationQueueDAO {
         return Optional.empty();
     }
 
+    @Override
     public void cleanup() {
         if (requestedOperationsFile.exists() && !requestedOperationsFile.delete()) {
             LOGGER.error("Failed to delete requested operations file {}, it should be deleted manually", requestedOperationsFile);

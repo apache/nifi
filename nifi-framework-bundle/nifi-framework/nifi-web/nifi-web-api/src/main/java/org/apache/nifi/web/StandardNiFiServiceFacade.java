@@ -4109,6 +4109,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), versionedGroup);
     }
 
+    @Override
     public void discoverCompatibleBundles(final Map<String, ParameterProviderReference> parameterProviders) {
         BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), parameterProviders);
     }

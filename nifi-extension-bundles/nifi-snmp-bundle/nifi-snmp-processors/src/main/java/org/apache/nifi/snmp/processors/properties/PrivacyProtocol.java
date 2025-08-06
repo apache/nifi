@@ -53,14 +53,17 @@ public enum PrivacyProtocol implements DescribedValue {
         this.oid = oid;
     }
 
+    @Override
     public String getValue() {
         return value;
     }
 
+    @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public String getDescription() {
         return description;
     }

@@ -92,6 +92,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         return PROPERTY_DESCRIPTORS;
     }
 
+    @Override
     public GoogleCredentials getGoogleCredentials() throws ProcessException {
         return googleCredentials;
     }

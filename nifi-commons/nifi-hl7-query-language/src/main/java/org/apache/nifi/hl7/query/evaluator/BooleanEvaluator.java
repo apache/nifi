@@ -18,6 +18,7 @@ package org.apache.nifi.hl7.query.evaluator;
 
 public abstract class BooleanEvaluator implements Evaluator<Boolean> {
 
+    @Override
     public Class<? extends Boolean> getType() {
         return Boolean.class;
     }

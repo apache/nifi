@@ -50,6 +50,7 @@ public abstract class BaseScriptRunner implements ScriptRunner {
         return scriptEngine;
     }
 
+    @Override
     public String getScript() {
         return scriptBody;
     }

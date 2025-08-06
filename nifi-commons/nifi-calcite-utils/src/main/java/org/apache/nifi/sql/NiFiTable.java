@@ -143,6 +143,7 @@ public class NiFiTable implements Closeable {
         return "NiFiTable[name=" + name + "]";
     }
 
+    @Override
     public void close() {
         for (final NiFiTableEnumerator enumerator : enumerators) {
             enumerator.close();
@@ -157,6 +158,7 @@ public class NiFiTable implements Closeable {
             this.fields = fields;
         }
 
+        @Override
         public Enumerator<Object> enumerator() {
             final NiFiTableEnumerator flowFileEnumerator = new NiFiTableEnumerator(dataSource, logger, fields, this::onFinish, enumerators::remove);
             enumerators.add(flowFileEnumerator);

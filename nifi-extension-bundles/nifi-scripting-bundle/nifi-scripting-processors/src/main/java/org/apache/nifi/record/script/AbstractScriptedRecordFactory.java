@@ -29,6 +29,7 @@ public abstract class AbstractScriptedRecordFactory<T> extends AbstractScriptedC
 
     protected final AtomicReference<T> recordFactory = new AtomicReference<>();
 
+    @Override
     public void setup() {
         if (scriptNeedsReload.get() || recordFactory.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {

@@ -60,6 +60,7 @@ public class NiFiGatewayServer extends GatewayServer {
         this.contextClassLoader = getClass().getClassLoader();
     }
 
+    @Override
     protected Py4JServerConnection createConnection(final Gateway gateway, final Socket socket) throws IOException {
         final NiFiGatewayConnection connection = new NiFiGatewayConnection(this, gateway, socket, authToken, Collections.emptyList(), getListeners());
         connection.startConnection();

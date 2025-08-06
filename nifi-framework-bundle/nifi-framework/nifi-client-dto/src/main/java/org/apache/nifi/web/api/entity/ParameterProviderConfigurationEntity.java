@@ -53,12 +53,13 @@ public class ParameterProviderConfigurationEntity implements Permissible<Paramet
      *
      * @return The permissions
      */
-    @Schema(description = "The permissions for this component."
-    )
+    @Schema(description = "The permissions for this component.")
+    @Override
     public PermissionsDTO getPermissions() {
         return permissions;
     }
 
+    @Override
     public void setPermissions(PermissionsDTO permissions) {
         this.permissions = permissions;
     }
@@ -68,10 +69,12 @@ public class ParameterProviderConfigurationEntity implements Permissible<Paramet
      *
      * @return The ParameterProviderConfigurationDTO object
      */
+    @Override
     public ParameterProviderConfigurationDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ParameterProviderConfigurationDTO component) {
         this.component = component;
     }

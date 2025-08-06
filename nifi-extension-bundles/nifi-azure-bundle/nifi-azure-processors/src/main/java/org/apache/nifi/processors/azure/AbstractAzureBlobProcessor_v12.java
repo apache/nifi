@@ -123,6 +123,8 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     protected void applyBlobMetadata(Map<String, String> attributes, BlobClient blobClient) {
         Supplier<BlobProperties> props = new Supplier<>() {
             BlobProperties properties;
+
+            @Override
             public BlobProperties get() {
                 if (properties == null) {
                     properties = blobClient.getProperties();

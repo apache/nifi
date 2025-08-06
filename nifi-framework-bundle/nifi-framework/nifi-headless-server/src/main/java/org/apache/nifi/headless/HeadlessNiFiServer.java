@@ -91,6 +91,7 @@ public class HeadlessNiFiServer implements NiFiServer {
     public HeadlessNiFiServer() {
     }
 
+    @Override
     public void start() {
         try {
 
@@ -254,6 +255,7 @@ public class HeadlessNiFiServer implements NiFiServer {
         return null;
     }
 
+    @Override
     public void stop() {
         try {
             flowService.stop(false);

@@ -273,6 +273,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         return startNanos;
     }
 
+    @Override
     public boolean isContentModified() {
         return contentModified;
     }

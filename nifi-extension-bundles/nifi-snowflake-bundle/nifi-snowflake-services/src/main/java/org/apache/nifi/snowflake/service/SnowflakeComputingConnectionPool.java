@@ -207,6 +207,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     @OnEnabled
+    @Override
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         super.onConfigured(context);
         accessTokenProvider = context.getProperty(ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);

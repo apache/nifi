@@ -38,10 +38,12 @@ public class ByteArrayMessage implements NetworkEvent {
         this(message, sender, null);
     }
 
+    @Override
     public byte[] getMessage() {
         return message;
     }
 
+    @Override
     public String getSender() {
         return sender;
     }

@@ -117,6 +117,7 @@ public class BootstrapListener implements BootstrapCommunicator {
         sendCommand(STARTED, new String[] {String.valueOf(status)});
     }
 
+    @Override
     public CommandResult sendCommand(String command, String[] args) throws IOException {
         try (Socket socket = new Socket()) {
             socket.setSoTimeout(60000);

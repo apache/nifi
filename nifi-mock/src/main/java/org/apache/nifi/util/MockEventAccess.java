@@ -107,18 +107,22 @@ public class MockEventAccess implements EventAccess {
         this.flowChanges.add(action);
     }
 
+    @Override
     public long getTotalBytesRead() {
         return -1;
     }
 
+    @Override
     public long getTotalBytesWritten() {
         return -1;
     }
 
+    @Override
     public long getTotalBytesSent() {
         return -1;
     }
 
+    @Override
     public long getTotalBytesReceived() {
         return -1;
     }

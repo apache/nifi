@@ -283,6 +283,7 @@ public class TestGeoEnrichIP {
             databaseReaderRef.set(databaseReader);
         }
 
+        @Override
         protected void loadDatabaseFile() {
             //  Do nothing, the mock database reader is used
         }

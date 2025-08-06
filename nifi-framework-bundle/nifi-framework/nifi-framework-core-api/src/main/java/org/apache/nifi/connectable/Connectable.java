@@ -146,6 +146,7 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
     /**
      * @return the ProcessGroup to which this <code>Connectable</code> belongs
      */
+    @Override
     ProcessGroup getProcessGroup();
 
     /**

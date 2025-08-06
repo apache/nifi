@@ -36,6 +36,7 @@ public class AttributesHeadersFactory implements HeadersFactory {
         this.messageHeaderCharset = messageHeaderCharset;
     }
 
+    @Override
     public List<RecordHeader> getHeaders(final Map<String, String> attributes) {
         final List<RecordHeader> headers = new ArrayList<>();
         if (attributeNamePattern != null) {
