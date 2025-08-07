@@ -47,7 +47,7 @@ under the License.
                              com.google.api.services.drive.model.File,
                              org.bson.Document,
                              com.nimbusds.oauth2.sdk.Scope,
-                             org.apache.nifi.attribute.expression.language.ValueLookup
+                             org.apache.nifi.attribute.expression.language.ValueLookup,
                              org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue
             " />
         </properties>
