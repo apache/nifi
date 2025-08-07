@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addConnectionStatus;
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addControllerServiceStatus;
@@ -606,7 +607,7 @@ public class StatusConfigReporterTest {
         if (addBulletins) {
             addBulletins("Bulletin message", controllerServiceNode.getIdentifier());
         }
-        HashSet<ControllerServiceNode> controllerServiceNodes = new HashSet<>();
+        Set<ControllerServiceNode> controllerServiceNodes = new HashSet<>();
         controllerServiceNodes.add(controllerServiceNode);
         when(mockFlowController.getFlowManager().getAllControllerServices()).thenReturn(controllerServiceNodes);
     }
@@ -626,7 +627,7 @@ public class StatusConfigReporterTest {
         ReportingTaskNode reportingTaskNode = mock(ReportingTaskNode.class);
         addReportingTaskNodeVariables(reportingTaskNode);
 
-        HashSet<ReportingTaskNode> reportingTaskNodes = new HashSet<>();
+        Set<ReportingTaskNode> reportingTaskNodes = new HashSet<>();
         reportingTaskNodes.add(reportingTaskNode);
 
         when(mockFlowController.getAllReportingTasks()).thenReturn(reportingTaskNodes);

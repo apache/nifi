@@ -707,7 +707,7 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         // second pass adds fragment attributes
-        ArrayList<FlowFile> newList = new ArrayList<>(unpacked);
+        List<FlowFile> newList = new ArrayList<>(unpacked);
         unpacked.clear();
         for (FlowFile ff : newList) {
             FlowFile newFF = session.putAllAttributes(ff, Map.of(

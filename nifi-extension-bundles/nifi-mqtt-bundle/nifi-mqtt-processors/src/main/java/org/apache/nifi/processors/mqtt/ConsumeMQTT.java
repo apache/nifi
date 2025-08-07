@@ -69,6 +69,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -195,7 +196,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
     private volatile String topicFilter;
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
 
-    private volatile LinkedBlockingQueue<ReceivedMqttMessage> mqttQueue;
+    private volatile BlockingQueue<ReceivedMqttMessage> mqttQueue;
 
     public static final Relationship REL_MESSAGE = new Relationship.Builder()
             .name("Message")
@@ -251,7 +252,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
                     logger.warn("New receive buffer size ({}) is smaller than the number of messages pending ({}), ignoring resize request. Processor will be invalid.", newSize, msgPending);
                     return;
                 }
-                LinkedBlockingQueue<ReceivedMqttMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
+                BlockingQueue<ReceivedMqttMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
                 mqttQueue.drainTo(newBuffer);
                 mqttQueue = newBuffer;
             }

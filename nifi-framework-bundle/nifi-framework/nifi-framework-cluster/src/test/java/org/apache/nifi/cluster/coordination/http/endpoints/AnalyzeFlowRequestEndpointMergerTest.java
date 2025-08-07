@@ -129,7 +129,7 @@ public class AnalyzeFlowRequestEndpointMergerTest {
         testSubject.mergeResponses(clientDto, dtoMap, null, null);
 
         // THEN
-        HashSet<String> actualFailures = new HashSet<>(Arrays.asList(clientDto.getFailureReason().split("\n")));
+        Set<String> actualFailures = new HashSet<>(Arrays.asList(clientDto.getFailureReason().split("\n")));
 
         Assertions.assertEquals(expectedFailures, actualFailures);
     }

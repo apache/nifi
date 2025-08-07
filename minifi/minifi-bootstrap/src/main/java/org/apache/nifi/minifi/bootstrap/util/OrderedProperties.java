@@ -38,7 +38,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class OrderedProperties extends Properties {
     private final Map<String, String> textBeforeMap = new HashMap<>();
-    private final LinkedHashSet<Object> orderedKeys = new LinkedHashSet<>();
+    private final Set<Object> orderedKeys = new LinkedHashSet<>();
 
     @Override
     public synchronized Object put(Object key, Object value) {

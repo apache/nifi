@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 public final class Utils {
 
@@ -70,7 +71,7 @@ public final class Utils {
      */
     public static Method[] findMethods(String name, Class<?> targetClass) {
         Class<?> searchType = targetClass;
-        ArrayList<Method> fittingMethods = new ArrayList<>();
+        List<Method> fittingMethods = new ArrayList<>();
         while (searchType != null) {
             Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
             for (Method method : methods) {

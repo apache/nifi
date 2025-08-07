@@ -565,9 +565,9 @@ public class DeduplicateRecord extends AbstractProcessor {
 
     private static class HashSetFilterWrapper extends FilterWrapper {
 
-        private final HashSet<String> filter;
+        private final HashSet<String> filter; //NOPMD
 
-        public HashSetFilterWrapper(HashSet<String> filter) {
+        public HashSetFilterWrapper(HashSet<String> filter) { //NOPMD
             this.filter = filter;
         }
 

@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +115,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         boolean includeCounters = true;
         StatusHistoryDTO lastStatusHistory = null;
         final List<NodeStatusSnapshotsDTO> nodeStatusSnapshots = new ArrayList<>(successfulResponses.size());
-        LinkedHashMap<String, String> noReadPermissionsComponentDetails = null;
+        Map<String, String> noReadPermissionsComponentDetails = null;
         for (final NodeResponse nodeResponse : successfulResponses) {
             final StatusHistoryEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(StatusHistoryEntity.class);
             final StatusHistoryDTO nodeStatus = nodeResponseEntity.getStatusHistory();

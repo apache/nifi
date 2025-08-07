@@ -49,6 +49,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("PMD.LooseCoupling")
 public class TestGetSplunk {
 
     private Service service;
@@ -373,6 +374,7 @@ public class TestGetSplunk {
     /**
      * Custom args matcher for JobExportArgs.
      */
+    @SuppressWarnings("PMD.LooseCoupling")
     private static class JobExportArgsMatcher implements ArgumentMatcher<JobExportArgs> {
 
         private JobExportArgs expected;

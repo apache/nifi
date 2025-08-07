@@ -31,6 +31,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -58,7 +59,7 @@ public class TestJdbcCommonConvertToAvro {
         typeWithPrecisionRange.put(SMALLINT, range(1, 5));
         typeWithPrecisionRange.put(INTEGER, range(1, 9));
 
-        ArrayList<TestParams> params = new ArrayList<>();
+        List<TestParams> params = new ArrayList<>();
 
         typeWithPrecisionRange.forEach( (sqlType, precisions) -> {
             for (int precision : precisions) {

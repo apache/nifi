@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -87,7 +88,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     private String type;
     private ObjectMapper mapper;
 
-    private volatile ConcurrentHashMap<String, RecordPath> recordPathMappings;
+    private volatile ConcurrentMap<String, RecordPath> recordPathMappings;
 
     private final List<PropertyDescriptor> descriptors;
 

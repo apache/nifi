@@ -154,8 +154,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         if (microBatchTime == null || microBatchTime == 0) {
             StateManager stateManager = context.getStateManager();
             StateMap state = stateManager.getState(SCOPE);
-            HashMap<String, String> tempMap = new HashMap<>();
-            tempMap.putAll(state.toMap());
+            Map<String, String> tempMap = new HashMap<>(state.toMap());
             if (!tempMap.containsKey(COUNT_KEY)) {
                 tempMap.put(COUNT_KEY, "0");
                 context.getStateManager().setState(tempMap, SCOPE);

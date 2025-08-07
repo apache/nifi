@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -71,8 +72,7 @@ public class TestLogMessage {
 
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
         runner.setProperty(LogMessage.LOG_LEVEL, LogMessage.MessageLogLevel.info.toString());
-
-        HashMap<String, String> flowAttributes = new HashMap<>();
+        Map<String, String> flowAttributes = new HashMap<>();
         flowAttributes.put("foobar", "baz");
 
         runner.enqueue("This is a message!", flowAttributes);
@@ -96,7 +96,7 @@ public class TestLogMessage {
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
         runner.setProperty(LogMessage.LOG_LEVEL, LogMessage.MessageLogLevel.info.toString());
 
-        HashMap<String, String> flowAttributes = new HashMap<>();
+        Map<String, String> flowAttributes = new HashMap<>();
         flowAttributes.put("foobar", "baz");
 
         runner.enqueue("This is a message!", flowAttributes);

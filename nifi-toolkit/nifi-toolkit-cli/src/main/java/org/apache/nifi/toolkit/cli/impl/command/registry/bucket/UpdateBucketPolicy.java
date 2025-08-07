@@ -31,8 +31,6 @@ import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -74,7 +72,7 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
         final String groupIds = getArg(properties, CommandOption.GROUP_ID_LIST);
 
         final String policyAction = getRequiredArg(properties, CommandOption.POLICY_ACTION);
-        final HashSet<String> permittedActions = new HashSet<>(Arrays.asList("read", "write", "delete"));
+        final Set<String> permittedActions = Set.of("read", "write", "delete");
         if (!permittedActions.contains(policyAction)) {
             throw new IllegalArgumentException("Only read, write, delete actions permitted");
         }

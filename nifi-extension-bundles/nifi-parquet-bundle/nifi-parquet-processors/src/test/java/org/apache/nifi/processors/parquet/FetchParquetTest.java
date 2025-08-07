@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
@@ -551,7 +552,7 @@ public class FetchParquetTest {
                 user.put("favorite_number", i);
 
 
-                final GenericData.Array<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
+                final GenericArray<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
                 colors.add("blue" + i);
 
                 user.put("favorite_color", colors);
@@ -579,7 +580,7 @@ public class FetchParquetTest {
                 user.put("favorite_number", i);
 
 
-                final GenericData.Array<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
+                final GenericArray<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
                 colors.add("blue" + i);
 
                 user.put("favorite_color", colors);

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
-    private final LinkedBlockingQueue<BoxEvent> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<BoxEvent> queue = new LinkedBlockingQueue<>();
 
     @BeforeEach
     void setUp() throws Exception {

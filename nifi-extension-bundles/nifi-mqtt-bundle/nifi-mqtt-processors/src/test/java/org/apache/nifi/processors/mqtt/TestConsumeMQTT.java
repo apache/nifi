@@ -44,7 +44,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_DUPLICATE_ATTRIBUTE_KEY;
@@ -404,7 +403,7 @@ public class TestConsumeMQTT {
         final Field f = ConsumeMQTT.class.getDeclaredField("mqttQueue");
         f.setAccessible(true);
         @SuppressWarnings("unchecked")
-        final LinkedBlockingQueue<ReceivedMqttMessage> queue = (LinkedBlockingQueue<ReceivedMqttMessage>) f.get(consumeMQTT);
+        final BlockingQueue<ReceivedMqttMessage> queue = (BlockingQueue<ReceivedMqttMessage>) f.get(consumeMQTT);
         queue.add(testMessage);
 
         consumeMQTT.onUnscheduled(testRunner.getProcessContext());

@@ -67,7 +67,7 @@ public class TestHL7Query {
 
     @Test
     public void testAssignAliases() {
-        final LinkedHashMap<String, List<Object>> possibleValueMap = new LinkedHashMap<>();
+        final Map<String, List<Object>> possibleValueMap = new LinkedHashMap<>();
 
         final List<Object> valuesA = new ArrayList<>();
         valuesA.add("a");

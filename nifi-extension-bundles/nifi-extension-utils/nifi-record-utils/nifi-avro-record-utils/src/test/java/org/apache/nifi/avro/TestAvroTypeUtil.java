@@ -42,6 +42,7 @@ import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
@@ -304,7 +305,7 @@ public class TestAvroTypeUtil {
         GenericRecordBuilder builder = new GenericRecordBuilder(avroSchema);
         Record r = builder.build();
         @SuppressWarnings("unchecked")
-        GenericData.Array<Integer> values = (GenericData.Array<Integer>) r.get("listOfInt");
+        GenericArray<Integer> values = (GenericArray<Integer>) r.get("listOfInt");
         assertEquals(values.size(), 1);
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
@@ -326,7 +327,7 @@ public class TestAvroTypeUtil {
         GenericRecordBuilder builder = new GenericRecordBuilder(avroSchema);
         Record r = builder.build();
         @SuppressWarnings("unchecked")
-        GenericData.Array<Integer> values = (GenericData.Array<Integer>) r.get("listOfInt");
+        GenericArray<Integer> values = (GenericArray<Integer>) r.get("listOfInt");
         assertArrayEquals(new Object[] {1, 2}, values.toArray());
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
@@ -351,8 +352,7 @@ public class TestAvroTypeUtil {
         Record r = builder.build();
 
         @SuppressWarnings("unchecked")
-        GenericData.Array<Integer> values = (GenericData.Array<Integer>) ((GenericRecord) r.get("field1"))
-                .get("listOfInt");
+        GenericArray<Integer> values = (GenericArray<Integer>) ((GenericRecord) r.get("field1")).get("listOfInt");
         assertArrayEquals(new Object[] {0}, values.toArray());
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("field1").get();
@@ -381,8 +381,7 @@ public class TestAvroTypeUtil {
        Record r = builder.build();
 
        @SuppressWarnings("unchecked")
-       GenericData.Array<Integer> values = (GenericData.Array<Integer>) ((GenericRecord) r.get("field1"))
-               .get("listOfInt");
+       GenericArray<Integer> values = (GenericArray<Integer>) ((GenericRecord) r.get("field1")).get("listOfInt");
        assertArrayEquals(new Object[] {1, 2, 3}, values.toArray());
        RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
        RecordField field = record.getField("field1").get();
@@ -909,7 +908,7 @@ public class TestAvroTypeUtil {
         final GenericRecord result = AvroTypeUtil.createAvroRecord(nifiRecord, avroSchema);
 
         // then
-        final HashMap<String, Object> numbers = (HashMap<String, Object>) result.get("numbers");
+        final Map<String, Object> numbers = (HashMap<String, Object>) result.get("numbers");
         assertInstanceOf(Long.class, numbers.get("number1"));
         assertInstanceOf(Long.class, numbers.get("number2"));
     }

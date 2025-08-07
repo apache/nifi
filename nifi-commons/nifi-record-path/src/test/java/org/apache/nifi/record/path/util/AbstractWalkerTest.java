@@ -68,7 +68,7 @@ public abstract class AbstractWalkerTest {
     }
 
     protected Object[] buildMapRecordArray(int seed, int count) {
-        final ArrayList<MapRecord> list = new ArrayList<>();
+        final List<MapRecord> list = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             list.add(new MapRecord(getMapRecordSchema(), buildMapRecord(seed)));
             seed++;

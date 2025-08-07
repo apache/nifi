@@ -543,7 +543,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     private void populateConfigurableComponent(final Extension extension, final ConfigurableComponentDefinition configurableComponentDefinition) {
         final List<Property> properties = extension.getProperties();
         if (isNotEmpty(properties)) {
-            final LinkedHashMap<String, PropertyDescriptor> propertyDescriptors = new LinkedHashMap<>();
+            final Map<String, PropertyDescriptor> propertyDescriptors = new LinkedHashMap<>();
             properties.forEach(property -> addPropertyDescriptor(propertyDescriptors, property));
             configurableComponentDefinition.setPropertyDescriptors(propertyDescriptors);
         }

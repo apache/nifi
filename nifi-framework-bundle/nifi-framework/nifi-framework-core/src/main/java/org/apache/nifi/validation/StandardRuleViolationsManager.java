@@ -143,7 +143,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
 
     @Override
     public Collection<RuleViolation> getRuleViolationsForSubject(String subjectId) {
-        HashSet<RuleViolation> ruleViolationsForSubject = Optional.ofNullable(subjectIdToRuleViolation.get(subjectId))
+        Set<RuleViolation> ruleViolationsForSubject = Optional.ofNullable(subjectIdToRuleViolation.get(subjectId))
             .map(Map::values)
             .map(HashSet::new)
             .orElse(new HashSet<>());

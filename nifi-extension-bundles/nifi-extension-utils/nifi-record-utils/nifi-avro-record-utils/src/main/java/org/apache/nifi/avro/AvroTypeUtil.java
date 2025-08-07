@@ -50,6 +50,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericFixed;
@@ -1147,7 +1148,7 @@ public class AvroTypeUtil {
                     }
                     return valueArray;
                 } else {
-                    final GenericData.Array<?> array = (GenericData.Array<?>) value;
+                    final GenericArray<?> array = (GenericArray<?>) value;
                     final Object[] valueArray = new Object[array.size()];
                     for (int i = 0; i < array.size(); i++) {
                         final Schema elementSchema = avroSchema.getElementType();

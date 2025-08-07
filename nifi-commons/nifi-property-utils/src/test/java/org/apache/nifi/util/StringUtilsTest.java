@@ -98,7 +98,7 @@ public class StringUtilsTest {
 
   @Test
   public void testJoin() {
-    final ArrayList<String> collection = new ArrayList<>();
+    final List<String> collection = new ArrayList<>();
     assertEquals("", StringUtils.join(collection, ","));
 
     collection.add("test1");

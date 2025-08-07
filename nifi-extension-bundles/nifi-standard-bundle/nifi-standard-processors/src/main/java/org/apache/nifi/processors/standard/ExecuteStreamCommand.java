@@ -360,8 +360,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             return;
         }
 
-        final ArrayList<String> args = new ArrayList<>();
-        final ArrayList<String> argumentAttributeValue = new ArrayList<>();
+        final List<String> args = new ArrayList<>();
+        final List<String> argumentAttributeValue = new ArrayList<>();
         final boolean putToAttribute = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).isSet();
         final PropertyValue argumentsStrategyPropertyValue = context.getProperty(ARGUMENTS_STRATEGY);
         final boolean useDynamicPropertyArguments = argumentsStrategyPropertyValue.isSet() && argumentsStrategyPropertyValue.getValue().equals(DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());

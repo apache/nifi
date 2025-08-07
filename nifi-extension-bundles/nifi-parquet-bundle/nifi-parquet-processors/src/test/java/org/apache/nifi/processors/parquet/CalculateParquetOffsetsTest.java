@@ -341,7 +341,7 @@ public class CalculateParquetOffsetsTest {
         results.forEach(flowFile -> PRESERVED_ATTRIBUTES.forEach(flowFile::assertAttributeEquals));
     }
 
-    private HashMap<String, String> createAttributes(Map<String, String> additionalAttributes) {
+    private Map<String, String> createAttributes(Map<String, String> additionalAttributes) {
         return new HashMap<>(PRESERVED_ATTRIBUTES) {{
             putAll(additionalAttributes);
         }};

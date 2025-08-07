@@ -470,7 +470,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             return;
         }
 
-        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+        final Map<Long, List<T>> orderedEntries = new TreeMap<>();
         for (final T entity : entityList) {
             List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
             entitiesForTimestamp.add(entity);
@@ -511,7 +511,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         long currentTime = getCurrentTime();
 
-        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+        final Map<Long, List<T>> orderedEntries = new TreeMap<>();
         try {
             List<T> entityList = performListing(context, lowerBoundInclusiveTimestamp, ListingMode.EXECUTION);
 
@@ -662,7 +662,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         Long latestListedEntryTimestampThisCycleMillis = null;
-        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>(); // NOPMD
 
         // Build a sorted map to determine the latest possible entries
         boolean targetSystemHasMilliseconds = false;
