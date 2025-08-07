@@ -38,24 +38,37 @@ prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/py
 # Setup NiFi to scan for new NARs in nar_extensions
 prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
 # Establish baseline properties
-prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
-prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
+
+
 prop_replace 'nifi.web.proxy.host'              "${NIFI_WEB_PROXY_HOST}"
 prop_replace 'nifi.remote.input.host'           "${NIFI_REMOTE_INPUT_HOST:-$HOSTNAME}"
 prop_replace 'nifi.remote.input.socket.port'    "${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
-prop_replace 'nifi.remote.input.secure'         'true'
-prop_replace 'nifi.cluster.protocol.is.secure'  'true'
+prop_replace 'nifi.remote.input.secure'         "${NIFI_REMOTE_INPUT_SECURE:-true}"
+prop_replace 'nifi.cluster.protocol.is.secure'  "${NIFI_CLUSTER_PROTOCOL_IS_SECURE:-true}"
 
-# Set nifi-toolkit properties files and baseUrl
-"${scripts_dir}/toolkit.sh"
-prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}:${NIFI_WEB_HTTPS_PORT:-8443}" ${nifi_toolkit_props_file}
+if [ -z "${NIFI_WEB_HTTPS_ENABLE}" ]; then
+    echo "NIFI_WEB_HTTPS_ENABLE was not set and disable the secure mode."
+    comment "nifi.web.https.port"                   ${nifi_props_file}
+    comment "nifi.web.https.host"                   ${nifi_props_file}
+    prop_replace 'nifi.web.http.port'               "${NIFI_WEB_HTTP_PORT:-8080}"
+    prop_replace 'nifi.web.http.host'               "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
+    prop_replace 'nifi.security.keystore'           ""
+    prop_replace 'nifi.security.truststore'         ""
+else
+    prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
+    prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
 
-prop_replace 'keystore'           "${NIFI_HOME}/conf/keystore.p12"      ${nifi_toolkit_props_file}
-prop_replace 'keystoreType'       "PKCS12"                              ${nifi_toolkit_props_file}
-prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    ${nifi_toolkit_props_file}
-prop_replace 'truststoreType'     "PKCS12"                              ${nifi_toolkit_props_file}
+    # Set nifi-toolkit properties files and baseUrl
+    "${scripts_dir}/toolkit.sh"
+    prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}:${NIFI_WEB_HTTPS_PORT:-8443}" ${nifi_toolkit_props_file}
 
-if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+    prop_replace 'keystore'           "${NIFI_HOME}/conf/keystore.p12"      ${nifi_toolkit_props_file}
+    prop_replace 'keystoreType'       "PKCS12"                              ${nifi_toolkit_props_file}
+    prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    ${nifi_toolkit_props_file}
+    prop_replace 'truststoreType'     "PKCS12"                              ${nifi_toolkit_props_file}
+fi
+
+if [ -z "${NIFI_WEB_PROXY_HOST}" && "${NIFI_REMOTE_INPUT_SECURE}" == 'true' ]; then
     echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
 fi
 

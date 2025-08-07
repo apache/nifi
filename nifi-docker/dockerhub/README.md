@@ -15,6 +15,10 @@
 
 ## Latest changes
 
+### 2.6.0
+
+- Adding the `NIFI_WEB_HTTPS_ENABLE` environment variable to determine the NiFi is run with the HTTP or HTTPS mode.
+
 ### 2.0.0
 
 - Changed base image to bellsoft/liberica-openjdk-debian:21 as NiFi 2.0.0 requires Java 21

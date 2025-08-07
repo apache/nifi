@@ -29,6 +29,12 @@ uncomment() {
   sed -i -e "s|^\#$1|$1|" ${target_file}
 }
 
+comment() {
+  target_file=${2}
+  echo "File [${target_file}] commenting [${1}]"
+  sed -i -e "s|$1|\#$1|" ${target_file}
+}
+
 # 1 - property key to add or replace
 # 2 - property value to use
 # 3 - file to perform replacement inline
