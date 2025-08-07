@@ -18,6 +18,7 @@
 ### 2.0.0
 
 - Changed base image to bellsoft/liberica-openjdk-debian:21 as NiFi 2.0.0 requires Java 21
+- Dropped the plain HTTP support
 
 ### 1.19.0
 
