@@ -44,10 +44,13 @@ under the License.
                              java.util.Properties,
                              java.util.jar.Attributes,
                              jakarta.ws.rs.core.MultivaluedHashMap,
+                             com.google.api.services.drive.DriveRequest,
                              com.google.api.services.drive.model.File,
+                             com.google.cloud.bigquery.FieldValueList,
+                             org.bson.BsonDocument,
                              org.bson.Document,
                              com.nimbusds.oauth2.sdk.Scope,
-                             org.apache.nifi.attribute.expression.language.ValueLookup
+                             org.apache.nifi.attribute.expression.language.ValueLookup,
                              org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue
             " />
         </properties>

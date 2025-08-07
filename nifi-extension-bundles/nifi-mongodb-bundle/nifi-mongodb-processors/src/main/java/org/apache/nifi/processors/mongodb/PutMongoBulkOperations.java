@@ -127,7 +127,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
 
             final BsonArrayCodec arrayCodec = new BsonArrayCodec();
             final DecoderContext decoderContext = DecoderContext.builder().build();
-            final BsonArray updateItems;
+            final BsonArray updateItems; //NOPMD
             try (final Reader reader = new InputStreamReader(session.read(flowFile), charset)) {
                 updateItems = arrayCodec.decode(new JsonReader(reader), decoderContext);
             }
