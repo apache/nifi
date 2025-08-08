@@ -75,11 +75,13 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
 
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SnowflakeProperties.DATABASE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED, SnowflakeInternalStageType.TABLE)
             .build();
 
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SnowflakeProperties.SCHEMA)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED, SnowflakeInternalStageType.TABLE)
             .build();
 
@@ -170,8 +172,8 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
 
     private SnowflakeInternalStageTypeParameters getSnowflakeInternalStageTypeParameters(ProcessContext context,
             FlowFile flowFile) {
-        final String database = context.getProperty(DATABASE).evaluateAttributeExpressions().getValue();
-        final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
+        final String database = context.getProperty(DATABASE).evaluateAttributeExpressions(flowFile).getValue();
+        final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions(flowFile).getValue();
         final String stageName = context.getProperty(INTERNAL_STAGE).evaluateAttributeExpressions(flowFile).getValue();
         return new SnowflakeInternalStageTypeParameters(database, schema, table, stageName);
