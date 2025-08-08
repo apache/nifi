@@ -890,16 +890,16 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedSchema, new HashMap<>() {{
-                put("integer", 1);
-                put("boolean", true);
-                put("booleanOrString", true);
-            }}),
-            new MapRecord(expectedSchema, new HashMap<>() {{
-                put("integer", 2);
-                put("string", "stringValue2");
-                put("booleanOrString", "booleanOrStringValue2");
-            }})
+            new MapRecord(expectedSchema, Map.of(
+                    "integer", 1,
+                    "boolean", true,
+                    "booleanOrString", true
+            )),
+            new MapRecord(expectedSchema, Map.of(
+                    "integer", 2,
+                    "string", "stringValue2",
+                    "booleanOrString", "booleanOrStringValue2"
+            ))
         );
 
         testReadRecords(jsonPath, expected);
@@ -925,18 +925,22 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<>() {{
-                    put("integer", 1);
-                    put("boolean", true);
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema2, new HashMap<>() {{
-                    put("integer", 2);
-                    put("string", "stringValue2");
-                }}));
-            }})
+            new MapRecord(expectedRecordChoiceSchema, Map.of(
+                    "record", new MapRecord(expectedRecordSchema1, Map.of(
+                            "integer", 1,
+                            "boolean", true
+                        )
+                    )
+                )
+            ),
+            new MapRecord(expectedRecordChoiceSchema, Map.of(
+                    "record", new MapRecord(expectedRecordSchema2, Map.of(
+                            "integer", 2,
+                            "string", "stringValue2"
+                        )
+                    )
+                )
+            )
         );
 
         testReadRecords(jsonPath, expected);
@@ -1181,10 +1185,10 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("nestedLevel2Int", 111);
-                    put("nestedLevel2String", "root.level1.level2:string");
-                }})
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "nestedLevel2Int", 111,
+                        "nestedLevel2String", "root.level1.level2:string"
+                ))
         );
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
