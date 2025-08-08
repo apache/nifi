@@ -1635,7 +1635,7 @@ public class TestPutSQL {
 
             TestRunner runner = initTestRunner();
 
-            HashMap<String, String> attributes = new HashMap<>();
+            Map<String, String> attributes = new HashMap<>();
             attributes.put("database.name", "someDatabaseName");
             runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", attributes);
             runner.run();
