@@ -150,6 +150,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
                 yield ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, clientId, applicationKey, tenantId);
             }
             case MANAGED_IDENTITY -> ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
+            case AZ_CLI_DEV_ONLY -> ConnectionStringBuilder.createWithAzureCli(clusterUrl);
         };
 
         builder.setConnectorDetails("Kusto.Nifi.Source", StandardKustoQueryService.class.getPackage().getImplementationVersion(), null, null, false, null, NIFI_SOURCE);
