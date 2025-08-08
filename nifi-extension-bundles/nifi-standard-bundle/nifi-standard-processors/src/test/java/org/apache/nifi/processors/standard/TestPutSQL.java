@@ -1511,9 +1511,7 @@ public class TestPutSQL {
 
         recreateTable("PERSONS", createPersons);
 
-        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<>() {{
-            put("row.id", "1");
-        }});
+        runner.enqueue("This statement should be ignored".getBytes(), Map.of("row.id", "1"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
@@ -1530,9 +1528,7 @@ public class TestPutSQL {
         }
 
         runner.setProperty(PutSQL.SQL_STATEMENT, "UPDATE PERSONS SET NAME='George' WHERE ID=${row.id}");
-        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<>() {{
-            put("row.id", "1");
-        }});
+        runner.enqueue("This statement should be ignored".getBytes(), Map.of("row.id", "1"));
         runner.run();
 
         try (final Connection conn = service.getConnection()) {

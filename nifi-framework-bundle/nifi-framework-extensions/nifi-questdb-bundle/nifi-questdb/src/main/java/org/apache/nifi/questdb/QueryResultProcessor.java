@@ -18,17 +18,16 @@ package org.apache.nifi.questdb;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 
 public interface QueryResultProcessor<R> {
-    Map<Class<?>, BiFunction<Integer, QueryRowContext, ?>> ENTRY_FILLERS = new HashMap<>() {{
-        put(Integer.class, (p, r) -> r.getInt(p));
-        put(Long.class, (p, r) -> r.getLong(p));
-        put(String.class, (p, r) -> r.getString(p));
-        put(Instant.class, (p, r) -> microsToInstant(r.getTimestamp(p)));
-    }};
+    Map<Class<?>, BiFunction<Integer, QueryRowContext, ?>> ENTRY_FILLERS = Map.of(
+            Integer.class, (p, r) -> r.getInt(p),
+            Long.class, (p, r) -> r.getLong(p),
+            String.class, (p, r) -> r.getString(p),
+            Instant.class, (p, r) -> microsToInstant(r.getTimestamp(p))
+    );
 
     private static Instant microsToInstant(final long micros) {
         return Instant.EPOCH.plus(micros, ChronoUnit.MICROS);

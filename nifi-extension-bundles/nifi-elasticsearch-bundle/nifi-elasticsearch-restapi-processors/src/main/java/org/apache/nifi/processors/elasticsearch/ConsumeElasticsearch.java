@@ -270,18 +270,17 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
         // only retrieve documents with values greater than the last queried value (if present)
         final String trackingRangeValue = getTrackingRangeValueOrDefault(context);
         if (StringUtils.isNotBlank(trackingRangeValue)) {
-            filters.add(Collections.singletonMap("range", Collections.singletonMap(getTrackingRangeField(context),
-                    new HashMap<String, String>(3, 1) {{
-                        put("gt", trackingRangeValue);
-                        if (context.getProperty(RANGE_INITIAL_VALUE).isSet()) {
-                            if (context.getProperty(RANGE_DATE_FORMAT).isSet()) {
-                                put("format", context.getProperty(RANGE_DATE_FORMAT).getValue());
-                            }
-                            if (context.getProperty(RANGE_TIME_ZONE).isSet()) {
-                                put("time_zone", context.getProperty(RANGE_TIME_ZONE).getValue());
-                            }
-                        }
-                    }})));
+            final Map<String, String> innerValue = new HashMap<>(3, 1);
+            innerValue.put("gt", trackingRangeValue);
+            if (context.getProperty(RANGE_INITIAL_VALUE).isSet()) {
+                if (context.getProperty(RANGE_DATE_FORMAT).isSet()) {
+                    innerValue.put("format", context.getProperty(RANGE_DATE_FORMAT).getValue());
+                }
+                if (context.getProperty(RANGE_TIME_ZONE).isSet()) {
+                    innerValue.put("time_zone", context.getProperty(RANGE_TIME_ZONE).getValue());
+                }
+            }
+            filters.add(Map.of("range", Map.of(getTrackingRangeField(context), innerValue)));
         }
 
         // add any additional filters specified as a property, allowing for one (Object) or multiple (Array of Objects) filters

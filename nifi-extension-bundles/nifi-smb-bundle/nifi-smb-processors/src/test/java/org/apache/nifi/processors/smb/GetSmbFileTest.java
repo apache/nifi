@@ -168,9 +168,7 @@ public class GetSmbFileTest {
     @Test
     public void testOpenFileCalled() {
         FileIdBothDirectoryInformation file1 = mockFile(DIRECTORY, "file1.txt", "abc");
-        mockDir(DIRECTORY, new ArrayList<>() {{
-            add(file1);
-        }});
+        mockDir(DIRECTORY, List.of(file1));
         testRunner.run();
         verifyOpenFile(DIRECTORY, "file1.txt", 1);
         verifyOpenFile(DIRECTORY, "file2.txt", 0);
@@ -181,10 +179,7 @@ public class GetSmbFileTest {
         testRunner.setProperty(GetSmbFile.IGNORE_HIDDEN_FILES, "true");
         FileIdBothDirectoryInformation file1 = mockFile(DIRECTORY, "file1.txt", "abc", FileAttributes.FILE_ATTRIBUTE_HIDDEN.getValue());
         FileIdBothDirectoryInformation file2 = mockFile(DIRECTORY, "file2.txt", "abc", FileAttributes.FILE_ATTRIBUTE_NORMAL.getValue());
-        mockDir(DIRECTORY, new ArrayList<>() {{
-            add(file1);
-            add(file2);
-        }});
+        mockDir(DIRECTORY, List.of(file1, file2));
         testRunner.run();
         verifyOpenFile(DIRECTORY, "file1.txt", 0);
         verifyOpenFile(DIRECTORY, "file2.txt", 1);
@@ -193,11 +188,11 @@ public class GetSmbFileTest {
     @Test
     public void testFileFilter() {
         testRunner.setProperty(GetSmbFile.FILE_FILTER, "file[0-9]\\.txt");
-        mockDir(DIRECTORY, new ArrayList<>() {{
-            add(mockFile(DIRECTORY, "something_else.txt", "abc"));
-            add(mockFile(DIRECTORY, "file1.txt", "abc"));
-            add(mockFile(DIRECTORY, "file2.txt", "abc"));
-        }});
+        mockDir(DIRECTORY, List.of(
+                mockFile(DIRECTORY, "something_else.txt", "abc"),
+                mockFile(DIRECTORY, "file1.txt", "abc"),
+                mockFile(DIRECTORY, "file2.txt", "abc")
+        ));
         testRunner.run();
         verifyOpenFile(DIRECTORY, "something_else.txt", 0);
         verifyOpenFile(DIRECTORY, "file1.txt", 1);
@@ -209,13 +204,11 @@ public class GetSmbFileTest {
     public void testNonRecurse() {
         testRunner.setProperty(GetSmbFile.RECURSE, "false");
         String subdir = DIRECTORY + "\\subdir1";
-        mockDir(DIRECTORY, new ArrayList<>() {{
-            add(mockFile(DIRECTORY, "file1.txt", "abc"));
-            add(mockFile(DIRECTORY, "file2.txt", "abc"));
-            add(mockDir(subdir, new ArrayList<>() {{
-                add(mockFile(subdir, "file3.txt", "abc"));
-            }}));
-        }});
+        mockDir(DIRECTORY, List.of(
+                mockFile(DIRECTORY, "file1.txt", "abc"),
+                mockFile(DIRECTORY, "file2.txt", "abc"),
+                mockDir(subdir, List.of(mockFile(subdir, "file3.txt", "abc")))
+        ));
 
         testRunner.run();
         verifyOpenFile(DIRECTORY, "file1.txt", 1);
@@ -228,13 +221,12 @@ public class GetSmbFileTest {
     public void testRecurse() {
         testRunner.setProperty(GetSmbFile.RECURSE, "true");
         String subdir = DIRECTORY + "\\subdir1";
-        mockDir(DIRECTORY, new ArrayList<>() {{
-            add(mockFile(DIRECTORY, "file1.txt", "abc"));
-            add(mockFile(DIRECTORY, "file2.txt", "abc"));
-            add(mockDir(subdir, new ArrayList<>() {{
-                add(mockFile(subdir, "file3.txt", "abc"));
-            }}));
-        }});
+        mockDir(DIRECTORY, List.of(
+                mockFile(DIRECTORY, "file1.txt", "abc"),
+                mockFile(DIRECTORY, "file2.txt", "abc"),
+                mockDir(subdir, List.of(mockFile(subdir, "file3.txt", "abc")))
+            )
+        );
 
 
         testRunner.run();
@@ -251,17 +243,11 @@ public class GetSmbFileTest {
         String subdir1 = DIRECTORY + "\\subdir1";
         String subdir2 = DIRECTORY + "\\subdir2";
         String subdir3 = DIRECTORY + "\\foo";
-        mockDir(DIRECTORY, new ArrayList<>() {{
-            add(mockDir(subdir1, new ArrayList<>() {{
-                add(mockFile(subdir1, "file1.txt", "abc"));
-            }}));
-            add(mockDir(subdir2, new ArrayList<>() {{
-                add(mockFile(subdir2, "file2.txt", "abc"));
-            }}));
-            add(mockDir(subdir3, new ArrayList<>() {{
-                add(mockFile(subdir3, "file3.txt", "abc"));
-            }}));
-        }});
+        mockDir(DIRECTORY, List.of(
+                mockDir(subdir1, List.of(mockFile(subdir1, "file1.txt", "abc"))),
+                mockDir(subdir2, List.of(mockFile(subdir2, "file2.txt", "abc"))),
+                mockDir(subdir3, List.of(mockFile(subdir3, "file3.txt", "abc")))
+        ));
 
 
         testRunner.run();
