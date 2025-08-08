@@ -64,9 +64,13 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestDbStatusHistoryStorage.class);
 
     private final Client client;
+    private final int configuredNodeDays;
+    private final int configuredComponentDays;
 
-    QuestDbStatusHistoryStorage(final Client client) {
+    QuestDbStatusHistoryStorage(final Client client, final int configuredNodeDays, final int configuredComponentDays) {
         this.client = client;
+        this.configuredNodeDays = configuredNodeDays;
+        this.configuredComponentDays = configuredComponentDays;
     }
 
     @Override
@@ -92,22 +96,22 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
     @Override
     public List<StatusSnapshot> getProcessorSnapshotsWithCounters(final String componentId, final Date start, final Date end) {
         final List<StatusSnapshot> componentSnapshots = getComponentSnapshots(TABLE_NAME_PROCESSOR_STATUS, componentId, PROCESSOR_STATUS_REQUEST_MAPPING, start, end);
-        final String query = String.format(COMPONENT_STATUS_QUERY, TABLE_NAME_COMPONENT_COUNTER, componentId, getStartTime(start), getEndTime(end));
+        final String query = String.format(COMPONENT_STATUS_QUERY, TABLE_NAME_COMPONENT_COUNTER, componentId, getStartTimeForComponent(start), getEndTime(end));
         return getResult(query, new CounterStatisticsResultProcessor(componentSnapshots), Collections.emptyList());
     }
 
     @Override
     public List<GarbageCollectionStatus> getGarbageCollectionSnapshots(final Date start, final Date end) {
-        final String query = String.format(STATUS_QUERY_GARBAGE_COLLECTION, getStartTime(start), getEndTime(end));
+        final String query = String.format(STATUS_QUERY_GARBAGE_COLLECTION, getStartTimeForNode(start), getEndTime(end));
         return getResult(query, new GarbageCollectionResultProcessor(), Collections.emptyList());
     }
 
     @Override
     public List<StatusSnapshot> getNodeStatusSnapshots(final Date start, final Date end) {
-        final String storageStatusQuery = String.format(STORAGE_STATUS_QUERY, getStartTime(start), getEndTime(end));
+        final String storageStatusQuery = String.format(STORAGE_STATUS_QUERY, getStartTimeForNode(start), getEndTime(end));
         final Map<Long, Map<StandardMetricDescriptor<NodeStatus>, Long>> statusMetricsByTime
             = getResult(storageStatusQuery, EmbeddedQuestDbStatusHistoryRepositoryDefinitions.getStorageStatusResultProcessor(), new HashMap<>());
-        final String nodeStatusQuery = String.format(NODE_STATUS_QUERY, getStartTime(start), getEndTime(end));
+        final String nodeStatusQuery = String.format(NODE_STATUS_QUERY, getStartTimeForNode(start), getEndTime(end));
         return getSnapshot(nodeStatusQuery, EmbeddedQuestDbStatusHistoryRepositoryDefinitions.getNodeStatusResultProcessor(statusMetricsByTime));
     }
 
@@ -152,7 +156,7 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
     }
 
     private List<StatusSnapshot> getComponentSnapshots(final String tableName, final String componentId, final RequestMapping<StandardStatusSnapshot> mapping, final Date start, final Date end) {
-        final String query = String.format(COMPONENT_STATUS_QUERY, tableName, componentId, getStartTime(start), getEndTime(end));
+        final String query = String.format(COMPONENT_STATUS_QUERY, tableName, componentId, getStartTimeForComponent(start), getEndTime(end));
         return getSnapshot(query, RequestMapping.getResultProcessor(mapping));
     }
 
@@ -169,8 +173,13 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
         }
     }
 
-    private static String getStartTime(final Date start) {
-        final Instant startTime = (start == null) ? Instant.now().minus(1, ChronoUnit.DAYS) : start.toInstant();
+    private String getStartTimeForNode(final Date start) {
+        final Instant startTime = (start == null) ? Instant.now().minus(configuredNodeDays, ChronoUnit.DAYS) : start.toInstant();
+        return EmbeddedQuestDbStatusHistoryRepositoryDefinitions.DATE_FORMATTER.format(startTime);
+    }
+
+    private String getStartTimeForComponent(final Date start) {
+        final Instant startTime = (start == null) ? Instant.now().minus(configuredComponentDays, ChronoUnit.DAYS) : start.toInstant();
         return EmbeddedQuestDbStatusHistoryRepositoryDefinitions.DATE_FORMATTER.format(startTime);
     }
 
