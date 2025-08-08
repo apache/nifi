@@ -81,8 +81,13 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
             return true;
         }
 
+        // Apply underscore substitution only for loadBalanceStatus column; trim whitespace so extraneous underscores are not introduced
+        const trimmedTerm: string = (filterTerm as string).trim();
+        const normalizedTerm: string =
+            filterColumn === 'loadBalanceStatus' ? trimmedTerm.replace(/\s+/g, '_') : trimmedTerm;
+
         const field: string = data.connectionStatusSnapshot[filterColumn as keyof ConnectionStatusSnapshot] as string;
-        return this.nifiCommon.stringContains(field, filterTerm, true);
+        return this.nifiCommon.stringContains(field, normalizedTerm, true);
     }
 
     getConnectionLink(connection: ConnectionStatusSnapshotEntity): string[] {
