@@ -1610,6 +1610,8 @@ public class TestPutSQL {
         makeServiceLookLikeAnInstanceOfDBCPConnectionPoolLookup();
 
         try {
+            recreateTable("PERSONS", createPersons);
+
             TestRunner runner = initTestRunner();
 
             runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", new HashMap<>());
@@ -1629,6 +1631,8 @@ public class TestPutSQL {
         makeServiceLookLikeAnInstanceOfDBCPConnectionPoolLookup();
 
         try {
+            recreateTable("PERSONS", createPersons);
+
             TestRunner runner = initTestRunner();
 
             HashMap<String, String> attributes = new HashMap<>();
@@ -1708,7 +1712,7 @@ public class TestPutSQL {
      */
     private static class MockDBCPService extends AbstractControllerService implements DBCPService {
         private final String dbLocation;
-        private FlowFileFilter flowFileFilter;
+        private volatile FlowFileFilter flowFileFilter;
 
         public MockDBCPService(final String dbLocation) {
             this.dbLocation = dbLocation;
