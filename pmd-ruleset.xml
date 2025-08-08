@@ -47,6 +47,7 @@ under the License.
                              com.google.api.services.drive.DriveRequest,
                              com.google.api.services.drive.model.File,
                              com.google.cloud.bigquery.FieldValueList,
+                             org.bson.BsonDocument,
                              org.bson.Document,
                              com.nimbusds.oauth2.sdk.Scope,
                              org.apache.nifi.attribute.expression.language.ValueLookup,
