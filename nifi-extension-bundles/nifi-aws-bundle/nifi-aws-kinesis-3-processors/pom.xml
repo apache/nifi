@@ -35,7 +35,7 @@
         <dependency>
             <groupId>software.amazon.kinesis</groupId>
             <artifactId>amazon-kinesis-client</artifactId>
-            <version>3.1.0</version>
+            <version>3.1.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
@@ -53,7 +53,19 @@
                     <groupId>software.amazon.glue</groupId>
                     <artifactId>schema-registry-serde</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.amazonaws</groupId>
+                    <artifactId>dynamodb-lock-client</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Explicitly overriding the version for dynamodb-lock-client until new KCL version is released. -->
+        <!-- https://github.com/awslabs/amazon-kinesis-client/issues/1568 -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>dynamodb-lock-client</artifactId>
+            <version>1.4.0</version>
         </dependency>
 
         <!-- TEST DEPENDENCIES -->
