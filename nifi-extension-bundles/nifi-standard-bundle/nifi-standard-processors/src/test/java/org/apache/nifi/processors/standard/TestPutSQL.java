@@ -87,7 +87,7 @@ public class TestPutSQL {
      * Setting up Connection pooling is expensive operation.
      * So let's do this only once and reuse MockDBCPService in each test.
      */
-    static protected DBCPService service;
+    static protected MockDBCPService service;
 
     @BeforeAll
     public static void setupBeforeAll() throws ProcessException, SQLException {
@@ -1601,6 +1601,56 @@ public class TestPutSQL {
         assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
     }
 
+    @Test
+    public void flowFilesWithMissingButRequiredDatabaseNameAreRoutedToFailure() throws Exception {
+        makeServiceLookLikeAnInstanceOfDBCPConnectionPoolLookup();
+
+        try {
+            recreateTable("PERSONS", createPersons);
+
+            TestRunner runner = initTestRunner();
+
+            runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", new HashMap<>());
+            runner.run();
+
+            List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+            List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
+            assertEquals(1, failureFlowFiles.size());
+            assertEquals(0, successFlowFiles.size());
+        } finally {
+            service.setFlowFileFilter(null);
+        }
+    }
+
+    @Test
+    public void flowFilesWithExistingRequiredDatabaseNameAreRoutedToSuccess() throws Exception {
+        makeServiceLookLikeAnInstanceOfDBCPConnectionPoolLookup();
+
+        try {
+            recreateTable("PERSONS", createPersons);
+
+            TestRunner runner = initTestRunner();
+
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("database.name", "someDatabaseName");
+            runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", attributes);
+            runner.run();
+
+            List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+            List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
+            assertEquals(0, failureFlowFiles.size());
+            assertEquals(1, successFlowFiles.size());
+        } finally {
+            service.setFlowFileFilter(null);
+        }
+    }
+
+    private void makeServiceLookLikeAnInstanceOfDBCPConnectionPoolLookup() {
+        // service has a FlowFileFilter when, and only when it is a DBCPConnectionPoolLookup
+        // As such, it requires incoming FileFiles to have a 'database.name' attribute
+        service.setFlowFileFilter(flowFile -> ACCEPT_AND_CONTINUE);
+    }
+
     private void testFailInMiddleWithBadParameterType(final TestRunner runner) throws ProcessException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
 
@@ -1658,6 +1708,7 @@ public class TestPutSQL {
      */
     private static class MockDBCPService extends AbstractControllerService implements DBCPService {
         private final String dbLocation;
+        private volatile FlowFileFilter flowFileFilter;
 
         public MockDBCPService(final String dbLocation) {
             this.dbLocation = dbLocation;
@@ -1678,6 +1729,15 @@ public class TestPutSQL {
                 e.printStackTrace();
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public FlowFileFilter getFlowFileFilter() {
+            return flowFileFilter;
+        }
+
+        public void setFlowFileFilter(FlowFileFilter flowFileFilter) {
+            this.flowFileFilter = flowFileFilter;
         }
     }
 
