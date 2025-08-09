@@ -94,6 +94,22 @@ public class GitHubFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .dependsOn(AUTHENTICATION_TYPE, GitHubAuthenticationType.APP_INSTALLATION.name())
             .build();
 
+    static final PropertyDescriptor CACHE_DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Cache Directory")
+            .description("Optional directory that will be used to cache GitHub API responses to reduce the number of requests made to the GitHub API.")
+            .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor MAX_COMMITS = new PropertyDescriptor.Builder()
+            .name("Maximum Commits")
+            .description("The maximum number of commits to retrieve from the GitHub repository for a given flow. " +
+                    "If set to 0, all history of commits will be retrieved.")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .required(true)
+            .defaultValue("0")
+            .build();
+
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             GITHUB_API_URL,
             REPOSITORY_OWNER,
@@ -101,7 +117,9 @@ public class GitHubFlowRegistryClient extends AbstractGitFlowRegistryClient {
             AUTHENTICATION_TYPE,
             PERSONAL_ACCESS_TOKEN,
             APP_ID,
-            APP_PRIVATE_KEY
+            APP_PRIVATE_KEY,
+            CACHE_DIRECTORY,
+            MAX_COMMITS
     );
 
     static final String STORAGE_LOCATION_PREFIX = "git@github.com:";
@@ -123,6 +141,8 @@ public class GitHubFlowRegistryClient extends AbstractGitFlowRegistryClient {
                 .repoOwner(context.getProperty(REPOSITORY_OWNER).getValue())
                 .repoName(context.getProperty(REPOSITORY_NAME).getValue())
                 .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
+                .cache(context.getProperty(CACHE_DIRECTORY).getValue())
+                .maxCommits(context.getProperty(MAX_COMMITS).asInteger())
                 .build();
     }
 
