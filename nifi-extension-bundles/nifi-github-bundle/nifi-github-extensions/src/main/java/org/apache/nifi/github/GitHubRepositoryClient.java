@@ -19,6 +19,9 @@
 
 package org.apache.nifi.github;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import okhttp3.Cache;
+import okhttp3.OkHttpClient;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
@@ -31,13 +34,17 @@ import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
+import org.kohsuke.github.connector.GitHubConnectorResponse;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -76,6 +83,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private final GitHubAuthenticationType authenticationType;
     private final boolean canRead;
     private final boolean canWrite;
+    private final int maxCommits;
+
+    private final com.github.benmanes.caffeine.cache.Cache<String, GitCommit> commitCache = Caffeine.newBuilder()
+            .maximumSize(1000)
+            .build();
 
     private GitHubRepositoryClient(final Builder builder) throws IOException, FlowRegistryException {
         final String apiUrl = Objects.requireNonNull(builder.apiUrl, "API URL is required");
@@ -85,6 +97,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         repoOwner = Objects.requireNonNull(builder.repoOwner, "Repository Owner is required");
         repoName = Objects.requireNonNull(builder.repoName, "Repository Name is required");
         authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication Type is required");
+        maxCommits = builder.maxCommits > 0 ? builder.maxCommits : 0;
 
         // Map of permission to access for tracking App Installation permissions from internal authorization
         final Map<String, String> appPermissions = new LinkedHashMap<>();
@@ -93,6 +106,25 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
             case APP_INSTALLATION -> gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
         }
+
+        if (builder.cache != null) {
+            // enable caching using the OkHttp client
+            Cache cache = new Cache(new File(builder.cache), 10 * 1024 * 1024); // 10 MB cache
+            gitHubBuilder.withConnector(new OkHttpGitHubConnector(new OkHttpClient.Builder().cache(cache).build()));
+        }
+
+        gitHubBuilder.withAbuseLimitHandler(new GitHubAbuseLimitHandler() {
+            @Override
+            public void onError(GitHubConnectorResponse connectorResponse) throws IOException {
+                String message;
+                try (final InputStream stream = connectorResponse.bodyStream()) {
+                    message = new String(stream.readAllBytes());
+                } catch (IOException e) {
+                    message = "Failed to read response body";
+                }
+                LOGGER.error("GitHub API request failed with status code: {}, message: {}", connectorResponse.statusCode(), message);
+            }
+        });
 
         gitHub = gitHubBuilder.build();
 
@@ -276,8 +308,14 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
                         .toList();
 
                 final List<GitCommit> commits = new ArrayList<>();
+                int i = 0;
                 for (final GHCommit ghCommit : ghCommits) {
+                    // If maxCommits is set, limit the number of commits returned
+                    if (maxCommits > 0 && i >= maxCommits) {
+                        break;
+                    }
                     commits.add(toGitCommit(ghCommit));
+                    i++;
                 }
                 return commits;
             } catch (final FileNotFoundException fnf) {
@@ -407,13 +445,19 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
-        final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
-        return new GitCommit(
-                ghCommit.getSHA1(),
-                ghCommit.getAuthor().getLogin(),
-                shortInfo.getMessage(),
-                Instant.ofEpochMilli(shortInfo.getCommitDate().getTime())
-        );
+        GitCommit commit = commitCache.getIfPresent(ghCommit.getSHA1());
+        if (commit != null) {
+            return commit;
+        } else {
+            final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
+            commit = new GitCommit(
+                    ghCommit.getSHA1(),
+                    ghCommit.getAuthor().getLogin(),
+                    shortInfo.getMessage(),
+                    Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
+            commitCache.put(ghCommit.getSHA1(), commit);
+            return commit;
+        }
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {
@@ -477,6 +521,8 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         private String repoPath;
         private String appPrivateKey;
         private String appId;
+        private String cache;
+        private int maxCommits;
 
         public Builder apiUrl(final String apiUrl) {
             this.apiUrl = apiUrl;
@@ -514,6 +560,16 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         public Builder appPrivateKey(final String appPrivateKey) {
             this.appPrivateKey = appPrivateKey;
+            return this;
+        }
+
+        public Builder cache(final String cache) {
+            this.cache = cache;
+            return this;
+        }
+
+        public Builder maxCommits(final int maxCommits) {
+            this.maxCommits = maxCommits;
             return this;
         }
 
