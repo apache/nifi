@@ -1872,9 +1872,11 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified processor.
      *
-     * @param processorId the processor id
+     * @param processorId       processor id
+     * @param componentStateDTO state of the processor
+     * @return the cleared component state
      */
-    void clearProcessorState(String processorId);
+    ComponentStateDTO clearProcessorState(final String processorId, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified controller service.
@@ -1895,8 +1897,10 @@ public interface NiFiServiceFacade {
      * Clears the state for the specified controller service.
      *
      * @param controllerServiceId the controller service id
+     * @param componentStateDTO   state of the controller service
+     * @return the cleared component state
      */
-    void clearControllerServiceState(String controllerServiceId);
+    ComponentStateDTO clearControllerServiceState(String controllerServiceId, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified reporting task.
@@ -1916,9 +1920,11 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified reporting task.
      *
-     * @param reportingTaskId the reporting task id
+     * @param reportingTaskId   the reporting task id
+     * @param componentStateDTO the component state of the reporting task
+     * @return the cleared component state
      */
-    void clearReportingTaskState(String reportingTaskId);
+    ComponentStateDTO clearReportingTaskState(String reportingTaskId, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified parameter provider.
@@ -1939,8 +1945,10 @@ public interface NiFiServiceFacade {
      * Clears the state for the specified parameter provider.
      *
      * @param parameterProviderId the parameter provider id
+     * @param componentStateDTO   the component state of the parameter provider
+     * @return the cleared component state
      */
-    void clearParameterProviderState(String parameterProviderId);
+    ComponentStateDTO clearParameterProviderState(String parameterProviderId, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified RemoteProcessGroup.
@@ -2937,8 +2945,10 @@ public interface NiFiServiceFacade {
      * Clears the state for the flow analysis rule with the specified id.
      *
      * @param flowAnalysisRuleId the flow analysis rule id
+     * @param componentStateDTO  the state of the flow analysis rule
+     * @return the cleared component state
      */
-    void clearFlowAnalysisRuleState(String flowAnalysisRuleId);
+    ComponentStateDTO clearFlowAnalysisRuleState(String flowAnalysisRuleId, final ComponentStateDTO componentStateDTO);
 
     /**
      * Updates the specified flow analysis rule.

@@ -91,6 +91,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -360,6 +361,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .reloadComponent(flowController.getReloadComponent())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+            .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
             .flowAnalyzer(getFlowAnalyzer().orElse(null))
             .ruleViolationsManager(getRuleViolationsManager().orElse(null))
@@ -498,6 +500,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .reloadComponent(flowController.getReloadComponent())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+            .stateManagerProvider(flowController.getStateManagerProvider())
             .flowController(flowController)
             .extensionManager(extensionManager)
             .classloaderIsolationKey(classloaderIsolationKey)
@@ -561,6 +564,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .reloadComponent(flowController.getReloadComponent())
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+            .stateManagerProvider(flowController.getStateManagerProvider())
             .flowController(flowController)
             .extensionManager(extensionManager)
             .flowAnalyzer(getFlowAnalyzer().orElse(null))
@@ -619,6 +623,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .reloadComponent(flowController.getReloadComponent())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+                .stateManagerProvider(flowController.getStateManagerProvider())
                 .flowController(flowController)
                 .extensionManager(extensionManager)
                 .buildParameterProvider();
