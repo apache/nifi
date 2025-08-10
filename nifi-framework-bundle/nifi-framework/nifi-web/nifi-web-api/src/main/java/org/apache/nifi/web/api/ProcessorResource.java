@@ -489,7 +489,7 @@ public class ProcessorResource extends ApplicationResource {
      * @throws InterruptedException if interrupted
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
     @Operation(
@@ -511,10 +511,14 @@ public class ProcessorResource extends ApplicationResource {
                     description = "The processor id.",
                     required = true
             )
-            @PathParam("id") final String id) throws InterruptedException {
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The component state entity for the processor",
+                    required = true
+            ) final ComponentStateEntity componentStateEntity) throws InterruptedException {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST);
+            return replicate(HttpMethod.POST, componentStateEntity);
         }
 
         final ProcessorEntity requestProcessorEntity = new ProcessorEntity();
@@ -529,11 +533,13 @@ public class ProcessorResource extends ApplicationResource {
                 },
                 () -> serviceFacade.verifyCanClearProcessorState(id),
                 (processorEntity) -> {
-                    // get the component state
-                    serviceFacade.clearProcessorState(processorEntity.getId());
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearProcessorState(processorEntity.getId(), expectedState);
 
                     // generate the response entity
                     final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
 
                     // generate the response
                     return generateOkResponse(entity).build();

@@ -17,20 +17,6 @@
 
 package org.apache.nifi.controller.state.manager;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
@@ -70,6 +56,22 @@ import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class StandardStateManagerProvider implements StateManagerProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
@@ -555,13 +557,13 @@ public class StandardStateManagerProvider implements StateManagerProvider {
      * @return the StateManager that can be used by the component with the given ID, or <code>null</code> if none exists
      */
     @Override
-    public synchronized StateManager getStateManager(final String componentId) {
+    public synchronized StateManager getStateManager(final String componentId, boolean dropStateKeySupported) {
         StateManager stateManager = stateManagers.get(componentId);
         if (stateManager != null) {
             return stateManager;
         }
 
-        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId);
+        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId, dropStateKeySupported);
         stateManagers.put(componentId, stateManager);
         return stateManager;
     }
@@ -623,5 +625,10 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                 logger.warn("Component with ID {} was removed from NiFi instance but failed to cleanup resources used to maintain its clustered state", componentId, e);
             }
         }
+    }
+
+    @Override
+    public boolean isClusterProviderEnabled() {
+        return nifiProperties.isClustered() && clusterStateProvider != null && clusterStateProvider.isEnabled();
     }
 }

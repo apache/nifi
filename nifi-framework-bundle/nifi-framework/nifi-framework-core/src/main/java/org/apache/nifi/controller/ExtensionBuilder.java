@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
@@ -85,6 +86,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.net.URL;
@@ -507,6 +509,10 @@ public class ExtensionBuilder {
        applyDefaultSettings(procNode);
        applyDefaultRunDuration(procNode);
 
+       final Stateful stateful = processor.getComponent().getClass().getAnnotation(Stateful.class);
+       final boolean dropStateKeySupported = stateful != null && stateful.dropStateKeySupported();
+       stateManagerProvider.getStateManager(identifier, dropStateKeySupported);
+
        return procNode;
    }
 
@@ -525,6 +531,10 @@ public class ExtensionBuilder {
                    componentType, type, reloadComponent, extensionManager, validationTrigger, true);
            taskNode.setName(componentType);
        }
+
+       final Stateful stateful = reportingTask.getComponent().getClass().getAnnotation(Stateful.class);
+       final boolean dropStateKeySupported = stateful != null && stateful.dropStateKeySupported();
+       stateManagerProvider.getStateManager(identifier, dropStateKeySupported);
 
        return taskNode;
    }
@@ -550,6 +560,10 @@ public class ExtensionBuilder {
                    extensionManager, validationTrigger, true);
            parameterProviderNode.setName(componentType);
        }
+
+       final Stateful stateful = parameterProvider.getComponent().getClass().getAnnotation(Stateful.class);
+       final boolean dropStateKeySupported = stateful != null && stateful.dropStateKeySupported();
+       stateManagerProvider.getStateManager(identifier, dropStateKeySupported);
 
        return parameterProviderNode;
    }
@@ -668,7 +682,10 @@ public class ExtensionBuilder {
            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
-           final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
+           final Stateful stateful = serviceImpl.getClass().getAnnotation(Stateful.class);
+           final boolean dropStateKeySupported = stateful != null && stateful.dropStateKeySupported();
+           final StateManager stateManager = stateManagerProvider.getStateManager(identifier, dropStateKeySupported);
+
            final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
                    serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
            serviceImpl.initialize(initContext);
@@ -845,6 +862,10 @@ public class ExtensionBuilder {
                    componentType, type, reloadComponent, extensionManager, validationTrigger, true);
            ruleNode.setName(componentType);
        }
+
+       final Stateful stateful = flowAnalysisRule.getComponent().getClass().getAnnotation(Stateful.class);
+       final boolean dropStateKeySupported = stateful != null && stateful.dropStateKeySupported();
+       stateManagerProvider.getStateManager(identifier, dropStateKeySupported);
 
        return ruleNode;
    }

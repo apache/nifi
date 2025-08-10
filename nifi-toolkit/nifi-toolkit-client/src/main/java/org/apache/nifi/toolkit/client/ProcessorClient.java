@@ -60,7 +60,13 @@ public interface ProcessorClient {
 
     ProcessorEntity terminateProcessor(String processorId) throws NiFiClientException, IOException;
 
-    ComponentStateEntity clearProcessorState(String processorId) throws NiFiClientException, IOException;
+    default ComponentStateEntity clearProcessorState(String processorId) throws NiFiClientException, IOException {
+        return clearProcessorState(processorId, null);
+    }
+
+    ComponentStateEntity clearProcessorState(String processorId, ComponentStateEntity componentStateEntity) throws NiFiClientException, IOException;
+
+    ComponentStateEntity getProcessorState(String processorId) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has

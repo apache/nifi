@@ -22,16 +22,16 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReloadComponent;
-import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.StandardLoggingContext;
@@ -43,6 +43,7 @@ import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
@@ -356,9 +357,9 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
     }
 
     @Override
-    public void clearState(String flowAnalysisRuleId) {
+    public void clearState(final String flowAnalysisRuleId, final ComponentStateDTO componentStateDTO) {
         final FlowAnalysisRuleNode flowAnalysisRule = locateFlowAnalysisRule(flowAnalysisRuleId);
-        componentStateDAO.clearState(flowAnalysisRule);
+        componentStateDAO.clearState(flowAnalysisRule, componentStateDTO);
     }
 
     @Autowired
