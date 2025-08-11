@@ -229,9 +229,9 @@ public class SchemaRecordReader {
             case COMPLEX: {
                 final int numSubFields = subFields.size();
                 final Map<RecordField, Object> subFieldValues = new HashMap<>(numSubFields);
-                for (int i = 0; i < numSubFields; i++) {
-                    final Object subFieldValue = readField(in, subFields.get(i));
-                    subFieldValues.put(subFields.get(i), subFieldValue);
+                for (RecordField subField : subFields) {
+                    final Object subFieldValue = readField(in, subField);
+                    subFieldValues.put(subField, subFieldValue);
                 }
 
                 return new FieldMapRecord(subFieldValues, new RecordSchema(subFields));
