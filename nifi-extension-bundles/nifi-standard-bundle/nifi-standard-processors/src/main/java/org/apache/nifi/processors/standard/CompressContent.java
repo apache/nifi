@@ -291,8 +291,7 @@ public class CompressContent extends AbstractProcessor {
             case COMPRESSION_FORMAT_LZMA -> ".lzma";
             case COMPRESSION_FORMAT_XZ_LZMA2 -> ".xz";
             case COMPRESSION_FORMAT_BZIP2 -> ".bz2";
-            case COMPRESSION_FORMAT_SNAPPY -> ".snappy";
-            case COMPRESSION_FORMAT_SNAPPY_HADOOP -> ".snappy";
+            case COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_HADOOP -> ".snappy";
             case COMPRESSION_FORMAT_SNAPPY_FRAMED -> ".sz";
             case COMPRESSION_FORMAT_LZ4_FRAMED -> ".lz4";
             case COMPRESSION_FORMAT_ZSTD -> ".zst";
