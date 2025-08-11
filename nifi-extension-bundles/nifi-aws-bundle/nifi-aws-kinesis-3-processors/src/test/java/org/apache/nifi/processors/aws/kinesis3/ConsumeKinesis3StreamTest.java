@@ -31,8 +31,6 @@ import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.RECO
 import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConsumeKinesis3StreamTest {
 
@@ -61,7 +59,7 @@ class ConsumeKinesis3StreamTest {
         testRunner.setProperty(RECORD_READER, readerId);
 
         final Set<Relationship> relationships = testRunner.getProcessor().getRelationships();
-        
+
         assertEquals(Set.of(REL_SUCCESS, REL_PARSE_FAILURE), relationships);
     }
 }
