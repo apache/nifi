@@ -221,7 +221,7 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
     static final PropertyDescriptor MAX_BYTES_TO_BUFFER = new PropertyDescriptor.Builder()
             .name("Max Bytes to Buffer")
             .description("""
-                    The maximum size of Kinesis Records that can be buffered in memory when receiving from Kinesis is faster than processing records. "
+                    The maximum size of Kinesis Records that can be buffered in memory when receiving from Kinesis is faster than processing records.
                     Using a larger value may improve throughput, but will do so at the expense of using additional heap.""")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -521,10 +521,10 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
-    
+
     private static void processRecordsWithReader(final ReaderRecordProcessor recordProcessor, final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
         final ProcessingResult result = recordProcessor.processRecords(session, shardId, records);
-        
+
         session.transfer(result.successFlowFiles(), REL_SUCCESS);
         session.transfer(result.parseFailureFlowFiles(), REL_PARSE_FAILURE);
     }

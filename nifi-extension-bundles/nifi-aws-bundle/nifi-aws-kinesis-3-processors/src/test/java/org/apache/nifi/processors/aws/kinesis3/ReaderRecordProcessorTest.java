@@ -103,14 +103,14 @@ class ReaderRecordProcessorTest {
                 .partitionKey("key-123")
                 .build();
         final List<KinesisClientRecord> records = List.of(record);
-        
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, records);
-        
+
         assertEquals(1, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
-        
+
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
-        
+
         assertEquals(TEST_SHARD_ID, successFlowFile.getAttribute(SHARD_ID));
         assertEquals(record.sequenceNumber(), successFlowFile.getAttribute(SEQUENCE_NUMBER));
         assertEquals(String.valueOf(record.subSequenceNumber()), successFlowFile.getAttribute(SUB_SEQUENCE_NUMBER));
@@ -126,18 +126,18 @@ class ReaderRecordProcessorTest {
     @Test
     void testProcessMultipleRecordsWithSameSchema() {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
-        
+
         final List<KinesisClientRecord> records = List.of(
                 createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
                 createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"),
                 createKinesisRecord("{\"name\":\"Bob\",\"age\":35}", "3")
         );
-        
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, records);
-        
+
         assertEquals(1, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
-        
+
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
         assertEquals(TEST_SHARD_ID, successFlowFile.getAttribute(SHARD_ID));
         assertEquals("3", successFlowFile.getAttribute(RECORD_COUNT));
@@ -148,9 +148,9 @@ class ReaderRecordProcessorTest {
     @Test
     void testEmptyRecordsList() {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
-        
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, Collections.emptyList());
-        
+
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
     }
@@ -158,17 +158,17 @@ class ReaderRecordProcessorTest {
     @Test
     void testSchemaChangeCreatesNewFlowFile() {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
-        
+
         final List<KinesisClientRecord> records = List.of(
                 createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
                 createKinesisRecord("{\"id\":\"123\",\"value\":\"test\"}", "2")
         );
-        
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, records);
-        
+
         assertEquals(2, result.successFlowFiles().size()); // Two different schemas = two FlowFiles
         assertEquals(0, result.parseFailureFlowFiles().size());
-        
+
         final FlowFile firstFlowFile = result.successFlowFiles().getFirst();
         assertEquals("1", firstFlowFile.getAttribute(RECORD_COUNT));
         assertFlowFileRecords(firstFlowFile, records.getFirst());
@@ -181,23 +181,23 @@ class ReaderRecordProcessorTest {
     @Test
     void testSchemaChangeWithMultipleRecordsInBetween() {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
-        
+
         final List<KinesisClientRecord> records = List.of(
                 createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
                 createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"),
                 createKinesisRecord("{\"id\":\"123\",\"value\":\"test\"}", "3"),
                 createKinesisRecord("{\"id\":\"456\",\"value\":\"test2\"}", "4")
         );
-        
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, records);
-        
+
         assertEquals(2, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
-        
+
         final FlowFile firstFlowFile = result.successFlowFiles().getFirst();
         assertEquals("2", firstFlowFile.getAttribute(RECORD_COUNT));
         assertFlowFileRecords(firstFlowFile, records.subList(0, 2));
-        
+
         final FlowFile secondFlowFile = result.successFlowFiles().get(1);
         assertEquals("2", secondFlowFile.getAttribute(RECORD_COUNT));
         assertFlowFileRecords(secondFlowFile, records.subList(2, 4));
@@ -268,12 +268,12 @@ class ReaderRecordProcessorTest {
 
         final KinesisClientRecord record = createKinesisRecord("{\"name\":\"John\"}", "1");
         final List<KinesisClientRecord> records = List.of(record);
-            
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, records);
-            
+
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(1, result.parseFailureFlowFiles().size());
-            
+
         final MockFlowFile failureFlowFile = (MockFlowFile) result.parseFailureFlowFiles().getFirst();
         assertTrue(failureFlowFile.getAttribute(RECORD_ERROR_MESSAGE).contains("Failed to create reader"));
         failureFlowFile.assertContentEquals(KinesisRecordPayload.extract(record), UTF_8);
@@ -285,12 +285,12 @@ class ReaderRecordProcessorTest {
 
         final KinesisClientRecord record = createKinesisRecord("{\"name\":\"John\"}", "1");
         final List<KinesisClientRecord> records = Collections.singletonList(record);
-            
+
         final ProcessingResult result = processor.processRecords(session, TEST_SHARD_ID, records);
-            
+
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(1, result.parseFailureFlowFiles().size());
-            
+
         final MockFlowFile failureFlowFile = (MockFlowFile) result.parseFailureFlowFiles().getFirst();
         assertTrue(failureFlowFile.getAttribute(RECORD_ERROR_MESSAGE).contains("Test exception"));
         failureFlowFile.assertContentEquals(KinesisRecordPayload.extract(record), UTF_8);
@@ -302,7 +302,7 @@ class ReaderRecordProcessorTest {
 
         final List<KinesisClientRecord> records = List.of(
                 createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"), // Schema A
-                createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"), // Schema A 
+                createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"), // Schema A
                 createKinesisRecord("{invalid json}", "3"), // Invalid
                 createKinesisRecord("{\"id\":\"123\",\"value\":\"test\"}", "4"), // Schema B
                 createKinesisRecord("{another invalid}", "5"), // Invalid

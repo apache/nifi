@@ -75,7 +75,6 @@ import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3Stream.REL_
 import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis3.ConsumeKinesis3StreamAttributes.RECORD_ERROR_MESSAGE;
 import static org.apache.nifi.processors.aws.kinesis3.JsonRecordAssert.assertFlowFileRecordPayloads;
-import static org.apache.nifi.processors.aws.kinesis3.JsonRecordAssert.assertFlowFileRecords;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -137,9 +136,9 @@ class ConsumeKinesis3StreamIT {
     @BeforeEach
     void setUp() throws InitializationException {
         final UUID testId = UUID.randomUUID();
-        streamName = "ConsumeKinesisV2IT-kinesis-stream-" + testId;
+        streamName = "%s-kinesis-stream-%s".formatted(getClass().getSimpleName(), testId);
         streamClient = new TestKinesisStreamClient(kinesisClient, streamName);
-        applicationName = "ConsumeKinesisV2IT-test-kinesis-app-" + testId;
+        applicationName = "%s-test-kinesis-app-%s".formatted(getClass().getSimpleName(), testId);
         runner = createTestRunner(streamName, applicationName);
     }
 
@@ -378,7 +377,7 @@ class ConsumeKinesis3StreamIT {
         recordRunner.assertTransferCount(REL_PARSE_FAILURE, 1);
         final List<MockFlowFile> parseFailureFlowFiles = recordRunner.getFlowFilesForRelationship(REL_PARSE_FAILURE);
         final MockFlowFile parseFailureFlowFile = parseFailureFlowFiles.getFirst();
-        
+
         parseFailureFlowFile.assertContentEquals(testRecords.get(2));
         assertNotNull(parseFailureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
     }

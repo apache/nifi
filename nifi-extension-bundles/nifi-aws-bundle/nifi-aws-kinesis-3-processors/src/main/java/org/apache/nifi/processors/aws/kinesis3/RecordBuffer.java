@@ -264,7 +264,7 @@ final class RecordBuffer {
             this.bufferId = bufferId;
         }
 
-        // Interface for ConsumeKinesisV2 processor to access the shardId.
+        // Interface for the processor to access the shardId.
         String shardId() {
             return bufferId.shardId();
         }
