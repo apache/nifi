@@ -31,7 +31,7 @@ final class ConsumeKinesis3StreamAttributes {
     static final String SUB_SEQUENCE_NUMBER = PREFIX + "subsequence.number";
 
     static final String PARTITION_KEY = PREFIX + "partition.key";
-    static final String APPROXIMATE_ARRIVAL_TIMESTAMP = PREFIX + "approximate.arrival.timestamp.ns";
+    static final String APPROXIMATE_ARRIVAL_TIMESTAMP = PREFIX + "approximate.arrival.timestamp.ms";
 
     // Record attributes.
     static final String MIME_TYPE = "mime.type";
@@ -49,7 +49,7 @@ final class ConsumeKinesis3StreamAttributes {
        attributes.put(PARTITION_KEY, record.partitionKey());
 
        if (record.approximateArrivalTimestamp() != null) {
-           attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().getNano()));
+           attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()));
        }
 
        return attributes;
