@@ -115,7 +115,7 @@ class ReaderRecordProcessorTest {
         assertEquals(record.sequenceNumber(), successFlowFile.getAttribute(SEQUENCE_NUMBER));
         assertEquals(String.valueOf(record.subSequenceNumber()), successFlowFile.getAttribute(SUB_SEQUENCE_NUMBER));
         assertEquals(record.partitionKey(), successFlowFile.getAttribute(PARTITION_KEY));
-        assertEquals(String.valueOf(record.approximateArrivalTimestamp().getNano()), successFlowFile.getAttribute(APPROXIMATE_ARRIVAL_TIMESTAMP));
+        assertEquals(String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()), successFlowFile.getAttribute(APPROXIMATE_ARRIVAL_TIMESTAMP));
 
         assertEquals("application/json", successFlowFile.getAttribute(MIME_TYPE));
         assertEquals("1", successFlowFile.getAttribute(RECORD_COUNT));
