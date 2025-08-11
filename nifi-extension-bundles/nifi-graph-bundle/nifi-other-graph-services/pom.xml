@@ -18,10 +18,6 @@
     <artifactId>nifi-other-graph-services</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <gremlin.version>3.7.3</gremlin.version>
-    </properties>
-
     <dependencies>
 
         <dependency>
