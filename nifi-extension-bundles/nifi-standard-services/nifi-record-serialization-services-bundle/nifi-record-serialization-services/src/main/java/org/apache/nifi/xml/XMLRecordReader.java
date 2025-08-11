@@ -321,7 +321,7 @@ public class XMLRecordReader implements RecordReader {
             if (!hasFields) {
                 return content.toString();
             } else {
-                if (contentFieldName != null) {
+                if (contentFieldName != null && !contentFieldName.isEmpty()) {
                     recordValues.put(contentFieldName, content.toString());
                 } else {
                     logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property but " +
