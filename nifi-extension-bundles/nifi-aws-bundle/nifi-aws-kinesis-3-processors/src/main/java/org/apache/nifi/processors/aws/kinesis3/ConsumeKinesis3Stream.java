@@ -312,6 +312,7 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
     private volatile Scheduler kinesisScheduler;
 
     private volatile RecordBuffer recordBuffer;
+    private volatile boolean useReader = false;
     private volatile Optional<ReaderRecordProcessor> readerRecordProcessor = Optional.empty();
 
     @Override
@@ -321,7 +322,14 @@ public class ConsumeKinesis3Stream extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return readerRecordProcessor.isPresent() ? RECORD_FILE_RELATIONSHIPS : RAW_FILE_RELATIONSHIPS;
+        return useReader ? RECORD_FILE_RELATIONSHIPS : RAW_FILE_RELATIONSHIPS;
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(RECORD_READER)) {
+            useReader = newValue != null;
+        }
     }
 
     @OnScheduled
