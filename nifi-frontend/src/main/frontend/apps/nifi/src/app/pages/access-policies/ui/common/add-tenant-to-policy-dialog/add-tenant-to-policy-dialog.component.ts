@@ -58,6 +58,8 @@ export class AddTenantToPolicyDialog extends CloseOnEscapeDialog {
 
             this.filteredUsers = users.filter((user: UserEntity) => {
                 return !policy.users.some((tenant: TenantEntity) => tenant.id === user.id);
+            }).sort((a,b) => {
+                return a.component.identity.localeCompare(b.component.identity);
             });
 
             this.userLookup.clear();
@@ -73,6 +75,8 @@ export class AddTenantToPolicyDialog extends CloseOnEscapeDialog {
 
             this.filteredUserGroups = userGroups.filter((userGroup: UserGroupEntity) => {
                 return !policy.userGroups.some((tenant: TenantEntity) => tenant.id === userGroup.id);
+            }).sort((a,b) => {
+                return a.component.identity.localeCompare(b.component.identity);
             });
 
             this.userGroupLookup.clear();
