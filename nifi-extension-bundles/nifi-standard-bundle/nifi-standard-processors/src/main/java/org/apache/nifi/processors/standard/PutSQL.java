@@ -661,17 +661,17 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         exceptionHandler.mapException(e -> {
           if (e instanceof SQLException sqlEx) {
             if (isDuplicateKeyException(sqlEx)) {
-            getLogger().debug("Detected duplicate key/integrity constraint violation: {}", sqlEx);
-            return ErrorTypes.InvalidInput; // Route to failure
+                getLogger().debug("Detected duplicate key/integrity constraint violation: {}", sqlEx);
+                return ErrorTypes.InvalidInput; // Route to failure
             }
             if (sqlEx instanceof SQLNonTransientException) {
-            return ErrorTypes.InvalidInput;
-          }
-        return ErrorTypes.TemporalFailure;
+                return ErrorTypes.InvalidInput;
+            }
+            return ErrorTypes.TemporalFailure;
         } else {
             return ErrorTypes.UnknownFailure;
-        }
-    });
+            }
+        });
         adjustError = RollbackOnFailure.createAdjustError(getLogger());
         exceptionHandler.adjustError(adjustError);
     }
@@ -914,7 +914,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
          return isDuplicateKeyException((SQLException) cause);
         }
      return false;
-}
+    }
 
     /**
      * A FlowFileFilter that is responsible for ensuring that the FlowFiles returned either belong

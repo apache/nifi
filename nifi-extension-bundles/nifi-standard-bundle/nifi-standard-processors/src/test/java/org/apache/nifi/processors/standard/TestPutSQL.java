@@ -545,6 +545,25 @@ public class TestPutSQL {
         }
     }
 
+    @Test
+    public void testDuplicateKeyExceptionRoutedToFailure() throws InitializationException, ProcessException, SQLException {
+        final TestRunner runner = initTestRunner();
+
+        recreateTable("PERSONS", createPersons);
+
+        runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        runner.clearTransferState();
+
+        runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'George', 99)".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
+
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
+    }    
+
     // Not specifying a format for the date fields here to continue to test backwards compatibility
     @Test
     public void testUsingTimestampValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
