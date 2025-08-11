@@ -902,23 +902,19 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     
     private boolean isDuplicateKeyException(SQLException e) {
-    // SQLState 23000 is integrity constraint violation (ANSI SQL)
       if ("23000".equals(e.getSQLState())) {
         return true;
        }
-    // MySQL: 1062, PostgreSQL: 23505
         int errorCode = e.getErrorCode();
         if (errorCode == 1062 || errorCode == 23505) {
         return true;
         }
-    // Recursively check cause
         Throwable cause = e.getCause();
         if (cause instanceof SQLException) {
          return isDuplicateKeyException((SQLException) cause);
         }
      return false;
 }
-// ...existing code...
 
     /**
      * A FlowFileFilter that is responsible for ensuring that the FlowFiles returned either belong
