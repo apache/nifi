@@ -113,7 +113,8 @@ public class ParquetContentViewerController extends HttpServlet {
                     for (Schema.Field field : fields) {
                         outputStream.write((indent + indent).getBytes());
                         outputStream.write(("\"" + field.name() + "\": ").getBytes());
-                        outputStream.write(("\"" + record.get(field.name()) + "\" \n").getBytes());
+                        outputStream.write(formatValue(field, record.get(field.name())).getBytes());
+                        outputStream.write("\n".getBytes());
                     }
                     outputStream.write((indent + "}").getBytes());
                 }
@@ -123,6 +124,23 @@ public class ParquetContentViewerController extends HttpServlet {
             logger.warn("Unable to format FlowFile content", t);
             response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Unable to format FlowFile content");
         }
+    }
+
+    private String formatValue(Schema.Field field, Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        Schema schema = field.schema();
+        Schema.Type type = schema.getType();
+
+        if (type == Schema.Type.STRING
+                || (type == Schema.Type.UNION
+                    && schema.getTypes().stream().anyMatch(s -> s.getType() == Schema.Type.STRING))) {
+            return "\"" + value + "\"";
+        }
+
+        return value.toString();
     }
 
     private byte[] getInputStreamBytes(final InputStream inputStream) throws IOException {
