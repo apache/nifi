@@ -37,36 +37,25 @@ public class RepositoryRecordFieldMap implements Record {
 
     @Override
     public Object getFieldValue(final String fieldName) {
-        switch (fieldName) {
-            case RepositoryRecordSchema.ACTION_TYPE:
-                return record.getType().name();
-            case RepositoryRecordSchema.RECORD_ID:
-                return record.getFlowFileRecord().getId();
-            case RepositoryRecordSchema.SWAP_LOCATION:
-                return record.getSwapLocation();
-            case FlowFileSchema.ATTRIBUTES:
-                return flowFile.getAttributes();
-            case FlowFileSchema.ENTRY_DATE:
-                return flowFile.getEntryDate();
-            case FlowFileSchema.FLOWFILE_SIZE:
-                return flowFile.getSize();
-            case FlowFileSchema.LINEAGE_START_DATE:
-                return flowFile.getLineageStartDate();
-            case FlowFileSchema.LINEAGE_START_INDEX:
-                return flowFile.getLineageStartIndex();
-            case FlowFileSchema.QUEUE_DATE:
-                return flowFile.getLastQueueDate();
-            case FlowFileSchema.QUEUE_DATE_INDEX:
-                return flowFile.getQueueDateIndex();
-            case FlowFileSchema.CONTENT_CLAIM:
+        return switch (fieldName) {
+            case RepositoryRecordSchema.ACTION_TYPE -> record.getType().name();
+            case RepositoryRecordSchema.RECORD_ID -> record.getFlowFileRecord().getId();
+            case RepositoryRecordSchema.SWAP_LOCATION -> record.getSwapLocation();
+            case FlowFileSchema.ATTRIBUTES -> flowFile.getAttributes();
+            case FlowFileSchema.ENTRY_DATE -> flowFile.getEntryDate();
+            case FlowFileSchema.FLOWFILE_SIZE -> flowFile.getSize();
+            case FlowFileSchema.LINEAGE_START_DATE -> flowFile.getLineageStartDate();
+            case FlowFileSchema.LINEAGE_START_INDEX -> flowFile.getLineageStartIndex();
+            case FlowFileSchema.QUEUE_DATE -> flowFile.getLastQueueDate();
+            case FlowFileSchema.QUEUE_DATE_INDEX -> flowFile.getQueueDateIndex();
+            case FlowFileSchema.CONTENT_CLAIM -> {
                 final ContentClaimFieldMap contentClaimFieldMap = record.getContentClaim() == null ? null
-                    : new ContentClaimFieldMap(record.getContentClaim(), record.getClaimOffset(), contentClaimSchema);
-                return contentClaimFieldMap;
-            case RepositoryRecordSchema.QUEUE_IDENTIFIER:
-                return record.getQueueIdentifier();
-            default:
-                return null;
-        }
+                        : new ContentClaimFieldMap(record.getContentClaim(), record.getClaimOffset(), contentClaimSchema);
+                yield contentClaimFieldMap;
+            }
+            case RepositoryRecordSchema.QUEUE_IDENTIFIER -> record.getQueueIdentifier();
+            default -> null;
+        };
     }
 
     @Override

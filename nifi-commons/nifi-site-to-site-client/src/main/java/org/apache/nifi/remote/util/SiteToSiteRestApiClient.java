@@ -1025,17 +1025,16 @@ public class SiteToSiteRestApiClient implements Closeable {
         final TransactionResultEntity errEntity = readResponse(in);
         final ResponseCode errCode = ResponseCode.fromCode(errEntity.getResponseCode());
 
-        switch (errCode) {
-            case UNKNOWN_PORT:
-                return new UnknownPortException(errEntity.getMessage());
-            case PORT_NOT_IN_VALID_STATE:
-                return new PortNotRunningException(errEntity.getMessage());
-            default:
+        return switch (errCode) {
+            case UNKNOWN_PORT -> new UnknownPortException(errEntity.getMessage());
+            case PORT_NOT_IN_VALID_STATE -> new PortNotRunningException(errEntity.getMessage());
+            default -> {
                 if (responseCode == RESPONSE_CODE_FORBIDDEN) {
-                    return new HandshakeException(errEntity.getMessage());
+                    yield new HandshakeException(errEntity.getMessage());
                 }
-                return new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
-        }
+                yield new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
+            }
+        };
     }
 
     private TransactionResultEntity readResponse(final InputStream inputStream) throws IOException {

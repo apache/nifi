@@ -491,15 +491,13 @@ public class ExpressionCompiler {
 
     @SuppressWarnings("unchecked")
     private Evaluator<Boolean> toBooleanEvaluator(final Evaluator<?> evaluator, final String location) {
-        switch (evaluator.getResultType()) {
-            case BOOLEAN:
-                return (Evaluator<Boolean>) evaluator;
-            case STRING:
-                return addToken(new BooleanCastEvaluator((StringEvaluator) evaluator), evaluator.getToken());
-            default:
-                throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.BOOLEAN
-                    + (location == null ? "" : " at location [" + location + "]"));
-        }
+        return switch (evaluator.getResultType()) {
+            case BOOLEAN -> (Evaluator<Boolean>) evaluator;
+            case STRING -> addToken(new BooleanCastEvaluator((StringEvaluator) evaluator), evaluator.getToken());
+            default ->
+                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.BOOLEAN
+                            + (location == null ? "" : " at location [" + location + "]"));
+        };
 
     }
 
@@ -513,19 +511,14 @@ public class ExpressionCompiler {
 
     @SuppressWarnings("unchecked")
     private Evaluator<Long> toWholeNumberEvaluator(final Evaluator<?> evaluator, final String location) {
-        switch (evaluator.getResultType()) {
-            case WHOLE_NUMBER:
-                return (Evaluator<Long>) evaluator;
-            case STRING:
-            case DATE:
-            case INSTANT:
-            case DECIMAL:
-            case NUMBER:
-                return addToken(new WholeNumberCastEvaluator(evaluator), evaluator.getToken());
-            default:
-                throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.WHOLE_NUMBER
-                    + (location == null ? "" : " at location [" + location + "]"));
-        }
+        return switch (evaluator.getResultType()) {
+            case WHOLE_NUMBER -> (Evaluator<Long>) evaluator;
+            case STRING, DATE, INSTANT, DECIMAL, NUMBER ->
+                    addToken(new WholeNumberCastEvaluator(evaluator), evaluator.getToken());
+            default ->
+                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.WHOLE_NUMBER
+                            + (location == null ? "" : " at location [" + location + "]"));
+        };
     }
 
     private Evaluator<Double> toDecimalEvaluator(final Evaluator<?> evaluator) {
@@ -534,18 +527,14 @@ public class ExpressionCompiler {
 
     @SuppressWarnings("unchecked")
     private Evaluator<Double> toDecimalEvaluator(final Evaluator<?> evaluator, final String location) {
-        switch (evaluator.getResultType()) {
-            case DECIMAL:
-                return (Evaluator<Double>) evaluator;
-            case WHOLE_NUMBER:
-            case STRING:
-            case DATE:
-            case NUMBER:
-                return addToken(new DecimalCastEvaluator(evaluator), evaluator.getToken());
-            default:
-                throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.DECIMAL
-                    + (location == null ? "" : " at location [" + location + "]"));
-        }
+        return switch (evaluator.getResultType()) {
+            case DECIMAL -> (Evaluator<Double>) evaluator;
+            case WHOLE_NUMBER, STRING, DATE, NUMBER ->
+                    addToken(new DecimalCastEvaluator(evaluator), evaluator.getToken());
+            default ->
+                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.DECIMAL
+                            + (location == null ? "" : " at location [" + location + "]"));
+        };
     }
 
     private Evaluator<Number> toNumberEvaluator(final Evaluator<?> evaluator) {
@@ -554,19 +543,14 @@ public class ExpressionCompiler {
 
     @SuppressWarnings("unchecked")
     private Evaluator<Number> toNumberEvaluator(final Evaluator<?> evaluator, final String location) {
-        switch (evaluator.getResultType()) {
-            case NUMBER:
-                return (Evaluator<Number>) evaluator;
-            case STRING:
-            case DATE:
-            case INSTANT:
-            case DECIMAL:
-            case WHOLE_NUMBER:
-                return addToken(new NumberCastEvaluator(evaluator), evaluator.getToken());
-            default:
-                throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.WHOLE_NUMBER
-                    + (location == null ? "" : " at location [" + location + "]"));
-        }
+        return switch (evaluator.getResultType()) {
+            case NUMBER -> (Evaluator<Number>) evaluator;
+            case STRING, DATE, INSTANT, DECIMAL, WHOLE_NUMBER ->
+                    addToken(new NumberCastEvaluator(evaluator), evaluator.getToken());
+            default ->
+                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.WHOLE_NUMBER
+                            + (location == null ? "" : " at location [" + location + "]"));
+        };
     }
 
     private DateEvaluator toDateEvaluator(final Evaluator<?> evaluator) {
@@ -896,34 +880,24 @@ public class ExpressionCompiler {
             }
             case TO_NUMBER: {
                 verifyArgCount(argEvaluators, 0, "toNumber");
-                switch (subjectEvaluator.getResultType()) {
-                    case STRING:
-                    case WHOLE_NUMBER:
-                    case DECIMAL:
-                    case NUMBER:
-                    case DATE:
-                    case INSTANT:
-                        return addToken(toWholeNumberEvaluator(subjectEvaluator), "toNumber");
-                    default:
-                        throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
-                            ", " + ResultType.DECIMAL + ", or " + ResultType.DATE);
-                }
+                return switch (subjectEvaluator.getResultType()) {
+                    case STRING, WHOLE_NUMBER, DECIMAL, NUMBER, DATE, INSTANT ->
+                            addToken(toWholeNumberEvaluator(subjectEvaluator), "toNumber");
+                    default ->
+                            throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
+                                    ", " + ResultType.DECIMAL + ", or " + ResultType.DATE);
+                };
             }
             // fallthrough
             case TO_DECIMAL: {
                 verifyArgCount(argEvaluators, 0, "toDecimal");
-                switch (subjectEvaluator.getResultType()) {
-                    case WHOLE_NUMBER:
-                    case DECIMAL:
-                    case STRING:
-                    case NUMBER:
-                    case DATE:
-                    case INSTANT:
-                        return addToken(toDecimalEvaluator(subjectEvaluator), "toDecimal");
-                    default:
-                        throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
-                            ", " + ResultType.WHOLE_NUMBER + ", or " + ResultType.DATE);
-                }
+                return switch (subjectEvaluator.getResultType()) {
+                    case WHOLE_NUMBER, DECIMAL, STRING, NUMBER, DATE, INSTANT ->
+                            addToken(toDecimalEvaluator(subjectEvaluator), "toDecimal");
+                    default ->
+                            throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
+                                    ", " + ResultType.WHOLE_NUMBER + ", or " + ResultType.DATE);
+                };
             }
             // fallthrough
             case TO_MICROS: {
@@ -1172,8 +1146,8 @@ public class ExpressionCompiler {
                     attributeNames.add(newStringLiteralEvaluator(tree.getChild(i).getText()).evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue());
                 }
 
-                switch (multiAttrType) {
-                    case ALL_ATTRIBUTES:
+                return switch (multiAttrType) {
+                    case ALL_ATTRIBUTES -> {
                         for (final String attributeName : attributeNames) {
                             try {
                                 FlowFile.KeyValidator.validateKey(attributeName);
@@ -1181,11 +1155,11 @@ public class ExpressionCompiler {
                                 throw new AttributeExpressionLanguageParsingException("Invalid Attribute Name: " + attributeName + ". " + iae.getMessage());
                             }
                         }
-
-                        return addToken(new MultiNamedAttributeEvaluator(attributeNames, ALL_ATTRIBUTES), "allAttributes");
-                    case ALL_MATCHING_ATTRIBUTES:
-                        return addToken(new MultiMatchAttributeEvaluator(attributeNames, ALL_MATCHING_ATTRIBUTES), "allMatchingAttributes");
-                    case ANY_ATTRIBUTE:
+                        yield addToken(new MultiNamedAttributeEvaluator(attributeNames, ALL_ATTRIBUTES), "allAttributes");
+                    }
+                    case ALL_MATCHING_ATTRIBUTES ->
+                            addToken(new MultiMatchAttributeEvaluator(attributeNames, ALL_MATCHING_ATTRIBUTES), "allMatchingAttributes");
+                    case ANY_ATTRIBUTE -> {
                         for (final String attributeName : attributeNames) {
                             try {
                                 FlowFile.KeyValidator.validateKey(attributeName);
@@ -1193,13 +1167,13 @@ public class ExpressionCompiler {
                                 throw new AttributeExpressionLanguageParsingException("Invalid Attribute Name: " + attributeName + ". " + iae.getMessage());
                             }
                         }
-
-                        return addToken(new MultiNamedAttributeEvaluator(attributeNames, ANY_ATTRIBUTE), "anyAttribute");
-                    case ANY_MATCHING_ATTRIBUTE:
-                        return addToken(new MultiMatchAttributeEvaluator(attributeNames, ANY_MATCHING_ATTRIBUTE), "anyMatchingAttribute");
-                    default:
-                        throw new AssertionError("Illegal Multi-Attribute Reference: " + functionTypeTree.toString());
-                }
+                        yield addToken(new MultiNamedAttributeEvaluator(attributeNames, ANY_ATTRIBUTE), "anyAttribute");
+                    }
+                    case ANY_MATCHING_ATTRIBUTE ->
+                            addToken(new MultiMatchAttributeEvaluator(attributeNames, ANY_MATCHING_ATTRIBUTE), "anyMatchingAttribute");
+                    default ->
+                            throw new AssertionError("Illegal Multi-Attribute Reference: " + functionTypeTree.toString());
+                };
             }
             case ATTR_NAME: {
                 return newStringLiteralEvaluator(tree.getChild(0).getText());
@@ -1247,14 +1221,12 @@ public class ExpressionCompiler {
                 } else if (tree.getChildCount() == 1) {
                     final Tree childTree = tree.getChild(0);
                     try {
-                        switch (childTree.getType()) {
-                            case TRUE:
-                                return addToken(new HostnameEvaluator(true), "hostname");
-                            case FALSE:
-                                return addToken(new HostnameEvaluator(false), "hostname");
-                            default:
-                                throw new AttributeExpressionLanguageParsingException("Call to hostname() must take 0 or 1 (boolean) parameter");
-                        }
+                        return switch (childTree.getType()) {
+                            case TRUE -> addToken(new HostnameEvaluator(true), "hostname");
+                            case FALSE -> addToken(new HostnameEvaluator(false), "hostname");
+                            default ->
+                                    throw new AttributeExpressionLanguageParsingException("Call to hostname() must take 0 or 1 (boolean) parameter");
+                        };
                     } catch (final UnknownHostException e) {
                         throw new AttributeExpressionLanguageException(e);
                     }
