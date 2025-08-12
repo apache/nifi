@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
@@ -37,9 +37,70 @@ import { MatButtonModule } from '@angular/material/button';
     templateUrl: './action-details.component.html',
     styleUrls: ['./action-details.component.scss']
 })
-export class ActionDetails extends CloseOnEscapeDialog {
+export class ActionDetails extends CloseOnEscapeDialog implements OnInit {
     constructor(@Inject(MAT_DIALOG_DATA) public actionEntity: ActionEntity) {
         super();
+    }
+
+    ngOnInit(): void {
+        // DEBUG: Investigate ActionEntity structure for Process Group information
+        console.log('=== INVESTIGATING ACTION ENTITY FOR NIFI-14666 ===');
+        console.log('Full actionEntity:', this.actionEntity);
+        console.log('ActionEntity keys:', Object.keys(this.actionEntity));
+
+        // Check sourceId (this exists)
+        console.log('Source ID:', this.actionEntity.sourceId);
+
+        // Check action object for more details
+        if (this.actionEntity.action) {
+            console.log('Action object:', this.actionEntity.action);
+            console.log('Action keys:', Object.keys(this.actionEntity.action));
+            console.log('Action operation:', this.actionEntity.action.operation);
+
+            // Check action properties for source info
+            console.log('Action sourceId:', this.actionEntity.action.sourceId);
+            console.log('Action sourceName:', this.actionEntity.action.sourceName);
+            console.log('Action sourceType:', this.actionEntity.action.sourceType);
+        }
+
+        // Look for any process group information
+        console.log('Looking for Process Group information...');
+
+        // Check if there's direct process group info in actionEntity
+        if ('processGroupId' in this.actionEntity) {
+            console.log('Found processGroupId in actionEntity:', (this.actionEntity as any).processGroupId);
+        } else {
+            console.log('No direct processGroupId in actionEntity');
+        }
+
+        // Check if there's process group info in action
+        if (this.actionEntity.action && 'processGroupId' in this.actionEntity.action) {
+            console.log('Found processGroupId in action:', (this.actionEntity.action as any).processGroupId);
+        } else {
+            console.log('No processGroupId in action');
+        }
+
+        // Check action details for process group info
+        if (this.actionEntity.action?.actionDetails) {
+            console.log('Action details:', this.actionEntity.action.actionDetails);
+            console.log('Action details keys:', Object.keys(this.actionEntity.action.actionDetails));
+
+            if ('processGroupId' in this.actionEntity.action.actionDetails) {
+                console.log('Found processGroupId in actionDetails:', (this.actionEntity.action.actionDetails as any).processGroupId);
+            }
+        }
+
+        // Check component details for process group info
+        if (this.actionEntity.action?.componentDetails) {
+            console.log('Component details:', this.actionEntity.action.componentDetails);
+            console.log('Component details keys:', Object.keys(this.actionEntity.action.componentDetails));
+
+            if ('processGroupId' in this.actionEntity.action.componentDetails) {
+                console.log('Found processGroupId in componentDetails:', (this.actionEntity.action.componentDetails as any).processGroupId);
+            }
+        }
+
+        console.log('=== END INVESTIGATION ===');
     }
 
     isRemoteProcessGroup(action: Action): boolean {
@@ -68,7 +129,7 @@ export class ActionDetails extends CloseOnEscapeDialog {
     }
 
     getConnectActionDetails(action: Action): ConnectionActionDetails | null {
-        if (!['Connect', 'Disconnect'].includes(action.operation)) {
+        if (action.operation !== 'Connect' && action.operation !== 'Disconnect') {
             return null;
         }
         return action.actionDetails as ConnectionActionDetails;
