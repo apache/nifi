@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
@@ -53,6 +54,7 @@ import java.util.Set;
 import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getHeaderFields;
 import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getRecordFields;
 
+@DeprecationNotice(reason = "NIFI-14846: Redesign required to listen for UDP packets and support for different Netflow versions")
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
