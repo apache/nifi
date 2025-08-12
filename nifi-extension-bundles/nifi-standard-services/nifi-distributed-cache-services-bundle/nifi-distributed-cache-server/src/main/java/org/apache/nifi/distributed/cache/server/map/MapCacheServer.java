@@ -51,20 +51,12 @@ public class MapCacheServer extends AbstractCacheServer {
             sslContext = sslContextProvider.createContext();
         }
 
-        final EvictionPolicy evictionPolicy;
-        switch (evictionPolicyName) {
-            case EVICTION_STRATEGY_FIFO:
-                evictionPolicy = EvictionPolicy.FIFO;
-                break;
-            case EVICTION_STRATEGY_LFU:
-                evictionPolicy = EvictionPolicy.LFU;
-                break;
-            case EVICTION_STRATEGY_LRU:
-                evictionPolicy = EvictionPolicy.LRU;
-                break;
-            default:
-                throw new IllegalArgumentException("Illegal Eviction Policy: " + evictionPolicyName);
-        }
+        final EvictionPolicy evictionPolicy = switch (evictionPolicyName) {
+            case EVICTION_STRATEGY_FIFO -> EvictionPolicy.FIFO;
+            case EVICTION_STRATEGY_LFU -> EvictionPolicy.LFU;
+            case EVICTION_STRATEGY_LRU -> EvictionPolicy.LRU;
+            default -> throw new IllegalArgumentException("Illegal Eviction Policy: " + evictionPolicyName);
+        };
 
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);

@@ -152,24 +152,13 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getSQLForDataType(int sqlType) {
-        switch (sqlType) {
-            case Types.DOUBLE:
-                return "DOUBLE PRECISION";
-            case CHAR:
-            case LONGNVARCHAR:
-            case LONGVARCHAR:
-            case NCHAR:
-            case NVARCHAR:
-            case VARCHAR:
-            case CLOB:
-            case NCLOB:
-            case OTHER:
-            case SQLXML:
+        return switch (sqlType) {
+            case Types.DOUBLE -> "DOUBLE PRECISION";
+            case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML ->
                 // Must have a max length specified (the Oracle docs say 2000), and use VARCHAR2 instead of VARCHAR for consistent comparison semantics
-                return "VARCHAR2(2000)";
-            default:
-                return JDBCType.valueOf(sqlType).getName();
-        }
+                    "VARCHAR2(2000)";
+            default -> JDBCType.valueOf(sqlType).getName();
+        };
     }
 
     @Override
