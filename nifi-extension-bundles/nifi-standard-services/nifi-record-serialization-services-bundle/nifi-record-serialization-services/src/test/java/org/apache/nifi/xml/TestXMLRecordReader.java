@@ -33,7 +33,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +41,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -69,7 +67,7 @@ public class TestXMLRecordReader {
         final String contentFieldName = "";
         final boolean parseXmlAttributes = true;
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
-        final byte[] xml = "<note><to alias=\"TK\">Kyle</to></note>".getBytes(StandardCharsets.UTF_8);
+        final byte[] xml = "<note><to alias=\"TK\">Kyle</to></note>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         ComponentLog logger = Mockito.mock(ComponentLog.class);
         XMLRecordReader reader = new XMLRecordReader(
             new ByteArrayInputStream(xml),
