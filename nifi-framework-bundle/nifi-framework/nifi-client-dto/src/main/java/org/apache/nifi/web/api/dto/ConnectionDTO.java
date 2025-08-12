@@ -17,8 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.xml.bind.annotation.XmlType;
+
 import java.util.List;
 import java.util.Set;
 
@@ -227,8 +227,9 @@ public class ConnectionDTO extends ComponentDTO {
         this.prioritizers = prioritizers;
     }
 
-    @Schema(description = "How to load balance the data in this Connection across the nodes in the cluster.",
-        allowableValues = {"DO_NOT_LOAD_BALANCE", "PARTITION_BY_ATTRIBUTE", "ROUND_ROBIN", "SINGLE_NODE"})
+    @Schema(description = "How to load balance the data in this Connection across the nodes in the cluster. "
+            + "Possible returned values: DO_NOT_LOAD_BALANCE, PARTITION_BY_ATTRIBUTE, ROUND_ROBIN, SINGLE_NODE. "
+            + "See LoadBalanceStrategy.class for more details.")
     public String getLoadBalanceStrategy() {
         return loadBalanceStrategy;
     }
@@ -246,8 +247,9 @@ public class ConnectionDTO extends ComponentDTO {
         this.loadBalancePartitionAttribute = partitionAttribute;
     }
 
-    @Schema(description = "Whether or not data should be compressed when being transferred between nodes in the cluster.",
-        allowableValues = {"DO_NOT_COMPRESS", "COMPRESS_ATTRIBUTES_ONLY", "COMPRESS_ATTRIBUTES_AND_CONTENT"})
+    @Schema(description = "Whether or not data should be compressed when being transferred between nodes in the cluster. "
+            + "Possible returned values: DO_NOT_COMPRESS, COMPRESS_ATTRIBUTES_ONLY, COMPRESS_ATTRIBUTES_AND_CONTENT. "
+            + "See LoadBalanceCompression.class for more details.")
     public String getLoadBalanceCompression() {
         return loadBalanceCompression;
     }
@@ -256,9 +258,9 @@ public class ConnectionDTO extends ComponentDTO {
         this.loadBalanceCompression = compression;
     }
 
-    @Schema(description = "The current status of the Connection's Load Balancing Activities. Status can indicate that Load Balancing is not configured for the connection, that Load Balancing " +
-        "is configured but inactive (not currently transferring data to another node), or that Load Balancing is configured and actively transferring data to another node.",
-        allowableValues = {LOAD_BALANCE_NOT_CONFIGURED, LOAD_BALANCE_INACTIVE, LOAD_BALANCE_ACTIVE},
+    @Schema(description = "The current status of the Connection's Load Balancing Activities. Status can indicate that Load Balancing is not configured for the connection, that Load Balancing "
+            + "is configured but inactive (not currently transferring data to another node), or that Load Balancing is configured and actively transferring data to another node. "
+            + "Possible returned values: LOAD_BALANCE_NOT_CONFIGURED, LOAD_BALANCE_INACTIVE, LOAD_BALANCE_ACTIVE. See LoadBalanceStatus.class for more details.",
         accessMode = Schema.AccessMode.READ_ONLY)
     public String getLoadBalanceStatus() {
         return loadBalanceStatus;

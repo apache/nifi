@@ -17,8 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.xml.bind.annotation.XmlType;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -331,8 +331,8 @@ public class ProcessorConfigDTO {
         this.retriedRelationships = retriedRelationships;
     }
 
-    @Schema(description = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
-            allowableValues = {"PENALIZE_FLOWFILE", "YIELD_PROCESSOR"}
+    @Schema(description = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries. "
+            + "Possible returned values: PENALIZE_FLOWFILE, YIELD_PROCESSOR. See BackoffMechanism.class for more details."
     )
     public String getBackoffMechanism() {
         return backoffMechanism;
