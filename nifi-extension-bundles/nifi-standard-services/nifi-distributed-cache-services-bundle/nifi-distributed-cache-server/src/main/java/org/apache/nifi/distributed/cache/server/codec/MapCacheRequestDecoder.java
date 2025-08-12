@@ -35,10 +35,10 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
 
     public MapCacheRequestDecoder(
             final ComponentLog log,
-            final int maxLength,
+            final int maxReadSize,
             final CacheOperation[] supportedOperations
     ) {
-        super(log, maxLength, supportedOperations);
+        super(log, maxReadSize, supportedOperations);
     }
 
     @Override
