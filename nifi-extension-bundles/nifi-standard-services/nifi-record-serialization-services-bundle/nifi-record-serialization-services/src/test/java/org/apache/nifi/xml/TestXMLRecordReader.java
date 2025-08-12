@@ -33,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,6 +42,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,6 +62,39 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
         assertNull(reader.nextRecord());
+    }
+
+    @Test
+    public void testEmptyFieldNameForContentProperty() throws Exception {
+        final String contentFieldName = "";
+        final boolean parseXmlAttributes = true;
+        final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
+        final byte[] xml = "<note><to alias=\"TK\">Kyle</to></note>".getBytes(StandardCharsets.UTF_8);
+        ComponentLog logger = Mockito.mock(ComponentLog.class);
+        XMLRecordReader reader = new XMLRecordReader(
+            new ByteArrayInputStream(xml),
+            schema,
+            parseXmlAttributes,
+            false,
+            "",
+            contentFieldName,
+            "",
+            "note",
+            "",
+            logger
+        );
+        Record record = reader.nextRecord();
+        assertNotNull(record, "Record should not be null");
+        Object toFieldObj = record.getValue("to");
+        if (toFieldObj == null) {
+            assertNull(toFieldObj, "'to' field is null as expected when contentFieldName is empty");
+        } else {
+            assertInstanceOf(Record.class, toFieldObj, "'to' field should be a Record");
+            Record toField = (Record) toFieldObj;
+            Object valueField = toField.getValue("value");
+            assertNotNull(valueField, "'value' field should exist inside 'to' record");
+            assertEquals("Kyle", valueField, "'value' field should contain the correct content");
+        }
     }
 
     @Test
