@@ -181,10 +181,10 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
         final ProtobufMessageSchema firstMessage = messagePath.getFirst();
 
         final String fullName = messagePath.stream()
-            .map(ProtobufMessageSchema::name)
+            .map(ProtobufMessageSchema::getName)
             .collect(Collectors.joining("."));
 
-        return new StandardMessageName(firstMessage.packageName(), fullName);
+        return new StandardMessageName(firstMessage.getPackageName(), fullName);
     }
 
     private record FindMessageNameArguments(SchemaDefinition schemaDefinition, List<Integer> messageIndexes) {

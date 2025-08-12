@@ -77,8 +77,8 @@ public class AntlrProtobufMessageSchemaParser implements ProtobufMessageSchemaPa
 
     private static class SchemaVisitor extends Protobuf3BaseVisitor<Void> {
 
-        private final List<ProtobufMessageSchema> rootMessages = new ArrayList<>();
-        private final Deque<ProtobufMessageSchema> messageStack = new ArrayDeque<>();
+        private final List<StandardProtobufMessageSchema> rootMessages = new ArrayList<>();
+        private final Deque<StandardProtobufMessageSchema> messageStack = new ArrayDeque<>();
         private String currentPackage;
 
         @Override
@@ -93,13 +93,13 @@ public class AntlrProtobufMessageSchemaParser implements ProtobufMessageSchemaPa
         public Void visitMessageDef(final MessageDefContext ctx) {
             final String messageName = ctx.messageName().getText();
 
-            final ProtobufMessageSchema protobufMessageSchema = new ProtobufMessageSchema(messageName, Optional.ofNullable(currentPackage));
+            final StandardProtobufMessageSchema protobufMessageSchema = new StandardProtobufMessageSchema(messageName, Optional.ofNullable(currentPackage), new ArrayList<>());
 
             // Add to parent's nested messages or root messages
             if (messageStack.isEmpty()) {
                 rootMessages.add(protobufMessageSchema);
             } else {
-                final ProtobufMessageSchema parent = messageStack.peek();
+                final StandardProtobufMessageSchema parent = messageStack.peek();
                 parent.addChildMessage(protobufMessageSchema);
             }
 
@@ -113,6 +113,32 @@ public class AntlrProtobufMessageSchemaParser implements ProtobufMessageSchemaPa
 
         public List<ProtobufMessageSchema> getProtoMessages() {
             return List.copyOf(rootMessages);
+        }
+    }
+
+    private record StandardProtobufMessageSchema(
+        String name,
+        Optional<String> packageName,
+        List<ProtobufMessageSchema> innerMessages) implements ProtobufMessageSchema {
+
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public Optional<String> getPackageName() {
+            return packageName;
+        }
+
+        @Override
+        public List<ProtobufMessageSchema> getChildMessageSchemas() {
+            return innerMessages;
+        }
+
+        public void addChildMessage(final ProtobufMessageSchema childMessage) {
+            innerMessages.add(childMessage);
         }
     }
 }

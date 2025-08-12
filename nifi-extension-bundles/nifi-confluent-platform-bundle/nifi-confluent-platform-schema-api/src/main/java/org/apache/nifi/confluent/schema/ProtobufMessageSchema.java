@@ -17,7 +17,6 @@
 package org.apache.nifi.confluent.schema;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -29,55 +28,15 @@ import java.util.Optional;
  * <p>
  * It contains bare minimum of information for name resolver to be able to resolve message names
  */
-public final class ProtobufMessageSchema {
+public interface ProtobufMessageSchema {
 
-    private final String name;
-    private final Optional<String> packageName;
-    private final List<ProtobufMessageSchema> childMessageSchemas;
+    String getName();
 
-    public ProtobufMessageSchema(final String name, final Optional<String> packageName, final List<ProtobufMessageSchema> childMessageSchemas) {
-        this.name = name;
-        this.packageName = packageName;
-        this.childMessageSchemas = childMessageSchemas;
+    Optional<String> getPackageName();
+
+    default boolean isDefaultPackage() {
+        return getPackageName().isEmpty();
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Optional<String> getPackageName() {
-        return packageName;
-    }
-
-    public boolean isDefaultPackage() {
-        return packageName.isEmpty();
-    }
-
-    public List<ProtobufMessageSchema> getChildMessageSchemas() {
-        return childMessageSchemas;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj == null || obj.getClass() != this.getClass()) {
-            return false;
-        }
-        final ProtobufMessageSchema that = (ProtobufMessageSchema) obj;
-        return Objects.equals(this.name, that.name) && Objects.equals(this.packageName, that.packageName) && Objects.equals(this.childMessageSchemas, that.childMessageSchemas);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, packageName, childMessageSchemas);
-    }
-
-    @Override
-    public String toString() {
-        return "ProtobufMessageSchema[" + "name=" + name + ", " + "packageName=" + packageName + ", " + "childMessageSchemas=" + childMessageSchemas + ']';
-    }
-
-
+    List<ProtobufMessageSchema> getChildMessageSchemas();
 }

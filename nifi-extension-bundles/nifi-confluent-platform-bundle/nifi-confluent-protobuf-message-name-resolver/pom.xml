@@ -29,7 +29,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-confluent-platform-api</artifactId>
+            <artifactId>nifi-confluent-platform-schema-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
