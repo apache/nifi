@@ -20,6 +20,7 @@ import org.apache.nifi.processors.elasticsearch.AbstractPutElasticsearch;
 import org.apache.nifi.processors.elasticsearch.PutElasticsearchJson;
 
 class PutElasticsearchJson_IT extends AbstractElasticsearch_IT<AbstractPutElasticsearch> {
+    @Override
     AbstractPutElasticsearch getProcessor() {
         return new PutElasticsearchJson();
     }

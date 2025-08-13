@@ -36,6 +36,7 @@ public class PrioritiesMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private FlowFileQueue flowFileQueue;
 
+    @Override
     @BeforeEach
     public void setUp() {
         super.setUp();

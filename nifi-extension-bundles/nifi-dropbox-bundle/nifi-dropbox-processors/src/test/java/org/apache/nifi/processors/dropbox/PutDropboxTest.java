@@ -88,6 +88,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     @Mock
     private UploadSessionFinishUploader mockUploadSessionFinishUploader;
 
+    @Override
     @BeforeEach
     protected void setUp() throws Exception {
         final PutDropbox testSubject = new PutDropbox() {

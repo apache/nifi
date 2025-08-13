@@ -27,6 +27,7 @@ import java.util.Map;
 
 public class Kafka3ConnectionServiceSaslPlaintextIT extends Kafka3ConnectionServiceBaseIT {
 
+    @Override
     protected Map<String, String> getKafkaContainerConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getKafkaContainerConfigProperties());
         properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT");

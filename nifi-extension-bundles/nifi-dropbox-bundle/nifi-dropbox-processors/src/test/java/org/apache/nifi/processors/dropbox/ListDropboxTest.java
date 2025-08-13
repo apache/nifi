@@ -71,6 +71,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
     @Mock
     private DbxUserListFolderBuilder mockListFolderBuilder;
 
+    @Override
     @BeforeEach
     protected void setUp() throws Exception {
         ListDropbox testSubject = new ListDropbox() {
