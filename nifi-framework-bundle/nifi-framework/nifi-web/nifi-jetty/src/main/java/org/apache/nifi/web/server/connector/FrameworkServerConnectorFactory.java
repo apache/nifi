@@ -83,6 +83,10 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
 
             // Set Transport Layer Security Protocols based on platform configuration
             setIncludeSecurityProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
+
+            // Set SNI configuration from properties
+            setSniRequired(properties.isWebHttpsSniRequired());
+            setSniHostCheck(properties.isWebHttpsSniHostCheck());
         }
     }
 

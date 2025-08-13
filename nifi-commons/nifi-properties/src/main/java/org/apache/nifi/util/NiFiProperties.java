@@ -206,6 +206,8 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String WEB_HTTPS_CIPHERSUITES_INCLUDE = "nifi.web.https.ciphersuites.include";
     public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.web.https.ciphersuites.exclude";
     public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.web.https.network.interface.";
+    public static final String WEB_HTTPS_SNI_REQUIRED = "nifi.web.https.sni.required";
+    public static final String WEB_HTTPS_SNI_HOST_CHECK = "nifi.web.https.sni.host.check";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
     public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
@@ -708,6 +710,14 @@ public class NiFiProperties extends ApplicationProperties {
     public Set<String> getWebHttpsApplicationProtocols() {
         final String protocols = getProperty(WEB_HTTPS_APPLICATION_PROTOCOLS, DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS);
         return Arrays.stream(protocols.split("\\s+")).collect(Collectors.toSet());
+    }
+
+    public boolean isWebHttpsSniRequired() {
+        return Boolean.parseBoolean(getProperty(WEB_HTTPS_SNI_REQUIRED, "true"));
+    }
+
+    public boolean isWebHttpsSniHostCheck() {
+        return Boolean.parseBoolean(getProperty(WEB_HTTPS_SNI_HOST_CHECK, "true"));
     }
 
     public String getWebMaxHeaderSize() {

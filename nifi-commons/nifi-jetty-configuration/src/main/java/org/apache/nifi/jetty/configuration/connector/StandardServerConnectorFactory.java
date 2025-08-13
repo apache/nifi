@@ -70,6 +70,10 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
 
     private int requestHeaderSize = 8192;
 
+    private boolean sniRequired = true;
+
+    private boolean sniHostCheck = true;
+
     /**
      * Standard Server Connector Factory Constructor with required properties
      *
@@ -181,6 +185,24 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
         this.requestHeaderSize = requestHeaderSize;
     }
 
+    /**
+     * Set to true if a SNI certificate is required, else requests will be rejected with 400 response.
+     *
+     * @param sniRequired SNI Required status
+     */
+    public void setSniRequired(final boolean sniRequired) {
+        this.sniRequired = sniRequired;
+    }
+
+    /**
+     * Set to true if the SNI Host name must match when there is an SNI certificate.
+     *
+     * @param sniHostCheck SNI Host Check status
+     */
+    public void setSniHostCheck(final boolean sniHostCheck) {
+        this.sniHostCheck = sniHostCheck;
+    }
+
     protected Server getServer() {
         return server;
     }
@@ -195,6 +217,8 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
             httpConfiguration.setSendServerVersion(SEND_SERVER_VERSION);
 
             final SecureRequestCustomizer secureRequestCustomizer = new SecureRequestCustomizer();
+            secureRequestCustomizer.setSniRequired(sniRequired);
+            secureRequestCustomizer.setSniHostCheck(sniHostCheck);
             httpConfiguration.addCustomizer(secureRequestCustomizer);
         }
 
