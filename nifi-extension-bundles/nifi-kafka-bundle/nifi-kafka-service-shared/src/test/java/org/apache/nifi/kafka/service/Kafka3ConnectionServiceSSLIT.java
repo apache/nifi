@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT {
 
+    @Override
     protected Map<String, String> getKafkaContainerConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getKafkaContainerConfigProperties());
         properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:SSL,PLAINTEXT:SSL,CONTROLLER:SSL");

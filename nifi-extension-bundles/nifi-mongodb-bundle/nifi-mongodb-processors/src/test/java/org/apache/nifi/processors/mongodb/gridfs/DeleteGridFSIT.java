@@ -47,6 +47,7 @@ public class DeleteGridFSIT extends GridFSITTestBase {
         super.setup(runner, BUCKET, false);
     }
 
+    @Override
     @AfterEach
     public void tearDown() {
         super.tearDown();

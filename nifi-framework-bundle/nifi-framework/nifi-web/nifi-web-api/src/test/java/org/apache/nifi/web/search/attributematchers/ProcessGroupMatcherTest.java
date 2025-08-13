@@ -29,6 +29,7 @@ public class ProcessGroupMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ProcessGroup component;
 
+    @Override
     @BeforeEach
     public void setUp() {
         super.setUp();

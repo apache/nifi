@@ -36,6 +36,7 @@ public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
     private final BlockingQueue<BoxEvent> queue = new LinkedBlockingQueue<>();
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
 
