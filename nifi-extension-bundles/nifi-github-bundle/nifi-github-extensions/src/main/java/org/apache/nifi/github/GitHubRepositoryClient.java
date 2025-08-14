@@ -35,6 +35,8 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.PagedIterable;
+import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.connector.GitHubConnectorResponse;
@@ -69,7 +71,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private static final String WRITE_ACCESS = "write";
 
     private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
-    private static final int COMMIT_PAGE_SIZE = 50;
+    private static final int COMMIT_PAGE_SIZE = 10;
 
     private final String repoOwner;
     private final String repoName;
@@ -82,7 +84,6 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private final boolean canWrite;
 
     private static final int COMMIT_CACHE_SIZE = 1000;
-    private static final int MAX_COMMITS_TO_RETRIEVE = 10;
     private final Cache<String, GitCommit> commitCache = Caffeine.newBuilder()
             .maximumSize(COMMIT_CACHE_SIZE)
             .build();
@@ -291,21 +292,19 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         return execute(() -> {
             try {
                 final GHRef branchGhRef = repository.getRef(branchRef);
-                final List<GHCommit> ghCommits = repository.queryCommits()
+                final PagedIterable<GHCommit> ghCommitsIterable = repository.queryCommits()
                         .path(resolvedPath)
                         .from(branchGhRef.getObject().getSha())
                         .pageSize(COMMIT_PAGE_SIZE)
-                        .list()
-                        .toList();
+                        .list();
+
+                // Get the first page of commits
+                final PagedIterator<GHCommit> ghCommitsIterator = ghCommitsIterable.iterator();
+                final List<GHCommit> ghCommits = ghCommitsIterator.nextPage();
 
                 final List<GitCommit> commits = new ArrayList<>();
-                int i = 0;
                 for (final GHCommit ghCommit : ghCommits) {
-                    if (i >= MAX_COMMITS_TO_RETRIEVE) {
-                        break;
-                    }
                     commits.add(toGitCommit(ghCommit));
-                    i++;
                 }
                 return commits;
             } catch (final FileNotFoundException fnf) {
