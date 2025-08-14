@@ -24,7 +24,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ParameterConfig } from '../../../../../state/shared';
-import { Parameter, PropertyHintTipInput } from '@nifi/shared';
+import {
+    CodemirrorNifiLanguageService,
+    Parameter,
+    PropertyHintTipInput,
+    Codemirror,
+    CodeMirrorConfig,
+    PropertyHint,
+    Resizable,
+    highlightStyle
+} from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Extension, EditorState, Prec } from '@codemirror/state';
 import {
@@ -37,27 +46,14 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { acceptCompletion, autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
 import {
     defaultHighlightStyle,
     syntaxHighlighting,
     indentOnInput,
     bracketMatching,
-    StreamLanguage,
-    indentUnit,
-    LanguageDescription
+    indentUnit
 } from '@codemirror/language';
-import {
-    Codemirror,
-    CodeMirrorConfig,
-    PropertyHint,
-    Resizable,
-    highlightStyle,
-    CodemirrorNifiLanguagePackage,
-    NfLanguageConfig,
-    NfLanguageDefinition
-} from '@nifi/shared';
 
 @Component({
     selector: 'nf-editor',
@@ -117,7 +113,6 @@ export class NfEditor {
 
     itemSet = false;
     parameterConfigSet = false;
-    nfLanguageDefinition: NfLanguageDefinition | null = null;
     nfEditorForm: FormGroup;
     showSensitiveHelperText = false;
     supportsEl = false;
@@ -136,12 +131,6 @@ export class NfEditor {
         height: '108px'
     };
 
-    // Language configuration
-    languageConfig = {
-        language: this.nifiLanguagePackage.getLanguageId(),
-        languages: [] as LanguageDescription[]
-    };
-
     // Dynamic config getter that includes disabled state
     get codemirrorConfig(): CodeMirrorConfig {
         return {
@@ -154,7 +143,7 @@ export class NfEditor {
     constructor(
         private formBuilder: FormBuilder,
         private viewContainerRef: ViewContainerRef,
-        private nifiLanguagePackage: CodemirrorNifiLanguagePackage
+        private nifiLanguageService: CodemirrorNifiLanguageService
     ) {
         this.nfEditorForm = this.formBuilder.group({
             value: new FormControl(''),
@@ -179,7 +168,6 @@ export class NfEditor {
                 bracketMatching(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-                autocompletion(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
                 keymap.of([
                     { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
@@ -196,32 +184,18 @@ export class NfEditor {
                         }
                     },
                     ...defaultKeymap,
-                    ...historyKeymap,
-                    ...completionKeymap
+                    ...historyKeymap
                 ])
             ];
 
             if (this.supportsEl || this.parameters) {
-                this.nfLanguageDefinition = {
-                    supportsEl: this.supportsEl
-                };
+                this.nifiLanguageService.setLanguageOptions({
+                    functionsEnabled: this.supportsEl,
+                    parametersEnabled: this.supportsParameters,
+                    parameters: this.parameters || []
+                });
 
-                if (this.parameters) {
-                    this.nfLanguageDefinition.parameterListing = this.parameters;
-                }
-
-                const nfLanguageConfig: NfLanguageConfig = this.nifiLanguagePackage.getLanguageMode(
-                    this.nfLanguageDefinition
-                );
-
-                this._codemirrorConfig.plugins = [
-                    StreamLanguage.define(nfLanguageConfig.streamParser),
-                    autocompletion({
-                        override: [nfLanguageConfig.getAutocompletions(this.viewContainerRef)]
-                    }),
-                    Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
-                    setup
-                ];
+                this._codemirrorConfig.plugins = [this.nifiLanguageService.getLanguageSupport(), setup];
             } else {
                 this._codemirrorConfig.plugins = setup;
             }

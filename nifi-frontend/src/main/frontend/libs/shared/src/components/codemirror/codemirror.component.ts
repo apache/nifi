@@ -30,7 +30,7 @@ import {
     forwardRef
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { Annotation, Compartment, EditorState, Extension, StateEffect } from '@codemirror/state';
+import { Annotation, Compartment, EditorState, Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { defaultTheme } from './themes/defaultTheme';
 
@@ -415,18 +415,5 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
         this.view.dispatch({
             effects: this.pluginCompartment.reconfigure(plugins)
         });
-    }
-
-    private toggleCSSClass(className: string, shouldAdd: boolean): void {
-        const element = this.elementRef.nativeElement;
-        if (!element) {
-            return;
-        }
-
-        if (shouldAdd) {
-            element.classList.add(className);
-        } else {
-            element.classList.remove(className);
-        }
     }
 }
