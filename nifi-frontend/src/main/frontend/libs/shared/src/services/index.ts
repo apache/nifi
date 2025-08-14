@@ -22,4 +22,4 @@ export * from './session-storage.service';
 export * from './theming.service';
 export * from './map-table-helper.service';
 export * from './el.service';
-export * from './codemirror-nifi-language-package.service';
+export * from './codemirror-nifi-language/codemirror-nifi-language.service';

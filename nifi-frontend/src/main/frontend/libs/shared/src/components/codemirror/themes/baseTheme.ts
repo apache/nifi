@@ -461,5 +461,20 @@ export const highlightStyle = HighlightStyle.define([
     { tag: t.heading, color: 'var(--nf-codemirror-header)' },
     { tag: [t.atom, t.bool, t.special(t.variableName)], color: 'var(--nf-codemirror-atom)' },
     { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--nf-codemirror-string)' },
-    { tag: t.invalid, color: 'var(--nf-codemirror-invalidchar)' }
+    { tag: t.invalid, color: 'var(--nf-codemirror-invalidchar)' },
+
+    // NFEL-specific highlighting styles
+    { tag: t.comment, color: 'var(--nf-codemirror-comment)' },
+    { tag: t.content, color: 'var(--mat-sys-on-surface)' },
+    { tag: t.escape, color: 'var(--nf-codemirror-link)', fontWeight: 'bold' },
+    { tag: t.special(t.brace), color: 'var(--nf-codemirror-bracket)', fontWeight: 'bold' },
+    { tag: t.brace, color: 'var(--nf-codemirror-bracket)' },
+    { tag: t.paren, color: 'var(--nf-codemirror-bracket)' },
+    { tag: t.operator, color: 'var(--nf-codemirror-link)' },
+    { tag: t.separator, color: 'var(--nf-codemirror-bracket)' },
+    { tag: t.variableName, color: 'var(--nf-codemirror-variable)' },
+    { tag: t.string, color: 'var(--nf-codemirror-string)' },
+    { tag: t.number, color: 'var(--nf-codemirror-number)' },
+    { tag: t.bool, color: 'var(--nf-codemirror-atom)' },
+    { tag: t.null, color: 'var(--nf-codemirror-atom)', fontStyle: 'italic' }
 ]);

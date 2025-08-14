@@ -288,12 +288,7 @@ describe('Codemirror', () => {
             fixture.detectChanges();
         });
 
-        const testConfigChange = (
-            property: keyof CodeMirrorConfig,
-            oldValue: any,
-            newValue: any,
-            expectation: string
-        ) => {
+        const testConfigChange = (property: keyof CodeMirrorConfig, oldValue: any, newValue: any) => {
             it(`should handle ${property} changes`, () => {
                 const previousConfig: CodeMirrorConfig = { [property]: oldValue };
                 const currentConfig: CodeMirrorConfig = { [property]: newValue };
@@ -307,10 +302,10 @@ describe('Codemirror', () => {
             });
         };
 
-        testConfigChange('content', 'old content', 'new content', 'content');
-        testConfigChange('disabled', false, true, 'disabled');
-        testConfigChange('readOnly', false, true, 'readOnly');
-        testConfigChange('focusOnInit', false, true, 'focusOnInit');
+        testConfigChange('content', 'old content', 'new content');
+        testConfigChange('disabled', false, true);
+        testConfigChange('readOnly', false, true);
+        testConfigChange('focusOnInit', false, true);
 
         it('should handle appearance changes', () => {
             const oldAppearance = { mockOldTheme: true };
