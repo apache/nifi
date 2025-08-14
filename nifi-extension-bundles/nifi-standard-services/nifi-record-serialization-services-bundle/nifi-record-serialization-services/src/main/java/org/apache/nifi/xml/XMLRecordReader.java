@@ -1,4 +1,4 @@
-/*
+ /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -321,7 +321,7 @@ public class XMLRecordReader implements RecordReader {
             if (!hasFields) {
                 return content.toString();
             } else {
-                if (contentFieldName != null) {
+                if (contentFieldName != null && !contentFieldName.isEmpty()) {
                     recordValues.put(contentFieldName, content.toString());
                 } else {
                     logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property but " +
@@ -445,7 +445,7 @@ public class XMLRecordReader implements RecordReader {
         }
 
         if (content.length() > 0) {
-            if (contentFieldName != null) {
+            if (contentFieldName != null && !contentFieldName.isEmpty()) {
                 final Optional<RecordField> field = schema.getField(contentFieldName);
                 if (field.isPresent()) {
                     Object value = parseStringForType(content.toString(), contentFieldName, field.get().getDataType());
