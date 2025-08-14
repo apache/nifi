@@ -85,7 +85,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private static final String FLOWFILE_REPO_CACHE_SIZE = "nifi.flowfile.repository.wal.cache.characters";
 
     static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
-    static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
     private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
     private static final int DEFAULT_CACHE_SIZE = 10_000_000;
 
@@ -202,13 +201,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
         this.serdeFactory = serdeFactory;
 
-        // The specified implementation can be plaintext or encrypted; the only difference is the serde factory
-        if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL) || walImplementation.equals(ENCRYPTED_SEQUENTIAL_ACCESS_WAL)) {
+        try {
             // TODO: May need to instantiate ESAWAL for clarity?
             wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
-        } else {
+        } catch (final Exception ex) {
             throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION +
-                    "' has an invalid value of '" + walImplementation + "'. Please update nifi.properties to indicate a valid value for this property.");
+                    "' has an invalid value of '" + walImplementation + "'. Please update nifi.properties to indicate a valid value for this property.", ex);
         }
 
         logger.info("Initialized FlowFile Repository");
