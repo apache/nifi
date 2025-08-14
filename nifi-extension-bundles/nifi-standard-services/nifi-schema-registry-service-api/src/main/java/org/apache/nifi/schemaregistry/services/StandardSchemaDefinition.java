@@ -103,7 +103,6 @@ public class StandardSchemaDefinition implements SchemaDefinition {
     public String toString() {
         return "StandardSchemaDefinition{" +
             "identifier=" + identifier +
-            ", text='" + text + '\'' +
             ", references=" + references +
             ", schemaType=" + schemaType +
             '}';

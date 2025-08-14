@@ -60,6 +60,6 @@ public class StandardMessageName implements MessageName {
 
     @Override
     public String toString() {
-        return String.format("StandardMessageName{name='%s', namespace=%s}", name, namespace);
+        return String.format("StandardMessageName{name='%s', namespace='%s'}", name, namespace);
     }
 }

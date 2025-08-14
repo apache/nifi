@@ -300,7 +300,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             }
             return SchemaType.valueOf(schemaTypeText.toUpperCase().trim());
         } catch (final Exception e) {
-            final String message = String.format("Could not convert schema type '%s' to SchemaType enum.", schemaTypeText);
+            final String message = String.format("Could not convert schema type '%s' to SchemaType enum", schemaTypeText);
             throw new IllegalArgumentException(message, e);
         }
     }

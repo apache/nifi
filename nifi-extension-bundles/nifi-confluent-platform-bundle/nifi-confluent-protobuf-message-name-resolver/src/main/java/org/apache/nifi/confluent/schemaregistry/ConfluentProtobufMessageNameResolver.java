@@ -53,13 +53,15 @@ import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFro
     """)
 public class ConfluentProtobufMessageNameResolver extends AbstractControllerService implements MessageNameResolver {
 
-    public static final int MAXIMUM_SUPPORTED_ARRAY_LENGTH = 100;
-    public static final int MAXIMUM_CACHE_SIZE = 1000;
+    private static final int MAXIMUM_SUPPORTED_ARRAY_LENGTH = 100;
+    private static final int MAXIMUM_CACHE_SIZE = 1000;
+    private static final int CACHE_EXPIRE_HOURS = 1;
+
     private Cache<FindMessageNameArguments, MessageName> messageNameCache;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        messageNameCache = Caffeine.newBuilder().maximumSize(MAXIMUM_CACHE_SIZE).expireAfterWrite(Duration.ofHours(1)).build();
+        messageNameCache = Caffeine.newBuilder().maximumSize(MAXIMUM_CACHE_SIZE).expireAfterWrite(Duration.ofHours(CACHE_EXPIRE_HOURS)).build();
     }
 
     @OnDisabled
@@ -77,11 +79,8 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
 
         // Read message indexes directly from stream (Confluent wire format)
         final List<Integer> messageIndexes = readMessageIndexesFromStream(inputStream);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Decoded message indexes: {}", messageIndexes);
-        }
+        logger.debug("Decoded message indexes: {}", messageIndexes);
         final FindMessageNameArguments findMessageNameArgs = new FindMessageNameArguments(schemaDefinition, messageIndexes);
-
         return messageNameCache.get(findMessageNameArgs, this::findMessageName);
 
     }
