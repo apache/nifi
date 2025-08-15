@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output, ViewContainerRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -26,19 +26,12 @@ import { Codemirror, CodeMirrorConfig, Resizable, PropertyHint } from '@nifi/sha
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorNifiLanguageService } from '@nifi/shared';
 import { EditorState, Extension, Prec } from '@codemirror/state';
-import {
-    bracketMatching,
-    defaultHighlightStyle,
-    indentOnInput,
-    indentUnit,
-    syntaxHighlighting
-} from '@codemirror/language';
+import { bracketMatching, indentOnInput, indentUnit } from '@codemirror/language';
 import {
     crosshairCursor,
     EditorView,
     highlightActiveLine,
     highlightActiveLineGutter,
-    highlightSpecialChars,
     keymap,
     lineNumbers,
     rectangularSelection
@@ -141,8 +134,6 @@ export class UaEditor {
                 crosshairCursor(),
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
-                highlightSpecialChars(),
-                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 bracketMatching(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],

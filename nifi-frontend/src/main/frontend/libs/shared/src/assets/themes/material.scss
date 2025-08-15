@@ -165,37 +165,39 @@
     --nf-canvas-background: #e5ebed; /* The canvas background color */
     --nf-canvas-border-stroke-width: 1; /* The canvas border stroke width */
 
-    --nf-codemirror-comment: #545454;
-    --nf-codemirror-keyword: #6800ab;
-    --nf-codemirror-variable: #000;
-    --nf-codemirror-variable-2: #0054a6;
-    --nf-codemirror-number: #c20021;
-    --nf-codemirror-string2: #ec000c;
-    --nf-codemirror-tag: #f8052e;
-    --nf-codemirror-link: #0000ce;
-    --nf-codemirror-linenumber: #b4b4b4;
-    --nf-codemirror-bracket: #93937c;
-    --nf-codemirror-quote: #009400; /* The codemirror quote color */
-    --nf-codemirror-error-background-color: #ff8094; /* The codemirror error background color */
-    --nf-codemirror-error-color: rgba(0, 0, 0, 0); /* The codemirror error text color */
-    --nf-codemirror-nonmatchingbracket: #a62020; /* The codemirror non matching bracket color */
-    --nf-codemirror-matchingtag: rgba(255, 150, 0, 0.3); /* The codemirror matching tag color */
-    --nf-codemirror-parameter: #ec000c;
-    --nf-codemirror-el-function: #3400ad;
-    --nf-codemirror-invalidchar: #ff0000;
-    --nf-codemirror-string: var(--nf-codemirror-parameter);
-    --nf-codemirror-atom: var(--nf-codemirror-el-function);
-    --nf-codemirror-header: #0000ff;
-    --nf-codemirror-gutters: #efefef;
-    --nf-codemirror-active-handler-border: #b67901;
-    --nf-codemirror-selected-background: #d6e6ff;
-    --nf-codemirror-selected-ui: #085bd7;
-    --nf-codemirror-selected-hover-text: #004cbe;
-    --nf-codemirror-selection-match-bg: #9fabc144;
-    --nf-codemirror-search-match-bg: #ffedcd;
-    --nf-codemirror-search-match-selected-bg: #ffedcd;
-    --nf-codemirror-executed-bg: #d6e6ff;
+    // Codemirror
+    --editor-text: #191e24;
+    --editor-comment: #5d6a85;
+    --editor-string: #860112;
+    --editor-keyword: #085bd7;
+    --editor-function: #087959;
+    --editor-type: #653e03;
+    --editor-line-number: #5d6a85;
+    --editor-active-line-number: #191e24;
+    --editor-control-keyword: #653e03;
+    --editor-variable-name: #002c6e;
+    --editor-py-keyword: #9712e8;
+    --editor-function-name-variable-name: #653e03;
+    --editor-number: #087959;
+    --editor-special: #bf0822;
+    --editor-type-name: #087959;
+    --editor-error-bg: #f76a86;
+    --editor-executed-bg: #d6e6ff;
+    --editor-selection-match-bg: #9fabc144;
+    --editor-search-match-bg: #ffedcd;
+    --editor-search-match-selected-bg: #ffedcd;
+    --editor-active-handler-border: #b67901;
+    --editor-link: #0000ce;
+    --editor-matchingtag: rgba(255, 150, 0, 0.3);
+    --editor-selected-background: #d6e6ff;
+    --editor-selected-ui: #085bd7;
+    --editor-selected-hover-text: #004cbe;
+    --editor-bracket: #93937c;
+    --editor-parameter: #ec000c;
+    --editor-el-function: #3400ad;
+    --editor-variable-2: #0679e8;
 
+    // Prism
     --nf-prism-language-color: #ec000c; /* The prism language color */
     --nf-prism-token-comment: #545454; /* The prism token comment color */
     --nf-prism-token-punctuation: #6800ab; /* The prism token punctuation color */
@@ -655,37 +657,40 @@ html {
     --nf-canvas-background: #0d1411; /* The canvas background color */
     --nf-canvas-border-stroke-width: 2; /* The canvas border stroke width */
 
-    --nf-codemirror-comment: #d7d7d7;
-    --nf-codemirror-keyword: #c792ea;
-    --nf-codemirror-variable: #fff;
-    --nf-codemirror-variable-2: #72b6fc;
-    --nf-codemirror-number: #fd758c;
-    --nf-codemirror-string2: #f07178;
-    --nf-codemirror-tag: #fc768d;
-    --nf-codemirror-link: #8e8ef6;
-    --nf-codemirror-linenumber: #bbbbbb;
-    --nf-codemirror-bracket: #93937c;
-    --nf-codemirror-quote: #6bfd6b; /* The codemirror quote color */
-    --nf-codemirror-error-background-color: #ff002a; /* The codemirror error background color */
-    --nf-codemirror-error-color: rgba(255, 255, 255, 1); /* The codemirror error text color */
-    --nf-codemirror-nonmatchingbracket: #a62020; /* The codemirror non matching bracket color */
-    --nf-codemirror-matchingtag: rgba(255, 150, 0, 0.97); /* The codemirror matching tag color */
-    --nf-codemirror-parameter: #f07178;
-    --nf-codemirror-el-function: #72b6fc;
-    --nf-codemirror-invalidchar: #ff9c9c;
-    --nf-codemirror-string: var(--nf-codemirror-parameter);
-    --nf-codemirror-atom: var(--nf-codemirror-el-function);
-    --nf-codemirror-header: #b8b8ff;
-    --nf-codemirror-gutters: #3b3b3b;
-    --nf-codemirror-active-handler-border: #b67901;
-    --nf-codemirror-selected-background: #d6e6ff;
-    --nf-codemirror-selected-ui: #085bd7;
-    --nf-codemirror-selected-hover-text: #004cbe;
-    --nf-codemirror-selection-match-bg: #9fabc144;
-    --nf-codemirror-search-match-bg: #ffedcd;
-    --nf-codemirror-search-match-selected-bg: #ffedcd;
-    --nf-codemirror-executed-bg: #d6e6ff;
+    // Codemirror
+    --editor-text: #f7f7f7;
+    --editor-comment: #70819a;
+    --editor-string: #f76a86;
+    --editor-keyword: #86b6fc;
+    --editor-function: #97f3cf;
+    --editor-type: #fccf54;
+    --editor-line-number: #bdc4d5;
+    --editor-active-line-number: #fbfbfb;
+    --editor-control-keyword: #fccf54;
+    --editor-variable-name: #5999f8;
+    --editor-py-keyword: #cb7efa;
+    --editor-function-name-variable-name: #fccf54;
+    --editor-number: #97f3cf;
+    --editor-special: #f76a86;
+    --editor-type-name: #97f3cf;
+    --editor-error-bg: #66000e;
+    --editor-executed-bg: #002c6e;
+    --editor-selection-match-bg: #9fabc144;
+    --editor-search-match-bg: #653e03;
+    --editor-search-match-selected-bg: #dd5f04cc;
+    --editor-active-handler-border: #ffedcd;
+    --editor-link: #8e8ef6;
+    --editor-matchingtag: rgba(255, 150, 0, 0.97);
+    --editor-selected-background: #d6e6ff;
+    --editor-selected-ui: #085bd7;
+    --editor-selected-hover-text: #004cbe;
+    --editor-selection-match-bg: #9fabc144;
+    --editor-bracket: #93937c;
+    --editor-parameter: #f07178;
+    --editor-el-function: #72b6fc;
+    --editor-variable-2: #72b6fc;
 
+    // Prism
     --nf-prism-language-color: #f07178; /* The prism language color */
     --nf-prism-token-comment: #545454; /* The prism token comment color */
     --nf-prism-token-punctuation: #c792ea; /* The prism token punctuation color */

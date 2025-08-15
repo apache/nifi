@@ -29,21 +29,13 @@ import {
     keymap,
     highlightActiveLine,
     lineNumbers,
-    highlightSpecialChars,
     highlightActiveLineGutter,
     EditorView,
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
-import {
-    defaultHighlightStyle,
-    syntaxHighlighting,
-    indentOnInput,
-    bracketMatching,
-    indentUnit
-} from '@codemirror/language';
+import { indentOnInput, indentUnit } from '@codemirror/language';
 import { MatLabel } from '@angular/material/form-field';
 import { MapTableItem } from '../../../../types';
 
@@ -178,9 +170,6 @@ export class TextEditor {
             crosshairCursor(),
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
-            highlightSpecialChars(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-            bracketMatching(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
             EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
@@ -199,8 +188,7 @@ export class TextEditor {
                     }
                 },
                 ...defaultKeymap,
-                ...historyKeymap,
-                ...completionKeymap
+                ...historyKeymap
             ])
         ];
 

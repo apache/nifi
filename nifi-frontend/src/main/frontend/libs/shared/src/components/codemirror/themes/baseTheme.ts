@@ -23,9 +23,9 @@ const boxStyle = {
 };
 
 export const codeFontStyle = {
-    color: 'var(--mat-sys-on-surface)',
+    color: 'var(--editor-text)',
     background: 'transparent',
-    fontSize: '13.5px',
+    fontSize: '12px',
     lineHeight: '18px',
     fontFamily: "Menlo, apercu-mono-regular, Monaco, Consolas, 'Courier New', monospace",
     fontVariantLigatures: 'none',
@@ -43,12 +43,12 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '&': {
         maxWidth: '100%',
         maxHeight: '100%',
-        backgroundColor: 'var(--mat-sys-background)'
+        backgroundColor: 'var(--mat-sys-surface-container-lowest)'
     },
 
     '.cm-scroller': codeFontStyle,
     '.cm-panels': {
-        color: 'var(--mat-sys-primary)'
+        color: 'var(--mat-sys-on-surface)'
     },
     '.cm-panel > div': {
         borderColor: 'var(--mat-sys-outline)'
@@ -70,7 +70,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         outline: 'none'
     },
     '.cm-placeholder': {
-        color: 'var(--nf-codemirror-comment)'
+        color: 'var(--editor-comment)'
     },
     '.cm-line': {
         paddingLeft: '8px'
@@ -78,21 +78,26 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '.cm-gutters': {
         // Don't set the gutter background to 'transparent', because then long lines will appear behind
         // the gutter when scrolling horizontally (if line wrapping is off).
-        backgroundColor: 'var(--nf-codemirror-gutters)',
+        backgroundColor: 'var(--mat-sys-surface-container-high)',
         cursor: 'default',
         userSelect: 'none'
     },
     '.cm-foldGutter': {
+        borderRight: '1px solid',
         paddingRight: '4px'
-    },
-    '.cm-foldGutter:hover .cm-gutterElement': {
-        opacity: '.5'
     },
     '.cm-foldGutter .cm-gutterElement': {
         cursor: 'pointer',
-        opacity: '0'
+        height: '16px',
+        width: '16px'
     },
-    '.cm-foldGutter .cm-gutterElement:hover': {
+    '.cm-foldGutter .cm-gutterElement span[title="Fold line"]': {
+        transform: 'rotate(90deg)'
+    },
+    '.cm-foldGutter .cm-gutterElement span[title="Unfold line"]': {
+        transform: 'rotate(0deg)'
+    },
+    '.cm-foldGutter:hover .cm-gutterElement span': {
         opacity: '1'
     },
     '.cm-foldGutter .cm-gutterElement.cm-activeLineGutter': {
@@ -100,7 +105,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-lineNumbers': {
         fontSize: '13px',
-        color: 'var(--nf-codemirror-comment)',
+        color: 'var(--editor-line-number)',
         cursor: 'default',
         top: '1px',
         paddingLeft: '22px',
@@ -108,7 +113,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-activeLineGutter': {
         background: 'none',
-        color: 'var(--nf-codemirror-linenumber)'
+        color: 'var(--editor-active-line-number)'
     },
     '.cm-activeLine': {
         background: 'none'
@@ -128,14 +133,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         background: 'var(--nf-neutral)'
     },
     '.cm-nonmatchingBracket': {
-        color: 'var(--mat-sys-on-surface)'
-    },
-    '.cm-error': {
-        color: 'var(--nf-codemirror-error-color)',
-        background: 'var(--nf-codemirror-error-background-color)'
-    },
-    '.cm-matchingTag': {
-        background: 'var(--nf-codemirror-matchingtag)'
+        color: 'var(--editor-text)'
     },
     '.cm-tooltip-autocomplete.cm-tooltip': {
         ...boxStyle,
@@ -158,7 +156,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         padding: '5px 12px',
         fontVariantLigatures: 'none',
         fontFamily: 'Inter',
-        color: 'var(--mat-sys-on-surface)',
+        color: 'var(--editor-text)',
         position: 'relative',
         alignItems: 'center'
     },
@@ -183,23 +181,17 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         borderBottom: 'none'
     },
     '.cm-tooltip-autocomplete ul li[aria-selected]': {
-        background: 'var(--nf-codemirror-selected-background)',
+        background: 'var(--editor-selected-background)',
         borderTop: 'none',
         borderBottom: 'none'
     },
     '.darkMode & .cm-tooltip-autocomplete ul li[aria-selected]': {
         background: 'var(--mat-sys-neutral10)'
     },
-    '.dark-theme & .cm-tooltip-autocomplete ul li': {
-        background: 'var(--mat-sys-surface-tint)'
-    },
-    '.dark-theme & .cm-tooltip-autocomplete': {
-        background: 'var(--mat-sys-neutral10)'
-    },
     // The left-side blue selection indicator in the autocomplete popup.
     '.cm-tooltip-autocomplete ul li[aria-selected]:before': {
         content: '""',
-        background: 'var(--nf-codemirror-selected-ui)',
+        background: 'var(--editor-selected-ui)',
         top: 0,
         left: 0,
         position: 'absolute',
@@ -211,7 +203,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-tooltip .cm-signature-activeParameter': {
         fontWeight: 'bold',
-        color: 'var(--nf-codemirror-selected-hover-text)'
+        color: 'var(--editor-selected-hover-text)'
     },
     '.cm-tooltip-hover': {
         backgroundColor: 'transparent',
@@ -236,23 +228,20 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         width: 'max-content'
     },
     '.cm-lint-marker-error': {
-        background: 'var(--mat-sys-error)',
-        content: 'none'
+        background: 'var(--mat-sys-error)'
     },
     '.cm-lint-marker-warning': {
-        background: 'var(--nf-caution-default)',
-        content: 'none'
+        background: 'var(--nf-caution-default)'
     },
     '.cm-lint-marker-info': {
-        background: 'var(--nf-codemirror-link)',
-        content: 'none'
+        background: 'var(--editor-link)'
     },
     '.cm-tooltip.cm-completionInfo, .cm-tooltip-hover .hover-scroll': {
         ...boxStyle,
         // Move shadow to the right to avoid putting shadow on top of the autocomplete box.
         boxShadow: '2px 2px 8px #00000026',
         border: '1px solid var(--mat-sys-outline)',
-        color: 'var(--nf-codemirror-comment)',
+        color: 'var(--editor-comment)',
         display: 'block',
         fontFamily: 'Inter',
         fontSize: '13px',
@@ -300,7 +289,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         },
     '.cm-tooltip-autocomplete-info code, .cm-tooltip-hover code': {
         fontFamily: "apercu-mono-regular, Menlo, Monaco, Consolas, 'Courier New', monospace",
-        color: 'var(--mat-sys-on-surface)',
+        color: 'var(--editor-text)',
         fontSize: '13px',
         whiteSpace: 'pre-wrap',
         margin: '0'
@@ -342,26 +331,26 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         gridColumn: '1'
     },
     '.cm-selectionBackground': {
-        background: 'var(--nf-codemirror-selected-background)',
+        background: 'var(--editor-selected-background)',
         opacity: '.4',
         transform: 'translateY(-2px)',
         'padding-top': '2px',
         'padding-bottom': '2px'
     },
     '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
-        background: 'var(--nf-codemirror-selected-background)',
+        background: 'var(--editor-selected-background)',
         opacity: '.6'
     },
     '.cm-selectionMatch': {
-        background: 'var(--nf-codemirror-selection-match-bg)'
+        background: 'var(--editor-selection-match-bg)'
     },
 
     // Search colors override other font/background colors, so "!important" is used.
     '.cm-searchMatch *': {
-        background: 'var(--nf-codemirror-search-match-bg) !important'
+        background: 'var(--editor-search-match-bg) !important'
     },
     '.cm-searchMatch-selected *': {
-        background: 'var(--nf-codemirror-search-match-selected-bg) !important'
+        background: 'var(--editor-search-match-selected-bg) !important'
     },
     '.darkMode & .cm-searchMatch *': {
         color: `var(--mat-sys-on-surface) !important`
@@ -380,7 +369,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-lintRange-info': {
         backgroundImage: 'none',
-        borderBottom: '2px dotted var(--nf-codemirror-link)',
+        borderBottom: '2px dotted var(--editor-link)',
         paddingBottom: 0
     },
     '.cm-lintRange-warning': {
@@ -394,27 +383,27 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         left: '-6px'
     },
     '.desclink:link, .desclink:visited': {
-        color: 'var(--nf-codemirror-comment)',
+        color: 'var(--editor-comment)',
         textDecoration: 'underline'
     },
     '.desclink:hover': {
-        color: 'var(--nf-codemirror-link)'
+        color: 'var(--editor-link)'
     },
     '.active-handler': {
         backgroundColor: 'transparent',
-        borderColor: 'var(--nf-codemirror-active-handler-border)',
+        borderColor: 'var(--editor-active-handler-border)',
         borderWidth: '1px',
         borderStyle: 'solid',
         borderRadius: '6px',
         padding: '2px 4px'
     },
     '.active-handler-tooltip.hover-scroll': {
-        borderLeftColor: 'var(--nf-codemirror-keyword)',
+        borderLeftColor: 'var(--editor-control-keyword)',
         borderLeftWidth: '5px',
         borderLeftStyle: 'solid'
     },
-    '.error-highlight': { background: 'var(--mat-sys-error-container)' },
-    '.executed-highlight': { background: 'var(--nf-codemirror-executed-bg)' },
+    '.error-highlight': { background: 'var(--editor-error-bg)' },
+    '.executed-highlight': { background: 'var(--editor-executed-bg)' },
     '.executed-line': {
         borderLeft: '#457cff 4px solid',
         width: '4px',

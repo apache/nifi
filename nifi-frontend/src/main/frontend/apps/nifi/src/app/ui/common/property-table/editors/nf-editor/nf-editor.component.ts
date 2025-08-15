@@ -39,20 +39,13 @@ import {
     keymap,
     highlightActiveLine,
     lineNumbers,
-    highlightSpecialChars,
     highlightActiveLineGutter,
     EditorView,
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
-import {
-    defaultHighlightStyle,
-    syntaxHighlighting,
-    indentOnInput,
-    bracketMatching,
-    indentUnit
-} from '@codemirror/language';
+import { indentOnInput, bracketMatching, indentUnit } from '@codemirror/language';
 
 @Component({
     selector: 'nf-editor',
@@ -160,8 +153,6 @@ export class NfEditor {
                 crosshairCursor(),
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
-                highlightSpecialChars(),
-                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 bracketMatching(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],

@@ -29,6 +29,7 @@ import {
     defaultHighlightStyle,
     foldGutter,
     foldKeymap,
+    HighlightStyle,
     indentOnInput,
     indentUnit,
     syntaxHighlighting
@@ -38,11 +39,11 @@ import {
     EditorView,
     highlightActiveLine,
     highlightActiveLineGutter,
-    highlightSpecialChars,
     keymap,
     lineNumbers,
     rectangularSelection
 } from '@codemirror/view';
+import { tags as t } from '@lezer/highlight';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { xml } from '@codemirror/lang-xml';
@@ -119,8 +120,7 @@ export class StandardContentViewer {
                 crosshairCursor(),
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
-                highlightSpecialChars(),
-                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                // syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 foldGutter(),
@@ -146,6 +146,45 @@ export class StandardContentViewer {
                     languageExtensions.push(markdown());
                     break;
                 // For text, csv, and other cases, no specific language extension is needed
+                case 'text':
+                case 'csv':
+                default:
+                    // No specific language extension, will use plain text
+                    break;
+            }
+
+            const xmlHighlightStyle = HighlightStyle.define([
+                { tag: t.tagName, color: 'var(--editor-variable-2)' },
+                { tag: t.comment, color: 'var(--editor-comment)' }
+            ]);
+
+            const yamlHighlightStyle = HighlightStyle.define([
+                { tag: t.keyword, color: 'var(--editor-keyword)' },
+                { tag: t.comment, color: 'var(--editor-comment)' },
+                { tag: t.separator, color: 'var(--editor-bracket)' },
+                { tag: t.punctuation, color: 'var(--editor-bracket)' },
+                { tag: t.squareBracket, color: 'var(--editor-bracket)' },
+                { tag: t.brace, color: 'var(--editor-bracket)' },
+                { tag: t.content, color: 'var(--editor-text)' },
+                { tag: t.attributeValue, color: 'var(--editor-bracket)' },
+                { tag: t.string, color: 'var(--editor-string)' },
+                { tag: t.definition(t.propertyName), color: 'var(--editor-variable-2)' }
+            ]);
+
+            // Add language-specific syntax highlighting extensions based on mimeTypeDisplayName
+            switch (this.mimeTypeDisplayName) {
+                case 'json':
+                case 'avro':
+                    languageExtensions.push(syntaxHighlighting(defaultHighlightStyle, { fallback: true }));
+                    break;
+                case 'xml':
+                    languageExtensions.push(syntaxHighlighting(xmlHighlightStyle));
+                    break;
+                case 'yaml':
+                    languageExtensions.push(syntaxHighlighting(yamlHighlightStyle));
+                    break;
+                // For markdown, text, csv, and other cases, no specific syntax highlighting is needed
+                case 'markdown':
                 case 'text':
                 case 'csv':
                 default:
