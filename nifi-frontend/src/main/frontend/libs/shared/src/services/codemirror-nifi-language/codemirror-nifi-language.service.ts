@@ -123,7 +123,7 @@ export class CodemirrorNifiLanguageService {
         // Create a highlighter that maps our tags to CSS variables
         const nfelHighlighter = HighlightStyle.define([
             { tag: t.function(t.variableName), color: 'var(--editor-el-function)' },
-            { tag: t.variableName, color: 'var(--editor-variable-2)' },
+            { tag: t.variableName, color: 'var(--editor-keyword)' },
             { tag: t.special(t.variableName), color: 'var(--editor-parameter)' },
             {
                 tag: [t.typeName, t.className, t.changed, t.annotation, t.modifier, t.self, t.namespace],
