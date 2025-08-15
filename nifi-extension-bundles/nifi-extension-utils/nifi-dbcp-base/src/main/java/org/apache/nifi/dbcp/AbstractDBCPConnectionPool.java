@@ -16,29 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.resource.ResourceReference;
-import org.apache.nifi.components.resource.ResourceReferences;
-import org.apache.nifi.components.resource.ResourceType;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.VerifiableControllerService;
-import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
-import org.apache.nifi.kerberos.KerberosUserService;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.krb.KerberosAction;
-import org.apache.nifi.security.krb.KerberosLoginException;
-import org.apache.nifi.security.krb.KerberosUser;
-
-import java.io.File;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.SQLException;
@@ -46,12 +23,27 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
+import org.apache.nifi.dbcp.utils.DriverUtils;
+import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosLoginException;
+import org.apache.nifi.security.krb.KerberosUser;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
@@ -120,7 +112,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
 
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
-                List<String> availableDrivers = discoverDriverClassesStatic(driverResources);
+                List<String> availableDrivers = DriverUtils.discoverDriverClassesStatic(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
                     messageBuilder.append(String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
                             driverName, String.join(", ", availableDrivers)));
@@ -295,91 +287,5 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 dataSource.close();
             }
         }
-    }
-
-    /**
-     * Discovers JDBC driver classes using static JAR scanning only (no class
-     * loading) This is used during validation when resources aren't loaded into
-     * classpath yet
-     */
-    protected List<String> discoverDriverClassesStatic(final ResourceReferences driverResources) {
-        final Set<String> driverClasses = new TreeSet<>();
-
-        if (driverResources == null || driverResources.getCount() == 0) {
-            getLogger().debug("No driver resources provided for static discovery");
-            return new ArrayList<>();
-        }
-        getLogger().debug("Starting static driver discovery for {} resources", driverResources.getCount());
-
-        for (final ResourceReference resource : driverResources.flattenRecursively().asList()) {
-            try {
-                getLogger().debug("Processing resource: {} (type: {})", resource.getLocation(), resource.getResourceType());
-                final List<File> jarFiles = getJarFilesFromResource(resource);
-                getLogger().debug("Found {} JAR files in resource {}", jarFiles.size(), resource.getLocation());
-
-                for (final File jarFile : jarFiles) {
-                    getLogger().debug("Scanning JAR file: {}", jarFile.getAbsolutePath());
-                    final Set<String> foundDrivers = scanJarForDriverClassesStatic(jarFile);
-                    getLogger().debug("Found {} potential driver classes in {}", foundDrivers.size(), jarFile.getName());
-                    driverClasses.addAll(foundDrivers);
-                }
-            } catch (final Exception e) {
-                getLogger().warn("Error processing resource {} for static driver discovery", resource.getLocation(), e);
-            }
-        }
-
-        getLogger().debug("Static driver discovery completed. Found {} potential driver classes", driverClasses.size());
-        return new ArrayList<>(driverClasses);
-    }
-
-    /**
-     * Scans a JAR file for potential JDBC driver class names using static analysis
-     * only This uses improved heuristics including checking META-INF/services and
-     * common patterns
-     */
-    private Set<String> scanJarForDriverClassesStatic(final File jarFile) {
-        final Set<String> driverClasses = new TreeSet<>();
-
-        try (final JarFile jar = new JarFile(jarFile)) {
-            // Check META-INF/services/java.sql.Driver for registered drivers
-            // This is the most reliable method
-            final JarEntry servicesEntry = jar.getJarEntry("META-INF/services/java.sql.Driver");
-            if (servicesEntry != null) {
-                try (Scanner scanner = new Scanner(jar.getInputStream(servicesEntry))) {
-                    while (scanner.hasNextLine()) {
-                        final String line = scanner.nextLine().trim();
-                        if (!line.isEmpty() && !line.startsWith("#")) {
-                            driverClasses.add(line);
-                            getLogger().debug("Found driver in META-INF/services: {}", line);
-                        }
-                    }
-                }
-            }
-
-            return driverClasses;
-
-        } catch (final Exception e) {
-            getLogger().warn("Error scanning JAR file {} for driver classes", jarFile.getAbsolutePath(), e);
-        }
-
-        return driverClasses;
-    }
-
-    /**
-     * Gets JAR files from a ResourceReference for scanning
-     */
-    protected List<File> getJarFilesFromResource(final ResourceReference resource) {
-        final List<File> jarFiles = new ArrayList<>();
-
-        if (resource.getResourceType() == ResourceType.FILE) {
-            final File file = new File(resource.getLocation());
-            if (file.exists() && file.canRead() && file.getName().toLowerCase().endsWith(".jar")) {
-                jarFiles.add(file);
-            }
-        }
-        // we don't need to scan for directory since we already did a recursive flatten
-        // and we don't want to deal with URLs in this case
-
-        return jarFiles;
     }
 }

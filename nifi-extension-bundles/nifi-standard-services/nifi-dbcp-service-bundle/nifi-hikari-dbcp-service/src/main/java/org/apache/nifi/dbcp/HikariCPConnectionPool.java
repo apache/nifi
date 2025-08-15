@@ -32,10 +32,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.dbcp.utils.DriverUtils;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosUserService;
@@ -47,6 +49,7 @@ import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.security.auth.login.LoginException;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -361,16 +364,30 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                         .build());
             }
         } catch (final Exception e) {
-            String message = "Failed to configure Data Source.";
-            if (e.getCause() instanceof ClassNotFoundException) {
-                message += String.format("  Ensure changes to the '%s' property are applied before verifying",
-                        DB_DRIVER_LOCATION.getDisplayName());
+            StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
+            verificationLogger.error(messageBuilder.toString(), e);
+
+            final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+            final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
+
+            if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
+                List<String> availableDrivers = DriverUtils.discoverDriverClassesStatic(driverResources);
+                if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
+                    messageBuilder.append(String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
+                            driverName, String.join(", ", availableDrivers)));
+                } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
+                    messageBuilder.append(" Driver found but ensure you apply the controller service configuration before verifying again.");
+                } else {
+                    messageBuilder.append(String.format(" Exception: %s", e.getMessage()));
+                }
+            } else {
+                messageBuilder.append(String.format(" No driver name specified or no driver resources provided. Exception: %s", e.getMessage()));
             }
-            verificationLogger.error(message, e);
+
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(FAILED)
-                    .explanation(message + ": " + e.getMessage())
+                    .explanation(messageBuilder.toString())
                     .build());
         } finally {
             try {
