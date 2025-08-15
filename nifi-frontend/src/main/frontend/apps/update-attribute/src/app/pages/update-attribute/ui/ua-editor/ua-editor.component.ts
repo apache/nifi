@@ -37,6 +37,7 @@ import {
     rectangularSelection
 } from '@codemirror/view';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
+import { completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'ua-editor',
@@ -153,7 +154,8 @@ export class UaEditor {
                         }
                     },
                     ...defaultKeymap,
-                    ...historyKeymap
+                    ...historyKeymap,
+                    ...completionKeymap
                 ])
             ];
 

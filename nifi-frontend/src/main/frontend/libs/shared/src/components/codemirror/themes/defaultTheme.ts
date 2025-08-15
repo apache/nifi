@@ -20,19 +20,6 @@ import { EditorView } from '@codemirror/view';
 
 export const defaultTheme = EditorView.theme({
     ...baseTheme,
-    // '.tok-comment': { color: 'var(--nf-codemirror-comment)' },
-    // '.tok-controlKeyword': { color: 'var(--nf-codemirror-keyword)' },
-    // '.tok-definitionKeyword.tok-keyword': { color: 'var(--nf-codemirror-keyword)' },
-    // '.tok-variableName': { color: 'var(--nf-codemirror-variable)' },
-    // '.tok-keyword': { color: 'var(--nf-codemirror-keyword)' },
-    // '.tok-name': { color: 'var(--nf-codemirror-text)' },
-    // '.tok-functionName.tok-variableName': { color: 'var(--nf-codemirror-variable)' },
-    // '.tok-number': { color: 'var(--nf-codemirror-number)' },
-    // '.tok-string2': { color: 'var(--nf-codemirror-string2)' },
-    // '.tok-string': { color: 'var(--nf-codemirror-string)' },
-    // '.tok-typeName': { color: 'var(--nf-codemirror-number)' },
-    // '.typetag': { color: 'var(--nf-codemirror-tag)' },
-
     '.tok-comment': { color: 'var(--editor-comment)' },
     '.tok-controlKeyword': { color: 'var(--editor-control-keyword)' },
     '.tok-definitionKeyword.tok-keyword': { color: 'var(--editor-keyword)' },

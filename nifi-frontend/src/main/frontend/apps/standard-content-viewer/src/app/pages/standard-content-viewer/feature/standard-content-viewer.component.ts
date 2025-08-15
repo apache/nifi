@@ -49,7 +49,6 @@ import { markdown } from '@codemirror/lang-markdown';
 import { xml } from '@codemirror/lang-xml';
 import { yaml } from '@codemirror/lang-yaml';
 import { json } from '@codemirror/lang-json';
-import { completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'standard-content-viewer',
@@ -120,39 +119,15 @@ export class StandardContentViewer {
                 crosshairCursor(),
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
-                // syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
                 foldGutter(),
                 bracketMatching(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
-                keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap, ...completionKeymap])
+                keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap])
             ];
 
-            // Add language-specific extensions based on mimeTypeDisplayName
-            const languageExtensions: Extension[] = [];
-            switch (this.mimeTypeDisplayName) {
-                case 'json':
-                case 'avro':
-                    languageExtensions.push(json());
-                    break;
-                case 'xml':
-                    languageExtensions.push(xml());
-                    break;
-                case 'yaml':
-                    languageExtensions.push(yaml());
-                    break;
-                case 'markdown':
-                    languageExtensions.push(markdown());
-                    break;
-                // For text, csv, and other cases, no specific language extension is needed
-                case 'text':
-                case 'csv':
-                default:
-                    // No specific language extension, will use plain text
-                    break;
-            }
-
+            // Define highlight styles
             const xmlHighlightStyle = HighlightStyle.define([
                 { tag: t.tagName, color: 'var(--editor-variable-2)' },
                 { tag: t.comment, color: 'var(--editor-comment)' }
@@ -171,20 +146,23 @@ export class StandardContentViewer {
                 { tag: t.definition(t.propertyName), color: 'var(--editor-variable-2)' }
             ]);
 
-            // Add language-specific syntax highlighting extensions based on mimeTypeDisplayName
+            // Add language-specific extensions based on mimeTypeDisplayName
+            const languageExtensions: Extension[] = [];
             switch (this.mimeTypeDisplayName) {
                 case 'json':
                 case 'avro':
-                    languageExtensions.push(syntaxHighlighting(defaultHighlightStyle, { fallback: true }));
+                    languageExtensions.push(json(), syntaxHighlighting(defaultHighlightStyle, { fallback: true }));
                     break;
                 case 'xml':
-                    languageExtensions.push(syntaxHighlighting(xmlHighlightStyle));
+                    languageExtensions.push(xml(), syntaxHighlighting(xmlHighlightStyle));
                     break;
                 case 'yaml':
-                    languageExtensions.push(syntaxHighlighting(yamlHighlightStyle));
+                    languageExtensions.push(yaml(), syntaxHighlighting(yamlHighlightStyle));
                     break;
-                // For markdown, text, csv, and other cases, no specific syntax highlighting is needed
                 case 'markdown':
+                    languageExtensions.push(markdown());
+                    break;
+                // For text, csv, and other cases, no specific language extension is needed
                 case 'text':
                 case 'csv':
                 default:

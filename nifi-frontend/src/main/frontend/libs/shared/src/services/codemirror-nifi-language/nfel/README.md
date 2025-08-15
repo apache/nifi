@@ -164,29 +164,42 @@ When testing in the CodeMirror editor, verify these color codings:
 
 ### ✅ Correct Styling (Light Theme)
 
-- **Delimiters**: `${`, `}`, `#{` should be brownish (`--nf-codemirror-bracket`: `#93937c`)
-- **Attributes**: `attr`, `filename`, `name` should be blue (`--nf-codemirror-variable-2`: `#0054a6`)
-- **Functions**: `toUpper`, `equals`, `contains` should be purple (`--nf-codemirror-el-function`: `#3400ad`)
-- **Parameters**: `param`, `database.url` should be red (`--nf-codemirror-parameter`: `#ec000c`)
-- **Strings**: `"test"`, `'value'` should be red (`--nf-codemirror-string`: `#ec000c`)
-- **Numbers**: `100`, `3.14`, `true`, `false` should be red (`--nf-codemirror-number`: `#c20021`)
-- **Comments**: `# This is a comment` should be gray (`--nf-codemirror-comment`: `#545454`)
+- **Plain Text**: Regular text outside expressions should be black (default text color)
+- **Expression Delimiters**: `${`, `}` should be plain text (default text color)
+- **Parameter Delimiters**: `#{`, `}` should be plain text (default text color)
+- **Matching Brackets**: When cursor is between `{}`, brackets should have:
+  - Background: `--nf-neutral`: `#666666`
+  - Color: `--mat-sys-inverse-on-surface` (black in light mode)
+- **Non-matching Brackets**: When brackets don't match, should have:
+  - Color: `--mat-sys-on-surface` (default text color)
+- **Attributes**: `attr`, `filename`, `name` inside expressions should be blue (`--editor-variable-2`: `#0054a6`)
+- **Functions**: `toUpper`, `equals`, `contains` should be purple (`--editor-el-function`: `#3400ad`)
+- **Parameters**: `param`, `database.url` should be red (`--editor-parameter`: `#ec000c`)
+- **Strings**: `"test"`, `'value'` should be red (`--editor-string`: `#ec000c`)
+- **Numbers**: `100`, `3.14`, `true`, `false` should be red (`--editor-number`: `#c20021`)
+- **Comments**: `# This is a comment` should be gray (`--editor-comment`: `#545454`)
 
 ### ✅ Correct Styling (Dark Theme)
 
-- **Delimiters**: `${`, `}`, `#{` should be brownish (`--nf-codemirror-bracket`: `#93937c`)
-- **Attributes**: `attr`, `filename`, `name` should be light blue (`--nf-codemirror-variable-2`: `#72b6fc`)
-- **Functions**: `toUpper`, `equals`, `contains` should be light blue (`--nf-codemirror-el-function`: `#72b6fc`)
-- **Parameters**: `param`, `database.url` should be coral (`--nf-codemirror-parameter`: `#f07178`)
-- **Strings**: `"test"`, `'value'` should be coral (`--nf-codemirror-string`: `#f07178`)
-- **Numbers**: `100`, `3.14`, `true`, `false` should be pink (`--nf-codemirror-number`: `#fd758c`)
-- **Comments**: `# This is a comment` should be light gray (`--nf-codemirror-comment`: `#d7d7d7`)
+- **Plain Text**: Regular text outside expressions should be white (default text color)
+- **Expression Delimiters**: `${`, `}` should be plain text (default text color)
+- **Parameter Delimiters**: `#{`, `}` should be plain text (default text color)
+- **Matching Brackets**: When cursor is between `{}`, brackets should have:
+  - Background: `--nf-neutral`: `#acacac`
+  - Color: `--mat-sys-inverse-on-surface` (white in dark mode)
+- **Non-matching Brackets**: When brackets don't match, should have:
+  - Color: `--mat-sys-on-surface` (default text color)
+- **Attributes**: `attr`, `filename`, `name` inside expressions should be light blue (`--editor-variable-2`: `#72b6fc`)
+- **Functions**: `toUpper`, `equals`, `contains` should be light blue (`--editor-el-function`: `#72b6fc`)
+- **Parameters**: `param`, `database.url` should be coral (`--editor-parameter`: `#f07178`)
+- **Strings**: `"test"`, `'value'` should be coral (`--editor-string`: `#f07178`)
+- **Numbers**: `100`, `3.14`, `true`, `false` should be pink (`--editor-number`: `#fd758c`)
+- **Comments**: `# This is a comment` should be light gray (`--editor-comment`: `#d7d7d7`)
 
 ### ✅ Plain Text (No Special Styling)
 
 - **Text outside expressions**: `Hello`, `Price:`, `Result:` should be default color
 - **Escaped dollars**: `$$` should be plain text, not styled as links
-- **Numbers in plain text**: `100` in `Price: $$100` should be plain text
 - **Colons in plain text**: `:` in `Result:` should be plain text
 
 ## 📁 Files in this Directory
@@ -207,10 +220,9 @@ When testing in the CodeMirror editor, verify these color codings:
 
 1. **Plain text coloring**: Ensure `Result:`, `Price:` don't get attribute colors
 2. **Escaped dollars**: `$$` should be plain text, not link-colored
-3. **Numbers in text**: `100` in `Price: $$100` should be plain text
-4. **Boolean literals**: `true`/`false` should be red (numbers), not blue (atoms)
-5. **Bracket matching**: `${`, `}`, `#{` should all have consistent bracket styling
-6. **String vs expression context**: Content inside `"..."` should not trigger autocompletion
+3. **Numbers always get coloring**: `100` in `Price: $$100` should be colored as a number
+4. **Boolean literals**: `true`/`false` should be colored as numbers
+5. **Bracket/Parenthesis matching**: any matching `{}`, `()` should all have consistent bracket styling
 
 ## 🚀 Testing Workflow
 
