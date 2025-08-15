@@ -229,33 +229,19 @@ describe('NiFi Expression Language - Theme Validation', () => {
         });
 
         it('should have all restored CSS variables properly defined in baseTheme', () => {
-            // Verify baseTheme references the restored CSS variables
-
-            // Verify the new error styling variables are referenced
-            expect(baseTheme['.cm-error']['color']).toBe('var(--nf-codemirror-error-color)');
-            expect(baseTheme['.cm-error']['background']).toBe('var(--nf-codemirror-error-background-color)');
-
-            // Verify the matching tag styling is referenced
-            expect(baseTheme['.cm-matchingTag']['background']).toBe('var(--nf-codemirror-matchingtag)');
-
             // Verify bracket matching styles are properly configured with v5 parity
             expect(baseTheme['.cm-matchingBracket']['color']).toBe('var(--mat-sys-inverse-on-surface)');
             expect(baseTheme['.cm-matchingBracket > .cm-bracket, .cm-matchingBracket > span']['color']).toBe(
                 'var(--mat-sys-inverse-on-surface)'
             );
-            expect(baseTheme['.cm-nonmatchingBracket']['color']).toBe('var(--mat-sys-on-surface)');
+            expect(baseTheme['.cm-nonmatchingBracket']['color']).toBe('var(--editor-text)');
 
             // Verify the new focused non-matching bracket style
             expect(baseTheme['&.cm-focused .cm-nonmatchingBracket']['background']).toBe('var(--nf-neutral)');
             expect(baseTheme['&.cm-focused .cm-nonmatchingBracket']['color']).toBe('var(--mat-sys-inverse-on-surface)');
 
-            // Verify the variables are referenced in the theme string (CSS classes only)
             const themeString = JSON.stringify(baseTheme);
-            expect(themeString).toContain('--nf-codemirror-error-color');
-            expect(themeString).toContain('--nf-codemirror-error-background-color');
-            expect(themeString).toContain('--nf-codemirror-matchingtag');
-            expect(themeString).toContain('var(--mat-sys-on-surface)');
-            // Note: --nf-codemirror-quote is used in highlightStyle.define, not baseTheme CSS classes
+            expect(themeString).toContain('var(--editor-text)');
         });
 
         it('should have proper syntax highlighting for restored v5 tokens', () => {

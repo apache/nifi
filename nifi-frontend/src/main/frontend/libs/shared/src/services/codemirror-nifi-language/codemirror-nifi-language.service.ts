@@ -122,28 +122,21 @@ export class CodemirrorNifiLanguageService {
 
         // Create a highlighter that maps our tags to CSS variables
         const nfelHighlighter = HighlightStyle.define([
-            { tag: t.function(t.variableName), color: 'var(--nf-codemirror-el-function)' },
-            { tag: t.variableName, color: 'var(--nf-codemirror-variable-2)' },
-            { tag: t.special(t.variableName), color: 'var(--nf-codemirror-parameter)' },
+            { tag: t.function(t.variableName), color: 'var(--editor-el-function)' },
+            { tag: t.variableName, color: 'var(--editor-variable-2)' },
+            { tag: t.special(t.variableName), color: 'var(--editor-parameter)' },
             {
                 tag: [t.typeName, t.className, t.changed, t.annotation, t.modifier, t.self, t.namespace],
-                color: 'var(--nf-codemirror-number)'
+                color: 'var(--editor-number)'
             },
             {
                 tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)],
-                color: 'var(--nf-codemirror-link)'
+                color: 'var(--editor-link)'
             },
-            { tag: t.link, color: 'var(--nf-codemirror-link)', textDecoration: 'underline' },
-            { tag: t.heading, color: 'var(--nf-codemirror-header)' },
-            { tag: [t.bool], color: 'var(--nf-codemirror-number)' },
-            { tag: [t.atom], color: 'var(--nf-codemirror-atom)' },
-            { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--nf-codemirror-string)' },
-            { tag: [t.number], color: 'var(--nf-codemirror-number)' },
-            { tag: [t.comment], color: 'var(--nf-codemirror-comment)' },
-            { tag: [t.brace, t.paren, t.bracket], color: 'var(--nf-codemirror-bracket)' },
-            { tag: [t.quote], color: 'var(--nf-codemirror-quote)' },
-            { tag: [t.tagName], color: 'var(--nf-codemirror-tag)' },
-            { tag: t.invalid, color: 'var(--nf-codemirror-invalidchar)' }
+            { tag: [t.number, t.bool], color: 'var(--editor-number)' },
+            { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--editor-string)' },
+            { tag: [t.comment], color: 'var(--editor-comment)' },
+            { tag: [t.brace, t.paren, t.bracket], color: 'var(--editor-bracket)' }
         ]);
 
         this.languageSupport = new LanguageSupport(this.language, [
