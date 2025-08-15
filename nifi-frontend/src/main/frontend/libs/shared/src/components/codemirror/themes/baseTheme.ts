@@ -43,7 +43,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '&': {
         maxWidth: '100%',
         maxHeight: '100%',
-        backgroundColor: 'var(--mat-sys-surface-container-lowest)'
+        backgroundColor: 'var(--mat-sys-surface-container-low)'
     },
 
     '.cm-scroller': codeFontStyle,

@@ -46,6 +46,7 @@ import {
 } from '@codemirror/view';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
 import { indentOnInput, bracketMatching, indentUnit } from '@codemirror/language';
+import { completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'nf-editor',
@@ -172,7 +173,8 @@ export class NfEditor {
                         }
                     },
                     ...defaultKeymap,
-                    ...historyKeymap
+                    ...historyKeymap,
+                    ...completionKeymap
                 ])
             ];
 

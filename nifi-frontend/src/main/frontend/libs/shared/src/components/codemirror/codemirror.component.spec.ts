@@ -829,36 +829,6 @@ describe('Codemirror', () => {
                 expect(() => component['setValue']('new value')).not.toThrow();
             });
         });
-
-        // describe('CSS Class Management', () => {
-        //     it('should add CSS class when shouldAdd is true', () => {
-        //         const element = component['elementRef'].nativeElement;
-        //         const addSpy = jest.spyOn(element.classList, 'add');
-        //
-        //         component['toggleCSSClass']('test-class', true);
-        //
-        //         expect(addSpy).toHaveBeenCalledWith('test-class');
-        //     });
-        //
-        //     it('should remove CSS class when shouldAdd is false', () => {
-        //         const element = component['elementRef'].nativeElement;
-        //         const removeSpy = jest.spyOn(element.classList, 'remove');
-        //
-        //         component['toggleCSSClass']('test-class', false);
-        //
-        //         expect(removeSpy).toHaveBeenCalledWith('test-class');
-        //     });
-        //
-        //     it('should handle null element gracefully', () => {
-        //         // Mock elementRef to return null
-        //         Object.defineProperty(component['elementRef'], 'nativeElement', {
-        //             value: null,
-        //             configurable: true
-        //         });
-        //
-        //         expect(() => component['toggleCSSClass']('test-class', true)).not.toThrow();
-        //     });
-        // });
     });
 
     describe('Edge Cases and Error Handling', () => {

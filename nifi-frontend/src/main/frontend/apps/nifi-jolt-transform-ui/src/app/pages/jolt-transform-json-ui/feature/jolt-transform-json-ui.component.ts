@@ -56,7 +56,6 @@ import {
     rectangularSelection,
     crosshairCursor
 } from '@codemirror/view';
-import { completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import {
     defaultHighlightStyle,
@@ -264,8 +263,7 @@ export class JoltTransformJsonUi implements OnDestroy {
                 },
                 ...defaultKeymap,
                 ...historyKeymap,
-                ...foldKeymap,
-                ...completionKeymap
+                ...foldKeymap
             ])
         ];
     }
@@ -299,8 +297,7 @@ export class JoltTransformJsonUi implements OnDestroy {
                 },
                 ...defaultKeymap,
                 ...historyKeymap,
-                ...foldKeymap,
-                ...completionKeymap
+                ...foldKeymap
             ])
         ];
     }
