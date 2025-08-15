@@ -193,16 +193,15 @@
     --editor-selected-ui: #085bd7;
     --editor-selected-hover-text: #004cbe;
     --editor-bracket: #93937c;
-    --editor-parameter: #ec000c;
-    --editor-el-function: #3400ad;
-    --editor-variable-2: #0679e8;
+    --editor-parameter: var(--editor-keyword);
+    --editor-el-function: var(--editor-py-keyword);
 
     // Prism
-    --nf-prism-language-color: #ec000c; /* The prism language color */
-    --nf-prism-token-comment: #545454; /* The prism token comment color */
-    --nf-prism-token-punctuation: #6800ab; /* The prism token punctuation color */
-    --nf-prism-token-constant: #ec000c; /* The prism token constant color */
-    --nf-prism-token-function: #000000; /* The prism token function color */
+    --nf-prism-language-color: var(--editor-keyword);
+    --nf-prism-token-comment: var(--editor-comment);
+    --nf-prism-token-punctuation: var(--editor-py-keyword);
+    --nf-prism-token-constant: var(--editor-keyword);
+    --nf-prism-token-function: var(--editor-function);
 
     @include mat.theme-overrides(
         (
@@ -686,16 +685,15 @@ html {
     --editor-selected-hover-text: #004cbe;
     --editor-selection-match-bg: #9fabc144;
     --editor-bracket: #93937c;
-    --editor-parameter: #f07178;
-    --editor-el-function: #72b6fc;
-    --editor-variable-2: #72b6fc;
+    --editor-parameter: var(--editor-keyword);
+    --editor-el-function: var(--editor-py-keyword);
 
     // Prism
-    --nf-prism-language-color: #f07178; /* The prism language color */
-    --nf-prism-token-comment: #545454; /* The prism token comment color */
-    --nf-prism-token-punctuation: #c792ea; /* The prism token punctuation color */
-    --nf-prism-token-constant: #f07178; /* The prism token constant color */
-    --nf-prism-token-function: #ffffff; /* The prism token function color */
+    --nf-prism-language-color: var(--editor-keyword);
+    --nf-prism-token-comment: var(--editor-comment);
+    --nf-prism-token-punctuation: var(--editor-py-keyword);
+    --nf-prism-token-constant: var(--editor-keyword);
+    --nf-prism-token-function: var(--editor-function);
 
     color-scheme: dark;
 

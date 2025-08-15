@@ -21,9 +21,5 @@
 @mixin generate-theme() {
     .standard-content-viewer {
         @include mat.button-density(-1);
-
-        .CodeMirror.cm-s-nifi {
-            height: 100%;
-        }
     }
 }

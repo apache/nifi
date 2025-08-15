@@ -121,16 +121,20 @@ export class StandardContentViewer {
                 indentOnInput(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-                foldGutter(),
                 bracketMatching(),
-                EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
-                keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap])
+                EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' })
             ];
 
             // Define highlight styles
             const xmlHighlightStyle = HighlightStyle.define([
-                { tag: t.tagName, color: 'var(--editor-variable-2)' },
-                { tag: t.comment, color: 'var(--editor-comment)' }
+                { tag: t.tagName, color: 'var(--editor-keyword)' },
+                { tag: t.comment, color: 'var(--editor-comment)' },
+                { tag: t.attributeName, color: 'var(--editor-variable-2)' },
+                { tag: t.attributeValue, color: 'var(--editor-string)' },
+                { tag: t.string, color: 'var(--editor-string)' },
+                { tag: t.content, color: 'var(--editor-text)' },
+                { tag: t.punctuation, color: 'var(--editor-bracket)' },
+                { tag: t.angleBracket, color: 'var(--editor-bracket)' }
             ]);
 
             const yamlHighlightStyle = HighlightStyle.define([
@@ -143,7 +147,7 @@ export class StandardContentViewer {
                 { tag: t.content, color: 'var(--editor-text)' },
                 { tag: t.attributeValue, color: 'var(--editor-bracket)' },
                 { tag: t.string, color: 'var(--editor-string)' },
-                { tag: t.definition(t.propertyName), color: 'var(--editor-variable-2)' }
+                { tag: t.definition(t.propertyName), color: 'var(--editor-keyword)' }
             ]);
 
             // Add language-specific extensions based on mimeTypeDisplayName
@@ -151,22 +155,38 @@ export class StandardContentViewer {
             switch (this.mimeTypeDisplayName) {
                 case 'json':
                 case 'avro':
-                    languageExtensions.push(json(), syntaxHighlighting(defaultHighlightStyle, { fallback: true }));
+                    languageExtensions.push(
+                        json(),
+                        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                        foldGutter(),
+                        keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap])
+                    );
                     break;
                 case 'xml':
-                    languageExtensions.push(xml(), syntaxHighlighting(xmlHighlightStyle));
+                    languageExtensions.push(
+                        xml(),
+                        syntaxHighlighting(xmlHighlightStyle),
+                        foldGutter(),
+                        keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap])
+                    );
                     break;
                 case 'yaml':
-                    languageExtensions.push(yaml(), syntaxHighlighting(yamlHighlightStyle));
+                    languageExtensions.push(
+                        yaml(),
+                        syntaxHighlighting(yamlHighlightStyle),
+                        foldGutter(),
+                        keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap])
+                    );
                     break;
                 case 'markdown':
-                    languageExtensions.push(markdown());
+                    languageExtensions.push(markdown(), keymap.of([...defaultKeymap, ...historyKeymap]));
                     break;
                 // For text, csv, and other cases, no specific language extension is needed
                 case 'text':
                 case 'csv':
                 default:
                     // No specific language extension, will use plain text
+                    languageExtensions.push(keymap.of([...defaultKeymap, ...historyKeymap]));
                     break;
             }
 

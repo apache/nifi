@@ -31,6 +31,6 @@ export const defaultTheme = EditorView.theme({
     '.tok-string2': { color: 'var(--editor-special)' },
     '.tok-string': { color: 'var(--editor-string)' },
     '.tok-typeName': { color: 'var(--editor-type-name)' },
-    '.typetag': { color: 'var(--editor-type-tag)' },
+    '.typetag': { color: 'var(--editor-type)' },
     '.darkMode & .typetag': { color: 'var(--md-ref-palette-neutral-60)' }
 });

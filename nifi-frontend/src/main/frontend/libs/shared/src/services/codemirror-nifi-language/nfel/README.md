@@ -168,16 +168,16 @@ When testing in the CodeMirror editor, verify these color codings:
 - **Expression Delimiters**: `${`, `}` should be plain text (default text color)
 - **Parameter Delimiters**: `#{`, `}` should be plain text (default text color)
 - **Matching Brackets**: When cursor is between `{}`, brackets should have:
-  - Background: `--nf-neutral`: `#666666`
-  - Color: `--mat-sys-inverse-on-surface` (black in light mode)
+    - Background: `--nf-neutral`
+    - Color: `--mat-sys-inverse-on-surface` (black in light mode)
 - **Non-matching Brackets**: When brackets don't match, should have:
-  - Color: `--mat-sys-on-surface` (default text color)
-- **Attributes**: `attr`, `filename`, `name` inside expressions should be blue (`--editor-variable-2`: `#0054a6`)
-- **Functions**: `toUpper`, `equals`, `contains` should be purple (`--editor-el-function`: `#3400ad`)
-- **Parameters**: `param`, `database.url` should be red (`--editor-parameter`: `#ec000c`)
-- **Strings**: `"test"`, `'value'` should be red (`--editor-string`: `#ec000c`)
-- **Numbers**: `100`, `3.14`, `true`, `false` should be red (`--editor-number`: `#c20021`)
-- **Comments**: `# This is a comment` should be gray (`--editor-comment`: `#545454`)
+    - Color: `--mat-sys-on-surface` (default text color)
+- **Attributes**: `attr`, `filename`, `name` inside expressions should be (`--editor-keyword`)
+- **Functions**: `toUpper`, `equals`, `contains` should be (`--editor-el-function`)
+- **Parameters**: `param`, `database.url` should be (`--editor-parameter`)
+- **Strings**: `"test"`, `'value'` should be (`--editor-string`)
+- **Numbers**: `100`, `3.14`, `true`, `false` should be (`--editor-number`)
+- **Comments**: `# This is a comment` should be (`--editor-comment`)
 
 ### ✅ Correct Styling (Dark Theme)
 
@@ -185,16 +185,16 @@ When testing in the CodeMirror editor, verify these color codings:
 - **Expression Delimiters**: `${`, `}` should be plain text (default text color)
 - **Parameter Delimiters**: `#{`, `}` should be plain text (default text color)
 - **Matching Brackets**: When cursor is between `{}`, brackets should have:
-  - Background: `--nf-neutral`: `#acacac`
-  - Color: `--mat-sys-inverse-on-surface` (white in dark mode)
+    - Background: `--nf-neutral`: `#acacac`
+    - Color: `--mat-sys-inverse-on-surface` (white in dark mode)
 - **Non-matching Brackets**: When brackets don't match, should have:
-  - Color: `--mat-sys-on-surface` (default text color)
-- **Attributes**: `attr`, `filename`, `name` inside expressions should be light blue (`--editor-variable-2`: `#72b6fc`)
-- **Functions**: `toUpper`, `equals`, `contains` should be light blue (`--editor-el-function`: `#72b6fc`)
-- **Parameters**: `param`, `database.url` should be coral (`--editor-parameter`: `#f07178`)
-- **Strings**: `"test"`, `'value'` should be coral (`--editor-string`: `#f07178`)
-- **Numbers**: `100`, `3.14`, `true`, `false` should be pink (`--editor-number`: `#fd758c`)
-- **Comments**: `# This is a comment` should be light gray (`--editor-comment`: `#d7d7d7`)
+    - Color: `--mat-sys-on-surface` (default text color)
+- **Attributes**: `attr`, `filename`, `name` inside expressions should be (`--editor-keyword`)
+- **Functions**: `toUpper`, `equals`, `contains` should be (`--editor-el-function`)
+- **Parameters**: `param`, `database.url` should be (`--editor-parameter`)
+- **Strings**: `"test"`, `'value'` should be (`--editor-string`)
+- **Numbers**: `100`, `3.14`, `true`, `false` should be (`--editor-number`)
+- **Comments**: `# This is a comment` should be (`--editor-comment`)
 
 ### ✅ Plain Text (No Special Styling)
 
