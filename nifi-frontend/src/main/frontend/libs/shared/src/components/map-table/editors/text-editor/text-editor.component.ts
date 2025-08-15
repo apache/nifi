@@ -24,7 +24,6 @@ import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { Resizable } from '../../../resizable/resizable.component';
 import { Codemirror, CodeMirrorConfig } from '../../../codemirror/codemirror.component';
-import { highlightStyle } from '../../../codemirror/themes/baseTheme';
 import { Extension, EditorState, Prec } from '@codemirror/state';
 import {
     keymap,
@@ -180,7 +179,6 @@ export class TextEditor {
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
-            syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
             highlightActiveLine(),

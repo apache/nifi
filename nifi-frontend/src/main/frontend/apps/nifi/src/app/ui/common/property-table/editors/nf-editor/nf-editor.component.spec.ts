@@ -21,7 +21,7 @@ import { FormBuilder } from '@angular/forms';
 
 import { NfEditor } from './nf-editor.component';
 import { PropertyItem } from '../../property-item';
-import { ElService, CodemirrorNifiLanguagePackage } from '@nifi/shared';
+import { ElService, CodemirrorNifiLanguageService } from '@nifi/shared';
 import { Codemirror } from '@nifi/shared';
 import { of } from 'rxjs';
 
@@ -32,13 +32,10 @@ describe('NfEditor', () => {
 
     beforeEach(() => {
         mockNifiLanguagePackage = {
-            getLanguageId: jest.fn().mockReturnValue('nf'),
+            setLanguageOptions: jest.fn(),
+            getLanguageSupport: jest.fn().mockReturnValue({}),
             isValidParameter: jest.fn().mockReturnValue(true),
-            isValidElFunction: jest.fn().mockReturnValue(true),
-            getLanguageMode: jest.fn().mockReturnValue({
-                streamParser: {} as any,
-                getAutocompletions: jest.fn().mockReturnValue(() => [])
-            })
+            isValidElFunction: jest.fn().mockReturnValue(true)
         };
 
         TestBed.configureTestingModule({
@@ -70,7 +67,7 @@ describe('NfEditor', () => {
                     }
                 },
                 {
-                    provide: CodemirrorNifiLanguagePackage,
+                    provide: CodemirrorNifiLanguageService,
                     useValue: mockNifiLanguagePackage
                 }
             ]
@@ -90,9 +87,9 @@ describe('NfEditor', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should inject CodemirrorNifiLanguagePackage service', () => {
-        expect(component['nifiLanguagePackage']).toBeDefined();
-        expect(component['nifiLanguagePackage']).toBe(mockNifiLanguagePackage);
+    it('should inject CodemirrorNifiLanguageService service', () => {
+        expect(component['nifiLanguageService']).toBeDefined();
+        expect(component['nifiLanguageService']).toBe(mockNifiLanguagePackage);
     });
 
     it('should configure plugins with validation service when item supports EL', () => {
@@ -127,7 +124,11 @@ describe('NfEditor', () => {
 
         // Verify that the validation service was configured
         expect(component.supportsEl).toBe(true);
-        expect(mockNifiLanguagePackage.getLanguageMode).toHaveBeenCalled();
+        expect(mockNifiLanguagePackage.setLanguageOptions).toHaveBeenCalledWith({
+            functionsEnabled: true,
+            parametersEnabled: true,
+            parameters: [{ name: 'testParam', value: 'testValue', description: '', sensitive: false }]
+        });
     });
 
     it('should configure plugins with validation service when item has parameters', () => {
@@ -163,7 +164,11 @@ describe('NfEditor', () => {
         // Verify that parameters are available for validation
         expect(component.parameters).toBeDefined();
         expect(component.parameters?.length).toBe(1);
-        expect(mockNifiLanguagePackage.getLanguageMode).toHaveBeenCalled();
+        expect(mockNifiLanguagePackage.setLanguageOptions).toHaveBeenCalledWith({
+            functionsEnabled: false,
+            parametersEnabled: true,
+            parameters: [{ name: 'testParam', value: 'testValue', description: '', sensitive: false }]
+        });
     });
 
     it('should validate parameters using the validation service', () => {

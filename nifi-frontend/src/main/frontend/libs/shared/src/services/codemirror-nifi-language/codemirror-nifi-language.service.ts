@@ -16,7 +16,7 @@
  */
 
 import { EnvironmentInjector, Injectable, createComponent } from '@angular/core';
-import { LRLanguage, LanguageSupport, syntaxTree } from '@codemirror/language';
+import { LRLanguage, LanguageSupport, syntaxTree, HighlightStyle } from '@codemirror/language';
 import { parser } from './nfel/nfel';
 import {
     CompletionContext,
@@ -27,6 +27,7 @@ import {
     completionKeymap
 } from '@codemirror/autocomplete';
 import { styleTags, tags as t } from '@lezer/highlight';
+import { syntaxHighlighting } from '@codemirror/language';
 import { firstValueFrom } from 'rxjs';
 import { NiFiCommon } from '../nifi-common.service';
 import { ElFunction, Parameter } from '../../index';
@@ -69,55 +70,38 @@ export class CodemirrorNifiLanguageService {
     }
 
     private createDynamicHighlighting() {
-        // Always show basic structural elements
         const baseHighlighting = {
-            '{ }': t.brace,
-            '( )': t.paren,
-            ':': t.operator,
-            ',': t.separator,
-            Text: t.content
+            WholeNumber: t.number,
+            Decimal: t.number,
+            StringLiteral: t.string,
+            BooleanLiteral: t.bool,
+            Null: t.null
         };
 
         // Add EL function highlighting only if EL is enabled
         if (this.functionSupported) {
             Object.assign(baseHighlighting, {
-                ExpressionStart: t.special(t.brace),
-                EscapedDollar: t.escape,
-                Comment: t.comment,
-
-                StringLiteral: t.string,
-                WholeNumber: t.number,
-                Decimal: t.number,
-                BooleanLiteral: t.bool,
-                Null: t.null,
-
-                ReferenceOrFunction: t.content,
-                AttributeRefOrFunctionCall: t.content,
-                AttributeRef: t.content,
-                Subject: t.content,
-                SingleAttrRef: t.content,
-                'ReferenceOrFunction Expression': t.content,
-
+                ExpressionStart: t.brace,
+                EscapedDollar: t.content,
                 FunctionCall: t.function(t.variableName),
                 StandaloneFunction: t.function(t.variableName),
                 MultiAttrFunctionName: t.function(t.variableName),
-                AttrName: t.variableName,
-                SingleAttrName: t.variableName,
-                identifier: t.variableName,
-                '⚠': t.variableName, // Error recovery for functions
-                'AttributeRefOrFunctionCall FunctionCall StandaloneFunction': t.content,
-                'AttributeRef Subject AttrName': t.content,
-                'SingleAttrName MultiAttrName': t.content
+                functionName: t.function(t.variableName),
+                standaloneFunctionName: t.function(t.variableName),
+                multiAttrFunctionName: t.function(t.variableName),
+
+                // Attribute names
+                'AttributeRef Subject AttrName SingleAttrName SingleAttrRef attributeName': t.variableName
             });
         }
 
         // Add parameter highlighting only if parameters are enabled
         if (this.parametersSupported) {
             Object.assign(baseHighlighting, {
-                ParameterStart: t.special(t.brace),
+                ParameterStart: t.brace,
                 ParameterReference: t.special(t.variableName),
-                ParameterName: t.variableName,
-                'parameterName identifier': t.variableName,
+                ParameterName: t.special(t.variableName),
+                'parameterName identifier': t.special(t.variableName),
                 'ParameterReference ParameterContent': t.special(t.variableName)
             });
         }
@@ -126,6 +110,7 @@ export class CodemirrorNifiLanguageService {
     }
 
     private updateLanguageConfiguration(): void {
+        // Create the language with our style tags
         this.language = LRLanguage.define({
             parser: parser.configure({
                 props: [this.createDynamicHighlighting()]
@@ -135,7 +120,36 @@ export class CodemirrorNifiLanguageService {
             }
         });
 
+        // Create a highlighter that maps our tags to CSS variables
+        const nfelHighlighter = HighlightStyle.define([
+            { tag: t.function(t.variableName), color: 'var(--nf-codemirror-el-function)' },
+            { tag: t.variableName, color: 'var(--nf-codemirror-variable-2)' },
+            { tag: t.special(t.variableName), color: 'var(--nf-codemirror-parameter)' },
+            {
+                tag: [t.typeName, t.className, t.changed, t.annotation, t.modifier, t.self, t.namespace],
+                color: 'var(--nf-codemirror-number)'
+            },
+            {
+                tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)],
+                color: 'var(--nf-codemirror-link)'
+            },
+            { tag: t.link, color: 'var(--nf-codemirror-link)', textDecoration: 'underline' },
+            { tag: t.heading, color: 'var(--nf-codemirror-header)' },
+            { tag: [t.bool], color: 'var(--nf-codemirror-number)' },
+            { tag: [t.atom], color: 'var(--nf-codemirror-atom)' },
+            { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--nf-codemirror-string)' },
+            { tag: [t.number], color: 'var(--nf-codemirror-number)' },
+            { tag: [t.comment], color: 'var(--nf-codemirror-comment)' },
+            { tag: [t.brace, t.paren, t.bracket], color: 'var(--nf-codemirror-bracket)' },
+            { tag: [t.quote], color: 'var(--nf-codemirror-quote)' },
+            { tag: [t.tagName], color: 'var(--nf-codemirror-tag)' },
+            { tag: t.invalid, color: 'var(--nf-codemirror-invalidchar)' }
+        ]);
+
         this.languageSupport = new LanguageSupport(this.language, [
+            // Add our highlighter
+            syntaxHighlighting(nfelHighlighter),
+            // Add autocompletion
             autocompletion({
                 override: [this.nfelCompletions.bind(this)],
                 activateOnTyping: false
@@ -354,7 +368,6 @@ export class CodemirrorNifiLanguageService {
         // For incomplete expressions, check if cursor is actually within a parameter reference
         if (context) {
             const cursorPos = context.pos;
-            const doc = context.state.doc;
 
             // Walk up the tree to find nodes that might contain parameter references
             let current: SyntaxNode | null = node;
@@ -376,11 +389,7 @@ export class CodemirrorNifiLanguageService {
         return false;
     }
 
-    private isCursorWithinParameterReference(
-        node: any,
-        cursorPos: number,
-        context?: CompletionContext
-    ): boolean {
+    private isCursorWithinParameterReference(node: any, cursorPos: number, context?: CompletionContext): boolean {
         const nodeText = this.getNodeText(node, context);
         const nodeStart = node.from;
 

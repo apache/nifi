@@ -17,7 +17,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { UaEditor } from './ua-editor.component';
-import { CodemirrorNifiLanguagePackage, Codemirror } from '@nifi/shared';
+import { CodemirrorNifiLanguageService, Codemirror } from '@nifi/shared';
 import { PropertyHint } from '@nifi/shared';
 import { MockComponent } from 'ng-mocks';
 
@@ -30,11 +30,10 @@ describe('UaEditor', () => {
             imports: [UaEditor, MockComponent(Codemirror), MockComponent(PropertyHint)],
             providers: [
                 {
-                    provide: CodemirrorNifiLanguagePackage,
+                    provide: CodemirrorNifiLanguageService,
                     useValue: {
-                        getLanguageId: () => 'nf',
-                        isValidParameter: jest.fn().mockReturnValue(true),
-                        isValidElFunction: jest.fn().mockReturnValue(true)
+                        setLanguageOptions: () => {},
+                        getLanguageSupport: () => ({})
                     }
                 }
             ]

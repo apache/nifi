@@ -22,17 +22,15 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { Codemirror, CodeMirrorConfig, Resizable, PropertyHint, highlightStyle } from '@nifi/shared';
+import { Codemirror, CodeMirrorConfig, Resizable, PropertyHint } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
-import { CodemirrorNifiLanguagePackage, NfLanguageConfig, NfLanguageDefinition } from '@nifi/shared';
+import { CodemirrorNifiLanguageService } from '@nifi/shared';
 import { EditorState, Extension, Prec } from '@codemirror/state';
 import {
     bracketMatching,
     defaultHighlightStyle,
     indentOnInput,
     indentUnit,
-    LanguageDescription,
-    StreamLanguage,
     syntaxHighlighting
 } from '@codemirror/language';
 import {
@@ -46,7 +44,6 @@ import {
     rectangularSelection
 } from '@codemirror/view';
 import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
-import { acceptCompletion, autocompletion, completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'ua-editor',
@@ -100,7 +97,6 @@ export class UaEditor {
     requiredSet = false;
 
     uaEditorForm: FormGroup;
-    nfLanguageDefinition: NfLanguageDefinition | null = null;
     private _codemirrorConfig: CodeMirrorConfig = {
         plugins: [],
         focusOnInit: true
@@ -110,12 +106,6 @@ export class UaEditor {
     editorStyling = {
         width: '100%',
         height: '108px'
-    };
-
-    // Language configuration
-    languageConfig = {
-        language: this.nifiLanguagePackage.getLanguageId(),
-        languages: [] as LanguageDescription[]
     };
 
     // Dynamic config getter that includes readonly state
@@ -129,8 +119,7 @@ export class UaEditor {
 
     constructor(
         private formBuilder: FormBuilder,
-        private viewContainerRef: ViewContainerRef,
-        private nifiLanguagePackage: CodemirrorNifiLanguagePackage
+        private nifiLanguageService: CodemirrorNifiLanguageService
     ) {
         this.uaEditorForm = this.formBuilder.group({
             value: new FormControl('')
@@ -147,19 +136,16 @@ export class UaEditor {
                 lineNumbers(),
                 history(),
                 indentUnit.of('    '),
-                // elFunctionHighlightPlugin({ validationService: this.nifiLanguagePackage }),
                 EditorView.lineWrapping,
                 rectangularSelection(),
                 crosshairCursor(),
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
                 highlightSpecialChars(),
-                syntaxHighlighting(highlightStyle),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 bracketMatching(),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
-                autocompletion(),
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
                 keymap.of([
                     { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
@@ -176,28 +162,18 @@ export class UaEditor {
                         }
                     },
                     ...defaultKeymap,
-                    ...historyKeymap,
-                    ...completionKeymap
+                    ...historyKeymap
                 ])
             ];
 
             if (this.supportsEl) {
-                this.nfLanguageDefinition = {
-                    supportsEl: this.supportsEl
-                };
+                this.nifiLanguageService.setLanguageOptions({
+                    functionsEnabled: this.supportsEl,
+                    parametersEnabled: false,
+                    parameters: []
+                });
 
-                const nfLanguageConfig: NfLanguageConfig = this.nifiLanguagePackage.getLanguageMode(
-                    this.nfLanguageDefinition
-                );
-
-                this._codemirrorConfig.plugins = [
-                    StreamLanguage.define(nfLanguageConfig.streamParser),
-                    autocompletion({
-                        override: [nfLanguageConfig.getAutocompletions(this.viewContainerRef)]
-                    }),
-                    Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
-                    setup
-                ];
+                this._codemirrorConfig.plugins = [this.nifiLanguageService.getLanguageSupport(), setup];
             } else {
                 this._codemirrorConfig.plugins = setup;
             }

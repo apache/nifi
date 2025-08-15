@@ -56,11 +56,13 @@ export class AddTenantToPolicyDialog extends CloseOnEscapeDialog {
         users$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((users: UserEntity[]) => {
             const policy: AccessPolicy = this.request.accessPolicy.component;
 
-            this.filteredUsers = users.filter((user: UserEntity) => {
-                return !policy.users.some((tenant: TenantEntity) => tenant.id === user.id);
-            }).sort((a,b) => {
-                return a.component.identity.localeCompare(b.component.identity);
-            });
+            this.filteredUsers = users
+                .filter((user: UserEntity) => {
+                    return !policy.users.some((tenant: TenantEntity) => tenant.id === user.id);
+                })
+                .sort((a, b) => {
+                    return a.component.identity.localeCompare(b.component.identity);
+                });
 
             this.userLookup.clear();
             this.filteredUsers.forEach((user: UserEntity) => {
@@ -73,11 +75,13 @@ export class AddTenantToPolicyDialog extends CloseOnEscapeDialog {
         userGroups$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((userGroups: UserGroupEntity[]) => {
             const policy: AccessPolicy = this.request.accessPolicy.component;
 
-            this.filteredUserGroups = userGroups.filter((userGroup: UserGroupEntity) => {
-                return !policy.userGroups.some((tenant: TenantEntity) => tenant.id === userGroup.id);
-            }).sort((a,b) => {
-                return a.component.identity.localeCompare(b.component.identity);
-            });
+            this.filteredUserGroups = userGroups
+                .filter((userGroup: UserGroupEntity) => {
+                    return !policy.userGroups.some((tenant: TenantEntity) => tenant.id === userGroup.id);
+                })
+                .sort((a, b) => {
+                    return a.component.identity.localeCompare(b.component.identity);
+                });
 
             this.userGroupLookup.clear();
             this.filteredUserGroups.forEach((user: UserGroupEntity) => {
