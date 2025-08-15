@@ -21,15 +21,5 @@
 @mixin generate-theme() {
     .property-editor {
         @include mat.button-density(-1);
-
-        .nf-editor {
-            &.blank {
-                cursor: not-allowed !important;
-            }
-        }
-
-        .CodeMirror.cm-s-nifi {
-            height: 108px;
-        }
     }
 }

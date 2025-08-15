@@ -56,7 +56,6 @@ import { SnippetService } from '../../service/snippet.service';
 import { CopyPasteService } from '../../service/copy-paste.service';
 import { CanvasView } from '../../service/canvas-view.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
-import 'codemirror/addon/hint/show-hint';
 import { selectDisconnectionAcknowledged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ComponentType } from '@nifi/shared';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';

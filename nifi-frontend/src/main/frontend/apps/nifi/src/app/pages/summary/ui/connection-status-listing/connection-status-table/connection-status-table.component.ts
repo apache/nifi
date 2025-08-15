@@ -31,7 +31,15 @@ import { ComponentStatusTable } from '../../common/component-status-table/compon
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
-export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | 'sourceName' | 'destinationName' | 'loadBalanceStatus';
+export type SupportedColumns =
+    | 'name'
+    | 'queue'
+    | 'in'
+    | 'out'
+    | 'threshold'
+    | 'sourceName'
+    | 'destinationName'
+    | 'loadBalanceStatus';
 
 @Component({
     selector: 'connection-status-table',
@@ -141,8 +149,7 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
                 return 'Inactive';
             default:
                 return connection.connectionStatusSnapshot.loadBalanceStatus;
-
-            }
+        }
     }
 
     override supportsMultiValuedSort(sort: Sort): boolean {
