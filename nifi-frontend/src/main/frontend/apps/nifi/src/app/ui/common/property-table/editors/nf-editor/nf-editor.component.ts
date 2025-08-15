@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output, ViewContainerRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { PropertyItem } from '../../property-item';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -31,8 +31,7 @@ import {
     Codemirror,
     CodeMirrorConfig,
     PropertyHint,
-    Resizable,
-    highlightStyle
+    Resizable
 } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Extension, EditorState, Prec } from '@codemirror/state';
@@ -142,7 +141,6 @@ export class NfEditor {
 
     constructor(
         private formBuilder: FormBuilder,
-        private viewContainerRef: ViewContainerRef,
         private nifiLanguageService: CodemirrorNifiLanguageService
     ) {
         this.nfEditorForm = this.formBuilder.group({
@@ -163,7 +161,6 @@ export class NfEditor {
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
                 highlightSpecialChars(),
-                syntaxHighlighting(highlightStyle),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 bracketMatching(),
                 highlightActiveLine(),

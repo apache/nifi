@@ -416,4 +416,17 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
             effects: this.pluginCompartment.reconfigure(plugins)
         });
     }
+
+    private toggleCSSClass(className: string, shouldAdd: boolean): void {
+        const element = this.elementRef.nativeElement;
+        if (!element) {
+            return;
+        }
+
+        if (shouldAdd) {
+            element.classList.add(className);
+        } else {
+            element.classList.remove(className);
+        }
+    }
 }

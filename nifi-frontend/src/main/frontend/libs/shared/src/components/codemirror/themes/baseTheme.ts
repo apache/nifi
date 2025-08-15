@@ -15,8 +15,6 @@
  *  limitations under the License.
  */
 
-import { HighlightStyle } from '@codemirror/language';
-import { tags as t } from '@lezer/highlight';
 import type { StyleSpec } from 'style-mod';
 
 const boxStyle = {
@@ -117,20 +115,27 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-matchingBracket': {
         color: 'var(--mat-sys-inverse-on-surface)',
-        background: 'var(--nf-neutral)',
-        borderRadius: '2px'
+        background: 'var(--nf-neutral)'
     },
-    '.cm-matchingBracket > .cm-bracket': {
+    '.cm-matchingBracket > .cm-bracket, .cm-matchingBracket > span': {
         color: 'var(--mat-sys-inverse-on-surface)'
     },
     '&.cm-focused .cm-matchingBracket': {
         backgroundColor: 'var(--nf-neutral)'
     },
+    '&.cm-focused .cm-nonmatchingBracket': {
+        color: 'var(--mat-sys-inverse-on-surface)',
+        background: 'var(--nf-neutral)'
+    },
     '.cm-nonmatchingBracket': {
         color: 'var(--mat-sys-on-surface)'
     },
-    '.cm-bracket': {
-        color: 'var(--nf-codemirror-bracket)'
+    '.cm-error': {
+        color: 'var(--nf-codemirror-error-color)',
+        background: 'var(--nf-codemirror-error-background-color)'
+    },
+    '.cm-matchingTag': {
+        background: 'var(--nf-codemirror-matchingtag)'
     },
     '.cm-tooltip-autocomplete.cm-tooltip': {
         ...boxStyle,
@@ -446,35 +451,3 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         textDecoration: 'unset'
     }
 };
-
-export const highlightStyle = HighlightStyle.define([
-    { tag: [t.function(t.variableName), t.labelName], color: 'var(--nf-codemirror-variable)' },
-    {
-        tag: [t.typeName, t.className, t.changed, t.annotation, t.modifier, t.self, t.namespace],
-        color: 'var(--nf-codemirror-number)'
-    },
-    {
-        tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)],
-        color: 'var(--nf-codemirror-link)'
-    },
-    { tag: t.link, color: 'var(--nf-codemirror-link)', textDecoration: 'underline' },
-    { tag: t.heading, color: 'var(--nf-codemirror-header)' },
-    { tag: [t.atom, t.bool, t.special(t.variableName)], color: 'var(--nf-codemirror-atom)' },
-    { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--nf-codemirror-string)' },
-    { tag: t.invalid, color: 'var(--nf-codemirror-invalidchar)' },
-
-    // NFEL-specific highlighting styles
-    { tag: t.comment, color: 'var(--nf-codemirror-comment)' },
-    { tag: t.content, color: 'var(--mat-sys-on-surface)' },
-    { tag: t.escape, color: 'var(--nf-codemirror-link)', fontWeight: 'bold' },
-    { tag: t.special(t.brace), color: 'var(--nf-codemirror-bracket)', fontWeight: 'bold' },
-    { tag: t.brace, color: 'var(--nf-codemirror-bracket)' },
-    { tag: t.paren, color: 'var(--nf-codemirror-bracket)' },
-    { tag: t.operator, color: 'var(--nf-codemirror-link)' },
-    { tag: t.separator, color: 'var(--nf-codemirror-bracket)' },
-    { tag: t.variableName, color: 'var(--nf-codemirror-variable)' },
-    { tag: t.string, color: 'var(--nf-codemirror-string)' },
-    { tag: t.number, color: 'var(--nf-codemirror-number)' },
-    { tag: t.bool, color: 'var(--nf-codemirror-atom)' },
-    { tag: t.null, color: 'var(--nf-codemirror-atom)', fontStyle: 'italic' }
-]);

@@ -20,7 +20,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.reducer';
 import { joltTransformJsonProcessorDetailsFeatureKey, joltTransformJsonUiFeatureKey } from '../state';
-import { CodemirrorNifiLanguagePackage } from '@nifi/shared';
 
 describe('jolt-transform-json-ui', () => {
     let component: JoltTransformJsonUi;
@@ -36,14 +35,7 @@ describe('jolt-transform-json-ui', () => {
                             [joltTransformJsonProcessorDetailsFeatureKey]: initialState
                         }
                     }
-                }),
-                {
-                    provide: CodemirrorNifiLanguagePackage,
-                    useValue: {
-                        isValidParameter: jest.fn().mockReturnValue(true),
-                        isValidElFunction: jest.fn().mockReturnValue(true)
-                    }
-                }
+                })
             ]
         });
         fixture = TestBed.createComponent(JoltTransformJsonUi);

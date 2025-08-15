@@ -25,9 +25,7 @@ import {
     MapTableHelperService,
     MapTableEntry,
     Codemirror,
-    CodeMirrorConfig,
-    highlightStyle,
-    CodemirrorNifiLanguagePackage
+    CodeMirrorConfig
 } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
@@ -169,8 +167,7 @@ export class JoltTransformJsonUi implements OnDestroy {
     constructor(
         private formBuilder: FormBuilder,
         private store: Store<NiFiJoltTransformJsonUiState>,
-        private mapTableHelperService: MapTableHelperService,
-        private nifiLanguagePackage: CodemirrorNifiLanguagePackage
+        private mapTableHelperService: MapTableHelperService
     ) {
         // Select the processor id from the query params and GET processor details
         this.store
@@ -249,7 +246,6 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
-            syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
             highlightActiveLine(),
@@ -285,7 +281,6 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
-            syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
             highlightActiveLine(),
@@ -316,7 +311,6 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             EditorState.readOnly.of(true),
             highlightSpecialChars(),
-            syntaxHighlighting(highlightStyle),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
             bracketMatching(),
             highlightActiveLine(),

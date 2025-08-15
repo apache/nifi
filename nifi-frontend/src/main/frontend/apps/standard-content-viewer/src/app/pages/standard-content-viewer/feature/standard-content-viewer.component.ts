@@ -19,7 +19,7 @@ import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { StandardContentViewerState } from '../../../state';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { highlightStyle, isDefinedAndNotNull, selectQueryParams, CodeMirrorConfig } from '@nifi/shared';
+import { isDefinedAndNotNull, selectQueryParams, CodeMirrorConfig } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ContentViewerService } from '../service/content-viewer.service';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -120,7 +120,6 @@ export class StandardContentViewer {
                 EditorState.allowMultipleSelections.of(true),
                 indentOnInput(),
                 highlightSpecialChars(),
-                syntaxHighlighting(highlightStyle),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 highlightActiveLine(),
                 [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
