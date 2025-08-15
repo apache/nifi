@@ -82,6 +82,7 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.D
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -264,6 +265,13 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
 
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
+        final DataLakeServiceClientFactory currentClientFactory;
+        if (ListingMode.CONFIGURATION_VERIFICATION == listingMode) {
+            currentClientFactory = new DataLakeServiceClientFactory(getLogger(), getProxyOptions(context));
+        } else {
+            currentClientFactory = clientFactory;
+        }
+
         try {
             final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context);
             final String baseDirectory = evaluateDirectoryProperty(DIRECTORY, context);
@@ -276,7 +284,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
 
             final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
-            final DataLakeServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
+            final DataLakeServiceClient storageClient = currentClientFactory.getStorageClient(credentialsDetails);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
             final ListPathsOptions options = new ListPathsOptions();
