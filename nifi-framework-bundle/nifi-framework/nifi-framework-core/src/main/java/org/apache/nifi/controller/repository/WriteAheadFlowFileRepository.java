@@ -83,7 +83,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
     private static final String RETAIN_ORPHANED_FLOWFILES = "nifi.flowfile.repository.retain.orphaned.flowfiles";
     private static final String FLOWFILE_REPO_CACHE_SIZE = "nifi.flowfile.repository.wal.cache.characters";
-
     private static final int DEFAULT_CACHE_SIZE = 10_000_000;
 
     protected final NiFiProperties nifiProperties;
@@ -191,7 +190,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
         this.serdeFactory = serdeFactory;
 
-        // TODO: May need to instantiate ESAWAL for clarity?
         wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
         logger.info("Initialized FlowFile Repository");
     }
