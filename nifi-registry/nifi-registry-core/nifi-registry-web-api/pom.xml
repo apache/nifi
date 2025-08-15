@@ -298,7 +298,7 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
-            <version>0.12.6</version>
+            <version>0.12.7</version>
         </dependency>
         <!-- Test Dependencies -->
         <dependency>
