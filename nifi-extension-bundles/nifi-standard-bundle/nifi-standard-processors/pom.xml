@@ -598,7 +598,6 @@
                         <exclude>src/test/resources/ExecuteCommand/TestLogStdErr.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
-                        <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/randombytes-1</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info</exclude>
@@ -832,8 +831,6 @@
                         <exclude>src/test/resources/TestXml/namespaceSplit1.xml</exclude>
                         <exclude>src/test/resources/TestXml/namespaceSplit2.xml</exclude>
                         <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
-                        <exclude>src/test/resources/xxe_from_report.xml</exclude>
-                        <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/PutDatabaseRecordIT/create-person-table.sql</exclude>
                     </excludes>
                 </configuration>
