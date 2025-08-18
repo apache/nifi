@@ -29,14 +29,6 @@ public class AhoCorasick<T> implements Search<T> {
 
     private Node root = null;
 
-    /**
-     * Constructs a new search object.
-     *
-     * @throws IllegalArgumentException if given terms are null or empty
-     */
-    public AhoCorasick() {
-    }
-
     @Override
     public void initializeDictionary(final Set<SearchTerm<T>> terms) {
         if (root != null) {

@@ -226,10 +226,6 @@ public class FlowResource extends ApplicationResource {
     @Context
     private ServletContext servletContext;
 
-    public FlowResource() {
-        super();
-    }
-
     /**
      * Populates the remaining fields in the specified process group.
      *

@@ -57,9 +57,6 @@ public class BinManager {
 
     private int binCount = 0;   // guarded by read/write lock
 
-    public BinManager() {
-    }
-
     public void purge() {
         wLock.lock();
         try {

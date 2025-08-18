@@ -38,9 +38,6 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     private List<NodeConnectionStatus> nodeStatuses;
     private ComponentRevisionSnapshot componentRevisions;
 
-    public ReconnectionRequestMessage() {
-    }
-
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeId() {
         return nodeId;

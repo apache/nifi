@@ -45,9 +45,6 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
     private int invocations;
     private Map<String, Long> counters;
 
-    public StandardFlowFileEvent() {
-    }
-
     @Override
     public int getFlowFilesIn() {
         return flowFilesIn;

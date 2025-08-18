@@ -28,9 +28,6 @@ public class AdaptedConnectionRequest {
     private NodeIdentifier nodeIdentifier;
     private DataFlow dataFlow;
 
-    public AdaptedConnectionRequest() {
-    }
-
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeIdentifier() {
         return nodeIdentifier;

@@ -27,9 +27,6 @@ public class ReportingTaskHealth implements java.io.Serializable {
     private int activeThreads;
     private List<ValidationError> validationErrorList;
 
-    public ReportingTaskHealth() {
-    }
-
     public String getScheduledState() {
         return scheduledState;
     }

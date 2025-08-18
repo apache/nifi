@@ -27,9 +27,6 @@ public class InstanceStats implements java.io.Serializable {
     private long bytesReceived;
     private int flowfilesReceived;
 
-    public InstanceStats() {
-    }
-
     public long getBytesRead() {
         return bytesRead;
     }

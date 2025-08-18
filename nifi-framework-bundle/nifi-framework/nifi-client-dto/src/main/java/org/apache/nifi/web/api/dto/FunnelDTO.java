@@ -23,7 +23,4 @@ import jakarta.xml.bind.annotation.XmlType;
  */
 @XmlType(name = "funnel")
 public class FunnelDTO extends ComponentDTO {
-
-    public FunnelDTO() {
-    }
 }
