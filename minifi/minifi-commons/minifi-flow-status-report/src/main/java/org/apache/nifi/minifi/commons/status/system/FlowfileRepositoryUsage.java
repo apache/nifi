@@ -24,9 +24,6 @@ public class FlowfileRepositoryUsage implements java.io.Serializable {
     private long usedSpace;
     private int diskUtilization;
 
-    public FlowfileRepositoryUsage() {
-    }
-
     public long getFreeSpace() {
         return freeSpace;
     }

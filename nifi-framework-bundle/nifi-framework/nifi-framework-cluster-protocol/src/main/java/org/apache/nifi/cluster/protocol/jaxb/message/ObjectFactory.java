@@ -44,9 +44,6 @@ import org.apache.nifi.cluster.protocol.message.ServiceBroadcastMessage;
 @XmlRegistry
 public class ObjectFactory {
 
-    public ObjectFactory() {
-    }
-
     public ReconnectionRequestMessage createReconnectionRequestMessage() {
         return new ReconnectionRequestMessage();
     }

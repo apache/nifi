@@ -84,9 +84,6 @@ public class NarThreadContextClassLoaderTest {
     }
 
     public static class WithDefaultConstructor extends AbstractProcessor {
-        public WithDefaultConstructor() {
-
-        }
 
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {

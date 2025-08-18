@@ -27,9 +27,6 @@ public class AdaptedNodeBulletins {
 
     private byte[] payload;
 
-    public AdaptedNodeBulletins() {
-    }
-
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeIdentifier() {
         return nodeIdentifier;

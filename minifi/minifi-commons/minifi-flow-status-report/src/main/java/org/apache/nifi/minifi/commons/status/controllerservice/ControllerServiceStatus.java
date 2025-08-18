@@ -26,9 +26,6 @@ public class ControllerServiceStatus implements java.io.Serializable {
     private ControllerServiceHealth controllerServiceHealth;
     private List<BulletinStatus> bulletinList;
 
-    public ControllerServiceStatus() {
-    }
-
     public String getName() {
         return name;
     }

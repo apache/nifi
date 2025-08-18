@@ -71,6 +71,7 @@ under the License.
     <rule ref="category/java/codestyle.xml/ExtendsObject" />
     <rule ref="category/java/codestyle.xml/IdenticalCatchBranches" />
     <rule ref="category/java/codestyle.xml/ForLoopShouldBeWhileLoop" />
+    <rule ref="category/java/codestyle.xml/UnnecessaryConstructor" />
     <rule ref="category/java/codestyle.xml/UnnecessaryImport" />
     <rule ref="category/java/codestyle.xml/UnnecessaryModifier">
         <!--The following xpath excludes try with resources that use a final modifier when defining variable(s) -->

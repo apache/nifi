@@ -1406,10 +1406,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         private String transitUri = "<unknown>";
 
-        public BinlogResourceInfo() {
-
-        }
-
         public TableInfo getCurrentTable() {
             return currentTable;
         }

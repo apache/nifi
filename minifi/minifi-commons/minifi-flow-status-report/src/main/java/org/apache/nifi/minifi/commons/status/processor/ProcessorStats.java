@@ -27,9 +27,6 @@ public class ProcessorStats implements java.io.Serializable {
     private int invocations;
     private long processingNanos;
 
-    public ProcessorStats() {
-    }
-
     public int getActiveThreads() {
         return activeThreads;
     }

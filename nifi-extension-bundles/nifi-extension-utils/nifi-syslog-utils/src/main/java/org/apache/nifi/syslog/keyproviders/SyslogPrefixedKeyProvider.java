@@ -26,9 +26,6 @@ import java.util.regex.Pattern;
 public class SyslogPrefixedKeyProvider implements KeyProvider {
     private Pattern pattern;
 
-    public SyslogPrefixedKeyProvider() {
-    }
-
     @Override
     public String getMessage() {
         return SyslogAttributes.SYSLOG_BODY.key();

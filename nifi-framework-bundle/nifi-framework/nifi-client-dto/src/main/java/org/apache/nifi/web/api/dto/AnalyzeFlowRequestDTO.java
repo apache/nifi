@@ -25,8 +25,6 @@ import jakarta.xml.bind.annotation.XmlType;
  */
 @XmlType(name = "analyzeFlowRequest")
 public class AnalyzeFlowRequestDTO extends AsynchronousRequestDTO<AnalyzeFlowRequestUpdateStepDTO> {
-    public AnalyzeFlowRequestDTO() {
-    }
 
     private String processGroupId;
 

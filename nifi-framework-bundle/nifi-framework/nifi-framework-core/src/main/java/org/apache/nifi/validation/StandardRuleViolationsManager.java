@@ -46,8 +46,6 @@ import java.util.stream.Collectors;
  *  arises.
  */
 public class StandardRuleViolationsManager implements RuleViolationsManager {
-    public StandardRuleViolationsManager() {
-    }
 
     private final ConcurrentMap<String, ConcurrentMap<RuleViolationKey, RuleViolation>> subjectIdToRuleViolation = new ConcurrentHashMap<>();
 

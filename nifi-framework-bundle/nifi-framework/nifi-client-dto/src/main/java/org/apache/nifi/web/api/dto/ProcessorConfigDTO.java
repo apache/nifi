@@ -58,10 +58,6 @@ public class ProcessorConfigDTO {
     private String backoffMechanism;
     private String maxBackoffPeriod;
 
-    public ProcessorConfigDTO() {
-
-    }
-
     /**
      * The frequency with which to schedule the processor. The format of the value will depend on the value of {@link #getSchedulingStrategy()}.
      *

@@ -55,10 +55,6 @@ public class ProcessorDTO extends ComponentDTO {
     private Collection<String> validationErrors;
     private String validationStatus;
 
-    public ProcessorDTO() {
-        super();
-    }
-
     /**
      * The name of this processor.
      *
