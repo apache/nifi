@@ -69,6 +69,31 @@ WHITESPACE : (' '|'\t'|'\n'|'\r')+ { $channel = HIDDEN; };
 COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n' { $channel = HIDDEN; };
 
 // PARAMETERS
+// Capture the entire parameter reference (e.g., #{Batch Size}) as a single token so that
+// parameter names may contain spaces without requiring quotes. The lexer action normalizes
+// the token text to contain only the inner parameter name (without the surrounding "#{" and
+// "}"), and if the inner text itself is quoted (e.g., #{"Batch Size"}), the surrounding quotes
+// are also stripped. This preserves backward compatibility and ensures the parser/AST consumer
+// (ExpressionCompiler) receives a consistent parameter name string.
+PARAMETER_REFERENCE
+    : '#{' (~('}'))+ '}'
+      {
+        final String full = getText();
+        if (full != null && full.length() >= 3) {
+            String inner = full.substring(2, full.length() - 1);
+            if (inner.length() >= 2) {
+                final char first = inner.charAt(0);
+                final char last = inner.charAt(inner.length() - 1);
+                if ((first == '\'' && last == '\'') || (first == '"' && last == '"')) {
+                    inner = inner.substring(1, inner.length() - 1);
+                }
+            }
+            setText(inner);
+        }
+      }
+    ;
+// Retained for legacy form where the parameter name is parsed as a separate token sequence
+// (e.g., #{'Batch Size'}) and rewritten by the parser rule below.
 PARAMETER_REFERENCE_START : '#{';
 
 DOLLAR : '$';
