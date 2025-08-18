@@ -26,7 +26,5 @@ export * from './codemirror/codemirror.component';
 export * from './codemirror/themes/defaultTheme';
 export * from './codemirror/themes/baseTheme';
 export * from './yes-no-dialog/yes-no-dialog.component';
-export * from './tooltips/el-function-tip/el-function-tip.component';
-export * from './tooltips/parameter-tip/parameter-tip.component';
 export * from './tooltips/property-hint-tip/property-hint-tip.component';
 export * from './tooltips/text-tip/text-tip.component';

@@ -35,8 +35,8 @@ import { SyntaxNode } from '@lezer/common';
 import { Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { ElService } from '../el.service';
-import { ElFunctionTip } from '../../components/tooltips/el-function-tip/el-function-tip.component';
-import { ParameterTip } from '../../components/tooltips/parameter-tip/parameter-tip.component';
+import { ElFunctionTip } from '../../components/codemirror/autocomplete/el-function-tip/el-function-tip.component';
+import { ParameterTip } from '../../components/codemirror/autocomplete/parameter-tip/parameter-tip.component';
 
 export interface NifiLanguageOptions {
     functionsEnabled?: boolean;

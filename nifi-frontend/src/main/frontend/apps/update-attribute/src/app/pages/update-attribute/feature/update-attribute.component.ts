@@ -35,7 +35,6 @@ import {
 } from '../state/advanced-ui-parameters/advanced-ui-parameters.actions';
 import { selectRulesState } from '../state/rules/rules.selectors';
 import { selectEvaluationContextState } from '../state/evaluation-context/evaluation-context.selectors';
-import { CodemirrorNifiLanguageService } from '@nifi/shared';
 
 @Component({
     selector: 'update-attribute',
@@ -48,9 +47,7 @@ export class UpdateAttribute implements OnDestroy {
     evaluationContextState = this.store.selectSignal(selectEvaluationContextState);
     editable = this.store.selectSignal(selectEditable);
 
-    constructor(
-        private store: Store<UpdateAttributeApplicationState>
-    ) {
+    constructor(private store: Store<UpdateAttributeApplicationState>) {
         this.store
             .select(selectAdvancedUiParametersFromRoute)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())

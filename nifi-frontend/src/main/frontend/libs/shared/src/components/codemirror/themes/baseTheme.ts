@@ -57,6 +57,16 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         'z-index': 1,
         border: 'none'
     },
+    '.cm-search-container': {
+        ...boxStyle,
+        backgroundColor: 'var(--mat-sys-surface)',
+        position: 'absolute',
+        right: '20px',
+        top: '0'
+    },
+    '.cm-search-container:first-child': {
+        borderRadius: '6px'
+    },
     '.cm-cursor': {
         borderLeftColor: 'var(--mat-sys-on-surface)'
     },
@@ -222,7 +232,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         ...codeFontStyle,
         ...boxStyle,
         background: 'var(--mat-sys-surface)',
-        border: '1px solid var(--mat-sys-outline)',
+        border: '0',
         marginBottom: '4px',
         maxWidth: '450px',
         width: 'max-content'
@@ -240,8 +250,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         ...boxStyle,
         // Move shadow to the right to avoid putting shadow on top of the autocomplete box.
         boxShadow: '2px 2px 8px #00000026',
-        border: '1px solid var(--mat-sys-outline)',
-        color: 'var(--editor-comment)',
+        border: '0',
         display: 'block',
         fontFamily: 'Inter',
         fontSize: '13px',
@@ -251,7 +260,6 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         minWidth: '420px',
         maxWidth: '450px',
         overflow: 'auto',
-        padding: '5px 12px',
         // Shift completion info up without using "top", which Codemirror dynamically sets.
         transform: 'translateY(-1px)',
         wordBreak: 'break-word'
@@ -270,23 +278,6 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         gap: '4px',
         padding: '0'
     },
-    '.cm-tooltip.cm-completionInfo.cm-completionInfo-right,.cm-tooltip.cm-completionInfo.cm-completionInfo-right-narrow':
-        {
-            padding: '0',
-            '& .tooltip': {
-                maxHeight: 'unset'
-            }
-        },
-    // Overrides maxHeight when the user drags the handle to resize the popup.
-    '.cm-tooltip.cm-completionInfo[style*=" height"]:not([class^="cm-completionInfo-right"]):not([class^="cm-completionInfo-right-narrow"])':
-        {
-            maxHeight: 'unset !important'
-        },
-    // Overrides maxWidth when the user drags the handle to resize the popup.
-    '.cm-tooltip.cm-completionInfo[style*=" width"]:not([class^="cm-completionInfo-right"]):not([class^="cm-completionInfo-right-narrow"])':
-        {
-            maxWidth: 'unset !important'
-        },
     '.cm-tooltip-autocomplete-info code, .cm-tooltip-hover code': {
         fontFamily: "apercu-mono-regular, Menlo, Monaco, Consolas, 'Courier New', monospace",
         color: 'var(--editor-text)',

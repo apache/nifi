@@ -16,21 +16,33 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NiFiCommon } from '../../../services/nifi-common.service';
-import { Parameter, ParameterTipInput } from '../../../types';
+import { NiFiCommon } from '../../../../services/nifi-common.service';
+import { ElFunction, ElFunctionTipInput } from '../../../../types';
 
 @Component({
-    selector: 'parameter-tip',
+    selector: 'el-function-tip',
     standalone: true,
-    templateUrl: './parameter-tip.component.html',
-    styleUrls: ['./parameter-tip.component.scss']
+    templateUrl: './el-function-tip.component.html',
+    styleUrls: ['./el-function-tip.component.scss']
 })
-export class ParameterTip {
-    @Input() data: ParameterTipInput | null = null;
+export class ElFunctionTip {
+    @Input() data: ElFunctionTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}
 
-    hasDescription(parameter: Parameter): boolean {
-        return !this.nifiCommon.isBlank(parameter.description);
+    hasDescription(elFunction: ElFunction): boolean {
+        return !this.nifiCommon.isBlank(elFunction.description);
+    }
+
+    hasArguments(elFunction: ElFunction): boolean {
+        return Object.keys(elFunction.args).length > 0;
+    }
+
+    getArguments(elFunction: ElFunction): string[] {
+        return Object.keys(elFunction.args);
+    }
+
+    getArgumentDescription(elFunction: ElFunction, argument: string) {
+        return elFunction.args[argument];
     }
 }
