@@ -32,17 +32,20 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 
 public class DriverUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DriverUtils.class);
+    private static final String DRIVER_CLASS_PATTERN = "(?i).*(driver|jdbc).*";
+    private static final Pattern DRIVER_PATTERN = Pattern.compile(DRIVER_CLASS_PATTERN);
 
     /**
      * Discovers JDBC driver classes using static JAR scanning only (no class
      * loading) This is used during validation when resources aren't loaded into
      * classpath yet
      */
-    public static List<String> discoverDriverClassesStatic(final ResourceReferences driverResources) {
+    public static List<String> findDriverClassNames(final ResourceReferences driverResources) {
         final Set<String> driverClasses = new TreeSet<>();
 
         if (driverResources == null || driverResources.getCount() == 0) {
@@ -58,7 +61,7 @@ public class DriverUtils {
                 LOGGER.debug("Found {} JAR files in resource {}", jarFiles.size(), resource.getLocation());
                 for (final File jarFile : jarFiles) {
                     LOGGER.debug("Scanning JAR file: {}", jarFile.getAbsolutePath());
-                    final Set<String> foundDrivers = scanJarForDriverClassesStatic(jarFile);
+                    final Set<String> foundDrivers = scanJarForDriverClassesUsingMetadata(jarFile);
                     LOGGER.debug("Found {} potential driver classes in {}", foundDrivers.size(), jarFile.getName());
                     driverClasses.addAll(foundDrivers);
                 }
@@ -76,7 +79,7 @@ public class DriverUtils {
      * only This uses improved heuristics including checking META-INF/services and
      * common patterns
      */
-    private static Set<String> scanJarForDriverClassesStatic(final File jarFile) {
+    private static Set<String> scanJarForDriverClassesUsingMetadata(final File jarFile) {
         final Set<String> driverClasses = new TreeSet<>();
         try (final JarFile jar = new JarFile(jarFile)) {
             // Check META-INF/services/java.sql.Driver for registered drivers
@@ -182,16 +185,7 @@ public class DriverUtils {
      * them This is a first-pass filter to avoid loading every single class
      */
     private static boolean isPotentialDriverClass(final String className) {
-        final String lowerClassName = className.toLowerCase();
-
-        // Common patterns for JDBC driver class names
-        boolean isCandidate = lowerClassName.contains("driver")
-                || lowerClassName.contains("jdbc")
-                || className.matches(".*Driver$")
-                || className.matches(".*JdbcDriver$")
-                || className.matches(".*SQLServerDriver$");
-
-        return isCandidate;
+        return DRIVER_PATTERN.matcher(className).matches();
     }
 
     /**

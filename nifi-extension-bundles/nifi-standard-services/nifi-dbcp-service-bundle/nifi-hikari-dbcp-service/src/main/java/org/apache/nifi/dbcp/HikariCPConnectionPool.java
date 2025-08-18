@@ -371,12 +371,12 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
 
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
-                List<String> availableDrivers = DriverUtils.discoverDriverClassesStatic(driverResources);
+                List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
-                    messageBuilder.append(String.format(" Driver class '%s' not found in provided resources. Available driver classes found: %s.",
+                    messageBuilder.append(String.format(" Driver class [%s] not found in provided resources. Available driver classes found: %s",
                             driverName, String.join(", ", availableDrivers)));
                 } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
-                    messageBuilder.append(" Driver found but ensure you apply the controller service configuration before verifying again.");
+                    messageBuilder.append(" Driver Class found but not loaded: Apply configuration before verifying.");
                 } else {
                     messageBuilder.append(String.format(" Exception: %s", e.getMessage()));
                 }
