@@ -185,7 +185,7 @@ export class NfEditor {
                     parameters: this.parameters || []
                 });
 
-                this._codemirrorConfig.plugins = [this.nifiLanguageService.getLanguageSupport(), setup];
+                this._codemirrorConfig.plugins = [this.nifiLanguageService.getLanguageSupport(), ...setup];
             } else {
                 this._codemirrorConfig.plugins = setup;
             }

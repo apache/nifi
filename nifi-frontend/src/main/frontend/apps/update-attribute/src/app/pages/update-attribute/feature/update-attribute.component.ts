@@ -49,8 +49,7 @@ export class UpdateAttribute implements OnDestroy {
     editable = this.store.selectSignal(selectEditable);
 
     constructor(
-        private store: Store<UpdateAttributeApplicationState>,
-        private nifiLanguageService: CodemirrorNifiLanguageService // note: nifiLanguageService is referenced here to ensure the el function details are loaded when the application loads
+        private store: Store<UpdateAttributeApplicationState>
     ) {
         this.store
             .select(selectAdvancedUiParametersFromRoute)

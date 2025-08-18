@@ -34,8 +34,6 @@ import { Annotation, Compartment, EditorState, Extension } from '@codemirror/sta
 import { EditorView } from '@codemirror/view';
 import { defaultTheme } from './themes/defaultTheme';
 
-export const External = Annotation.define<boolean>();
-
 export interface CodeMirrorConfig {
     appearance?: Extension;
     focusOnInit?: boolean;
@@ -44,6 +42,26 @@ export interface CodeMirrorConfig {
     readOnly?: boolean;
     plugins?: Extension[];
 }
+
+/**
+ * Annotation to mark editor changes that come from external sources (not user input).
+ * Used to prevent infinite loops in two-way data binding by:
+ * 1. Marking programmatic changes with this annotation
+ * 2. Not emitting change events for changes that have this annotation
+ *
+ * @example
+ * // Mark a change as external
+ * dispatch({
+ *   changes: { from: 0, to: 10, insert: "new text" },
+ *   annotations: [ExternalChange.of(true)]
+ * });
+ *
+ * // Check if a change is external
+ * if (!transaction.annotation(ExternalChange)) {
+ *   // Handle user input...
+ * }
+ */
+export const ExternalChange = Annotation.define<boolean>();
 
 @Component({
     selector: 'codemirror',
@@ -143,8 +161,6 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
     setDisabledState(isDisabled: boolean): void {
         this.setEditable(!isDisabled);
     }
-
-    // Public API methods for developers
 
     /**
      * Add an event listener to the editor's content DOM
@@ -300,7 +316,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
                 this.readOnlyCompartment.of(EditorState.readOnly.of(this.settings.readOnly || false)),
                 this.pluginCompartment.of(this.settings.plugins || []),
                 EditorView.updateListener.of((update) => {
-                    if (update.docChanged && !update.transactions.some((tr) => tr.annotation(External))) {
+                    if (update.docChanged && !update.transactions.some((tr) => tr.annotation(ExternalChange))) {
                         const newValue = update.state.doc.toString();
                         this.contentChange.emit(newValue);
                         this.onChange?.(newValue);
@@ -367,7 +383,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
                 to: this.view.state.doc.length,
                 insert: content
             },
-            annotations: [External.of(true)]
+            annotations: [ExternalChange.of(true)]
         });
 
         this.view.dispatch(transaction);
