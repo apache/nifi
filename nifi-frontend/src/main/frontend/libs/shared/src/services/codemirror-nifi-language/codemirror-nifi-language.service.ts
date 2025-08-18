@@ -70,7 +70,14 @@ export class CodemirrorNifiLanguageService {
     }
 
     private createDynamicHighlighting() {
+        // Always show basic structural elements
         const baseHighlighting = {
+            '{ }': t.brace,
+            '( )': t.paren,
+            ':': t.operator,
+            ',': t.separator,
+            Text: t.content,
+            Comment: t.comment,
             WholeNumber: t.number,
             Decimal: t.number,
             StringLiteral: t.string,
@@ -83,25 +90,34 @@ export class CodemirrorNifiLanguageService {
             Object.assign(baseHighlighting, {
                 ExpressionStart: t.brace,
                 EscapedDollar: t.content,
+
+                ReferenceOrFunction: t.variableName,
+                AttributeRefOrFunctionCall: t.variableName,
+                AttributeRef: t.variableName,
+                Subject: t.variableName,
+                SingleAttrRef: t.variableName,
+                'ReferenceOrFunction Expression': t.content,
+
                 FunctionCall: t.function(t.variableName),
                 StandaloneFunction: t.function(t.variableName),
                 MultiAttrFunctionName: t.function(t.variableName),
-                functionName: t.function(t.variableName),
-                standaloneFunctionName: t.function(t.variableName),
-                multiAttrFunctionName: t.function(t.variableName),
-
-                // Attribute names
-                'AttributeRef Subject AttrName SingleAttrName SingleAttrRef attributeName': t.variableName
+                AttrName: t.variableName,
+                SingleAttrName: t.variableName,
+                identifier: t.variableName,
+                '⚠': t.variableName,
+                'AttributeRefOrFunctionCall FunctionCall StandaloneFunction': t.variableName,
+                'AttributeRef Subject AttrName': t.variableName,
+                'SingleAttrName MultiAttrName': t.variableName
             });
         }
 
         // Add parameter highlighting only if parameters are enabled
         if (this.parametersSupported) {
             Object.assign(baseHighlighting, {
-                ParameterStart: t.brace,
+                ParameterStart: t.special(t.brace),
                 ParameterReference: t.special(t.variableName),
-                ParameterName: t.special(t.variableName),
-                'parameterName identifier': t.special(t.variableName),
+                ParameterName: t.variableName,
+                'parameterName identifier': t.variableName,
                 'ParameterReference ParameterContent': t.special(t.variableName)
             });
         }

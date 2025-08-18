@@ -16,7 +16,7 @@ ${uuid()}
 #{param}
 ${attr:toUpper()}
 
-# String Literals (should be var(--nf-codemirror-string))
+# String Literals (should be var(--editor-string))
 ${attr:equals("test")}
 ${attr:contains('value')}
 
@@ -24,7 +24,7 @@ ${attr:contains('value')}
 ${filename:substring(0, ${name:length()})}
 ${filename:replace(${attr:substring(0, 3)}, "new")}
 
-# Parameter References (should be var(--nf-codemirror-parameter))
+# Parameter References (should be var(--editor-parameter))
 #{parameterName}
 #{database.url}
 #{app-config}
@@ -42,7 +42,7 @@ Hello ${name}, you have ${count} items.
 Result: ${filename:replace(${attr}, "new")} - Status: ${status}
 Price: $$100 for ${item}
 
-# Function Chaining (functions should be var(--nf-codemirror-el-function))
+# Function Chaining (functions should be var(--editor-el-function))
 ${attr:equals('value'):contains('test')}
 ${text:trim():toUpper():substring(0, 5)}
 
@@ -50,7 +50,7 @@ ${text:trim():toUpper():substring(0, 5)}
 ${#{param}:toUpper()}
 ${value:ifElse(#{defaultValue}, "empty")}
 
-# Boolean and Numbers (should be var(--nf-codemirror-number))
+# Boolean and Numbers (should be var(--editor-number))
 ${attr:equals(true)}
 ${size:gt(1000)}
 ${value:plus(3.14)}
@@ -73,7 +73,7 @@ ${attr:trim():toUpper():
 ${attr:toUpper()} more text
 
 # Enhanced Grammar Features
-# This is a comment (should be var(--nf-codemirror-comment))
+# This is a comment (should be var(--editor-comment))
 ${attr:equals("test;value")} # comment after expression
 ${attr}; ${other} - semicolon separator
 
@@ -148,13 +148,13 @@ ${nested${broken}
 
 # ===== Expected Color Coding =====
 # Plain Text: Default color (black/white depending on theme)
-# ${} Delimiters: var(--nf-codemirror-bracket)
-# Attribute Names: var(--nf-codemirror-variable-2) (attr, filename, name, etc.)
-# Function Names: var(--nf-codemirror-el-function) (toUpper, equals, contains, etc.)
-# Parameter Names: var(--nf-codemirror-parameter) (param, database.url, etc.)
-# String Literals: var(--nf-codemirror-string) ("test", 'value', etc.)
-# Numbers: var(--nf-codemirror-number) (100, 3.14, true, false, null)
-# Comments: var(--nf-codemirror-comment) (# This is a comment)
+# ${} Delimiters: var(--editor-bracket)
+# Attribute Names: var(--editor-variable-2) (attr, filename, name, etc.)
+# Function Names: var(--editor-el-function) (toUpper, equals, contains, etc.)
+# Parameter Names: var(--editor-parameter) (param, database.url, etc.)
+# String Literals: var(--editor-string) ("test", 'value', etc.)
+# Numbers: var(--editor-number) (100, 3.14, true, false, null)
+# Comments: var(--editor-comment) (# This is a comment)
 # Escaped Text: Plain text ($$, escaped content)
 ```
 
