@@ -27,8 +27,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>nifi-aws-kinesis-3-processors</module>
-        <module>nifi-aws-kinesis-3-nar</module>
+        <module>nifi-aws-kinesis</module>
+        <module>nifi-aws-kinesis-nar</module>
         <module>nifi-aws-processors</module>
         <module>nifi-aws-regions</module>
         <module>nifi-aws-nar</module>
