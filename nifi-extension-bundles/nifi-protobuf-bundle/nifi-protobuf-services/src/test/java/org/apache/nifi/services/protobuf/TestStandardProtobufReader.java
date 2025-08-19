@@ -44,6 +44,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForProto3;
+import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaDefinitionIdentifiers;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER_STRATEGY;
@@ -138,7 +139,7 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
 
         enableAllControllerServices();
 
-        standardProtobufReader.validateSchemaDefinitionIdentifiers(validMainSchema);
+        validateSchemaDefinitionIdentifiers(validMainSchema, true);
     }
 
     @Test
@@ -148,7 +149,7 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
 
         enableAllControllerServices();
 
-        standardProtobufReader.validateSchemaDefinitionIdentifiers(validSchema);
+        validateSchemaDefinitionIdentifiers(validSchema, true);
     }
 
     @Test
@@ -160,7 +161,7 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
         enableAllControllerServices();
 
         final IllegalArgumentException referencedException = assertThrows(IllegalArgumentException.class, () -> {
-            standardProtobufReader.validateSchemaDefinitionIdentifiers(mixedSchema);
+            validateSchemaDefinitionIdentifiers(mixedSchema, true);
         });
 
         assertTrue(referencedException.getMessage().contains("ends with .proto extension"));
@@ -170,7 +171,7 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
     void testSchemaDefinitionWithMissingName() {
         final SchemaDefinition schemaWithoutName = createSchemaDefinitionWithoutName();
         enableAllControllerServices();
-        standardProtobufReader.validateSchemaDefinitionIdentifiers(schemaWithoutName);
+        validateSchemaDefinitionIdentifiers(schemaWithoutName, true);
     }
 
     @Nested

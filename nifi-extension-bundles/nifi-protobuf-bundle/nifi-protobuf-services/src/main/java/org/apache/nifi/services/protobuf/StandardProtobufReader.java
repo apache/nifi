@@ -28,7 +28,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.MessageName;
 import org.apache.nifi.schemaregistry.services.MessageNameResolver;
@@ -105,15 +104,15 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         .dependsOn(MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE)
         .build();
 
-    volatile ProtobufSchemaCompiler schemaCompiler;
-    volatile MessageNameResolver messageNameResolver;
-    volatile SchemaReferenceReader schemaReferenceReader;
-    volatile SchemaRegistry schemaRegistry;
-    volatile String schemaAccessStrategyValue;
-    volatile PropertyValue schemaText;
-    volatile PropertyValue schemaName;
-    volatile PropertyValue schemaBranchName;
-    volatile PropertyValue schemaVersion;
+    private volatile ProtobufSchemaCompiler schemaCompiler;
+    private volatile MessageNameResolver messageNameResolver;
+    private volatile SchemaReferenceReader schemaReferenceReader;
+    private volatile SchemaRegistry schemaRegistry;
+    private volatile String schemaAccessStrategyValue;
+    private volatile PropertyValue schemaText;
+    private volatile PropertyValue schemaName;
+    private volatile PropertyValue schemaBranchName;
+    private volatile PropertyValue schemaVersion;
 
 
     @OnEnabled
@@ -133,15 +132,11 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     @OnDisabled
     public void onDisabled(final ConfigurationContext context) {
-        if (schemaCompiler != null) {
-            schemaCompiler.invalidateCache();
-            schemaCompiler = null;
-        }
+        schemaCompiler = null;
     }
 
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
-        final SchemaAccessStrategy schemaAccessStrategy = getSchemaAccessStrategy();
         if (SCHEMA_TEXT_PROPERTY.getValue().equals(schemaAccessStrategyValue)) {
             final SchemaDefinition schemaDefinition = createSchemaDefinitionFromText(variables);
             return createProtobufRecordReader(variables, in, schemaDefinition);
@@ -152,12 +147,12 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
             final SchemaIdentifier schemaIdentifier = schemaReferenceReader.getSchemaIdentifier(variables, in);
             final SchemaDefinition schemaDefinition = schemaRegistry.retrieveSchemaDefinition(schemaIdentifier);
             if (logger.isDebugEnabled()) {
-                logger.debug("Using message name for schema: {}", schemaDefinition.getIdentifier());
+                logger.debug("Using message name for schema identifier: {}", schemaDefinition.getIdentifier());
             }
             return createProtobufRecordReader(variables, in, schemaDefinition);
         }
 
-        throw new SchemaNotFoundException("Unsupported schema access strategy: " + schemaAccessStrategy.getClass().getName());
+        throw new SchemaNotFoundException("Unsupported schema access strategy: " + schemaAccessStrategyValue);
     }
 
     @Override
@@ -192,10 +187,10 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     private void setupMessageNameResolver(final ConfigurationContext context) {
         final MessageNameResolverStrategyName messageNameResolverStrategyName = context.getProperty(MESSAGE_NAME_RESOLVER_STRATEGY).asAllowableValue(MessageNameResolverStrategyName.class);
-        switch (messageNameResolverStrategyName) {
-            case MESSAGE_NAME_PROPERTY -> messageNameResolver = new PropertyMessageNameResolver(context);
-            case MESSAGE_NAME_RESOLVER_SERVICE -> messageNameResolver = context.getProperty(MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE).asControllerService(MessageNameResolverService.class);
-        }
+        messageNameResolver = switch (messageNameResolverStrategyName) {
+            case MESSAGE_NAME_PROPERTY -> new PropertyMessageNameResolver(context);
+            case MESSAGE_NAME_RESOLVER_SERVICE -> context.getProperty(MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE).asControllerService(MessageNameResolverService.class);
+        };
     }
 
     private SchemaDefinition createSchemaDefinitionFromText(final Map<String, String> variables) throws SchemaNotFoundException {
@@ -252,20 +247,17 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         }
     }
 
-    void validateSchemaDefinitionIdentifiers(final SchemaDefinition schemaDefinition) {
-        schemaCompiler.validateSchemaDefinitionIdentifiers(schemaDefinition, true);
-    }
 
     enum MessageNameResolverStrategyName implements DescribedValue {
 
         MESSAGE_NAME_PROPERTY("Message Name Property", "Use the 'Message Name' property value to determine the message name"),
         MESSAGE_NAME_RESOLVER_SERVICE("Message Name Resolver Service", "Use a 'Message Name Resolver' controller service to dynamically determine the message name");
 
-        private final String name;
+        private final String displayName;
         private final String description;
 
         MessageNameResolverStrategyName(final String displayName, final String description) {
-            this.name = displayName;
+            this.displayName = displayName;
             this.description = description;
         }
 
@@ -276,7 +268,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
         @Override
         public String getDisplayName() {
-            return name;
+            return displayName;
         }
 
         @Override

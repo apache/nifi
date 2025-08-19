@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaDefinitionIdentifiers;
+
 /**
  * Handles Protocol Buffer schema compilation, caching, and temporary directory operations.
  * This class is responsible for compiling schema definitions into Wire Schema objects,
@@ -89,15 +91,6 @@ final class ProtobufSchemaCompiler {
                     throw new RuntimeException("Could not compile schema for identifier: " + identifier, e);
                 }
             });
-    }
-
-    /**
-     * Invalidates all cached schemas.
-     */
-    public void invalidateCache() {
-        if (compiledSchemaCache != null) {
-            compiledSchemaCache.invalidateAll();
-        }
     }
 
     /**
@@ -179,39 +172,6 @@ final class ProtobufSchemaCompiler {
         }
     }
 
-    /**
-     * Validates that all SchemaDefinition identifiers end with .proto extension.
-     * Performs recursive validation on all referenced schemas.
-     *
-     * @param schemaDefinition       the schema definition to validate
-     * @param isRootSchemaDefinition set to true if schema definition is a root definition, false otherwise
-     * @throws IllegalArgumentException if any identifier does not end with .proto extension
-     */
-    void validateSchemaDefinitionIdentifiers(final SchemaDefinition schemaDefinition, final boolean isRootSchemaDefinition) {
-        // do not validate schema identifier names for root schema definitions. They might be coming from sources like text fields,
-        // flow file attributes and other sources that do not support naming.
-        if (!isRootSchemaDefinition) {
-            validateSchemaIdentifier(schemaDefinition.getIdentifier());
-        }
-
-        // Recursively validate all referenced schemas
-        // schema references have to end with .proto extension.
-        for (final SchemaDefinition referencedSchema : schemaDefinition.getReferences().values()) {
-            validateSchemaDefinitionIdentifiers(referencedSchema, false);
-        }
-    }
-
-    /**
-     * Validates that a single SchemaIdentifier has a name ending with .proto extension.
-     *
-     * @param schemaIdentifier the schema identifier to validate
-     * @throws IllegalArgumentException if the identifier name does not end with .proto extension
-     */
-    private void validateSchemaIdentifier(final SchemaIdentifier schemaIdentifier) {
-        schemaIdentifier.getName()
-            .filter(name -> name.endsWith(".proto"))
-            .orElseThrow(() -> new IllegalArgumentException("Schema identifier must have a name that ends with .proto extension"));
-    }
 
     /**
      * Writes a schema definition to the temporary directory structure.
