@@ -128,25 +128,31 @@ export class StandardContentViewer {
             // Define highlight styles
             const xmlHighlightStyle = HighlightStyle.define([
                 { tag: t.tagName, color: 'var(--editor-keyword)' },
-                { tag: t.comment, color: 'var(--editor-comment)' },
-                { tag: t.attributeName, color: 'var(--editor-variable-2)' },
+                { tag: t.attributeName, color: 'var(--editor-variable-name)' },
                 { tag: t.attributeValue, color: 'var(--editor-string)' },
-                { tag: t.string, color: 'var(--editor-string)' },
+                { tag: t.angleBracket, color: 'var(--editor-bracket)' },
+                { tag: t.keyword, color: 'var(--editor-variable-name)' },
+                { tag: t.typeName, color: 'var(--editor-variable-name) !important' },
+                { tag: t.string, color: 'var(--editor-function)' },
+                { tag: t.number, color: 'var(--editor-constant)' },
+                { tag: t.squareBracket, color: 'var(--editor-special)' },
+                { tag: t.comment, color: 'var(--editor-comment)' },
+                { tag: t.separator, color: 'var(--editor-special)' },
                 { tag: t.content, color: 'var(--editor-text)' },
-                { tag: t.punctuation, color: 'var(--editor-bracket)' },
-                { tag: t.angleBracket, color: 'var(--editor-bracket)' }
+                { tag: t.punctuation, color: 'var(--editor-variable-name)' },
+                { tag: t.meta, color: 'var(--editor-function-name-variable-name)' }
             ]);
 
             const yamlHighlightStyle = HighlightStyle.define([
-                { tag: t.keyword, color: 'var(--editor-keyword)' },
+                { tag: t.keyword, color: 'var(--editor-el-function)' },
                 { tag: t.comment, color: 'var(--editor-comment)' },
-                { tag: t.separator, color: 'var(--editor-bracket)' },
-                { tag: t.punctuation, color: 'var(--editor-bracket)' },
-                { tag: t.squareBracket, color: 'var(--editor-bracket)' },
-                { tag: t.brace, color: 'var(--editor-bracket)' },
+                { tag: t.separator, color: 'var(--editor-special)' },
+                { tag: t.punctuation, color: 'var(--editor-special)' },
+                { tag: t.squareBracket, color: 'var(--editor-special)' },
+                { tag: t.brace, color: 'var(--editor-special)' },
                 { tag: t.content, color: 'var(--editor-text)' },
-                { tag: t.attributeValue, color: 'var(--editor-bracket)' },
-                { tag: t.string, color: 'var(--editor-string)' },
+                { tag: t.attributeValue, color: 'var(--editor-special)' },
+                { tag: t.string, color: 'var(--editor-function)' },
                 { tag: t.definition(t.propertyName), color: 'var(--editor-keyword)' }
             ]);
 

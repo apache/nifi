@@ -24,7 +24,7 @@ export const defaultTheme = EditorView.theme({
     '.tok-controlKeyword': { color: 'var(--editor-control-keyword)' },
     '.tok-definitionKeyword.tok-keyword': { color: 'var(--editor-keyword)' },
     '.tok-variableName': { color: 'var(--editor-variable-name)' },
-    '.tok-keyword': { color: 'var(--editor-py-keyword)' },
+    '.tok-keyword': { color: 'var(--editor-el-function)' },
     '.tok-name': { color: 'var(--editor-text)' },
     '.tok-functionName.tok-variableName': { color: 'var(--editor-function-name-variable-name)' },
     '.tok-number': { color: 'var(--editor-number)' },

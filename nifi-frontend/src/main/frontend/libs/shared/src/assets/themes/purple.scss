@@ -159,43 +159,43 @@
     --nf-canvas-background: #e5ebed; /* The canvas background color */
     --nf-canvas-border-stroke-width: 1; /* The canvas border stroke width */
 
-    // Codemirror
+    // Codemirror syntax highlighting
+    --editor-bracket: #93937c;
     --editor-text: #191e24;
     --editor-comment: #5d6a85;
     --editor-string: #860112;
     --editor-keyword: #085bd7;
     --editor-function: #087959;
-    --editor-type: #653e03;
-    --editor-line-number: #5d6a85;
-    --editor-active-line-number: #191e24;
-    --editor-control-keyword: #653e03;
+    --editor-type: #b67901;
+    --editor-control-keyword: #b67901;
     --editor-variable-name: #002c6e;
-    --editor-py-keyword: #9712e8;
-    --editor-function-name-variable-name: #653e03;
+    --editor-function-name-variable-name: #b67901;
     --editor-number: #087959;
     --editor-special: #bf0822;
     --editor-type-name: #087959;
+    --editor-el-function: #9712e8;
+    --editor-parameter: var(--editor-keyword);
+    --editor-attribute-name: var(--editor-function);
+
+    // Codemirror theme
+    --editor-selected-background: #d6e6ff;
+    --editor-selected-ui: #085bd7;
+    --editor-selected-hover-text: #004cbe;
+    --editor-line-number: #5d6a85;
+    --editor-active-line-number: #191e24;
     --editor-error-bg: #f76a86;
     --editor-executed-bg: #d6e6ff;
     --editor-selection-match-bg: #9fabc144;
     --editor-search-match-bg: #ffedcd;
     --editor-search-match-selected-bg: #ffedcd;
     --editor-active-handler-border: #b67901;
-    --editor-link: #0000ce;
-    --editor-matchingtag: rgba(255, 150, 0, 0.3);
-    --editor-selected-background: #d6e6ff;
-    --editor-selected-ui: #085bd7;
-    --editor-selected-hover-text: #004cbe;
-    --editor-bracket: #93937c;
-    --editor-parameter: var(--editor-keyword);
-    --editor-el-function: var(--editor-py-keyword);
 
     // Prism
-    --nf-prism-language-color: var(--editor-keyword);
+    --nf-prism-language-color: var(--editor-parameter);
     --nf-prism-token-comment: var(--editor-comment);
-    --nf-prism-token-punctuation: var(--editor-py-keyword);
+    --nf-prism-token-punctuation:var(--editor-text);
     --nf-prism-token-constant: var(--editor-keyword);
-    --nf-prism-token-function: var(--editor-function);
+    --nf-prism-token-function: var(--editor-el-function);
 
     @include mat.theme-overrides(
         (
@@ -593,44 +593,43 @@ html {
     --nf-canvas-background: #0d1411; /* The canvas background color */
     --nf-canvas-border-stroke-width: 2; /* The canvas border stroke width */
 
-    // Codemirror
+    // Codemirror syntax highlighting
+    --editor-bracket: #93937c;
     --editor-text: #f7f7f7;
     --editor-comment: #70819a;
     --editor-string: #f76a86;
     --editor-keyword: #86b6fc;
     --editor-function: #97f3cf;
     --editor-type: #fccf54;
-    --editor-line-number: #bdc4d5;
-    --editor-active-line-number: #fbfbfb;
     --editor-control-keyword: #fccf54;
     --editor-variable-name: #5999f8;
-    --editor-py-keyword: #cb7efa;
     --editor-function-name-variable-name: #fccf54;
     --editor-number: #97f3cf;
     --editor-special: #f76a86;
     --editor-type-name: #97f3cf;
+    --editor-el-function: #cb7efa;
+    --editor-parameter: var(--editor-keyword);
+    --editor-attribute-name: var(--editor-function);
+
+    // Codemirror theme
+    --editor-selected-background: #d6e6ff;
+    --editor-selected-ui: #085bd7;
+    --editor-selected-hover-text: #004cbe;
+    --editor-line-number: #bdc4d5;
+    --editor-active-line-number: #fbfbfb;
     --editor-error-bg: #66000e;
     --editor-executed-bg: #002c6e;
     --editor-selection-match-bg: #9fabc144;
     --editor-search-match-bg: #653e03;
     --editor-search-match-selected-bg: #dd5f04cc;
     --editor-active-handler-border: #ffedcd;
-    --editor-link: #8e8ef6;
-    --editor-matchingtag: rgba(255, 150, 0, 0.97);
-    --editor-selected-background: #d6e6ff;
-    --editor-selected-ui: #085bd7;
-    --editor-selected-hover-text: #004cbe;
-    --editor-selection-match-bg: #9fabc144;
-    --editor-bracket: #93937c;
-    --editor-parameter: var(--editor-keyword);
-    --editor-el-function: var(--editor-py-keyword);
 
     // Prism
-    --nf-prism-language-color: var(--editor-keyword);
+    --nf-prism-language-color: var(--editor-parameter);
     --nf-prism-token-comment: var(--editor-comment);
-    --nf-prism-token-punctuation: var(--editor-py-keyword);
+    --nf-prism-token-punctuation:var(--editor-text);
     --nf-prism-token-constant: var(--editor-keyword);
-    --nf-prism-token-function: var(--editor-function);
+    --nf-prism-token-function: var(--editor-el-function);
 
     color-scheme: dark;
 

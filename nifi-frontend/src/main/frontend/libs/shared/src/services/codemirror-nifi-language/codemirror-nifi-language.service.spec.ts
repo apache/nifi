@@ -179,6 +179,37 @@ describe('CodemirrorNifiLanguageService', () => {
             });
         });
 
+        it('should properly identify multi-attribute function names', () => {
+            const testCases = [
+                '${anyAttribute("user.*")}',
+                '${anyMatchingAttribute("[a-z].*")}',
+                '${allAttributes("abc", "xyz")}',
+                '${allMatchingAttributes("user.*")}',
+                '${anyDelineatedValue("${attr}", ",")}',
+                '${allDelineatedValues("${list}", ",")}'
+            ];
+
+            testCases.forEach((expr) => {
+                const { context, tree } = parseInput(expr);
+                expect(tree).toBeTruthy();
+                expect(tree.length).toBeGreaterThan(0);
+
+                let foundFunction = false;
+                tree.cursor().iterate((node: any) => {
+                    if (node.type.name === 'MultiAttrFunction') {
+                        const funcName = context.state.doc.sliceString(node.from, node.to);
+                        // Extract expected function name from expression
+                        const expected = expr.match(/\$\{(\w+)/)?.[1];
+                        expect(funcName).toBe(expected);
+                        foundFunction = true;
+                    }
+                    return true;
+                });
+
+                expect(foundFunction).toBe(true);
+            });
+        });
+
         it('should parse parameters with no quotes and with quotes similar', () => {
             const exprUnquoted = '#{param1}';
             const exprQuoted = '#{"param1"}';

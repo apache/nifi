@@ -24,7 +24,9 @@ ${attr:contains('value')}
 ${filename:substring(0, ${name:length()})}
 ${filename:replace(${attr:substring(0, 3)}, "new")}
 
-# Parameter References (should be var(--editor-parameter))
+# Parameter References (should be var(--editor-keyword))
+#{parameter Name}
+#{'A lonnnnggg parameter name.'}
 #{parameterName}
 #{database.url}
 #{app-config}
@@ -46,7 +48,7 @@ Price: $$100 for ${item}
 ${attr:equals('value'):contains('test')}
 ${text:trim():toUpper():substring(0, 5)}
 
-# Embedded Parameters
+# Embedded Parameters (should be var(--editor-keyword))
 ${#{param}:toUpper()}
 ${value:ifElse(#{defaultValue}, "empty")}
 
@@ -146,12 +148,11 @@ ${:missing}
 ${attr:}
 ${nested${broken}
 
-# ===== Expected Color Coding =====
+# ===== Expected Nfel Grammar Color Coding =====
 # Plain Text: Default color (black/white depending on theme)
 # ${} Delimiters: var(--editor-bracket)
-# Attribute Names: var(--editor-variable-2) (attr, filename, name, etc.)
 # Function Names: var(--editor-el-function) (toUpper, equals, contains, etc.)
-# Parameter Names: var(--editor-parameter) (param, database.url, etc.)
+# Parameter Names: var(--editor-keyword) (param, database.url, etc.)
 # String Literals: var(--editor-string) ("test", 'value', etc.)
 # Numbers: var(--editor-number) (100, 3.14, true, false, null)
 # Comments: var(--editor-comment) (# This is a comment)
@@ -165,16 +166,15 @@ When testing in the CodeMirror editor, verify these color codings:
 ### ✅ Correct Styling (Light Theme)
 
 - **Plain Text**: Regular text outside expressions should be black (default text color)
-- **Expression Delimiters**: `${`, `}` should be plain text (default text color)
-- **Parameter Delimiters**: `#{`, `}` should be plain text (default text color)
+- **Expression Delimiters**: `${`, `}` should be var(--editor-bracket)
+- **Parameter Delimiters**: `#{`, `}` should be var(--editor-bracket)
 - **Matching Brackets**: When cursor is between `{}`, brackets should have:
     - Background: `--nf-neutral`
     - Color: `--mat-sys-inverse-on-surface` (black in light mode)
 - **Non-matching Brackets**: When brackets don't match, should have:
     - Color: `--mat-sys-on-surface` (default text color)
-- **Attributes**: `attr`, `filename`, `name` inside expressions should be (`--editor-keyword`)
 - **Functions**: `toUpper`, `equals`, `contains` should be (`--editor-el-function`)
-- **Parameters**: `param`, `database.url` should be (`--editor-parameter`)
+- **Parameters**: `param`, `database.url` should be (`--editor-keyword`)
 - **Strings**: `"test"`, `'value'` should be (`--editor-string`)
 - **Numbers**: `100`, `3.14`, `true`, `false` should be (`--editor-number`)
 - **Comments**: `# This is a comment` should be (`--editor-comment`)
@@ -182,8 +182,8 @@ When testing in the CodeMirror editor, verify these color codings:
 ### ✅ Correct Styling (Dark Theme)
 
 - **Plain Text**: Regular text outside expressions should be white (default text color)
-- **Expression Delimiters**: `${`, `}` should be plain text (default text color)
-- **Parameter Delimiters**: `#{`, `}` should be plain text (default text color)
+- **Expression Delimiters**: `${`, `}` should be var(--editor-bracket)
+- **Parameter Delimiters**: `#{`, `}` should be var(--editor-bracket)
 - **Matching Brackets**: When cursor is between `{}`, brackets should have:
     - Background: `--nf-neutral`: `#acacac`
     - Color: `--mat-sys-inverse-on-surface` (white in dark mode)
@@ -191,7 +191,7 @@ When testing in the CodeMirror editor, verify these color codings:
     - Color: `--mat-sys-on-surface` (default text color)
 - **Attributes**: `attr`, `filename`, `name` inside expressions should be (`--editor-keyword`)
 - **Functions**: `toUpper`, `equals`, `contains` should be (`--editor-el-function`)
-- **Parameters**: `param`, `database.url` should be (`--editor-parameter`)
+- **Parameters**: `param`, `database.url` should be (`--editor-keyword`)
 - **Strings**: `"test"`, `'value'` should be (`--editor-string`)
 - **Numbers**: `100`, `3.14`, `true`, `false` should be (`--editor-number`)
 - **Comments**: `# This is a comment` should be (`--editor-comment`)

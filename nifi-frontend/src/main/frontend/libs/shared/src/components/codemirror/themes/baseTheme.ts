@@ -244,7 +244,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         background: 'var(--nf-caution-default)'
     },
     '.cm-lint-marker-info': {
-        background: 'var(--editor-link)'
+        background: '#0000ce'
     },
     '.cm-tooltip.cm-completionInfo, .cm-tooltip-hover .hover-scroll': {
         ...boxStyle,
@@ -360,7 +360,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-lintRange-info': {
         backgroundImage: 'none',
-        borderBottom: '2px dotted var(--editor-link)',
+        borderBottom: '2px dotted #0000ce',
         paddingBottom: 0
     },
     '.cm-lintRange-warning': {
@@ -378,7 +378,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         textDecoration: 'underline'
     },
     '.desclink:hover': {
-        color: 'var(--editor-link)'
+        color: '#0000ce'
     },
     '.active-handler': {
         backgroundColor: 'transparent',

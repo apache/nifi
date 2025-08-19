@@ -70,44 +70,48 @@ export class CodemirrorNifiLanguageService {
     }
 
     private createDynamicHighlighting() {
-        // Always show basic structural elements
+        // base highlighting
         const baseHighlighting = {
             '{ }': t.brace,
             '( )': t.paren,
-            ':': t.operator,
-            ',': t.separator,
-            Text: t.content,
             Comment: t.comment,
             WholeNumber: t.number,
             Decimal: t.number,
             StringLiteral: t.string,
-            BooleanLiteral: t.bool,
-            Null: t.null
+            BooleanLiteral: t.bool
         };
 
         // Add EL function highlighting only if EL is enabled
         if (this.functionSupported) {
             Object.assign(baseHighlighting, {
-                ExpressionStart: t.special(t.brace),
                 EscapedDollar: t.content,
 
-                ReferenceOrFunction: t.function(t.variableName),
-                AttributeRefOrFunctionCall: t.function(t.variableName),
-                AttributeRef: t.function(t.variableName),
-                Subject: t.function(t.variableName),
-                SingleAttrRef: t.function(t.variableName),
+                // Expression Delimiters
+                ExpressionStart: t.special(t.brace),
 
+                // EL Functions syntax highlighting t.function(t.variableName)
                 FunctionCall: t.function(t.variableName),
                 StandaloneFunction: t.function(t.variableName),
-                AttrName: t.function(t.variableName),
-                SingleAttrName: t.function(t.variableName)
+                MultiAttrFunction: t.function(t.variableName),
+                AttributeRefOrFunctionCall: t.variableName,
+
+                // EL Functions attribute syntax highlighting t.attributeName
+                ReferenceOrFunction: t.attributeName,
+                AttributeRef: t.attributeName,
+                AttrName: t.attributeName,
+                Subject: t.attributeName,
+                SingleAttrRef: t.attributeName,
+                SingleAttrName: t.attributeName
             });
         }
 
         // Add parameter highlighting only if parameters are enabled
         if (this.parametersSupported) {
             Object.assign(baseHighlighting, {
+                // Parameter Delimiters
                 ParameterStart: t.special(t.brace),
+
+                // Parameter syntax highlighting t.special(t.variableName)
                 ParameterReference: t.special(t.variableName),
                 ParameterName: t.special(t.variableName),
                 'ParameterName/StringLiteral': t.special(t.variableName)
@@ -130,21 +134,18 @@ export class CodemirrorNifiLanguageService {
 
         // Create a highlighter that maps our tags to CSS variables
         const nfelHighlighter = HighlightStyle.define([
-            { tag: t.function(t.variableName), color: 'var(--editor-el-function)' },
-            { tag: t.variableName, color: 'var(--editor-keyword)' },
-            { tag: t.special(t.variableName), color: 'var(--editor-parameter)' },
-            {
-                tag: [t.typeName, t.className, t.changed, t.annotation, t.modifier, t.self, t.namespace],
-                color: 'var(--editor-number)'
-            },
-            {
-                tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)],
-                color: 'var(--editor-link)'
-            },
+            // base highlighting
             { tag: [t.number, t.bool], color: 'var(--editor-number)' },
-            { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--editor-string)' },
+            { tag: t.string, color: 'var(--editor-string)' },
             { tag: [t.comment], color: 'var(--editor-comment)' },
-            { tag: [t.brace, t.paren, t.bracket], color: 'var(--editor-bracket)' }
+            { tag: [t.brace, t.paren, t.bracket], color: 'var(--editor-bracket)' },
+            { tag: t.special(t.brace), color: 'var(--editor-bracket)' },
+            // EL Functions syntax highlighting t.function(t.variableName)
+            { tag: t.function(t.variableName), color: 'var(--editor-el-function)' },
+            // EL Functions attribute syntax highlighting t.attributeName
+            { tag: t.attributeName, color: 'var(--editor-attribute-name)' },
+            // Parameter syntax highlighting t.special(t.variableName)
+            { tag: t.special(t.variableName), color: 'var(--editor-parameter)' }
         ]);
 
         this.languageSupport = new LanguageSupport(this.language, [
