@@ -251,6 +251,11 @@ export class CodemirrorNifiLanguageService {
             return null;
         }
 
+        // Check if the parameter start is escaped and should not show autocompletion
+        if (this.isParameterEscaped(textBefore)) {
+            return null;
+        }
+
         // Check if we're in an expression context, respecting enablement flags
         const isStandaloneFunction = this.functionSupported ? this.isStandaloneFunctionContext(node, context) : false;
         const isFunction = this.functionSupported ? this.isFunctionContext(node, context) : false;
@@ -837,6 +842,29 @@ export class CodemirrorNifiLanguageService {
         // If remainder is even (including 0), the expression is escaped
         // If remainder is odd, the expression is valid
         const remainder = dollarCount % 2;
+        return remainder === 0;
+    }
+
+    private isParameterEscaped(textBefore: string): boolean {
+        // Find the last occurrence of #{ in the text
+        const lastParamStart = textBefore.lastIndexOf('#{');
+        if (lastParamStart === -1) {
+            return false; // No parameter start found
+        }
+
+        // Count consecutive # characters immediately before the {
+        // We consider sequences like '##{' where an even number of preceding # means escaped
+        let hashCount = 0;
+        let pos = lastParamStart - 1; // Start just before the # in #{
+        while (pos >= 0 && textBefore[pos] === '#') {
+            hashCount++;
+            pos--;
+        }
+
+        // Add 1 for the # in #{
+        hashCount += 1;
+        const remainder = hashCount % 2;
+        // Even means escaped (##{, ####{, ...), odd means real parameter start
         return remainder === 0;
     }
 

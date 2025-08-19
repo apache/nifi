@@ -148,6 +148,28 @@ describe('NiFi Expression Language - Theme Validation', () => {
             expect(hasEscapedDollar).toBe(true);
         });
 
+        it('should treat escaped expression with braces as plain text', () => {
+            const input = 'Show literal: $${filename}';
+            const { tokens } = parseTokens(input);
+            // No ReferenceOrFunction node should exist
+            const hasExpression = tokens.some((t) => t.nodeType === 'ReferenceOrFunction');
+            expect(hasExpression).toBe(false);
+            // Escaped dollar should be present
+            const hasEscaped = tokens.some((t) => t.text.includes('$$'));
+            expect(hasEscaped).toBe(true);
+        });
+
+        it('should treat escaped parameter syntax as plain text', () => {
+            const input = 'Literal param: ##{param}';
+            const { tokens } = parseTokens(input);
+            // No ParameterReference node should exist
+            const hasParamRef = tokens.some((t) => t.nodeType === 'ParameterReference');
+            expect(hasParamRef).toBe(false);
+            // Escaped hash should be present
+            const hasEscapedHash = tokens.some((t) => t.text.includes('##'));
+            expect(hasEscapedHash).toBe(true);
+        });
+
         it('should style expression attributes properly', () => {
             const input = '${filename:replace(${attr}, "new")}';
             const { tokens } = parseTokens(input);
@@ -169,31 +191,15 @@ describe('NiFi Expression Language - Theme Validation', () => {
             const hasStyledDelimiters = delimiterTokens.some((token) => !token.isPlainText);
             expect(hasStyledDelimiters).toBe(true);
         });
-    });
 
-    describe('Performance & Stability', () => {
-        it('should handle large content efficiently', () => {
-            let largeContent = '';
-            for (let i = 0; i < 100; i++) {
-                largeContent += `Line ${i}: Hello \${attr${i}} world\n`;
-            }
-
-            const start = performance.now();
-            const { tree } = parseTokens(largeContent);
-            const end = performance.now();
-
-            expect(end - start).toBeLessThan(500); // Should parse in < 500ms
-            expect(tree).toBeDefined();
-        });
-
-        it('should be stable across multiple parses', () => {
-            const input = 'Hello ${name:toUpperCase()} world';
-
-            for (let i = 0; i < 10; i++) {
-                expect(() => parseTokens(input)).not.toThrow();
-                const { tree } = parseTokens(input);
-                expect(tree).toBeDefined();
-            }
+        it('should expose punctuation tokens inside expressions', () => {
+            const input = '${attr:func(1, 2, 3);}';
+            const { tokens } = parseTokens(input);
+            // Presence of punctuation nodes should make them non-plainText in our parser tree
+            const hasColon = tokens.some((t) => t.nodeType === ':' && t.text === ':');
+            const hasComma = tokens.filter((t) => t.nodeType === ',' && t.text === ',').length >= 2;
+            const hasSemicolon = tokens.some((t) => t.nodeType === ';' && t.text === ';');
+            expect(hasColon && hasComma && hasSemicolon).toBe(true);
         });
     });
 

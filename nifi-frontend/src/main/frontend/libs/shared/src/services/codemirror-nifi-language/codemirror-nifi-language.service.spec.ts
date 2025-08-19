@@ -169,7 +169,11 @@ describe('CodemirrorNifiLanguageService', () => {
                 '${filename:replace("old", "new")}',
                 '${uuid()}',
                 '#{param}',
-                'Hello ${name} world'
+                'Hello ${name} world',
+                '$${escaped}', // escaped expression literal
+                '##{param}', // escaped parameter literal
+                '{}', // literal braces should not crash
+                'Text with { and } braces'
             ];
 
             expressions.forEach((expr) => {
@@ -268,7 +272,9 @@ describe('CodemirrorNifiLanguageService', () => {
                 '${attr:substring(${start}, ${end})}',
                 '${attr:replace(#{search}, ${replacement:toUpper()})}',
                 '${attr:contains(${other:substring(${start:toNumber()}, 5)})}',
-                '${path:replace(${dir:append("/")}${file:substring(0, ${len:toNumber()})}, ".txt")}'
+                '${path:replace(${dir:append("/")}${file:substring(0, ${len:toNumber()})}, ".txt")}',
+                '${attr:equals(null)}', // null literal usage
+                '${attr:func(1,2,3);}' // punctuation heavy
             ];
 
             complexExpressions.forEach((expr) => {
@@ -364,11 +370,14 @@ describe('CodemirrorNifiLanguageService', () => {
                 { input: '${', escaped: false, shouldComplete: true },
                 { input: '$${', escaped: true, shouldComplete: false },
                 { input: '$$${', escaped: false, shouldComplete: true },
-                { input: '$$$${', escaped: true, shouldComplete: false }
+                { input: '$$$${', escaped: true, shouldComplete: false },
+                { input: '##{', escaped: true, shouldComplete: false }
             ];
 
             for (const test of escapeTests) {
-                expect((service as any).isExpressionEscaped(test.input)).toBe(test.escaped);
+                if (test.input.includes('${')) {
+                    expect((service as any).isExpressionEscaped(test.input)).toBe(test.escaped);
+                }
                 await expectCompletion(test.input, test.shouldComplete);
             }
         });
@@ -448,7 +457,8 @@ describe('CodemirrorNifiLanguageService', () => {
                 '$${escaped}', // Escaped expression
                 '#{"quoted param"}', // Quoted parameter
                 '${attr:replace("old", "new")}', // Function with arguments
-                '${anyAttribute("pattern")}' // Multi-attribute function
+                '${anyAttribute("pattern")}', // Multi-attribute function
+                '${filename:equals(null)}' // Null literal
             ];
 
             coreFeatures.forEach((feature) => {
@@ -513,7 +523,8 @@ describe('CodemirrorNifiLanguageService', () => {
             const semicolonTests = [
                 '${attr:equals("test;value")}', // In string literal
                 '${attr}; ${other}', // As separator
-                'First: ${value1}; Second: ${value2}' // In mixed content
+                'First: ${value1}; Second: ${value2}', // In mixed content
+                '${value1:toString();}' // trailing semicolon inside expression
             ];
 
             semicolonTests.forEach((test) => {
