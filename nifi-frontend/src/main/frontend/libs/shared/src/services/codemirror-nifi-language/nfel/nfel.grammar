@@ -111,10 +111,16 @@ AnyArg {
   ParameterReference
 }
 
-// Based on ANTLR parser rule: parameterReference : PARAMETER_REFERENCE_START singleAttrRef RBRACE
+// Based on ANTLR parser rule: parameterReference : PARAMETER_REFERENCE_START parameterName RBRACE
 // Split ParameterStart and opening brace so that "{" is a standalone token for proper brace matching
 ParameterReference {
-  ParameterStart "{" (identifier | StringLiteral) "}"
+  ParameterStart "{" ParameterName "}"
+}
+
+// Parameter name can be a quoted string or one or more identifiers (allowing spaces between words)
+ParameterName {
+  StringLiteral |
+  identifier+
 }
 
 @tokens {

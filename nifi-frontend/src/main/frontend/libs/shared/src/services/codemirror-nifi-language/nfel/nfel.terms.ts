@@ -24,5 +24,6 @@ export const
   Null = 24,
   ParameterReference = 25,
   ParameterStart = 26,
-  StandaloneFunction = 30,
-  Comment = 32
+  ParameterName = 27,
+  StandaloneFunction = 31,
+  Comment = 33

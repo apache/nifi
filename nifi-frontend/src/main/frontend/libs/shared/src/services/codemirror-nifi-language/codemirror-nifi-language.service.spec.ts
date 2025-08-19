@@ -47,7 +47,8 @@ describe('CodemirrorNifiLanguageService', () => {
     const mockParameters = [
         { name: 'param1', description: 'Test parameter 1', sensitive: false, value: 'value1' },
         { name: 'param with spaces', description: 'Parameter with spaces', sensitive: false, value: 'value2' },
-        { name: 'database.url', description: 'Database URL parameter', sensitive: false, value: 'jdbc:...' }
+        { name: 'database.url', description: 'Database URL parameter', sensitive: false, value: 'jdbc:...' },
+        { name: 'Date Format', description: 'Date format parameter', sensitive: false, value: 'yyyy-MM-dd' }
     ];
 
     beforeEach(() => {
@@ -176,6 +177,54 @@ describe('CodemirrorNifiLanguageService', () => {
                 expect(tree).toBeTruthy();
                 expect(tree.length).toBeGreaterThan(0);
             });
+        });
+
+        it('should parse parameters with no quotes and with quotes similar', () => {
+            const exprUnquoted = '#{param1}';
+            const exprQuoted = '#{"param1"}';
+
+            const { context: ctxUnquoted, tree: treeUnquoted } = parseInput(exprUnquoted);
+            const { context: ctxQuoted, tree: treeQuoted } = parseInput(exprQuoted);
+
+            expect(treeUnquoted).toBeTruthy();
+            expect(treeQuoted).toBeTruthy();
+
+            expect(treeUnquoted.length).toBeGreaterThan(0);
+            expect(treeQuoted.length).toBeGreaterThan(0);
+
+            const getParamName = (state: any, tree: any) => {
+                let name = '';
+                tree.cursor().iterate((node: any) => {
+                    if (node.type.name === 'ParameterName') {
+                        const raw = state.doc.sliceString(node.from, node.to);
+                        name = raw.replace(/^['"]|['"]$/g, '');
+                    }
+                    return true;
+                });
+                return name;
+            };
+
+            expect(getParamName(ctxUnquoted.state, treeUnquoted)).toEqual(getParamName(ctxQuoted.state, treeQuoted));
+        });
+
+        it('should parse parameters with no spaces and with spaces (unquoted) the same', () => {
+            const exprSpaces = '#{Date Format}';
+            const exprNoSpaces = '#{param1}';
+
+            const { tree: treeNoSpaces } = parseInput(exprNoSpaces);
+            const { tree: treeSpaces } = parseInput(exprSpaces);
+
+            expect(treeNoSpaces).toBeTruthy();
+            expect(treeSpaces).toBeTruthy();
+
+            expect(treeNoSpaces.length).toBeGreaterThan(0);
+            expect(treeSpaces.length).toBeGreaterThan(0);
+
+            const serializedNoSpaces = (treeNoSpaces as any).toString();
+            const serializedSpaces = (treeSpaces as any).toString();
+            console.log('Spaces', serializedSpaces);
+            console.log('No Spaces', serializedNoSpaces);
+            expect(serializedSpaces).toEqual(serializedNoSpaces);
         });
 
         it('should handle complex nested expressions', () => {

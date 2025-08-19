@@ -116,9 +116,8 @@ export class CodemirrorNifiLanguageService {
             Object.assign(baseHighlighting, {
                 ParameterStart: t.special(t.brace),
                 ParameterReference: t.special(t.variableName),
-                ParameterName: t.variableName,
-                'parameterName identifier': t.variableName,
-                'ParameterReference ParameterContent': t.special(t.variableName)
+                ParameterName: t.special(t.variableName),
+                'ParameterName/StringLiteral': t.special(t.variableName)
             });
         }
 
@@ -361,8 +360,8 @@ export class CodemirrorNifiLanguageService {
         // Check for well-formed parameter contexts first
         const isWellFormedParameter =
             (node.type.name === '{' && node.parent?.type.name === 'ParameterReference') ||
-            (node.type.name === 'identifier' && node.parent?.type.name === 'parameterName') ||
-            (node.type.name === 'parameterName' && node.parent?.type.name === 'ParameterReference') ||
+            (node.type.name === 'identifier' && node.parent?.type.name === 'ParameterName') ||
+            (node.type.name === 'ParameterName' && node.parent?.type.name === 'ParameterReference') ||
             // Handle quoted parameter names: StringLiteral inside ParameterReference, but NOT on closing quotes
             this.isValidStringLiteralInParameterContext(node, context) ||
             // Handle incomplete quoted parameter names: Text nodes inside incomplete parameter references
