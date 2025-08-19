@@ -2513,7 +2513,10 @@ representation of the statistics being graphed. The following information is pro
 - *Component-Specific Entries*: Information is shown for each different type of component. For example, for a Processor,
 	the type of Processor is displayed. For a Connection, the source and destination names and IDs are shown.
 
-- *Start*: The earliest time shown on the graph.
+- *Start*: The earliest time shown on the graph. This is a selectable value providing common options for how much of the historical data the user is interested in.
+   Options become available as data supports it, but the "All" option is always available. When "All" is selected it specifies that the earliest time in the graph will be the
+   beginning of all available data. Other options, only available as data becomes available, specify the last N amount of time ago
+   (5 minutes, 10 minutes, 30 minutes, hour).
 
 - *End*: The latest time shown on the graph.
 
