@@ -40,6 +40,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.kerberos.KerberosContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -115,18 +116,22 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName) {
-        this(processor, processorName, null, null);
+        this(processor, processorName, null, null, null);
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName, KerberosContext kerberosContext) {
-        this(processor, processorName, null, kerberosContext);
+        this(processor, processorName, null, kerberosContext, null);
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger) {
-        this(processor, processorName, logger, null);
+        this(processor, processorName, logger, null, null);
     }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
+    StandardProcessorTestRunner(final Processor processor, String processorName, ParameterLookup parameterLookup) {
+        this(processor, processorName, null, null, parameterLookup);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext, ParameterLookup parameterLookup) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -134,7 +139,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.processorStateManager = new MockStateManager(processor);
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits, allowRecursiveReads);
 
-        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables, parameterLookup);
         this.kerberosContext = kerberosContext;
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger, kerberosContext);

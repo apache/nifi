@@ -87,6 +87,19 @@ public class TestRunners {
     }
 
     /**
+     * Returns a {@code TestRunner} for the given {@code Processor}.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will be the passed name.
+     * @param processor the {@code Processor} under test
+     * @param name the name to give the {@code Processor}
+     * @param parameterLookup the {@code ParameterLookup} used for resolving context parameters
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, String name, MockParameterLookup parameterLookup) {
+        return new StandardProcessorTestRunner(processor, name, parameterLookup);
+    }
+
+
+    /**
      * Returns a {@code TestRunner} for the given {@code Processor} class.
      * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
      * @param processorClass the {@code Processor} class
