@@ -25,7 +25,7 @@
     <artifactId>nifi-graph-test-clients</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <janusgraph.version>1.2.0-20250812-182757.f621a1c</janusgraph.version>
+        <janusgraph.version>1.2.0-20250815-215833.1b92960</janusgraph.version>
         <guava.version>33.4.8-jre</guava.version>
         <amqp-client.version>5.26.0</amqp-client.version>
     </properties>
