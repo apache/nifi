@@ -319,7 +319,13 @@ public class AttributesToJSON extends AbstractProcessor {
             if (value != null) {
                 final String trimmedValue = value.trim();
                 if (isPossibleJsonArray(trimmedValue) || isPossibleJsonObject(trimmedValue)) {
-                    formattedAttributes.put(entry.getKey(), OBJECT_MAPPER.readTree(trimmedValue));
+                    try {
+                        formattedAttributes.put(entry.getKey(), OBJECT_MAPPER.readTree(trimmedValue));
+                    } catch (JsonProcessingException jsonEx) {
+                        // If JSON parsing fails, treat as regular string instead of throwing exception
+                        getLogger().debug("Failed to parse JSON-like value for attribute '{}': {}, treating as string", entry.getKey(), jsonEx.getMessage());
+                        formattedAttributes.put(entry.getKey(), value);
+                    }
                     continue;
                 }
             }
@@ -330,10 +336,22 @@ public class AttributesToJSON extends AbstractProcessor {
     }
 
     private boolean isPossibleJsonArray(String value) {
-        return value.startsWith("[") && value.endsWith("]");
+        if (value == null || value.length() < 2) {
+            return false;
+        }
+        String trimmed = value.trim();
+        return trimmed.startsWith("[") && trimmed.endsWith("]") &&
+                !trimmed.equals("[]") &&
+                trimmed.contains(",") || trimmed.matches("\\[\\s*[\"'\\d\\{\\[].*\\]");
     }
 
     private boolean isPossibleJsonObject(String value) {
-        return value.startsWith("{") && value.endsWith("}");
+        if (value == null || value.length() < 2) {
+            return false;
+        }
+        String trimmed = value.trim();
+        return trimmed.startsWith("{") && trimmed.endsWith("}") &&
+                !trimmed.equals("{}") &&
+                trimmed.contains(":") && (trimmed.contains("\"") || trimmed.contains("'"));
     }
 }

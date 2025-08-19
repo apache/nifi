@@ -505,10 +505,10 @@ public class TestAttributesToJSON {
         runner.enqueue(ff);
         runner.run();
 
-        runner.assertTransferCount(AttributesToJSON.REL_FAILURE, 1);
-        runner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 0);
+        runner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         MockComponentLog logger = runner.getLogger();
-        assertTrue(logger.getErrorMessages().getFirst().getMsg().contains("expecting"));
+        // With the fix, invalid JSON is treated as string, so no error messages expected
     }
 
     @ParameterizedTest
