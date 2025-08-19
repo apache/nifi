@@ -88,26 +88,19 @@ export class CodemirrorNifiLanguageService {
         // Add EL function highlighting only if EL is enabled
         if (this.functionSupported) {
             Object.assign(baseHighlighting, {
-                ExpressionStart: t.brace,
+                ExpressionStart: t.special(t.brace),
                 EscapedDollar: t.content,
 
-                ReferenceOrFunction: t.variableName,
-                AttributeRefOrFunctionCall: t.variableName,
-                AttributeRef: t.variableName,
-                Subject: t.variableName,
-                SingleAttrRef: t.variableName,
-                'ReferenceOrFunction Expression': t.content,
+                ReferenceOrFunction: t.function(t.variableName),
+                AttributeRefOrFunctionCall: t.function(t.variableName),
+                AttributeRef: t.function(t.variableName),
+                Subject: t.function(t.variableName),
+                SingleAttrRef: t.function(t.variableName),
 
                 FunctionCall: t.function(t.variableName),
                 StandaloneFunction: t.function(t.variableName),
-                MultiAttrFunctionName: t.function(t.variableName),
-                AttrName: t.variableName,
-                SingleAttrName: t.variableName,
-                identifier: t.variableName,
-                '⚠': t.variableName,
-                'AttributeRefOrFunctionCall FunctionCall StandaloneFunction': t.variableName,
-                'AttributeRef Subject AttrName': t.variableName,
-                'SingleAttrName MultiAttrName': t.variableName
+                AttrName: t.function(t.variableName),
+                SingleAttrName: t.function(t.variableName)
             });
         }
 
