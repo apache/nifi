@@ -25,8 +25,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -359,7 +357,6 @@ class TestModifyCompression {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testBrotliCompress() throws Exception {
         runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION_STRATEGY, CompressionStrategy.BROTLI);
         runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.UPDATED);
@@ -374,7 +371,6 @@ class TestModifyCompression {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testBrotliDecompress() throws Exception {
         runner.setProperty(ModifyCompression.INPUT_COMPRESSION_STRATEGY, CompressionStrategy.BROTLI);
         runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.UPDATED);

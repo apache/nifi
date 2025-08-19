@@ -21,8 +21,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -380,7 +378,6 @@ public class TestCompressContent {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testBrotliCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
         runner.setProperty(CompressContent.MODE, CompressContent.MODE_COMPRESS);
@@ -397,7 +394,6 @@ public class TestCompressContent {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testBrotliDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
         runner.setProperty(CompressContent.MODE, CompressContent.MODE_DECOMPRESS);
