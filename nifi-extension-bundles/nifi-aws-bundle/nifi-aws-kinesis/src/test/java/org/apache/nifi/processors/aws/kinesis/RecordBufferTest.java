@@ -162,7 +162,6 @@ class RecordBufferTest {
         // Checkpointer should not be called during rollback.
         assertFalse(checkpointer1.isCheckpointed());
 
-        recordBuffer.consumeRecords(lease);
         final List<String> rolledBackMessages = recordBuffer.consumeRecords(lease).stream()
                 .map(this::readContent)
                 .toList();
