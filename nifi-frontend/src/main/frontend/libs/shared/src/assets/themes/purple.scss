@@ -140,6 +140,7 @@
 
     /* Nifi Light mode. Use these variables when applying colors to elements */
     --nf-success-default: #31975b; /* The success color  */
+    --nf-success-default-background: #bdf8e9;
     --nf-success-variant: #1390ca; /* The success variant color  */
     --nf-success-contrast: #ffffff; /* The success contrast color */
     --nf-caution-default: #cf9338; /* The caution color  */
@@ -574,6 +575,7 @@ html {
 
     /* Nifi Dark mode. Use these variables when applying colors to elements */
     --nf-success-default: #31975b; /* The success color  */
+    --nf-success-default-background: #bdf8e9;
     --nf-success-variant: #1390ca; /* The success variant color  */
     --nf-success-contrast: #ffffff; /* The success contrast color */
     --nf-caution-default: #cf9338; /* The caution color  */
