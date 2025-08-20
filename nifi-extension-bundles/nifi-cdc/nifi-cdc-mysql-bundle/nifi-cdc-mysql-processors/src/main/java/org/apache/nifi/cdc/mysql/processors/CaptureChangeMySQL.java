@@ -429,7 +429,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_MODE = new PropertyDescriptor.Builder()
             .name("SSL Mode")
-            .displayName("SSL Mode")
             .description("SSL Mode used when SSL Context Service configured supporting certificate verification options")
             .required(true)
             .defaultValue(SSL_MODE_DISABLED)
@@ -441,7 +440,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .displayName("SSL Context Service")
             .description("SSL Context Service supporting encrypted socket communication")
             .required(false)
             .identifiesControllerService(SSLContextService.class)

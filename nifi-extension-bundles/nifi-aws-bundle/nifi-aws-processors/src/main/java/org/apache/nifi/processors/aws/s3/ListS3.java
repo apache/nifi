@@ -279,7 +279,6 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     static final PropertyDescriptor BATCH_SIZE = new Builder()
         .name("Listing Batch Size")
-        .displayName("Listing Batch Size")
         .description("If not using a Record Writer, this property dictates how many S3 objects should be listed in a single batch. Once this number is reached, the FlowFiles that have been created " +
             "will be transferred out of the Processor. Setting this value lower may result in lower latency by sending out the FlowFiles before the complete listing has finished. However, it can " +
             "significantly reduce performance. Larger values may take more memory to store all of the information before sending the FlowFiles out. This property is ignored if using a Record " +

@@ -109,7 +109,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     public static final PropertyDescriptor CREDENTIALS_FILE = new PropertyDescriptor.Builder()
         .name("Credentials File")
-        .displayName("Credentials File")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -148,7 +147,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     public static final PropertyDescriptor ASSUME_ROLE_ARN = new PropertyDescriptor.Builder()
         .name("Assume Role ARN")
-        .displayName("Assume Role ARN")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -158,7 +156,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     public static final PropertyDescriptor ASSUME_ROLE_NAME = new PropertyDescriptor.Builder()
         .name("Assume Role Session Name")
-        .displayName("Assume Role Session Name")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

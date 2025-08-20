@@ -104,7 +104,6 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     public static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("Namespace")
-            .displayName("Namespace")
             .description("The namespace for the metric data for CloudWatch")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -122,7 +121,6 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     public static final PropertyDescriptor VALUE = new PropertyDescriptor.Builder()
             .name("Value")
-            .displayName("Value")
             .description("The value for the metric. Must be a double")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -131,7 +129,6 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     public static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
             .name("Timestamp")
-            .displayName("Timestamp")
             .description("A point in time expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. If not specified, the default value is set to the time the metric data was received")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -140,7 +137,6 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     public static final PropertyDescriptor UNIT = new PropertyDescriptor.Builder()
             .name("Unit")
-            .displayName("Unit")
             .description("The unit of the metric. (e.g Seconds, Bytes, Megabytes, Percent, Count,  Kilobytes/Second, Terabits/Second, Count/Second) For details see http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDatum.html")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)

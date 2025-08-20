@@ -96,7 +96,6 @@ public class ModifyCompression extends AbstractProcessor {
 
     public static final PropertyDescriptor INPUT_COMPRESSION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Input Compression Strategy")
-            .displayName("Input Compression Strategy")
             .description("The strategy to use for decompressing input FlowFiles")
             .allowableValues(EnumSet.complementOf(EnumSet.of(CompressionStrategy.SNAPPY_HADOOP)))
             .defaultValue(CompressionStrategy.NONE)
@@ -114,7 +113,6 @@ public class ModifyCompression extends AbstractProcessor {
 
     public static final PropertyDescriptor OUTPUT_COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Output Compression Level")
-            .displayName("Output Compression Level")
             .description("The compression level for output FlowFiles for supported formats. A lower value results in faster processing "
                     + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
                     + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
@@ -132,7 +130,6 @@ public class ModifyCompression extends AbstractProcessor {
 
     public static final PropertyDescriptor OUTPUT_FILENAME_STRATEGY = new PropertyDescriptor.Builder()
             .name("Output Filename Strategy")
-            .displayName("Output Filename Strategy")
             .description("Processing strategy for filename attribute on output FlowFiles")
             .required(true)
             .allowableValues(FilenameStrategy.class)

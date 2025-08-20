@@ -64,7 +64,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Authentication Strategy")
-            .displayName("Authentication Strategy")
             .description("Authentication method for access to Azure Data Explorer")
             .required(true)
             .defaultValue(KustoAuthenticationStrategy.MANAGED_IDENTITY.getValue())
@@ -73,7 +72,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor APPLICATION_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("Application Client ID")
-            .displayName("Application Client ID")
             .description("Azure Data Explorer Application Client Identifier for Authentication")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -81,7 +79,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor APPLICATION_KEY = new PropertyDescriptor.Builder()
             .name("Application Key")
-            .displayName("Application Key")
             .description("Azure Data Explorer Application Key for Authentication")
             .required(true)
             .sensitive(true)
@@ -91,7 +88,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor APPLICATION_TENANT_ID = new PropertyDescriptor.Builder()
             .name("Application Tenant ID")
-            .displayName("Application Tenant ID")
             .description("Azure Data Explorer Application Tenant Identifier for Authentication")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -100,7 +96,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor CLUSTER_URI = new PropertyDescriptor.Builder()
             .name("Cluster URI")
-            .displayName("Cluster URI")
             .description("Azure Data Explorer Cluster URI")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
