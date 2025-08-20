@@ -35,10 +35,12 @@ import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -98,7 +100,7 @@ final class RecordBuffer {
             return;
         }
 
-        memoryTracker.addRecordsMemory(records);
+        memoryTracker.reserveMemory(records);
         final ShardBufferOfferResult result = buffer.offer(records, checkpointer);
         switch (result) {
             case ShardBufferOfferResult.Added r -> {
@@ -110,19 +112,19 @@ final class RecordBuffer {
                         buffer);
 
                 if (r.bufferWasEmpty()) {
-                    logger.debug("Making the buffer {} available for lease, as it has been added new records", bufferId);
+                    logger.debug("Making the buffer {} available for lease, as it isn't empty anymore", bufferId);
                     buffersWithData.add(bufferId);
                 }
             }
             case ShardBufferOfferResult.BufferInvalidated __ -> {
-                // If the buffer was already invalidated, we should free memory for these records.
                 logger.debug("Buffer with id {} was invalidated. Cannot add records with sequence and subsequence numbers: {}.{} - {}.{}",
                         bufferId,
                         records.getFirst().sequenceNumber(),
                         records.getFirst().subSequenceNumber(),
                         records.getLast().sequenceNumber(),
                         records.getLast().subSequenceNumber());
-                memoryTracker.freeRecordsMemory(records);
+                // If the buffer was already invalidated, we should free memory reserved for these records.
+                memoryTracker.freeMemory(records);
             }
         }
     }
@@ -154,7 +156,7 @@ final class RecordBuffer {
 
         if (buffer != null) {
             final Collection<KinesisClientRecord> records = buffer.invalidate();
-            memoryTracker.freeRecordsMemory(records);
+            memoryTracker.freeMemory(records);
         }
     }
 
@@ -216,7 +218,7 @@ final class RecordBuffer {
         }
 
         final List<KinesisClientRecord> consumedRecords = buffer.commitConsumedRecords();
-        memoryTracker.freeRecordsMemory(consumedRecords);
+        memoryTracker.freeMemory(consumedRecords);
     }
 
     void rollbackConsumedRecords(final ShardBufferLease lease) {
@@ -281,16 +283,18 @@ final class RecordBuffer {
 
         private final long maxMemoryBytes;
 
-        private long consumedMemoryBytes = 0;
-        private final Lock memoryGaugeLock = new ReentrantLock();
-        private final Condition decreasedConsumedMemoryCondition = memoryGaugeLock.newCondition();
+        private final AtomicLong consumedMemoryBytes = new AtomicLong(0);
+        /**
+         * Whenever memory is freed a latch opens. Then replaced with a new one.
+         */
+        private volatile CountDownLatch memoryAvailableLatch = new CountDownLatch(1);
 
-        BlockingMemoryTracker(ComponentLog logger, final long maxMemoryBytes) {
+        BlockingMemoryTracker(final ComponentLog logger, final long maxMemoryBytes) {
             this.logger = logger;
             this.maxMemoryBytes = maxMemoryBytes;
         }
 
-        void addRecordsMemory(final Collection<KinesisClientRecord> newRecords) {
+        void reserveMemory(final Collection<KinesisClientRecord> newRecords) {
             if (newRecords.isEmpty()) {
                 return;
             }
@@ -301,44 +305,54 @@ final class RecordBuffer {
                         "A record batch takes up %d bytes, while the max buffer size is %d bytes").formatted(consumedBytes, maxMemoryBytes));
             }
 
-            try {
-                memoryGaugeLock.lock();
-                while (consumedMemoryBytes + consumedBytes > maxMemoryBytes) {
+            while (true) {
+                final long currentlyConsumedBytes = consumedMemoryBytes.get();
+                final long newConsumedBytes = currentlyConsumedBytes + consumedBytes;
+
+                if (newConsumedBytes <= maxMemoryBytes) {
+                    if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newConsumedBytes)) {
+                        logger.debug("Reserved {} bytes for {} records. Total consumed memory: {} bytes",
+                                consumedBytes, newRecords.size(), newConsumedBytes);
+                        break;
+                    }
+                    // If we're here, the compare and set operation failed, as another thread has modified the gauge in meantime.
+                    // Retrying the operation.
+
+                } else {
+                    // Not enough memory available, need to wait.
                     try {
-                        decreasedConsumedMemoryCondition.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
+                        memoryAvailableLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
                     } catch (final InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException("Thread interrupted while waiting for available memory in RecordBuffer", e);
                     }
                 }
-
-                consumedMemoryBytes += consumedBytes;
-                logger.debug("Reserved {} bytes for {} records. Total consumed memory: {} bytes",
-                        consumedBytes, newRecords.size(), consumedMemoryBytes);
-            } finally {
-                memoryGaugeLock.unlock();
             }
         }
 
-        void freeRecordsMemory(final Collection<KinesisClientRecord> consumedRecords) {
+        void freeMemory(final Collection<KinesisClientRecord> consumedRecords) {
             if (consumedRecords.isEmpty()) {
                 return;
             }
 
             final long freedBytes = calculateMemoryUsage(consumedRecords);
 
-            try {
-                memoryGaugeLock.lock();
-                if (consumedMemoryBytes < freedBytes) {
+            while (true) {
+                final long currentlyConsumedBytes = consumedMemoryBytes.get();
+                if (currentlyConsumedBytes < freedBytes) {
                     throw new IllegalStateException("Attempting to free more memory than currently used");
                 }
 
-                consumedMemoryBytes -= freedBytes;
-                logger.debug("Freed {} bytes for {} records. Total consumed memory: {} bytes",
-                        freedBytes, consumedRecords.size(), consumedMemoryBytes);
-                decreasedConsumedMemoryCondition.signalAll();
-            } finally {
-                memoryGaugeLock.unlock();
+                final long newTotal = currentlyConsumedBytes - freedBytes;
+                if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newTotal)) {
+                    logger.debug("Freed {} bytes for {} records. Total consumed memory: {} bytes",
+                            freedBytes, consumedRecords.size(), newTotal);
+
+                    final CountDownLatch oldLatch = memoryAvailableLatch;
+                    memoryAvailableLatch = new CountDownLatch(1); // New latch for future waiters.
+                    oldLatch.countDown(); // Release any waiting threads for free memory.
+                    break;
+                }
             }
         }
 
