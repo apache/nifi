@@ -257,8 +257,6 @@ describe('CodemirrorNifiLanguageService', () => {
 
             const serializedNoSpaces = (treeNoSpaces as any).toString();
             const serializedSpaces = (treeSpaces as any).toString();
-            console.log('Spaces', serializedSpaces);
-            console.log('No Spaces', serializedNoSpaces);
             expect(serializedSpaces).toEqual(serializedNoSpaces);
         });
 
