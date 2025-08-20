@@ -92,7 +92,6 @@ public class ValidateXml extends AbstractProcessor {
 
     public static final PropertyDescriptor SCHEMA_FILE = new PropertyDescriptor.Builder()
             .name("Schema File")
-            .displayName("Schema File")
             .description("The file path or URL to the XSD Schema file that is to be used for validation. If this property is blank, only XML syntax/structure will be validated.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -100,7 +99,6 @@ public class ValidateXml extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor XML_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("XML Source Attribute")
-            .displayName("XML Source Attribute")
             .description("The name of the attribute containing XML to be validated. If this property is blank, the FlowFile content will be validated.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
