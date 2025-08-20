@@ -107,7 +107,7 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
     @Output() blurred = new EventEmitter<void>();
 
     private view: EditorView | null = null;
-    public isInitialized = false;
+    private isInitialized = false;
     private themeCompartment = new Compartment();
     private editableCompartment = new Compartment();
     private readOnlyCompartment = new Compartment();
