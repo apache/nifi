@@ -179,9 +179,9 @@
     --editor-number: #087959;
     --editor-special: #bf0822;
     --editor-type-name: #087959;
-    --editor-el-function: #9712e8;
+    --editor-el-function: var(--editor-function);
     --editor-parameter: var(--editor-keyword);
-    --editor-attribute-name: var(--editor-function);
+    --editor-attribute-name: #9712e8;
 
     // Codemirror theme
     --editor-selected-background: #d6e6ff;
@@ -670,9 +670,9 @@ html {
     --editor-number: #97f3cf;
     --editor-special: #f76a86;
     --editor-type-name: #97f3cf;
-    --editor-el-function: #cb7efa;
+    --editor-el-function: var(--editor-function);
     --editor-parameter: var(--editor-keyword);
-    --editor-attribute-name: var(--editor-function);
+    --editor-attribute-name: #cb7efa;
 
     // Codemirror theme
     --editor-selected-background: #d6e6ff;

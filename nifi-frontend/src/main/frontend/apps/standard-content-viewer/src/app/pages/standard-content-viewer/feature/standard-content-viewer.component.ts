@@ -128,7 +128,7 @@ export class StandardContentViewer {
             // Define highlight styles
             const xmlHighlightStyle = HighlightStyle.define([
                 { tag: t.tagName, color: 'var(--editor-keyword)' },
-                { tag: t.attributeName, color: 'var(--editor-variable-name)' },
+                { tag: t.attributeName, color: 'var(--editor-attribute-name)' },
                 { tag: t.attributeValue, color: 'var(--editor-string)' },
                 { tag: t.angleBracket, color: 'var(--editor-bracket)' },
                 { tag: t.keyword, color: 'var(--editor-variable-name)' },
@@ -144,7 +144,7 @@ export class StandardContentViewer {
             ]);
 
             const yamlHighlightStyle = HighlightStyle.define([
-                { tag: t.keyword, color: 'var(--editor-el-function)' },
+                { tag: t.keyword, color: 'var(--editor-attribute-name)' },
                 { tag: t.comment, color: 'var(--editor-comment)' },
                 { tag: t.separator, color: 'var(--editor-special)' },
                 { tag: t.punctuation, color: 'var(--editor-special)' },

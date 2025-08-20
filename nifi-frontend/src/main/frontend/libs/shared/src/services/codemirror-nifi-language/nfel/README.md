@@ -24,7 +24,7 @@ ${attr:contains('value')}
 ${filename:substring(0, ${name:length()})}
 ${filename:replace(${attr:substring(0, 3)}, "new")}
 
-# Parameter References (should be var(--editor-keyword))
+# Parameter References (should be var(--editor-parameter))
 #{parameter Name}
 #{'A lonnnnggg parameter name.'}
 #{parameterName}
@@ -48,7 +48,7 @@ Price: $$100 for ${item}
 ${attr:equals('value'):contains('test')}
 ${text:trim():toUpper():substring(0, 5)}
 
-# Embedded Parameters (should be var(--editor-keyword))
+# Embedded Parameters (should be var(--editor-parameter))
 ${#{param}:toUpper()}
 ${value:ifElse(#{defaultValue}, "empty")}
 
@@ -152,7 +152,7 @@ ${nested${broken}
 # Plain Text: Default color (black/white depending on theme)
 # ${} Delimiters: var(--editor-bracket)
 # Function Names: var(--editor-el-function) (toUpper, equals, contains, etc.)
-# Parameter Names: var(--editor-keyword) (param, database.url, etc.)
+# Parameter Names: var(--editor-parameter)
 # String Literals: var(--editor-string) ("test", 'value', etc.)
 # Numbers: var(--editor-number) (100, 3.14, true, false, null)
 # Comments: var(--editor-comment) (# This is a comment)
@@ -174,7 +174,7 @@ When testing in the CodeMirror editor, verify these color codings:
 - **Non-matching Brackets**: When brackets don't match, should have:
     - Color: `--mat-sys-on-surface` (default text color)
 - **Functions**: `toUpper`, `equals`, `contains` should be (`--editor-el-function`)
-- **Parameters**: `param`, `database.url` should be (`--editor-keyword`)
+- **Parameters**: should be (`--editor-parameter`)
 - **Strings**: `"test"`, `'value'` should be (`--editor-string`)
 - **Numbers**: `100`, `3.14`, `true`, `false` should be (`--editor-number`)
 - **Comments**: `# This is a comment` should be (`--editor-comment`)
@@ -191,7 +191,7 @@ When testing in the CodeMirror editor, verify these color codings:
     - Color: `--mat-sys-on-surface` (default text color)
 - **Attributes**: `attr`, `filename`, `name` inside expressions should be (`--editor-keyword`)
 - **Functions**: `toUpper`, `equals`, `contains` should be (`--editor-el-function`)
-- **Parameters**: `param`, `database.url` should be (`--editor-keyword`)
+- **Parameters**: should be (`--editor-parameter`)
 - **Strings**: `"test"`, `'value'` should be (`--editor-string`)
 - **Numbers**: `100`, `3.14`, `true`, `false` should be (`--editor-number`)
 - **Comments**: `# This is a comment` should be (`--editor-comment`)
