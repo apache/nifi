@@ -28,7 +28,6 @@ import org.apache.nifi.proxy.ProxySpec;
 public interface AzureEventHubComponent {
     PropertyDescriptor TRANSPORT_TYPE = new PropertyDescriptor.Builder()
             .name("Transport Type")
-            .displayName("Transport Type")
             .description("Advanced Message Queuing Protocol Transport Type for communication with Azure Event Hubs")
             .allowableValues(AzureEventHubTransportType.class)
             .defaultValue(AzureEventHubTransportType.AMQP)

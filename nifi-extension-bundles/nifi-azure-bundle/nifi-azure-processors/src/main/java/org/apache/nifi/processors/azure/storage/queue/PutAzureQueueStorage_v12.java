@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
     public static final PropertyDescriptor MESSAGE_TIME_TO_LIVE = new PropertyDescriptor.Builder()
             .name("Message Time To Live")
-            .displayName("Message Time To Live")
             .description("Maximum time to allow the message to be in the queue")
             .required(true)
             .defaultValue("7 days")
@@ -56,7 +55,6 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
 
     public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Visibility Timeout")
-            .displayName("Visibility Timeout")
             .description("The length of time during which the message will be invisible after it is read. " +
                     "If the processing unit fails to delete the message after it is read, then the message will reappear in the queue.")
             .required(true)

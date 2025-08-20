@@ -85,7 +85,6 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor PRIVATE_KEY_SOURCE = new PropertyDescriptor.Builder()
             .name("Private Key Source")
-            .displayName("Private Key Source")
             .description("Source of information determines the loading strategy for X25519 Private Key Identities")
             .required(true)
             .defaultValue(KeySource.PROPERTIES)
@@ -94,7 +93,6 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor PRIVATE_KEY_IDENTITIES = new PropertyDescriptor.Builder()
             .name("Private Key Identities")
-            .displayName("Private Key Identities")
             .description("One or more X25519 Private Key Identities, separated with newlines, encoded according to the age specification, starting with AGE-SECRET-KEY-1")
             .required(true)
             .sensitive(true)
@@ -105,7 +103,6 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor PRIVATE_KEY_IDENTITY_RESOURCES = new PropertyDescriptor.Builder()
             .name("Private Key Identity Resources")
-            .displayName("Private Key Identity Resources")
             .description("One or more files or URLs containing X25519 Private Key Identities, separated with newlines, encoded according to the age specification, starting with AGE-SECRET-KEY-1")
             .required(true)
             .addValidator(new AgeKeyValidator(AgeKeyIndicator.PRIVATE_KEY))

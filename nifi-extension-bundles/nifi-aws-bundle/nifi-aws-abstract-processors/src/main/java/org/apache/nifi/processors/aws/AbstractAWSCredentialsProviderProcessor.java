@@ -113,7 +113,6 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
 
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
         .name("AWS Credentials Provider service")
-        .displayName("AWS Credentials Provider Service")
         .description("The Controller Service that is used to obtain AWS credentials provider")
         .required(true)
         .identifiesControllerService(AWSCredentialsProviderService.class)

@@ -77,7 +77,6 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
 
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()
             .name("Delay")
-            .displayName("Delay")
             .description("The amount of time to delay the message before it becomes available to consumers")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)

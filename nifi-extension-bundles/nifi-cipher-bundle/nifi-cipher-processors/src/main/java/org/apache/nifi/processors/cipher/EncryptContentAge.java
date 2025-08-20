@@ -83,7 +83,6 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor FILE_ENCODING = new PropertyDescriptor.Builder()
             .name("File Encoding")
-            .displayName("File Encoding")
             .description("Output encoding for encrypted files. Binary encoding provides optimal processing performance.")
             .required(true)
             .defaultValue(FileEncoding.BINARY)
@@ -92,7 +91,6 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor PUBLIC_KEY_SOURCE = new PropertyDescriptor.Builder()
             .name("Public Key Source")
-            .displayName("Public Key Source")
             .description("Source of information determines the loading strategy for X25519 Public Key Recipients")
             .required(true)
             .defaultValue(KeySource.PROPERTIES)
@@ -101,7 +99,6 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor PUBLIC_KEY_RECIPIENTS = new PropertyDescriptor.Builder()
             .name("Public Key Recipients")
-            .displayName("Public Key Recipients")
             .description("One or more X25519 Public Key Recipients, separated with newlines, encoded according to the age specification, starting with age1")
             .required(true)
             .sensitive(true)
@@ -112,7 +109,6 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
 
     static final PropertyDescriptor PUBLIC_KEY_RECIPIENT_RESOURCES = new PropertyDescriptor.Builder()
             .name("Public Key Recipient Resources")
-            .displayName("Public Key Recipient Resources")
             .description("One or more files or URLs containing X25519 Public Key Recipients, separated with newlines, encoded according to the age specification, starting with age1")
             .required(true)
             .addValidator(new AgeKeyValidator(AgeKeyIndicator.PUBLIC_KEY))
