@@ -340,9 +340,9 @@ public class AttributesToJSON extends AbstractProcessor {
             return false;
         }
         String trimmed = value.trim();
-        return trimmed.startsWith("[") && trimmed.endsWith("]") &&
-                !trimmed.equals("[]") &&
-                trimmed.contains(",") || trimmed.matches("\\[\\s*[\"'\\d\\{\\[].*\\]");
+        return trimmed.startsWith("[") && trimmed.endsWith("]")
+                && !trimmed.equals("[]")
+                && (trimmed.contains(",") || trimmed.matches("\\[\\s*[\"'\\d\\{\\[].*\\]"));
     }
 
     private boolean isPossibleJsonObject(String value) {
@@ -350,8 +350,8 @@ public class AttributesToJSON extends AbstractProcessor {
             return false;
         }
         String trimmed = value.trim();
-        return trimmed.startsWith("{") && trimmed.endsWith("}") &&
-                !trimmed.equals("{}") &&
-                trimmed.contains(":") && (trimmed.contains("\"") || trimmed.contains("'"));
+        return trimmed.startsWith("{") && trimmed.endsWith("}")
+                && !trimmed.equals("{}")
+                && trimmed.contains(":") && (trimmed.contains("\"") || trimmed.contains("'"));
     }
 }

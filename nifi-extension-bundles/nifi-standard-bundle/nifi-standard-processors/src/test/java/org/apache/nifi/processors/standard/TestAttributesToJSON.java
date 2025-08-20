@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -507,7 +506,6 @@ public class TestAttributesToJSON {
 
         runner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         runner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
-        MockComponentLog logger = runner.getLogger();
         // With the fix, invalid JSON is treated as string, so no error messages expected
     }
 
