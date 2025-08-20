@@ -220,10 +220,10 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
 
             final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? DriverUtils.discoverDriverClasses(driverResources) : List.of();
 
-            StringBuilder errorMessage = new StringBuilder(String.format("JDBC driver class '%s' not found.", driverName));
+            StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverName));
 
             if (!availableDrivers.isEmpty()) {
-                errorMessage.append(String.format(" Available driver classes found in resources: %s.", String.join(", ", availableDrivers)));
+                errorMessage.append(" Available driver classes found in resources: %s.".formatted(String.join(", ", availableDrivers)));
             } else if (driverResources != null && driverResources.getCount() != 0) {
                 final List<ResourceReference> resourcesList = driverResources.asList();
                 if (resourcesList.stream().filter(r -> r.getResourceType() != ResourceType.URL).count() != 0) {

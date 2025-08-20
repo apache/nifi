@@ -373,15 +373,14 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
                 List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
-                    messageBuilder.append(String.format(" Driver class [%s] not found in provided resources. Available driver classes found: %s",
-                            driverName, String.join(", ", availableDrivers)));
+                    messageBuilder.append(" Driver class [%s] not found in provided resources. Available driver classes found: %s".formatted(driverName, String.join(", ", availableDrivers)));
                 } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
                     messageBuilder.append(" Driver Class found but not loaded: Apply configuration before verifying.");
                 } else {
-                    messageBuilder.append(String.format(" Exception: %s", e.getMessage()));
+                    messageBuilder.append(" Exception: %s".formatted(e.getMessage()));
                 }
             } else {
-                messageBuilder.append(String.format(" No driver name specified or no driver resources provided. Exception: %s", e.getMessage()));
+                messageBuilder.append(" No driver name specified or no driver resources provided. Exception: %s".formatted(e.getMessage()));
             }
 
             results.add(new ConfigVerificationResult.Builder()

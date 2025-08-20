@@ -212,8 +212,8 @@ public class DBCPServiceTest {
     }
 
     @Test
-    public void testInvalidDirverH2() throws URISyntaxException {
-        final URL driverURL = org.h2.Driver.class
+    public void testInvalidDriverDerby() throws URISyntaxException {
+        final URL driverURL = org.apache.derby.client.ClientAutoloadedDriver.class
                 .getProtectionDomain()
                 .getCodeSource()
                 .getLocation();
@@ -227,7 +227,7 @@ public class DBCPServiceTest {
         assertEquals(1, verificationResults.size());
 
         final ConfigVerificationResult result = verificationResults.stream().filter(r -> r.getVerificationStepName().equals("Configure Data Source")).findFirst().get();
-        assertTrue(result.getExplanation().contains("org.h2.Driver"));
+        assertTrue(result.getExplanation().contains("org.apache.derby.client.ClientAutoloadedDriver"));
     }
 
     @Test
