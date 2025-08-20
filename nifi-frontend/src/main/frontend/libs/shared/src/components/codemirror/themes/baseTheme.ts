@@ -73,7 +73,8 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '.cm-content': {
         // So it will grow to fill the flex container instead of starting out too wide if there's a long
         // line in the editor
-        width: 0
+        width: 0,
+        caretColor: 'var(--mat-sys-on-surface)',
     },
     '&.cm-editor.cm-content': codeFontStyle,
     '&.cm-editor.cm-focused': {
