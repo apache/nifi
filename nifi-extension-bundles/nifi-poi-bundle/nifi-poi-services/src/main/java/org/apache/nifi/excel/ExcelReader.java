@@ -64,7 +64,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor INPUT_FILE_TYPE = new PropertyDescriptor
             .Builder().name("Input File Type")
-            .displayName("Input File Type")
             .description("Specifies type of Excel input file.")
             .required(true)
             .allowableValues(InputFileType.class)
@@ -73,7 +72,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor PROTECTION_TYPE = new PropertyDescriptor
             .Builder().name("Protection Type")
-            .displayName("Protection Type")
             .description("Specifies whether an Excel spreadsheet is protected by a password or not.")
             .required(true)
             .allowableValues(ProtectionType.class)
@@ -82,7 +80,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
             .Builder().name("Password")
-            .displayName("Password")
             .description("The password for a password protected Excel spreadsheet")
             .required(true)
             .sensitive(true)
@@ -92,7 +89,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor STARTING_ROW = new PropertyDescriptor
             .Builder().name("Starting Row")
-            .displayName("Starting Row")
             .description("The row number of the first row to start processing (One based)."
                     + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset."
                     + " When using the '" + ExcelStartingRowSchemaInference.USE_STARTING_ROW.getValue() + "' strategy this should be the column header row.")
@@ -104,7 +100,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor ROW_EVALUATION_STRATEGY = new PropertyDescriptor
             .Builder().name("Row Evaluation Strategy")
-            .displayName("Row Evaluation Strategy")
             .description("A strategy to select how many rows after the starting row to use for determining the schema.")
             .required(true)
             .allowableValues(RowEvaluationStrategy.class)
@@ -115,7 +110,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
             .Builder().name("Required Sheets")
-            .displayName("Required Sheets")
             .description("Comma-separated list of Excel document sheet names whose rows should be extracted from the excel document. If this property" +
                     " is left blank then all the rows from all the sheets will be extracted from the Excel document. The list of names is case sensitive. Any sheets not" +
                     " specified in this value will be ignored. An exception will be thrown if a specified sheet(s) are not found.")

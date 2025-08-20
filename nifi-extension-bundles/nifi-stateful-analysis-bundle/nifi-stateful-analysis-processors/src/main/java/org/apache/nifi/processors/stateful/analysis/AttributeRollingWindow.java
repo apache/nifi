@@ -95,7 +95,6 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor VALUE_TO_TRACK = new PropertyDescriptor.Builder()
-            .displayName("Value to track")
             .name("Value to track")
             .description("The expression on which to evaluate each FlowFile. The result of the expression will be added to the rolling window value.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -103,14 +102,12 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .required(true)
             .build();
     static final PropertyDescriptor TIME_WINDOW = new PropertyDescriptor.Builder()
-            .displayName("Time window")
             .name("Time window")
             .description("The time window on which to calculate the rolling window.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .build();
     static final PropertyDescriptor SUB_WINDOW_LENGTH = new PropertyDescriptor.Builder()
-            .displayName("Sub-window length")
             .name("Sub-window length")
             .description("When set, values will be batched into sub-windows of the set length. This allows for much larger length total windows to be set but sacrifices some precision. If this is " +
                     "not set (or is 0) then each value is stored in state with the timestamp of when it was received. After the length of time stated in " + TIME_WINDOW.getDisplayName() +
