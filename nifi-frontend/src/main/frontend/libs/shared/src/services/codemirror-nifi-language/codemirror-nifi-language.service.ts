@@ -72,8 +72,6 @@ export class CodemirrorNifiLanguageService {
     private createDynamicHighlighting() {
         // base highlighting
         const baseHighlighting = {
-            '{ }': t.brace,
-            '( )': t.paren,
             Comment: t.comment,
             WholeNumber: t.number,
             Decimal: t.number,
@@ -84,37 +82,35 @@ export class CodemirrorNifiLanguageService {
         // Add EL function highlighting only if EL is enabled
         if (this.functionSupported) {
             Object.assign(baseHighlighting, {
+                // $$
                 EscapedDollar: t.content,
 
-                // Expression Delimiters
+                // Expression Delimiters ${...}
                 ExpressionStart: t.special(t.brace),
+                ExpressionOpen: t.special(t.brace),
+                'ReferenceOrFunction/"}"': t.special(t.brace),
 
-                // EL Functions syntax highlighting t.function(t.variableName)
-                FunctionCall: t.function(t.variableName),
-                StandaloneFunction: t.function(t.variableName),
-                MultiAttrFunction: t.function(t.variableName),
-                AttributeRefOrFunctionCall: t.variableName,
+                // EL Functions function syntax highlighting
+                'FunctionCall/ReferenceOrFunction': t.function(t.variableName),
+                MultiAttrFunction: t.function(t.variableName), // Delineated and multi-attribute functions
 
-                // EL Functions attribute syntax highlighting t.attributeName
-                ReferenceOrFunction: t.attributeName,
-                AttributeRef: t.attributeName,
-                AttrName: t.attributeName,
-                Subject: t.attributeName,
-                SingleAttrRef: t.attributeName,
-                SingleAttrName: t.attributeName
+                // EL Functions attribute syntax highlighting
+                ReferenceOrFunction: t.attributeName
             });
         }
 
         // Add parameter highlighting only if parameters are enabled
         if (this.parametersSupported) {
             Object.assign(baseHighlighting, {
-                // Parameter Delimiters
+                // Parameter Delimiters #{...}
                 ParameterStart: t.special(t.brace),
+                ParameterOpen: t.special(t.brace),
+                'ParameterReference/"}"': t.special(t.brace),
 
-                // Parameter syntax highlighting t.special(t.variableName)
+                // Parameter syntax highlighting
                 ParameterReference: t.special(t.variableName),
                 ParameterName: t.special(t.variableName),
-                'ParameterName/StringLiteral': t.special(t.variableName)
+                'ParameterName/StringLiteral': t.special(t.variableName) // for quoted parameter names
             });
         }
 
@@ -138,7 +134,6 @@ export class CodemirrorNifiLanguageService {
             { tag: [t.number, t.bool], color: 'var(--editor-number)' },
             { tag: t.string, color: 'var(--editor-string)' },
             { tag: [t.comment], color: 'var(--editor-comment)' },
-            { tag: [t.brace, t.paren, t.bracket], color: 'var(--editor-bracket)' },
             { tag: t.special(t.brace), color: 'var(--editor-bracket)' },
             // EL Functions syntax highlighting t.function(t.variableName)
             { tag: t.function(t.variableName), color: 'var(--editor-el-function)' },

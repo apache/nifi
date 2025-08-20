@@ -379,6 +379,47 @@ describe('CodemirrorNifiLanguageService', () => {
                 await expectCompletion(test.input, test.shouldComplete);
             }
         });
+
+        it('should not parse escaped EL with braces as expression or attribute', () => {
+            const input = '$$$${test}';
+            const { context, tree } = parseInput(input);
+
+            // Ensure parse tree contains no EL expression nodes
+            let hasElNodes = false;
+            const elNodeTypes = new Set([
+                'ReferenceOrFunction',
+                'AttributeRef',
+                'AttrName',
+                'Subject',
+                'SingleAttrRef',
+                'SingleAttrName',
+                'FunctionCall',
+                'StandaloneFunction',
+                'MultiAttrFunction'
+            ]);
+
+            tree.cursor().iterate((node: any) => {
+                if (elNodeTypes.has(node.type.name)) {
+                    hasElNodes = true;
+                }
+                return true;
+            });
+            expect(hasElNodes).toBe(false);
+
+            // Also verify token breakdown looks like: EscapedDollar, EscapedDollar, '{', Text 'test', '}'
+            const tokens: Array<{ text: string; type: string }> = [];
+            tree.cursor().iterate((node: any) => {
+                const textFrag = context.state.doc.sliceString(node.from, node.to);
+                if (textFrag.length) tokens.push({ text: textFrag, type: node.type.name });
+                return true;
+            });
+            const types = tokens.map((t) => t.type);
+            expect(types).toContain('EscapedDollar');
+            expect(types.filter((t) => t === 'EscapedDollar').length).toBeGreaterThanOrEqual(2);
+            expect(types).toContain('{');
+            expect(tokens.some((t) => t.type === 'Text' && t.text === 'test')).toBe(true);
+            expect(types).toContain('}');
+        });
     });
 
     describe('Context Detection', () => {
@@ -538,6 +579,173 @@ describe('CodemirrorNifiLanguageService', () => {
                     return true;
                 });
                 expect(hasExpression).toBe(true);
+            });
+        });
+
+        it('should differentiate attribute vs function names by parse context', () => {
+            const input = '${attr:toUpper():replace("a","b")} ${uuid()}';
+            const { context, tree } = parseInput(input);
+
+            const asText = (node: any) => context.state.doc.sliceString(node.from, node.to);
+
+            const attributeNames: string[] = [];
+            const functionNames: string[] = [];
+            const standaloneNames: string[] = [];
+
+            // Attribute name comes from AttributeRef subtree
+            tree.cursor().iterate((node: any) => {
+                if (node.type.name === 'AttributeRef') {
+                    const inner = tree.cursor();
+                    inner.moveTo(node.from, 1);
+                    do {
+                        if (inner.type.name === 'ReferenceOrFunction') {
+                            attributeNames.push(asText({ from: inner.from, to: inner.to }));
+                            break;
+                        }
+                    } while (inner.next() && inner.from < node.to);
+                }
+                return true;
+            });
+
+            // Chained function names are the ReferenceOrFunction within FunctionCall
+            tree.cursor().iterate((node: any) => {
+                if (node.type.name === 'FunctionCall') {
+                    const inner = tree.cursor();
+                    inner.moveTo(node.from, 1);
+                    do {
+                        if (inner.type.name === 'ReferenceOrFunction') {
+                            functionNames.push(asText({ from: inner.from, to: inner.to }));
+                            break;
+                        }
+                    } while (inner.next() && inner.from < node.to);
+                }
+                return true;
+            });
+
+            // Standalone function names are the ReferenceOrFunction within StandaloneFunction
+            tree.cursor().iterate((node: any) => {
+                if (node.type.name === 'StandaloneFunction') {
+                    const inner = tree.cursor();
+                    inner.moveTo(node.from, 1);
+                    do {
+                        if (inner.type.name === 'ReferenceOrFunction') {
+                            standaloneNames.push(asText({ from: inner.from, to: inner.to }));
+                            break;
+                        }
+                    } while (inner.next() && inner.from < node.to);
+                }
+                return true;
+            });
+
+            expect(attributeNames).toContain('attr');
+            expect(functionNames).toEqual(expect.arrayContaining(['toUpper', 'replace']));
+            expect(standaloneNames).toEqual(expect.arrayContaining(['uuid']));
+        });
+
+        it('should only treat closing braces as delimiters inside EL or parameter references', () => {
+            const cases = [
+                { input: 'plain } here', expectIn: null },
+                { input: '${a}', expectIn: 'ReferenceOrFunction' },
+                { input: '#{b}', expectIn: 'ParameterReference' }
+            ];
+
+            cases.forEach(({ input, expectIn }) => {
+                const { context } = parseInput(input);
+                const doc = context.state.doc.toString();
+                const closeIndex = doc.indexOf('}');
+                if (closeIndex === -1) {
+                    expect(expectIn).toBeNull();
+                    return;
+                }
+                const nodeAt = syntaxTree(context.state).resolveInner(closeIndex, -1);
+                const types: string[] = [];
+                let cur: any = nodeAt;
+                while (cur) {
+                    types.push(cur.type.name);
+                    cur = cur.parent;
+                }
+                if (expectIn === null) {
+                    expect(types.includes('ReferenceOrFunction') || types.includes('ParameterReference')).toBe(false);
+                } else {
+                    expect(types.includes(expectIn)).toBe(true);
+                }
+            });
+        });
+
+        it('should style opening brace for standalone EL functions like ${uuid()}', () => {
+            const input = '${uuid()}';
+            const { context } = parseInput(input);
+            const doc = context.state.doc.toString();
+            const openIndex = doc.indexOf('{');
+            expect(openIndex).toBeGreaterThan(-1);
+            const nodeAt = syntaxTree(context.state).resolveInner(openIndex, 1);
+            // Ensure we are inside an EL expression
+            let cur: any = nodeAt;
+            const types: string[] = [];
+            while (cur) {
+                types.push(cur.type.name);
+                cur = cur.parent;
+            }
+            expect(types.includes('ReferenceOrFunction')).toBe(true);
+        });
+
+        it('should map README nested examples to expected node types', () => {
+            const examples = [
+                {
+                    input: '${attr:substring(${start}, ${end})} - Multiple nested expressions',
+                    expectRefOrFunc: ['attr', 'substring', 'start', 'end'],
+                    expectText: 'Multiple nested expressions'
+                },
+                {
+                    input: '${attr:replace(#{search}, ${replacement:toUpper()})} - Mixed parameter and expression nesting',
+                    expectRefOrFunc: ['attr', 'replace', 'replacement', 'toUpper'],
+                    expectParams: ['search'],
+                    expectText: 'Mixed parameter and expression nesting'
+                },
+                {
+                    input: '${attr:contains(${other:substring(${start:toNumber()}, 5)})} - Deep nesting with type conversion',
+                    expectRefOrFunc: ['attr', 'contains', 'other', 'substring', 'start', 'toNumber'],
+                    expectText: 'Deep nesting with type conversion'
+                },
+                {
+                    input: '${path:replace(${dir:append("/")}${file:substring(0, ${len:toNumber()})}, ".txt")} - Complex path manipulation',
+                    expectRefOrFunc: ['path', 'replace', 'dir', 'append', 'file', 'substring', 'len', 'toNumber'],
+                    expectText: 'Complex path manipulation'
+                }
+            ];
+
+            examples.forEach(({ input, expectRefOrFunc, expectParams = [], expectText }) => {
+                const { context, tree } = parseInput(input);
+                const refOrFuncNames: string[] = [];
+                const paramNames: string[] = [];
+                const textSegments: string[] = [];
+
+                tree.cursor().iterate((node: any) => {
+                    const text = context.state.doc.sliceString(node.from, node.to);
+                    if (node.type.name === 'ReferenceOrFunction') {
+                        refOrFuncNames.push(text);
+                    } else if (node.type.name === 'ParameterName') {
+                        // Strip surrounding quotes if present
+                        paramNames.push(text.replace(/^['"]|['"]$/g, ''));
+                    } else if (node.type.name === 'Text') {
+                        if (text && text.trim().length) textSegments.push(text.trim());
+                    }
+                    return true;
+                });
+
+                // Verify expected ReferenceOrFunction names are present
+                expectRefOrFunc.forEach((name) => {
+                    expect(refOrFuncNames).toContain(name);
+                });
+
+                // Verify expected ParameterName entries are present when provided
+                expectParams.forEach((p) => {
+                    expect(paramNames).toContain(p);
+                });
+
+                // Verify that the trailing description is parsed as Text somewhere
+                const joinedText = textSegments.join(' ');
+                expect(joinedText).toContain(expectText);
             });
         });
     });

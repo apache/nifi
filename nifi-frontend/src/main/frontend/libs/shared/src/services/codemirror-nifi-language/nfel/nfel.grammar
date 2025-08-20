@@ -2,7 +2,17 @@
 
 // Content can be literal text with embedded expressions, parameter references, comments, or just expressions
 content {
-  (Text | EscapedDollar | ReferenceOrFunction | ParameterReference | Comment)*
+  (Text | OutIdentifier | EscapedDollar | "{" | OutCloseBrace | ReferenceOrFunction | ParameterReference | Comment)*
+}
+
+// Treat bare closing braces as Text outside expressions/parameters
+OutCloseBrace[@name=Text] {
+  "}"
+}
+
+// Treat bare identifiers as Text outside expressions
+OutIdentifier[@name=Text] {
+  identifier
 }
 
 // Based on ANTLR parser rule: query : expression EOF
@@ -12,7 +22,7 @@ expression {
 
 // Based on ANTLR parser rule: referenceOrFunction : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE
 ReferenceOrFunction {
-  ExpressionStart "{" AttributeRefOrFunctionCall ( ":" FunctionCall )* "}"
+  ExpressionOpen AttributeRefOrFunctionCall ( ":" FunctionCall )* ";"? "}"
 }
 
 // Based on ANTLR parser rule: attributeRefOrFunctionCall : (attributeRef | standaloneFunction | parameterReference)
@@ -51,7 +61,7 @@ SingleAttrRef {
 }
 
 // Context-specific rule for attribute names
-attributeName {
+attributeName[@name=ReferenceOrFunction] {
   identifier
 }
 
@@ -78,14 +88,18 @@ StandaloneFunction {
 }
 
 // Context-specific rule for standalone function names
-standaloneFunctionName {
+standaloneFunctionName[@name=ReferenceOrFunction] {
   identifier
 }
 
 // Context-specific rule for chained function names
-functionName {
+functionName[@name=ReferenceOrFunction] {
   identifier
 }
+
+// (no RefName wrapper)
+// Name wrapper so that attribute and function identifiers are exposed as ReferenceOrFunction nodes
+// keep identifier token for names where appropriate
 
 ArgumentList {
   AnyArg ( "," AnyArg )*
@@ -112,9 +126,8 @@ AnyArg {
 }
 
 // Based on ANTLR parser rule: parameterReference : PARAMETER_REFERENCE_START parameterName RBRACE
-// Split ParameterStart and opening brace so that "{" is a standalone token for proper brace matching
 ParameterReference {
-  ParameterStart "{" ParameterName "}"
+  ParameterOpen ParameterName "}"
 }
 
 // Parameter name can be a quoted string or one or more identifiers (allowing spaces between words)
@@ -125,10 +138,13 @@ ParameterName {
 
 @tokens {
   ExpressionStart { "$" }
+  // Combined open tokens to avoid ambiguity with escapes
+  ExpressionOpen { "$" "{" }
   // Use a standalone '#' so that '{' remains a separate token for matching/highlighting
   ParameterStart { "#" }
-  
-  // Comment support matching ANTLR: COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n'  
+  ParameterOpen { "#" "{" }
+
+  // Comment support matching ANTLR: COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n'
   // Pattern: # + (any char except {) + (everything until newline including { and #)
   // This ensures the entire comment line is consumed as one token
   Comment { "#" ![{] (![\n])* ("\n" | @eof) }
@@ -172,8 +188,8 @@ ParameterName {
   // Single identifier token - context determined by grammar
   identifier { $[a-zA-Z] $[a-zA-Z0-9_.-]* }
 
-  // Updated precedence - Comment must come BEFORE ParameterStart to prevent conflicts
-  @precedence { EscapedDollar, Comment, ParameterStart, ExpressionStart, BooleanLiteral, Null, multiAttrFunctionName, identifier, Decimal, WholeNumber, StringLiteral, Text }
+  // Updated precedence - Escapes and combined opens must come before single-char starts
+  @precedence { EscapedDollar, ExpressionOpen, ParameterOpen, Comment, ParameterStart, ExpressionStart, BooleanLiteral, Null, multiAttrFunctionName, identifier, Decimal, WholeNumber, StringLiteral, Text }
 
   whitespace { $[ \t\n\r]+ }
 

@@ -74,7 +74,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         // So it will grow to fill the flex container instead of starting out too wide if there's a long
         // line in the editor
         width: 0,
-        caretColor: 'var(--mat-sys-on-surface)',
+        caretColor: 'var(--mat-sys-on-surface)'
     },
     '&.cm-editor.cm-content': codeFontStyle,
     '&.cm-editor.cm-focused': {
@@ -131,20 +131,18 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     },
     '.cm-matchingBracket': {
         color: 'var(--mat-sys-inverse-on-surface)',
-        background: 'var(--nf-neutral)'
-    },
-    '.cm-matchingBracket > .cm-bracket, .cm-matchingBracket > span': {
-        color: 'var(--mat-sys-inverse-on-surface)'
+        background: 'var(--nf-neutral)',
+        borderRadius: '2px'
     },
     '&.cm-focused .cm-matchingBracket': {
         backgroundColor: 'var(--nf-neutral)'
     },
-    '&.cm-focused .cm-nonmatchingBracket': {
-        color: 'var(--mat-sys-inverse-on-surface)',
-        background: 'var(--nf-neutral)'
-    },
     '.cm-nonmatchingBracket': {
         color: 'var(--editor-text)'
+    },
+    '&.cm-focused .cm-nonmatchingBracket, &.cm-focused .cm-nonmatchingBracket > *': {
+        color: 'var(--mat-sys-inverse-on-surface)',
+        background: 'var(--nf-neutral)'
     },
     '.cm-tooltip-autocomplete.cm-tooltip': {
         ...boxStyle,
