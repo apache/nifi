@@ -79,7 +79,6 @@ public class ExtractHL7Attributes extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Character Encoding")
-            .displayName("Character Encoding")
             .description("The Character Encoding that is used to encode the HL7 data")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

@@ -54,7 +54,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     static final PropertyDescriptor SCHEME = new PropertyDescriptor.Builder()
             .name("Scheme")
-            .displayName("Scheme")
             .description("The scheme for connecting to Splunk.")
             .allowableValues(HTTPS_SCHEME, HTTP_SCHEME)
             .defaultValue(HTTPS_SCHEME)
@@ -63,7 +62,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
-            .displayName("Hostname")
             .description("The ip address or hostname of the Splunk server.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
@@ -83,7 +81,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
             .name("Security Protocol")
-            .displayName("Security Protocol")
             .description("The security protocol to use for communicating with Splunk.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(TLS_1_2_VALUE, TLS_1_1_VALUE, TLS_1_VALUE, SSL_3_VALUE)
@@ -92,7 +89,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
-            .displayName("Owner")
             .description("The owner to pass to Splunk.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
@@ -110,7 +106,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
-            .displayName("Username")
             .description("The username to authenticate to Splunk.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
@@ -119,7 +114,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .displayName("Password")
             .description("The password to authenticate to Splunk.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)

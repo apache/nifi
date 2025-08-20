@@ -56,7 +56,6 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
     public static final PropertyDescriptor KEY_PREFIX = new PropertyDescriptor.Builder()
             .name("Key Prefix")
-            .displayName("Key Prefix")
             .description("The prefix for each key stored by this state provider. When sharing a single Redis across multiple NiFi instances, " +
                     "setting a unique value for the Key Prefix will make it easier to identify which instances the keys came from.")
             .required(true)
@@ -65,7 +64,6 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             .build();
     public static final PropertyDescriptor ENABLE_TLS = new PropertyDescriptor.Builder()
             .name("Enable TLS")
-            .displayName("Enable TLS")
             .description("If true, the Redis connection will be configured to use TLS, using the keystore and truststore settings configured in " +
                     "nifi.properties.  This means that a TLS-enabled Redis connection is only possible if the Apache NiFi instance is running in secure mode. " +
                     "If this property is false, an insecure Redis connection will be used even if the Apache NiFi instance is secure.")
@@ -75,7 +73,6 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             .build();
     public static final PropertyDescriptor MAX_ATTEMPTS = new PropertyDescriptor.Builder()
             .name("Max Attempts")
-            .displayName("Max Attempts")
             .description("Maximum number of attempts when setting/clearing the state for a component. This number should be higher than the number of nodes "
                     + "in the NiFi cluster to account for the case where each node may concurrently try to clear a state with a local scope.")
             .required(true)

@@ -100,7 +100,6 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     protected static final PropertyDescriptor REPORT_URL = new PropertyDescriptor.Builder()
         .name("Workday Report URL")
-        .displayName("Workday Report URL")
         .description("HTTP remote URL of Workday report including a scheme of http or https, as well as a hostname or IP address with optional port and path elements.")
         .required(true)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -129,7 +128,6 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     protected static final PropertyDescriptor WORKDAY_USERNAME = new PropertyDescriptor.Builder()
         .name("Workday Username")
-        .displayName("Workday Username")
         .description("The username provided for authentication of Workday requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
         .dependsOn(AUTH_TYPE, BASIC_AUTH_TYPE)
         .required(true)
@@ -139,7 +137,6 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     protected static final PropertyDescriptor WORKDAY_PASSWORD = new PropertyDescriptor.Builder()
         .name("Workday Password")
-        .displayName("Workday Password")
         .description("The password provided for authentication of Workday requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
         .dependsOn(AUTH_TYPE, BASIC_AUTH_TYPE)
         .required(true)

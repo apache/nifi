@@ -75,7 +75,6 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
 
     public static final PropertyDescriptor PROTOBUF_DIRECTORY = new PropertyDescriptor.Builder()
             .name("Proto Directory")
-            .displayName("Proto Directory")
             .description("Directory containing Protocol Buffers message definition (.proto) file(s).")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
@@ -84,7 +83,6 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
 
     public static final PropertyDescriptor MESSAGE_TYPE = new PropertyDescriptor.Builder()
             .name("Message Type")
-            .displayName("Message Type")
             .description("Fully qualified name of the Protocol Buffers message type including its package (eg. mypackage.MyMessage). " +
                     "The .proto files configured in '" + PROTOBUF_DIRECTORY.getDisplayName() + "' must contain the definition of this message type.")
             .required(true)

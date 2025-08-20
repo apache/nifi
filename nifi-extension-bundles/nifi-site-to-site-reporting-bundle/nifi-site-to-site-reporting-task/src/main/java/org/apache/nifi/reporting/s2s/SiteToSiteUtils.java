@@ -49,7 +49,6 @@ public class SiteToSiteUtils {
 
     public static final PropertyDescriptor DESTINATION_URL = new PropertyDescriptor.Builder()
             .name("Destination URL")
-            .displayName("Destination URL")
             .description("The URL of the destination NiFi instance or, if clustered, a comma-separated list of address in the format "
                     + "of http(s)://host:port/nifi. This destination URL will only be used to initiate the Site-to-Site connection. The "
                     + "data sent by this reporting task will be load-balanced on all the nodes of the destination (if clustered).")
@@ -59,7 +58,6 @@ public class SiteToSiteUtils {
             .build();
     public static final PropertyDescriptor PORT_NAME = new PropertyDescriptor.Builder()
             .name("Input Port Name")
-            .displayName("Input Port Name")
             .description("The name of the Input Port to deliver data to.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -67,14 +65,12 @@ public class SiteToSiteUtils {
             .build();
     public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .displayName("SSL Context Service")
             .description("The SSL Context Service to use when communicating with the destination. If not specified, communications will not be secure.")
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
             .build();
     public static final PropertyDescriptor INSTANCE_URL = new PropertyDescriptor.Builder()
             .name("Instance URL")
-            .displayName("Instance URL")
             .description("The URL of this instance to use in the Content URI of each event.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -83,7 +79,6 @@ public class SiteToSiteUtils {
             .build();
     public static final PropertyDescriptor COMPRESS = new PropertyDescriptor.Builder()
             .name("Compress Events")
-            .displayName("Compress Events")
             .description("Indicates whether or not to compress the data being sent.")
             .required(true)
             .allowableValues("true", "false")
@@ -91,7 +86,6 @@ public class SiteToSiteUtils {
             .build();
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
-            .displayName("Communications Timeout")
             .description("Specifies how long to wait to a response from the destination before deciding that an error has occurred and canceling the transaction")
             .required(true)
             .defaultValue("30 secs")
@@ -99,7 +93,6 @@ public class SiteToSiteUtils {
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .displayName("Batch Size")
             .description("Specifies how many records to send in a single batch, at most.")
             .required(true)
             .defaultValue("1000")

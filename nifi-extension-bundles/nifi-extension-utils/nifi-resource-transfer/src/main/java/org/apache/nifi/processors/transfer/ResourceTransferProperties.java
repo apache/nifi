@@ -26,7 +26,6 @@ public class ResourceTransferProperties {
 
     public static final PropertyDescriptor RESOURCE_TRANSFER_SOURCE = new PropertyDescriptor.Builder()
             .name("Resource Transfer Source")
-            .displayName("Resource Transfer Source")
             .description("The source of the content to be transferred")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
@@ -36,7 +35,6 @@ public class ResourceTransferProperties {
 
     public static final PropertyDescriptor FILE_RESOURCE_SERVICE = new PropertyDescriptor.Builder()
             .name("File Resource Service")
-            .displayName("File Resource Service")
             .description("File Resource Service providing access to the local resource to be transferred")
             .identifiesControllerService(FileResourceService.class)
             .required(true)
