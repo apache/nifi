@@ -147,7 +147,6 @@ public class ExecuteProcess extends AbstractProcessor {
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
             .name("Output MIME type")
-            .displayName("Output MIME Type")
             .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Batch Duration' is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

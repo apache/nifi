@@ -126,7 +126,6 @@ public class ControlRate extends AbstractProcessor {
 
     public static final PropertyDescriptor RATE_CONTROL_CRITERIA = new PropertyDescriptor.Builder()
             .name("Rate Control Criteria")
-            .displayName("Rate Control Criteria")
             .description("Indicates the criteria that is used to control the throughput rate. Changing this value resets the rate counters.")
             .required(true)
             .allowableValues(RateControlCriteria.class)
@@ -134,7 +133,6 @@ public class ControlRate extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAX_RATE = new PropertyDescriptor.Builder()
             .name("Maximum Rate")
-            .displayName("Maximum Rate")
             .description("The maximum rate at which data should pass through this processor. The format of this property is expected to be a "
                     + "positive integer, or a Data Size (such as '1 MB') if Rate Control Criteria is set to 'data rate'.")
             .required(false)
@@ -143,7 +141,6 @@ public class ControlRate extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAX_DATA_RATE = new PropertyDescriptor.Builder()
             .name("Maximum Data Rate")
-            .displayName("Maximum Data Rate")
             .description("The maximum rate at which data should pass through this processor. The format of this property is expected to be a "
                     + "Data Size (such as '1 MB') representing bytes per Time Duration.")
             .required(false)
@@ -153,7 +150,6 @@ public class ControlRate extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_COUNT_RATE = new PropertyDescriptor.Builder()
             .name("Maximum FlowFile Rate")
-            .displayName("Maximum FlowFile Rate")
             .description("The maximum rate at which FlowFiles should pass through this processor. The format of this property is expected to be a "
                     + "positive integer representing FlowFiles count per Time Duration")
             .required(false)
