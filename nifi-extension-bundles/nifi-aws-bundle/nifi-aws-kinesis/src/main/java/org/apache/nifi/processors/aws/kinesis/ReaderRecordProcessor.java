@@ -73,15 +73,16 @@ final class ReaderRecordProcessor {
 
                 Record record;
                 while ((record = reader.nextRecord()) != null) {
-                    final RecordSchema schema = record.getSchema();
+                    final RecordSchema writeSchema = recordWriterFactory.getSchema(emptyMap(), record.getSchema());
 
-                    if (activeFlowFile == null || !schema.equals(activeFlowFile.schema())) {
-                        if (activeFlowFile != null) {
-                            final FlowFile completedFlowFile = activeFlowFile.complete();
-                            successFlowFiles.add(completedFlowFile);
-                        }
+                    if (activeFlowFile == null) {
+                        activeFlowFile = ActiveFlowFile.startNewFile(session, writeSchema, recordWriterFactory, logger, shardId);
+                    } else if (!writeSchema.equals(activeFlowFile.schema())) {
+                        // If the write schema has changed, we need to complete the current FlowFile and start a new one.
+                        final FlowFile completedFlowFile = activeFlowFile.complete();
+                        successFlowFiles.add(completedFlowFile);
 
-                        activeFlowFile = ActiveFlowFile.startNewFile(session, schema, recordWriterFactory, logger, shardId);
+                        activeFlowFile = ActiveFlowFile.startNewFile(session, writeSchema, recordWriterFactory, logger, shardId);
                     }
 
                     activeFlowFile.writeRecord(record, kinesisRecord);
@@ -144,7 +145,7 @@ final class ReaderRecordProcessor {
 
         static ActiveFlowFile startNewFile(
                 final ProcessSession session,
-                final RecordSchema schema,
+                final RecordSchema writeSchema,
                 final RecordSetWriterFactory recordWriterFactory,
                 final ComponentLog logger,
                 final String shardId) throws SchemaNotFoundException {
@@ -152,14 +153,13 @@ final class ReaderRecordProcessor {
             final OutputStream outputStream = session.write(flowFile);
 
             try {
-                final RecordSchema currentSchema = recordWriterFactory.getSchema(emptyMap(), schema);
-                final RecordSetWriter writer = recordWriterFactory.createWriter(logger, currentSchema, outputStream, flowFile);
+                final RecordSetWriter writer = recordWriterFactory.createWriter(logger, writeSchema, outputStream, flowFile);
                 writer.beginRecordSet();
 
-                return new ActiveFlowFile(session, flowFile, writer, currentSchema, shardId, logger);
+                return new ActiveFlowFile(session, flowFile, writer, writeSchema, shardId, logger);
 
             } catch (final SchemaNotFoundException e) {
-                logger.debug("Failed to find schema for Kinesis stream record", e);
+                logger.debug("Failed to find writeSchema for Kinesis stream record", e);
                 try {
                     outputStream.close();
                 } catch (final IOException ioe) {
