@@ -85,12 +85,6 @@ public class HeadlessNiFiServer implements NiFiServer {
     private DiagnosticsFactory diagnosticsFactory;
     private NarAutoLoader narAutoLoader;
 
-    /**
-     * Default constructor
-     */
-    public HeadlessNiFiServer() {
-    }
-
     @Override
     public void start() {
         try {

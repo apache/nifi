@@ -143,9 +143,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private ZooKeeperClientConfig zooKeeperClientConfig;
 
-    public ZooKeeperStateProvider() {
-    }
-
     @StateProviderContext
     public void setNiFiProperties(NiFiProperties properties) {
         this.nifiProperties = properties;

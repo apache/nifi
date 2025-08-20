@@ -14,43 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster.protocol.jaxb.message;
+package org.apache.nifi.confluent.schema;
+
+import java.util.List;
 
 /**
+ * Parser for Protocol Buffer message schemas.
+ * <p>
+ * This interface defines the contract for parsing protobuf schema text and extracting
+ * individual message schema definitions from it.
+ * </p>
  */
-public class AdaptedCounter {
+public interface ProtobufMessageSchemaParser {
 
-    private String groupName;
-
-    private String name;
-
-    private long value;
-
-    public AdaptedCounter() {
-    }
-
-    public String getGroupName() {
-        return groupName;
-    }
-
-    public void setGroupName(String counterGroupName) {
-        this.groupName = counterGroupName;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String counterName) {
-        this.name = counterName;
-    }
-
-    public long getValue() {
-        return value;
-    }
-
-    public void setValue(long value) {
-        this.value = value;
-    }
-
+    /**
+     * Parses the provided protobuf schema text and extracts all message schema definitions.
+     *
+     * @param schemaText the protobuf schema text to parse, must not be null
+     * @return a list of parsed protobuf message schemas, never null but may be empty if no messages are found
+     */
+    List<ProtobufMessageSchema> parse(final String schemaText);
 }

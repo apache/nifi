@@ -14,31 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster.protocol.message;
+package org.apache.nifi.confluent.schemaregistry.client;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
-/**
- */
-@XmlRootElement(name = "exceptionMessage")
-public class ExceptionMessage extends ProtocolMessage {
 
-    private String exceptionMessage;
-
-    public ExceptionMessage() {
-    }
-
-    public String getExceptionMessage() {
-        return exceptionMessage;
-    }
-
-    public void setExceptionMessage(String exceptionMessage) {
-        this.exceptionMessage = exceptionMessage;
-    }
-
-    @Override
-    public MessageType getType() {
-        return MessageType.EXCEPTION;
-    }
-
+record SchemaResponse(String schema,
+                      String schemaType,
+                      List<SchemaReference> references) {
 }

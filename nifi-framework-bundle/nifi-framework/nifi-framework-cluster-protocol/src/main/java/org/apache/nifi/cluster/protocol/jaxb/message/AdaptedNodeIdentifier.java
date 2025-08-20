@@ -33,9 +33,6 @@ public class AdaptedNodeIdentifier {
 
     private boolean siteToSiteSecure;
 
-    public AdaptedNodeIdentifier() {
-    }
-
     public String getApiAddress() {
         return apiAddress;
     }

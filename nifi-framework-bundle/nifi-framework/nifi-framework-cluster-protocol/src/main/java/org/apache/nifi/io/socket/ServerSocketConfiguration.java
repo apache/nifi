@@ -34,9 +34,6 @@ public final class ServerSocketConfiguration {
         this.sslContext = sslContext;
     }
 
-    public ServerSocketConfiguration() {
-    }
-
     public Integer getSocketTimeout() {
         return socketTimeout;
     }

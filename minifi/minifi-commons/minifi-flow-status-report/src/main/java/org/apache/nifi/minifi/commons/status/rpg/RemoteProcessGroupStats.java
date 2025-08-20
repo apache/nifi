@@ -22,9 +22,6 @@ public class RemoteProcessGroupStats implements java.io.Serializable {
     private int sentCount;
     private long sentContentSize;
 
-    public RemoteProcessGroupStats() {
-    }
-
     public int getActiveThreads() {
         return activeThreads;
     }

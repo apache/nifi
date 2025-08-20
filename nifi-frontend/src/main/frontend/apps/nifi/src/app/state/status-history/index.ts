@@ -45,7 +45,7 @@ export interface ComponentDetails {
 
 export interface StatusHistoryAggregateSnapshot {
     timestamp: number;
-    statusMetrics: any[];
+    statusMetrics: any;
 }
 
 export interface NodeSnapshot {

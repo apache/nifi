@@ -65,10 +65,6 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     private FlowSnippetDTO contents;
 
-    public ProcessGroupDTO() {
-        super();
-    }
-
     /**
      * The name of this Process Group.
      *

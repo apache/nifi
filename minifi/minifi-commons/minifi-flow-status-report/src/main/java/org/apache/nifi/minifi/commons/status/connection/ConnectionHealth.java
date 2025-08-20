@@ -21,9 +21,6 @@ public class ConnectionHealth implements java.io.Serializable {
     private int queuedCount;
     private long queuedBytes;
 
-    public ConnectionHealth() {
-    }
-
     public int getQueuedCount() {
         return queuedCount;
     }

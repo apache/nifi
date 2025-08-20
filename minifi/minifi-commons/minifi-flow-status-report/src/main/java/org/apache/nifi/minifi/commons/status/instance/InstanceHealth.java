@@ -24,9 +24,6 @@ public class InstanceHealth implements java.io.Serializable {
     private boolean hasBulletins;
     private int activeThreads;
 
-    public InstanceHealth() {
-    }
-
     public int getQueuedCount() {
         return queuedCount;
     }

@@ -27,9 +27,6 @@ public class InstanceStatus implements java.io.Serializable {
     private List<BulletinStatus> bulletinList;
     private InstanceStats instanceStats;
 
-    public InstanceStatus() {
-    }
-
     public InstanceHealth getInstanceHealth() {
         return instanceHealth;
     }

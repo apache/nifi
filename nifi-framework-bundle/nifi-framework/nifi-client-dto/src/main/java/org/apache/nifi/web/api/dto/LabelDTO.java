@@ -37,9 +37,6 @@ public class LabelDTO extends ComponentDTO {
     // background-color = #eee
     private Map<String, String> style;
 
-    public LabelDTO() {
-    }
-
     /**
      * @return z index for this label
      */

@@ -204,12 +204,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private final BlockingQueue<Bundle> extensionUisToLoad = new LinkedBlockingQueue<>();
     private final ExtensionUiLoadTask extensionUiLoadTask = new ExtensionUiLoadTask(extensionUisToLoad, this::processExtensionUiBundle);
 
-    /**
-     * Default no-arg constructor for ServiceLoader
-     */
-    public JettyServer() {
-    }
-
     public void init() {
         clearWorkingDirectory();
 
