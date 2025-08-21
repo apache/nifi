@@ -445,7 +445,8 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static InitialPositionInStreamExtended getInitialPosition(final ProcessContext context) {
         final InitialPosition initialPosition = context.getProperty(INITIAL_STREAM_POSITION).asAllowableValue(InitialPosition.class);
         return switch (initialPosition) {
-            case TRIM_HORIZON -> InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
+            case TRIM_HORIZON ->
+                    InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
             case LATEST -> InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.LATEST);
             case AT_TIMESTAMP -> {
                 final String timestampValue = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
@@ -502,20 +503,29 @@ public class ConsumeKinesis extends AbstractProcessor {
             session.adjustCounter("Records Processed", records.size(), false);
 
             session.commitAsync(
-                    () -> {
-                        recordBuffer.commitConsumedRecords(lease);
-                        recordBuffer.returnBufferLease(lease);
-                    },
-                    __ -> {
-                        recordBuffer.rollbackConsumedRecords(lease);
-                        recordBuffer.returnBufferLease(lease);
-                    }
+                    () -> commitRecords(lease),
+                    __ -> rollbackRecords(lease)
             );
         } catch (final RuntimeException e) {
             getLogger().error("Failed to process records from Kinesis stream: {}", e.getMessage());
-            recordBuffer.rollbackConsumedRecords(lease);
-            recordBuffer.returnBufferLease(lease);
+            rollbackRecords(lease);
             throw e;
+        }
+    }
+
+    private void commitRecords(final ShardBufferLease lease) {
+        try {
+            recordBuffer.commitConsumedRecords(lease);
+        } finally {
+            recordBuffer.returnBufferLease(lease);
+        }
+    }
+
+    private void rollbackRecords(final ShardBufferLease lease) {
+        try {
+            recordBuffer.rollbackConsumedRecords(lease);
+        } finally {
+            recordBuffer.returnBufferLease(lease);
         }
     }
 
