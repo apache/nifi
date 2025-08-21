@@ -25,10 +25,10 @@ ReferenceOrFunction {
   ExpressionOpen AttributeRefOrFunctionCall ( ":" FunctionCall )* ";"? "}"
 }
 
-// Based on ANTLR parser rule: attributeRefOrFunctionCall : (attributeRef | standaloneFunction | parameterReference)
+// Based on ANTLR parser rule: attributeRefOrFunctionCall : (standaloneFunction | attributeRef | parameterReference)
 AttributeRefOrFunctionCall {
-  AttributeRef |
   StandaloneFunction |
+  AttributeRef |
   ParameterReference
 }
 

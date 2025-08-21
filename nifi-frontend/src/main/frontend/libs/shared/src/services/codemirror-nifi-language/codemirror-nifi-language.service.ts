@@ -31,7 +31,7 @@ import { syntaxHighlighting } from '@codemirror/language';
 import { firstValueFrom } from 'rxjs';
 import { NiFiCommon } from '../nifi-common.service';
 import { ElFunction, Parameter } from '../../index';
-import { SyntaxNode } from '@lezer/common';
+import { SyntaxNode, NodeProp } from '@lezer/common';
 import { Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { ElService } from '../el.service';
@@ -92,6 +92,8 @@ export class CodemirrorNifiLanguageService {
 
                 // EL Functions function syntax highlighting
                 'FunctionCall/ReferenceOrFunction': t.function(t.variableName),
+                // Standalone functions (e.g., ${uuid()})
+                'StandaloneFunction/ReferenceOrFunction': t.function(t.variableName),
                 MultiAttrFunction: t.function(t.variableName), // Delineated and multi-attribute functions
 
                 // EL Functions attribute syntax highlighting
