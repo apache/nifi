@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,6 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaDefinitionIdentifiers;
 
 /**
@@ -188,7 +190,7 @@ final class ProtobufSchemaCompiler {
         final Path schemaFile = tempDir.resolve(schemaFileName);
 
         // Write schema text to file
-        Files.write(schemaFile, schemaDefinition.getText().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        Files.write(schemaFile, schemaDefinition.getText().getBytes(), CREATE, WRITE, TRUNCATE_EXISTING);
         logger.debug("Successfully wrote schema to file: {} (string length: {})",
             schemaFile, schemaDefinition.getText().length());
     }
