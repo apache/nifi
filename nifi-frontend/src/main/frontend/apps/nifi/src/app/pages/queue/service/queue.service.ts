@@ -80,7 +80,7 @@ export class QueueService {
             dataUri = `${dataUri}?${query}`;
         }
 
-        window.open(dataUri);
+        window.open(dataUri, '_blank', 'noreferrer');
     }
 
     viewContent(request: ViewFlowFileContentRequest, contentViewerUrl: string): void {
@@ -120,6 +120,6 @@ export class QueueService {
 
         // open the content viewer
         const contentViewerQuery: string = new URLSearchParams(contentViewerParameters).toString();
-        window.open(`${contentViewer}${contentViewerQuery}`);
+        window.open(`${contentViewer}${contentViewerQuery}`, '_blank', 'noreferrer');
     }
 }

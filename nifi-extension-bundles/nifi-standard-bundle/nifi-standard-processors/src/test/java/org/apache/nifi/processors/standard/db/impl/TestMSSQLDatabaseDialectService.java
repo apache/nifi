@@ -117,6 +117,145 @@ public class TestMSSQLDatabaseDialectService {
         final IllegalArgumentException e1 = assertThrows(IllegalArgumentException.class, () -> service.getStatement(upsertReq(t1)));
         assertTrue(e1.getMessage().contains("Table name cannot be null or blank"));
     }
+    @Test
+    public void testCreateStatement() {
+        final List<String> cols = List.of("id", "name", "email", "active");
+        final boolean[] pk = new boolean[]{true, false, false, false};
+        final TableDefinition table = table("users", columns(cols, pk));
+        final StatementRequest req = createReq(table);
+        final String expected = "CREATE TABLE IF NOT EXISTS users (id VARCHAR PRIMARY KEY, name VARCHAR, email VARCHAR, active VARCHAR)";
+        assertEquals(expected, service.getStatement(req).sql());
+    }
+
+    @Test
+    public void testCreateStatementWithNullableColumns() {
+        final List<String> cols = List.of("id", "name");
+        final boolean[] pk = new boolean[]{true, false};
+        final boolean[] nullable = new boolean[]{false, true};
+        final TableDefinition table = table("test_table", columns(cols, pk, nullable));
+        final StatementRequest req = createReq(table);
+        final String expected = "CREATE TABLE IF NOT EXISTS test_table (id VARCHAR NOT NULL PRIMARY KEY, name VARCHAR)";
+        assertEquals(expected, service.getStatement(req).sql());
+    }
+
+    @Test
+    public void testCreateStatementWithQualifiedTableName() {
+        final List<String> cols = List.of("id", "data");
+        final boolean[] pk = new boolean[]{true, false};
+        final TableDefinition table = qualifiedTable("catalog", "schema", "table", columns(cols, pk));
+        final StatementRequest req = createReq(table);
+        final String expected = "CREATE TABLE IF NOT EXISTS catalog.schema.table (id VARCHAR PRIMARY KEY, data VARCHAR)";
+        assertEquals(expected, service.getStatement(req).sql());
+    }
+
+    @Test
+    public void testAlterStatement() {
+        final List<String> cols = List.of("new_column1", "new_column2");
+        final boolean[] pk = new boolean[]{false, false};
+        final TableDefinition table = table("existing_table", columns(cols, pk));
+        final StatementRequest req = alterReq(table);
+        final String expected = "ALTER TABLE existing_table ADD new_column1 VARCHAR, ADD new_column2 VARCHAR";
+        assertEquals(expected, service.getStatement(req).sql());
+    }
+
+    @Test
+    public void testAlterStatementWithQualifiedTableName() {
+        final List<String> cols = List.of("new_col");
+        final boolean[] pk = new boolean[]{false};
+        final TableDefinition table = qualifiedTable("db", "dbo", "table1", columns(cols, pk));
+        final StatementRequest req = alterReq(table);
+        final String expected = "ALTER TABLE db.dbo.table1 ADD new_col VARCHAR";
+        assertEquals(expected, service.getStatement(req).sql());
+    }
+
+    @Test
+    public void testUnsupportedStatementType() {
+        final List<String> cols = List.of("col1");
+        final boolean[] pk = new boolean[]{false};
+        final TableDefinition table = table("table", columns(cols, pk));
+        final StatementRequest req = insertIgnoreReq(table);
+        final UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> service.getStatement(req));
+        assertTrue(e.getMessage().contains("Statement Type [INSERT_IGNORE] not supported"));
+    }
+
+    @Test
+    public void testSelectWithDerivedTable() {
+        final TableDefinition table = table("derived_alias", columns(sampleColumns(), new boolean[sampleColumns().size()]));
+        final StatementRequest req = selectReqWithDerivedTable(table, "SELECT * FROM base_table WHERE condition = 'value'");
+        final String sql = service.getStatement(req).sql();
+        assertEquals("SELECT * FROM (SELECT * FROM base_table WHERE condition = 'value') AS derived_alias", sql);
+    }
+
+    @Test
+    public void testSelectWithEmptyColumns() {
+        final TableDefinition table = table("database.tablename", List.of());
+        final StatementRequest req = selectReq(table, List.of(), null, null, null, null, null);
+        final String sql = service.getStatement(req).sql();
+        assertEquals("SELECT * FROM database.tablename", sql);
+    }
+
+    @Test
+    public void testPartitionedPagingWithoutLimit() {
+        final TableDefinition table = table("database.tablename", columns(sampleColumns(), new boolean[sampleColumns().size()]));
+        final StatementRequest req = selectReq(table, sampleColumns(), "status='active'", "id", null, 1000L, "id");
+        final String sql = service.getStatement(req).sql();
+        assertEquals("SELECT some(set), of(columns), that, might, contain, methods, a.* FROM database.tablename WHERE status='active' AND id >= 1000", sql);
+    }
+
+    @Test
+    public void testPartitionedPagingWithBlankIndexColumn() {
+        final TableDefinition table = table("database.tablename", columns(sampleColumns(), new boolean[sampleColumns().size()]));
+        final StatementRequest req = selectReq(table, sampleColumns(), null, "id", 100L, 0L, "   ");
+        final String sql = service.getStatement(req).sql();
+        assertEquals("SELECT some(set), of(columns), that, might, contain, methods, a.* FROM database.tablename ORDER BY id OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY", sql);
+    }
+
+    @Test
+    public void testUpsertWithAllPrimaryKeyColumns() {
+        final List<String> cols = List.of("key1", "key2");
+        final boolean[] pk = new boolean[]{true, true};
+        final TableDefinition table = table("lookup_table", columns(cols, pk));
+        final StatementRequest req = upsertReq(table);
+        final String expected = "MERGE INTO lookup_table AS target USING (VALUES (?, ?)) AS source (key1, key2) " +
+                "ON target.key1 = source.key1 AND target.key2 = source.key2 " +
+                "WHEN NOT MATCHED THEN INSERT (key1, key2) VALUES (source.key1, source.key2);";
+        assertEquals(expected, service.getStatement(req).sql());
+    }
+
+    @Test
+    public void testUpsertValidationEmptyColumns() {
+        final TableDefinition table = table("table", List.of());
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> service.getStatement(upsertReq(table)));
+        assertTrue(e.getMessage().contains("Column names cannot be null or empty"));
+    }
+
+    @Test
+    public void testUpsertValidationNoPrimaryKeys() {
+        final List<String> cols = List.of("col1", "col2");
+        final boolean[] pk = new boolean[]{false, false};
+        final TableDefinition table = table("table", columns(cols, pk));
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> service.getStatement(upsertReq(table)));
+        assertTrue(e.getMessage().contains("Key column names cannot be null or empty"));
+    }
+
+    @Test
+    public void testSelectWithNonQueryStatementRequest() {
+        final List<String> cols = List.of("col1");
+        final boolean[] pk = new boolean[]{false};
+        final TableDefinition table = table("table", columns(cols, pk));
+        final StatementRequest req = new StatementRequest() {
+            @Override
+            public StatementType statementType() {
+                return StatementType.SELECT;
+            }
+            @Override
+            public TableDefinition tableDefinition() {
+                return table;
+            }
+        };
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> service.getStatement(req));
+        assertTrue(e.getMessage().contains("Query Statement Request not found"));
+    }
 
     private static List<String> sampleColumns() {
         return List.of("some(set)", "of(columns)", "that", "might", "contain", "methods", "a.*");
@@ -212,6 +351,105 @@ public class TestMSSQLDatabaseDialectService {
             @Override
             public TableDefinition tableDefinition() {
                 return table;
+            }
+        };
+    }
+    private static TableDefinition qualifiedTable(final String catalog, final String schema, final String tableName, final List<ColumnDefinition> cols) {
+        return new TableDefinition(Optional.ofNullable(catalog), Optional.ofNullable(schema), tableName, cols);
+    }
+
+    private static List<ColumnDefinition> columns(final List<String> names, final boolean[] primaryKeys, final boolean[] nullable) {
+        final List<ColumnDefinition> defs = new ArrayList<>();
+        for (int i = 0; i < names.size(); i++) {
+            final int idx = i;
+            defs.add(new ColumnDefinition() {
+                @Override
+                public String columnName() {
+                    return names.get(idx);
+                }
+                @Override
+                public int dataType() {
+                    return java.sql.Types.VARCHAR;
+                }
+                @Override
+                public Nullable nullable() {
+                    return (nullable.length > idx && !nullable[idx])
+                        ? org.apache.nifi.database.dialect.service.api.ColumnDefinition.Nullable.NO
+                        : org.apache.nifi.database.dialect.service.api.ColumnDefinition.Nullable.YES;
+                }
+                @Override
+                public boolean primaryKey() {
+                    return primaryKeys.length > idx && primaryKeys[idx];
+                }
+            });
+        }
+        return defs;
+    }
+
+    private static StatementRequest createReq(final TableDefinition table) {
+        return new StatementRequest() {
+            @Override
+            public StatementType statementType() {
+                return StatementType.CREATE;
+            }
+            @Override
+            public TableDefinition tableDefinition() {
+                return table;
+            }
+        };
+    }
+
+    private static StatementRequest alterReq(final TableDefinition table) {
+        return new StatementRequest() {
+            @Override
+            public StatementType statementType() {
+                return StatementType.ALTER;
+            }
+            @Override
+            public TableDefinition tableDefinition() {
+                return table;
+            }
+        };
+    }
+
+    private static StatementRequest insertIgnoreReq(final TableDefinition table) {
+        return new StatementRequest() {
+            @Override
+            public StatementType statementType() {
+                return StatementType.INSERT_IGNORE;
+            }
+            @Override
+            public TableDefinition tableDefinition() {
+                return table;
+            }
+        };
+    }
+
+    private static StatementRequest selectReqWithDerivedTable(final TableDefinition table, final String derivedTableSql) {
+        return new QueryStatementRequest() {
+            @Override
+            public StatementType statementType() {
+                return StatementType.SELECT;
+            }
+            @Override
+            public TableDefinition tableDefinition() {
+                return table;
+            }
+            @Override
+            public Optional<String> derivedTable() {
+                return Optional.of(derivedTableSql);
+            }
+            @Override
+            public Optional<String> whereClause() {
+                return Optional.empty();
+            }
+            @Override
+            public Optional<String> orderByClause() {
+                return Optional.empty();
+            }
+            @Override
+            public Optional<PageRequest> pageRequest() {
+                return Optional.empty();
             }
         };
     }

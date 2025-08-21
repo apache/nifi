@@ -51,7 +51,6 @@ public class DuplicateFlowFile extends AbstractProcessor {
 
     static final PropertyDescriptor NUM_COPIES = new PropertyDescriptor.Builder()
     .name("Number of Copies")
-    .displayName("Number of Copies")
     .description("Specifies how many copies of each incoming FlowFile will be made")
     .required(true)
     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

@@ -67,7 +67,6 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
-            .displayName("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")
             .required(true)
             .defaultValue("20 MB")

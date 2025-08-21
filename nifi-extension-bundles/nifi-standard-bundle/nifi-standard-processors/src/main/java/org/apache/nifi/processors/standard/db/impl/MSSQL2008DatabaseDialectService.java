@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.PageRequest;
 import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StandardStatementResponse;
@@ -27,7 +26,6 @@ import org.apache.nifi.database.dialect.service.api.StatementResponse;
 import org.apache.nifi.database.dialect.service.api.StatementType;
 import org.apache.nifi.database.dialect.service.api.TableDefinition;
 
-import java.util.List;
 import java.util.Optional;
 
 @Tags({"mssql", "sqlserver", "database", "dialect"})
@@ -78,7 +76,8 @@ public class MSSQL2008DatabaseDialectService extends MSSQLDatabaseDialectService
 
         final boolean partitioned = indexColumnName != null && !indexColumnName.isBlank();
         final boolean hasOrder = orderByClause != null && !orderByClause.isBlank();
-        final boolean useWindowPaging = limit != null && !partitioned && offset != null && (offset > 0 || hasOrder);
+        // Use window paging only when an offset > 0 is requested; when offset == 0, prefer TOP with ORDER BY for efficiency
+        final boolean useWindowPaging = limit != null && !partitioned && offset != null && offset > 0;
 
         final StringBuilder sql = new StringBuilder("SELECT ");
 
@@ -102,55 +101,43 @@ public class MSSQL2008DatabaseDialectService extends MSSQLDatabaseDialectService
 
         sql.append(" FROM ").append(qualifiedTableName);
 
+        boolean whereAdded = false;
         if (whereClause != null && !whereClause.isBlank()) {
             sql.append(" WHERE ").append(whereClause);
-            if (partitioned) {
+            whereAdded = true;
+        }
+
+        if (partitioned) {
+            sql.append(whereAdded ? " AND " : " WHERE ");
+            sql.append(indexColumnName)
+               .append(" >= ")
+               .append(offset != null ? offset : 0);
+            if (limit != null) {
                 sql.append(" AND ")
                    .append(indexColumnName)
-                   .append(" >= ")
-                   .append(offset != null ? offset : 0);
-                if (limit != null) {
-                    sql.append(" AND ")
-                       .append(indexColumnName)
-                       .append(" < ")
-                       .append((offset == null ? 0 : offset) + limit);
-                }
+                   .append(" < ")
+                   .append((offset == null ? 0 : offset) + limit);
             }
         }
 
-        if (orderByClause != null && !orderByClause.isBlank() && !partitioned) {
-            sql.append(" ORDER BY ").append(orderByClause);
+        if (!partitioned && orderByClause != null && !orderByClause.isBlank()) {
+            if (!useWindowPaging) {
+                sql.append(" ORDER BY ").append(orderByClause);
+            }
         }
 
         if (useWindowPaging) {
-                sql.append(") A WHERE rnum > ")
-                   .append(offset)
-                   .append(" AND rnum <= ")
-                   .append(offset + limit);
+            if (offset != null && offset > 0 && !hasOrder) {
+                throw new IllegalArgumentException("Order by clause required for pagination when offset > 0");
+            }
+            sql.append(") A WHERE rnum > ")
+               .append(offset)
+               .append(" AND rnum <= ")
+               .append(offset + limit);
         }
 
         return sql.toString();
     }
 
-    private String buildSelectColumns(final List<ColumnDefinition> columns) {
-        if (columns == null || columns.isEmpty()) {
-            return "*";
-        }
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < columns.size(); i++) {
-            if (i > 0) sb.append(", ");
-            sb.append(columns.get(i).columnName());
-        }
-        return sb.toString();
-    }
-
-    private String qualifyTableName(final TableDefinition table) {
-        final StringBuilder name = new StringBuilder();
-        table.catalog().ifPresent(c -> name.append(c).append('.'));
-        table.schemaName().ifPresent(s -> name.append(s).append('.'));
-        name.append(table.tableName());
-        return name.toString();
-    }
 }
-
 

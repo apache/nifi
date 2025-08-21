@@ -121,20 +121,23 @@ public class MSSQLDatabaseDialectService extends AbstractControllerService imple
             .append(" FROM ")
             .append(qualifiedTableName);
 
+        boolean whereAdded = false;
         if (whereClause != null && !whereClause.isBlank()) {
             sql.append(" WHERE ").append(whereClause);
-            if (partitioned) {
-                sql.append(" AND ")
-                    .append(indexColumnName)
-                    .append(" >= ")
-                    .append(offset != null ? offset : 0);
-                if (limit != null) {
+             whereAdded = true;
+        }
+
+        if (partitioned) {
+            sql.append(whereAdded ? " AND " : " WHERE ");
+            sql.append(indexColumnName)
+                .append(" >= ")
+                .append(offset != null ? offset : 0);
+            if (limit != null) {
                     sql.append(" AND ")
-                        .append(indexColumnName)
-                        .append(" < ")
-                        .append((offset == null ? 0 : offset) + limit);
+                       .append(indexColumnName)
+                       .append(" < ")
+                       .append((offset == null ? 0 : offset) + limit);
                 }
-            }
         }
 
         if (!partitioned && orderByClause != null && !orderByClause.isBlank()) {
@@ -230,7 +233,7 @@ public class MSSQLDatabaseDialectService extends AbstractControllerService imple
         return "CREATE TABLE IF NOT EXISTS " + tableName + " (" + String.join(", ", defs) + ")";
     }
 
-    private String buildSelectColumns(final List<ColumnDefinition> columns) {
+    protected String buildSelectColumns(final List<ColumnDefinition> columns) {
         if (columns == null || columns.isEmpty()) {
             return "*";
         }
@@ -242,7 +245,7 @@ public class MSSQLDatabaseDialectService extends AbstractControllerService imple
         return sb.toString();
     }
 
-    private String qualifyTableName(final TableDefinition table) {
+    protected String qualifyTableName(final TableDefinition table) {
         final StringBuilder name = new StringBuilder();
         table.catalog().ifPresent(c -> name.append(c).append('.'));
         table.schemaName().ifPresent(s -> name.append(s).append('.'));

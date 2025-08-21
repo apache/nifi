@@ -281,7 +281,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
             .name("Output MIME Type")
-            .displayName("Output MIME Type")
             .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Output Destination Attribute' is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

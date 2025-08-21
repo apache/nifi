@@ -22,7 +22,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <antlr4.version>4.13.1</antlr4.version>
+        <antlr4.version>4.13.2</antlr4.version>
         <antlr4.protobuf3.grammar.url>https://raw.githubusercontent.com/antlr/grammars-v4/e1491245d045474fa5393fb7be03b3b8ed22080f/protobuf3/Protobuf3.g4</antlr4.protobuf3.grammar.url>
         <antlr4.generated.sources>target/generated-sources/antlr4</antlr4.generated.sources>
     </properties>
@@ -33,7 +33,6 @@
             <artifactId>antlr4-runtime</artifactId>
             <version>${antlr4.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-confluent-platform-schema-api</artifactId>
@@ -89,7 +88,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.6.1</version>
                 <executions>
                     <execution>
                         <id>add-source</id>

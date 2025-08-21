@@ -210,7 +210,6 @@ public class DebugFlow extends AbstractProcessor {
         .build();
     static final PropertyDescriptor CUSTOM_VALIDATE_SLEEP_TIME = new PropertyDescriptor.Builder()
         .name("CustomValidate Pause Time")
-        .displayName("CustomValidate Pause Time")
         .description("Specifies how long the processor should sleep in the customValidate() method")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("0 sec")
