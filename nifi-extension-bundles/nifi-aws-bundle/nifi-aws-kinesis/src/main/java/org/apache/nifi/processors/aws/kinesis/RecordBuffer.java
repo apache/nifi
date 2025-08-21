@@ -26,6 +26,7 @@ import software.amazon.kinesis.processor.RecordProcessorCheckpointer;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -57,6 +58,7 @@ final class RecordBuffer {
 
     private final ComponentLog logger;
 
+    private final long checkpointIntervalMillis;
     private final BlockingMemoryTracker memoryTracker;
 
     private final AtomicLong bufferIdCounter = new AtomicLong(0);
@@ -69,9 +71,10 @@ final class RecordBuffer {
      */
     private final ConcurrentLinkedQueue<ShardBufferId> buffersToLease = new ConcurrentLinkedQueue<>();
 
-    RecordBuffer(final ComponentLog logger, final long maxMemoryBytes) {
+    RecordBuffer(final ComponentLog logger, final long maxMemoryBytes, final Duration checkpointInterval) {
         this.logger = logger;
         this.memoryTracker = new BlockingMemoryTracker(logger, maxMemoryBytes);
+        this.checkpointIntervalMillis = checkpointInterval.toMillis();
     }
 
     // ========== Methods called from Kinesis Client Library ==========
@@ -81,7 +84,7 @@ final class RecordBuffer {
 
         logger.info("Creating new buffer for shard {} with id {}", shardId, id);
 
-        shardBuffers.put(id, new ShardBuffer(logger));
+        shardBuffers.put(id, new ShardBuffer(id, logger, checkpointIntervalMillis));
         buffersToLease.add(id);
         return id;
     }
@@ -128,17 +131,34 @@ final class RecordBuffer {
     /**
      * Called when a shard ends - marks the buffer as ended but keeps it for final processing.
      */
-    void finishConsumption(final ShardBufferId bufferId, final RecordProcessorCheckpointer checkpointer) {
+    void checkpointEndedShard(final ShardBufferId bufferId, final RecordProcessorCheckpointer checkpointer) {
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
-            logger.debug("Buffer with id {} not found. Cannot checkpoint last record", bufferId);
+            logger.debug("Buffer with id {} not found. Cannot checkpoint the ended shard", bufferId);
             return;
         }
 
-        logger.info("Finishing consumption for buffer {}. Checkpointing last record", bufferId);
-        buffer.finishRecordConsumption(checkpointer);
+        logger.info("Finishing consumption for buffer {}. Checkpointing the ended shard", bufferId);
+        buffer.checkpointEndedShard(checkpointer);
 
-        logger.debug("Removing buffer with id {} after successful last record checkpoint", bufferId);
+        logger.debug("Removing buffer with id {} after successful ended shard checkpoint", bufferId);
+        shardBuffers.remove(bufferId);
+    }
+
+    /**
+     * Called when consumer is shut down. Performs last checkpoint and returns, without waiting for the records consumption to finish.
+     */
+    void shutdownShardConsumption(final ShardBufferId bufferId, final RecordProcessorCheckpointer checkpointer) {
+        final ShardBuffer buffer = shardBuffers.get(bufferId);
+        if (buffer == null) {
+            logger.debug("Buffer with id {} not found. Cannot shutdown shard consumption", bufferId);
+            return;
+        }
+
+        logger.info("Shutting down the buffer {}. Checkpointing last consumed record", bufferId);
+        buffer.shutdownBuffer(checkpointer);
+
+        logger.debug("Removing buffer with id {} after successful last consumed record checkpoint", bufferId);
         shardBuffers.remove(bufferId);
     }
 
@@ -187,7 +207,7 @@ final class RecordBuffer {
             if (buffer == null) {
                 // By the time the bufferId is polled, it might have been invalidated. No need to return it to the queue.
                 logger.debug("Buffer with id {} was removed while polling for lease. Continuing to poll.", bufferId);
-            } else if (!buffer.hasUnprocessedRecords()) {
+            } else if (buffer.isEmpty()) {
                 seenBuffers.add(bufferId);
                 buffersToLease.add(bufferId);
                 logger.debug("Buffer with id {} is empty. Continuing to poll.", bufferId);
@@ -408,7 +428,16 @@ final class RecordBuffer {
         private static final long MAX_RETRY_DELAY_MILLIS = 10_000;
         private static final Random RANDOM = new Random();
 
+        private final ShardBufferId bufferId;
         private final ComponentLog logger;
+
+        private final long checkpointIntervalMillis;
+        private volatile long nextCheckpointTimeMillis;
+        /**
+         * A last records checkpointer that was ignored due to the checkpoint interval.
+         * If null, the last checkpoint was successful or no checkpoint was attempted yet.
+         */
+        private volatile @Nullable RecordProcessorCheckpointer lastIgnoredCheckpointer = null;
 
         /**
          * Lock-free queues for managing record batches with their checkpointers in different states.
@@ -426,8 +455,11 @@ final class RecordBuffer {
         private volatile @Nullable CountDownLatch emptyBufferLatch = null;
         private final AtomicBoolean invalidated = new AtomicBoolean(false);
 
-        ShardBuffer(final ComponentLog logger) {
+        ShardBuffer(final ShardBufferId bufferId, final ComponentLog logger, final long checkpointIntervalMillis) {
+            this.bufferId = bufferId;
             this.logger = logger;
+            this.checkpointIntervalMillis = checkpointIntervalMillis;
+            this.nextCheckpointTimeMillis = System.currentTimeMillis() + checkpointIntervalMillis;
         }
 
         /**
@@ -473,7 +505,14 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            checkpointSafely(lastBatch.checkpointer());
+            if (System.currentTimeMillis() >= nextCheckpointTimeMillis) {
+                checkpointSafely(lastBatch.checkpointer());
+                nextCheckpointTimeMillis = System.currentTimeMillis() + checkpointIntervalMillis;
+                lastIgnoredCheckpointer = null;
+            } else {
+                // Saving the checkpointer for later, in case shutdown happens before the next checkpoint.
+                lastIgnoredCheckpointer = lastBatch.checkpointer();
+            }
 
             final List<RecordBatch> checkpointedBatches = new ArrayList<>(inProgressBatches.size());
             inProgressBatches.drainTo(checkpointedBatches);
@@ -486,7 +525,7 @@ final class RecordBuffer {
             recordsCount.addAndGet(-committedRecordsCount);
 
             final CountDownLatch localEmptyBufferLatch = this.emptyBufferLatch;
-            if (localEmptyBufferLatch != null && !hasUnprocessedRecords()) {
+            if (localEmptyBufferLatch != null && isEmpty()) {
                 // If the latch is not null, it means we are waiting for the buffer to become empty.
                 localEmptyBufferLatch.countDown();
             }
@@ -504,22 +543,43 @@ final class RecordBuffer {
             }
         }
 
-        void finishRecordConsumption(final RecordProcessorCheckpointer completionCheckpointer) {
+        void checkpointEndedShard(final RecordProcessorCheckpointer checkpointer) {
             while (true) {
-                if (hasUnprocessedRecords()) {
-                    // Wait for buffer to become empty.
-                    try {
-                        final CountDownLatch localEmptyBufferLatch = new CountDownLatch(1);
-                        emptyBufferLatch = localEmptyBufferLatch;
-                        localEmptyBufferLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
-                    } catch (final InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IllegalStateException("Thread interrupted while waiting for records to be consumed", e);
-                    }
-                } else {
-                    // Buffer is empty, perform final checkpoint.
-                    checkpointSafely(completionCheckpointer);
+                if (invalidated.get()) {
                     return;
+                }
+
+                if (recordsCount.get() == 0) {
+                    // Buffer is empty, perform final checkpoint.
+                    checkpointSafely(checkpointer);
+                    return;
+                }
+
+                // Wait for the records to be consumed first.
+                try {
+                    final CountDownLatch localEmptyBufferLatch = new CountDownLatch(1);
+                    emptyBufferLatch = localEmptyBufferLatch;
+                    localEmptyBufferLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Thread interrupted while waiting for records to be consumed", e);
+                }
+            }
+        }
+
+        void shutdownBuffer(final RecordProcessorCheckpointer checkpointer) {
+            if (invalidated.get()) {
+                return;
+            }
+
+            if (recordsCount.get() == 0) {
+                checkpointSafely(checkpointer);
+            } else {
+                // If there are still records in the buffer, checkpointing with the latest provided checkpointer is not safe.
+                // But, if the records were committed without checkpointing in the past, we can checkpoint them now.
+                final RecordProcessorCheckpointer lastCheckpointer = lastIgnoredCheckpointer;
+                if (lastCheckpointer != null) {
+                    checkpointSafely(lastCheckpointer);
                 }
             }
         }
@@ -542,12 +602,8 @@ final class RecordBuffer {
          * Checks if the buffer has any records. <b>Can produce false positives.</b>
          * @return whether there are any records in the buffer.
          */
-        boolean hasUnprocessedRecords() {
-            if (invalidated.get()) {
-                return false;
-            }
-
-            return recordsCount.get() > 0;
+        boolean isEmpty() {
+            return invalidated.get() || recordsCount.get() == 0;
         }
 
         /**
@@ -560,6 +616,8 @@ final class RecordBuffer {
                 logger.warn("Attempting to checkpoint records with a null checkpointer. Ignoring checkpoint");
                 return;
             }
+
+            logger.debug("Performing checkpoint for buffer with id {}", bufferId);
 
             for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {

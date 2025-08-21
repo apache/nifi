@@ -36,6 +36,7 @@ import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,6 +63,7 @@ class RecordBufferTest {
     private static final long MAX_MEMORY_BYTES = 1024L;
     private static final String SHARD_ID_1 = "shard-1";
     private static final String SHARD_ID_2 = "shard-2";
+    private static final Duration CHECKPOINT_INTERVAL = Duration.ZERO;
 
     private RecordBuffer recordBuffer;
     private TestCheckpointer checkpointer1;
@@ -69,7 +71,7 @@ class RecordBufferTest {
 
     @BeforeEach
     void setUp() {
-        recordBuffer = new RecordBuffer(new NopComponentLog(), MAX_MEMORY_BYTES);
+        recordBuffer = new RecordBuffer(new NopComponentLog(), MAX_MEMORY_BYTES, CHECKPOINT_INTERVAL);
         checkpointer1 = new TestCheckpointer();
         checkpointer2 = new TestCheckpointer();
     }
@@ -283,7 +285,7 @@ class RecordBufferTest {
     }
 
     @Test
-    void testFinishConsumption() {
+    void testCheckpointEndedShard() {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
@@ -293,8 +295,7 @@ class RecordBufferTest {
         recordBuffer.consumeRecords(lease);
         recordBuffer.commitConsumedRecords(lease);
 
-        // Finish consumption (shard ended).
-        recordBuffer.finishConsumption(bufferId, checkpointer2);
+        recordBuffer.checkpointEndedShard(bufferId, checkpointer2);
         assertTrue(checkpointer2.isCheckpointed());
 
         // Buffer should be removed and not available for operations.
@@ -303,10 +304,43 @@ class RecordBufferTest {
     }
 
     @Test
+    void testShutdownShardConsumption_forEmptyBuffer() {
+        final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+        final List<KinesisClientRecord> records = createTestRecords(1);
+
+        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        final ShardBufferLease lease = recordBuffer.acquireBufferLease().orElseThrow();
+
+        recordBuffer.consumeRecords(lease);
+        recordBuffer.commitConsumedRecords(lease);
+
+        recordBuffer.shutdownShardConsumption(bufferId, checkpointer2);
+        assertTrue(checkpointer2.isCheckpointed());
+
+        // Buffer should be removed and not available for operations.
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        assertTrue(consumedRecords.isEmpty());
+    }
+
+    @Test
+    void testShutdownShardConsumption_forBufferWithRecords() {
+        final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+        final List<KinesisClientRecord> records = createTestRecords(1);
+
+        recordBuffer.addRecords(bufferId, records, checkpointer1);
+
+        recordBuffer.shutdownShardConsumption(bufferId, checkpointer2);
+        assertFalse(checkpointer1.isCheckpointed());
+        assertFalse(checkpointer2.isCheckpointed());
+
+        assertTrue(recordBuffer.acquireBufferLease().isEmpty(), "Buffer should not be available after shutdown");
+    }
+
+    @Test
     @Timeout(value = 5, unit = SECONDS)
     void testMemoryBackpressure() throws InterruptedException {
         // Create buffer with small memory limit.
-        final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), 100L);
+        final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), 100L, CHECKPOINT_INTERVAL);
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         // Still fits into the buffer.
@@ -346,7 +380,7 @@ class RecordBufferTest {
     void testMemoryBackpressure_forRecordsLargerThanMaxBuffer() {
         // Create buffer with small memory limit.
         final int bufferSize = 10;
-        final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), bufferSize);
+        final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), bufferSize, CHECKPOINT_INTERVAL);
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         final KinesisClientRecord reallyLargeRecord = createRecordWithSize(bufferSize + 1);
@@ -538,7 +572,7 @@ class RecordBufferTest {
 
     @Test
     @Timeout(value = 3, unit = SECONDS)
-    void testFinishConsumptionWaitsForPendingRecords() throws InterruptedException {
+    void testCheckpointEndedShardWaitsForPendingRecords() throws InterruptedException {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
@@ -551,7 +585,7 @@ class RecordBufferTest {
         // Start finishConsumption in another thread.
         final Thread finishThread = new Thread(() -> {
             finishStarted.countDown();
-            recordBuffer.finishConsumption(bufferId, checkpointer2);
+            recordBuffer.checkpointEndedShard(bufferId, checkpointer2);
         });
 
         finishThread.start();
