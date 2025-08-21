@@ -584,7 +584,8 @@ final class RecordBuffer {
                         Thread.sleep(delayMillis);
                     } catch (final InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new IllegalStateException("Thread interrupted during checkpoint retry backoff", ie);
+                        logger.warn("Thread interrupted while waiting to retry checkpoint. Exiting retry loop", ie);
+                        return;
                     }
                 } catch (final ShutdownException e) {
                     logger.warn("Failed to checkpoint records due to shutdown: {}. Ignoring checkpoint", e.getMessage(), e);
