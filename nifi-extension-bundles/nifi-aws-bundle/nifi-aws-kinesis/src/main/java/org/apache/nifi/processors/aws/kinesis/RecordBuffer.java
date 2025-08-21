@@ -38,12 +38,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 
@@ -376,14 +377,21 @@ final class RecordBuffer {
         }
     }
 
+    private record RecordBatch(List<KinesisClientRecord> records,
+                               @Nullable RecordProcessorCheckpointer checkpointer) {
+    }
+
     /**
-     * ShardBuffer stores all records for a single shard in two queues:
-     * - IN_PROGRESS: records that have been consumed but not yet checkpointed.
-     * - PENDING: records that have been added but not yet consumed.
+     * ShardBuffer stores all record batches for a single shard in two queues:
+     * - IN_PROGRESS: record batches that have been consumed but not yet checkpointed.
+     * - PENDING: record batches that have been added but not yet consumed.
      * <p>
-     * When consuming records all PENDING record are moved to IN_PROGRESS.
-     * After a successful checkpoint all IN_PROGRESS records are cleared.
-     * After a rollback all IN_PROGRESS records are kept, allowing to retry consumption.
+     * When consuming records all PENDING batches are moved to IN_PROGRESS.
+     * After a successful checkpoint all IN_PROGRESS batches are cleared.
+     * After a rollback all IN_PROGRESS batches are kept, allowing to retry consumption.
+     * <p>
+     * Each batch preserves the original grouping of records as provided by Kinesis
+     * along with their associated checkpointer, ensuring atomicity.
      */
     private static class ShardBuffer {
 
@@ -398,20 +406,19 @@ final class RecordBuffer {
         private final ComponentLog logger;
 
         /**
-         * Checkpointer for the latest record in the inProgressRecords.
+         * Lock-free queues for managing record batches with their checkpointers in different states.
          */
-        private @Nullable RecordProcessorCheckpointer latestInProgressCheckpointer;
-        private final List<KinesisClientRecord> inProgressRecords = new ArrayList<>();
+        private final LinkedBlockingDeque<RecordBatch> inProgressBatches = new LinkedBlockingDeque<>();
+        private final LinkedBlockingQueue<RecordBatch> pendingBatches = new LinkedBlockingQueue<>();
+        /**
+         * Counter for tracking the number of records in the buffer. Can be larger than the number of records in the queues.
+         */
+        private final AtomicInteger recordsCount = new AtomicInteger(0);
 
         /**
-         * Checkpoint for the latest record in the pendingRecords.
+         * A countdown latch that is used to signal when the buffer becomes empty. Used when ShardBuffer should be closed.
          */
-        private @Nullable RecordProcessorCheckpointer latestPendingCheckpointer;
-        private final List<KinesisClientRecord> pendingRecords = new ArrayList<>();
-
-        private final Lock recordsLock = new ReentrantLock();
-        private final Condition emptyBufferCondition = recordsLock.newCondition();
-
+        private volatile @Nullable CountDownLatch emptyBufferLatch = null;
         private final AtomicBoolean invalidated = new AtomicBoolean(false);
 
         ShardBuffer(final ComponentLog logger) {
@@ -425,23 +432,17 @@ final class RecordBuffer {
          */
         boolean offer(final List<KinesisClientRecord> records, final RecordProcessorCheckpointer recordsCheckpointer) {
             if (invalidated.get()) {
+                // If buffer was invalidated after adding, the records will be cleaned up by invalidate()
+                // but we should return false to indicate the operation didn't succeed.
                 return false;
             }
 
-            recordsLock.lock();
-            try {
-                if (invalidated.get()) {
-                    return false;
-                }
+            // Records count must be always equal to or larger than the number of records in the queues.
+            // Thus, the ordering of the operations.
+            recordsCount.addAndGet(records.size());
+            pendingBatches.offer(new RecordBatch(records, recordsCheckpointer));
 
-                pendingRecords.addAll(records);
-                latestPendingCheckpointer = recordsCheckpointer;
-
-                return true;
-
-            } finally {
-                recordsLock.unlock();
-            }
+            return true;
         }
 
         List<KinesisClientRecord> consumeRecords() {
@@ -449,22 +450,12 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            recordsLock.lock();
-            try {
-                if (invalidated.get()) {
-                    return emptyList();
-                }
+            pendingBatches.drainTo(inProgressBatches);
 
-                inProgressRecords.addAll(pendingRecords);
-                latestInProgressCheckpointer = latestPendingCheckpointer;
-
-                pendingRecords.clear();
-                latestPendingCheckpointer = null;
-
-                return List.copyOf(inProgressRecords);
-            } finally {
-                recordsLock.unlock();
-            }
+            return inProgressBatches.stream()
+                    .map(RecordBatch::records)
+                    .flatMap(List::stream)
+                    .toList();
         }
 
         List<KinesisClientRecord> commitConsumedRecords() {
@@ -472,26 +463,32 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            recordsLock.lock();
-            try {
-                if (invalidated.get()) {
-                    return emptyList();
-                }
-
-                checkpointSafely(latestInProgressCheckpointer);
-
-                final List<KinesisClientRecord> checkpointedRecords = List.copyOf(inProgressRecords);
-                inProgressRecords.clear();
-
-                if (pendingRecords.isEmpty()) {
-                    emptyBufferCondition.signalAll();
-                }
-
-                return checkpointedRecords;
-
-            } finally {
-                recordsLock.unlock();
+            final RecordBatch lastBatch = inProgressBatches.peekLast();
+            if (lastBatch == null) {
+                // The buffer could be invalidated in the meantime, or no records were consumed.
+                return emptyList();
             }
+
+            checkpointSafely(lastBatch.checkpointer());
+
+            final List<RecordBatch> checkpointedBatches = new ArrayList<>(inProgressBatches.size());
+            inProgressBatches.drainTo(checkpointedBatches);
+
+            final List<KinesisClientRecord> checkpointedRecords = checkpointedBatches.stream()
+                    .map(RecordBatch::records)
+                    .flatMap(List::stream)
+                    .toList();
+            // Records count must be always equal to or larger than the number of records in the queues.
+            // Thus, the ordering of the operations.
+            recordsCount.addAndGet(-checkpointedRecords.size());
+
+            final CountDownLatch localEmptyBufferLatch = this.emptyBufferLatch;
+            if (localEmptyBufferLatch != null && !hasUnprocessedRecords()) {
+                // If the latch is not null, it means we are waiting for the buffer to become empty.
+                localEmptyBufferLatch.countDown();
+            }
+
+            return checkpointedRecords;
         }
 
         void rollbackConsumedRecords() {
@@ -499,43 +496,28 @@ final class RecordBuffer {
                 return;
             }
 
-            recordsLock.lock();
-            try {
-                if (invalidated.get()) {
-                    return;
-                }
-
-                inProgressRecords.forEach(record -> record.data().rewind());
-
-            } finally {
-                recordsLock.unlock();
+            for (final RecordBatch recordBatch : inProgressBatches) {
+                recordBatch.records().forEach(record -> record.data().rewind());
             }
         }
 
         void finishRecordConsumption(final RecordProcessorCheckpointer completionCheckpointer) {
-            if (invalidated.get()) {
-                return;
-            }
-
-            recordsLock.lock();
-            try {
-                // Record consumption can be finished only when all accepted records were committed.
-                while (!inProgressRecords.isEmpty() || !pendingRecords.isEmpty()) {
-                    if (invalidated.get()) {
-                        return;
-                    }
-
+            while (true) {
+                if (hasUnprocessedRecords()) {
+                    // Wait for buffer to become empty.
                     try {
-                        emptyBufferCondition.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
+                        final CountDownLatch localEmptyBufferLatch = new CountDownLatch(1);
+                        emptyBufferLatch = localEmptyBufferLatch;
+                        localEmptyBufferLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
                     } catch (final InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException("Thread interrupted while waiting for records to be consumed", e);
                     }
+                } else {
+                    // Buffer is empty, perform final checkpoint.
+                    checkpointSafely(completionCheckpointer);
+                    return;
                 }
-
-                checkpointSafely(completionCheckpointer);
-            } finally {
-                recordsLock.unlock();
             }
         }
 
@@ -544,36 +526,31 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            recordsLock.lock();
-            try {
-                final List<KinesisClientRecord> bufferedRecords = new ArrayList<>(inProgressRecords.size() + pendingRecords.size());
-                bufferedRecords.addAll(inProgressRecords);
-                bufferedRecords.addAll(pendingRecords);
+            final List<RecordBatch> inProgressBatchesCopy = new ArrayList<>(inProgressBatches.size());
+            inProgressBatches.drainTo(inProgressBatchesCopy);
 
-                inProgressRecords.clear();
-                latestInProgressCheckpointer = null;
+            final List<RecordBatch> pendingBatchesCopy = new ArrayList<>(pendingBatches.size());
+            pendingBatches.drainTo(pendingBatchesCopy);
 
-                pendingRecords.clear();
-                latestPendingCheckpointer = null;
+            // No need to adjust recordsCount after invalidation.
 
-                return bufferedRecords;
-            } finally {
-                recordsLock.unlock();
-            }
+            return Stream.of(inProgressBatchesCopy, pendingBatchesCopy)
+                    .flatMap(List::stream)
+                    .map(RecordBatch::records)
+                    .flatMap(List::stream)
+                    .toList();
         }
 
+        /**
+         * Checks if the buffer has any records. <b>Can produce false positives.</b>
+         * @return whether there are any records in the buffer.
+         */
         boolean hasUnprocessedRecords() {
             if (invalidated.get()) {
                 return false;
             }
 
-            recordsLock.lock();
-            try {
-                return !invalidated.get()
-                        && (!inProgressRecords.isEmpty() || !pendingRecords.isEmpty());
-            } finally {
-                recordsLock.unlock();
-            }
+            return recordsCount.get() > 0;
         }
 
         /**
