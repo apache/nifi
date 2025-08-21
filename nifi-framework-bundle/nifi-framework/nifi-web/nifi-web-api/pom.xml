@@ -117,6 +117,7 @@
                     <defaultResponseCode>200</defaultResponseCode>
                     <configurationFilePath>${project.build.outputDirectory}/openapi.yaml</configurationFilePath>
                     <objectMapperProcessorClass>org.apache.nifi.swagger.integration.StandardObjectMapperProcessor</objectMapperProcessorClass>
+                    <readerClass>org.apache.nifi.swagger.integration.StandardReader</readerClass>
                 </configuration>
                 <executions>
                     <execution>
