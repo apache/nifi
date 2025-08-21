@@ -31,10 +31,12 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
+import org.apache.nifi.dbcp.utils.DriverUtils;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -45,6 +47,7 @@ import org.apache.nifi.security.krb.KerberosUser;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
 
@@ -58,6 +61,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         List<ConfigVerificationResult> results = new ArrayList<>();
 
         KerberosUser kerberosUser = null;
+
         try {
             kerberosUser = getKerberosUser(context);
             if (kerberosUser != null) {
@@ -101,16 +105,30 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                         .build());
             }
         } catch (final Exception e) {
-            String message = "Failed to configure Data Source.";
-            if (e.getCause() instanceof ClassNotFoundException) {
-                message += String.format("  Ensure changes to the '%s' property are applied before verifying",
-                        DB_DRIVER_LOCATION.getDisplayName());
+            StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
+            verificationLogger.error(messageBuilder.toString(), e);
+
+            final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+            final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
+
+            if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
+                List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
+                if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
+                    messageBuilder.append(String.format(" Driver class [%s] not found in provided resources. Available driver classes found: %s",
+                            driverName, String.join(", ", availableDrivers)));
+                } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
+                    messageBuilder.append(" Driver Class found but not loaded: Apply configuration before verifying.");
+                } else {
+                    messageBuilder.append(String.format(" Exception: %s", e.getMessage()));
+                }
+            } else {
+                messageBuilder.append(String.format(" No driver name specified or no driver resources provided. Exception: %s", e.getMessage()));
             }
-            verificationLogger.error(message, e);
+
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(FAILED)
-                    .explanation(message + ": " + e.getMessage())
+                    .explanation(messageBuilder.toString())
                     .build());
         } finally {
             try {

@@ -37,9 +37,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
+import org.apache.nifi.dbcp.utils.DriverUtils;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -203,7 +207,33 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         try {
             clazz = Class.forName(driverName);
         } catch (final ClassNotFoundException e) {
-            throw new ProcessException("Driver class " + driverName + " is not found", e);
+            // Enhanced error message with discovery
+            ResourceReferences driverResources = null;
+            try {
+                // Try to get driver resources from current context if available
+                if (getConfigurationContext() != null) {
+                    driverResources = getConfigurationContext().getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
+                }
+            } catch (Exception ignored) {
+                // Context might not be available, continue without it
+            }
+
+            final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? DriverUtils.discoverDriverClasses(driverResources) : List.of();
+
+            StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverName));
+
+            if (!availableDrivers.isEmpty()) {
+                errorMessage.append(" Available driver classes found in resources: %s.".formatted(String.join(", ", availableDrivers)));
+            } else if (driverResources != null && driverResources.getCount() != 0) {
+                final List<ResourceReference> resourcesList = driverResources.asList();
+                if (resourcesList.stream().filter(r -> r.getResourceType() != ResourceType.URL).count() != 0) {
+                    errorMessage.append(" No JDBC driver classes found in the provided resources.");
+                }
+            } else if (driverResources == null) {
+                errorMessage.append(" The property 'Database Driver Location(s)' should be set.");
+            }
+
+            throw new ProcessException(errorMessage.toString(), e);
         }
 
         try {
