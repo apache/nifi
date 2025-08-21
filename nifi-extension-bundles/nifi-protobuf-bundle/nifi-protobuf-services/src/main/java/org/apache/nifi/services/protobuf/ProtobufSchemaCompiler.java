@@ -28,6 +28,7 @@ import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.file.StandardOpenOption.CREATE;
@@ -61,16 +63,21 @@ final class ProtobufSchemaCompiler {
     );
     private static final int CACHE_EXPIRE_HOURS = 1;
     private static final int COMPILED_SCHEMAS_CACHE_SIZE = 200;
+    private static final String PROTO_EXTENSION = ".proto";
 
     private final Cache<SchemaIdentifier, Schema> compiledSchemaCache;
     private final ComponentLog logger;
+    private final String tempDirectorySuffix;
 
     /**
      * Creates a new ProtobufSchemaCompiler with default cache settings.
      *
-     * @param logger the component logger for logging compilation activities
+     * @param tempDirectorySuffix the suffix for temporary directory names created by the compiler.
+     *                            This may help in finding the right temporary directory in case of compilation issues
+     * @param logger              the component logger for logging compilation activities
      */
-    public ProtobufSchemaCompiler(final ComponentLog logger) {
+    public ProtobufSchemaCompiler(final String tempDirectorySuffix, final ComponentLog logger) {
+        this.tempDirectorySuffix = Objects.requireNonNull(tempDirectorySuffix, "Temporary directory suffix cannot be null");
         this.logger = logger;
         this.compiledSchemaCache = Caffeine.newBuilder()
             .expireAfterAccess(CACHE_EXPIRE_HOURS, TimeUnit.HOURS)
@@ -90,7 +97,7 @@ final class ProtobufSchemaCompiler {
                 try {
                     return compileSchemaDefinition(schemaDefinition);
                 } catch (final IOException e) {
-                    throw new RuntimeException("Could not compile schema for identifier: " + identifier, e);
+                    throw new UncheckedIOException("Could not compile schema for identifier: " + identifier, e);
                 }
             });
     }
@@ -137,7 +144,7 @@ final class ProtobufSchemaCompiler {
      * @throws IOException if unable to create or manage temporary directory
      */
     private <T> T executeWithTemporaryDirectory(final WithTemporaryDirectory<T> function) throws IOException {
-        final Path tempDir = Files.createTempDirectory("nifi-protobuf-schema");
+        final Path tempDir = Files.createTempDirectory(tempDirectorySuffix + "_protobuf_schema_compiler");
         logger.debug("Created temporary directory for schema compilation: {}", tempDir);
 
         try {
@@ -206,22 +213,22 @@ final class ProtobufSchemaCompiler {
             () -> String.valueOf(schemaDefinition.getIdentifier().getSchemaVersionId().orElse(0L))
         );
 
-        if (!schemaFileName.endsWith(".proto")) {
-            schemaFileName += ".proto"; // Ensure the file ends with .proto, otherwise the wire library will not recognize it
+        if (!schemaFileName.endsWith(PROTO_EXTENSION)) {
+            schemaFileName += PROTO_EXTENSION; // Ensure the file ends with .proto, otherwise the wire library will not recognize it
         }
 
         return schemaFileName;
     }
 
     private void processSchemaReferences(final Path tempDir, final Map<String, SchemaDefinition> references) throws IOException {
-        logger.debug("Processing schema references. Count: {}, Temp directory: {}",
+        logger.debug("Processing [{}] schema references in [{}]",
             references.size(), tempDir);
 
         for (final Map.Entry<String, SchemaDefinition> entry : references.entrySet()) {
             final String referenceKey = entry.getKey();
             final SchemaDefinition referencedSchema = entry.getValue();
 
-            logger.debug("Processing schema reference - Key: {}, Identifier: {}",
+            logger.debug("Processing schema reference [{}] Identifier [{}]",
                 referenceKey, referencedSchema.getIdentifier());
 
             // Write referenced schema to appropriate directory

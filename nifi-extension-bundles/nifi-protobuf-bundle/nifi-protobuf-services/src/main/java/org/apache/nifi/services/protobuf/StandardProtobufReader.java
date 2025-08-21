@@ -78,7 +78,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     public static final PropertyDescriptor MESSAGE_NAME_RESOLVER_STRATEGY = new PropertyDescriptor.Builder()
         .name("Message Name Resolver Strategy")
-        .displayName("Message Name Resolver Strategy")
         .description("Strategy for determining the Protocol Buffers message name for processing")
         .required(true)
         .allowableValues(MESSAGE_NAME_PROPERTY, MESSAGE_NAME_RESOLVER_SERVICE)
@@ -87,7 +86,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     public static final PropertyDescriptor MESSAGE_NAME = new PropertyDescriptor.Builder()
         .name("Message Name")
-        .displayName("Message Name")
         .description("Fully qualified name of the Protocol Buffers message including its package (eg. mypackage.MyMessage).")
         .required(true)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -97,12 +95,13 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     public static final PropertyDescriptor MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
         .name("Message Name Resolver Service")
-        .displayName("Message Name Resolver Service")
         .description("Controller service that dynamically resolves Protocol Buffer message names from FlowFile content or attributes")
         .required(true)
         .identifiesControllerService(MessageNameResolverService.class)
         .dependsOn(MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE)
         .build();
+
+    private static final String PROTO_EXTENSION = ".proto";
 
     private volatile ProtobufSchemaCompiler schemaCompiler;
     private volatile MessageNameResolver messageNameResolver;
@@ -126,7 +125,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         schemaText = context.getProperty(SCHEMA_TEXT);
         schemaBranchName = context.getProperty(SCHEMA_BRANCH_NAME);
         schemaVersion = context.getProperty(SCHEMA_VERSION);
-        schemaCompiler = new ProtobufSchemaCompiler(getLogger());
+        schemaCompiler = new ProtobufSchemaCompiler(getIdentifier(), getLogger());
 
     }
 
@@ -199,7 +198,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
         final String sha256hex = sha256Hex(schemaTextString);
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
-            .name(sha256hex + ".proto")
+            .name(sha256hex + PROTO_EXTENSION)
             .build();
 
         return new StandardSchemaDefinition(schemaIdentifier, schemaTextString, SchemaDefinition.SchemaType.PROTOBUF);
@@ -227,8 +226,8 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
             try {
                 identifierBuilder.version(Integer.valueOf(schemaVersionValue));
             } catch (final NumberFormatException nfe) {
-                throw new SchemaNotFoundException("Could not retrieve schema with name '" + schemaNameValue
-                    + "' because a non-numeric version was supplied '" + schemaVersionValue + "'", nfe);
+                throw new SchemaNotFoundException("Could not retrieve schema with name '%s' because a non-numeric version was supplied '%s'"
+                    .formatted(schemaNameValue, schemaVersionValue), nfe);
             }
         }
 
