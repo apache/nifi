@@ -124,6 +124,8 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SU
         "Concurrent Thread pool and are not released until this processor is stopped.")
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "ConsumeKinesis buffers Kinesis Records in memory until they can be processed. " +
+        "The maximum size of the buffer is controlled by the 'Max Bytes to Buffer' property.")
 public class ConsumeKinesis extends AbstractProcessor {
 
     public enum InitialPosition implements DescribedValue {
@@ -221,8 +223,12 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final PropertyDescriptor MAX_BYTES_TO_BUFFER = new PropertyDescriptor.Builder()
             .name("Max Bytes to Buffer")
             .description("""
-                    The maximum size of Kinesis Records that can be buffered in memory when receiving from Kinesis is faster than processing records.
-                    Using a larger value may improve throughput, but will do so at the expense of using additional heap.""")
+                    The maximum size of Kinesis Records that can be buffered in memory before being processed by NiFi.
+                    If the buffer size exceeds the limit, the KCL will stop consuming new records until free space is available.
+
+                    Using a larger value may improve throughput, but will do so at the expense of using additional heap.
+                    Using a smaller value may back off the Kinesis Client Library (KCL) from consuming records if the buffer is full, which may result in lower throughput.
+                    """)
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("100 MB")
@@ -231,9 +237,11 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
             .name("Checkpoint Interval")
             .description("""
-                    Interval between checkpointing consumed Kinesis records.
-                    Checkpointing too frequently may result in performance degradation.
-                    To checkpoint records on each NiFi session commit, set this value to 0 seconds""")
+                    Interval between checkpointing consumed Kinesis records. To checkpoint records on each NiFi session commit, set this value to 0 seconds.
+
+                    Checkpointing too frequently may result in performance degradation and higher DynamoDB costs.
+                    Checkpointing too rarely may result in duplicated records whenever a Shard lease is lost or NiFi server restarts.
+                    """)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("5 sec")
             .required(true)

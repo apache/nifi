@@ -257,7 +257,7 @@ class ConsumeKinesisIT {
         final int totalRecordsPerPartition = partitionRecordsPerStage * totalStages;
         final int totalRecords = partitionKeys.size() * totalRecordsPerPartition;
 
-        // Start resharding and data production operations in background thread
+        // Start resharding and data production operations in background thread.
         final Thread reshardingThread = new Thread(() -> {
             int messageSeq = 0; // For each partition key the message content are sequential numbers.
 
@@ -296,8 +296,11 @@ class ConsumeKinesisIT {
 
         final List<String> expectedPartitionMessages = IntStream.range(0, totalRecordsPerPartition).mapToObj(Integer::toString).toList();
         assertAll(
-                partitionKeyToMessages.values().stream()
-                        .map(actual -> () -> assertEquals(expectedPartitionMessages, actual))
+                partitionKeyToMessages.entrySet().stream()
+                        .map(actual -> () -> assertEquals(
+                                expectedPartitionMessages,
+                                actual.getValue(),
+                                "Partition messages do not match expected for partition key: " + actual.getKey()))
         );
     }
 
@@ -461,7 +464,7 @@ class ConsumeKinesisIT {
             }
 
             try {
-                Thread.sleep(1000);
+                Thread.sleep(5_000);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Thread interrupted while waiting for files", e);

@@ -52,10 +52,10 @@ import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecordBufferTest {
@@ -344,7 +344,7 @@ class RecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         // Still fits into the buffer.
-        final List<KinesisClientRecord> initialRecords = List.of(createRecordWithSize(80));
+        final List<KinesisClientRecord> initialRecords = List.of(createRecordWithSize(80), createRecordWithSize(20));
         recordBuffer.addRecords(bufferId, initialRecords, checkpointer1);
 
         final CountDownLatch startLatch = new CountDownLatch(1);
@@ -383,12 +383,11 @@ class RecordBufferTest {
         final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), bufferSize, CHECKPOINT_INTERVAL);
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
-        final KinesisClientRecord reallyLargeRecord = createRecordWithSize(bufferSize + 1);
+        // A single batch with size double the buffer size.
+        final List<KinesisClientRecord> reallyLargeBatch = List.of(createRecordWithSize(bufferSize), createRecordWithSize(bufferSize));
 
-        final IllegalArgumentException e = assertThrows(
-                IllegalArgumentException.class,
-                () -> recordBuffer.addRecords(bufferId, List.of(reallyLargeRecord), checkpointer1));
-        assertTrue(e.getMessage().startsWith("Attempting to consume more memory than allowed."));
+        // It's possible to insert a batch that exceeds the buffer size.
+        assertDoesNotThrow(() -> recordBuffer.addRecords(bufferId, reallyLargeBatch, checkpointer1));
     }
 
     @Test
@@ -607,12 +606,11 @@ class RecordBufferTest {
         return IntStream.range(0, count)
                 .mapToObj(i -> {
                     final String data = "test-record-" + i;
-                    final KinesisClientRecord record = KinesisClientRecord.builder()
+                    return KinesisClientRecord.builder()
                             .data(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)).asReadOnlyBuffer())
                             .partitionKey("partition-" + i)
                             .sequenceNumber(String.valueOf(i))
                             .build();
-                    return record;
                 })
                 .toList();
     }

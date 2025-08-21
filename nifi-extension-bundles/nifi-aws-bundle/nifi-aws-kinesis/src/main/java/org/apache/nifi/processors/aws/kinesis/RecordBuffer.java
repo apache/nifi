@@ -39,7 +39,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -272,7 +271,8 @@ final class RecordBuffer {
     }
 
     /**
-     * Returns the lease for a buffer back to the pool. Making it available for consumption again.
+     * Returns the lease for a buffer back to the pool making it available for consumption again.
+     * The method can be called multiple times for the same lease, but only the first call will actually return the lease.
      */
     void returnBufferLease(final ShardBufferLease lease) {
         if (lease.returnedToPool.getAndSet(true)) {
@@ -306,6 +306,9 @@ final class RecordBuffer {
 
     /**
      * A memory tracker which blocks a thread when the memory usage exceeds the allowed maximum.
+     * <p>
+     * In order to make progress, the memory consumption may exceed the limit, but any new records will not be accepted.
+     * This is done to support the case when a single record batch is larger than the allowed memory limit.
      */
     private static class BlockingMemoryTracker {
 
@@ -333,25 +336,10 @@ final class RecordBuffer {
                 return;
             }
 
-            if (consumedBytes > maxMemoryBytes) {
-                throw new IllegalArgumentException(("Attempting to consume more memory than allowed. " +
-                        "A record batch takes up %d bytes, while the max buffer size is %d bytes").formatted(consumedBytes, maxMemoryBytes));
-            }
-
             while (true) {
                 final long currentlyConsumedBytes = consumedMemoryBytes.get();
-                final long newConsumedBytes = currentlyConsumedBytes + consumedBytes;
 
-                if (newConsumedBytes <= maxMemoryBytes) {
-                    if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newConsumedBytes)) {
-                        logger.debug("Reserved {} bytes for {} records. Total consumed memory: {} bytes",
-                                consumedBytes, recordBatch.size(), newConsumedBytes);
-                        break;
-                    }
-                    // If we're here, the compare and set operation failed, as another thread has modified the gauge in meantime.
-                    // Retrying the operation.
-
-                } else {
+                if (currentlyConsumedBytes >= maxMemoryBytes) {
                     // Not enough memory available, need to wait.
                     try {
                         memoryAvailableLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
@@ -359,6 +347,15 @@ final class RecordBuffer {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException("Thread interrupted while waiting for available memory in RecordBuffer", e);
                     }
+                } else {
+                    final long newConsumedBytes = currentlyConsumedBytes + consumedBytes;
+                    if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newConsumedBytes)) {
+                        logger.debug("Reserved {} bytes for {} records. Total consumed memory: {} bytes",
+                                consumedBytes, recordBatch.size(), newConsumedBytes);
+                        break;
+                    }
+                    // If we're here, the compare and set operation failed, as another thread has modified the gauge in meantime.
+                    // Retrying the operation.
                 }
             }
         }
@@ -381,8 +378,8 @@ final class RecordBuffer {
                     logger.debug("Freed {} bytes for {} records. Total consumed memory: {} bytes",
                             freedBytes, consumedRecords.size(), newTotal);
 
-                    final CountDownLatch oldLatch = memoryAvailableLatch;
-                    memoryAvailableLatch = new CountDownLatch(1); // New latch for future waiters.
+                    final CountDownLatch oldLatch = this.memoryAvailableLatch;
+                    this.memoryAvailableLatch = new CountDownLatch(1); // New latch for future waiters.
                     oldLatch.countDown(); // Release any waiting threads for free memory.
                     break;
                 }
@@ -440,9 +437,9 @@ final class RecordBuffer {
         private volatile @Nullable RecordProcessorCheckpointer lastIgnoredCheckpointer = null;
 
         /**
-         * Lock-free queues for managing record batches with their checkpointers in different states.
+         * Queues for managing record batches with their checkpointers in different states.
          */
-        private final LinkedBlockingDeque<RecordBatch> inProgressBatches = new LinkedBlockingDeque<>();
+        private final LinkedBlockingQueue<RecordBatch> inProgressBatches = new LinkedBlockingQueue<>();
         private final LinkedBlockingQueue<RecordBatch> pendingBatches = new LinkedBlockingQueue<>();
         /**
          * Counter for tracking the number of records in the buffer. Can be larger than the number of records in the queues.
@@ -468,8 +465,6 @@ final class RecordBuffer {
          */
         boolean offer(final RecordBatch recordBatch) {
             if (invalidated.get()) {
-                // If buffer was invalidated after adding, the records will be cleaned up by invalidate()
-                // but we should return false to indicate the operation didn't succeed.
                 return false;
             }
 
@@ -499,30 +494,29 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            final RecordBatch lastBatch = inProgressBatches.peekLast();
-            if (lastBatch == null) {
+            final List<RecordBatch> checkpointedBatches = new ArrayList<>(inProgressBatches.size());
+            inProgressBatches.drainTo(checkpointedBatches);
+            if (checkpointedBatches.isEmpty()) {
                 // The buffer could be invalidated in the meantime, or no records were consumed.
                 return emptyList();
             }
 
-            if (System.currentTimeMillis() >= nextCheckpointTimeMillis) {
-                checkpointSafely(lastBatch.checkpointer());
-                nextCheckpointTimeMillis = System.currentTimeMillis() + checkpointIntervalMillis;
-                lastIgnoredCheckpointer = null;
-            } else {
-                // Saving the checkpointer for later, in case shutdown happens before the next checkpoint.
-                lastIgnoredCheckpointer = lastBatch.checkpointer();
-            }
-
-            final List<RecordBatch> checkpointedBatches = new ArrayList<>(inProgressBatches.size());
-            inProgressBatches.drainTo(checkpointedBatches);
-
-            // Records count must be always equal to or larger than the number of records in the queues.
-            // Thus, the ordering of the operations.
+            // Records count must always b3e equal to or larger than the number of records in the queues.
+            // To achieve so, the count is decreased only after the queue has been emptied.
             final int committedRecordsCount = checkpointedBatches.stream()
                     .mapToInt(RecordBatch::size)
                     .sum();
             recordsCount.addAndGet(-committedRecordsCount);
+
+            final RecordProcessorCheckpointer lastBatchCheckpointer = checkpointedBatches.getLast().checkpointer();
+            if (System.currentTimeMillis() >= nextCheckpointTimeMillis) {
+                checkpointSafely(lastBatchCheckpointer);
+                nextCheckpointTimeMillis = System.currentTimeMillis() + checkpointIntervalMillis;
+                lastIgnoredCheckpointer = null;
+            } else {
+                // Saving the checkpointer for later, in case shutdown happens before the next checkpoint.
+                lastIgnoredCheckpointer = lastBatchCheckpointer;
+            }
 
             final CountDownLatch localEmptyBufferLatch = this.emptyBufferLatch;
             if (localEmptyBufferLatch != null && isEmpty()) {
@@ -558,7 +552,7 @@ final class RecordBuffer {
                 // Wait for the records to be consumed first.
                 try {
                     final CountDownLatch localEmptyBufferLatch = new CountDownLatch(1);
-                    emptyBufferLatch = localEmptyBufferLatch;
+                    this.emptyBufferLatch = localEmptyBufferLatch;
                     localEmptyBufferLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -577,7 +571,7 @@ final class RecordBuffer {
             } else {
                 // If there are still records in the buffer, checkpointing with the latest provided checkpointer is not safe.
                 // But, if the records were committed without checkpointing in the past, we can checkpoint them now.
-                final RecordProcessorCheckpointer lastCheckpointer = lastIgnoredCheckpointer;
+                final RecordProcessorCheckpointer lastCheckpointer = this.lastIgnoredCheckpointer;
                 if (lastCheckpointer != null) {
                     checkpointSafely(lastCheckpointer);
                 }
@@ -600,6 +594,7 @@ final class RecordBuffer {
 
         /**
          * Checks if the buffer has any records. <b>Can produce false positives.</b>
+         *
          * @return whether there are any records in the buffer.
          */
         boolean isEmpty() {
