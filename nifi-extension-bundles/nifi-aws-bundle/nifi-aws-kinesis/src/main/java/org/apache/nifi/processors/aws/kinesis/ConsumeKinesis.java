@@ -228,6 +228,17 @@ public class ConsumeKinesis extends AbstractProcessor {
             .defaultValue("100 MB")
             .build();
 
+    static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Checkpoint Interval")
+            .description("""
+                    Interval between checkpointing consumed Kinesis records.
+                    Checkpointing too frequently may result in performance degradation.
+                    To checkpoint records on each NiFi session commit, set this value to 0 seconds""")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("5 sec")
+            .required(true)
+            .build();
+
     static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
             .description("""
@@ -285,6 +296,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             INITIAL_STREAM_POSITION,
             STREAM_POSITION_TIMESTAMP,
             MAX_BYTES_TO_BUFFER,
+            CHECKPOINT_INTERVAL,
             TIMEOUT,
             ENDPOINT_OVERRIDE,
             DYNAMODB_ENDPOINT_OVERRIDE,
@@ -375,7 +387,9 @@ public class ConsumeKinesis extends AbstractProcessor {
         final InitialPositionInStreamExtended initialPositionExtended = getInitialPosition(context);
         final SingleStreamTracker streamTracker = new SingleStreamTracker(streamName, initialPositionExtended);
 
-        recordBuffer = new RecordBuffer(getLogger(), context.getProperty(MAX_BYTES_TO_BUFFER).asDataSize(DataUnit.B).longValue());
+        final long maxBytesToBuffer = context.getProperty(MAX_BYTES_TO_BUFFER).asDataSize(DataUnit.B).longValue();
+        final Duration checkpointInterval = context.getProperty(CHECKPOINT_INTERVAL).asDuration();
+        recordBuffer = new RecordBuffer(getLogger(), maxBytesToBuffer, checkpointInterval);
         final ShardRecordProcessorFactory recordProcessorFactory = () -> new ConsumeKinesisRecordProcessor(recordBuffer);
 
         final String applicationName = context.getProperty(APPLICATION_NAME).getValue();
@@ -407,7 +421,7 @@ public class ConsumeKinesis extends AbstractProcessor {
      */
     private static SdkAsyncHttpClient createKinesisHttpClient(final ProcessContext context) {
         return createHttpClientBuilder(context)
-                .maxConcurrency(Integer.MAX_VALUE) // todo - is it a good idea? do perf testing
+                .maxConcurrency(Integer.MAX_VALUE)
                 .http2Configuration(Http2Configuration.builder()
                         .initialWindowSize(512 * 1024) // 512 KB
                         .healthCheckPingPeriod(Duration.ofMinutes(1))
@@ -582,14 +596,14 @@ public class ConsumeKinesis extends AbstractProcessor {
         @Override
         public void shardEnded(final ShardEndedInput shardEndedInput) {
             if (bufferId != null) {
-                recordBuffer.finishConsumption(bufferId, shardEndedInput.checkpointer());
+                recordBuffer.checkpointEndedShard(bufferId, shardEndedInput.checkpointer());
             }
         }
 
         @Override
         public void shutdownRequested(final ShutdownRequestedInput shutdownRequestedInput) {
             if (bufferId != null) {
-                recordBuffer.finishConsumption(bufferId, shutdownRequestedInput.checkpointer());
+                recordBuffer.shutdownShardConsumption(bufferId, shutdownRequestedInput.checkpointer());
             }
         }
     }
