@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 
@@ -103,8 +102,9 @@ final class RecordBuffer {
             return;
         }
 
-        memoryTracker.reserveMemory(records);
-        final boolean addedRecords = buffer.offer(records, checkpointer);
+        final RecordBatch recordBatch = new RecordBatch(records, checkpointer, calculateMemoryUsage(records));
+        memoryTracker.reserveMemory(recordBatch);
+        final boolean addedRecords = buffer.offer(recordBatch);
 
         if (addedRecords) {
             logger.debug("Successfully added records with sequence and subsequence numbers: {}.{} - {}.{} to buffer with id {}",
@@ -121,7 +121,7 @@ final class RecordBuffer {
                     records.getLast().sequenceNumber(),
                     records.getLast().subSequenceNumber());
             // If the buffer was invalidated, we should free memory reserved for these records.
-            memoryTracker.freeMemory(records);
+            memoryTracker.freeMemory(List.of(recordBatch));
         }
     }
 
@@ -151,8 +151,8 @@ final class RecordBuffer {
         logger.info("Lease lost for buffer {}. Invalidating it", bufferId);
 
         if (buffer != null) {
-            final Collection<KinesisClientRecord> records = buffer.invalidate();
-            memoryTracker.freeMemory(records);
+            final Collection<RecordBatch> invalidatedBatches = buffer.invalidate();
+            memoryTracker.freeMemory(invalidatedBatches);
         }
     }
 
@@ -233,8 +233,8 @@ final class RecordBuffer {
             return;
         }
 
-        final List<KinesisClientRecord> consumedRecords = buffer.commitConsumedRecords();
-        memoryTracker.freeMemory(consumedRecords);
+        final List<RecordBatch> consumedBatches = buffer.commitConsumedRecords();
+        memoryTracker.freeMemory(consumedBatches);
     }
 
     void rollbackConsumedRecords(final ShardBufferLease lease) {
@@ -306,12 +306,13 @@ final class RecordBuffer {
             this.maxMemoryBytes = maxMemoryBytes;
         }
 
-        void reserveMemory(final Collection<KinesisClientRecord> newRecords) {
-            if (newRecords.isEmpty()) {
+        void reserveMemory(final RecordBatch recordBatch) {
+            final long consumedBytes = recordBatch.batchSizeBytes();
+
+            if (consumedBytes == 0) {
                 return;
             }
 
-            final long consumedBytes = calculateMemoryUsage(newRecords);
             if (consumedBytes > maxMemoryBytes) {
                 throw new IllegalArgumentException(("Attempting to consume more memory than allowed. " +
                         "A record batch takes up %d bytes, while the max buffer size is %d bytes").formatted(consumedBytes, maxMemoryBytes));
@@ -324,7 +325,7 @@ final class RecordBuffer {
                 if (newConsumedBytes <= maxMemoryBytes) {
                     if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newConsumedBytes)) {
                         logger.debug("Reserved {} bytes for {} records. Total consumed memory: {} bytes",
-                                consumedBytes, newRecords.size(), newConsumedBytes);
+                                consumedBytes, recordBatch.size(), newConsumedBytes);
                         break;
                     }
                     // If we're here, the compare and set operation failed, as another thread has modified the gauge in meantime.
@@ -342,12 +343,12 @@ final class RecordBuffer {
             }
         }
 
-        void freeMemory(final Collection<KinesisClientRecord> consumedRecords) {
+        void freeMemory(final Collection<RecordBatch> consumedRecords) {
             if (consumedRecords.isEmpty()) {
                 return;
             }
 
-            final long freedBytes = calculateMemoryUsage(consumedRecords);
+            final long freedBytes = consumedRecords.stream().mapToLong(RecordBatch::batchSizeBytes).sum();
 
             while (true) {
                 final long currentlyConsumedBytes = consumedMemoryBytes.get();
@@ -367,18 +368,22 @@ final class RecordBuffer {
                 }
             }
         }
-
-        private long calculateMemoryUsage(final Collection<KinesisClientRecord> records) {
-            return records.stream()
-                    .map(KinesisClientRecord::data)
-                    .filter(Objects::nonNull)
-                    .mapToLong(ByteBuffer::capacity)
-                    .sum();
-        }
     }
 
     private record RecordBatch(List<KinesisClientRecord> records,
-                               @Nullable RecordProcessorCheckpointer checkpointer) {
+                               @Nullable RecordProcessorCheckpointer checkpointer,
+                               long batchSizeBytes) {
+        int size() {
+            return records.size();
+        }
+    }
+
+    private long calculateMemoryUsage(final Collection<KinesisClientRecord> records) {
+        return records.stream()
+                .map(KinesisClientRecord::data)
+                .filter(Objects::nonNull)
+                .mapToLong(ByteBuffer::capacity)
+                .sum();
     }
 
     /**
@@ -426,11 +431,10 @@ final class RecordBuffer {
         }
 
         /**
-         * @param records             kinesis records to add.
-         * @param recordsCheckpointer checkpointer for the records being added.
+         * @param recordBatch record batch with records to add.
          * @return true if the records were added successfully, false if a buffer was invalidated.
          */
-        boolean offer(final List<KinesisClientRecord> records, final RecordProcessorCheckpointer recordsCheckpointer) {
+        boolean offer(final RecordBatch recordBatch) {
             if (invalidated.get()) {
                 // If buffer was invalidated after adding, the records will be cleaned up by invalidate()
                 // but we should return false to indicate the operation didn't succeed.
@@ -439,8 +443,8 @@ final class RecordBuffer {
 
             // Records count must be always equal to or larger than the number of records in the queues.
             // Thus, the ordering of the operations.
-            recordsCount.addAndGet(records.size());
-            pendingBatches.offer(new RecordBatch(records, recordsCheckpointer));
+            recordsCount.addAndGet(recordBatch.size());
+            pendingBatches.offer(recordBatch);
 
             return true;
         }
@@ -458,7 +462,7 @@ final class RecordBuffer {
                     .toList();
         }
 
-        List<KinesisClientRecord> commitConsumedRecords() {
+        List<RecordBatch> commitConsumedRecords() {
             if (invalidated.get()) {
                 return emptyList();
             }
@@ -474,13 +478,12 @@ final class RecordBuffer {
             final List<RecordBatch> checkpointedBatches = new ArrayList<>(inProgressBatches.size());
             inProgressBatches.drainTo(checkpointedBatches);
 
-            final List<KinesisClientRecord> checkpointedRecords = checkpointedBatches.stream()
-                    .map(RecordBatch::records)
-                    .flatMap(List::stream)
-                    .toList();
             // Records count must be always equal to or larger than the number of records in the queues.
             // Thus, the ordering of the operations.
-            recordsCount.addAndGet(-checkpointedRecords.size());
+            final int committedRecordsCount = checkpointedBatches.stream()
+                    .mapToInt(RecordBatch::size)
+                    .sum();
+            recordsCount.addAndGet(-committedRecordsCount);
 
             final CountDownLatch localEmptyBufferLatch = this.emptyBufferLatch;
             if (localEmptyBufferLatch != null && !hasUnprocessedRecords()) {
@@ -488,7 +491,7 @@ final class RecordBuffer {
                 localEmptyBufferLatch.countDown();
             }
 
-            return checkpointedRecords;
+            return checkpointedBatches;
         }
 
         void rollbackConsumedRecords() {
@@ -521,24 +524,18 @@ final class RecordBuffer {
             }
         }
 
-        Collection<KinesisClientRecord> invalidate() {
+        Collection<RecordBatch> invalidate() {
             if (invalidated.getAndSet(true)) {
                 return emptyList();
             }
 
-            final List<RecordBatch> inProgressBatchesCopy = new ArrayList<>(inProgressBatches.size());
-            inProgressBatches.drainTo(inProgressBatchesCopy);
-
-            final List<RecordBatch> pendingBatchesCopy = new ArrayList<>(pendingBatches.size());
-            pendingBatches.drainTo(pendingBatchesCopy);
+            final List<RecordBatch> batches = new ArrayList<>(inProgressBatches.size() + pendingBatches.size());
+            inProgressBatches.drainTo(batches);
+            pendingBatches.drainTo(batches);
 
             // No need to adjust recordsCount after invalidation.
 
-            return Stream.of(inProgressBatchesCopy, pendingBatchesCopy)
-                    .flatMap(List::stream)
-                    .map(RecordBatch::records)
-                    .flatMap(List::stream)
-                    .toList();
+            return batches;
         }
 
         /**
