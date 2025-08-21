@@ -20,7 +20,6 @@ import jakarta.annotation.Nullable;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
@@ -92,7 +91,6 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SH
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SUB_SEQUENCE_NUMBER;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@TriggerSerially
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
 @CapabilityDescription("Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) " +
         "or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
