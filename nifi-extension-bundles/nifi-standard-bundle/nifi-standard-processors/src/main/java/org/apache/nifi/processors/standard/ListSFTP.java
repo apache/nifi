@@ -44,6 +44,10 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.Relationship;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -54,7 +58,7 @@ import java.util.stream.Collectors;
 
 @PrimaryNodeOnly
 @TriggerSerially
-@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"list", "sftp", "remote", "ingest", "source", "input", "files"})
 @CapabilityDescription("Performs a listing of the files residing on an SFTP server. For each file that is found on the remote server, a new FlowFile will be created with the filename attribute "
     + "set to the name of the file on the remote server. This can then be used in conjunction with FetchSFTP in order to fetch those files.")
@@ -79,6 +83,16 @@ import java.util.stream.Collectors;
     + "a new Primary Node is selected, the new node will not duplicate the data that was listed by the previous Primary Node.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListSFTP extends ListFileTransfer {
+
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Successfully listed files")
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Failed to list files")
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             FILE_TRANSFER_LISTING_STRATEGY,
@@ -172,6 +186,15 @@ public class ListSFTP extends ListFileTransfer {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         fileFilter = createFileFilter(context);
+    }
+
+    public void processFlowFile(final ProcessContext context, final FlowFile flowFile, final ProcessSession session) {
+        try {
+            List<FileInfo> listing = performListing(context, null, ListingMode.EXECUTION, true);
+        } catch (IOException e) {
+            getLogger().error("Failed to perform SFTP listing on FlowFile input", e);
+            session.transfer(flowFile, REL_FAILURE);
+        }
     }
 
     private Predicate<FileInfo> createFileFilter(final ProcessContext context) {
