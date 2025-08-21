@@ -334,6 +334,7 @@ class RecordBufferTest {
         final ShardBufferLease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
         assertEquals(initialRecords, recordBuffer.consumeRecords(lease1));
         recordBuffer.commitConsumedRecords(lease1);
+        recordBuffer.returnBufferLease(lease1);
 
         // Thread should get unblocked and add the message.
         addRecordsThread.join();

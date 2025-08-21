@@ -28,18 +28,18 @@ import software.amazon.kinesis.retrieval.KinesisClientRecord;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.BlockingQueue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -59,14 +59,15 @@ final class RecordBuffer {
 
     private final BlockingMemoryTracker memoryTracker;
 
-    private final AtomicInteger bufferIdCounter = new AtomicInteger(0);
+    private final AtomicLong bufferIdCounter = new AtomicLong(0);
     private final ConcurrentMap<ShardBufferId, ShardBuffer> shardBuffers = new ConcurrentHashMap<>();
 
     /**
-     * A queue with shard buffers that are available for consumption.
-     * Note: when a buffer is invalidated it is NOT removed from the queue.
+     * A queue with ids shard buffers available for leasing.
+     * <p>
+     * Note: when a buffer is invalidated its id is NOT removed from the queue immediately.
      */
-    private final BlockingQueue<ShardBufferId> buffersWithData = new LinkedBlockingQueue<>();
+    private final ConcurrentLinkedQueue<ShardBufferId> buffersToLease = new ConcurrentLinkedQueue<>();
 
     RecordBuffer(final ComponentLog logger, final long maxMemoryBytes) {
         this.logger = logger;
@@ -81,6 +82,7 @@ final class RecordBuffer {
         logger.info("Creating new buffer for shard {} with id {}", shardId, id);
 
         shardBuffers.put(id, new ShardBuffer(logger));
+        buffersToLease.add(id);
         return id;
     }
 
@@ -101,31 +103,24 @@ final class RecordBuffer {
         }
 
         memoryTracker.reserveMemory(records);
-        final ShardBufferOfferResult result = buffer.offer(records, checkpointer);
-        switch (result) {
-            case ShardBufferOfferResult.Added r -> {
-                logger.debug("Successfully added records with sequence and subsequence numbers: {}.{} - {}.{} to buffer {}",
-                        records.getFirst().sequenceNumber(),
-                        records.getFirst().subSequenceNumber(),
-                        records.getLast().sequenceNumber(),
-                        records.getLast().subSequenceNumber(),
-                        buffer);
+        final boolean addedRecords = buffer.offer(records, checkpointer);
 
-                if (r.bufferWasEmpty()) {
-                    logger.debug("Making the buffer {} available for lease, as it isn't empty anymore", bufferId);
-                    buffersWithData.add(bufferId);
-                }
-            }
-            case ShardBufferOfferResult.BufferInvalidated __ -> {
-                logger.debug("Buffer with id {} was invalidated. Cannot add records with sequence and subsequence numbers: {}.{} - {}.{}",
-                        bufferId,
-                        records.getFirst().sequenceNumber(),
-                        records.getFirst().subSequenceNumber(),
-                        records.getLast().sequenceNumber(),
-                        records.getLast().subSequenceNumber());
-                // If the buffer was already invalidated, we should free memory reserved for these records.
-                memoryTracker.freeMemory(records);
-            }
+        if (addedRecords) {
+            logger.debug("Successfully added records with sequence and subsequence numbers: {}.{} - {}.{} to buffer with id {}",
+                    records.getFirst().sequenceNumber(),
+                    records.getFirst().subSequenceNumber(),
+                    records.getLast().sequenceNumber(),
+                    records.getLast().subSequenceNumber(),
+                    bufferId);
+        } else {
+            logger.debug("Buffer with id {} was invalidated. Cannot add records with sequence and subsequence numbers: {}.{} - {}.{}",
+                    bufferId,
+                    records.getFirst().sequenceNumber(),
+                    records.getFirst().subSequenceNumber(),
+                    records.getLast().sequenceNumber(),
+                    records.getLast().subSequenceNumber());
+            // If the buffer was invalidated, we should free memory reserved for these records.
+            memoryTracker.freeMemory(records);
         }
     }
 
@@ -164,18 +159,38 @@ final class RecordBuffer {
 
     /**
      * Acquires a lease for a buffer that has data available for consumption.
-     * If no buffers are available, returns an empty Optional.
+     * If no data is available in the buffers, returns an empty Optional.
+     * <p>
+     * After acquiring a lease, the processor can consume records from the buffer.
+     * After consuming the records the processor must always {@link #returnBufferLease(ShardBufferLease)}.
      */
     Optional<ShardBufferLease> acquireBufferLease() {
+        final Set<ShardBufferId> seenBuffers = new HashSet<>();
+
         while (true) {
-            final ShardBufferId bufferId = buffersWithData.poll();
+            final ShardBufferId bufferId = buffersToLease.poll();
             if (bufferId == null) {
-                // The queue is empty. Nothing to consume.
+                // The queue is empty or all buffers were seen already. Nothing to consume.
                 return Optional.empty();
             }
 
-            // By the time the bufferId is polled, it might have been invalidated already.
-            if (shardBuffers.containsKey(bufferId)) {
+            if (seenBuffers.contains(bufferId)) {
+                // If the same buffer is seen again, there is a high chance we iterated through most of the buffers and didn't find any that isn't empty.
+                // To avoid burning CPU we return empty here, even if some buffer received records in the meantime. It will be picked up in the next iteration.
+                buffersToLease.add(bufferId);
+                return Optional.empty();
+            }
+
+            final ShardBuffer buffer = shardBuffers.get(bufferId);
+
+            if (buffer == null) {
+                // By the time the bufferId is polled, it might have been invalidated. No need to return it to the queue.
+                logger.debug("Buffer with id {} was removed while polling for lease. Continuing to poll.", bufferId);
+            } else if (!buffer.hasUnprocessedRecords()) {
+                seenBuffers.add(bufferId);
+                buffersToLease.add(bufferId);
+                logger.debug("Buffer with id {} is empty. Continuing to poll.", bufferId);
+            } else {
                 logger.debug("Acquired lease for buffer {}", bufferId);
                 return Optional.of(new ShardBufferLease(bufferId));
             }
@@ -245,16 +260,12 @@ final class RecordBuffer {
         }
 
         final ShardBufferId bufferId = lease.bufferId;
-        final ShardBuffer buffer = shardBuffers.get(bufferId);
+        buffersToLease.add(bufferId);
 
-        // If a buffer has any pending records we want to make it available for consumption immediately.
-        if (buffer != null && buffer.hasUnprocessedRecords()) {
-            logger.debug("Making the buffer {} available for lease, as it has more unprocessed records", bufferId);
-            buffersWithData.add(bufferId);
-        }
+        logger.debug("The buffer {} is available for lease again", bufferId);
     }
 
-    record ShardBufferId(String shardId, int bufferId) {
+    record ShardBufferId(String shardId, long bufferId) {
     }
 
     static class ShardBufferLease {
@@ -365,24 +376,6 @@ final class RecordBuffer {
         }
     }
 
-    private sealed interface ShardBufferOfferResult permits
-            ShardBufferOfferResult.Added, ShardBufferOfferResult.BufferInvalidated {
-
-        record Added(boolean bufferWasEmpty) implements ShardBufferOfferResult {
-        }
-
-        record BufferInvalidated() implements ShardBufferOfferResult {
-        }
-
-        static ShardBufferOfferResult invalidated() {
-            return new BufferInvalidated();
-        }
-
-        static ShardBufferOfferResult added(final boolean bufferWasEmpty) {
-            return new Added(bufferWasEmpty);
-        }
-    }
-
     /**
      * ShardBuffer stores all records for a single shard in two queues:
      * - IN_PROGRESS: records that have been consumed but not yet checkpointed.
@@ -425,23 +418,26 @@ final class RecordBuffer {
             this.logger = logger;
         }
 
-        ShardBufferOfferResult offer(final List<KinesisClientRecord> records, final RecordProcessorCheckpointer recordsCheckpointer) {
+        /**
+         * @param records             kinesis records to add.
+         * @param recordsCheckpointer checkpointer for the records being added.
+         * @return true if the records were added successfully, false if a buffer was invalidated.
+         */
+        boolean offer(final List<KinesisClientRecord> records, final RecordProcessorCheckpointer recordsCheckpointer) {
             if (invalidated.get()) {
-                return ShardBufferOfferResult.invalidated();
+                return false;
             }
 
             recordsLock.lock();
             try {
                 if (invalidated.get()) {
-                    return ShardBufferOfferResult.invalidated();
+                    return false;
                 }
-
-                final boolean wasEmpty = inProgressRecords.isEmpty() && pendingRecords.isEmpty();
 
                 pendingRecords.addAll(records);
                 latestPendingCheckpointer = recordsCheckpointer;
 
-                return ShardBufferOfferResult.added(wasEmpty);
+                return true;
 
             } finally {
                 recordsLock.unlock();
