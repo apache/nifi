@@ -19,7 +19,7 @@ import { parser } from './nfel';
 import type { SyntaxNode } from '@lezer/common';
 
 function findFirst(node: SyntaxNode, name: string): SyntaxNode | null {
-    let cur: SyntaxNode | null = node;
+    const cur: SyntaxNode | null = node;
     // Depth-first search
     for (let ch = cur.firstChild; ch; ch = ch.nextSibling) {
         if (ch.type.name === name) return ch;
@@ -54,7 +54,7 @@ describe('NFEL grammar classification', () => {
         expect(standalone).toBeTruthy();
         expect(attributeRef).toBeNull();
 
-        const fnName = standalone && findFirst(standalone, 'ReferenceOrFunction');
+        const fnName = standalone && findFirst(standalone, 'standaloneFunctionName');
         expect(fnName).toBeTruthy();
     });
 
@@ -71,7 +71,7 @@ describe('NFEL grammar classification', () => {
 
         const call = ref && findFirst(ref, 'FunctionCall');
         expect(call).toBeTruthy();
-        const fnName = call && findFirst(call, 'ReferenceOrFunction');
+        const fnName = call && findFirst(call, 'functionName');
         expect(fnName).toBeTruthy();
     });
 
@@ -106,7 +106,7 @@ describe('NFEL grammar classification', () => {
         expect(ref).toBeTruthy();
 
         // ExpressionOpen is the combined "${"
-        const open = ref && findFirst(ref, 'ExpressionOpen');
+        const open = ref && findFirst(ref, 'ExpressionStart');
         expect(open).toBeTruthy();
 
         // Closing brace token '}' should be within the same ReferenceOrFunction

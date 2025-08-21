@@ -31,7 +31,7 @@ import { syntaxHighlighting } from '@codemirror/language';
 import { firstValueFrom } from 'rxjs';
 import { NiFiCommon } from '../nifi-common.service';
 import { ElFunction, Parameter } from '../../index';
-import { SyntaxNode, NodeProp } from '@lezer/common';
+import { SyntaxNode } from '@lezer/common';
 import { Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { ElService } from '../el.service';
@@ -82,22 +82,18 @@ export class CodemirrorNifiLanguageService {
         // Add EL function highlighting only if EL is enabled
         if (this.functionSupported) {
             Object.assign(baseHighlighting, {
-                // $$
                 EscapedDollar: t.content,
 
                 // Expression Delimiters ${...}
                 ExpressionStart: t.special(t.brace),
-                ExpressionOpen: t.special(t.brace),
-                'ReferenceOrFunction/"}"': t.special(t.brace),
 
                 // EL Functions function syntax highlighting
-                'FunctionCall/ReferenceOrFunction': t.function(t.variableName),
-                // Standalone functions (e.g., ${uuid()})
-                'StandaloneFunction/ReferenceOrFunction': t.function(t.variableName),
-                MultiAttrFunction: t.function(t.variableName), // Delineated and multi-attribute functions
+                functionName: t.function(t.variableName),
+                standaloneFunctionName: t.function(t.variableName),
+                multiAttrFunctionName: t.function(t.variableName), // Delineated and multi-attribute functions
 
                 // EL Functions attribute syntax highlighting
-                ReferenceOrFunction: t.attributeName
+                attributeName: t.attributeName
             });
         }
 
@@ -106,8 +102,6 @@ export class CodemirrorNifiLanguageService {
             Object.assign(baseHighlighting, {
                 // Parameter Delimiters #{...}
                 ParameterStart: t.special(t.brace),
-                ParameterOpen: t.special(t.brace),
-                'ParameterReference/"}"': t.special(t.brace),
 
                 // Parameter syntax highlighting
                 ParameterReference: t.special(t.variableName),

@@ -229,7 +229,7 @@ describe('Codemirror', () => {
 
             component.ngOnInit();
 
-            expect(component.isInitialized).toBe(true);
+            expect(component['isInitialized']).toBe(true);
         });
 
         it('should emit ready event after initialization', () => {
@@ -268,7 +268,7 @@ describe('Codemirror', () => {
 
             component.ngOnInit();
 
-            expect(component.isInitialized).toBe(true);
+            expect(component['isInitialized']).toBe(true);
         });
 
         it('should initialize with plugins', () => {
@@ -279,7 +279,7 @@ describe('Codemirror', () => {
 
             component.ngOnInit();
 
-            expect(component.isInitialized).toBe(true);
+            expect(component['isInitialized']).toBe(true);
         });
     });
 
@@ -836,7 +836,7 @@ describe('Codemirror', () => {
             component.config = {};
 
             expect(() => component.ngOnInit()).not.toThrow();
-            expect(component.isInitialized).toBe(true);
+            expect(component['isInitialized']).toBe(true);
         });
 
         it('should handle null configuration', () => {
@@ -915,7 +915,7 @@ describe('Codemirror', () => {
             const freshFixture = TestBed.createComponent(Codemirror);
             const freshComponent = freshFixture.componentInstance;
 
-            freshComponent.isInitialized = false;
+            freshComponent['isInitialized'] = false;
 
             freshComponent.ngOnChanges({
                 config: new SimpleChange({ content: 'old value' }, { content: 'new value' }, false)
@@ -955,7 +955,7 @@ describe('Codemirror', () => {
                 component.ngOnChanges(changes);
             }
 
-            expect(component.isInitialized).toBe(true);
+            expect(component['isInitialized']).toBe(true);
         });
 
         it('should handle form control integration with complex values', () => {

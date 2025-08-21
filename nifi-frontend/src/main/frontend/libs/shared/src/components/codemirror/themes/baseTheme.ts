@@ -140,7 +140,7 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
     '.cm-nonmatchingBracket': {
         color: 'var(--editor-text)'
     },
-    '&.cm-focused .cm-nonmatchingBracket, &.cm-focused .cm-nonmatchingBracket > *': {
+    '&.cm-focused .cm-nonmatchingBracket': {
         color: 'var(--mat-sys-inverse-on-surface)',
         background: 'var(--nf-neutral)'
     },

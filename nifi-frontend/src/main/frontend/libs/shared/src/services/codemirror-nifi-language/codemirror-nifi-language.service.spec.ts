@@ -387,14 +387,9 @@ describe('CodemirrorNifiLanguageService', () => {
             // Ensure parse tree contains no EL expression nodes
             let hasElNodes = false;
             const elNodeTypes = new Set([
-                'ReferenceOrFunction',
-                'AttributeRef',
-                'AttrName',
-                'Subject',
-                'SingleAttrRef',
-                'SingleAttrName',
-                'FunctionCall',
-                'StandaloneFunction',
+                'attributeName',
+                'standaloneFunctionName',
+                'functionName',
                 'MultiAttrFunction'
             ]);
 
@@ -598,7 +593,7 @@ describe('CodemirrorNifiLanguageService', () => {
                     const inner = tree.cursor();
                     inner.moveTo(node.from, 1);
                     do {
-                        if (inner.type.name === 'ReferenceOrFunction') {
+                        if (inner.type.name === 'attributeName') {
                             attributeNames.push(asText({ from: inner.from, to: inner.to }));
                             break;
                         }
@@ -613,7 +608,7 @@ describe('CodemirrorNifiLanguageService', () => {
                     const inner = tree.cursor();
                     inner.moveTo(node.from, 1);
                     do {
-                        if (inner.type.name === 'ReferenceOrFunction') {
+                        if (inner.type.name === 'functionName') {
                             functionNames.push(asText({ from: inner.from, to: inner.to }));
                             break;
                         }
@@ -628,7 +623,7 @@ describe('CodemirrorNifiLanguageService', () => {
                     const inner = tree.cursor();
                     inner.moveTo(node.from, 1);
                     do {
-                        if (inner.type.name === 'ReferenceOrFunction') {
+                        if (inner.type.name === 'standaloneFunctionName') {
                             standaloneNames.push(asText({ from: inner.from, to: inner.to }));
                             break;
                         }
@@ -689,7 +684,7 @@ describe('CodemirrorNifiLanguageService', () => {
             expect(types.includes('ReferenceOrFunction')).toBe(true);
         });
 
-        it('should map README nested examples to expected node types', () => {
+        it('should map nested examples to expected node types', () => {
             const examples = [
                 {
                     input: '${attr:substring(${start}, ${end})} - Multiple nested expressions',
@@ -720,9 +715,16 @@ describe('CodemirrorNifiLanguageService', () => {
                 const paramNames: string[] = [];
                 const textSegments: string[] = [];
 
+                const nameNodeTypes = new Set([
+                    'attributeName',
+                    'functionName',
+                    'standaloneFunctionName',
+                    'MultiAttrFunction'
+                ]);
+
                 tree.cursor().iterate((node: any) => {
                     const text = context.state.doc.sliceString(node.from, node.to);
-                    if (node.type.name === 'ReferenceOrFunction') {
+                    if (nameNodeTypes.has(node.type.name)) {
                         refOrFuncNames.push(text);
                     } else if (node.type.name === 'ParameterName') {
                         // Strip surrounding quotes if present
@@ -733,7 +735,7 @@ describe('CodemirrorNifiLanguageService', () => {
                     return true;
                 });
 
-                // Verify expected ReferenceOrFunction names are present
+                // Verify expected names are present
                 expectRefOrFunc.forEach((name) => {
                     expect(refOrFuncNames).toContain(name);
                 });

@@ -34,7 +34,6 @@ describe('ElService', () => {
     // SETUP: Test environment variables
     let service: ElService;
     let httpMock: HttpTestingController;
-    let httpClient: HttpClient;
 
     // SETUP: Mock data
     const mockElGuideHtml = `<html>
@@ -61,7 +60,6 @@ describe('ElService', () => {
 
         service = TestBed.inject(ElService);
         httpMock = TestBed.inject(HttpTestingController);
-        httpClient = TestBed.inject(HttpClient);
     });
 
     // SUMMARY: Verify no outstanding HTTP requests after each test

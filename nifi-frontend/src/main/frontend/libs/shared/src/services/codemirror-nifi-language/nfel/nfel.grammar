@@ -22,13 +22,13 @@ expression {
 
 // Based on ANTLR parser rule: referenceOrFunction : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE
 ReferenceOrFunction {
-  ExpressionOpen AttributeRefOrFunctionCall ( ":" FunctionCall )* ";"? "}"
+  ExpressionStart "{" AttributeRefOrFunctionCall ( ":" FunctionCall )* "}"
 }
 
-// Based on ANTLR parser rule: attributeRefOrFunctionCall : (standaloneFunction | attributeRef | parameterReference)
+// Based on ANTLR parser rule: attributeRefOrFunctionCall : (attributeRef | standaloneFunction | parameterReference)
 AttributeRefOrFunctionCall {
-  StandaloneFunction |
   AttributeRef |
+  StandaloneFunction |
   ParameterReference
 }
 
@@ -61,7 +61,7 @@ SingleAttrRef {
 }
 
 // Context-specific rule for attribute names
-attributeName[@name=ReferenceOrFunction] {
+attributeName[@name=attributeName] {
   identifier
 }
 
@@ -88,18 +88,14 @@ StandaloneFunction {
 }
 
 // Context-specific rule for standalone function names
-standaloneFunctionName[@name=ReferenceOrFunction] {
+standaloneFunctionName[@name=standaloneFunctionName] {
   identifier
 }
 
 // Context-specific rule for chained function names
-functionName[@name=ReferenceOrFunction] {
+functionName[@name=functionName] {
   identifier
 }
-
-// (no RefName wrapper)
-// Name wrapper so that attribute and function identifiers are exposed as ReferenceOrFunction nodes
-// keep identifier token for names where appropriate
 
 ArgumentList {
   AnyArg ( "," AnyArg )*
@@ -127,7 +123,7 @@ AnyArg {
 
 // Based on ANTLR parser rule: parameterReference : PARAMETER_REFERENCE_START parameterName RBRACE
 ParameterReference {
-  ParameterOpen ParameterName "}"
+  ParameterStart "{" ParameterName "}"
 }
 
 // Parameter name can be a quoted string or one or more identifiers (allowing spaces between words)
@@ -138,11 +134,8 @@ ParameterName {
 
 @tokens {
   ExpressionStart { "$" }
-  // Combined open tokens to avoid ambiguity with escapes
-  ExpressionOpen { "$" "{" }
   // Use a standalone '#' so that '{' remains a separate token for matching/highlighting
   ParameterStart { "#" }
-  ParameterOpen { "#" "{" }
 
   // Comment support matching ANTLR: COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n'
   // Pattern: # + (any char except {) + (everything until newline including { and #)
@@ -181,15 +174,15 @@ ParameterName {
 
   // Multi-attribute function names using pattern matching
   // Matches functions starting with "any" or "all" followed by a capitalized word
-  multiAttrFunctionName {
+  multiAttrFunctionName[@name=multiAttrFunctionName] {
     ("any" | "all") $[A-Z] $[a-zA-Z]*
   }
 
   // Single identifier token - context determined by grammar
   identifier { $[a-zA-Z] $[a-zA-Z0-9_.-]* }
 
-  // Updated precedence - Escapes and combined opens must come before single-char starts
-  @precedence { EscapedDollar, ExpressionOpen, ParameterOpen, Comment, ParameterStart, ExpressionStart, BooleanLiteral, Null, multiAttrFunctionName, identifier, Decimal, WholeNumber, StringLiteral, Text }
+  // Updated precedence - Comment must come BEFORE ParameterStart to prevent conflicts
+  @precedence { EscapedDollar, Comment, ParameterStart, ExpressionStart, BooleanLiteral, Null, multiAttrFunctionName, identifier, Decimal, WholeNumber, StringLiteral, Text }
 
   whitespace { $[ \t\n\r]+ }
 
