@@ -380,7 +380,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>env-cmd -f .build.env nx run-many -t lint --maxParallel=1 --no-cloud --verbose</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t lint</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
@@ -395,7 +395,7 @@
                         </goals>
                         <phase>test</phase>
                         <configuration>
-                            <arguments>env-cmd -f .build.env nx run-many -t test --maxWorkers=2 --maxParallel=1 --no-cloud --verbose</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t test --maxWorkers=2</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>
@@ -410,7 +410,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>env-cmd -f .build.env nx run-many -t build --maxParallel=1 --no-cloud --verbose</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t build</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>

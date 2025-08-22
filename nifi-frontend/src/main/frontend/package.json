@@ -11,7 +11,8 @@
         "prettier": "prettier --config .prettierrc . --check",
         "prettier-format": "prettier --config .prettierrc . --write",
         "ci": "npm ci --ignore-scripts",
-        "preinstall": "npx force-resolutions"
+        "preinstall": "npx force-resolutions",
+        "generate:nfel": "npx lezer-generator libs/shared/src/services/codemirror-nifi-language/nfel/nfel.grammar --typeScript -o libs/shared/src/services/codemirror-nifi-language/nfel/nfel.ts"
     },
     "private": true,
     "dependencies": {

@@ -6,13 +6,6 @@
     "projectType": "library",
     "tags": [],
     "targets": {
-        "build-grammar": {
-            "executor": "nx:run-commands",
-            "options": {
-                "command": "lezer-generator src/services/codemirror-nifi-language/nfel/nfel.grammar --typeScript -o src/services/codemirror-nifi-language/nfel/nfel.ts",
-                "cwd": "libs/shared"
-            }
-        },
         "build": {
             "executor": "@nx/angular:ng-packagr-lite",
             "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
