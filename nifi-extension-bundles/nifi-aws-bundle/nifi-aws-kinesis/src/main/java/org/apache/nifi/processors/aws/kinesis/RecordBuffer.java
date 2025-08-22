@@ -31,21 +31,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
 
@@ -324,7 +322,7 @@ final class RecordBuffer {
         /**
          * Whenever memory is freed a latch opens. Then replaced with a new one.
          */
-        private volatile CountDownLatch memoryAvailableLatch = new CountDownLatch(1);
+        private final AtomicReference<CountDownLatch> memoryAvailableLatch = new AtomicReference<>(new CountDownLatch(1));
 
         BlockingMemoryTracker(final ComponentLog logger, final long maxMemoryBytes) {
             this.logger = logger;
@@ -344,7 +342,7 @@ final class RecordBuffer {
                 if (currentlyConsumedBytes >= maxMemoryBytes) {
                     // Not enough memory available, need to wait.
                     try {
-                        memoryAvailableLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
+                        memoryAvailableLatch.get().await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
                     } catch (final InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException("Thread interrupted while waiting for available memory in RecordBuffer", e);
@@ -362,12 +360,15 @@ final class RecordBuffer {
             }
         }
 
-        void freeMemory(final Collection<RecordBatch> consumedRecords) {
-            if (consumedRecords.isEmpty()) {
+        void freeMemory(final Collection<RecordBatch> consumedBatches) {
+            if (consumedBatches.isEmpty()) {
                 return;
             }
 
-            final long freedBytes = consumedRecords.stream().mapToLong(RecordBatch::batchSizeBytes).sum();
+            long freedBytes = 0;
+            for (final RecordBatch batch : consumedBatches) {
+                freedBytes += batch.batchSizeBytes();
+            }
 
             while (true) {
                 final long currentlyConsumedBytes = consumedMemoryBytes.get();
@@ -377,11 +378,10 @@ final class RecordBuffer {
 
                 final long newTotal = currentlyConsumedBytes - freedBytes;
                 if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newTotal)) {
-                    logger.debug("Freed {} bytes for {} records. Total consumed memory: {} bytes",
-                            freedBytes, consumedRecords.size(), newTotal);
+                    logger.debug("Freed {} bytes for {} batches. Total consumed memory: {} bytes",
+                            freedBytes, consumedBatches.size(), newTotal);
 
-                    final CountDownLatch oldLatch = this.memoryAvailableLatch;
-                    this.memoryAvailableLatch = new CountDownLatch(1); // New latch for future waiters.
+                    final CountDownLatch oldLatch = memoryAvailableLatch.getAndSet(new CountDownLatch(1));
                     oldLatch.countDown(); // Release any waiting threads for free memory.
                     break;
                 }
@@ -398,11 +398,14 @@ final class RecordBuffer {
     }
 
     private long calculateMemoryUsage(final Collection<KinesisClientRecord> records) {
-        return records.stream()
-                .map(KinesisClientRecord::data)
-                .filter(Objects::nonNull)
-                .mapToLong(ByteBuffer::capacity)
-                .sum();
+        long totalBytes = 0;
+        for (final KinesisClientRecord record : records) {
+            final ByteBuffer data = record.data();
+            if (data != null) {
+                totalBytes += data.capacity();
+            }
+        }
+        return totalBytes;
     }
 
     /**
@@ -441,12 +444,12 @@ final class RecordBuffer {
         /**
          * Queues for managing record batches with their checkpointers in different states.
          */
-        private final BlockingQueue<RecordBatch> inProgressBatches = new LinkedBlockingQueue<>();
-        private final BlockingQueue<RecordBatch> pendingBatches = new LinkedBlockingQueue<>();
+        private final Queue<RecordBatch> inProgressBatches = new ConcurrentLinkedQueue<>();
+        private final Queue<RecordBatch> pendingBatches = new ConcurrentLinkedQueue<>();
         /**
-         * Counter for tracking the number of records in the buffer. Can be larger than the number of records in the queues.
+         * Counter for tracking the number of batches in the buffer. Can be larger than the number of batches in the queues.
          */
-        private final AtomicInteger recordsCount = new AtomicInteger(0);
+        private final AtomicInteger batchesCount = new AtomicInteger(0);
 
         /**
          * A countdown latch that is used to signal when the buffer becomes empty. Used when ShardBuffer should be closed.
@@ -470,9 +473,9 @@ final class RecordBuffer {
                 return false;
             }
 
-            // Records count must be always equal to or larger than the number of records in the queues.
+            // Batches count must be always equal to or larger than the number of batches in the queues.
             // Thus, the ordering of the operations.
-            recordsCount.addAndGet(recordBatch.size());
+            batchesCount.incrementAndGet();
             pendingBatches.offer(recordBatch);
 
             return true;
@@ -483,12 +486,17 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            pendingBatches.drainTo(inProgressBatches);
+            RecordBatch pendingBatch;
+            while ((pendingBatch = pendingBatches.poll()) != null) {
+                inProgressBatches.offer(pendingBatch);
+            }
 
-            return inProgressBatches.stream()
-                    .map(RecordBatch::records)
-                    .flatMap(List::stream)
-                    .toList();
+            final List<KinesisClientRecord> recordsToConsume = new ArrayList<>();
+            for (final RecordBatch batch : inProgressBatches) {
+                recordsToConsume.addAll(batch.records());
+            }
+
+            return recordsToConsume;
         }
 
         List<RecordBatch> commitConsumedRecords() {
@@ -496,19 +504,20 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            final List<RecordBatch> checkpointedBatches = new ArrayList<>(inProgressBatches.size());
-            inProgressBatches.drainTo(checkpointedBatches);
+            final List<RecordBatch> checkpointedBatches = new ArrayList<>();
+            RecordBatch batch;
+            while ((batch = inProgressBatches.poll()) != null) {
+                checkpointedBatches.add(batch);
+            }
+
             if (checkpointedBatches.isEmpty()) {
                 // The buffer could be invalidated in the meantime, or no records were consumed.
                 return emptyList();
             }
 
-            // Records count must always b3e equal to or larger than the number of records in the queues.
+            // Batches count must always be equal to or larger than the number of batches in the queues.
             // To achieve so, the count is decreased only after the queue has been emptied.
-            final int committedRecordsCount = checkpointedBatches.stream()
-                    .mapToInt(RecordBatch::size)
-                    .sum();
-            recordsCount.addAndGet(-committedRecordsCount);
+            batchesCount.addAndGet(-checkpointedBatches.size());
 
             final RecordProcessorCheckpointer lastBatchCheckpointer = checkpointedBatches.getLast().checkpointer();
             if (System.currentTimeMillis() >= nextCheckpointTimeMillis) {
@@ -535,7 +544,9 @@ final class RecordBuffer {
             }
 
             for (final RecordBatch recordBatch : inProgressBatches) {
-                recordBatch.records().forEach(record -> record.data().rewind());
+                for (final KinesisClientRecord record : recordBatch.records()) {
+                    record.data().rewind();
+                }
             }
         }
 
@@ -545,7 +556,7 @@ final class RecordBuffer {
                     return;
                 }
 
-                if (recordsCount.get() == 0) {
+                if (batchesCount.get() == 0) {
                     // Buffer is empty, perform final checkpoint.
                     checkpointSafely(checkpointer);
                     return;
@@ -568,7 +579,7 @@ final class RecordBuffer {
                 return;
             }
 
-            if (recordsCount.get() == 0) {
+            if (batchesCount.get() == 0) {
                 checkpointSafely(checkpointer);
             } else {
                 // If there are still records in the buffer, checkpointing with the latest provided checkpointer is not safe.
@@ -585,11 +596,18 @@ final class RecordBuffer {
                 return emptyList();
             }
 
-            final List<RecordBatch> batches = new ArrayList<>(inProgressBatches.size() + pendingBatches.size());
-            inProgressBatches.drainTo(batches);
-            pendingBatches.drainTo(batches);
+            final List<RecordBatch> batches = new ArrayList<>();
+            RecordBatch batch;
+            // If both consumeRecords and invalidate are called concurrently, invalidation must always consume all batches.
+            // Since consumeRecords moves batches from pending to in_progress, during invalidation pending batches should be drained first.
+            while ((batch = pendingBatches.poll()) != null) {
+                batches.add(batch);
+            }
+            while ((batch = inProgressBatches.poll()) != null) {
+                batches.add(batch);
+            }
 
-            // No need to adjust recordsCount after invalidation.
+            // No need to adjust batchesCount after invalidation.
 
             return batches;
         }
@@ -600,7 +618,7 @@ final class RecordBuffer {
          * @return whether there are any records in the buffer.
          */
         boolean isEmpty() {
-            return invalidated.get() || recordsCount.get() == 0;
+            return invalidated.get() || batchesCount.get() == 0;
         }
 
         /**
