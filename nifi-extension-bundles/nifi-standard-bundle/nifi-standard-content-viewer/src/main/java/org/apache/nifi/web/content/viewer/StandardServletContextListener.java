@@ -25,7 +25,7 @@ import jakarta.servlet.ServletRegistration;
 import jakarta.servlet.annotation.WebListener;
 import org.apache.nifi.web.controller.StandardContentViewerController;
 import org.apache.nifi.web.servlet.filter.QueryStringToFragmentFilter;
-import org.eclipse.jetty.ee10.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.DefaultServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

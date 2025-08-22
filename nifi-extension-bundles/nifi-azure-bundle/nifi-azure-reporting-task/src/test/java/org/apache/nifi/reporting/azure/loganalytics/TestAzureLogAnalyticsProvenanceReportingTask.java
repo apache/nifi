@@ -20,9 +20,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
-import javax.json.Json;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObjectBuilder;
+import jakarta.json.Json;
+import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonObjectBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,7 +45,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyBoolean", true, true);
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyNotSupportedObject", 1.25, true);
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyNull", null, true);
-        javax.json.JsonObject actualJson = builder.build();
+        jakarta.json.JsonObject actualJson = builder.build();
         String expectedjsonString = "{" +
                                         "\"TestKeyString\": \"StringValue\"," +
                                         "\"TestKeyInteger\": 2674440," +
@@ -68,7 +68,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         values.put("TestKeyString1", "StringValue1");
         values.put("TestKeyString2", "StringValue2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);
-        javax.json.JsonObject actualJson = builder.build();
+        jakarta.json.JsonObject actualJson = builder.build();
         String expectedjsonString = "{\"TestKeyString\":{\"TestKeyString1\":\"StringValue1\",\"TestKeyString2\":\"StringValue2\"}}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());
@@ -84,7 +84,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         values.add("TestValueString1");
         values.add("TestValueString2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);
-        javax.json.JsonObject actualJson = builder.build();
+        jakarta.json.JsonObject actualJson = builder.build();
         String expectedjsonString = "{\"TestKeyString\":[\"TestValueString1\",\"TestValueString2\"]}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());

@@ -19,7 +19,7 @@ package org.apache.nifi.web.server.filter;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
 import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
-import org.eclipse.jetty.ee10.servlet.FilterHolder;
+import org.eclipse.jetty.ee11.servlet.FilterHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
