@@ -14,16 +14,25 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
        Jetty Web Container
        Copyright 1995-2019 Mort Bay Consulting Pty Ltd.
-      
+
+  (ASLv2) MortBay Apache EL
+    The following NOTICE information applies:
+      org.mortbay.jasper:mortbay-apache-el:jar:11.0.10
+
+  (ASLv2) MortBay Apache JSP
+    The following NOTICE information applies:
+      org.mortbay.jasper:mortbay-apache-jsp:jar:11.0.10
+
 ************************
-Common Development and Distribution License 1.1
+Eclipse Public License 2.0
 ************************
 
-The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+The following binary components are provided under the Eclipse Public License 2.0 (dual-licensed with GPL2+CPE as applicable).
 
-    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API
-    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Servlet API
+    (EPL 2.0) Jakarta Servlet API (jakarta.servlet:jakarta.servlet-api:jar:6.1.0)
+    (EPL 2.0) Jakarta Server Pages API (jakarta.servlet.jsp:jakarta.servlet.jsp-api:jar:4.0.0)
+    (EPL 2.0) Jakarta Expression Language API (jakarta.el:jakarta.el-api:jar:6.0.1)
+    (EPL 2.0) Jakarta Standard Tag Library API (jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api:jar:3.0.2)
+    (EPL 2.0) Jakarta Standard Tag Library (org.glassfish.web:jakarta.servlet.jsp.jstl:jar:3.0.1)
+    (EPL 2.0) Eclipse Compiler for Java (org.eclipse.jdt:ecj:jar:3.42.0)
+    (EPL 2.0) WaSP (org.glassfish.wasp:wasp:jar:4.0.0)

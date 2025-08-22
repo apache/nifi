@@ -57,8 +57,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlet</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlet</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -72,8 +72,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-webapp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-webapp</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -87,8 +87,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlets</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlets</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -102,8 +102,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-annotations</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-annotations</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -112,8 +112,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-plus</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-plus</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -167,8 +167,9 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-apache-jsp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-apache-jsp</artifactId>
+            <scope>compile</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.mortbay.jasper</groupId>
@@ -179,7 +180,6 @@
                     <artifactId>apache-el</artifactId>
                 </exclusion>
             </exclusions>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
@@ -207,8 +207,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-glassfish-jstl</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-glassfish-jstl</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>

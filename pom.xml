@@ -138,6 +138,7 @@
         <!-- Big data platforms -->
         <hadoop.version>3.4.2</hadoop.version>
         <ozone.version>1.4.1</ozone.version>
+        <gcs.version>2.1.5</gcs.version>
 
         <!-- Kubernetes -->
         <io.fabric8.kubernetes.client.version>7.4.0</io.fabric8.kubernetes.client.version>
@@ -188,12 +189,12 @@
 
         <!-- Web and API frameworks -->
         <hapi.version>2.6.0</hapi.version>
-        <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
+        <jakarta.annotation-api.version>3.0.0</jakarta.annotation-api.version>
+        <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
         <jakarta.xml.bind-api.version>4.0.4</jakarta.xml.bind-api.version>
         <jaxb.runtime.version>4.0.6</jaxb.runtime.version>
-        <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
-        <jersey.bom.version>3.1.11</jersey.bom.version>
-        <jetty.version>12.0.27</jetty.version>
+        <jersey.bom.version>4.0.0-M3</jersey.bom.version>
+        <jetty.version>12.1.1</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>6.5.5</spring.security.version>
         <spring.version>6.2.11</spring.version>
@@ -221,8 +222,8 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-bom</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-bom</artifactId>
                 <version>${jetty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
@@ -587,14 +588,19 @@
                 <version>${jaxb.runtime.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.sun.activation</groupId>
-                <artifactId>javax.activation</artifactId>
-                <version>1.2.0</version>
+                <groupId>jakarta.activation</groupId>
+                <artifactId>jakarta.activation-api</artifactId>
+                <version>2.1.3</version>
             </dependency>
             <dependency>
-                <groupId>javax.annotation</groupId>
-                <artifactId>javax.annotation-api</artifactId>
-                <version>1.3.2</version>
+                <groupId>org.eclipse.angus</groupId>
+                <artifactId>angus-activation</artifactId>
+                <version>2.0.2</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.annotation</groupId>
+                <artifactId>jakarta.annotation-api</artifactId>
+                <version>${jakarta.annotation-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.jsoup</groupId>
