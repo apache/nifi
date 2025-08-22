@@ -121,8 +121,8 @@ link:https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-name
 
 The semantics match the use of the following Jetty APIs:
 
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setIncludeCipherSuites(java.lang.String\...)[SslContextFactory.setIncludeCipherSuites()]
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setExcludeCipherSuites(java.lang.String\...)[SslContextFactory.setExcludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setIncludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setExcludeCipherSuites()]
 
 [[user_authentication]]
 == User Authentication
