@@ -30,8 +30,8 @@
     <modules>
         <module>nifi-couchbase-processors</module>
         <module>nifi-couchbase-nar</module>
-        <module>nifi-couchbase-3-services</module>
-        <module>nifi-couchbase-3-services-nar</module>
+        <module>nifi-couchbase-standard-services</module>
+        <module>nifi-couchbase-standard-services-nar</module>
         <module>nifi-couchbase-services-api</module>
         <module>nifi-couchbase-services-api-nar</module>
     </modules>

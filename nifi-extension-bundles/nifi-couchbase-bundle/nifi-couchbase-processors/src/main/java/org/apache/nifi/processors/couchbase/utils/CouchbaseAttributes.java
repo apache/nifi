@@ -18,10 +18,19 @@ package org.apache.nifi.processors.couchbase.utils;
 
 public class CouchbaseAttributes {
 
+    public static final String DEFAULT_BUCKET = "default";
+    public static final String DEFAULT_SCOPE = "_default";
+    public static final String DEFAULT_COLLECTION = "_default";
+
     public static final String BUCKET_ATTRIBUTE = "couchbase.bucket";
+    public static final String BUCKET_ATTRIBUTE_DESC = "The bucket where the document is stored.";
     public static final String SCOPE_ATTRIBUTE = "couchbase.scope";
+    public static final String SCOPE_ATTRIBUTE_DESC = "The scope where the document is stored.";
     public static final String COLLECTION_ATTRIBUTE = "couchbase.collection";
+    public static final String COLLECTION_ATTRIBUTE_DESC = "The collection where the document is stored.";
     public static final String DOCUMENT_ID_ATTRIBUTE = "couchbase.document.id";
+    public static final String DOCUMENT_ID_ATTRIBUTE_DESC = "Id of the document.";
     public static final String CAS_ATTRIBUTE = "couchbase.document.cas";
+    public static final String CAS_ATTRIBUTE_DESC = "CAS of the document.";
 
 }

@@ -14,18 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.couchbase;
+package org.apache.nifi.services.couchbase.utils;
 
-import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
-import org.apache.nifi.services.couchbase.exception.CouchbaseException;
-import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
-import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
-
-public interface CouchbaseClient {
-
-    CouchbaseGetResult getDocument(String documentId) throws CouchbaseException;
-
-    CouchbaseUpsertResult upsertDocument(String documentId, byte[] content) throws CouchbaseException;
-
-    CouchbaseErrorHandler getErrorHandler();
+public record CouchbaseUpsertResult(long cas) {
 }

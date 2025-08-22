@@ -21,5 +21,7 @@ import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 
 public interface CouchbaseConnectionService extends ControllerService {
 
+    String getServiceLocation();
+
     CouchbaseClient getClient(CouchbaseContext context);
 }

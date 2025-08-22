@@ -25,12 +25,14 @@ import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +48,9 @@ import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.SC
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_BUCKET;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_COLLECTION;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_SCOPE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCOPE_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -59,6 +64,7 @@ import static org.mockito.Mockito.when;
 public class TestGetCouchbase {
 
     private static final String SERVICE_ID = "couchbaseConnectionService";
+    private static final String TEST_SERVICE_LOCATION = "couchbase://test-location";
     private static final long TEST_CAS = 1L;
 
     private TestRunner runner;
@@ -82,6 +88,7 @@ public class TestGetCouchbase {
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
         when(service.getClient(any())).thenReturn(client);
+        when(service.getServiceLocation()).thenReturn(TEST_SERVICE_LOCATION);
 
         runner.addControllerService(SERVICE_ID, service);
         runner.enableControllerService(service);
@@ -97,20 +104,20 @@ public class TestGetCouchbase {
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, "default");
-        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, "_default");
-        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, DEFAULT_BUCKET);
+        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, DEFAULT_SCOPE);
+        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, DEFAULT_COLLECTION);
         outFile.assertAttributeEquals(CAS_ATTRIBUTE, String.valueOf(TEST_CAS));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord receiveEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.FETCH, receiveEvent.getEventType());
-        assertEquals("default._default._default.test-document-id", receiveEvent.getTransitUri());
+        assertEquals(StringUtils.join(Arrays.asList(TEST_SERVICE_LOCATION, DEFAULT_BUCKET, DEFAULT_SCOPE, DEFAULT_COLLECTION, documentId), "/"), receiveEvent.getTransitUri());
     }
 
     @Test
-    public void testWithFlowfileDocId() throws CouchbaseException, InitializationException {
+    public void testWithFlowFileDocId() throws CouchbaseException, InitializationException {
         final String documentId = "flowfile-document-id";
         final String content = "{\"key\":\"value\"}";
 
@@ -139,14 +146,14 @@ public class TestGetCouchbase {
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, "default");
-        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, "_default");
-        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, DEFAULT_BUCKET);
+        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, DEFAULT_SCOPE);
+        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, DEFAULT_COLLECTION);
         outFile.assertAttributeEquals(CAS_ATTRIBUTE, String.valueOf(TEST_CAS));
     }
 
     @Test
-    public void testWithFlowfileAttributes() throws CouchbaseException, InitializationException {
+    public void testWithFlowFileAttributes() throws CouchbaseException, InitializationException {
         final String documentId = "test-document-id";
         final String content = "{\"key\":\"value\"}";
         final String testBucket = "test-bucket";

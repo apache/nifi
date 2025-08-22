@@ -24,12 +24,15 @@ import org.apache.nifi.services.couchbase.CouchbaseClient;
 import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
 import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,9 @@ import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.RE
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_BUCKET;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_COLLECTION;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_SCOPE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCOPE_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,6 +61,7 @@ import static org.mockito.Mockito.when;
 public class TestPutCouchbase {
 
     private static final String SERVICE_ID = "couchbaseConnectionService";
+    private static final String TEST_SERVICE_LOCATION = "couchbase://test-location";
     private static final long TEST_CAS = 1L;
 
     private TestRunner runner;
@@ -70,11 +77,12 @@ public class TestPutCouchbase {
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
-        when(client.upsertDocument(anyString(), any())).thenReturn(TEST_CAS);
+        when(client.upsertDocument(anyString(), any())).thenReturn(new CouchbaseUpsertResult(TEST_CAS));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
         when(service.getClient(any())).thenReturn(client);
+        when(service.getServiceLocation()).thenReturn(TEST_SERVICE_LOCATION);
 
         runner.addControllerService(SERVICE_ID, service);
         runner.enableControllerService(service);
@@ -92,16 +100,16 @@ public class TestPutCouchbase {
         runner.assertTransferCount(REL_RETRY, 0);
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, "default");
-        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, "_default");
-        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, "_default");
+        outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, DEFAULT_BUCKET);
+        outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, DEFAULT_SCOPE);
+        outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, DEFAULT_COLLECTION);
         outFile.assertAttributeEquals(CAS_ATTRIBUTE, String.valueOf(TEST_CAS));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord receiveEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, receiveEvent.getEventType());
-        assertEquals("default._default._default.test-document-id", receiveEvent.getTransitUri());
+        assertEquals(StringUtils.join(Arrays.asList(TEST_SERVICE_LOCATION, DEFAULT_BUCKET, DEFAULT_SCOPE, DEFAULT_COLLECTION, documentId), "/"), receiveEvent.getTransitUri());
     }
 
     @Test
@@ -111,7 +119,7 @@ public class TestPutCouchbase {
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
-        when(client.upsertDocument(anyString(), any())).thenReturn(TEST_CAS);
+        when(client.upsertDocument(anyString(), any())).thenReturn(new CouchbaseUpsertResult(TEST_CAS));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);

@@ -37,6 +37,10 @@ import org.apache.nifi.stream.io.StreamUtils;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_BUCKET;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_COLLECTION;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_SCOPE;
+
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DOCUMENT_ID = new PropertyDescriptor.Builder()
@@ -58,7 +62,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .description("The name of bucket.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue("default")
+            .defaultValue(DEFAULT_BUCKET)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -67,7 +71,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .description("The name of scope.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue("_default")
+            .defaultValue(DEFAULT_SCOPE)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -76,13 +80,13 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .description("The name of collection.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue("_default")
+            .defaultValue(DEFAULT_COLLECTION)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
             .name("Document Type")
-            .description("The type of contents.")
+            .description("The type of content.")
             .required(true)
             .allowableValues(DocumentType.values())
             .defaultValue(DocumentType.Json.toString())
@@ -104,12 +108,12 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DOCUMENT_ID,
+            COUCHBASE_CONNECTION_SERVICE,
             BUCKET_NAME,
             SCOPE_NAME,
             COLLECTION_NAME,
             DOCUMENT_TYPE,
-            COUCHBASE_CONNECTION_SERVICE
+            DOCUMENT_ID
     );
 
     public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
@@ -138,8 +142,8 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         return content;
     }
 
-    protected String createTransitUrl(CouchbaseContext couchbaseContext, String documentId) {
-        return String.join(".", couchbaseContext.bucket(), couchbaseContext.scope(), couchbaseContext.collection(), documentId);
+    protected String createTransitUri(String serviceLocation, CouchbaseContext couchbaseContext, String documentId) {
+        return String.join("/", serviceLocation, couchbaseContext.bucket(), couchbaseContext.scope(), couchbaseContext.collection(), documentId);
     }
 
     protected void handleCouchbaseException(CouchbaseClient couchbaseClient, ProcessContext context, ProcessSession session,

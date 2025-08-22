@@ -39,21 +39,26 @@ import java.util.concurrent.TimeUnit;
 import static java.util.Map.entry;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE_DESC;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE_DESC;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE_DESC;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DOCUMENT_ID_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DOCUMENT_ID_ATTRIBUTE_DESC;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCOPE_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCOPE_ATTRIBUTE_DESC;
 
 @Tags({"nosql", "couchbase", "database", "get"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Get a document from Couchbase Server. The ID of the document to fetch may be supplied by setting " +
         "the <Document Id> property or reading it from the FlowFile content.")
 @WritesAttributes({
-        @WritesAttribute(attribute = BUCKET_ATTRIBUTE, description = "Bucket where the document was stored."),
-        @WritesAttribute(attribute = SCOPE_ATTRIBUTE, description = "Scope where the document was stored."),
-        @WritesAttribute(attribute = COLLECTION_ATTRIBUTE, description = "Collection where the document was stored."),
-        @WritesAttribute(attribute = DOCUMENT_ID_ATTRIBUTE, description = "Id of the document."),
-        @WritesAttribute(attribute = CAS_ATTRIBUTE, description = "CAS of the document.")
+        @WritesAttribute(attribute = BUCKET_ATTRIBUTE, description = BUCKET_ATTRIBUTE_DESC),
+        @WritesAttribute(attribute = SCOPE_ATTRIBUTE, description = SCOPE_ATTRIBUTE_DESC),
+        @WritesAttribute(attribute = COLLECTION_ATTRIBUTE, description = COLLECTION_ATTRIBUTE_DESC),
+        @WritesAttribute(attribute = DOCUMENT_ID_ATTRIBUTE, description = DOCUMENT_ID_ATTRIBUTE_DESC),
+        @WritesAttribute(attribute = CAS_ATTRIBUTE, description = CAS_ATTRIBUTE_DESC)
 })
 public class GetCouchbase extends AbstractCouchbaseProcessor {
 
@@ -96,7 +101,7 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             final long fetchMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(flowFile, createTransitUrl(couchbaseContext, documentId), fetchMillis);
+            session.getProvenanceReporter().fetch(flowFile, createTransitUri(connectionService.getServiceLocation(), couchbaseContext, documentId), fetchMillis);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (CouchbaseException e) {
             handleCouchbaseException(couchbaseClient, context, session, getLogger(), flowFile, e, "Failed to get document from Couchbase");
