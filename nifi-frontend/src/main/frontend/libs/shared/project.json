@@ -9,7 +9,7 @@
         "build-grammar": {
             "executor": "nx:run-commands",
             "options": {
-                "command": "lezer-generator src/services/codemirror-nifi-language/nfel/nfel.grammar --typeScript -o src/services/codemirror-nifi-language/nfel/nfel.ts",
+                "command": "npx --yes lezer-generator src/services/codemirror-nifi-language/nfel/nfel.grammar --typeScript -o src/services/codemirror-nifi-language/nfel/nfel.ts",
                 "cwd": "libs/shared"
             }
         },
