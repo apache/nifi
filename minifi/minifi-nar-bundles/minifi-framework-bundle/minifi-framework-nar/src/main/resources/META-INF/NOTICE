@@ -159,7 +159,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) hk2-runlevel (org.glassfish.hk2:hk2-runlevel:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) aopalliance-repackaged (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta RESTful Web Services (jakarta.ws.rs:jakarta.ws.rs-api:jar:4.0.0 - https://jakarta.ee/specifications/restful-ws/)
 
 ************************
 Eclipse Public License 1.0

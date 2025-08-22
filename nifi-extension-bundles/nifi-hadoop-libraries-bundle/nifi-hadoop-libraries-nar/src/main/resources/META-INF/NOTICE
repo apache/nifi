@@ -320,7 +320,8 @@ The following binary components are provided under the Common Development and Di
 
     (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.9 - https://jersey.java.net/jersey-client/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.9 - https://jersey.java.net/jersey-core/)
-    (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.3.2 - http://jcp.org/en/jsr/detail?id=250)
+    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API (javax.servlet:javax.servlet-api:jar:3.1.0 - https://javaee.github.io/servlet-spec/)
 
 ************************
 Common Development and Distribution License 1.0
@@ -328,9 +329,6 @@ Common Development and Distribution License 1.0
 
 The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
 
-    (CDDL 1.0) JavaServlet(TM) Specification (javax.servlet:servlet-api:jar:2.5 - no url available)
-    (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
-    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
 
 *****************
 Public Domain
@@ -340,5 +338,13 @@ The following binary components are provided to the 'Public Domain'.  See projec
 
     (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
 
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:2.1.3)
 
 
