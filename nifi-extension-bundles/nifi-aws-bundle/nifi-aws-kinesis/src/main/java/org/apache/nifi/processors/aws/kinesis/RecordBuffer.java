@@ -33,8 +33,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -68,7 +70,7 @@ final class RecordBuffer {
      * <p>
      * Note: when a buffer is invalidated its id is NOT removed from the queue immediately.
      */
-    private final ConcurrentLinkedQueue<ShardBufferId> buffersToLease = new ConcurrentLinkedQueue<>();
+    private final Queue<ShardBufferId> buffersToLease = new ConcurrentLinkedQueue<>();
 
     RecordBuffer(final ComponentLog logger, final long maxMemoryBytes, final Duration checkpointInterval) {
         this.logger = logger;
@@ -439,8 +441,8 @@ final class RecordBuffer {
         /**
          * Queues for managing record batches with their checkpointers in different states.
          */
-        private final LinkedBlockingQueue<RecordBatch> inProgressBatches = new LinkedBlockingQueue<>();
-        private final LinkedBlockingQueue<RecordBatch> pendingBatches = new LinkedBlockingQueue<>();
+        private final BlockingQueue<RecordBatch> inProgressBatches = new LinkedBlockingQueue<>();
+        private final BlockingQueue<RecordBatch> pendingBatches = new LinkedBlockingQueue<>();
         /**
          * Counter for tracking the number of records in the buffer. Can be larger than the number of records in the queues.
          */
