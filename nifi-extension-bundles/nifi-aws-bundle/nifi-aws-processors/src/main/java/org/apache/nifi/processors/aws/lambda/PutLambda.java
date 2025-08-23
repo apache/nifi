@@ -103,6 +103,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
             AWS_LAMBDA_FUNCTION_QUALIFIER,
             REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
+			SSL_CONTEXT_SERVICE,
             TIMEOUT,
             PROXY_CONFIGURATION_SERVICE,
             ENDPOINT_OVERRIDE);
