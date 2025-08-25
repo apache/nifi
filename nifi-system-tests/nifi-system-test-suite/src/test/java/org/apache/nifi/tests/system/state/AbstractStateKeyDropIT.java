@@ -34,17 +34,17 @@ import java.util.Map;
 public abstract class AbstractStateKeyDropIT extends NiFiSystemIT {
 
     /**
-     * Retrieves the cluster state for a given processor.
+     * Retrieves the state for a given processor.
      *
      * @param processorId the ID of the processor
+     * @param scope       the scope of the state to retrieve (LOCAL or CLUSTER)
      * @return a map containing the cluster state key-value pairs
      * @throws IOException         IO exception
      * @throws NiFiClientException NiFi Client Exception
      */
     protected Map<String, String> getProcessorState(final String processorId, final Scope scope) throws NiFiClientException, IOException {
-        final ComponentStateEntity entity = getNifiClient().getProcessorClient().getProcessorState(processorId);
+        final ComponentStateDTO componentState = getNifiClient().getProcessorClient().getProcessorState(processorId).getComponentState();
         final Map<String, String> state = new HashMap<>();
-        final ComponentStateDTO componentState = entity.getComponentState();
 
         switch (scope) {
             case LOCAL:
@@ -103,8 +103,7 @@ public abstract class AbstractStateKeyDropIT extends NiFiSystemIT {
      * @throws InterruptedException if the thread is interrupted while waiting
      */
     protected void runProcessorOnce(final ProcessorEntity processor) throws NiFiClientException, IOException, InterruptedException {
-        getNifiClient().getProcessorClient().startProcessor(processor);
-        getNifiClient().getProcessorClient().stopProcessor(processor);
+        getNifiClient().getProcessorClient().runProcessorOnce(processor);
         getClientUtil().waitForStoppedProcessor(processor.getId());
     }
 }
