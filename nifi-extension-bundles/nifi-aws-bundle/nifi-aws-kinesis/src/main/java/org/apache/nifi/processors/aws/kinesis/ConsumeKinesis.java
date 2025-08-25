@@ -29,7 +29,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -49,6 +48,8 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.awscore.AwsClient;
+import software.amazon.awssdk.awscore.client.builder.AwsAsyncClientBuilder;
 import software.amazon.awssdk.http.Protocol;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.Http2Configuration;
@@ -126,34 +127,8 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SU
         "The maximum size of the buffer is controlled by the 'Max Bytes to Buffer' property.")
 public class ConsumeKinesis extends AbstractProcessor {
 
-    public enum InitialPosition implements DescribedValue {
-        TRIM_HORIZON("Trim Horizon", "Start reading at the last untrimmed record in the shard in the system, which is the oldest data record in the shard."),
-        LATEST("Latest", "Start reading just after the most recent record in the shard, so that you always read the most recent data in the shard."),
-        AT_TIMESTAMP("At Timestamp", "Start reading at the record with the specified timestamp.");
-
-        private final String displayName;
-        private final String description;
-
-        InitialPosition(final String displayName, final String description) {
-            this.displayName = displayName;
-            this.description = description;
-        }
-
-        @Override
-        public String getValue() {
-            return name();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        @Override
-        public String getDescription() {
-            return description;
-        }
-    }
+    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration READ_TIMEOUT = Duration.ofMinutes(3);
 
     static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Stream Name")
@@ -245,34 +220,6 @@ public class ConsumeKinesis extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Communications Timeout")
-            .description("""
-                    Timeout for communication with AWS Kinesis, DynamoDB, and CloudWatch.
-                    This timeout is applied to all requests made by this processor to AWS services.""")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("30 secs")
-            .build();
-
-    static final PropertyDescriptor ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
-            .name("Kinesis Endpoint Override URL")
-            .description("""
-                    Endpoint URL to use instead of the AWS default including scheme, host, port, and path.
-                    The AWS libraries select an endpoint URL based on the AWS region, but this property overrides the selected endpoint URL, allowing use with other S3-compatible endpoints.""")
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor DYNAMODB_ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
-            .name("Dynamo DB Endpoint Override")
-            .description("An optional endpoint URL to use for DynamoDB. If not specified, the default AWS endpoint for the region will be used.")
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
-            .build();
-
     static final PropertyDescriptor REPORT_CLOUDWATCH_METRICS = new PropertyDescriptor.Builder()
             .name("Report Metrics to CloudWatch")
             .description("Whether to report Kinesis usage metrics to CloudWatch.")
@@ -280,14 +227,6 @@ public class ConsumeKinesis extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .required(true)
-            .build();
-
-    static final PropertyDescriptor CLOUDWATCH_ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
-            .name("CloudWatch Endpoint Override")
-            .description("An optional endpoint URL to use for CloudWatch. If not specified, the default AWS endpoint for the region will be used.")
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
             .build();
 
     static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
@@ -303,10 +242,6 @@ public class ConsumeKinesis extends AbstractProcessor {
             STREAM_POSITION_TIMESTAMP,
             MAX_BYTES_TO_BUFFER,
             CHECKPOINT_INTERVAL,
-            TIMEOUT,
-            ENDPOINT_OVERRIDE,
-            DYNAMODB_ENDPOINT_OVERRIDE,
-            CLOUDWATCH_ENDPOINT_OVERRIDE,
             PROXY_CONFIGURATION_SERVICE,
             REPORT_CLOUDWATCH_METRICS
     );
@@ -362,30 +297,24 @@ public class ConsumeKinesis extends AbstractProcessor {
         final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
                 .asControllerService(AWSCredentialsProviderService.class).getAwsCredentialsProvider();
 
-        final String kinesisEndpointOverride = context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue();
-        final URI kinesisEndpoint = kinesisEndpointOverride == null ? null : URI.create(kinesisEndpointOverride);
         kinesisClient = KinesisAsyncClient.builder()
                 .region(region)
                 .credentialsProvider(credentialsProvider)
-                .endpointOverride(kinesisEndpoint)
+                .endpointOverride(getKinesisEndpointOverride())
                 .httpClient(createKinesisHttpClient(context))
                 .build();
 
-        final String dynamoDbEndpointOverride = context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue();
-        final URI dynamoDbEndpoint = dynamoDbEndpointOverride == null ? null : URI.create(dynamoDbEndpointOverride);
         dynamoDbClient = DynamoDbAsyncClient.builder()
                 .region(region)
                 .credentialsProvider(credentialsProvider)
-                .endpointOverride(dynamoDbEndpoint)
+                .endpointOverride(getDynamoDbEndpointOverride())
                 .httpClient(createHttpClientBuilder(context).build())
                 .build();
 
-        final String cloudwatchEndpointOverride = context.getProperty(CLOUDWATCH_ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue();
-        final URI cloudWatchEndpoint = cloudwatchEndpointOverride == null ? null : URI.create(cloudwatchEndpointOverride);
         cloudWatchClient = CloudWatchAsyncClient.builder()
                 .region(region)
                 .credentialsProvider(credentialsProvider)
-                .endpointOverride(cloudWatchEndpoint)
+                .endpointOverride(getCloudwatchEndpointOverride())
                 .httpClient(createHttpClientBuilder(context).build())
                 .build();
 
@@ -437,11 +366,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     }
 
     private static NettyNioAsyncHttpClient.Builder createHttpClientBuilder(final ProcessContext context) {
-        final Duration timeout = context.getProperty(TIMEOUT).asDuration();
-
         final NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder()
-                .connectionTimeout(timeout)
-                .readTimeout(timeout);
+                .connectionTimeout(CONNECTION_TIMEOUT)
+                .readTimeout(READ_TIMEOUT);
 
         final ProxyConfigurationService proxyConfigService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
         if (proxyConfigService != null) {
@@ -612,5 +539,49 @@ public class ConsumeKinesis extends AbstractProcessor {
                 recordBuffer.shutdownShardConsumption(bufferId, shutdownRequestedInput.checkpointer());
             }
         }
+    }
+
+    public enum InitialPosition implements DescribedValue {
+        TRIM_HORIZON("Trim Horizon", "Start reading at the last untrimmed record in the shard in the system, which is the oldest data record in the shard."),
+        LATEST("Latest", "Start reading just after the most recent record in the shard, so that you always read the most recent data in the shard."),
+        AT_TIMESTAMP("At Timestamp", "Start reading at the record with the specified timestamp.");
+
+        private final String displayName;
+        private final String description;
+
+        InitialPosition(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    // Visible for tests only.
+    @Nullable URI getKinesisEndpointOverride() {
+        return null;
+    }
+
+    // Visible for tests only.
+    @Nullable URI getDynamoDbEndpointOverride() {
+        return null;
+    }
+
+    // Visible for tests only.
+    @Nullable URI getCloudwatchEndpointOverride() {
+        return null;
     }
 }
