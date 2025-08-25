@@ -58,20 +58,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class RecordBufferTest {
+class MemoryBoundRecordBufferTest {
 
     private static final long MAX_MEMORY_BYTES = 1024L;
     private static final String SHARD_ID_1 = "shard-1";
     private static final String SHARD_ID_2 = "shard-2";
     private static final Duration CHECKPOINT_INTERVAL = Duration.ZERO;
 
-    private RecordBuffer recordBuffer;
+    private MemoryBoundRecordBuffer recordBuffer;
     private TestCheckpointer checkpointer1;
     private TestCheckpointer checkpointer2;
 
     @BeforeEach
     void setUp() {
-        recordBuffer = new RecordBuffer(new NopComponentLog(), MAX_MEMORY_BYTES, CHECKPOINT_INTERVAL);
+        recordBuffer = new MemoryBoundRecordBuffer(new NopComponentLog(), MAX_MEMORY_BYTES, CHECKPOINT_INTERVAL);
         checkpointer1 = new TestCheckpointer();
         checkpointer2 = new TestCheckpointer();
     }
@@ -340,7 +340,7 @@ class RecordBufferTest {
     @Timeout(value = 5, unit = SECONDS)
     void testMemoryBackpressure() throws InterruptedException {
         // Create buffer with small memory limit.
-        final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), 100L, CHECKPOINT_INTERVAL);
+        final MemoryBoundRecordBuffer recordBuffer = new MemoryBoundRecordBuffer(new NopComponentLog(), 100L, CHECKPOINT_INTERVAL);
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         // Still fits into the buffer.
@@ -380,7 +380,7 @@ class RecordBufferTest {
     void testMemoryBackpressure_forRecordsLargerThanMaxBuffer() {
         // Create buffer with small memory limit.
         final int bufferSize = 10;
-        final RecordBuffer recordBuffer = new RecordBuffer(new NopComponentLog(), bufferSize, CHECKPOINT_INTERVAL);
+        final MemoryBoundRecordBuffer recordBuffer = new MemoryBoundRecordBuffer(new NopComponentLog(), bufferSize, CHECKPOINT_INTERVAL);
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         // A single batch with size double the buffer size.

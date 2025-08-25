@@ -26,6 +26,7 @@ final class ConsumeKinesisAttributes {
     private static final String PREFIX = "aws.kinesis.";
 
     // AWS Kinesis attributes.
+    static final String STREAM_NAME = PREFIX + "stream.name";
     static final String SHARD_ID = PREFIX + "shard.id";
     static final String SEQUENCE_NUMBER = PREFIX + "sequence.number";
     static final String SUB_SEQUENCE_NUMBER = PREFIX + "subsequence.number";
@@ -39,20 +40,22 @@ final class ConsumeKinesisAttributes {
     static final String RECORD_ERROR_MESSAGE = "record.error.message";
 
     static Map<String, String> fromKinesisRecord(
+            final String streamName,
             final String shardId,
             final KinesisClientRecord record) {
-        final Map<String, String> attributes = new HashMap<>(5, 1.0f);
+        final Map<String, String> attributes = new HashMap<>(6, 1.0f);
 
-       attributes.put(SHARD_ID, shardId);
-       attributes.put(SEQUENCE_NUMBER, record.sequenceNumber());
-       attributes.put(SUB_SEQUENCE_NUMBER, String.valueOf(record.subSequenceNumber()));
-       attributes.put(PARTITION_KEY, record.partitionKey());
+        attributes.put(STREAM_NAME, streamName);
+        attributes.put(SHARD_ID, shardId);
+        attributes.put(SEQUENCE_NUMBER, record.sequenceNumber());
+        attributes.put(SUB_SEQUENCE_NUMBER, String.valueOf(record.subSequenceNumber()));
+        attributes.put(PARTITION_KEY, record.partitionKey());
 
-       if (record.approximateArrivalTimestamp() != null) {
+        if (record.approximateArrivalTimestamp() != null) {
            attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()));
-       }
+        }
 
-       return attributes;
+        return attributes;
     }
 
     private ConsumeKinesisAttributes() {
