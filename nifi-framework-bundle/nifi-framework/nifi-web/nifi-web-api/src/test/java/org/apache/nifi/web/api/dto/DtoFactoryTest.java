@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarManifest;
 import org.apache.nifi.nar.NarNode;
@@ -28,6 +29,9 @@ import org.apache.nifi.nar.NarSource;
 import org.apache.nifi.nar.NarState;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -209,6 +213,22 @@ public class DtoFactoryTest {
 
         final NarCoordinateDTO dependencyCoordinateDTO = summaryDTO.getDependencyCoordinate();
         verifyDependencyCoordinateDTO(narManifest, dependencyCoordinateDTO);
+    }
+
+    @Test
+    void testBundleDifferenceDescription() {
+        final Bundle oldBundle = new Bundle("org.apache.nifi", "nifi-standard-nar", "1.28.1");
+        final Bundle newBundle = new Bundle("org.apache.nifi", "nifi-standard-nar", "2.4.0");
+        final String description = String.format("From '%s' to '%s'", oldBundle, newBundle);
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.BUNDLE_CHANGED,
+                null, null, null, null, null,
+                description
+        );
+        final DtoFactory dtoFactory = new DtoFactory();
+        DifferenceDTO differenceDTO = dtoFactory.createDifferenceDto(difference);
+        assertEquals(DifferenceType.BUNDLE_CHANGED.getDescription(), differenceDTO.getDifferenceType());
+        assertEquals("nifi-standard-nar version 1.28.1 to 2.4.0", differenceDTO.getDifference());
     }
 
     private void verifyCoordinateDTO(final NarManifest narManifest, final NarCoordinateDTO coordinateDTO) {

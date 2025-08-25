@@ -73,6 +73,10 @@ public class FlowDifferenceFilters {
             || isLogFileSuffixChange(difference);
     }
 
+    public static boolean isBundleChange(final FlowDifference difference) {
+        return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED;
+    }
+
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
         final DifferenceType differenceType = difference.getDifferenceType();
         if (differenceType != DifferenceType.PROPERTY_SENSITIVITY_CHANGED && differenceType != DifferenceType.PROPERTY_ADDED) {
