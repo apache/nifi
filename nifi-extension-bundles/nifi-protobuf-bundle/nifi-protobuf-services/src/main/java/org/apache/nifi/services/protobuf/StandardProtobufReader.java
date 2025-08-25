@@ -46,11 +46,13 @@ import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
@@ -202,6 +204,25 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
             .build();
 
         return new StandardSchemaDefinition(schemaIdentifier, schemaTextString, SchemaDefinition.SchemaType.PROTOBUF);
+    }
+
+    private String sha256Hex(final String input) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        byte[] hash = digest.digest(
+                input.getBytes(StandardCharsets.UTF_8));
+        final StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            final String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1)
+                hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     private SchemaDefinition createSchemaDefinitionFromRegistry(final Map<String, String> variables) throws SchemaNotFoundException, IOException {
