@@ -287,7 +287,7 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
     }
 
     @Override
-    public ComponentStateEntity clearProcessorState(String processorId) throws NiFiClientException, IOException {
+    public ComponentStateEntity clearProcessorState(final String processorId, final ComponentStateEntity componentStateEntity) throws NiFiClientException, IOException {
         Objects.requireNonNull(processorId, "Processor ID required");
 
         return executeAction("Error clearing state of the Processor", () -> {
@@ -295,7 +295,20 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
                 .path("/state/clear-requests")
                 .resolveTemplate("id", processorId);
 
-            return getRequestBuilder(target).post(null, ComponentStateEntity.class);
+            return getRequestBuilder(target).post(Entity.entity(componentStateEntity, MediaType.APPLICATION_JSON_TYPE), ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity getProcessorState(String processorId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(processorId, "Processor ID required");
+
+        return executeAction("Error getting state of the Processor", () -> {
+            final WebTarget target = processorTarget
+                    .path("/state")
+                    .resolveTemplate("id", processorId);
+
+            return getRequestBuilder(target).get(ComponentStateEntity.class);
         });
     }
 }

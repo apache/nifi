@@ -19,6 +19,7 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 
@@ -127,6 +128,7 @@ public interface FlowAnalysisRuleDAO {
      * Clears the state of the specified flow analysis rule.
      *
      * @param flowAnalysisRuleId flow analysis rule id
+     * @param componentStateDTO  state of the flow analysis rule
      */
-    void clearState(String flowAnalysisRuleId);
+    void clearState(final String flowAnalysisRuleId, final ComponentStateDTO componentStateDTO);
 }

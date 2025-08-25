@@ -624,7 +624,7 @@ public class ControllerResource extends ApplicationResource {
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/state/clear-requests")
     @Operation(
@@ -646,10 +646,14 @@ public class ControllerResource extends ApplicationResource {
                     description = "The flow analysis rule id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The component state entity for the flow analysis rule.",
+                    required = true
+            ) final ComponentStateEntity componentStateEntity) {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST);
+            return replicate(HttpMethod.POST, componentStateEntity);
         }
 
         final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity = new FlowAnalysisRuleEntity();
@@ -661,11 +665,13 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> authorizeController(RequestAction.WRITE),
                 () -> serviceFacade.verifyCanClearFlowAnalysisRuleState(id),
                 (flowAnalysisRuleEntity) -> {
-                    // get the component state
-                    serviceFacade.clearFlowAnalysisRuleState(flowAnalysisRuleEntity.getId());
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearFlowAnalysisRuleState(flowAnalysisRuleEntity.getId(), expectedState);
 
                     // generate the response entity
                     final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
 
                     // generate the response
                     return generateOkResponse(entity).build();
