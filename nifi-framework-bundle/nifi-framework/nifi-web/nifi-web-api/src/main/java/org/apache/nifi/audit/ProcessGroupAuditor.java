@@ -24,6 +24,9 @@ import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.action.details.FlowChangeMoveDetails;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -43,7 +46,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -234,6 +239,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             + "execution(void enableComponents(String, org.apache.nifi.controller.ScheduledState, java.util.Set<String>)) && "
             + "args(groupId, state, componentIds)")
     public void enableComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state, Set<String> componentIds) throws Throwable {
+        final Map<Component, List<Connectable>> components = getComponents(groupId, componentIds);
         final Operation operation;
 
         proceedingJoinPoint.proceed();
@@ -246,6 +252,48 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         saveUpdateProcessGroupAction(groupId, operation);
+        if (components.get(Component.Processor) != null) {
+            saveUpdateConnectableActions(components.get(Component.Processor), operation, Component.Processor);
+        }
+        if (components.get(Component.InputPort) != null) {
+            saveUpdateConnectableActions(components.get(Component.InputPort), operation, Component.InputPort);
+        }
+        if (components.get(Component.OutputPort) != null) {
+            saveUpdateConnectableActions(components.get(Component.OutputPort), operation, Component.OutputPort);
+        }
+    }
+
+    private Map<Component, List<Connectable>> getComponents(final String groupId, final Collection<String> componentIds) {
+        final Map <Component, List<Connectable>> componentMap = new HashMap<>();
+        final List<Connectable> processorNodes = new ArrayList<>();
+        final List<Connectable> inputPorts = new ArrayList<>();
+        final List<Connectable> outputPorts = new ArrayList<>();
+        final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+
+        for (String componentId : componentIds) {
+            final ProcessorNode processorNode = processGroup.findProcessor(componentId);
+            if (processorNode != null) {
+                processorNodes.add(processorNode);
+                continue;
+            }
+
+            Port port = processGroup.findInputPort(componentId);
+            if (port != null) {
+                inputPorts.add(port);
+                continue;
+            }
+
+            port = processGroup.findOutputPort(componentId);
+            if (port != null) {
+                outputPorts.add(port);
+            }
+        }
+        componentMap.put(Component.Processor, processorNodes);
+        componentMap.put(Component.InputPort, inputPorts);
+        componentMap.put(Component.OutputPort, outputPorts);
+
+        return componentMap;
     }
 
     /**
@@ -369,6 +417,30 @@ public class ProcessGroupAuditor extends NiFiAuditor {
 
         // add this action
         saveAction(action, logger);
+    }
+
+    private void saveUpdateConnectableActions(final List<Connectable> connectables, final Operation operation, final Component component) {
+        final List<Action> actions = new ArrayList<>();
+        for (final Connectable connectable : connectables) {
+             final Action action = generateUpdateConnectableAction(connectable, operation, component);
+             actions.add(action);
+        }
+        saveActions(actions, logger);
+    }
+
+    private Action generateUpdateConnectableAction(final Connectable connectable, final Operation operation, final Component component) {
+        final FlowChangeAction action = createFlowChangeAction();
+        action.setSourceId(connectable.getIdentifier());
+        action.setSourceName(connectable.getName());
+        action.setSourceType(component);
+        action.setOperation(operation);
+
+        if (component == Component.Processor) {
+            FlowChangeExtensionDetails componentDetails = new FlowChangeExtensionDetails();
+            componentDetails.setType(connectable.getComponentType());
+            action.setComponentDetails(componentDetails);
+        }
+        return action;
     }
 
     private void saveUpdateControllerServiceAction(final ControllerServiceNode csNode, final Operation operation) throws Throwable {
