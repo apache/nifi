@@ -61,6 +61,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testCannotDropStateKeyIfFlagNotTrue() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyStateNotDroppable");
+        dropProcessorState(multi.getId(), null);
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
@@ -79,6 +80,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testCannotDropStateKeyWithMismatchedState() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
+        dropProcessorState(multi.getId(), null);
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
@@ -93,6 +95,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testCannotDropMultipleStateKeys() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
+        dropProcessorState(multi.getId(), null);
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
@@ -107,6 +110,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testCanDropSpecificStateKey() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
+        dropProcessorState(multi.getId(), null);
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
@@ -127,6 +131,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testClearAllStateWithNullPayload() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
+        dropProcessorState(multi.getId(), null);
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
@@ -142,6 +147,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testClearAllStateWithEmptyPayload() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
+        dropProcessorState(multi.getId(), null);
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
