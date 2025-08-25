@@ -302,7 +302,9 @@ export class EditConnectionComponent extends TabbedDialog {
     }
 
     updateControlValueAccessorsForReadOnly(): void {
-        const disabled = this.connectionReadonly || this.sourceReadonly || this.destinationReadonly;
+        const disabled = this.connectionReadonly 
+            || this.sourceReadonly && this.destinationType != ComponentType.ProcessGroup && this.destinationType != ComponentType.RemoteProcessGroup
+            || this.destinationReadonly;
 
         // sourceReadonly is used to update the readonly / disable state of the form controls, note that
         // the source control for local and remote groups is always disabled (see above) in this edit
