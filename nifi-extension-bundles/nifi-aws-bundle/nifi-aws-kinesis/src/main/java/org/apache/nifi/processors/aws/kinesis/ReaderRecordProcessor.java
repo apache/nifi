@@ -58,7 +58,11 @@ final class ReaderRecordProcessor {
         this.logger = logger;
     }
 
-    ProcessingResult processRecords(final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
+    ProcessingResult processRecords(
+            final ProcessSession session,
+            final String streamName,
+            final String shardId,
+            final List<KinesisClientRecord> records) {
         final List<FlowFile> successFlowFiles = new ArrayList<>();
         final List<FlowFile> failureFlowFiles = new ArrayList<>();
 
@@ -76,20 +80,20 @@ final class ReaderRecordProcessor {
                     final RecordSchema writeSchema = recordWriterFactory.getSchema(emptyMap(), record.getSchema());
 
                     if (activeFlowFile == null) {
-                        activeFlowFile = ActiveFlowFile.startNewFile(session, writeSchema, recordWriterFactory, logger, shardId);
+                        activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId);
                     } else if (!writeSchema.equals(activeFlowFile.schema())) {
                         // If the write schema has changed, we need to complete the current FlowFile and start a new one.
                         final FlowFile completedFlowFile = activeFlowFile.complete();
                         successFlowFiles.add(completedFlowFile);
 
-                        activeFlowFile = ActiveFlowFile.startNewFile(session, writeSchema, recordWriterFactory, logger, shardId);
+                        activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId);
                     }
 
                     activeFlowFile.writeRecord(record, kinesisRecord);
                 }
             } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
                 logger.error("Failed to parse record from Kinesis stream using configured Record Reader", e);
-                final FlowFile failureFlowFile = createParseFailureFlowFile(session, shardId, kinesisRecord, e);
+                final FlowFile failureFlowFile = createParseFailureFlowFile(session, streamName, shardId, kinesisRecord, e);
                 failureFlowFiles.add(failureFlowFile);
             }
         }
@@ -104,6 +108,7 @@ final class ReaderRecordProcessor {
 
     private static FlowFile createParseFailureFlowFile(
             final ProcessSession session,
+            final String streamName,
             final String shardId,
             final KinesisClientRecord record,
             final Exception e) {
@@ -112,7 +117,7 @@ final class ReaderRecordProcessor {
         record.data().rewind();
         flowFile = session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
 
-        flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecord(shardId, record));
+        flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecord(streamName, shardId, record));
 
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
         final String errorMessage = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getClass().getCanonicalName() + " thrown";
@@ -125,29 +130,42 @@ final class ReaderRecordProcessor {
     }
 
     private static final class ActiveFlowFile {
+
+        private final ComponentLog logger;
+
         private final ProcessSession session;
         private final FlowFile flowFile;
         private final RecordSetWriter writer;
         private final RecordSchema schema;
+
+        private final String streamName;
         private final String shardId;
-        private final ComponentLog logger;
 
         private KinesisClientRecord lastRecord;
 
-        private ActiveFlowFile(final ProcessSession session, final FlowFile flowFile, final RecordSetWriter writer, final RecordSchema schema, final String shardId, final ComponentLog logger) {
+        private ActiveFlowFile(
+                final ComponentLog logger,
+                final ProcessSession session,
+                final FlowFile flowFile,
+                final RecordSetWriter writer,
+                final RecordSchema schema,
+                final String streamName,
+                final String shardId) {
+            this.logger = logger;
             this.session = session;
             this.flowFile = flowFile;
             this.writer = writer;
             this.schema = schema;
+            this.streamName = streamName;
             this.shardId = shardId;
-            this.logger = logger;
         }
 
         static ActiveFlowFile startNewFile(
-                final ProcessSession session,
-                final RecordSchema writeSchema,
-                final RecordSetWriterFactory recordWriterFactory,
                 final ComponentLog logger,
+                final ProcessSession session,
+                final RecordSetWriterFactory recordWriterFactory,
+                final RecordSchema writeSchema,
+                final String streamName,
                 final String shardId) throws SchemaNotFoundException {
             final FlowFile flowFile = session.create();
             final OutputStream outputStream = session.write(flowFile);
@@ -156,7 +174,7 @@ final class ReaderRecordProcessor {
                 final RecordSetWriter writer = recordWriterFactory.createWriter(logger, writeSchema, outputStream, flowFile);
                 writer.beginRecordSet();
 
-                return new ActiveFlowFile(session, flowFile, writer, writeSchema, shardId, logger);
+                return new ActiveFlowFile(logger, session, flowFile, writer, writeSchema, streamName, shardId);
 
             } catch (final SchemaNotFoundException e) {
                 logger.debug("Failed to find writeSchema for Kinesis stream record", e);
@@ -202,7 +220,7 @@ final class ReaderRecordProcessor {
                 final WriteResult finalResult = writer.finishRecordSet();
                 writer.close();
 
-                FlowFile completedFlowFile = session.putAllAttributes(this.flowFile, ConsumeKinesisAttributes.fromKinesisRecord(shardId, lastRecord));
+                FlowFile completedFlowFile = session.putAllAttributes(this.flowFile, ConsumeKinesisAttributes.fromKinesisRecord(streamName, shardId, lastRecord));
                 completedFlowFile = session.putAllAttributes(completedFlowFile, finalResult.getAttributes());
                 completedFlowFile = session.putAttribute(completedFlowFile, RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
                 completedFlowFile = session.putAttribute(completedFlowFile, "mime.type", writer.getMimeType());
