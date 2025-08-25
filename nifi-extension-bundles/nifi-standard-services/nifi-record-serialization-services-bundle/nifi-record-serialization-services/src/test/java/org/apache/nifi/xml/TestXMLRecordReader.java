@@ -63,6 +63,39 @@ public class TestXMLRecordReader {
     }
 
     @Test
+    public void testEmptyFieldNameForContentProperty() throws Exception {
+        final String contentFieldName = "";
+        final boolean parseXmlAttributes = true;
+        final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
+        final byte[] xml = "<note><to alias=\"TK\">Kyle</to></note>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        ComponentLog logger = Mockito.mock(ComponentLog.class);
+        XMLRecordReader reader = new XMLRecordReader(
+            new ByteArrayInputStream(xml),
+            schema,
+            parseXmlAttributes,
+            false,
+            "",
+            contentFieldName,
+            "",
+            "note",
+            "",
+            logger
+        );
+        Record record = reader.nextRecord();
+        assertNotNull(record, "Record should not be null");
+        Object toFieldObj = record.getValue("to");
+        if (toFieldObj == null) {
+            assertNull(toFieldObj, "'to' field is null as expected when contentFieldName is empty");
+        } else {
+            assertInstanceOf(Record.class, toFieldObj, "'to' field should be a Record");
+            Record toField = (Record) toFieldObj;
+            Object valueField = toField.getValue("value");
+            assertNotNull(valueField, "'value' field should exist inside 'to' record");
+            assertEquals("Kyle", valueField, "'value' field should contain the correct content");
+        }
+    }
+
+    @Test
     public void testMap() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_map.xml");
         XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true, true,
