@@ -52,7 +52,7 @@ public class StandaloneStateKeyDropIT extends AbstractStateKeyDropIT {
 
         // drop specific keys with LOCAL state
         ComponentStateEntity newState = dropProcessorState(generate.getId(), Collections.emptyMap());
-        assertTrue(newState.getComponentState().getClusterState() == null);
+        assertNull(newState.getComponentState().getClusterState());
         assertTrue(newState.getComponentState().getLocalState().getState().isEmpty());
 
         final Map<String, String> after = getProcessorState(generate.getId(), Scope.LOCAL);
