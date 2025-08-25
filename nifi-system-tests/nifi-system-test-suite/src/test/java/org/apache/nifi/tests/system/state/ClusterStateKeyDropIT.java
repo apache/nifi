@@ -60,11 +60,11 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
 
     @Test
     public void testCannotDropStateKeyIfFlagNotTrue() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyStateNotDroppable");
-        dropProcessorState(multi.getId(), null);
-        runProcessorOnce(multi);
+        final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyStateNotDroppable");
+        final String processorId = processor.getId();
+        runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
 
         // trying to remove key a
@@ -73,90 +73,90 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         // MultiKeyStateNotDroppable processor has state but has dropStateKeySupported =
         // false so it should also fail
         assertThrows(NiFiClientException.class, () -> {
-            dropProcessorState(multi.getId(), newState);
+            dropProcessorState(processorId, newState);
         });
     }
 
     @Test
     public void testCannotDropStateKeyWithMismatchedState() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
-        dropProcessorState(multi.getId(), null);
-        runProcessorOnce(multi);
+        final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyState");
+        final String processorId = processor.getId();
+        runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
 
         // trying to remove key "a" but with wrong value for "b"
         assertThrows(NiFiClientException.class, () -> {
-            dropProcessorState(multi.getId(), Map.of("b", "2", "c", "1"));
+            dropProcessorState(processorId, Map.of("b", "2", "c", "1"));
         });
     }
 
     @Test
     public void testCannotDropMultipleStateKeys() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
-        dropProcessorState(multi.getId(), null);
-        runProcessorOnce(multi);
+        final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyState");
+        final String processorId = processor.getId();
+        runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
 
         // trying to remove two keys
         assertThrows(NiFiClientException.class, () -> {
-            dropProcessorState(multi.getId(), Map.of("c", "1"));
+            dropProcessorState(processorId, Map.of("c", "1"));
         });
     }
 
     @Test
     public void testCanDropSpecificStateKey() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
-        dropProcessorState(multi.getId(), null);
-        runProcessorOnce(multi);
+        final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyState");
+        final String processorId = processor.getId();
+        runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
 
         // trying to remove key a
         final Map<String, String> newState = Map.of("b", "1", "c", "1");
-        final ComponentStateEntity response = dropProcessorState(multi.getId(), newState);
+        final ComponentStateEntity response = dropProcessorState(processorId, newState);
 
         final Map<String, String> updatedState = new HashMap<>();
         response.getComponentState().getClusterState().getState().forEach(entry -> updatedState.put(entry.getKey(), entry.getValue()));
         assertEquals(newState, updatedState);
 
-        final Map<String, String> state = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> state = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(newState, state);
     }
 
     @Test
     public void testClearAllStateWithNullPayload() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
-        dropProcessorState(multi.getId(), null);
-        runProcessorOnce(multi);
+        final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyState");
+        final String processorId = processor.getId();
+        runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
 
-        final ComponentStateEntity response = dropProcessorState(multi.getId(), null);
+        final ComponentStateEntity response = dropProcessorState(processorId, null);
         assertTrue(response.getComponentState().getClusterState().getState().isEmpty());
 
-        final Map<String, String> state = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> state = getProcessorState(processorId, Scope.CLUSTER);
         assertTrue(state.isEmpty());
     }
 
     @Test
     public void testClearAllStateWithEmptyPayload() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyState");
-        dropProcessorState(multi.getId(), null);
-        runProcessorOnce(multi);
+        final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyState");
+        final String processorId = processor.getId();
+        runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
         assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
 
-        final ComponentStateEntity response = dropProcessorState(multi.getId(), Map.of());
+        final ComponentStateEntity response = dropProcessorState(processorId, Map.of());
         assertTrue(response.getComponentState().getClusterState().getState().isEmpty());
 
-        final Map<String, String> state = getProcessorState(multi.getId(), Scope.CLUSTER);
+        final Map<String, String> state = getProcessorState(processorId, Scope.CLUSTER);
         assertTrue(state.isEmpty());
     }
 }

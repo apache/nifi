@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.components.state.Scope;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+@PrimaryNodeOnly
 @DefaultSchedule(period = "10 mins")
 @Stateful(scopes = Scope.CLUSTER, description = "Stores three counters in state", dropStateKeySupported = false)
 public class MultiKeyStateNotDroppable extends AbstractProcessor {
