@@ -21,15 +21,5 @@
 @mixin generate-theme() {
     .ua-editor {
         @include mat.button-density(-1);
-
-        .editor {
-            &.blank {
-                cursor: not-allowed !important;
-            }
-        }
-
-        .CodeMirror.cm-s-nifi {
-            height: 108px;
-        }
     }
 }

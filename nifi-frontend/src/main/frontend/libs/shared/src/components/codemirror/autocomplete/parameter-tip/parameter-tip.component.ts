@@ -15,21 +15,22 @@
  * limitations under the License.
  */
 
-.el-function-tooltip {
-    position: fixed;
-    width: 400px;
+import { Component, Input } from '@angular/core';
+import { NiFiCommon } from '../../../../services/nifi-common.service';
+import { Parameter, ParameterTipInput } from '../../../../types';
 
-    .el-name {
-        font-family: monospace;
-        margin-bottom: 10px;
-    }
+@Component({
+    selector: 'parameter-tip',
+    standalone: true,
+    templateUrl: './parameter-tip.component.html',
+    styleUrls: ['./parameter-tip.component.scss']
+})
+export class ParameterTip {
+    @Input() data: ParameterTipInput | null = null;
 
-    ul.el-arguments {
-        list-style-type: disc;
-        list-style-position: inside;
-    }
+    constructor(private nifiCommon: NiFiCommon) {}
 
-    span.el-argument-name {
-        font-family: monospace;
+    hasDescription(parameter: Parameter): boolean {
+        return !this.nifiCommon.isBlank(parameter.description);
     }
 }

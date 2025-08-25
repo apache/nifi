@@ -15,22 +15,34 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, OnDestroy, Output, Renderer2, ViewContainerRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { Resizable, PropertyHint } from '@nifi/shared';
+import { Codemirror, CodeMirrorConfig, Resizable, PropertyHint } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
-import { CodemirrorModule } from '@ctrl/ngx-codemirror';
-import { Editor } from 'codemirror';
-import { NfEl } from './modes/nfel';
+import { CodemirrorNifiLanguageService } from '@nifi/shared';
+import { EditorState, Extension, Prec } from '@codemirror/state';
+import { bracketMatching, indentOnInput, indentUnit } from '@codemirror/language';
+import {
+    crosshairCursor,
+    EditorView,
+    highlightActiveLine,
+    highlightActiveLineGutter,
+    keymap,
+    lineNumbers,
+    rectangularSelection
+} from '@codemirror/view';
+import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
+import { completionKeymap } from '@codemirror/autocomplete';
 
 @Component({
     selector: 'ua-editor',
     templateUrl: './ua-editor.component.html',
+    standalone: true,
     imports: [
         CdkDrag,
         ReactiveFormsModule,
@@ -39,15 +51,19 @@ import { NfEl } from './modes/nfel';
         MatButtonModule,
         MatCheckboxModule,
         A11yModule,
-        CodemirrorModule,
         Resizable,
+        Codemirror,
         PropertyHint
     ],
     styleUrls: ['./ua-editor.component.scss']
 })
-export class UaEditor implements OnDestroy {
+export class UaEditor {
     @Input() set value(value: string) {
         this.uaEditorForm.get('value')?.setValue(value);
+
+        this.valueSet = true;
+
+        this.initializeCodeMirror();
     }
     @Input() supportsEl: boolean = false;
     @Input() set required(required: boolean) {
@@ -58,6 +74,10 @@ export class UaEditor implements OnDestroy {
         } else {
             this.uaEditorForm.get('value')?.clearValidators();
         }
+
+        this.requiredSet = true;
+
+        this.initializeCodeMirror();
     }
 
     @Input() width!: number;
@@ -67,15 +87,33 @@ export class UaEditor implements OnDestroy {
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     isRequired: boolean = true;
+    valueSet = false;
+    requiredSet = false;
 
     uaEditorForm: FormGroup;
-    editor!: Editor;
+    private _codemirrorConfig: CodeMirrorConfig = {
+        plugins: [],
+        focusOnInit: true
+    };
+
+    // Styling configuration
+    editorStyling = {
+        width: '100%',
+        height: '108px'
+    };
+
+    // Dynamic config getter that includes readonly state
+    get codemirrorConfig(): CodeMirrorConfig {
+        return {
+            ...this._codemirrorConfig,
+            disabled: this.readonly,
+            readOnly: this.readonly
+        };
+    }
 
     constructor(
         private formBuilder: FormBuilder,
-        private viewContainerRef: ViewContainerRef,
-        private renderer: Renderer2,
-        private nfel: NfEl
+        private nifiLanguageService: CodemirrorNifiLanguageService
     ) {
         this.uaEditorForm = this.formBuilder.group({
             value: new FormControl('')
@@ -84,44 +122,55 @@ export class UaEditor implements OnDestroy {
         if (this.isRequired) {
             this.uaEditorForm.get('value')?.setValidators([Validators.required]);
         }
-
-        this.nfel.setViewContainerRef(this.viewContainerRef, this.renderer);
-        this.nfel.configureAutocomplete();
     }
 
-    codeMirrorLoaded(codeEditor: any): void {
-        this.editor = codeEditor.codeMirror;
+    initializeCodeMirror(): void {
+        if (this.valueSet && this.requiredSet) {
+            const setup: Extension[] = [
+                lineNumbers(),
+                history(),
+                indentUnit.of('    '),
+                EditorView.lineWrapping,
+                rectangularSelection(),
+                crosshairCursor(),
+                EditorState.allowMultipleSelections.of(true),
+                indentOnInput(),
+                bracketMatching(),
+                highlightActiveLine(),
+                [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+                EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
+                keymap.of([
+                    { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
+                    { key: 'Mod-y', run: redoSelection },
+                    { key: 'Shift-Mod-k', run: deleteLine },
+                    {
+                        key: 'Enter',
+                        run: () => {
+                            if (this.uaEditorForm.dirty && this.uaEditorForm.valid) {
+                                this.okClicked();
+                                return true;
+                            }
+                            return false;
+                        }
+                    },
+                    ...defaultKeymap,
+                    ...historyKeymap,
+                    ...completionKeymap
+                ])
+            ];
 
-        if (!this.readonly) {
-            this.editor.focus();
-            this.editor.execCommand('selectAll');
-        }
-    }
+            if (this.supportsEl) {
+                this.nifiLanguageService.setLanguageOptions({
+                    functionsEnabled: this.supportsEl,
+                    parametersEnabled: false,
+                    parameters: []
+                });
 
-    getOptions(): { [p: string]: any } {
-        const options: { [p: string]: any } = {
-            readOnly: this.readonly,
-            lineNumbers: true,
-            theme: 'nifi',
-            matchBrackets: true,
-            extraKeys: {
-                Enter: () => {
-                    if (this.uaEditorForm.dirty && this.uaEditorForm.valid) {
-                        this.okClicked();
-                    }
-                }
+                this._codemirrorConfig.plugins = [this.nifiLanguageService.getLanguageSupport(), ...setup];
+            } else {
+                this._codemirrorConfig.plugins = setup;
             }
-        };
-
-        if (this.supportsEl) {
-            options['mode'] = this.nfel.getLanguageId();
-            options['extraKeys'] = {
-                'Ctrl-Space': 'autocomplete',
-                ...options['extraKeys']
-            };
         }
-
-        return options;
     }
 
     resized(event: any): void {
@@ -131,7 +180,8 @@ export class UaEditor implements OnDestroy {
         // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
         // and the resize handle. If the amount of spacing needed for additional UX is needed for the `.ua-editor` is
         // changed then this value should also be updated.
-        this.editor.setSize('100%', event.height - 132);
+        this.editorStyling.width = '100%';
+        this.editorStyling.height = `${event.height - 152}px`;
     }
 
     preventDrag(event: MouseEvent): void {
@@ -147,9 +197,5 @@ export class UaEditor implements OnDestroy {
 
     cancelClicked(): void {
         this.exit.next();
-    }
-
-    ngOnDestroy(): void {
-        this.nfel.disableParameters();
     }
 }

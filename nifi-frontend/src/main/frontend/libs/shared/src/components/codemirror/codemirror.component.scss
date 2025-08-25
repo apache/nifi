@@ -15,12 +15,36 @@
  * limitations under the License.
  */
 
-.parameter-tip {
-    position: fixed;
-    width: 400px;
+.cm-s-nifi {
+    display: block;
+    height: 100%;
+    cursor: default;
 
-    .parameter-name {
-        font-family: monospace;
-        margin-bottom: 10px;
+    .cm-editor {
+        height: 100%;
+        border-width: 1px;
+    }
+
+    .cm-content {
+        cursor: text;
+    }
+
+    // Only apply special rules to disabled/readonly states
+    &.editor-disabled,
+    &.editor-readonly {
+        font-style: italic;
+        opacity: 0.8;
+
+        // Universal override - this handles all cursor and interaction behavior
+        * {
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            user-select: none !important;
+        }
+
+        // Re-enable scrolling
+        .cm-scroller {
+            pointer-events: auto !important;
+        }
     }
 }

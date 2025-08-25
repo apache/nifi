@@ -15,24 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
-import { NiFiCommon } from '../../../services/nifi-common.service';
-import { Parameter, ParameterTipInput } from '../../../types';
-
-@Component({
-    selector: 'parameter-tip',
-    standalone: true,
-    templateUrl: './parameter-tip.component.html',
-    styleUrls: ['./parameter-tip.component.scss']
-})
-export class ParameterTip {
-    @Input() left = 0;
-    @Input() bottom = 0;
-    @Input() data: ParameterTipInput | null = null;
-
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    hasDescription(parameter: Parameter): boolean {
-        return !this.nifiCommon.isBlank(parameter.description);
+.parameter-tip {
+    .parameter-name {
+        font-family: monospace;
+        margin-bottom: 10px;
     }
 }

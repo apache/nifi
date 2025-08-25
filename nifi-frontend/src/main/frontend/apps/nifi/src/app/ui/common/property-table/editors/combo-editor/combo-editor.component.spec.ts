@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ComboEditor } from './combo-editor.component';
-import { PropertyItem } from '../../property-table.component';
+import { PropertyItem } from '../../property-item';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Parameter } from '@nifi/shared';
 

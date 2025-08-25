@@ -58,17 +58,7 @@ import { Observable, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConvertToParameterResponse } from '../../../pages/flow-designer/service/parameter-helper.service';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-
-export interface PropertyItem extends Property {
-    id: number;
-    triggerEdit: boolean;
-    deleted: boolean;
-    dirty: boolean;
-    added: boolean;
-    type: 'required' | 'userDefined' | 'optional';
-    savedValue: string | null;
-    serviceLink?: string[];
-}
+import { PropertyItem } from './property-item';
 
 @Component({
     selector: 'property-table',

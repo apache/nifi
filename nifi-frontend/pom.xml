@@ -432,6 +432,8 @@
                         <exclude>src/main/frontend/dist/**/*</exclude>
                         <exclude>src/main/frontend/.angular/**/*</exclude>
                         <exclude>src/main/frontend/.nx/**/*</exclude>
+                        <exclude>src/main/frontend/libs/shared/src/services/codemirror-nifi-language/nfel/nfel.grammar</exclude>
+                        <exclude>src/main/frontend/libs/shared/src/services/codemirror-nifi-language/nfel/README.md</exclude>
                     </excludes>
                 </configuration>
             </plugin>

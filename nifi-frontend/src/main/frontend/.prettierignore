@@ -26,6 +26,8 @@ npm-debug.log
 .sass-cache/
 /connect.lock
 /coverage
+**/nfel.ts
+**/nfel.terms.ts
 
 # Theme
 src/assets/themes/*

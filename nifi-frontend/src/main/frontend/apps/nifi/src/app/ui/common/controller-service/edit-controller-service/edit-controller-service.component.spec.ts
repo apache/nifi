@@ -23,7 +23,6 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
-import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 import { Client } from '../../../../service/client.service';

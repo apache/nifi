@@ -26,7 +26,6 @@ import { initialState } from '../../../../pages/parameter-contexts/state/paramet
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ParameterContextEntity } from '../../../../state/shared';
 
-import 'codemirror/addon/hint/show-hint';
 import { EditParameterContextRequest } from '../index';
 
 describe('EditParameterContext', () => {

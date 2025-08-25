@@ -16,8 +16,8 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NiFiCommon } from '../../../services/nifi-common.service';
-import { ElFunction, ElFunctionTipInput } from '../../../types';
+import { NiFiCommon } from '../../../../services/nifi-common.service';
+import { ElFunction, ElFunctionTipInput } from '../../../../types';
 
 @Component({
     selector: 'el-function-tip',
@@ -26,8 +26,6 @@ import { ElFunction, ElFunctionTipInput } from '../../../types';
     styleUrls: ['./el-function-tip.component.scss']
 })
 export class ElFunctionTip {
-    @Input() left = 0;
-    @Input() bottom = 0;
     @Input() data: ElFunctionTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}
