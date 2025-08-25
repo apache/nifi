@@ -88,6 +88,7 @@ public class MockProcessSession implements ProcessSession {
     private final StateManager stateManager;
     private final boolean allowSynchronousCommits;
     private final boolean allowRecursiveReads;
+    private final boolean shouldFailCommit;
 
     private boolean committed = false;
     private boolean rolledBack = false;
@@ -109,11 +110,16 @@ public class MockProcessSession implements ProcessSession {
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
                               final boolean allowSynchronousCommits) {
-        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, false);
+        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, false, false);
     }
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
                               final boolean allowSynchronousCommits, final boolean allowRecursiveReads) {
+        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, allowRecursiveReads, false);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
+                              final boolean allowSynchronousCommits, final boolean allowRecursiveReads, final boolean shouldFailCommit) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
@@ -122,6 +128,7 @@ public class MockProcessSession implements ProcessSession {
         this.stateManager = stateManager;
         this.allowSynchronousCommits = allowSynchronousCommits;
         this.allowRecursiveReads = allowRecursiveReads;
+        this.shouldFailCommit = shouldFailCommit;
     }
 
     @Override
@@ -285,12 +292,21 @@ public class MockProcessSession implements ProcessSession {
                 "enabled by calling TestRunner.");
         }
 
-        commitInternal();
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
+            rollback();
+            throw t;
+        }
     }
 
     private void commitInternal() {
         if (!beingProcessed.isEmpty()) {
             throw new FlowFileHandlingException("Cannot commit session because the following FlowFiles have not been removed or transferred: " + beingProcessed);
+        }
+
+        if (shouldFailCommit) {
+            throw new TestFailedCommitException();
         }
 
         closeStreams(openInputStreams, enforceStreamsClosed);
@@ -313,7 +329,12 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commitAsync() {
-        commitInternal();
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
+            rollback();
+            throw t;
+        }
     }
 
     @Override
@@ -1455,5 +1476,11 @@ public class MockProcessSession implements ProcessSession {
         final String curUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         final String providedUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         return curUuid.equals(providedUuid);
+    }
+
+    public static final class TestFailedCommitException extends RuntimeException {
+        private TestFailedCommitException() {
+            super("Failing the commit, as requested by the test");
+        }
     }
 }
