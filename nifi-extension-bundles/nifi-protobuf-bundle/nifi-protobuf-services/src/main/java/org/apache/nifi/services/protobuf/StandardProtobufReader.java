@@ -147,9 +147,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         } else if (SCHEMA_REFERENCE_READER_PROPERTY.getValue().equals(schemaAccessStrategyValue)) {
             final SchemaIdentifier schemaIdentifier = schemaReferenceReader.getSchemaIdentifier(variables, in);
             final SchemaDefinition schemaDefinition = schemaRegistry.retrieveSchemaDefinition(schemaIdentifier);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Using message name for schema identifier: {}", schemaDefinition.getIdentifier());
-            }
+            logger.debug("Using message name for schema identifier: {}", schemaDefinition.getIdentifier());
             return createProtobufRecordReader(variables, in, schemaDefinition);
         }
 
