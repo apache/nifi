@@ -34,7 +34,6 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
-        <org.apache.sshd.version>2.15.0</org.apache.sshd.version>
         <tika.version>3.2.2</tika.version>
     </properties>
     <dependencyManagement>
