@@ -56,6 +56,7 @@ import software.amazon.awssdk.services.kinesis.model.PutRecordsRequestEntry;
 import software.amazon.awssdk.services.kinesis.model.ScalingType;
 import software.amazon.awssdk.services.kinesis.model.StreamStatus;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -386,7 +387,7 @@ class ConsumeKinesisIT {
     }
 
     private TestRunner createTestRunner(final String streamName, final String applicationName) throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesis.class);
+        final TestRunner runner = TestRunners.newTestRunner(TestConsumeKinesis.class);
 
         final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
         runner.addControllerService("credentials", credentialsService);
@@ -400,14 +401,7 @@ class ConsumeKinesisIT {
         runner.setProperty(ConsumeKinesis.REGION, localstack.getRegion());
         runner.setProperty(ConsumeKinesis.INITIAL_STREAM_POSITION, ConsumeKinesis.InitialPosition.TRIM_HORIZON);
 
-        runner.setProperty(ConsumeKinesis.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.KINESIS).toString());
-        runner.setProperty(ConsumeKinesis.DYNAMODB_ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.DYNAMODB).toString());
-        runner.setProperty(ConsumeKinesis.CLOUDWATCH_ENDPOINT_OVERRIDE, localstack.getEndpointOverride(Service.CLOUDWATCH).toString());
-
-        runner.setProperty(ConsumeKinesis.REPORT_CLOUDWATCH_METRICS, "false");
-
         runner.setProperty(ConsumeKinesis.MAX_BYTES_TO_BUFFER, "10 MB");
-        runner.setProperty(ConsumeKinesis.TIMEOUT, "30 secs");
 
         runner.assertValid();
         return runner;
@@ -482,6 +476,24 @@ class ConsumeKinesisIT {
                 false,
                 true
         );
+    }
+
+    public static class TestConsumeKinesis extends ConsumeKinesis {
+
+        @Override
+        URI getKinesisEndpointOverride() {
+            return localstack.getEndpointOverride(Service.KINESIS);
+        }
+
+        @Override
+        URI getDynamoDbEndpointOverride() {
+            return localstack.getEndpointOverride(Service.DYNAMODB);
+        }
+
+        @Override
+        URI getCloudwatchEndpointOverride() {
+            return localstack.getEndpointOverride(Service.CLOUDWATCH);
+        }
     }
 
     /**
