@@ -21,6 +21,7 @@ import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.SchemaLoader;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
@@ -54,10 +55,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"protobuf", "record", "reader", "parser"})
-@CapabilityDescription("Parses a Protocol Buffers message from binary format. " +
-        "If the schema can be fetched from a schema registry or pasted inline into property, StandardProtobufReader should be used instead. " +
-        "Note that this service has the limitation because of the fact that it reads .proto schema from filesystem local to the NIFI node." +
-        "As a consequence, it requires proto files to be copied to every node manually when this service is used in a multinode cluster. ")
+@CapabilityDescription("Parses a Protocol Buffers message from binary format.")
+@SeeAlso(StandardProtobufReader.class)
 public class ProtobufReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private static final String ANY_PROTO = "google/protobuf/any.proto";
