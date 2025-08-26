@@ -17,12 +17,9 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockParameterLookup;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
