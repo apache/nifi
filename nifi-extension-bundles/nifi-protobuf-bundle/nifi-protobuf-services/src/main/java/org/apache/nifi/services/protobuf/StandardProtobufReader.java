@@ -35,7 +35,7 @@ import org.apache.nifi.schemaregistry.services.MessageNameResolverService;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaReferenceReader;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-import org.apache.nifi.schemaregistry.services.StandardMessageName;
+import org.apache.nifi.schemaregistry.services.StandardMessageNameFactory;
 import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -293,7 +293,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         @Override
         public MessageName getMessageName(final Map<String, String> variables, final SchemaDefinition schemaDefinition, final InputStream in) {
             final String messageName = context.getProperty(MESSAGE_NAME).evaluateAttributeExpressions(variables).getValue();
-            return new StandardMessageName(messageName);
+            return StandardMessageNameFactory.fromName(messageName);
         }
     }
 

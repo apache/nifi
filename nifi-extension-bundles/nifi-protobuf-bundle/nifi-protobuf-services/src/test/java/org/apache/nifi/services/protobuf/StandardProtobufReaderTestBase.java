@@ -27,7 +27,7 @@ import org.apache.nifi.schemaregistry.services.MessageNameResolverService;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaReferenceReader;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-import org.apache.nifi.schemaregistry.services.StandardMessageName;
+import org.apache.nifi.schemaregistry.services.StandardMessageNameFactory;
 import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -266,7 +266,7 @@ public abstract class StandardProtobufReaderTestBase {
 
         @Override
         public MessageName getMessageName(final Map<String, String> variables, final SchemaDefinition schemaDefinition, final InputStream contentStream) {
-            return new StandardMessageName(messageName);
+            return StandardMessageNameFactory.fromName(messageName);
         }
     }
 }
