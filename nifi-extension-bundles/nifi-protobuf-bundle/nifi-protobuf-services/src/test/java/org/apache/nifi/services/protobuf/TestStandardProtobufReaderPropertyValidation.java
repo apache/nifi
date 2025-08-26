@@ -61,7 +61,7 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
     }
 
     @Test
-    void testInvalidWithoutMessageNameResolverService() {
+    void testInvalidWithoutMessageNameResolver() {
         runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE);
         runner.removeProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE);
         final ValidationResult invalidResult = verifyExactlyOneValidationError();
@@ -98,7 +98,7 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
         }
 
         @Test
-        void testValidWithMessageNameResolverService() { // default setting from beforeEach
+        void testValidWithMessageNameResolver() { // default setting from beforeEach
             enableAllControllerServices();
             runner.assertValid(standardProtobufReader);
 
@@ -158,7 +158,7 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
         }
 
         @Test
-        void testValidWithMessageNameResolverService() { // default setting from beforeEach
+        void testValidWithMessageNameResolver() { // default setting from beforeEach
             enableAllControllerServices();
             runner.assertValid(standardProtobufReader);
 

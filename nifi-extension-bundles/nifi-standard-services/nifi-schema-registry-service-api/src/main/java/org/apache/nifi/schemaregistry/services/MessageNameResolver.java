@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
+import org.apache.nifi.controller.ControllerService;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -29,7 +31,7 @@ import java.util.Map;
  * message processing and routing based on the resolved message type.
  * </p>
  */
-public interface MessageNameResolver  {
+public interface MessageNameResolver extends ControllerService {
 
     /**
      * Resolves and returns the message name based on the provided schema definition and input stream.

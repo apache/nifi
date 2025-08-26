@@ -23,7 +23,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.MessageName;
-import org.apache.nifi.schemaregistry.services.MessageNameResolverService;
+import org.apache.nifi.schemaregistry.services.MessageNameResolver;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaReferenceReader;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -75,7 +75,7 @@ public abstract class StandardProtobufReaderTestBase {
     protected StandardProtobufReader standardProtobufReader;
     protected MockSchemaRegistry mockSchemaRegistry;
     protected MockSchemaReferenceReader mockSchemaReferenceReader;
-    protected MockMessageNameResolverService mockMessageNameResolver;
+    protected MockMessageNameResolver mockMessageNameResolver;
 
 
     @BeforeEach
@@ -89,7 +89,7 @@ public abstract class StandardProtobufReaderTestBase {
     protected void setupMockServices() throws InitializationException {
         mockSchemaRegistry = new MockSchemaRegistry();
         mockSchemaReferenceReader = new MockSchemaReferenceReader();
-        mockMessageNameResolver = new MockMessageNameResolverService();
+        mockMessageNameResolver = new MockMessageNameResolver();
         runner.addControllerService(MOCK_SCHEMA_REGISTRY_ID, mockSchemaRegistry);
         runner.addControllerService(MOCK_SCHEMA_REFERENCE_READER_ID, mockSchemaReferenceReader);
         runner.addControllerService(MOCK_MESSAGE_NAME_RESOLVER_ID, mockMessageNameResolver);
@@ -254,10 +254,7 @@ public abstract class StandardProtobufReaderTestBase {
         }
     }
 
-    /**
-     * Mock implementation of MessageNameResolverService for testing purposes.
-     */
-    protected static class MockMessageNameResolverService extends AbstractControllerService implements MessageNameResolverService {
+    protected static class MockMessageNameResolver extends AbstractControllerService implements MessageNameResolver {
         private String messageName;
 
         public void returnMessageName(final String messageName) {

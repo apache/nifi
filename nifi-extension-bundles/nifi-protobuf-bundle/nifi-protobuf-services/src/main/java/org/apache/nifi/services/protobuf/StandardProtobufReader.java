@@ -25,13 +25,13 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.MessageName;
 import org.apache.nifi.schemaregistry.services.MessageNameResolver;
-import org.apache.nifi.schemaregistry.services.MessageNameResolverService;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaReferenceReader;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -100,7 +100,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         .name("Message Name Resolver Service")
         .description("Controller service that dynamically resolves Protocol Buffer message names from FlowFile content or attributes")
         .required(true)
-        .identifiesControllerService(MessageNameResolverService.class)
+        .identifiesControllerService(MessageNameResolver.class)
         .dependsOn(MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE)
         .build();
 
@@ -189,7 +189,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         final MessageNameResolverStrategyName messageNameResolverStrategyName = context.getProperty(MESSAGE_NAME_RESOLVER_STRATEGY).asAllowableValue(MessageNameResolverStrategyName.class);
         messageNameResolver = switch (messageNameResolverStrategyName) {
             case MESSAGE_NAME_PROPERTY -> new PropertyMessageNameResolver(context);
-            case MESSAGE_NAME_RESOLVER_SERVICE -> context.getProperty(MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE).asControllerService(MessageNameResolverService.class);
+            case MESSAGE_NAME_RESOLVER_SERVICE -> context.getProperty(MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE).asControllerService(MessageNameResolver.class);
         };
     }
 
@@ -289,7 +289,13 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         }
     }
 
-    record PropertyMessageNameResolver(PropertyContext context) implements MessageNameResolver {
+    static class PropertyMessageNameResolver extends AbstractControllerService implements MessageNameResolver {
+        private final PropertyContext context;
+
+        PropertyMessageNameResolver(PropertyContext context) {
+            this.context = context;
+        }
+
         @Override
         public MessageName getMessageName(final Map<String, String> variables, final SchemaDefinition schemaDefinition, final InputStream in) {
             final String messageName = context.getProperty(MESSAGE_NAME).evaluateAttributeExpressions(variables).getValue();
