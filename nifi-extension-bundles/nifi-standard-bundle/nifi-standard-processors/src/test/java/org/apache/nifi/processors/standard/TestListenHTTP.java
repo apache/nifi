@@ -26,6 +26,7 @@ import okhttp3.Response;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.reporting.InitializationException;
@@ -766,6 +767,37 @@ public class TestListenHTTP {
             int responseCode = response.code();
             assertEquals(200, responseCode, "Expected 200 response code with large header.");
         }
+    }
+
+    @Test
+    public void testFlowFilePackageRestoresFilenames() throws IOException {
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+
+        final int port = startWebServer();
+
+        final OkHttpClient okHttpClient = getOkHttpClient(false, false);
+        final Request.Builder requestBuilder = new Request.Builder();
+        final String url = buildUrl(false, port, HTTP_BASE_PATH);
+        requestBuilder.url(url);
+
+        // Sample data file is FFv3 package of two FlowFiles whose filename attribute values are "cal.txt" and "date.txt"
+        final Path flowFilev3Path = Paths.get("src/test/resources/TestListenHTTP/data.flowfilev3");
+        final byte[] flowFileV3Package = Files.readAllBytes(flowFilev3Path);
+        final RequestBody requestBody = RequestBody.create(flowFileV3Package, MediaType.parse(StandardFlowFileMediaType.VERSION_3.getMediaType()));
+        final Request request = requestBuilder.post(requestBody)
+                .addHeader("filename", "data.flowfilev3")
+                .build();
+
+        try (final Response response = okHttpClient.newCall(request).execute()) {
+            assertTrue(response.isSuccessful());
+        }
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 2);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).getFirst();
+        flowFile.assertAttributeEquals("filename", "cal.txt");
+        flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).getLast();
+        flowFile.assertAttributeEquals("filename", "date.txt");
     }
 
     private byte[] generateRandomBinaryData() {
