@@ -144,19 +144,20 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      * @param component     being mocked
      * @param componentName the name to be given the component;
      * @param stateManager  state manager
-     * @param parameterLookup parameterLookup to resolve context parameters
+     * @param environmentVariables the environment variables
+     * @param contextParameters the context parameters
      */
     public MockProcessContext(final ConfigurableComponent component,
                               final String componentName,
                               final StateManager stateManager,
                               final Map<String, String> environmentVariables,
-                              final ParameterLookup parameterLookup) {
+                              final Map<String, String> contextParameters) {
         this.component = Objects.requireNonNull(component);
         this.componentName = componentName == null ? "" : componentName;
         this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.stateManager = stateManager;
         this.environmentVariables = environmentVariables;
-        this.parameterLookup = parameterLookup != null ? parameterLookup : ParameterLookup.EMPTY;
+        this.parameterLookup = contextParameters != null ? new MockParameterLookup(contextParameters) : ParameterLookup.EMPTY;
     }
 
 

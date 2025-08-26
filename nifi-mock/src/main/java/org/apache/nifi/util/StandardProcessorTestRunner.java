@@ -111,27 +111,27 @@ public class StandardProcessorTestRunner implements TestRunner {
     // This only for testing purposes as we don't want to set env/sys variables in the tests
     private final Map<String, String> environmentVariables = new HashMap<>();
 
+    // This only for testing purposes as we need a way to set context parameters normally provided by the nifi environment
+    private final Map<String, String> contextParameters = Collections.synchronizedMap(new HashMap<>());
+
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName) {
-        this(processor, processorName, null, null, null);
+        this(processor, processorName, null, null);
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName, KerberosContext kerberosContext) {
-        this(processor, processorName, null, kerberosContext, null);
+        this(processor, processorName, null, kerberosContext);
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger) {
-        this(processor, processorName, logger, null, null);
+        this(processor, processorName, logger, null);
     }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName, ParameterLookup parameterLookup) {
-        this(processor, processorName, null, null, parameterLookup);
-    }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext, ParameterLookup parameterLookup) {
+    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -139,7 +139,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.processorStateManager = new MockStateManager(processor);
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits, allowRecursiveReads);
 
-        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables, parameterLookup);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables, contextParameters);
         this.kerberosContext = kerberosContext;
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger, kerberosContext);
@@ -1062,6 +1062,17 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setEnvironmentVariableValue(String name, String value) {
         environmentVariables.put(name, value);
+    }
+
+    @Override
+    public String getContextParameterValue(final String name) {
+        Objects.requireNonNull(name);
+        return contextParameters.get(name);
+    }
+
+    @Override
+    public void setContextParameterValue(String name, String value) {
+        contextParameters.put(name, value);
     }
 
     /**

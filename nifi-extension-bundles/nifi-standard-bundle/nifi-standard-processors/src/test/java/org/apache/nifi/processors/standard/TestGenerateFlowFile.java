@@ -82,8 +82,8 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testContextParametersToAttributes() {
-        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile(),
-                                                      new MockParameterLookup(Map.of("context.parameter.property", "context.parameter.value")));
+        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
+        runner.setContextParameterValue("context.parameter.property", "context.parameter.value");
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
         runner.setProperty(GenerateFlowFile.MIME_TYPE, "application/text");

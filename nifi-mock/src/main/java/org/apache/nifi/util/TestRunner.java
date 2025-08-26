@@ -1070,6 +1070,29 @@ public interface TestRunner {
     void setEnvironmentVariableValue(String name, String value);
 
     /**
+     * Returns the current value of the Context Parameter with the given name
+     *
+     * @param name the name of the Context Parameter whose value should be returned.
+     * @return the current value of the Context Parameter with the given name or <code>null</code> if no value is currently set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    String getContextParameterValue(String name);
+
+    /**
+     * Sets the value of the Context Parameter with the given name to be the given value. This exposes the Context Parameter
+     * for use by the Expression Language (with the #{name} syntax).
+     *
+     * NOTE - this method is only for testing purposes.
+     *
+     * @param name the name of the variable to set
+     * @param value the value of the variable
+     *
+     * @throws NullPointerException if either the name or the value is null
+     */
+    void setContextParameterValue(String name, String value);
+
+    /**
      * Asserts that all FlowFiles meet all conditions.
      *
      * @param relationshipName relationship name
