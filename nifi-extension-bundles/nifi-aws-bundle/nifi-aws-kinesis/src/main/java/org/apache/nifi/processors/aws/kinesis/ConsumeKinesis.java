@@ -93,12 +93,13 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SU
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
-@CapabilityDescription("Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) " +
-        "or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
-        "AWS Kinesis Client Library can take a few minutes on the first start and several seconds on subsequent start " +
-        "to initialise before starting to fetch data. " +
-        "Uses DynamoDB for check pointing and coordination, and CloudWatch (optional) for metrics. " +
-        "Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.")
+@CapabilityDescription("""
+        Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) \
+        or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured.
+        AWS Kinesis Client Library can take a few minutes on the first start and several seconds on subsequent start \
+        to initialise before starting to fetch data.
+        Uses DynamoDB for check pointing and coordination, and CloudWatch (optional) for metrics.
+        Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.""")
 @WritesAttributes({
         @WritesAttribute(attribute = STREAM_NAME,
                 description = "The name of the Kinesis Stream from which all Kinesis Records in the Flow File were read"),
@@ -120,19 +121,29 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SU
                 description = "This attribute provides on failure the error message encountered by the Record Reader or Record Writer (if configured)")
 })
 @DefaultSettings(yieldDuration = "100 millis")
-@SystemResourceConsideration(resource = SystemResource.CPU, description = "Kinesis Client Library is used to create a Worker thread for consumption of Kinesis Records. " +
-        "The Worker is initialised and started when this Processor has been scheduled. It runs continually, spawning Kinesis Record Processors as required " +
-        "to fetch Kinesis Records. The Worker Thread (and any child Record Processor threads) are not controlled by the normal NiFi scheduler as part of the " +
-        "Concurrent Thread pool and are not released until this processor is stopped.")
-@SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
-        "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
-@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "ConsumeKinesis buffers Kinesis Records in memory until they can be processed. " +
-        "The maximum size of the buffer is controlled by the 'Max Bytes to Buffer' property. " +
-        "In addition, Kinesis Client Library may cache some amount of data for each shard when the processor's buffer is full.")
+@SystemResourceConsideration(resource = SystemResource.CPU, description = """
+        Kinesis Client Library is used to create a Worker thread for consumption of Kinesis Records.
+        The Worker is initialised and started when this Processor has been scheduled. It runs continually, spawning Kinesis Record Processors as required \
+        to fetch Kinesis Records. The Worker Thread (and any child Record Processor threads) are not controlled by the normal NiFi scheduler as part of the \
+        Concurrent Thread pool and are not released until this processor is stopped.""")
+@SystemResourceConsideration(resource = SystemResource.NETWORK, description = """
+        Kinesis Client Library will continually poll for new Records, \
+        requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.""")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = """
+        ConsumeKinesis buffers Kinesis Records in memory until they can be processed.
+        The maximum size of the buffer is controlled by the 'Max Bytes to Buffer' property.
+        In addition, Kinesis Client Library may cache some amount of data for each shard when the processor's buffer is full.""")
 public class ConsumeKinesis extends AbstractProcessor {
 
-    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration READ_TIMEOUT = Duration.ofMinutes(3);
+    private static final Duration HTTP_CLIENTS_CONNECTION_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration HTTP_CLIENTS_READ_TIMEOUT = Duration.ofMinutes(3);
+
+    /**
+     * Best balance between throughput and CPU usage by KCL.
+     */
+    private static final int KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK = 16;
+    private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE = 512 * 1024; // 512 KiB
+    private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
 
     static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Stream Name")
@@ -362,20 +373,22 @@ public class ConsumeKinesis extends AbstractProcessor {
      * {@link software.amazon.kinesis.common.KinesisClientUtil#adjustKinesisClientBuilder(KinesisAsyncClientBuilder)}.
      */
     private static SdkAsyncHttpClient createKinesisHttpClient(final ProcessContext context) {
+        final int maxConcurrency = KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK * context.getMaxConcurrentTasks();
+
         return createHttpClientBuilder(context)
-                .maxConcurrency(Integer.MAX_VALUE)
-                .http2Configuration(Http2Configuration.builder()
-                        .initialWindowSize(512 * 1024) // 512 KB
-                        .healthCheckPingPeriod(Duration.ofMinutes(1))
-                        .build())
                 .protocol(Protocol.HTTP2)
+                .maxConcurrency(maxConcurrency)
+                .http2Configuration(Http2Configuration.builder()
+                        .initialWindowSize(KINESIS_HTTP_CLIENT_WINDOW_SIZE)
+                        .healthCheckPingPeriod(KINESIS_HTTP_HEALTH_CHECK_PERIOD)
+                        .build())
                 .build();
     }
 
     private static NettyNioAsyncHttpClient.Builder createHttpClientBuilder(final ProcessContext context) {
         final NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder()
-                .connectionTimeout(CONNECTION_TIMEOUT)
-                .readTimeout(READ_TIMEOUT);
+                .connectionTimeout(HTTP_CLIENTS_CONNECTION_TIMEOUT)
+                .readTimeout(HTTP_CLIENTS_READ_TIMEOUT);
 
         final ProxyConfigurationService proxyConfigService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
         if (proxyConfigService != null) {
