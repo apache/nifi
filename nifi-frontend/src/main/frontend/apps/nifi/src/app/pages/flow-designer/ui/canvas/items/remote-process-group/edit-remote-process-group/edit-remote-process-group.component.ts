@@ -77,10 +77,10 @@ export class EditRemoteProcessGroup extends CloseOnEscapeDialog {
             urls: new FormControl(request.entity.component.targetUris, Validators.required),
             transportProtocol: new FormControl(request.entity.component.transportProtocol, Validators.required),
             localNetworkInterface: new FormControl(request.entity.component.localNetworkInterface),
-            httpProxyServerHostname: new FormControl(request.entity.component.httpProxyServerHostname),
-            httpProxyServerPort: new FormControl(request.entity.component.httpProxyServerPort),
-            httpProxyUser: new FormControl(request.entity.component.httpProxyUser),
-            httpProxyPassword: new FormControl(request.entity.component.httpProxyPassword),
+            httpProxyServerHostname: new FormControl(request.entity.component.proxyHost),
+            httpProxyServerPort: new FormControl(request.entity.component.proxyPort),
+            httpProxyUser: new FormControl(request.entity.component.proxyUser),
+            httpProxyPassword: new FormControl(request.entity.component.proxyPassword),
             communicationsTimeout: new FormControl(request.entity.component.communicationsTimeout, Validators.required),
             yieldDuration: new FormControl(request.entity.component.yieldDuration, Validators.required)
         });
