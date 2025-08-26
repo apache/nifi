@@ -162,7 +162,6 @@
         <spring.version>6.2.10</spring.version>
         <spring.security.version>6.5.3</spring.security.version>
         <swagger.annotations.version>2.2.36</swagger.annotations.version>
-        <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.2.2</caffeine.version>
         <hapi.version>2.6.0</hapi.version>
