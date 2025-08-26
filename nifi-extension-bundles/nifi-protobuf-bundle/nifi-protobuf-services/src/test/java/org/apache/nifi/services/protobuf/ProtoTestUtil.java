@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.services.protobuf;
 
-import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
+import com.google.protobuf.DescriptorProtos.FileDescriptorSet;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.squareup.wire.schema.CoreLoaderKt;
 import com.squareup.wire.schema.Location;
@@ -31,23 +34,24 @@ import java.nio.file.FileSystems;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static java.lang.System.arraycopy;
 import static org.apache.nifi.services.protobuf.converter.ProtobufDataConverter.MAP_KEY_FIELD_NAME;
 import static org.apache.nifi.services.protobuf.converter.ProtobufDataConverter.MAP_VALUE_FIELD_NAME;
 
-public class ProtoTestUtil {
+public final class ProtoTestUtil {
 
-    public static final String BASE_TEST_PATH = "src/test/resources/";
+    static final String BASE_TEST_PATH = "src/test/resources/";
 
     public static Schema loadProto3TestSchema() {
-        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
-        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_proto3.proto")), Collections.emptyList());
-        return schemaLoader.loadSchema();
+        return loadTestSchema("test_proto3.proto");
+    }
+
+    public static Schema loadRootMessageSchema() {
+        return loadTestSchema("org/apache/nifi/protobuf/test/root_message.proto");
     }
 
     public static Schema loadRepeatedProto3TestSchema() {
-        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
-        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_repeated_proto3.proto")), Collections.emptyList());
-        return schemaLoader.loadSchema();
+        return loadTestSchema("test_repeated_proto3.proto");
     }
 
     public static Schema loadProto2TestSchema() {
@@ -59,34 +63,52 @@ public class ProtoTestUtil {
     }
 
     public static Schema loadCircularReferenceTestSchema() {
-        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
-        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_circular_reference.proto")), Collections.emptyList());
-        return schemaLoader.loadSchema();
+        return loadTestSchema("test_circular_reference.proto");
     }
 
+    public static InputStream generateInputDataForRootMessage() throws IOException, Descriptors.DescriptorValidationException {
+        final FileDescriptor fileDescriptor = loadFileDescriptor("org/apache/nifi/protobuf/test/root_message.desc");
+
+        final Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("RootMessage");
+        final Descriptor nestedMessageDescriptor = fileDescriptor.findMessageTypeByName("NestedMessage");
+        final Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
+
+        final DynamicMessage nestedMessage = DynamicMessage
+            .newBuilder(nestedMessageDescriptor)
+            .setField(nestedMessageDescriptor.findFieldByNumber(2), enumValueDescriptor.findValueByNumber(2))
+            .build();
+
+        final DynamicMessage message = DynamicMessage
+            .newBuilder(messageDescriptor)
+            .setField(messageDescriptor.findFieldByNumber(1), nestedMessage)
+            .build();
+
+        return message.toByteString().newInput();
+    }
+
+
     public static InputStream generateInputDataForProto3() throws IOException, Descriptors.DescriptorValidationException {
-        DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_proto3.desc"));
-        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorSet.getFile(0), new Descriptors.FileDescriptor[0]);
+        final FileDescriptor fileDescriptor = loadFileDescriptor("test_proto3.desc");
 
-        Descriptors.Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("Proto3Message");
-        Descriptors.Descriptor nestedMessageDescriptor = fileDescriptor.findMessageTypeByName("NestedMessage");
-        Descriptors.Descriptor nestedMessageDescriptor2 = fileDescriptor.findMessageTypeByName("NestedMessage2");
-        Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
-        Descriptors.Descriptor mapDescriptor = nestedMessageDescriptor2.findNestedTypeByName("TestMapEntry");
+        final Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("Proto3Message");
+        final Descriptor nestedMessageDescriptor = fileDescriptor.findMessageTypeByName("NestedMessage");
+        final Descriptor nestedMessageDescriptor2 = fileDescriptor.findMessageTypeByName("NestedMessage2");
+        final Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
+        final Descriptor mapDescriptor = nestedMessageDescriptor2.findNestedTypeByName("TestMapEntry");
 
-        DynamicMessage mapEntry1 = DynamicMessage
+        final DynamicMessage mapEntry1 = DynamicMessage
                 .newBuilder(mapDescriptor)
                 .setField(mapDescriptor.findFieldByName(MAP_KEY_FIELD_NAME), "test_key_entry1")
                 .setField(mapDescriptor.findFieldByName(MAP_VALUE_FIELD_NAME), 101)
                 .build();
 
-        DynamicMessage mapEntry2 = DynamicMessage
+        final DynamicMessage mapEntry2 = DynamicMessage
                 .newBuilder(mapDescriptor)
                 .setField(mapDescriptor.findFieldByName(MAP_KEY_FIELD_NAME), "test_key_entry2")
                 .setField(mapDescriptor.findFieldByName(MAP_VALUE_FIELD_NAME), 202)
                 .build();
 
-        DynamicMessage nestedMessage2 = DynamicMessage
+        final DynamicMessage nestedMessage2 = DynamicMessage
                 .newBuilder(nestedMessageDescriptor2)
                 .setField(nestedMessageDescriptor2.findFieldByNumber(30), Arrays.asList(mapEntry1, mapEntry2))
                 .setField(nestedMessageDescriptor2.findFieldByNumber(31), "One Of Option")
@@ -94,13 +116,13 @@ public class ProtoTestUtil {
                 .setField(nestedMessageDescriptor2.findFieldByNumber(33), 3)
                 .build();
 
-        DynamicMessage nestedMessage = DynamicMessage
+        final DynamicMessage nestedMessage = DynamicMessage
                 .newBuilder(nestedMessageDescriptor)
                 .setField(nestedMessageDescriptor.findFieldByNumber(20), enumValueDescriptor.findValueByNumber(2))
                 .addRepeatedField(nestedMessageDescriptor.findFieldByNumber(21), nestedMessage2)
                 .build();
 
-        DynamicMessage message = DynamicMessage
+        final DynamicMessage message = DynamicMessage
                 .newBuilder(messageDescriptor)
                 .setField(messageDescriptor.findFieldByNumber(1), true)
                 .setField(messageDescriptor.findFieldByNumber(2), "Test text")
@@ -124,14 +146,12 @@ public class ProtoTestUtil {
     }
 
     public static InputStream generateInputDataForRepeatedProto3() throws IOException, Descriptors.DescriptorValidationException {
-        DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_repeated_proto3.desc"));
-        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorSet.getFile(0), new Descriptors.FileDescriptor[0]);
+        final FileDescriptor fileDescriptor = loadFileDescriptor("test_repeated_proto3.desc");
+        final Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("RootMessage");
+        final Descriptor repeatedMessageDescriptor = fileDescriptor.findMessageTypeByName("RepeatedMessage");
+        final Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
 
-        Descriptors.Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("RootMessage");
-        Descriptors.Descriptor repeatedMessageDescriptor = fileDescriptor.findMessageTypeByName("RepeatedMessage");
-        Descriptors.EnumDescriptor enumValueDescriptor = fileDescriptor.findEnumTypeByName("TestEnum");
-
-        DynamicMessage repeatedMessage1 = DynamicMessage
+        final DynamicMessage repeatedMessage1 = DynamicMessage
                 .newBuilder(repeatedMessageDescriptor)
                 .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(1), true)
                 .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(1), false)
@@ -167,12 +187,12 @@ public class ProtoTestUtil {
                 .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(16), enumValueDescriptor.findValueByNumber(2))
                 .build();
 
-        DynamicMessage repeatedMessage2 = DynamicMessage
+        final DynamicMessage repeatedMessage2 = DynamicMessage
                 .newBuilder(repeatedMessageDescriptor)
                 .addRepeatedField(repeatedMessageDescriptor.findFieldByNumber(1), true)
                 .build();
 
-        DynamicMessage rootMessage = DynamicMessage
+        final DynamicMessage rootMessage = DynamicMessage
                 .newBuilder(messageDescriptor)
                 .addRepeatedField(messageDescriptor.findFieldByNumber(1), repeatedMessage1)
                 .addRepeatedField(messageDescriptor.findFieldByNumber(1), repeatedMessage2)
@@ -182,30 +202,27 @@ public class ProtoTestUtil {
     }
 
     public static InputStream generateInputDataForProto2() throws IOException, Descriptors.DescriptorValidationException {
-        DescriptorProtos.FileDescriptorSet anyDescriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "google/protobuf/any.desc"));
-        Descriptors.FileDescriptor anyDesc = Descriptors.FileDescriptor.buildFrom(anyDescriptorSet.getFile(0), new Descriptors.FileDescriptor[]{});
+        final FileDescriptor anyDesc = loadFileDescriptor("google/protobuf/any.desc");
+        final FileDescriptor fileDescriptor = loadFileDescriptor("test_proto2.desc", new FileDescriptor[]{anyDesc});
 
-        DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_proto2.desc"));
-        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorSet.getFile(0), new Descriptors.FileDescriptor[]{anyDesc});
+        final Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("Proto2Message");
+        final Descriptor anyTestDescriptor = fileDescriptor.findMessageTypeByName("AnyValueMessage");
+        final Descriptors.FieldDescriptor fieldDescriptor = fileDescriptor.findExtensionByName("extensionField");
+        final Descriptor anyDescriptor = anyDesc.findMessageTypeByName("Any");
 
-        Descriptors.Descriptor messageDescriptor = fileDescriptor.findMessageTypeByName("Proto2Message");
-        Descriptors.Descriptor anyTestDescriptor = fileDescriptor.findMessageTypeByName("AnyValueMessage");
-        Descriptors.FieldDescriptor fieldDescriptor = fileDescriptor.findExtensionByName("extensionField");
-        Descriptors.Descriptor anyDescriptor = anyDesc.findMessageTypeByName("Any");
-
-        DynamicMessage anyTestMessage = DynamicMessage
+        final DynamicMessage anyTestMessage = DynamicMessage
                 .newBuilder(anyTestDescriptor)
                 .setField(anyTestDescriptor.findFieldByNumber(1), "Test field 1")
                 .setField(anyTestDescriptor.findFieldByNumber(2), "Test field 2")
                 .build();
 
-        DynamicMessage anyMessage = DynamicMessage
+        final DynamicMessage anyMessage = DynamicMessage
                 .newBuilder(anyDescriptor)
                 .setField(anyDescriptor.findFieldByNumber(1), "type.googleapis.com/AnyValueMessage")
                 .setField(anyDescriptor.findFieldByNumber(2), anyTestMessage.toByteArray())
                 .build();
 
-        DynamicMessage message = DynamicMessage
+        final DynamicMessage message = DynamicMessage
                 .newBuilder(messageDescriptor)
                 .setField(messageDescriptor.findFieldByNumber(1), true)
                 .setField(messageDescriptor.findFieldByNumber(3), anyMessage)
@@ -213,5 +230,75 @@ public class ProtoTestUtil {
                 .build();
 
         return message.toByteString().newInput();
+    }
+
+    static FileDescriptor loadFileDescriptor(final String descriptorFileName) throws IOException, Descriptors.DescriptorValidationException {
+        final FileDescriptorSet descriptorSet = FileDescriptorSet.parseFrom(
+            new FileInputStream(BASE_TEST_PATH + descriptorFileName));
+        return FileDescriptor.buildFrom(descriptorSet.getFile(0), new FileDescriptor[0]);
+    }
+
+    static FileDescriptor loadFileDescriptor(final String descriptorFileName, final FileDescriptor[] dependencies)
+        throws IOException, Descriptors.DescriptorValidationException {
+        final FileDescriptorSet descriptorSet = FileDescriptorSet.parseFrom(
+            new FileInputStream(BASE_TEST_PATH + descriptorFileName));
+        return FileDescriptor.buildFrom(descriptorSet.getFile(0), dependencies);
+    }
+
+    static FileDescriptor[] loadAllFileDescriptors(final String descriptorFileName) throws IOException, Descriptors.DescriptorValidationException {
+        final FileDescriptorSet descriptorSet = FileDescriptorSet.parseFrom(
+            new FileInputStream(BASE_TEST_PATH + descriptorFileName));
+
+        final FileDescriptor[] fileDescriptors = new FileDescriptor[descriptorSet.getFileCount()];
+
+        // Build descriptors in dependency order
+        for (int i = 0; i < descriptorSet.getFileCount(); i++) {
+            final FileDescriptorProto fileProto = descriptorSet.getFile(i);
+            final FileDescriptor[] dependencies = new FileDescriptor[i];
+            arraycopy(fileDescriptors, 0, dependencies, 0, i);
+            fileDescriptors[i] = FileDescriptor.buildFrom(fileProto, dependencies);
+        }
+
+        return fileDescriptors;
+    }
+
+    /**
+     * Loads all file descriptors from a .desc file and returns a simplified container
+     * that can find message types by name without array indexing.
+     */
+    static DescriptorContainer loadDescriptorContainer(final String descriptorFileName) throws IOException, Descriptors.DescriptorValidationException {
+        return new DescriptorContainer(loadAllFileDescriptors(descriptorFileName));
+    }
+
+    private static Schema loadTestSchema(final String protoFileName) {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + protoFileName)), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
+
+    /**
+     * A simplified descriptor container that allows finding message types by name
+     * without needing to know which specific FileDescriptor contains the message.
+     */
+    static class DescriptorContainer {
+
+        private final FileDescriptor[] fileDescriptors;
+
+        DescriptorContainer(final FileDescriptor[] fileDescriptors) {
+            this.fileDescriptors = fileDescriptors;
+        }
+
+        /**
+         * Finds a message type by name across all loaded file descriptors.
+         */
+        Descriptor findMessageTypeByName(final String messageName) {
+            for (final FileDescriptor fileDescriptor : fileDescriptors) {
+                final Descriptor descriptor = fileDescriptor.findMessageTypeByName(messageName);
+                if (descriptor != null) {
+                    return descriptor;
+                }
+            }
+            throw new IllegalArgumentException("Message type '" + messageName + "' not found in loaded descriptors");
+        }
     }
 }

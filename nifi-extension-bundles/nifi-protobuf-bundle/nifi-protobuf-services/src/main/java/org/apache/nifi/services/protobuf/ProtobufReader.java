@@ -54,7 +54,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"protobuf", "record", "reader", "parser"})
-@CapabilityDescription("Parses a Protocol Buffers message from binary format.")
+@CapabilityDescription("Parses a Protocol Buffers message from binary format. " +
+        "If the schema can be fetched from a schema registry or pasted inline into property, StandardProtobufReader should be used instead. " +
+        "Note that this service has the limitation because of the fact that it reads .proto schema from filesystem local to the NIFI node." +
+        "As a consequence, it requires proto files to be copied to every node manually when this service is used in a multinode cluster. ")
 public class ProtobufReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private static final String ANY_PROTO = "google/protobuf/any.proto";

@@ -29,6 +29,18 @@ public class StandardMessageName implements MessageName {
         this.namespace = namespace;
     }
 
+    public StandardMessageName(final String name) {
+        Objects.requireNonNull(name, "name must not be null");
+        final int lastDotIndex = name.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            this.namespace = Optional.of(name.substring(0, lastDotIndex));
+            this.name = name.substring(lastDotIndex + 1);
+        } else {
+            this.namespace = Optional.empty();
+            this.name = name;
+        }
+    }
+
     @Override
     public String getName() {
         return name;
