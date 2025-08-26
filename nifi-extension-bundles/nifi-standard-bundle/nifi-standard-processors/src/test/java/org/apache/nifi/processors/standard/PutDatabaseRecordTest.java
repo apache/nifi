@@ -28,6 +28,7 @@ import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordFailureType;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -177,7 +178,7 @@ public class PutDatabaseRecordTest {
     }
 
     @AfterAll
-    public static void shutdownDatabase() throws Exception {
+    public static void shutdownDatabase() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
         } catch (Exception ignored) {
@@ -270,7 +271,7 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    public void testProcessExceptionRouteRetry() throws InitializationException, SQLException {
+    public void testProcessExceptionRouteRetry() throws InitializationException {
         setRunner(TestCaseEnum.DEFAULT_1.getTestCase());
 
         // This exception should route to REL_RETRY because its cause is SQLTransientException
@@ -296,7 +297,7 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    public void testProcessExceptionRouteFailure() throws InitializationException, SQLException {
+    public void testProcessExceptionRouteFailure() throws InitializationException {
         setRunner(TestCaseEnum.DEFAULT_1.getTestCase());
 
         // This exception should route to REL_FAILURE because its cause is NOT SQLTransientException
@@ -321,6 +322,7 @@ public class PutDatabaseRecordTest {
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE);
     }
 
+    @Test
     public void testInsertNonRequiredColumnsUnmatchedField() throws InitializationException, ProcessException {
         setRunner(TestCaseEnum.DEFAULT_5.getTestCase());
 
@@ -389,7 +391,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false, null,
-                new HashSet<>(Arrays.asList("id")),
+                new HashSet<>(List.of("id")),
                 ""
         );
 
@@ -430,7 +432,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false, null,
-                new HashSet<>(Arrays.asList("id")),
+                new HashSet<>(List.of("id")),
                 ""
         );
 
@@ -714,7 +716,7 @@ public class PutDatabaseRecordTest {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
         final String errorMessage = flowFile.getAttribute("putdatabaserecord.error");
         assertTrue(errorMessage.contains("PERSONS2"));
         runner.enqueue();
@@ -953,12 +955,9 @@ public class PutDatabaseRecordTest {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        try {
+        try (conn; stmt) {
             // Transaction should be rolled back and table should remain empty.
             assertFalse(rs.next());
-        } finally {
-            stmt.close();
-            conn.close();
         }
     }
 
@@ -992,12 +991,9 @@ public class PutDatabaseRecordTest {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        try {
+        try (conn; stmt) {
             // Transaction should be rolled back and table should remain empty.
             assertFalse(rs.next());
-        } finally {
-            stmt.close();
-            conn.close();
         }
     }
 
@@ -1031,12 +1027,9 @@ public class PutDatabaseRecordTest {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-        try {
+        try (conn; stmt) {
             // Transaction should be rolled back and table should remain empty.
             assertFalse(rs.next());
-        } finally {
-            stmt.close();
-            conn.close();
         }
     }
 
@@ -1342,7 +1335,7 @@ public class PutDatabaseRecordTest {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
         assertEquals("Table 'PERSONS' not found or does not have a Primary Key and no Update Keys were specified", flowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR));
     }
 
@@ -1723,7 +1716,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false, null,
-                new HashSet<>(Arrays.asList("id")),
+                new HashSet<>(List.of("id")),
                 ""
         );
 
@@ -2207,25 +2200,44 @@ public class PutDatabaseRecordTest {
     public void testInsertEnum() throws InitializationException, ProcessException, SQLException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION, false)); // Use H2
+        dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION));
         runner = TestRunners.newTestRunner(processor);
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
-        try (Connection conn = dbcp.getConnection()) {
-            conn.createStatement().executeUpdate("DROP TABLE IF EXISTS ENUM_TEST");
+        recreateTable("""
+            CREATE TABLE ENUM_TEST (
+                id integer primary key,
+                suit varchar(8) not null
+            )
+        """);
+
+        try (
+                Connection conn = dbcp.getConnection();
+                Statement stmt = conn.createStatement()
+        ) {
+            // Add constraint for Apache Derby
+            stmt.execute("""
+                ALTER TABLE ENUM_TEST
+                ADD CONSTRAINT suit
+                CHECK (
+                    suit IN ('clubs', 'diamonds', 'hearts', 'spades')
+                )
+            """
+            );
         }
-        recreateTable("CREATE TABLE IF NOT EXISTS ENUM_TEST (id integer primary key, suit ENUM('clubs', 'diamonds', 'hearts', 'spades'))");
+
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
 
         parser.addSchemaField("id", RecordFieldType.INT);
-        parser.addSchemaField("suit", RecordFieldType.ENUM.getEnumDataType(Arrays.asList("clubs", "diamonds", "hearts", "spades")).getFieldType());
+        final DataType enumDataType = RecordFieldType.ENUM.getEnumDataType(List.of("clubs", "diamonds", "hearts", "spades"));
+        assertNotNull(enumDataType);
+        parser.addSchemaField("suit", enumDataType.getFieldType());
 
         parser.addRecord(1, "diamonds");
         parser.addRecord(2, "hearts");
-
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
@@ -2383,7 +2395,7 @@ public class PutDatabaseRecordTest {
 
     private Supplier<PreparedStatement> createPreparedStatementSpy() {
         final PreparedStatement[] spyStmt = new PreparedStatement[1];
-        final Answer<DelegatingConnection> answer = (inv) -> new DelegatingConnection((Connection) inv.callRealMethod()) {
+        final Answer<DelegatingConnection<?>> answer = (inv) -> new DelegatingConnection<>((Connection) inv.callRealMethod()) {
             @Override
             public PreparedStatement prepareStatement(String sql) throws SQLException {
                 spyStmt[0] = spy(getDelegate().prepareStatement(sql));
@@ -2396,7 +2408,7 @@ public class PutDatabaseRecordTest {
 
     private Supplier<Statement> createStatementSpy() {
         final Statement[] spyStmt = new Statement[1];
-        final Answer<DelegatingConnection> answer = (inv) -> new DelegatingConnection((Connection) inv.callRealMethod()) {
+        final Answer<DelegatingConnection<?>> answer = (inv) -> new DelegatingConnection<>((Connection) inv.callRealMethod()) {
             @Override
             public Statement createStatement() throws SQLException {
                 spyStmt[0] = spy(getDelegate().createStatement());
@@ -2463,9 +2475,9 @@ public class PutDatabaseRecordTest {
             this.batchSize = batchSize;
         }
 
-        private Boolean autoCommit = null;
-        private Boolean rollbackOnFailure = null;
-        private Integer batchSize = null;
+        private final Boolean autoCommit;
+        private final Boolean rollbackOnFailure;
+        private final Integer batchSize;
 
         String getAutoCommitAsString() {
             return autoCommit == null ? null : autoCommit.toString();

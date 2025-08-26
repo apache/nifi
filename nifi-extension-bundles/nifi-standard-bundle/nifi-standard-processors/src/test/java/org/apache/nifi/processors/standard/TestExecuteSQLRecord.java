@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.avro.Schema;
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.util.Utf8;
-import org.apache.nifi.avro.AvroRecordSetWriter;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -30,7 +23,6 @@ import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -43,10 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -57,10 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -73,14 +58,6 @@ public class TestExecuteSQLRecord {
 
     final static String DB_LOCATION = "target/db";
 
-    final static String QUERY_WITH_EL = "select "
-            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
-            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
-            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
-            + ", ROW_NUMBER() OVER () as rownr "
-            + " from persons PER, products PRD, relationships REL"
-            + " where PER.ID = ${person.id}";
-
     final static String QUERY_WITHOUT_EL = "select "
             + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
             + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
@@ -88,15 +65,6 @@ public class TestExecuteSQLRecord {
             + ", ROW_NUMBER() OVER () as rownr "
             + " from persons PER, products PRD, relationships REL"
             + " where PER.ID = 10";
-
-    final static String QUERY_WITHOUT_EL_WITH_PARAMS = "select "
-            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
-            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
-            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
-            + ", ROW_NUMBER() OVER () as rownr "
-            + " from persons PER, products PRD, relationships REL"
-            + " where PER.ID < ? AND REL.ID < ?";
-
 
     @BeforeAll
     public static void setupClass() {
@@ -112,7 +80,7 @@ public class TestExecuteSQLRecord {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        final DBCPService dbcp = new DBCPServiceSimpleImpl("derby");
+        final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(ExecuteSQLRecord.class);
@@ -147,45 +115,39 @@ public class TestExecuteSQLRecord {
     }
 
     @Test
-    public void testNoIncomingConnectionAndNoQuery() throws InitializationException {
+    public void testNoIncomingConnectionAndNoQuery() {
         runner.setIncomingConnection(false);
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test
-    public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testNoIncomingConnection() throws SQLException, InitializationException {
         runner.setIncomingConnection(false);
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, false, null, true);
-        assertEquals(ProvenanceEventType.RECEIVE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.RECEIVE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
-    public void testSelectQueryInFlowFile() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testSelectQueryInFlowFile() throws InitializationException, SQLException {
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
         assertEquals(ProvenanceEventType.FORK, runner.getProvenanceEvents().get(0).getEventType());
         assertEquals(ProvenanceEventType.FETCH, runner.getProvenanceEvents().get(1).getEventType());
     }
 
     @Test
-    public void testAutoCommitFalse() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testAutoCommitFalse() throws InitializationException, SQLException {
         runner.setProperty(ExecuteSQL.AUTO_COMMIT, "false");
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
     }
 
     @Test
-    public void testAutoCommitTrue() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testAutoCommitTrue() throws InitializationException, SQLException {
         runner.setProperty(ExecuteSQL.AUTO_COMMIT, "true");
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
     }
 
     @Test
     public void testWithOutputBatching() throws InitializationException, SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -216,7 +178,7 @@ public class TestExecuteSQLRecord {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
@@ -232,10 +194,6 @@ public class TestExecuteSQLRecord {
 
     @Test
     public void testWithOutputBatchingAndIncomingFlowFile() throws InitializationException, SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -271,7 +229,7 @@ public class TestExecuteSQLRecord {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
@@ -289,10 +247,6 @@ public class TestExecuteSQLRecord {
 
     @Test
     public void testWithOutputBatchingLastBatchFails() throws InitializationException, SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -332,10 +286,6 @@ public class TestExecuteSQLRecord {
 
     @Test
     public void testMaxRowsPerFlowFile() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -367,7 +317,7 @@ public class TestExecuteSQLRecord {
         runner.assertAllFlowFilesContainAttribute(AbstractExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
         runner.assertAllFlowFilesContainAttribute(AbstractExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_COUNT.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeEquals("record.count", "5");
@@ -386,10 +336,6 @@ public class TestExecuteSQLRecord {
 
     @Test
     public void testInsertStatementCreatesFlowFile() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -410,79 +356,11 @@ public class TestExecuteSQLRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(AbstractExecuteSQL.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).get(0).assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "0");
-    }
-
-    @Test
-    public void testWriteLOBsToAvro() throws Exception {
-        final DBCPService dbcp = new DBCPServiceSimpleImpl("h2");
-        final Map<String, String> dbcpProperties = new HashMap<>();
-
-        runner = TestRunners.newTestRunner(ExecuteSQLRecord.class);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        runner.enableControllerService(dbcp);
-        runner.setProperty(AbstractExecuteSQL.DBCP_SERVICE, "dbcp");
-
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, image blob(1K), words clob(1K), "
-                + "natwords nclob(1K), constraint my_pk primary key (id))");
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2, image, words, natwords) VALUES (0, NULL, 1, CAST (X'DEADBEEF' AS BLOB), "
-                + "CAST ('Hello World' AS CLOB), CAST ('I am an NCLOB' AS NCLOB))");
-
-        runner.setIncomingConnection(false);
-        runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
-        AvroRecordSetWriter recordWriter = new AvroRecordSetWriter();
-        runner.addControllerService("writer", recordWriter);
-        runner.setProperty(recordWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
-        runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
-        runner.enableControllerService(recordWriter);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(AbstractExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "1");
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(flowFile.toByteArray());
-        try (DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(bais, new GenericDatumReader<>())) {
-            final Schema avroSchema = dataFileStream.getSchema();
-            GenericData.setStringType(avroSchema, GenericData.StringType.String);
-            final GenericRecord avroRecord = dataFileStream.next();
-
-            Object imageObj = avroRecord.get("IMAGE");
-            assertNotNull(imageObj);
-            assertInstanceOf(ByteBuffer.class, imageObj);
-            assertArrayEquals(new byte[] {(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
-
-            Object wordsObj = avroRecord.get("WORDS");
-            assertNotNull(wordsObj);
-            assertInstanceOf(Utf8.class, wordsObj);
-            assertEquals("Hello World", wordsObj.toString());
-
-            Object natwordsObj = avroRecord.get("NATWORDS");
-            assertNotNull(natwordsObj);
-            assertInstanceOf(Utf8.class, natwordsObj);
-            assertEquals("I am an NCLOB", natwordsObj.toString());
-        }
+        runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "0");
     }
 
     @Test
     public void testNoRowsStatementCreatesEmptyFlowFile() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -504,17 +382,13 @@ public class TestExecuteSQLRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "0");
         firstFlowFile.assertContentEquals("");
     }
 
     @Test
     public void testNoResultCreatesEmptyFlowFile() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -536,17 +410,13 @@ public class TestExecuteSQLRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "0");
         firstFlowFile.assertContentEquals("");
     }
 
     @Test
     public void testWithSqlException() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -574,15 +444,11 @@ public class TestExecuteSQLRecord {
     }
 
     public void invokeOnTriggerRecords(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String, String> attrs, final boolean setQueryProperty)
-            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+            throws InitializationException, SQLException {
 
         if (queryTimeout != null) {
-            runner.setProperty(AbstractExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
+            runner.setProperty(AbstractExecuteSQL.QUERY_TIMEOUT, queryTimeout + " secs");
         }
-
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -625,9 +491,9 @@ public class TestExecuteSQLRecord {
         runner.assertAllFlowFilesContainAttribute(AbstractExecuteSQL.REL_SUCCESS, AbstractExecuteSQL.RESULT_ROW_COUNT);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS);
-        final long executionTime = Long.parseLong(flowfiles.get(0).getAttribute(AbstractExecuteSQL.RESULT_QUERY_EXECUTION_TIME));
-        final long fetchTime = Long.parseLong(flowfiles.get(0).getAttribute(AbstractExecuteSQL.RESULT_QUERY_FETCH_TIME));
-        final long durationTime = Long.parseLong(flowfiles.get(0).getAttribute(AbstractExecuteSQL.RESULT_QUERY_DURATION));
+        final long executionTime = Long.parseLong(flowfiles.getFirst().getAttribute(AbstractExecuteSQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowfiles.getFirst().getAttribute(AbstractExecuteSQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowfiles.getFirst().getAttribute(AbstractExecuteSQL.RESULT_QUERY_DURATION));
         assertEquals(durationTime, fetchTime + executionTime);
     }
 
@@ -663,16 +529,12 @@ public class TestExecuteSQLRecord {
         runner.assertTransferCount(AbstractExecuteSQL.REL_SUCCESS, 0);
 
         // Assert exception message has been put to flow file attribute
-        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).get(0);
+        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).getFirst();
         assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(AbstractExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
     @Test
     public void testPreQuery() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -696,16 +558,12 @@ public class TestExecuteSQLRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "1");
     }
 
     @Test
     public void testPostQuery() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -730,16 +588,12 @@ public class TestExecuteSQLRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "1");
     }
 
     @Test
     public void testPreQueryFail() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -767,10 +621,6 @@ public class TestExecuteSQLRecord {
 
     @Test
     public void testPostQueryFail() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -795,7 +645,7 @@ public class TestExecuteSQLRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_FAILURE, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_FAILURE).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_FAILURE).getFirst();
         firstFlowFile.assertContentEquals("test");
     }
 
@@ -803,14 +653,7 @@ public class TestExecuteSQLRecord {
     /**
      * Simple implementation only for ExecuteSQL processor testing.
      */
-    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
-
-        private final String type;
-
-        public DBCPServiceSimpleImpl(String type) {
-            this.type = type;
-
-        }
+    static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {
@@ -820,16 +663,10 @@ public class TestExecuteSQLRecord {
         @Override
         public Connection getConnection() throws ProcessException {
             try {
-                final Connection con;
-                if ("h2".equalsIgnoreCase(type)) {
-                    con = DriverManager.getConnection("jdbc:h2:file:" + "./target/testdb7");
-                } else {
-                    Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                    con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-                }
-                return con;
+                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
             } catch (final Exception e) {
-                throw new ProcessException("getConnection failed: " + e);
+                throw new ProcessException("getConnection failed", e);
             }
         }
     }
