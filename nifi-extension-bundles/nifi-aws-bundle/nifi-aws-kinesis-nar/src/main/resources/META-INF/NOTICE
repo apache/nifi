@@ -79,7 +79,12 @@ The following binary components are provided under the Apache Software License v
       JSpecify
       Copyright 2022 The JSpecify Authors
 
-  (ASLv2) Netty Codec libraries
+  (ASLv2) RxJava
+    The following NOTICE information applies:
+      RxJava
+      Copyright (c) 2016-present, RxJava Contributors.
+
+  (ASLv2) The Netty Project
     The following NOTICE information applies:
 
                                   The Netty Project
@@ -360,11 +365,6 @@ The following binary components are provided under the Apache Software License v
           * license/LICENSE.boringssl.txt (Combination ISC and OpenSSL license)
         * HOMEPAGE:
           * https://boringssl.googlesource.com/boringssl/
-
-  (ASLv2) RxJava
-    The following NOTICE information applies:
-      RxJava
-      Copyright (c) 2016-present, RxJava Contributors.
 
 ************************
 Berkeley Software Distribution License 3-Clause
