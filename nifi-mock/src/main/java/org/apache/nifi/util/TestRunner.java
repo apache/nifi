@@ -1080,7 +1080,8 @@ public interface TestRunner {
     String getParameterContextValue(String name);
 
     /**
-     * Sets a parameter with the given name and value into the simulated Parameter Context. This makes available the parameter to the properties of the component being tested through parameter referencing such as <code>#{name}</code>.
+     * Sets a parameter with the given name and value into the simulated Parameter Context.
+     * This makes available the parameter to the properties of the component being tested through parameter referencing such as <code>#{name}</code>.
      *
      * @param parameterName the name of the parameter to set
      * @param parameterValue the value of the parameter to set

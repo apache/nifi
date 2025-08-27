@@ -1064,13 +1064,13 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public String getContextParameterValue(final String name) {
+    public String getParameterContextValue(final String name) {
         Objects.requireNonNull(name);
         return contextParameters.get(name);
     }
 
     @Override
-    public void setContextParameterValue(String name, String value) {
+    public void setParameterContextValue(String name, String value) {
         contextParameters.put(name, value);
     }
 
