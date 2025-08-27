@@ -69,7 +69,7 @@
         <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>clojure</artifactId>
-            <version>1.12.1</version>
+            <version>1.12.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

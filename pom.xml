@@ -110,7 +110,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.788</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.32.29</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.32.31</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.3.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.2.10</kotlin.version>
@@ -926,6 +926,9 @@
                                         <exclude>commons-logging:commons-logging:*</exclude>
                                         <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
                                         <exclude>xalan:xalan</exclude>
+                                        <!-- Enforce migration to new Mortbay coordinates; block old artifacts -->
+                                        <exclude>org.mortbay.jasper:apache-jsp:*</exclude>
+                                        <exclude>org.mortbay.jasper:apache-el:*</exclude>
                                         <!-- As of Bouncycastle 1.71 Java 8 is the minimum required so jdk15on artifacts not allowed -->
                                         <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
                                         <exclude>org.bouncycastle:bcpg-jdk15on</exclude>

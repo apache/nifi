@@ -42,7 +42,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.aayushatharva.brotli4j</groupId>
             <artifactId>brotli4j</artifactId>
-            <version>1.18.0</version>
+            <version>1.20.0</version>
         </dependency>
         <dependency>
             <groupId>org.tukaani</groupId>
