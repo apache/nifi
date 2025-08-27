@@ -205,16 +205,16 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public List<KinesisClientRecord> consumeRecords(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease l)) {
+        if (!(lease instanceof StandardShardBufferLease standardLease)) {
             throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
         }
 
-        if (l.returnedToPool.get()) {
+        if (standardLease.returnedToPool.get()) {
             logger.warn("Attempting to consume records from a buffer that was already returned to the pool. Ignoring.");
             return emptyList();
         }
 
-        final ShardBufferId bufferId = l.bufferId;
+        final ShardBufferId bufferId = standardLease.bufferId;
 
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
@@ -227,16 +227,16 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void commitConsumedRecords(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease l)) {
+        if (!(lease instanceof StandardShardBufferLease standardLease)) {
             throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
         }
 
-        if (l.returnedToPool.get()) {
+        if (standardLease.returnedToPool.get()) {
             logger.warn("Attempting to commit records from a buffer that was already returned to the pool. Ignoring.");
             return;
         }
 
-        final ShardBufferId bufferId = l.bufferId;
+        final ShardBufferId bufferId = standardLease.bufferId;
 
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
@@ -250,16 +250,16 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void rollbackConsumedRecords(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease l)) {
+        if (!(lease instanceof StandardShardBufferLease standardLease)) {
             throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
         }
 
-        if (l.returnedToPool.get()) {
+        if (standardLease.returnedToPool.get()) {
             logger.warn("Attempting to rollback records from a buffer that was already returned to the pool. Ignoring.");
             return;
         }
 
-        final ShardBufferId bufferId = l.bufferId;
+        final ShardBufferId bufferId = standardLease.bufferId;
         final ShardBuffer buffer = shardBuffers.get(bufferId);
 
         if (buffer != null) {
@@ -269,16 +269,16 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void returnBufferLease(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease l)) {
+        if (!(lease instanceof StandardShardBufferLease standardLease)) {
             throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
         }
 
-        if (l.returnedToPool.getAndSet(true)) {
+        if (standardLease.returnedToPool.getAndSet(true)) {
             logger.warn("Attempting to return a buffer that was already returned to the pool. Ignoring.");
             return;
         }
 
-        final ShardBufferId bufferId = l.bufferId;
+        final ShardBufferId bufferId = standardLease.bufferId;
         buffersToLease.add(bufferId);
 
         logger.debug("The buffer {} is available for lease again", bufferId);
@@ -380,6 +380,8 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                     oldLatch.countDown(); // Release any waiting threads for free memory.
                     break;
                 }
+                // If we're here, the compare and set operation failed, as another thread has modified the gauge in meantime.
+                // Retrying the operation.
             }
         }
     }

@@ -79,7 +79,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
@@ -142,7 +141,7 @@ public class ConsumeKinesis extends AbstractProcessor {
      * Best balance between throughput and CPU usage by KCL.
      */
     private static final int KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK = 16;
-    private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE = 512 * 1024; // 512 KiB
+    private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KiB
     private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
 
     static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
@@ -346,7 +345,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final ShardRecordProcessorFactory recordProcessorFactory = () -> new ConsumeKinesisRecordProcessor(memoryBoundRecordBuffer);
 
         final String applicationName = context.getProperty(APPLICATION_NAME).getValue();
-        final String workerId = UUID.randomUUID().toString();
+        final String workerId = getIdentifier();
         final ConfigsBuilder configsBuilder = new ConfigsBuilder(streamTracker, applicationName, kinesisClient, dynamoDbClient, cloudWatchClient, workerId, recordProcessorFactory);
 
         if (!context.getProperty(REPORT_CLOUDWATCH_METRICS).asBoolean()) {
@@ -379,7 +378,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 .protocol(Protocol.HTTP2)
                 .maxConcurrency(maxConcurrency)
                 .http2Configuration(Http2Configuration.builder()
-                        .initialWindowSize(KINESIS_HTTP_CLIENT_WINDOW_SIZE)
+                        .initialWindowSize(KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES)
                         .healthCheckPingPeriod(KINESIS_HTTP_HEALTH_CHECK_PERIOD)
                         .build())
                 .build();
