@@ -401,6 +401,8 @@ class ConsumeKinesisIT {
         runner.setProperty(ConsumeKinesis.REGION, localstack.getRegion());
         runner.setProperty(ConsumeKinesis.INITIAL_STREAM_POSITION, ConsumeKinesis.InitialPosition.TRIM_HORIZON);
 
+        runner.setProperty(ConsumeKinesis.METRICS_DESTINATION, ConsumeKinesis.MetricsDestination.CLOUDWATCH);
+
         runner.setProperty(ConsumeKinesis.MAX_BYTES_TO_BUFFER, "10 MB");
 
         runner.assertValid();

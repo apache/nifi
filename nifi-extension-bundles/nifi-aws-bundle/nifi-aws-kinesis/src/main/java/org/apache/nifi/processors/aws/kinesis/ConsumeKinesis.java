@@ -66,6 +66,9 @@ import software.amazon.kinesis.lifecycle.events.LeaseLostInput;
 import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
 import software.amazon.kinesis.lifecycle.events.ShardEndedInput;
 import software.amazon.kinesis.lifecycle.events.ShutdownRequestedInput;
+import software.amazon.kinesis.metrics.LogMetricsFactory;
+import software.amazon.kinesis.metrics.MetricsFactory;
+import software.amazon.kinesis.metrics.NullMetricsFactory;
 import software.amazon.kinesis.processor.ShardRecordProcessor;
 import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
 import software.amazon.kinesis.processor.SingleStreamTracker;
@@ -234,13 +237,12 @@ public class ConsumeKinesis extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor REPORT_CLOUDWATCH_METRICS = new PropertyDescriptor.Builder()
-            .name("Report Metrics to CloudWatch")
-            .description("Whether to report Kinesis usage metrics to CloudWatch.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("false")
+    static final PropertyDescriptor METRICS_DESTINATION = new PropertyDescriptor.Builder()
+            .name("Metrics Destination")
+            .description("Specifies where Kinesis usage metrics are published to.")
             .required(true)
+            .allowableValues(MetricsDestination.class)
+            .defaultValue(MetricsDestination.NONE)
             .build();
 
     static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
@@ -257,7 +259,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             MAX_BYTES_TO_BUFFER,
             CHECKPOINT_INTERVAL,
             PROXY_CONFIGURATION_SERVICE,
-            REPORT_CLOUDWATCH_METRICS
+            METRICS_DESTINATION
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -348,16 +350,14 @@ public class ConsumeKinesis extends AbstractProcessor {
         final String workerId = getIdentifier();
         final ConfigsBuilder configsBuilder = new ConfigsBuilder(streamTracker, applicationName, kinesisClient, dynamoDbClient, cloudWatchClient, workerId, recordProcessorFactory);
 
-        if (!context.getProperty(REPORT_CLOUDWATCH_METRICS).asBoolean()) {
-            configsBuilder.metricsConfig().metricsFactory(null);
-        }
+        final MetricsFactory metricsFactory = configureMetricsFactory(context);
 
         kinesisScheduler = new Scheduler(
                 configsBuilder.checkpointConfig(),
                 configsBuilder.coordinatorConfig(),
                 configsBuilder.leaseManagementConfig(),
                 configsBuilder.lifecycleConfig(),
-                configsBuilder.metricsConfig(),
+                configsBuilder.metricsConfig().metricsFactory(metricsFactory),
                 configsBuilder.processorConfig(),
                 configsBuilder.retrievalConfig()
         );
@@ -419,6 +419,15 @@ public class ConsumeKinesis extends AbstractProcessor {
                 final Instant timestamp = Instant.parse(timestampValue);
                 yield InitialPositionInStreamExtended.newInitialPositionAtTimestamp(Date.from(timestamp));
             }
+        };
+    }
+
+    private static @Nullable MetricsFactory configureMetricsFactory(final ProcessContext context) {
+        final MetricsDestination destination = context.getProperty(METRICS_DESTINATION).asAllowableValue(MetricsDestination.class);
+        return switch (destination) {
+            case NONE -> new NullMetricsFactory();
+            case LOGS -> new LogMetricsFactory();
+            case CLOUDWATCH -> null; // If no metrics factory was provided, CloudWatch metrics factory is used by default.
         };
     }
 
@@ -569,6 +578,35 @@ public class ConsumeKinesis extends AbstractProcessor {
         private final String description;
 
         InitialPosition(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    public enum MetricsDestination implements DescribedValue {
+        NONE("None", "The Kinesis Client Library won't publish any metrics."),
+        LOGS("Logs", "The Kinesis Client Library will publish metrics with the standard logger."),
+        CLOUDWATCH("CloudWatch", "The Kinesis Client Library will publish metrics to Amazon CloudWatch.");
+
+        private final String displayName;
+        private final String description;
+
+        MetricsDestination(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
