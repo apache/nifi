@@ -1070,14 +1070,14 @@ public interface TestRunner {
     void setEnvironmentVariableValue(String name, String value);
 
     /**
-     * Returns the current value of the Context Parameter with the given name
+     * Returns the current value for the given parameter name from the simulated Parameter Context
      *
-     * @param name the name of the Context Parameter whose value should be returned.
-     * @return the current value of the Context Parameter with the given name or <code>null</code> if no value is currently set
+     * @param name the name of the parameter from the Parameter Context whose value should be returned.
+     * @return the current value for the given parameter name from the simulated Parameter Context or <code>null</code> if no value is currently set
      *
      * @throws NullPointerException if the name is null
      */
-    String getContextParameterValue(String name);
+    String getParameterContextValue(String name);
 
     /**
      * Sets the value of the Context Parameter with the given name to be the given value. This exposes the Context Parameter
