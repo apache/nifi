@@ -1080,17 +1080,14 @@ public interface TestRunner {
     String getParameterContextValue(String name);
 
     /**
-     * Sets the value of the Context Parameter with the given name to be the given value. This exposes the Context Parameter
-     * for use by the Expression Language (with the #{name} syntax).
+     * Sets a parameter with the given name and value into the simulated Parameter Context. This makes available the parameter to the properties of the component being tested through parameter referencing such as <code>#{name}</code>.
      *
-     * NOTE - this method is only for testing purposes.
+     * @param parameterName the name of the parameter to set
+     * @param parameterValue the value of the parameter to set
      *
-     * @param name the name of the variable to set
-     * @param value the value of the variable
-     *
-     * @throws NullPointerException if either the name or the value is null
+     * @throws NullPointerException if the name is null
      */
-    void setContextParameterValue(String name, String value);
+    void setParameterContextValue(final String parameterName, final String parameterValue);
 
     /**
      * Asserts that all FlowFiles meet all conditions.
