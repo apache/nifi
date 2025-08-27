@@ -110,7 +110,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     // This only for testing purposes as we don't want to set env/sys variables in the tests
     private final Map<String, String> environmentVariables = new HashMap<>();
 
-    // This only for testing purposes as we need a way to set context parameters normally provided by the nifi environment
+    // This is only for testing purposes to simulate parameters coming from parameter contexts
     private final Map<String, String> contextParameters = Collections.synchronizedMap(new HashMap<>());
 
     StandardProcessorTestRunner(final Processor processor) {
