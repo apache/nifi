@@ -39,6 +39,7 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.ssl.SSLContextProvider;
+import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -58,6 +59,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -78,13 +80,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.stream.IntStream;
 
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -781,9 +786,21 @@ public class TestListenHTTP {
         final String url = buildUrl(false, port, HTTP_BASE_PATH);
         requestBuilder.url(url);
 
-        // Sample data file is FFv3 package of two FlowFiles whose filename attribute values are "cal.txt" and "date.txt"
-        final Path flowFilev3Path = Paths.get("src/test/resources/TestListenHTTP/data.flowfilev3");
-        final byte[] flowFileV3Package = Files.readAllBytes(flowFilev3Path);
+        // Create FFv3 package containing two FlowFiles with filenames "file1" and "file2"
+        final FlowFilePackagerV3 packager = new FlowFilePackagerV3();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final byte[] data = "content does not matter".getBytes(StandardCharsets.UTF_8);
+
+        IntStream.rangeClosed(0, 1).forEach(i -> {
+            try (ByteArrayInputStream content = new ByteArrayInputStream(data)) {
+                Map<String, String> attributes = Map.of("filename", "file" + i);
+                packager.packageFlowFile(content, baos, attributes, data.length);
+            } catch (IOException e) {
+                fail();
+            }
+        });
+
+        final byte[] flowFileV3Package = baos.toByteArray();
         final RequestBody requestBody = RequestBody.create(flowFileV3Package, MediaType.parse(StandardFlowFileMediaType.VERSION_3.getMediaType()));
         final Request request = requestBuilder.post(requestBody)
                 .addHeader("filename", "data.flowfilev3")
@@ -793,11 +810,13 @@ public class TestListenHTTP {
             assertTrue(response.isSuccessful());
         }
 
+        // Confirm FFv3 package is unpacked and each FlowFile carries the proper filename
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 2);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).getFirst();
-        flowFile.assertAttributeEquals("filename", "cal.txt");
-        flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).getLast();
-        flowFile.assertAttributeEquals("filename", "date.txt");
+        IntStream.rangeClosed(0, 1).forEach(i -> {
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).get(i);
+            flowFile.assertAttributeEquals("filename", "file" + i);
+
+        });
     }
 
     private byte[] generateRandomBinaryData() {
