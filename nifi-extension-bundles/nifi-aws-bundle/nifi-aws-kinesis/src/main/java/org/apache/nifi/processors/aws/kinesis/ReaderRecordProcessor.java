@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyMap;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
 
@@ -69,7 +70,8 @@ final class ReaderRecordProcessor {
         ActiveFlowFile activeFlowFile = null;
 
         for (final KinesisClientRecord kinesisRecord : records) {
-            final byte[] data = new byte[kinesisRecord.data().remaining()];
+            final int dataSize = kinesisRecord.data().remaining();
+            final byte[] data = new byte[dataSize];
             kinesisRecord.data().get(data);
 
             try (final InputStream in = new ByteArrayInputStream(data);
@@ -92,7 +94,8 @@ final class ReaderRecordProcessor {
                     activeFlowFile.writeRecord(record, kinesisRecord);
                 }
             } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
-                logger.error("Failed to parse record from Kinesis stream using configured Record Reader", e);
+                logger.error("Reader or Writer failed to process Kinesis Record with Stream Name [{}] Shard Id [{}] Sequence Number [{}] SubSequence Number [{}]",
+                        streamName, shardId, kinesisRecord.sequenceNumber(), kinesisRecord.subSequenceNumber(), e);
                 final FlowFile failureFlowFile = createParseFailureFlowFile(session, streamName, shardId, kinesisRecord, e);
                 failureFlowFiles.add(failureFlowFile);
             }
@@ -120,7 +123,7 @@ final class ReaderRecordProcessor {
         flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecord(streamName, shardId, record));
 
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
-        final String errorMessage = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getClass().getCanonicalName() + " thrown";
+        final String errorMessage = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : "NiFi Reader or Writer failed to process Kinesis Record";
         flowFile = session.putAttribute(flowFile, RECORD_ERROR_MESSAGE, errorMessage);
 
         return flowFile;
@@ -129,6 +132,11 @@ final class ReaderRecordProcessor {
     record ProcessingResult(List<FlowFile> successFlowFiles, List<FlowFile> parseFailureFlowFiles) {
     }
 
+    /**
+     * A class that manages a single {@link FlowFile} with a static schema that is currently being written to.
+     * On a schema change the current {@link ActiveFlowFile} should be completed a new instance of this class
+     * with a new schema should be created.
+     */
     private static final class ActiveFlowFile {
 
         private final ComponentLog logger;
@@ -177,11 +185,11 @@ final class ReaderRecordProcessor {
                 return new ActiveFlowFile(logger, session, flowFile, writer, writeSchema, streamName, shardId);
 
             } catch (final SchemaNotFoundException e) {
-                logger.debug("Failed to find writeSchema for Kinesis stream record", e);
+                logger.debug("Failed to find writeSchema for Kinesis stream record: {}", e.getMessage());
                 try {
                     outputStream.close();
                 } catch (final IOException ioe) {
-                    logger.warn("Failed to close FlowFile output stream", ioe);
+                    logger.warn("Failed to close FlowFile output stream: {}", ioe.getMessage());
                     e.addSuppressed(ioe);
                 }
                 throw e;
@@ -189,11 +197,11 @@ final class ReaderRecordProcessor {
             } catch (final IOException e) {
                 final ProcessException processException = new ProcessException("Failed to create a writer for a FlowFile", e);
 
-                logger.debug("Failed to create a writer for a FlowFile. Stopping Kinesis records processing", e);
+                logger.debug("Stopping Kinesis records processing. Failed to create a writer for a FlowFile: {}", e.getMessage());
                 try {
                     outputStream.close();
                 } catch (final IOException ioe) {
-                    logger.warn("Failed to close FlowFile output stream", ioe);
+                    logger.warn("Failed to close FlowFile output stream: {}", ioe.getMessage());
                     processException.addSuppressed(ioe);
                 }
                 throw processException;
@@ -208,7 +216,7 @@ final class ReaderRecordProcessor {
             try {
                 writer.write(record);
             } catch (final IOException e) {
-                logger.debug("Failed to write to a FlowFile. Stopping Kinesis records processing", e);
+                logger.debug("Stopping Kinesis records processing. Failed to write to a FlowFile: {}", e.getMessage());
                 throw new ProcessException("Failed to write a record into a FlowFile", e);
             }
 
@@ -223,18 +231,18 @@ final class ReaderRecordProcessor {
                 FlowFile completedFlowFile = session.putAllAttributes(this.flowFile, ConsumeKinesisAttributes.fromKinesisRecord(streamName, shardId, lastRecord));
                 completedFlowFile = session.putAllAttributes(completedFlowFile, finalResult.getAttributes());
                 completedFlowFile = session.putAttribute(completedFlowFile, RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
-                completedFlowFile = session.putAttribute(completedFlowFile, "mime.type", writer.getMimeType());
+                completedFlowFile = session.putAttribute(completedFlowFile, MIME_TYPE, writer.getMimeType());
 
                 return completedFlowFile;
 
             } catch (final IOException e) {
                 final ProcessException processException = new ProcessException("Failed to complete a FlowFile", e);
 
-                logger.debug("Failed to complete a FlowFile. Stopping Kinesis records processing", e);
+                logger.debug("Stopping Kinesis records processing. Failed to complete a FlowFile: {}", e.getMessage());
                 try {
                     writer.close();
                 } catch (final IOException ioe) {
-                    logger.warn("Failed to close writer", ioe);
+                    logger.warn("Failed to close writer: {}", ioe.getMessage());
                     processException.addSuppressed(ioe);
                 }
 
