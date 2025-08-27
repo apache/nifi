@@ -31,7 +31,7 @@ public class MockParameterLookup implements ParameterLookup {
     private final AtomicLong version = new AtomicLong(1);
 
     public MockParameterLookup(final Map<String, String> parameters) {
-        this.parameters = parameters == null ? new HashMap<>() : Collections.unmodifiableMap(parameters);
+        this.parameters = parameters == null ? Collections.emptyMap() : Collections.unmodifiableMap(parameters);
     }
 
     @Override
