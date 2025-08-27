@@ -42,7 +42,6 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
@@ -525,7 +524,9 @@ public class TestHttpFlowFileServerProtocol {
         when(rootGroupPort.getIdentifier()).thenReturn("root-group-port-id");
 
         sessionState = new SharedSessionState(rootGroupPort, new AtomicLong(0));
-        processSession = new MockProcessSession(sessionState, rootGroupPort, true, new MockStateManager(rootGroupPort), true);
+        processSession = MockProcessSession.builder(sessionState, rootGroupPort)
+                .allowSynchronousCommits()
+                .build();
         processContext = new MockProcessContext(rootGroupPort);
     }
 
