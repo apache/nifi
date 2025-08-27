@@ -79,12 +79,7 @@ The following binary components are provided under the Apache Software License v
       JSpecify
       Copyright 2022 The JSpecify Authors
 
-  (ASLv2) FindBugs JSR305
-    The following NOTICE information applies:
-      FindBugs JSR305
-      Copyright 2017 The FindBugs JSR305 Authors
-
-  (ASLv2) Netty
+  (ASLv2) Netty Codec libraries
     The following NOTICE information applies:
 
                                   The Netty Project
