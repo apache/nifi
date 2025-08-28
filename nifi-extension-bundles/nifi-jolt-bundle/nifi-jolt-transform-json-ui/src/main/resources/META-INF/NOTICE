@@ -43,18 +43,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) hk2-api (org.glassfish.hk2:hk2-api:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:jar:2.2.3-1 - http://jaxb.java.net/)
-    (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
-
-************************
-Common Development and Distribution License 1.0
-************************
-
-The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
-
-    (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
-    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta RESTful Web Services (jakarta.ws.rs:jakarta.ws.rs-api:jar:4.0.0 - https://jakarta.ee/specifications/restful-ws/)
 
 ******************
 SIL OFL 1.1
@@ -66,3 +55,20 @@ The following binary components are provided under the SIL Open Font License 1.1
 For the binary distribution of nifi-jolt-transform-json-ui see its 3rdpartylicenses.txt
 for additional license and notice information.
 
+===========================================
+Apache Software License v2
+===========================================
+
+  (ASLv2) atinject (javax.inject:javax.inject)
+    The following NOTICE information applies:
+      atinject
+      Copyright
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:2.1.3)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:4.0.2)

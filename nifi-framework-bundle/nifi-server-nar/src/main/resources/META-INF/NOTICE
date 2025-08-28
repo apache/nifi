@@ -129,34 +129,25 @@ The following binary components are provided under the Apache Software License v
       Copyright Ben Manes
 
 ************************
-Common Development and Distribution License 1.1
+Eclipse Public License 2.0
 ************************
 
-The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+The following binary components are provided under the Eclipse Public License 2.0 (dual-licensed with GPL2+CPE as applicable).
 
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (org.glassfish.jersey.core:jersey-client:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-common (org.glassfish.jersey.core:jersey-common:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-hk2 (org.glassfish.jersey.inject:jersey-hk2:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-jaxb (org.glassfish.jersey.media:jersey-media-jaxb:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-multipart (org.glassfish.jersey.media:jersey-media-multipart:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-server (org.glassfish.jersey.core:jersey-server:jar:2.26 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2 (org.glassfish.hk2:hk2:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2-api (org.glassfish.hk2:hk2-api:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2-config (org.glassfish.hk2:hk2-config:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2-core (org.glassfish.hk2:hk2-core:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) hk2-runlevel (org.glassfish.hk2:hk2-runlevel:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) config-types (org.glassfish.hk2:config-types:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) class-model (org.glassfish.hk2:class-model:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) asm-all-repackaged (org.glassfish.hk2.external:asm-all-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) aopalliance-repackaged (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
-    (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
+    (EPL 2.0) jersey-client (org.glassfish.jersey.core:jersey-client:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-common (org.glassfish.jersey.core:jersey-common:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-hk2 (org.glassfish.jersey.inject:jersey-hk2:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-media-jaxb (org.glassfish.jersey.media:jersey-media-jaxb:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-media-multipart (org.glassfish.jersey.media:jersey-media-multipart:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) jersey-server (org.glassfish.jersey.core:jersey-server:jar:4.0.0 - https://jersey.github.io/)
+    (EPL 2.0) hk2 (org.glassfish.hk2:hk2:jar:4.0.0 - https://eclipse-ee4j.github.io/hk2/)
+    (EPL 2.0) hk2-api (org.glassfish.hk2:hk2-api:jar:4.0.0 - https://eclipse-ee4j.github.io/hk2/)
+    (EPL 2.0) hk2-utils (org.glassfish.hk2:hk2-utils:jar:4.0.0 - https://eclipse-ee4j.github.io/hk2/)
+    (EPL 2.0) hk2-locator (org.glassfish.hk2:hk2-locator:jar:4.0.0 - https://eclipse-ee4j.github.io/hk2/)
+    (EPL 2.0) Jakarta RESTful Web Services (jakarta.ws.rs:jakarta.ws.rs-api:jar:4.0.0 - https://jakarta.ee/specifications/restful-ws/)
 
 ************************
 Common Development and Distribution License 1.0
@@ -164,8 +155,6 @@ Common Development and Distribution License 1.0
 
 The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
 
-    (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
-    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
 
 ************************
 Eclipse Public License 1.0

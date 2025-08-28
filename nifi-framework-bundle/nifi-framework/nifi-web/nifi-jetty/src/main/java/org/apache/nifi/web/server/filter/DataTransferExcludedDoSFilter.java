@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.server.filter;
 
-import org.eclipse.jetty.ee10.servlets.DoSFilter;
+import org.eclipse.jetty.ee11.servlets.DoSFilter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
