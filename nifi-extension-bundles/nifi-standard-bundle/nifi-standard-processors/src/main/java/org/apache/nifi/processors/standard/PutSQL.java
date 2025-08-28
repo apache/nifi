@@ -659,9 +659,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         exceptionHandler = new ExceptionHandler<>();
         exceptionHandler.mapException(e -> {
-            if (e instanceof SQLNonTransientException) {
-                return ErrorTypes.InvalidInput;
-            } else if (e instanceof SQLException) {
+            if (e instanceof SQLException sqlEx) {
+                if (isDuplicateKeyException(sqlEx)) {
+                    getLogger().debug("Detected duplicate key/integrity constraint violation: {}", sqlEx);
+                    return ErrorTypes.InvalidInput; // Route to failure
+                }
+                if (sqlEx instanceof SQLNonTransientException) {
+                    return ErrorTypes.InvalidInput;
+                }
                 return ErrorTypes.TemporalFailure;
             } else {
                 return ErrorTypes.UnknownFailure;
@@ -914,6 +919,23 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
 
         return session.putAllAttributes(flowFile, attributes);
+    }
+
+    
+    private boolean isDuplicateKeyException(SQLException e) {
+      if ("23000".equals(e.getSQLState())) {
+        return true;
+       }
+        int errorCode = e.getErrorCode();
+        // MySQL error code 1062 and PostgreSQL error code 23505 indicate a duplicate key violation
+        if (errorCode == 1062 || errorCode == 23505) {
+        return true;
+        }
+        Throwable cause = e.getCause();
+        if (cause instanceof SQLException) {
+         return isDuplicateKeyException((SQLException) cause);
+        }
+     return false;
     }
 
     /**
