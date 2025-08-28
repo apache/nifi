@@ -46,9 +46,8 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPER
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForProto3;
 import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaDefinitionIdentifiers;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER_STRATEGY;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategyName.MESSAGE_NAME_RESOLVER_SERVICE;
+import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLUTION_STRATEGY;
+import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -61,8 +60,8 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
         runner.setProperty(standardProtobufReader, SCHEMA_ACCESS_STRATEGY, SCHEMA_REFERENCE_READER_PROPERTY);
         runner.setProperty(standardProtobufReader, SCHEMA_REGISTRY, MOCK_SCHEMA_REGISTRY_ID);
         runner.setProperty(standardProtobufReader, SCHEMA_REFERENCE_READER, MOCK_SCHEMA_REFERENCE_READER_ID);
-        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE);
-        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE, MOCK_MESSAGE_NAME_RESOLVER_ID);
+        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, StandardProtobufReader.MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER);
+        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER, MOCK_MESSAGE_NAME_RESOLVER_ID);
     }
 
     @Test

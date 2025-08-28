@@ -32,10 +32,9 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER_STRATEGY;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategyName.MESSAGE_NAME_PROPERTY;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategyName.MESSAGE_NAME_RESOLVER_SERVICE;
+import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLUTION_STRATEGY;
+import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER;
+import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategy.MESSAGE_NAME_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReaderTestBase {
@@ -45,15 +44,15 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
         runner.setProperty(standardProtobufReader, SCHEMA_ACCESS_STRATEGY, SCHEMA_REFERENCE_READER_PROPERTY);
         runner.setProperty(standardProtobufReader, SCHEMA_REGISTRY, MOCK_SCHEMA_REGISTRY_ID);
         runner.setProperty(standardProtobufReader, SCHEMA_REFERENCE_READER, MOCK_SCHEMA_REFERENCE_READER_ID);
-        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE);
-        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE, MOCK_MESSAGE_NAME_RESOLVER_ID);
+        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, StandardProtobufReader.MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER);
+        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER, MOCK_MESSAGE_NAME_RESOLVER_ID);
         // Ensure configuration is valid before running tests
         runner.assertValid(standardProtobufReader);
     }
 
     @Test
     void testInvalidWithoutMessageNameProperty() {
-        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_PROPERTY);
+        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY);
         runner.removeProperty(standardProtobufReader, MESSAGE_NAME);
         final ValidationResult invalidResult = verifyExactlyOneValidationError();
 
@@ -62,8 +61,8 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
 
     @Test
     void testInvalidWithoutMessageNameResolver() {
-        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE);
-        runner.removeProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE);
+        runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, StandardProtobufReader.MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER);
+        runner.removeProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER);
         final ValidationResult invalidResult = verifyExactlyOneValidationError();
 
         assertEquals("Message Name Resolver Service is required", invalidResult.getExplanation());
@@ -106,7 +105,7 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
 
         @Test
         void testValidWithMessageNameProperty() {
-            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_PROPERTY);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY);
             runner.setProperty(standardProtobufReader, MESSAGE_NAME, "Any message name");
             enableAllControllerServices();
             runner.assertValid(standardProtobufReader);
@@ -166,7 +165,7 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
 
         @Test
         void testValidWithMessageNameProperty() {
-            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_PROPERTY);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY);
             runner.setProperty(standardProtobufReader, MESSAGE_NAME, "Any message name");
             enableAllControllerServices();
             runner.assertValid(standardProtobufReader);

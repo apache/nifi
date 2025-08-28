@@ -19,7 +19,6 @@ package org.apache.nifi.services.protobuf;
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -65,8 +64,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategyName.MESSAGE_NAME_PROPERTY;
-import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategyName.MESSAGE_NAME_RESOLVER_SERVICE;
+import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNameResolverStrategy.MESSAGE_NAME_PROPERTY;
 
 @Tags({"protobuf", "record", "reader", "parser"})
 @CapabilityDescription("""
@@ -79,11 +77,11 @@ import static org.apache.nifi.services.protobuf.StandardProtobufReader.MessageNa
 
 public class StandardProtobufReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    public static final PropertyDescriptor MESSAGE_NAME_RESOLVER_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Message Name Resolver Strategy")
+    public static final PropertyDescriptor MESSAGE_NAME_RESOLUTION_STRATEGY = new PropertyDescriptor.Builder()
+        .name("Message Name Resolution Strategy")
         .description("Strategy for determining the Protocol Buffers message name for processing")
         .required(true)
-        .allowableValues(MESSAGE_NAME_PROPERTY, MESSAGE_NAME_RESOLVER_SERVICE)
+        .allowableValues(MESSAGE_NAME_PROPERTY, MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER)
         .defaultValue(MESSAGE_NAME_PROPERTY)
         .build();
 
@@ -92,16 +90,16 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         .description("Fully qualified name of the Protocol Buffers message including its package (eg. mypackage.MyMessage).")
         .required(true)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .dependsOn(MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_PROPERTY)
+        .dependsOn(MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    public static final PropertyDescriptor MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MESSAGE_NAME_RESOLVER = new PropertyDescriptor.Builder()
         .name("Message Name Resolver Service")
-        .description("Controller service that dynamically resolves Protocol Buffer message names from FlowFile content or attributes")
+        .description("Service that dynamically resolves Protocol Buffer message names from FlowFile content or attributes")
         .required(true)
         .identifiesControllerService(MessageNameResolver.class)
-        .dependsOn(MESSAGE_NAME_RESOLVER_STRATEGY, MESSAGE_NAME_RESOLVER_SERVICE)
+        .dependsOn(MESSAGE_NAME_RESOLUTION_STRATEGY, MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER)
         .build();
 
     private static final String PROTO_EXTENSION = ".proto";
@@ -129,12 +127,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         schemaBranchName = context.getProperty(SCHEMA_BRANCH_NAME);
         schemaVersion = context.getProperty(SCHEMA_VERSION);
         schemaCompiler = new ProtobufSchemaCompiler(getIdentifier(), getLogger());
-
-    }
-
-    @OnDisabled
-    public void onDisabled(final ConfigurationContext context) {
-        schemaCompiler = null;
     }
 
     @Override
@@ -158,8 +150,8 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(MESSAGE_NAME_RESOLVER_STRATEGY);
-        properties.add(MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE);
+        properties.add(MESSAGE_NAME_RESOLUTION_STRATEGY);
+        properties.add(MESSAGE_NAME_RESOLVER);
         properties.add(MESSAGE_NAME);
         return properties;
     }
@@ -186,10 +178,10 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
 
     private void setupMessageNameResolver(final ConfigurationContext context) {
-        final MessageNameResolverStrategyName messageNameResolverStrategyName = context.getProperty(MESSAGE_NAME_RESOLVER_STRATEGY).asAllowableValue(MessageNameResolverStrategyName.class);
-        messageNameResolver = switch (messageNameResolverStrategyName) {
+        final MessageNameResolverStrategy messageNameResolverStrategy = context.getProperty(MESSAGE_NAME_RESOLUTION_STRATEGY).asAllowableValue(MessageNameResolverStrategy.class);
+        messageNameResolver = switch (messageNameResolverStrategy) {
             case MESSAGE_NAME_PROPERTY -> new PropertyMessageNameResolver(context);
-            case MESSAGE_NAME_RESOLVER_SERVICE -> context.getProperty(MESSAGE_NAME_RESOLVER_CONTROLLER_SERVICE).asControllerService(MessageNameResolver.class);
+            case MESSAGE_NAME_RESOLVER -> context.getProperty(MESSAGE_NAME_RESOLVER).asControllerService(MessageNameResolver.class);
         };
     }
 
@@ -197,9 +189,9 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         final String schemaTextString = schemaText.evaluateAttributeExpressions(variables).getValue();
         validateSchemaText(schemaTextString);
 
-        final String sha256hex = sha256Hex(schemaTextString);
+        final String hash = sha256Hex(schemaTextString);
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
-            .name(sha256hex + PROTO_EXTENSION)
+            .name(hash + PROTO_EXTENSION)
             .build();
 
         return new StandardSchemaDefinition(schemaIdentifier, schemaTextString, SchemaDefinition.SchemaType.PROTOBUF);
@@ -212,7 +204,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
-        byte[] hash = digest.digest(
+        final byte[] hash = digest.digest(
                 input.getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(hash);
     }
@@ -260,15 +252,15 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     }
 
 
-    enum MessageNameResolverStrategyName implements DescribedValue {
+    enum MessageNameResolverStrategy implements DescribedValue {
 
         MESSAGE_NAME_PROPERTY("Message Name Property", "Use the 'Message Name' property value to determine the message name"),
-        MESSAGE_NAME_RESOLVER_SERVICE("Message Name Resolver Service", "Use a 'Message Name Resolver' controller service to dynamically determine the message name");
+        MESSAGE_NAME_RESOLVER("Message Name Resolver Service", "Use a 'Message Name Resolver' controller service to dynamically determine the message name");
 
         private final String displayName;
         private final String description;
 
-        MessageNameResolverStrategyName(final String displayName, final String description) {
+        MessageNameResolverStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
