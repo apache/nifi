@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.services.protobuf.ProtobufReader
+org.apache.nifi.services.protobuf.StandardProtobufReader

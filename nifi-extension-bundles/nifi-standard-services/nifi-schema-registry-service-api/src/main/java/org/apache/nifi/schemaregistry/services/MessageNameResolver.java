@@ -21,9 +21,8 @@ import org.apache.nifi.controller.ControllerService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-
 /**
- * A service interface for resolving message names from schema definitions and input streams.
+ * An interface for resolving message names from schema definitions and input streams.
  * This interface is typically used in scenarios where message types need to be determined
  * dynamically from the content of the message and the associated schema definition.
  * <p>

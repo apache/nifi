@@ -21,6 +21,7 @@ import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.SchemaLoader;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
@@ -55,6 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"protobuf", "record", "reader", "parser"})
 @CapabilityDescription("Parses a Protocol Buffers message from binary format.")
+@SeeAlso(StandardProtobufReader.class)
 public class ProtobufReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private static final String ANY_PROTO = "google/protobuf/any.proto";
