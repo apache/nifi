@@ -90,11 +90,12 @@ export const baseTheme: { [selector: string]: StyleSpec } = {
         // Don't set the gutter background to 'transparent', because then long lines will appear behind
         // the gutter when scrolling horizontally (if line wrapping is off).
         backgroundColor: 'var(--mat-sys-surface-container-high)',
+        borderRight: '1px solid',
         cursor: 'default',
         userSelect: 'none'
     },
     '.cm-foldGutter': {
-        borderRight: '1px solid',
+        borderRight: '0',
         paddingRight: '4px'
     },
     '.cm-foldGutter .cm-gutterElement': {
