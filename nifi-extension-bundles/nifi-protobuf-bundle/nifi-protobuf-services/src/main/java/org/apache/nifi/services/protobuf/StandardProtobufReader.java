@@ -95,7 +95,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         .build();
 
     public static final PropertyDescriptor MESSAGE_NAME_RESOLVER = new PropertyDescriptor.Builder()
-        .name("Message Name Resolver Service")
+        .name("Message Name Resolver")
         .description("Service that dynamically resolves Protocol Buffer message names from FlowFile content or attributes")
         .required(true)
         .identifiesControllerService(MessageNameResolver.class)
@@ -255,7 +255,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     enum MessageNameResolverStrategy implements DescribedValue {
 
         MESSAGE_NAME_PROPERTY("Message Name Property", "Use the 'Message Name' property value to determine the message name"),
-        MESSAGE_NAME_RESOLVER("Message Name Resolver Service", "Use a 'Message Name Resolver' controller service to dynamically determine the message name");
+        MESSAGE_NAME_RESOLVER("Message Name Resolver", "Use a 'Message Name Resolver' service to dynamically determine the message name");
 
         private final String displayName;
         private final String description;
