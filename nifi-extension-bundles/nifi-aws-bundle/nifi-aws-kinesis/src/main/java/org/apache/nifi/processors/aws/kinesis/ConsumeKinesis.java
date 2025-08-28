@@ -163,7 +163,6 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("AWS Credentials Provider service")
-            .displayName("AWS Credentials Provider Service")
             .description("The Controller Service that is used to obtain AWS credentials provider.")
             .required(true)
             .identifiesControllerService(AWSCredentialsProviderService.class)
@@ -205,9 +204,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final PropertyDescriptor STREAM_POSITION_TIMESTAMP = new PropertyDescriptor.Builder()
             .name("Stream Position Timestamp")
             .description("Timestamp position in stream from which to start reading Kinesis Records. The timestamp must be in ISO 8601 format.")
+            .required(true)
             .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .dependsOn(INITIAL_STREAM_POSITION, InitialPosition.AT_TIMESTAMP)
-            .required(true)
             .build();
 
     static final PropertyDescriptor MAX_BYTES_TO_BUFFER = new PropertyDescriptor.Builder()
@@ -232,9 +231,9 @@ public class ConsumeKinesis extends AbstractProcessor {
                     Checkpointing too frequently may result in performance degradation and higher DynamoDB costs.
                     Checkpointing too rarely may result in duplicated records whenever a Shard lease is lost or NiFi server restarts.
                     """)
+            .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("5 sec")
-            .required(true)
             .build();
 
     static final PropertyDescriptor METRICS_DESTINATION = new PropertyDescriptor.Builder()
