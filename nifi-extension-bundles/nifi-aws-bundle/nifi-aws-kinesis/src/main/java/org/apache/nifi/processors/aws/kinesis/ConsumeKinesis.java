@@ -162,7 +162,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("AWS Credentials Provider service")
+            .name("AWS Credentials Provider Service")
             .description("The Controller Service that is used to obtain AWS credentials provider.")
             .required(true)
             .identifiesControllerService(AWSCredentialsProviderService.class)
