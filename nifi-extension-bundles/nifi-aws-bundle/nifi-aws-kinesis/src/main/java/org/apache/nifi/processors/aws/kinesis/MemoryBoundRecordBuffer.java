@@ -610,7 +610,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         }
 
         /**
-         * Checks if the buffer has any records. <b>Can produce false positives.</b>
+         * Checks if the buffer has any records. <b>Can produce false negatives.</b>
          *
          * @return whether there are any records in the buffer.
          */
