@@ -102,6 +102,15 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         .dependsOn(MESSAGE_NAME_RESOLUTION_STRATEGY, MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER)
         .build();
 
+    private static final PropertyDescriptor PROTOBUF_SCHEMA_TEXT = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(SCHEMA_TEXT)
+        .required(true)
+        .clearValidators()
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .defaultValue("${proto.schema}")
+        .description("The text of a Proto 3 formatted Schema")
+        .build();
+
     private static final String PROTO_EXTENSION = ".proto";
 
     private volatile ProtobufSchemaCompiler schemaCompiler;
@@ -158,14 +167,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     @Override
     protected PropertyDescriptor buildSchemaTextProperty() {
-        return new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(SCHEMA_TEXT)
-            .required(true)
-            .clearValidators()
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("${proto.schema}")
-            .description("The text of a Proto 3 formatted Schema")
-            .build();
+        return PROTOBUF_SCHEMA_TEXT;
     }
 
     private RecordReader createProtobufRecordReader(final Map<String, String> variables, final InputStream in, final SchemaDefinition schemaDefinition) throws IOException {
