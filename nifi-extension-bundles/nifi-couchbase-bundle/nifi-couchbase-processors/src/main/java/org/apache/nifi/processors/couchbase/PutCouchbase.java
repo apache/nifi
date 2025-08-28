@@ -33,12 +33,9 @@ import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
-import org.apache.nifi.services.couchbase.utils.DocumentType;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Map.entry;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE_DESC;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
@@ -78,25 +75,14 @@ public class PutCouchbase extends AbstractCouchbaseProcessor {
                 ? context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions().getValue()
                 : flowFile.getAttribute(CoreAttributes.UUID.key());
 
-        final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
 
-        final CouchbaseContext couchbaseContext = new CouchbaseContext(bucketName, scopeName, collectionName, documentType);
+        final CouchbaseContext couchbaseContext = getCouchbaseContext(context, flowFile);
         final CouchbaseClient couchbaseClient = connectionService.getClient(couchbaseContext);
 
         try {
             final CouchbaseUpsertResult result = couchbaseClient.upsertDocument(documentId, readFlowFileContent(session, flowFile));
 
-            final Map<String, String> attributes = Map.ofEntries(
-                    entry(BUCKET_ATTRIBUTE, bucketName),
-                    entry(SCOPE_ATTRIBUTE, scopeName),
-                    entry(COLLECTION_ATTRIBUTE, collectionName),
-                    entry(DOCUMENT_ID_ATTRIBUTE, documentId),
-                    entry(CAS_ATTRIBUTE, String.valueOf(result.cas()))
-            );
-            flowFile = session.putAllAttributes(flowFile, attributes);
+            flowFile = session.putAllAttributes(flowFile, getFlowfileAttributes(couchbaseContext, documentId, String.valueOf(result.cas())));
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, createTransitUri(connectionService.getServiceLocation(), couchbaseContext, documentId), transferMillis);

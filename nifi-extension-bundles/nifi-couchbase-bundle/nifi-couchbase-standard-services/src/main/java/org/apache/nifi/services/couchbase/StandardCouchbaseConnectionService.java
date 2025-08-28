@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.services.couchbase;
 
+import com.couchbase.client.core.env.Authenticator;
+import com.couchbase.client.core.env.CertificateAuthenticator;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.Collection;
@@ -29,21 +31,26 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.ssl.StandardKeyManagerFactoryBuilder;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerFactoryBuilder;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.ssl.SSLContextService;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.List;
 
 @CapabilityDescription("Provides a standard Couchbase connection service implementation.")
@@ -62,7 +69,6 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
             .description("The username to authenticate to the Couchbase client.")
-            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -70,7 +76,6 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("The user's password to authenticate to the Couchbase client.")
-            .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -111,38 +116,89 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
     private PersistTo persistTo;
     private ReplicateTo replicateTo;
 
+    @Override
+    protected java.util.Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        boolean passwordAuthentication = validationContext.getProperty(USERNAME).isSet() && validationContext.getProperty(PASSWORD).isSet();
+        boolean certificateAuthentication = validationContext.getProperty(SSL_CONTEXT_SERVICE).isSet()
+                && validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class).isKeyStoreConfigured();
+
+        if (!passwordAuthentication && !certificateAuthentication) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Authentication")
+                    .explanation("authentication data is required. Please either configure a username and password, or provide a keystore in SSLContextService.")
+                    .build());
+        }
+
+        return results;
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
         persistTo = PersistTo.valueOf(context.getProperty(PERSIST_TO).getValue());
         replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATE_TO).getValue());
         connectionString = context.getProperty(CONNECTION_STRING).evaluateAttributeExpressions().getValue();
 
-        ClusterOptions clusterOptions = ClusterOptions.clusterOptions(username, password);
+        ClusterOptions clusterOptions = null;
+        final PropertyValue username = context.getProperty(USERNAME);
+        final PropertyValue password = context.getProperty(PASSWORD);
+
+        if (username.isSet() || password.isSet()) {
+            clusterOptions = ClusterOptions.clusterOptions(username.evaluateAttributeExpressions().getValue(), password.evaluateAttributeExpressions().getValue());
+        }
+
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {
             final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
 
-            final KeyStore trustStore;
-            try (InputStream inputStream = new FileInputStream(sslContextService.getTrustStoreFile())) {
-                trustStore = new StandardKeyStoreBuilder()
-                        .type(sslContextService.getTrustStoreType())
-                        .password(sslContextService.getTrustStorePassword().toCharArray())
-                        .inputStream(inputStream)
+            if (sslContextService.isKeyStoreConfigured()) {
+                final KeyStore keyStore;
+                final String keyStorePassword = sslContextService.getKeyStorePassword();
+                final String keyPassword = sslContextService.getKeyPassword();
+                final String configuredKeyPassword = keyPassword == null ? keyStorePassword : keyPassword;
+
+                try (InputStream inputStream = new FileInputStream(sslContextService.getKeyStoreFile())) {
+                    keyStore = new StandardKeyStoreBuilder()
+                            .type(sslContextService.getKeyStoreType())
+                            .password(keyStorePassword.toCharArray())
+                            .inputStream(inputStream)
+                            .build();
+                } catch (final IOException e) {
+                    throw new InitializationException("Key Store loading failed", e);
+                }
+
+                final KeyManagerFactory keyManagerFactory = new StandardKeyManagerFactoryBuilder()
+                        .keyStore(keyStore)
+                        .keyPassword(configuredKeyPassword.toCharArray())
                         .build();
-            } catch (final IOException e) {
-                throw new InitializationException("Trust Store loading failed", e);
+
+                final Authenticator authenticator = CertificateAuthenticator.fromKeyManagerFactory(() -> keyManagerFactory);
+                clusterOptions = ClusterOptions.clusterOptions(authenticator);
             }
 
-            final TrustManagerFactory trustManagerFactory = new StandardTrustManagerFactoryBuilder().trustStore(trustStore).build();
-            final ClusterEnvironment environment = ClusterEnvironment.builder()
-                    .securityConfig(security -> security
-                            .enableTls(true)
-                            .trustManagerFactory(trustManagerFactory))
-                    .build();
+            if (sslContextService.isTrustStoreConfigured()) {
+                final KeyStore trustStore;
+                try (InputStream inputStream = new FileInputStream(sslContextService.getTrustStoreFile())) {
+                    trustStore = new StandardKeyStoreBuilder()
+                            .type(sslContextService.getTrustStoreType())
+                            .password(sslContextService.getTrustStorePassword().toCharArray())
+                            .inputStream(inputStream)
+                            .build();
+                } catch (final IOException e) {
+                    throw new InitializationException("Trust Store loading failed", e);
+                }
 
-            clusterOptions = clusterOptions.environment(environment);
+                final TrustManagerFactory trustManagerFactory = new StandardTrustManagerFactoryBuilder().trustStore(trustStore).build();
+                final ClusterEnvironment environment = ClusterEnvironment.builder()
+                        .securityConfig(security -> security
+                                .enableTls(true)
+                                .trustManagerFactory(trustManagerFactory))
+                        .build();
+
+                clusterOptions = clusterOptions.environment(environment);
+            }
         }
 
         cluster = Cluster.connect(connectionString, clusterOptions);

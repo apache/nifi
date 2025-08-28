@@ -30,13 +30,11 @@ import org.apache.nifi.services.couchbase.CouchbaseClient;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
-import org.apache.nifi.services.couchbase.utils.DocumentType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Map.entry;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE_DESC;
@@ -78,26 +76,16 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
             throw new ProcessException("Document ID is missing. Please provide a valid Document ID through processor property or FlowFile content.");
         }
 
-        final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
-
-        final CouchbaseContext couchbaseContext = new CouchbaseContext(bucketName, scopeName, collectionName, documentType);
+        final CouchbaseContext couchbaseContext = getCouchbaseContext(context, flowFile);
         final CouchbaseClient couchbaseClient = connectionService.getClient(couchbaseContext);
 
         try {
             final CouchbaseGetResult result = couchbaseClient.getDocument(documentId);
             flowFile = session.write(flowFile, out -> out.write(result.resultContent()));
 
-            final Map<String, String> attributes = Map.ofEntries(
-                    entry(BUCKET_ATTRIBUTE, bucketName),
-                    entry(SCOPE_ATTRIBUTE, scopeName),
-                    entry(COLLECTION_ATTRIBUTE, collectionName),
-                    entry(DOCUMENT_ID_ATTRIBUTE, documentId),
-                    entry(CAS_ATTRIBUTE, String.valueOf(result.cas())),
-                    entry(CoreAttributes.MIME_TYPE.key(), documentType.getMimeType())
-            );
+            final Map<String, String> attributes = getFlowfileAttributes(couchbaseContext, documentId, String.valueOf(result.cas()));
+            attributes.put(CoreAttributes.MIME_TYPE.key(), couchbaseContext.documentType().getMimeType());
+
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             final long fetchMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);

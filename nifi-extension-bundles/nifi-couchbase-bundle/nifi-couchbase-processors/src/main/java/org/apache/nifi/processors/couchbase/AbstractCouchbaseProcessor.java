@@ -34,12 +34,19 @@ import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.BUCKET_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.CAS_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.COLLECTION_ATTRIBUTE;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_BUCKET;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_COLLECTION;
 import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_SCOPE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DOCUMENT_ID_ATTRIBUTE;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCOPE_ATTRIBUTE;
 
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
@@ -142,8 +149,27 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         return content;
     }
 
-    protected String createTransitUri(String serviceLocation, CouchbaseContext couchbaseContext, String documentId) {
-        return String.join("/", serviceLocation, couchbaseContext.bucket(), couchbaseContext.scope(), couchbaseContext.collection(), documentId);
+    protected String createTransitUri(String serviceLocation, CouchbaseContext context, String documentId) {
+        return String.join("/", serviceLocation, context.bucket(), context.scope(), context.collection(), documentId);
+    }
+
+    protected CouchbaseContext getCouchbaseContext(ProcessContext context, FlowFile flowFile) {
+        final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
+
+        return new CouchbaseContext(bucketName, scopeName, collectionName, documentType);
+    }
+
+    protected Map<String, String> getFlowfileAttributes(CouchbaseContext context, String documentId, String cas) {
+        return new HashMap<>(Map.of(
+                BUCKET_ATTRIBUTE, context.bucket(),
+                SCOPE_ATTRIBUTE, context.scope(),
+                COLLECTION_ATTRIBUTE, context.collection(),
+                DOCUMENT_ID_ATTRIBUTE, documentId,
+                CAS_ATTRIBUTE, cas
+        ));
     }
 
     protected void handleCouchbaseException(CouchbaseClient couchbaseClient, ProcessContext context, ProcessSession session,
