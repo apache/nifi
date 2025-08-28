@@ -5436,9 +5436,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(selectedBranch, bucketId, flowId, flowVersion);
             return flowRegistry.getFlowContents(clientUserContext, flowVersionLocation, fetchRemoteFlows);
         } catch (final FlowRegistryException e) {
-            logger.error(e.getMessage(), e);
-            throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
+            throw new IllegalArgumentException("Error retrieving flow [%s] in bucket [%s] branch [%s] with version [%s] using Flow Registry Client with ID [%s]: %s".formatted(flowId,
+                    bucketId, branch, flowVersion, registryId, e.getMessage()), e);
         } catch (final IOException ioe) {
             throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to retrieve a versioned flow", ioe);
         }
