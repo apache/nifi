@@ -233,7 +233,7 @@ public class ProcessorResource extends ApplicationResource {
 
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/run-status-details/queries")
     @Operation(
@@ -513,8 +513,8 @@ public class ProcessorResource extends ApplicationResource {
             )
             @PathParam("id") final String id,
             @Parameter(
-                    description = "The component state entity for the processor",
-                    required = true
+                    description = "Optional component state to perform a selective key removal. If omitted, clears all state.",
+                    required = false
             ) final ComponentStateEntity componentStateEntity) throws InterruptedException {
 
         if (isReplicateRequest()) {
