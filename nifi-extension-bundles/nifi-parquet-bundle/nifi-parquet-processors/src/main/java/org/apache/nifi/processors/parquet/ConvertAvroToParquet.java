@@ -20,6 +20,7 @@ package org.apache.nifi.processors.parquet;
 
 
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaFormatter;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -133,7 +134,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
                      final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
                     Schema avroSchema = dataFileReader.getSchema();
-                    getLogger().debug(avroSchema.toString(true));
+                    getLogger().debug(SchemaFormatter.format("json/pretty", avroSchema));
                     ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema );
 
                     try {
