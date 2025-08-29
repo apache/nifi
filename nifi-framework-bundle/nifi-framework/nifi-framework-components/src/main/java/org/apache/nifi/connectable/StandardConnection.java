@@ -271,12 +271,6 @@ public final class StandardConnection implements Connection {
         }
 
         try {
-            getSource().verifyCanUpdate();
-        } catch (final IllegalStateException ise) {
-            throw new IllegalStateException("Cannot update the relationships for Connection", ise);
-        }
-
-        try {
             this.relationships.set(new ArrayList<>(newRelationships));
             getSource().updateConnection(this);
         } catch (final RuntimeException e) {
