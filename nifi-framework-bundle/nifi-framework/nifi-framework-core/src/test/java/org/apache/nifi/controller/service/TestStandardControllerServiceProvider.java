@@ -55,8 +55,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SynchronousValidationTrigger;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
@@ -84,7 +84,7 @@ public class TestStandardControllerServiceProvider {
 
     private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
         @Override
-        public StateManager getStateManager(final String componentId) {
+        public StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
             final StateManager stateManager = Mockito.mock(StateManager.class);
             final StateMap emptyStateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty());
             try {
@@ -110,6 +110,11 @@ public class TestStandardControllerServiceProvider {
 
         @Override
         public void onComponentRemoved(final String componentId) {
+        }
+
+        @Override
+        public boolean isClusterProviderEnabled() {
+            return false;
         }
     };
 
