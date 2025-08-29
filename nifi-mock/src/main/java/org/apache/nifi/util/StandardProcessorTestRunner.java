@@ -519,7 +519,11 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final InputStream data, final Map<String, String> attributes) {
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor, enforceReadStreamsClosed, processorStateManager);
+        final SharedSessionState sessionState = new SharedSessionState(processor, idGenerator);
+        final MockProcessSession session = MockProcessSession.builder(sessionState, processor)
+                .enforceStreamsClosed(enforceReadStreamsClosed)
+                .stateManager(processorStateManager)
+                .build();
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);
