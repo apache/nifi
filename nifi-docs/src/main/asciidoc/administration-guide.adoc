@@ -80,7 +80,7 @@ The binary build of Apache NiFi that is provided by the Apache mirrors does not 
 
 Java 21 is required for building and running Apache NiFi.
 
-The next step is to download a copy of the Apache NiFi source code from the https://nifi.apache.org/download.html[NiFi Downloads page]. The reason you need the source build is that it includes a module called `nifi-assembly` which is the Maven module that builds a binary distribution. Expand the archive and run a Maven clean build. The following example shows how to build a distribution that activates the `graph` and `media` bundle profiles to add in support for graph databases and Apache Tika content and metadata extraction.
+The next step is to download a copy of the Apache NiFi source code from the https://nifi.apache.org/download/[NiFi Downloads page]. The reason you need the source build is that it includes a module called `nifi-assembly` which is the Maven module that builds a binary distribution. Expand the archive and run a Maven clean build. The following example shows how to build a distribution that activates the `graph` and `media` bundle profiles to add in support for graph databases and Apache Tika content and metadata extraction.
 
 `cd <nifi_source_folder>/nifi-assembly`
 
@@ -3841,7 +3841,7 @@ On your existing NiFi installation:
 
 Install the new NiFi into a directory parallel to the existing NiFi installation.
 
-1. Download the link:https://nifi.apache.org/download.html[latest version^] of Apache NiFi.
+1. Download the link:https://nifi.apache.org/download/[latest version^] of Apache NiFi.
 2. Uncompress the NiFi _.tar_ file (`tar -xvzf file-name`) into a directory parallel to your existing NiFi directory. For example, if your existing NiFi installation is installed in `/opt/nifi/existing-nifi/`, install your new NiFi version in `/opt/nifi/new-nifi/`.
 3. If you are upgrading a NiFi cluster, repeat these steps on each node in the cluster.
 

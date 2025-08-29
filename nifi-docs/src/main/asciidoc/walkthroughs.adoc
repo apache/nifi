@@ -42,7 +42,7 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 
 NOTE: The following instructions are for installing a single node of NiFi. This guide assumes macOS 10.11.0+ but should work for any modern operating system. *nix commands are used by default, but Windows equivalents are provided where available.
 
-. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads^] page.
+. Go to the link:http://nifi.apache.org/download/[Apache NiFi Downloads^] page.
 . Download the latest version of NiFi via the compressed binary files. For example, if the latest version is 1.11.4:
 * `nifi-1.11.4-bin.tar.gz` [1.2 GB]
 * `nifi-toolkit-1.11.4-bin.tar.gz` [42 MB]
@@ -73,7 +73,7 @@ image::verify-release-gpg-and-checksums.png["Verifying the GPG signature and che
 
 NOTE: This guide assumes macOS 10.11.0+ but should work for any modern operating system. *nix commands are used by default, but Windows equivalents are provided where available.
 
-. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads^] page.
+. Go to the link:http://nifi.apache.org/download/[Apache NiFi Downloads^] page.
 . Download the latest version of NiFi source code via the compressed files. For example, if the latest version is 1.11.4:
 * `nifi-1.11.4-source-release.zip` [53 MB]
 . If you are directed to a mirror page, click the first link on the page to download the respective archive file.

@@ -175,7 +175,7 @@ In addition to this Getting Started Guide, more information about NiFi Registry 
 - link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[Contributor's Guide^] - A guide for explaining how to contribute work back to the Apache NiFi community so that others can make use of it.
 
 In addition to the guides provided here, you can browse the different
-link:https://nifi.apache.org/mailing_lists.html[NiFi Mailing Lists^] or send an e-mail to one of the mailing lists at
+link:https://nifi.apache.org/community/contact/[NiFi Mailing Lists^] or send an e-mail to one of the mailing lists at
 link:mailto:users@nifi.apache.org[users@nifi.apache.org] or
 link:mailto:dev@nifi.apache.org[dev@nifi.apache.org].
 
