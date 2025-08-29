@@ -310,7 +310,7 @@ public class MockProcessSession implements ProcessSession {
         }
 
         if (failCommit) {
-            throw new TestFailedCommitException();
+            throw new FlowFileHandlingException("Cannot commit session because the session was requested to fail by a test");
         }
 
         closeStreams(openInputStreams, enforceStreamsClosed);
@@ -1480,12 +1480,6 @@ public class MockProcessSession implements ProcessSession {
         final String curUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         final String providedUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         return curUuid.equals(providedUuid);
-    }
-
-    public static final class TestFailedCommitException extends RuntimeException {
-        private TestFailedCommitException() {
-            super("Failing the commit, as requested by the test");
-        }
     }
 
     public static final class Builder {
