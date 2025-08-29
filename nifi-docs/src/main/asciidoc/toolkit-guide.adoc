@@ -26,7 +26,7 @@ The NiFi Toolkit contains several command line utilities to setup and support Ni
 
 The utilities are executed with scripts found in the `bin` folder of your NiFi Toolkit installation.
 
-NOTE: The NiFi Toolkit is downloaded separately from NiFi (see the link:https://nifi.apache.org/download.html[Apache NiFi Downloads^] page).
+NOTE: The NiFi Toolkit is downloaded separately from NiFi (see the link:https://nifi.apache.org/download/[Apache NiFi Downloads^] page).
 
 === Prerequisites for Running in a Secure Environment
 For secured nodes and clusters, two policies should be configured in advance:

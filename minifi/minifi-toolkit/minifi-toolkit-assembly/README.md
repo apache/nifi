@@ -29,7 +29,7 @@ MiNiFi is a child project effort of Apache NiFi.  The MiNiFi toolkit aids in cre
 ## Requirements
 * JRE 21
 
-The latest version of the MiNiFi Toolkit can be found at https://nifi.apache.org/minifi/download.html under the `MiNiFi Toolkit Binaries` section.
+The latest version of the MiNiFi Toolkit can be found at https://nifi.apache.org/download/#minifi under the `MiNiFi Toolkit Binaries` section.
 
 # <a id="minifi-toolkit-converter" href="#minifi-toolkit-converter">MiNiFi Toolkit Converter</a>
 
