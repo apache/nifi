@@ -53,6 +53,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -177,9 +178,9 @@ public class TestProcessGroupAuditor {
 
         processGroupDAO.enableComponents(PG_1, ScheduledState.STOPPED, new HashSet<>(Arrays.asList(PROC_1, PROC_2, INPUT_PORT, OUTPUT_PORT)));
 
-        verify(auditService, times(4)).addActions(argumentCaptorActions.capture());
+        verify(auditService, times(2)).addActions(argumentCaptorActions.capture());
         final List<List<Action>> actions = argumentCaptorActions.getAllValues();
-        assertEquals(4, actions.size());
+        assertEquals(2, actions.size());
         final Iterator<List<Action>> actionsIterator = actions.iterator();
 
         // pg enabled
@@ -191,11 +192,29 @@ public class TestProcessGroupAuditor {
         assertEquals("ProcessGroup", pgAction.getSourceType().name());
         assertEquals(Operation.Enable, pgAction.getOperation());
 
-        // processors enabled
         List<Action> componentActions = actionsIterator.next();
-        assertEquals(2, componentActions.size());
+        assertEquals(4, componentActions.size());
+        componentActions.sort(Comparator.comparing(Action::getSourceName));
+
+        // inputPort enabled
         final Iterator<Action> actionIterator = componentActions.iterator();
         Action componentAction = actionIterator.next();
+        assertInstanceOf(FlowChangeAction.class, componentAction);
+        assertEquals(USER_ID, componentAction.getUserIdentity());
+        assertEquals("InputPort", componentAction.getSourceType().name());
+        assertEquals(INPUT_PORT, componentAction.getSourceName());
+        assertEquals(Operation.Enable, componentAction.getOperation());
+
+        // outputPort enabled
+        componentAction = actionIterator.next();
+        assertInstanceOf(FlowChangeAction.class, componentAction);
+        assertEquals(USER_ID, componentAction.getUserIdentity());
+        assertEquals("OutputPort", componentAction.getSourceType().name());
+        assertEquals(OUTPUT_PORT, componentAction.getSourceName());
+        assertEquals(Operation.Enable, componentAction.getOperation());
+
+        // processors enabled
+        componentAction = actionIterator.next();
         assertInstanceOf(FlowChangeAction.class, componentAction);
         assertEquals(USER_ID, componentAction.getUserIdentity());
         assertEquals("Processor", componentAction.getSourceType().name());
@@ -207,26 +226,6 @@ public class TestProcessGroupAuditor {
         assertEquals(USER_ID, componentAction.getUserIdentity());
         assertEquals("Processor", componentAction.getSourceType().name());
         assertEquals(PROC_2, componentAction.getSourceName());
-        assertEquals(Operation.Enable, componentAction.getOperation());
-
-        // inputPort enabled
-        componentActions = actionsIterator.next();
-        assertEquals(1, componentActions.size());
-        componentAction = componentActions.iterator().next();
-        assertInstanceOf(FlowChangeAction.class, componentAction);
-        assertEquals(USER_ID, componentAction.getUserIdentity());
-        assertEquals("InputPort", componentAction.getSourceType().name());
-        assertEquals(INPUT_PORT, componentAction.getSourceName());
-        assertEquals(Operation.Enable, componentAction.getOperation());
-
-        // outputPort enabled
-        componentActions = actionsIterator.next();
-        assertEquals(1, componentActions.size());
-        componentAction = componentActions.iterator().next();
-        assertInstanceOf(FlowChangeAction.class, componentAction);
-        assertEquals(USER_ID, componentAction.getUserIdentity());
-        assertEquals("OutputPort", componentAction.getSourceType().name());
-        assertEquals(OUTPUT_PORT, componentAction.getSourceName());
         assertEquals(Operation.Enable, componentAction.getOperation());
     }
 
