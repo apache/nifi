@@ -32,7 +32,6 @@
                     "includePaths": [""]
                 },
                 "scripts": [],
-                "allowedCommonJsDependencies": ["codemirror", "jsonlint", "js-beautify"],
                 "preserveSymlinks": true
             },
             "configurations": {
