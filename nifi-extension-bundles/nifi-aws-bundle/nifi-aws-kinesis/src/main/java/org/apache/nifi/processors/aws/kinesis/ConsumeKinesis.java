@@ -180,7 +180,10 @@ public class ConsumeKinesis extends AbstractProcessor {
             .name("Record Reader")
             .description("""
                     The Record Reader to use for parsing the data received from Kinesis.
-                    If not set, the records are written one per FlowFile without parsing.""")
+                    If not set, the records are written one per FlowFile without parsing.
+
+                    The Record Reader is responsible for providing schemas for the records. If the schemas change frequently,
+                    it might hinder performance of the processor. (See processor's additional details for more information.)""")
             .required(false)
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
