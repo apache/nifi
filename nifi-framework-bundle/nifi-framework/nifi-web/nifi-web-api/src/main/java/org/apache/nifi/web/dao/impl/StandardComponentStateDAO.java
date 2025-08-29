@@ -28,6 +28,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.StateMapDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -45,12 +46,12 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         try {
             final StateManager manager = stateManagerProvider.getStateManager(componentId);
             if (manager == null) {
-                throw new ResourceNotFoundException(String.format("State for the specified component %s could not be found.", componentId));
+                throw new ResourceNotFoundException("State for the specified component %s could not be found.".formatted(componentId));
             }
 
             return manager.getState(scope);
         } catch (final IOException ioe) {
-            throw new IllegalStateException(String.format("Unable to get the state for the specified component %s: %s", componentId, ioe), ioe);
+            throw new IllegalStateException("Unable to get the state for the specified component %s: %s".formatted(componentId, ioe), ioe);
         }
     }
 
@@ -58,7 +59,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         try {
             final StateManager manager = stateManagerProvider.getStateManager(componentId);
             if (manager == null) {
-                throw new ResourceNotFoundException(String.format("State for the specified component %s could not be found.", componentId));
+                throw new ResourceNotFoundException("State for the specified component %s could not be found.".formatted(componentId));
             }
 
             if (componentStateDTO == null) {
@@ -68,42 +69,34 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
             } else if (manager.getState(Scope.LOCAL) != null && !manager.getState(Scope.LOCAL).toMap().isEmpty() && !stateManagerProvider.isClusterProviderEnabled()) {
                 // we are in standalone mode, all state is local
                 if (manager.isStateKeyDropSupported()) {
-                    final Map<String, String> newState = new HashMap<>();
-                    componentStateDTO.getClusterState().getState().forEach(stateEntryDTO -> {
-                        newState.put(stateEntryDTO.getKey(), stateEntryDTO.getValue());
-                    });
-
+                    final Map<String, String> newState = toStateMap(componentStateDTO.getLocalState());
                     final Map<String, String> currentState = manager.getState(Scope.LOCAL).toMap();
 
                     if (hasExactlyOneKeyRemoved(currentState, newState)) {
                         manager.setState(newState, Scope.LOCAL);
                     } else {
-                        throw new IllegalStateException(String.format("Unable to remove key in the state of the specified component %s. Only one key can be removed.", componentId));
+                        throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
                     }
                 } else {
-                    throw new IllegalStateException(String.format("Removing specific keys for component %s with local state is not supported.", componentId));
+                    throw new IllegalStateException("Selective state key removal is not supported for component %s with local state.".formatted(componentId));
                 }
             } else if (manager.getState(Scope.LOCAL) != null && !manager.getState(Scope.LOCAL).toMap().isEmpty()) {
-                throw new IllegalStateException(String.format("Removing specific keys for component %s with local state is not supported.", componentId));
+                throw new IllegalStateException("Selective state key removal is not supported for component %s with local state.".formatted(componentId));
             } else if (componentStateDTO.getClusterState() != null && !componentStateDTO.getClusterState().getState().isEmpty()) {
                 if (manager.isStateKeyDropSupported()) {
-                    final Map<String, String> newState = new HashMap<>();
-                    componentStateDTO.getClusterState().getState().forEach(stateEntryDTO -> {
-                        newState.put(stateEntryDTO.getKey(), stateEntryDTO.getValue());
-                    });
-
+                    final Map<String, String> newState = toStateMap(componentStateDTO.getClusterState());
                     final Map<String, String> currentState = manager.getState(Scope.CLUSTER).toMap();
 
                     if (hasExactlyOneKeyRemoved(currentState, newState)) {
                         manager.setState(newState, Scope.CLUSTER);
                     } else {
-                        throw new IllegalStateException(String.format("Unable to remove key in the state of the specified component %s. Only one key can be removed.", componentId));
+                        throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
                     }
 
                     // we clear local anyway
                     manager.clear(Scope.LOCAL);
                 } else {
-                    throw new IllegalStateException(String.format("Removing specific keys for component %s with cluster state is not supported.", componentId));
+                    throw new IllegalStateException("Selective state key removal is not supported for component %s with cluster state.".formatted(componentId));
                 }
             } else {
                 // clear both state's at the same time
@@ -111,7 +104,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
                 manager.clear(Scope.LOCAL);
             }
         } catch (final IOException ioe) {
-            throw new IllegalStateException(String.format("Unable to clear the state for the specified component %s: %s", componentId, ioe), ioe);
+            throw new IllegalStateException("Unable to clear the state for the specified component %s: %s".formatted(componentId, ioe), ioe);
         }
     }
 
@@ -125,6 +118,16 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         return newState.entrySet()
                 .stream()
                 .allMatch(entry -> entry.getValue().equals(currentState.get(entry.getKey())));
+    }
+
+    private static Map<String, String> toStateMap(final StateMapDTO stateMapDTO) {
+        final Map<String, String> map = new HashMap<>();
+        if (stateMapDTO == null || stateMapDTO.getState() == null) {
+            return map;
+        }
+
+        stateMapDTO.getState().forEach(entry -> map.put(entry.getKey(), entry.getValue()));
+        return map;
     }
 
     @Override

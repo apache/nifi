@@ -624,7 +624,7 @@ public class ControllerResource extends ApplicationResource {
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/state/clear-requests")
     @Operation(
@@ -648,8 +648,8 @@ public class ControllerResource extends ApplicationResource {
             )
             @PathParam("id") final String id,
             @Parameter(
-                    description = "The component state entity for the flow analysis rule.",
-                    required = true
+                    description = "Optional component state to perform a selective key removal. If omitted, clears all state.",
+                    required = false
             ) final ComponentStateEntity componentStateEntity) {
 
         if (isReplicateRequest()) {
