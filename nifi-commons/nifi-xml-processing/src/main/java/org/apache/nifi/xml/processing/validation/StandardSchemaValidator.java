@@ -17,13 +17,13 @@
 package org.apache.nifi.xml.processing.validation;
 
 import org.apache.nifi.xml.processing.ProcessingException;
-import org.apache.nifi.xml.processing.ProcessingFeature;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import javax.xml.validation.Validator;
+
 import java.io.IOException;
 import java.util.Objects;
 
@@ -31,6 +31,8 @@ import java.util.Objects;
  * Standard implementation of XML Schema Validator with secure processing enabled
  */
 public class StandardSchemaValidator implements SchemaValidator {
+    private static final boolean SECURE_PROCESSING_ENABLED = true;
+
     /**
      * Validate Source using Schema
      *
@@ -45,7 +47,7 @@ public class StandardSchemaValidator implements SchemaValidator {
         final Validator validator = schema.newValidator();
 
         try {
-            validator.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, ProcessingFeature.SECURE_PROCESSING.isEnabled());
+            validator.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING_ENABLED);
         } catch (final SAXException e) {
             throw new ProcessingException("Validator configuration failed", e);
         }
