@@ -28,8 +28,10 @@ final class ConsumeKinesisAttributes {
     // AWS Kinesis attributes.
     static final String STREAM_NAME = PREFIX + "stream.name";
     static final String SHARD_ID = PREFIX + "shard.id";
-    static final String SEQUENCE_NUMBER = PREFIX + "sequence.number";
-    static final String SUB_SEQUENCE_NUMBER = PREFIX + "subsequence.number";
+    static final String FIRST_SEQUENCE_NUMBER = PREFIX + "first.sequence.number";
+    static final String FIRST_SUB_SEQUENCE_NUMBER = PREFIX + "first.subsequence.number";
+    static final String LAST_SEQUENCE_NUMBER = PREFIX + "last.sequence.number";
+    static final String LAST_SUB_SEQUENCE_NUMBER = PREFIX + "last.subsequence.number";
 
     static final String PARTITION_KEY = PREFIX + "partition.key";
     static final String APPROXIMATE_ARRIVAL_TIMESTAMP = PREFIX + "approximate.arrival.timestamp.ms";
@@ -39,20 +41,26 @@ final class ConsumeKinesisAttributes {
     static final String RECORD_COUNT = "record.count";
     static final String RECORD_ERROR_MESSAGE = "record.error.message";
 
-    static Map<String, String> fromKinesisRecord(
+    static Map<String, String> fromKinesisRecords(
             final String streamName,
             final String shardId,
-            final KinesisClientRecord record) {
-        final Map<String, String> attributes = new HashMap<>(6, 1.0f);
+            final KinesisClientRecord firstRecord,
+            final KinesisClientRecord lastRecord) {
+        final Map<String, String> attributes = new HashMap<>(8, 1.0f);
 
         attributes.put(STREAM_NAME, streamName);
         attributes.put(SHARD_ID, shardId);
-        attributes.put(SEQUENCE_NUMBER, record.sequenceNumber());
-        attributes.put(SUB_SEQUENCE_NUMBER, String.valueOf(record.subSequenceNumber()));
-        attributes.put(PARTITION_KEY, record.partitionKey());
 
-        if (record.approximateArrivalTimestamp() != null) {
-           attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()));
+        attributes.put(FIRST_SEQUENCE_NUMBER, firstRecord.sequenceNumber());
+        attributes.put(FIRST_SUB_SEQUENCE_NUMBER, String.valueOf(firstRecord.subSequenceNumber()));
+
+        attributes.put(LAST_SEQUENCE_NUMBER, lastRecord.sequenceNumber());
+        attributes.put(LAST_SUB_SEQUENCE_NUMBER, String.valueOf(lastRecord.subSequenceNumber()));
+
+        attributes.put(PARTITION_KEY, lastRecord.partitionKey());
+
+        if (lastRecord.approximateArrivalTimestamp() != null) {
+           attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(lastRecord.approximateArrivalTimestamp().toEpochMilli()));
         }
 
         return attributes;

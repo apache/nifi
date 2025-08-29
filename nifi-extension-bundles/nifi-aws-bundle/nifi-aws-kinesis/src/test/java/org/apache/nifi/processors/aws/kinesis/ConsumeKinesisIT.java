@@ -185,7 +185,8 @@ class ConsumeKinesisIT {
 
         flowFile.assertContentEquals(testMessage);
         flowFile.assertAttributeEquals("aws.kinesis.partition.key", "test-partition-key");
-        assertNotNull(flowFile.getAttribute("aws.kinesis.sequence.number"));
+        assertNotNull(flowFile.getAttribute("aws.kinesis.first.sequence.number"));
+        assertNotNull(flowFile.getAttribute("aws.kinesis.last.sequence.number"));
         assertNotNull(flowFile.getAttribute("aws.kinesis.shard.id"));
     }
 

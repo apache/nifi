@@ -120,7 +120,7 @@ final class ReaderRecordProcessor {
         record.data().rewind();
         flowFile = session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
 
-        flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecord(streamName, shardId, record));
+        flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record));
 
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
         final String errorMessage = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : "NiFi Reader or Writer failed to process Kinesis Record";
@@ -136,6 +136,8 @@ final class ReaderRecordProcessor {
      * A class that manages a single {@link FlowFile} with a static schema that is currently being written to.
      * On a schema change the current {@link ActiveFlowFile} should be completed a new instance of this class
      * with a new schema should be created.
+     *
+     * An {@link ActiveFlowFile} must have at least one record written to it before it can be completed.
      */
     private static final class ActiveFlowFile {
 
@@ -149,6 +151,7 @@ final class ReaderRecordProcessor {
         private final String streamName;
         private final String shardId;
 
+        private KinesisClientRecord firstRecord;
         private KinesisClientRecord lastRecord;
 
         private ActiveFlowFile(
@@ -220,15 +223,22 @@ final class ReaderRecordProcessor {
                 throw new ProcessException("Failed to write a record into a FlowFile", e);
             }
 
+            if (firstRecord == null) {
+                firstRecord = kinesisRecord;
+            }
             lastRecord = kinesisRecord;
         }
 
         FlowFile complete() {
+            if (firstRecord == null || lastRecord == null) {
+                throw new IllegalStateException("Cannot complete an ActiveFlowFile that has no records");
+            }
+
             try {
                 final WriteResult finalResult = writer.finishRecordSet();
                 writer.close();
 
-                FlowFile completedFlowFile = session.putAllAttributes(this.flowFile, ConsumeKinesisAttributes.fromKinesisRecord(streamName, shardId, lastRecord));
+                FlowFile completedFlowFile = session.putAllAttributes(this.flowFile, ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, firstRecord, lastRecord));
                 completedFlowFile = session.putAllAttributes(completedFlowFile, finalResult.getAttributes());
                 completedFlowFile = session.putAttribute(completedFlowFile, RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
                 completedFlowFile = session.putAttribute(completedFlowFile, MIME_TYPE, writer.getMimeType());
