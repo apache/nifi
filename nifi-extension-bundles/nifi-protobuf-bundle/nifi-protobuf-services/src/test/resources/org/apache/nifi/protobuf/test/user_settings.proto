@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+syntax = "proto3";
 
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+package org.apache.nifi.protobuf.test;
 
-@Injectable({ providedIn: 'root' })
-export class ElService {
-    private static readonly DOCS: string = '../nifi-api';
+import "user_profile.proto";
 
-    constructor(private httpClient: HttpClient) {}
-
-    getElGuide(): Observable<any> {
-        return this.httpClient.get(`${ElService.DOCS}/html/expression-language-guide.html`, { responseType: 'text' });
-    }
+message UserSettings {
+  .org.apache.nifi.protobuf.test.UserProfile profile = 1;
+  NotificationSettings notifications = 2;
+  Theme theme = 4;
+  string language = 5;
+  bool two_factor_enabled = 7;
 }
+
+message NotificationSettings {
+  bool email_notifications = 1;
+}
+
+enum Theme {
+  LIGHT = 0;
+  DARK = 1;
+} 

@@ -23,7 +23,6 @@ import { EditRegistryClient } from './edit-registry-client.component';
 import { EditRegistryClientDialogRequest } from '../../../state/registry-clients';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
-import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 

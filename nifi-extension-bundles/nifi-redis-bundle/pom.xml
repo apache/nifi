@@ -26,7 +26,7 @@
 
     <properties>
         <spring.data.redis.version>3.5.3</spring.data.redis.version>
-        <jedis.version>6.1.0</jedis.version>
+        <jedis.version>6.2.0</jedis.version>
     </properties>
 
     <modules>

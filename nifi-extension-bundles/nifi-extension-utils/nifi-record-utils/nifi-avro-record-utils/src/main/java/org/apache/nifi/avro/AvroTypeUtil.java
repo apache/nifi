@@ -17,6 +17,7 @@
 
 package org.apache.nifi.avro;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.ByteBuffer;
@@ -57,7 +58,6 @@ import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -798,9 +798,10 @@ public class AvroTypeUtil {
                     }
                 }
                 try {
-                    if (rawValue instanceof Blob) {
-                        Blob blob = (Blob) rawValue;
-                        return ByteBuffer.wrap(IOUtils.toByteArray(blob.getBinaryStream()));
+                    if (rawValue instanceof Blob blob) {
+                        final InputStream binaryStream = blob.getBinaryStream();
+                        final byte[] bytes = binaryStream.readAllBytes();
+                        return ByteBuffer.wrap(bytes);
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer");
                     }

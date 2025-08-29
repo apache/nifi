@@ -26,24 +26,23 @@
                     [hasParameterContext]="parameters !== null"></property-hint>
             </div>
             <div class="flex flex-col gap-y-0.5 flex-1">
-                <div
-                    class="nf-editor h-full w-full absolute overflow-auto"
-                    [class.blank]="blank"
-                    [class.sensitive]="showSensitiveHelperText">
-                    <ngx-codemirror
-                        [options]="getOptions()"
+                <div [class.sensitive]="showSensitiveHelperText">
+                    <codemirror
                         formControlName="value"
+                        [config]="codemirrorConfig"
+                        [style.width]="editorStyling.width"
+                        [style.height]="editorStyling.height"
                         (mousedown)="preventDrag($event)"
-                        (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>
-                    @if (!readonly) {
-                        <mat-checkbox
-                            formControlName="setEmptyString"
-                            (mousedown)="preventDrag($event)"
-                            (change)="setEmptyStringChanged()"
-                            >Set empty string
-                        </mat-checkbox>
-                    }
+                        (ready)="codeMirrorLoaded($event)" />
                 </div>
+                @if (!readonly) {
+                    <mat-checkbox
+                        formControlName="setEmptyString"
+                        (mousedown)="preventDrag($event)"
+                        (change)="setEmptyStringChanged()">
+                        <mat-label class="checkbox-label">Set empty string</mat-label>
+                    </mat-checkbox>
+                }
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 @if (readonly) {

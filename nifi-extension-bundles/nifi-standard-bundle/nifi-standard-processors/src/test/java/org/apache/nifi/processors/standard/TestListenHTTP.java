@@ -26,6 +26,7 @@ import okhttp3.Response;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.reporting.InitializationException;
@@ -38,6 +39,7 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.ssl.SSLContextProvider;
+import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -57,6 +59,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -77,13 +80,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.stream.IntStream;
 
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -766,6 +772,51 @@ public class TestListenHTTP {
             int responseCode = response.code();
             assertEquals(200, responseCode, "Expected 200 response code with large header.");
         }
+    }
+
+    @Test
+    public void testFlowFilePackageRestoresFilenames() throws IOException {
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+
+        final int port = startWebServer();
+
+        final OkHttpClient okHttpClient = getOkHttpClient(false, false);
+        final Request.Builder requestBuilder = new Request.Builder();
+        final String url = buildUrl(false, port, HTTP_BASE_PATH);
+        requestBuilder.url(url);
+
+        // Create FFv3 package containing two FlowFiles with filenames "file1" and "file2"
+        final FlowFilePackagerV3 packager = new FlowFilePackagerV3();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final byte[] data = "content does not matter".getBytes(StandardCharsets.UTF_8);
+
+        IntStream.rangeClosed(0, 1).forEach(i -> {
+            try (ByteArrayInputStream content = new ByteArrayInputStream(data)) {
+                Map<String, String> attributes = Map.of("filename", "file" + i);
+                packager.packageFlowFile(content, baos, attributes, data.length);
+            } catch (IOException e) {
+                fail();
+            }
+        });
+
+        final byte[] flowFileV3Package = baos.toByteArray();
+        final RequestBody requestBody = RequestBody.create(flowFileV3Package, MediaType.parse(StandardFlowFileMediaType.VERSION_3.getMediaType()));
+        final Request request = requestBuilder.post(requestBody)
+                .addHeader("filename", "data.flowfilev3")
+                .build();
+
+        try (final Response response = okHttpClient.newCall(request).execute()) {
+            assertTrue(response.isSuccessful());
+        }
+
+        // Confirm FFv3 package is unpacked and each FlowFile carries the proper filename
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 2);
+        IntStream.rangeClosed(0, 1).forEach(i -> {
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).get(i);
+            flowFile.assertAttributeEquals("filename", "file" + i);
+
+        });
     }
 
     private byte[] generateRandomBinaryData() {

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.services.protobuf.converter;
 
-import com.google.protobuf.Descriptors;
+import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
 
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForRootMessage;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRootMessageSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestProtobufDataConverter {
 
     @Test
-    public void testDataConverterForProto3() throws Descriptors.DescriptorValidationException, IOException {
+    public void testDataConverterForProto3() throws DescriptorValidationException, IOException {
         final Schema schema = loadProto3TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto3Message");
 
@@ -80,7 +82,19 @@ public class TestProtobufDataConverter {
     }
 
     @Test
-    public void testDataConverterForRepeatedProto3() throws Descriptors.DescriptorValidationException, IOException {
+    public void testDataConverterCanHandleNestedMessages() throws DescriptorValidationException, IOException {
+        final Schema schema = loadRootMessageSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("org.apache.nifi.protobuf.test.RootMessage");
+
+        final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "org.apache.nifi.protobuf.test.RootMessage", recordSchema, false, false);
+        final MapRecord record = dataConverter.createRecord(generateInputDataForRootMessage());
+
+        final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
+        assertEquals("ENUM_VALUE_3", nestedRecord.getValue("testEnum"));
+    }
+
+    @Test
+    public void testDataConverterForRepeatedProto3() throws DescriptorValidationException, IOException {
         final Schema schema = loadRepeatedProto3TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("RootMessage");
 
@@ -118,7 +132,7 @@ public class TestProtobufDataConverter {
     }
 
     @Test
-    public void testDataConverterForProto2() throws Descriptors.DescriptorValidationException, IOException {
+    public void testDataConverterForProto2() throws DescriptorValidationException, IOException {
         final Schema schema = loadProto2TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto2Message");
 

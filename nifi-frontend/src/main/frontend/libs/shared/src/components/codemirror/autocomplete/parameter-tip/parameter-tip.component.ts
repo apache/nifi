@@ -16,8 +16,8 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NiFiCommon } from '../../../services/nifi-common.service';
-import { Parameter, ParameterTipInput } from '../../../types';
+import { NiFiCommon } from '../../../../services/nifi-common.service';
+import { Parameter, ParameterTipInput } from '../../../../types';
 
 @Component({
     selector: 'parameter-tip',
@@ -26,8 +26,6 @@ import { Parameter, ParameterTipInput } from '../../../types';
     styleUrls: ['./parameter-tip.component.scss']
 })
 export class ParameterTip {
-    @Input() left = 0;
-    @Input() bottom = 0;
     @Input() data: ParameterTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}

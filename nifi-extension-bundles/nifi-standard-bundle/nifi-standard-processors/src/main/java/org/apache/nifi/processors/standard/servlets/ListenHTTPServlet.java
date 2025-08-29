@@ -358,7 +358,8 @@ public class ListenHTTPServlet extends HttpServlet {
 
             // put metadata on flowfile
             final String nameVal = request.getHeader(CoreAttributes.FILENAME.key());
-            if (StringUtils.isNotBlank(nameVal)) {
+            // Favor filename extracted from unpackager over filename in header
+            if (StringUtils.isBlank(attributes.get(CoreAttributes.FILENAME.key())) && StringUtils.isNotBlank(nameVal)) {
                 attributes.put(CoreAttributes.FILENAME.key(), nameVal);
             }
 

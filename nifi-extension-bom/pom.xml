@@ -208,19 +208,30 @@
             <dependency>
                 <groupId>org.eclipse.jetty.ee10</groupId>
                 <artifactId>jetty-ee10-apache-jsp</artifactId>
+                <exclusions>
+                    <!-- Exclude legacy Mortbay coordinates; use mortbay-apache-* instead -->
+                    <exclusion>
+                        <groupId>org.mortbay.jasper</groupId>
+                        <artifactId>apache-jsp</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jasper</groupId>
+                        <artifactId>apache-el</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
-                <artifactId>apache-jsp</artifactId>
-                <version>10.1.43</version>
+                <artifactId>mortbay-apache-jsp</artifactId>
+                <version>10.1.44</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
-                <artifactId>apache-el</artifactId>
-                <version>10.1.43</version>
+                <artifactId>mortbay-apache-el</artifactId>
+                <version>10.1.44</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -238,7 +249,7 @@
             <dependency>
                 <groupId>org.eclipse.jdt</groupId>
                 <artifactId>ecj</artifactId>
-                <version>3.40.0</version>
+                <version>3.42.0</version>
                 <scope>provided</scope>
             </dependency>
             <!-- Jetty EE10 Glassfish JSTL and deps -->
@@ -414,11 +425,11 @@
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
-            <artifactId>apache-jsp</artifactId>
+            <artifactId>mortbay-apache-jsp</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
-            <artifactId>apache-el</artifactId>
+            <artifactId>mortbay-apache-el</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.el</groupId>
@@ -503,8 +514,8 @@
                         <dependency>org.ow2.asm:asm-commons</dependency>
                         <dependency>org.ow2.asm:asm-tree</dependency>
                         <dependency>org.eclipse.jetty.ee10:jetty-ee10-apache-jsp</dependency>
-                        <dependency>org.mortbay.jasper:apache-jsp</dependency>
-                        <dependency>org.mortbay.jasper:apache-el</dependency>
+                        <dependency>org.mortbay.jasper:mortbay-apache-jsp</dependency>
+                        <dependency>org.mortbay.jasper:mortbay-apache-el</dependency>
                         <dependency>jakarta.el:jakarta.el-api</dependency>
                         <dependency>jakarta.servlet.jsp:jakarta.servlet.jsp-api</dependency>
                         <dependency>org.eclipse.jdt:ecj</dependency>

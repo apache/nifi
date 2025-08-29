@@ -30,12 +30,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-protobuf-services</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-shared-nar</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <type>nar</type>
         </dependency>
     </dependencies>

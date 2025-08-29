@@ -110,7 +110,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.788</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.32.27</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.32.31</software.amazon.awssdk.version>
         <gson.version>2.13.1</gson.version>
         <io.fabric8.kubernetes.client.version>7.3.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.2.10</kotlin.version>
@@ -129,6 +129,7 @@
         <org.apache.commons.csv.version>1.14.1</org.apache.commons.csv.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
+        <org.apache.sshd.version>2.16.0</org.apache.sshd.version>
         <org.bouncycastle.version>1.81</org.bouncycastle.version>
         <pmd.version>7.16.0</pmd.version>
         <testcontainers.version>1.21.3</testcontainers.version>
@@ -143,7 +144,7 @@
         <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <json.smart.version>2.6.0</json.smart.version>
-        <groovy.version>4.0.28</groovy.version>
+        <groovy.version>5.0.0</groovy.version>
         <surefire.version>3.5.1</surefire.version>
         <hadoop.version>3.4.1</hadoop.version>
         <ozone.version>1.4.1</ozone.version>
@@ -161,7 +162,6 @@
         <spring.version>6.2.10</spring.version>
         <spring.security.version>6.5.3</spring.security.version>
         <swagger.annotations.version>2.2.36</swagger.annotations.version>
-        <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.2.2</caffeine.version>
         <hapi.version>2.6.0</hapi.version>
@@ -564,7 +564,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.21.1</version>
+                <version>1.21.2</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -926,6 +926,9 @@
                                         <exclude>commons-logging:commons-logging:*</exclude>
                                         <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
                                         <exclude>xalan:xalan</exclude>
+                                        <!-- Enforce migration to new Mortbay coordinates; block old artifacts -->
+                                        <exclude>org.mortbay.jasper:apache-jsp:*</exclude>
+                                        <exclude>org.mortbay.jasper:apache-el:*</exclude>
                                         <!-- As of Bouncycastle 1.71 Java 8 is the minimum required so jdk15on artifacts not allowed -->
                                         <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
                                         <exclude>org.bouncycastle:bcpg-jdk15on</exclude>

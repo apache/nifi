@@ -169,16 +169,26 @@
         <dependency>
             <groupId>org.eclipse.jetty.ee10</groupId>
             <artifactId>jetty-ee10-apache-jsp</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mortbay.jasper</groupId>
+                    <artifactId>apache-jsp</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jasper</groupId>
+                    <artifactId>apache-el</artifactId>
+                </exclusion>
+            </exclusions>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
-            <artifactId>apache-jsp</artifactId>
+            <artifactId>mortbay-apache-jsp</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
-            <artifactId>apache-el</artifactId>
+            <artifactId>mortbay-apache-el</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>

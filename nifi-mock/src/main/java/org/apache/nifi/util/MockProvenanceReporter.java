@@ -79,8 +79,8 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void receive(FlowFile flowFile, String transitUri, String details) {
-        receive(flowFile, transitUri, details, -1L);
+    public void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier) {
+        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, null, -1L);
     }
 
     @Override
