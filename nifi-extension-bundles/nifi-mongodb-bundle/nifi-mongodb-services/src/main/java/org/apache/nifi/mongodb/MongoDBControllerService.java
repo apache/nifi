@@ -131,6 +131,14 @@ public class MongoDBControllerService extends AbstractControllerService implemen
                     case PLAIN -> builder.credential(MongoCredential.createPlainCredential(user, database, passw.toCharArray()));
                     default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username and password: " + mechanism);
                 }
+            } else if (authMechanism != null) {
+                final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(authMechanism.toUpperCase());
+                switch (mechanism) {
+                    case MONGODB_X509 -> builder.credential(MongoCredential.createMongoX509Credential(user));
+                    case MONGODB_OIDC -> builder.credential(MongoCredential.createOidcCredential(user));
+                    case GSSAPI -> builder.credential(MongoCredential.createGSSAPICredential(user));
+                    default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username only: " + mechanism);
+                }
             } else if (user != null && passw != null) {
                 final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
                 builder.credential(credential);
