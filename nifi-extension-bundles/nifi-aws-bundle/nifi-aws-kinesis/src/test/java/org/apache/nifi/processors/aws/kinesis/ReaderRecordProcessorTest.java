@@ -50,13 +50,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SUB_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.PARTITION_KEY;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SHARD_ID;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SUB_SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.STREAM_NAME;
 import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlowFileRecords;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -112,9 +115,14 @@ class ReaderRecordProcessorTest {
 
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
 
+        assertEquals(TEST_STREAM_NAME, successFlowFile.getAttribute(STREAM_NAME));
         assertEquals(TEST_SHARD_ID, successFlowFile.getAttribute(SHARD_ID));
-        assertEquals(record.sequenceNumber(), successFlowFile.getAttribute(SEQUENCE_NUMBER));
-        assertEquals(String.valueOf(record.subSequenceNumber()), successFlowFile.getAttribute(SUB_SEQUENCE_NUMBER));
+
+        assertEquals(record.sequenceNumber(), successFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals(String.valueOf(record.subSequenceNumber()), successFlowFile.getAttribute(FIRST_SUB_SEQUENCE_NUMBER));
+        assertEquals(record.sequenceNumber(), successFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
+        assertEquals(String.valueOf(record.subSequenceNumber()), successFlowFile.getAttribute(LAST_SUB_SEQUENCE_NUMBER));
+
         assertEquals(record.partitionKey(), successFlowFile.getAttribute(PARTITION_KEY));
         assertEquals(String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()), successFlowFile.getAttribute(APPROXIMATE_ARRIVAL_TIMESTAMP));
 
@@ -140,8 +148,14 @@ class ReaderRecordProcessorTest {
         assertEquals(0, result.parseFailureFlowFiles().size());
 
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
+        assertEquals(TEST_STREAM_NAME, successFlowFile.getAttribute(STREAM_NAME));
         assertEquals(TEST_SHARD_ID, successFlowFile.getAttribute(SHARD_ID));
         assertEquals("3", successFlowFile.getAttribute(RECORD_COUNT));
+
+        assertEquals(records.getFirst().sequenceNumber(), successFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals(String.valueOf(records.getFirst().subSequenceNumber()), successFlowFile.getAttribute(FIRST_SUB_SEQUENCE_NUMBER));
+        assertEquals(records.getLast().sequenceNumber(), successFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
+        assertEquals(String.valueOf(records.getLast().subSequenceNumber()), successFlowFile.getAttribute(LAST_SUB_SEQUENCE_NUMBER));
 
         assertFlowFileRecords(successFlowFile, records);
     }
@@ -219,7 +233,8 @@ class ReaderRecordProcessorTest {
 
         final MockFlowFile failureFlowFile = (MockFlowFile) result.parseFailureFlowFiles().getFirst();
         assertEquals(TEST_SHARD_ID, failureFlowFile.getAttribute(SHARD_ID));
-        assertEquals("1", failureFlowFile.getAttribute("aws.kinesis.sequence.number"));
+        assertEquals("1", failureFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("1", failureFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertNotNull(failureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
 
         failureFlowFile.assertContentEquals("{invalid json}", UTF_8);
@@ -245,7 +260,8 @@ class ReaderRecordProcessorTest {
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
         assertEquals(TEST_SHARD_ID, successFlowFile.getAttribute(SHARD_ID));
         assertEquals("3", successFlowFile.getAttribute(RECORD_COUNT));
-        assertEquals("5", successFlowFile.getAttribute(SEQUENCE_NUMBER));
+        assertEquals("1", successFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("5", successFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertFlowFileRecords(successFlowFile, records.get(0), records.get(2), records.get(4));
 
         assertAll(result.parseFailureFlowFiles().stream().map(
@@ -318,29 +334,34 @@ class ReaderRecordProcessorTest {
 
         final FlowFile firstFlowFile = result.successFlowFiles().getFirst();
         assertEquals("2", firstFlowFile.getAttribute(RECORD_COUNT));
-        assertEquals("2", firstFlowFile.getAttribute(SEQUENCE_NUMBER));
+        assertEquals("1", firstFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("2", firstFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertFlowFileRecords(firstFlowFile, records.subList(0, 2));
 
         final FlowFile secondFlowFile = result.successFlowFiles().get(1);
         assertEquals("2", secondFlowFile.getAttribute(RECORD_COUNT));
-        assertEquals("6", secondFlowFile.getAttribute(SEQUENCE_NUMBER));
+        assertEquals("4", secondFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("6", secondFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertFlowFileRecords(secondFlowFile, records.get(3), records.get(5));
 
         final FlowFile thirdFlowFile = result.successFlowFiles().get(2);
         assertEquals("1", thirdFlowFile.getAttribute(RECORD_COUNT));
-        assertEquals("7", thirdFlowFile.getAttribute(SEQUENCE_NUMBER));
+        assertEquals("7", thirdFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("7", thirdFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertFlowFileRecords(thirdFlowFile, records.get(6));
 
         final List<FlowFile> failureFlowFiles = result.parseFailureFlowFiles();
 
         final MockFlowFile firstFailureFlowFile = (MockFlowFile) failureFlowFiles.getFirst();
-        assertEquals("3", firstFailureFlowFile.getAttribute(SEQUENCE_NUMBER));
+        assertEquals("3", firstFailureFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("3", firstFailureFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertNotNull(firstFailureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
         assertEquals(TEST_SHARD_ID, firstFailureFlowFile.getAttribute(SHARD_ID));
         firstFailureFlowFile.assertContentEquals(KinesisRecordPayload.extract(records.get(2)), UTF_8);
 
         final MockFlowFile secondFailureFlowFile = (MockFlowFile) failureFlowFiles.get(1);
-        assertEquals("5", secondFailureFlowFile.getAttribute(SEQUENCE_NUMBER));
+        assertEquals("5", secondFailureFlowFile.getAttribute(FIRST_SEQUENCE_NUMBER));
+        assertEquals("5", secondFailureFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertNotNull(secondFailureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
         assertEquals(TEST_SHARD_ID, secondFailureFlowFile.getAttribute(SHARD_ID));
         secondFailureFlowFile.assertContentEquals(KinesisRecordPayload.extract(records.get(4)), UTF_8);
