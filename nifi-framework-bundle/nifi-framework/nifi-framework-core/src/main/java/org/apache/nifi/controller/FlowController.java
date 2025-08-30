@@ -50,6 +50,7 @@ import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.components.ClassLoaderAwarePythonBridge;
 import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.TriggerValidationTask;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -127,7 +128,7 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceApiLookup;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceResolver;
-import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
+import org.apache.nifi.controller.state.providers.ManagedStateProvider;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.StorageStatus;
 import org.apache.nifi.controller.status.analytics.CachingConnectionStatusAnalyticsEngine;
@@ -213,7 +214,6 @@ import org.apache.nifi.util.concurrency.TimedLock;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -267,6 +267,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
 
+    private static final String ZOOKEEPER_STATE_PROVIDER_SERVER_CLASS = "org.apache.nifi.controller.state.providers.zookeeper.server.ZooKeeperStateProviderServer";
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
@@ -303,7 +304,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     private final ConcurrentMap<String, ProcessGroup> allProcessGroups = new ConcurrentHashMap<>();
 
-    private final ZooKeeperStateServer zooKeeperStateServer;
+    private final StateProvider stateProviderServer;
 
     // The Heartbeat Bean is used to provide an Atomic Reference to data that is used in heartbeats that may
     // change while the instance is running. We do this because we want to generate heartbeats even if we
@@ -538,16 +539,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             throw new RuntimeException("Unable to create Content Repository", e);
         }
 
-        // Start Embedded ZooKeeper when enabled before other references to State Manager Provider
+        // Start Embedded State Provider Server when enabled before other references to State Manager Provider
         if (nifiProperties.isStartEmbeddedZooKeeper() && configuredForClustering) {
             try {
-                zooKeeperStateServer = ZooKeeperStateServer.create(nifiProperties);
-                zooKeeperStateServer.start();
-            } catch (final IOException | ConfigException e) {
-                throw new IllegalStateException("Unable to initialize Flow because NiFi was configured to start an Embedded Zookeeper server but failed to do so", e);
+                stateProviderServer = ManagedStateProvider.create(extensionManager, ZOOKEEPER_STATE_PROVIDER_SERVER_CLASS, nifiProperties);
+                stateProviderServer.enable();
+            } catch (final Exception e) {
+                throw new IllegalStateException("Failed to enable Embedded State Provider Server", e);
             }
         } else {
-            zooKeeperStateServer = null;
+            stateProviderServer = null;
         }
 
         lifecycleStateManager = new StandardLifecycleStateManager();
@@ -1560,8 +1561,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalysisThreadPool.shutdown();
             clusterTaskExecutor.shutdownNow();
 
-            if (zooKeeperStateServer != null) {
-                zooKeeperStateServer.shutdown();
+            if (stateProviderServer != null) {
+                stateProviderServer.shutdown();
             }
 
             if (loadBalanceClientThreadPool != null) {
