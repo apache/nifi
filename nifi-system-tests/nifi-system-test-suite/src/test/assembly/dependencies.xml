@@ -71,6 +71,7 @@
                 <include>*:nifi-system-test-flow-action-reporter-nar</include>
                 <include>*:nifi-jetty-nar</include>
                 <include>*:nifi-framework-nar</include>
+                <include>*:nifi-framework-zookeeper-nar</include>
                 <include>*:nifi-server-nar</include>
                 <include>*:nifi-standard-services-api-nar</include>
                 <include>*:nifi-provenance-repository-nar</include>
