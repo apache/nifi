@@ -24,6 +24,7 @@
     <packaging>pom</packaging>
 
     <properties>
+        <zookeeper.version>3.9.4</zookeeper.version>
         <curator.version>5.9.0</curator.version>
     </properties>
 
@@ -36,12 +37,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- metrics-core marked as provided in zookeeper -->
-            <dependency>
-                <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>4.2.34</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
