@@ -247,7 +247,7 @@ public class PutMongo extends AbstractMongoProcessor {
                 if (Objects.equals(updateOperationMode, UPDATE_WITH_DOC.getValue())) {
                     updateResult = collection.replaceOne(updateQuery, (Document) doc, new ReplaceOptions().upsert(upsert));
                 } else {
-                    BasicDBObject update = (BasicDBObject) doc;
+                    BasicDBObject update = (BasicDBObject) doc; //NOPMD
                     update.remove(updateKey);
                     UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
                     UpdateMethod updateQueryMode = context.getProperty(UPDATE_METHOD).asAllowableValue(UpdateMethod.class);

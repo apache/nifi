@@ -30,9 +30,6 @@ public class HeapStatus implements java.io.Serializable {
     private long usedNonHeap;
     private int nonHeapUtilization;
 
-    public HeapStatus() {
-    }
-
     public long getTotalHeap() {
         return totalHeap;
     }

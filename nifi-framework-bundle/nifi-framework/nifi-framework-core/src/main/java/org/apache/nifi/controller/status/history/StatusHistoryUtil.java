@@ -39,7 +39,7 @@ public class StatusHistoryUtil {
     public static StatusHistoryDTO createStatusHistoryDTO(final StatusHistory statusHistory) {
         final List<StatusSnapshotDTO> snapshotDtos = new ArrayList<>();
         final Set<MetricDescriptor<?>> metricDescriptors = new LinkedHashSet<>();
-        final LinkedHashMap<String, String> componentDetails = new LinkedHashMap<>(statusHistory.getComponentDetails());
+        final Map<String, String> componentDetails = new LinkedHashMap<>(statusHistory.getComponentDetails());
 
         final Set<String> metricNames = new HashSet<>();
         for (final StatusSnapshot snapshot : statusHistory.getStatusSnapshots()) {

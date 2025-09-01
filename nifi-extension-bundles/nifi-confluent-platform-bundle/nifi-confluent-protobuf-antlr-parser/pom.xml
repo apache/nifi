@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
+    language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-confluent-platform-bundle</artifactId>
+        <version>2.6.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nifi-confluent-protobuf-antlr-parser</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <antlr4.version>4.13.2</antlr4.version>
+        <antlr4.protobuf3.grammar.url>https://raw.githubusercontent.com/antlr/grammars-v4/e1491245d045474fa5393fb7be03b3b8ed22080f/protobuf3/Protobuf3.g4</antlr4.protobuf3.grammar.url>
+        <antlr4.generated.sources>target/generated-sources/antlr4</antlr4.generated.sources>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>${antlr4.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-confluent-platform-schema-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.github.download-maven-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>2.0.0</version>
+                <executions>
+                    <execution>
+                        <id>download-protobuf3-grammar</id>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <url>${antlr4.protobuf3.grammar.url}</url>
+                            <outputFileName>Protobuf3.g4</outputFileName>
+                            <outputDirectory>${project.build.directory}/grammar</outputDirectory>
+                            <sha256>f9fff342d7e6b5ecec7ae8af17672fae91b878f630fb126c828993ab39dc68a8</sha256>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>${antlr4.version}</version>
+                <configuration>
+                    <arguments>
+                        <argument>-package</argument>
+                        <argument>org.apache.nifi.confluent.schema.antlr</argument>
+                    </arguments>
+                    <sourceDirectory>${project.build.directory}/grammar</sourceDirectory>
+                    <outputDirectory>${antlr4.generated.sources}/org/apache/nifi/confluent/schema/antlr</outputDirectory>
+                    <visitor>true</visitor>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${antlr4.generated.sources}</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project> 

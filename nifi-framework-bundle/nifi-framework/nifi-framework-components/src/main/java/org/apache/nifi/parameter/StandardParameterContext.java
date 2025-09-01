@@ -524,7 +524,7 @@ public class StandardParameterContext implements ParameterContext {
      * @param parameterContexts A list of proposed ParameterContexts
      */
     private void verifyNoCycles(final List<ParameterContext> parameterContexts) {
-        final Stack<String> traversedIds = new Stack<>();
+        final Stack<String> traversedIds = new Stack<>(); //NOPMD
         traversedIds.push(id);
         verifyNoCycles(traversedIds, parameterContexts);
     }
@@ -536,7 +536,7 @@ public class StandardParameterContext implements ParameterContext {
      * @param parameterContexts The ParameterContexts for which to check for cycles
      * @throws IllegalStateException If a cycle was detected
      */
-    private void verifyNoCycles(final Stack<String> traversedIds, final List<ParameterContext> parameterContexts) {
+    private void verifyNoCycles(final Stack<String> traversedIds, final List<ParameterContext> parameterContexts) { //NOPMD
         for (final ParameterContext parameterContext : parameterContexts) {
             final String id = parameterContext.getIdentifier();
             if (traversedIds.contains(id)) {

@@ -112,7 +112,7 @@ public class InferenceSchemaStrategyTest {
     }
 
     private Map<String, Object> givenContent() {
-        final HashMap<String, Object> result = new HashMap<>();
+        final Map<String, Object> result = new HashMap<>();
 
         for (final Object[] contentField : CONTENT_FIELDS) {
             result.put((String) contentField[0], contentField[1]);
@@ -122,7 +122,7 @@ public class InferenceSchemaStrategyTest {
     }
 
     private Map<String, DataType> givenExpected() {
-        final HashMap<String, DataType> result = new HashMap<>();
+        final Map<String, DataType> result = new HashMap<>();
 
         for (final Object[] contentField : CONTENT_FIELDS) {
             result.put((String) contentField[0], (DataType) contentField[2]);

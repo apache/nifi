@@ -93,6 +93,7 @@ public class StandardStatusSnapshot implements StatusSnapshot {
         counterValues.put(metric, value);
     }
 
+    @Override
     public StandardStatusSnapshot withoutCounters() {
         if (counterValues == null || counterValues.isEmpty()) {
             return this;

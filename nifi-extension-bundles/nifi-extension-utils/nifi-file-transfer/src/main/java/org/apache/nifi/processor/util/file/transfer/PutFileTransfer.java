@@ -62,10 +62,6 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             REL_REJECT
     );
 
-    public PutFileTransfer() {
-        super();
-    }
-
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;

@@ -38,18 +38,14 @@ public class ResourceClaimFieldMap implements Record {
 
     @Override
     public Object getFieldValue(final String fieldName) {
-        switch (fieldName) {
-            case ContentClaimSchema.CLAIM_CONTAINER:
-                return resourceClaim.getContainer();
-            case ContentClaimSchema.CLAIM_SECTION:
-                return resourceClaim.getSection();
-            case ContentClaimSchema.CLAIM_IDENTIFIER:
-                return resourceClaim.getId();
-            case ContentClaimSchema.LOSS_TOLERANT:
-                return resourceClaim.isLossTolerant();
-        }
+        return switch (fieldName) {
+            case ContentClaimSchema.CLAIM_CONTAINER -> resourceClaim.getContainer();
+            case ContentClaimSchema.CLAIM_SECTION -> resourceClaim.getSection();
+            case ContentClaimSchema.CLAIM_IDENTIFIER -> resourceClaim.getId();
+            case ContentClaimSchema.LOSS_TOLERANT -> resourceClaim.isLossTolerant();
+            default -> null;
+        };
 
-        return null;
     }
 
     public static ResourceClaim getResourceClaim(final Record record, final ResourceClaimManager claimManager) {

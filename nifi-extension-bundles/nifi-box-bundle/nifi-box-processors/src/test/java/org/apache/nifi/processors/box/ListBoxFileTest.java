@@ -39,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingTestTrait {
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
 

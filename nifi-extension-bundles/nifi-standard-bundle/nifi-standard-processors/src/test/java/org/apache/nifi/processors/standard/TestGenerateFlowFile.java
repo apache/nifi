@@ -78,6 +78,25 @@ public class TestGenerateFlowFile {
     }
 
     @Test
+    public void testContextParametersToAttributes() {
+        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
+        runner.setParameterContextValue("context.parameter.property", "context.parameter.value");
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
+        runner.setProperty(GenerateFlowFile.MIME_TYPE, "application/text");
+        runner.setProperty("expression.context.parameter", "#{context.parameter.property}");
+        runner.assertValid();
+
+        runner.run();
+
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
+        generatedFlowFile.assertAttributeEquals("expression.context.parameter", "context.parameter.value");
+        generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
+    }
+
+
+    @Test
     public void testExpressionLanguageSupport() {
         TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "${nextInt()}B");

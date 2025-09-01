@@ -39,6 +39,7 @@ public class BaseSchemaWithIdAndName extends BaseSchemaWithId implements Writabl
         this.name = name;
     }
 
+    @Override
     public String getWrapperName() {
         return super.getWrapperName().replace("{name}", StringUtil.isNullOrEmpty(name) ? "unknown" : name);
     }

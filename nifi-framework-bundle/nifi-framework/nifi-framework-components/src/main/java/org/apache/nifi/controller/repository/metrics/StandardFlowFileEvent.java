@@ -45,9 +45,6 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
     private int invocations;
     private Map<String, Long> counters;
 
-    public StandardFlowFileEvent() {
-    }
-
     @Override
     public int getFlowFilesIn() {
         return flowFilesIn;
@@ -161,6 +158,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         this.sessionCommitNanos = nanos;
     }
 
+    @Override
     public long getGargeCollectionMillis() {
         return gcMillis;
     }

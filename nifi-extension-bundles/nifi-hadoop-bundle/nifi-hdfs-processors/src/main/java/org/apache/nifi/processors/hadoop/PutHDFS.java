@@ -225,7 +225,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor IGNORE_LOCALITY = new PropertyDescriptor.Builder()
             .name("Ignore Locality")
-            .displayName("Ignore Locality")
             .description(
                     "Directs the HDFS system to ignore locality rules so that data is distributed randomly throughout the cluster")
             .required(false)

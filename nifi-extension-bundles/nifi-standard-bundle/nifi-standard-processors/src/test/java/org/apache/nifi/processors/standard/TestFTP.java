@@ -182,8 +182,8 @@ public class TestFTP {
 
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        HashMap<String, String> map1 = new HashMap<>();
-        HashMap<String, String> map2 = new HashMap<>();
+        Map<String, String> map1 = new HashMap<>();
+        Map<String, String> map2 = new HashMap<>();
         map1.put(CoreAttributes.FILENAME.key(), "randombytes-xx");
         map2.put(CoreAttributes.FILENAME.key(), "randombytes-yy");
 
@@ -197,8 +197,8 @@ public class TestFTP {
         runner.run();
 
         runner.assertTransferCount(PutFTP.REL_SUCCESS, 2);
-        assert (runner.getProvenanceEvents().get(0).getTransitUri().contains("ftp://localhost"));
-        assert (runner.getProvenanceEvents().get(1).getTransitUri().contains("ftp://127.0.0.1"));
+        assertTrue(runner.getProvenanceEvents().get(0).getTransitUri().contains("ftp://localhost"));
+        assertTrue(runner.getProvenanceEvents().get(1).getTransitUri().contains("ftp://127.0.0.1"));
     }
 
     @Test

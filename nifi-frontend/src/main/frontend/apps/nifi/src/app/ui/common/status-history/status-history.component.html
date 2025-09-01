@@ -73,13 +73,37 @@
                                                 <div class="flex flex-col">
                                                     <div>Start</div>
                                                     <div class="tertiary-color font-medium">
-                                                        {{ minDate }}
+                                                        <mat-form-field subscriptSizing="dynamic">
+                                                            <mat-select
+                                                                formControlName="start"
+                                                                (selectionChange)="startChanged($event.value)">
+                                                                <mat-select-trigger>
+                                                                    {{
+                                                                        formatSelectedStartTime(
+                                                                            statusHistoryForm.get('start')?.value
+                                                                        )
+                                                                    }}
+                                                                </mat-select-trigger>
+                                                                @for (option of startTimeOptions; track option) {
+                                                                    <mat-option [value]="option.value">
+                                                                        <div class="flex flex-col gap-y-1">
+                                                                            <div class="text-md">
+                                                                                {{ option.label }}
+                                                                            </div>
+                                                                            <div class="text-sm tertiary-color">
+                                                                                {{ option.formattedDate }}
+                                                                            </div>
+                                                                        </div>
+                                                                    </mat-option>
+                                                                }
+                                                            </mat-select>
+                                                        </mat-form-field>
                                                     </div>
                                                 </div>
                                                 <div class="flex flex-col">
                                                     <div>End</div>
                                                     <div class="tertiary-color font-medium">
-                                                        {{ maxDate }}
+                                                        {{ formattedMaxDate }}
                                                     </div>
                                                 </div>
                                                 <div class="flex flex-col">
@@ -110,7 +134,8 @@
                                                 </div>
                                                 @if (!!nodes && nodes.length > 0) {
                                                     <div class="flex flex-col">
-                                                        <div class="flex justify-between items-center border-b mr-1">
+                                                        <div
+                                                            class="flex justify-between items-center border-b mr-1 pb-1.5">
                                                             <mat-label class="font-bold secondary-color"
                                                                 >Nodes
                                                             </mat-label>
@@ -122,7 +147,7 @@
                                                                 "
                                                                 (change)="selectAllNodesChanged($event)"></mat-checkbox>
                                                         </div>
-                                                        <div>
+                                                        <div class="pt-1.5">
                                                             <div>Min / Max / Mean</div>
                                                             <div class="tertiary-color font-medium">
                                                                 {{ nodeStats.min }} / {{ nodeStats.max }} /
@@ -155,8 +180,9 @@
                                         </div>
                                         <div class="chart-panel grow flex flex-col">
                                             @if (fieldDescriptors$ | async) {
-                                                <div class="selected-descriptor-container">
-                                                    <mat-form-field>
+                                                <div class="selected-descriptor-container flex flex-col">
+                                                    <mat-form-field subscriptSizing="dynamic">
+                                                        <mat-label class="value-label">Metric</mat-label>
                                                         <mat-select formControlName="fieldDescriptor">
                                                             @for (descriptor of fieldDescriptors; track descriptor) {
                                                                 @if (descriptor.description) {
@@ -183,7 +209,7 @@
                                                 </div>
                                             }
                                             <status-history-chart
-                                                [instances]="instances"
+                                                [instances]="filteredInstances()"
                                                 [visibleInstances]="instanceVisibility"
                                                 [selectedFieldDescriptor]="selectedDescriptor"
                                                 (nodeStats)="nodeStatsChanged($event)"

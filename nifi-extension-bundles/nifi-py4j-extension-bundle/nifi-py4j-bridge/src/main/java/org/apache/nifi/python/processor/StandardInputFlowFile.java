@@ -38,6 +38,7 @@ public class StandardInputFlowFile implements InputFlowFile, Closeable {
         this.flowFile = flowFile;
     }
 
+    @Override
     public byte[] getContentsAsBytes() throws IOException {
         if (flowFile.getSize() > Integer.MAX_VALUE) {
             throw new IOException("Cannot read FlowFile contents into a byte array because size is " + flowFile.getSize() +
@@ -51,6 +52,7 @@ public class StandardInputFlowFile implements InputFlowFile, Closeable {
         }
     }
 
+    @Override
     public BufferedReader getContentsAsReader() throws IOException {
         close();
 
@@ -67,14 +69,17 @@ public class StandardInputFlowFile implements InputFlowFile, Closeable {
         }
     }
 
+    @Override
     public long getSize() {
         return flowFile.getSize();
     }
 
+    @Override
     public String getAttribute(final String name) {
         return flowFile.getAttribute(name);
     }
 
+    @Override
     public Map<String, String> getAttributes() {
         return flowFile.getAttributes();
     }

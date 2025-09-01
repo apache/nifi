@@ -377,7 +377,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     }
 
     private Optional<File> checkFileExistence(String fileName, String parentId) throws IOException {
-        final FileList result = driveService.files()
+        final FileList result = driveService.files() //NOPMD
                 .list()
                 .setSupportsAllDrives(true)
                 .setIncludeItemsFromAllDrives(true)

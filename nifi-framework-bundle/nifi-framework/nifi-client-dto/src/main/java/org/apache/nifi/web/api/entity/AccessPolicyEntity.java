@@ -38,10 +38,12 @@ public class AccessPolicyEntity extends ComponentEntity implements Permissible<A
      *
      * @return The {@link AccessPolicyDTO} object
      */
+    @Override
     public AccessPolicyDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(AccessPolicyDTO component) {
         this.component = component;
     }

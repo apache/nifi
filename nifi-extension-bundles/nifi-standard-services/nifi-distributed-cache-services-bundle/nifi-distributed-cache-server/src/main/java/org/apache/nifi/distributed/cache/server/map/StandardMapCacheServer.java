@@ -57,7 +57,7 @@ public class StandardMapCacheServer extends EventCacheServer {
             final int maxCacheEntries,
             final EvictionPolicy evictionPolicy,
             final File persistencePath,
-            final int maxReadLength
+            final int maxReadSize
     ) throws IOException {
         super(log, port);
 
@@ -89,7 +89,7 @@ public class StandardMapCacheServer extends EventCacheServer {
                         mapRemoveResponseEncoder,
                         mapSizeResponseEncoder,
                         mapValueResponseEncoder,
-                        new MapCacheRequestDecoder(log, maxReadLength, MapOperation.values()),
+                        new MapCacheRequestDecoder(log, maxReadSize, MapOperation.values()),
                         mapCacheRequestHandler,
                         new CacheVersionRequestHandler(log, versionNegotiator)
                 )

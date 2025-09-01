@@ -216,32 +216,29 @@ public class HL7Query {
         // DATE('24 HOURS AGO')
         // DATE('YESTERDAY')
 
-        switch (tree.getType()) {
-            case EQUALS:
-                return new EqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
-            case NOT_EQUALS:
-                return new NotEqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
-            case GT:
-                return new GreaterThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
-            case LT:
-                return new LessThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
-            case GE:
-                return new GreaterThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
-            case LE:
-                return new LessThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
-            case NOT:
-                return new NotEvaluator(buildBooleanEvaluator(tree.getChild(0)));
-            case AND:
-                return new AndEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
-            case OR:
-                return new OrEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
-            case IS_NULL:
-                return new IsNullEvaluator(buildReferenceEvaluator(tree.getChild(0)));
-            case NOT_NULL:
-                return new NotNullEvaluator(buildReferenceEvaluator(tree.getChild(0)));
-            default:
-                throw new HL7QueryParsingException("Cannot build boolean evaluator for '" + tree.getText() + "'");
-        }
+        return switch (tree.getType()) {
+            case EQUALS ->
+                    new EqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+            case NOT_EQUALS ->
+                    new NotEqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+            case GT ->
+                    new GreaterThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+            case LT ->
+                    new LessThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+            case GE ->
+                    new GreaterThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+            case LE ->
+                    new LessThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+            case NOT -> new NotEvaluator(buildBooleanEvaluator(tree.getChild(0)));
+            case AND ->
+                    new AndEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
+            case OR ->
+                    new OrEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
+            case IS_NULL -> new IsNullEvaluator(buildReferenceEvaluator(tree.getChild(0)));
+            case NOT_NULL -> new NotNullEvaluator(buildReferenceEvaluator(tree.getChild(0)));
+            default ->
+                    throw new HL7QueryParsingException("Cannot build boolean evaluator for '" + tree.getText() + "'");
+        };
     }
 
     Tree getTree() {
@@ -291,7 +288,7 @@ public class HL7Query {
     public QueryResult evaluate(final HL7Message message) {
 
         int totalIterations = 1;
-        final LinkedHashMap<String, List<Object>> possibleValueMap = new LinkedHashMap<>();
+        final Map<String, List<Object>> possibleValueMap = new LinkedHashMap<>();
         for (final Declaration declaration : declarations) {
             final Object value = declaration.getDeclaredValue(message);
             if (value == null && declaration.isRequired()) {
@@ -342,7 +339,7 @@ public class HL7Query {
      * between multiple invocations of this method.
      * package protected for testing visibility
      */
-    static Map<String, Object> assignAliases(final LinkedHashMap<String, List<Object>> possibleValues, final int iteration) {
+    static Map<String, Object> assignAliases(final Map<String, List<Object>> possibleValues, final int iteration) {
         final Map<String, Object> aliasMap = new HashMap<>();
 
         int divisor = 1;

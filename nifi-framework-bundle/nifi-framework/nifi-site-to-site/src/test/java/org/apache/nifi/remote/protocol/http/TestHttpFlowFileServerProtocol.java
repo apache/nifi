@@ -272,7 +272,7 @@ public class TestHttpFlowFileServerProtocol {
 
         transferFlowFiles(serverProtocol, transactionId, peer, processSession -> {
             final MockFlowFile flowFile = processSession.createFlowFile("Server content".getBytes());
-            final HashMap<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put("uuid", "server-uuid");
             attributes.put("filename", "server-filename");
             attributes.put("server-attr-1", "server-attr-1-value");
@@ -311,7 +311,7 @@ public class TestHttpFlowFileServerProtocol {
 
         transferFlowFiles(serverProtocol, transactionId, peer, processSession -> {
             final MockFlowFile flowFile = processSession.createFlowFile("Server content".getBytes());
-            final HashMap<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put("uuid", "server-uuid");
             attributes.put("filename", "server-filename");
             attributes.put("server-attr-1", "server-attr-1-value");
@@ -368,7 +368,7 @@ public class TestHttpFlowFileServerProtocol {
         transferFlowFiles(serverProtocol, transactionId, peer, processSession ->
             IntStream.of(1, 2).mapToObj(i -> {
                 final MockFlowFile flowFile = processSession.createFlowFile(("Server content " + i).getBytes());
-                final HashMap<String, String> attributes = new HashMap<>();
+                final Map<String, String> attributes = new HashMap<>();
                 attributes.put("uuid", "server-uuid-" + i);
                 attributes.put("filename", "server-filename-" + i);
                 attributes.put("server-attr-" + i + "-1", "server-attr-" + i + "-1-value");

@@ -22,9 +22,6 @@ public class PortStatus implements java.io.Serializable {
     private boolean targetExists;
     private boolean targetRunning;
 
-    public PortStatus() {
-    }
-
     public String getName() {
         return name;
     }

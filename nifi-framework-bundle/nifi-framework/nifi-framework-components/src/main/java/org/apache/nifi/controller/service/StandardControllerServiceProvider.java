@@ -109,6 +109,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return scheduleReferencingComponents(serviceNode, null, new DefaultComponentScheduler(this, VersionedComponentStateLookup.IDENTITY_LOOKUP));
     }
 
+    @Override
     public Set<ComponentNode> scheduleReferencingComponents(final ControllerServiceNode serviceNode, final Set<ComponentNode> candidates, final ComponentScheduler componentScheduler) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.

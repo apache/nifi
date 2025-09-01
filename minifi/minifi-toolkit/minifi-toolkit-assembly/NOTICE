@@ -151,4 +151,3 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - https://www.eclipse.org/aspectj/)
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.6 - https://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.6 - https://logback.qos.ch/)
-    (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - https://www.h2database.com/html/license.html)

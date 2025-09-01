@@ -46,6 +46,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.logging.ComponentLog;
@@ -330,7 +331,7 @@ class ListSmbTest {
     }
 
     private DistributedMapCacheClient mockDistributedMap() throws IOException {
-        final Map<String, ConcurrentHashMap<String, ListedEntity>> store = new ConcurrentHashMap<>();
+        final Map<String, ? extends ConcurrentMap<String, ListedEntity>> store = new ConcurrentHashMap<>();
         final DistributedMapCacheClient cacheService = mock(DistributedMapCacheClient.class);
         when(cacheService.putIfAbsent(any(), any(), any(), any())).thenReturn(false);
         when(cacheService.containsKey(any(), any())).thenReturn(false);

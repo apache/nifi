@@ -71,9 +71,6 @@ public class SocketClientProtocol implements ClientProtocol {
     private long batchMillis;
     private EventReporter eventReporter;
 
-    public SocketClientProtocol() {
-    }
-
     public void setPreferredBatchCount(final int count) {
         this.batchCount = count;
     }

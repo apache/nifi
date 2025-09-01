@@ -359,11 +359,11 @@ public class TestDataTypeUtils {
 
     @Test
     void testConvertRecordFieldToObjectWithNestedRecord() {
-        final Record record = DataTypeUtils.toRecord(new LinkedHashMap<String, Object>() {{
-            put("firstName", "John");
-            put("age", 30);
-            put("addresses", new Object[] {"some string", DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Fake Street"), "addresses")});
-        }}, "");
+        final Record record = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "age", 30,
+                "addresses", new Object[] {"some string", DataTypeUtils.toRecord(Map.of("address_1", "123 Fake Street"), "addresses")}
+        ), "");
 
         final Object obj = DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getDataType());
         assertInstanceOf(Map.class, obj);

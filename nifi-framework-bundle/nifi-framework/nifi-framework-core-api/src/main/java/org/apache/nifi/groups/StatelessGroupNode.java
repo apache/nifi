@@ -32,6 +32,7 @@ public interface StatelessGroupNode extends Connectable {
 
     void initialize(StatelessGroupNodeInitializationContext initializationContext);
 
+    @Override
     ProcessGroup getProcessGroup();
 
     void start(ScheduledExecutorService executorService, SchedulingAgentCallback schedulingAgentCallback, LifecycleState lifecycleState);

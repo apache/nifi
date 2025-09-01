@@ -132,7 +132,7 @@ public class ControllerSearchService {
     }
 
     private List<ProcessGroup> getLineage(final ProcessGroup group) {
-        final LinkedList<ProcessGroup> result = new LinkedList<>();
+        final List<ProcessGroup> result = new LinkedList<>();
         ProcessGroup current = group;
 
         while (current != null) {

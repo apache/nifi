@@ -24,10 +24,6 @@
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
-            <groupId>org.apache.zookeeper</groupId>
-            <artifactId>zookeeper-jute</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-encryptor</artifactId>
             <version>2.6.0-SNAPSHOT</version>
@@ -125,17 +121,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime-manifest-core</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-zookeeper-leader-election</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-cluster-zookeeper</artifactId>
             <version>2.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -259,46 +244,6 @@
             <artifactId>nifi-flowfile-repo-serialization</artifactId>
             <version>2.6.0-SNAPSHOT</version>
         </dependency>
-        <!-- metrics-core required for ZooKeeper Server -->
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-        </dependency>
-        <!-- snappy-java required for ZooKeeper Server -->
-        <dependency>
-            <groupId>org.xerial.snappy</groupId>
-            <artifactId>snappy-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.zookeeper</groupId>
-            <artifactId>zookeeper</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-framework</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-recipes</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-client</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
@@ -310,12 +255,6 @@
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-test</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

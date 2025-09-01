@@ -34,6 +34,7 @@ public class SingleLineResult implements ShellCommandResult {
         this.commandName = commandName;
     }
 
+    @Override
     public Collection<String> createResult(final InputStream inputStream) {
         final List<String> result = new ArrayList<>();
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {

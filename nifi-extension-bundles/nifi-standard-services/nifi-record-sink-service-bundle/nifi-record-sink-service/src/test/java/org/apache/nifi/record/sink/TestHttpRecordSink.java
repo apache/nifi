@@ -296,6 +296,7 @@ public class TestHttpRecordSink {
                     && active == record.getAsBoolean(ACTIVE);
         }
 
+        @Override
         public String toString() {
             return ID + "=" + id + ", " + NAME + "=" + name + ", " + ACTIVE + "=" + active;
         }

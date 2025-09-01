@@ -66,15 +66,25 @@ public class MockPropertyValue implements PropertyValue {
         this(rawValue, serviceLookup, null, environmentVariables);
     }
 
+    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final Map<String, String> environmentVariables, ParameterLookup parameterLookup) {
+        this(rawValue, serviceLookup, null, false, environmentVariables, parameterLookup);
+    }
+
     public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
             final Map<String, String> environmentVariables) {
         this(rawValue, serviceLookup, propertyDescriptor, false, environmentVariables);
     }
 
     protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
-            final boolean alreadyEvaluated, final Map<String, String> environmentVariables) {
+                                final boolean alreadyEvaluated, final Map<String, String> environmentVariables) {
+        this(rawValue, serviceLookup, propertyDescriptor, alreadyEvaluated, environmentVariables, ParameterLookup.EMPTY);
+    }
+
+
+    protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
+            final boolean alreadyEvaluated, final Map<String, String> environmentVariables, ParameterLookup parameterLookup) {
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), propertyDescriptor);
-        this.stdPropValue = new StandardPropertyValue(resourceContext, rawValue, serviceLookup, ParameterLookup.EMPTY);
+        this.stdPropValue = new StandardPropertyValue(resourceContext, rawValue, serviceLookup, parameterLookup);
         this.rawValue = rawValue;
         this.serviceLookup = (MockControllerServiceLookup) serviceLookup;
         this.expectExpressions = propertyDescriptor == null ? null : propertyDescriptor.isExpressionLanguageSupported();

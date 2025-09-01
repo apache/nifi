@@ -15,7 +15,17 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, HostListener, inject, Inject, OnInit } from '@angular/core';
+import {
+    AfterViewInit,
+    Component,
+    DestroyRef,
+    HostListener,
+    inject,
+    Inject,
+    OnInit,
+    signal,
+    WritableSignal
+} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
 import { AsyncPipe, NgStyle } from '@angular/common';
@@ -38,13 +48,13 @@ import {
 } from '../../../state/status-history/status-history.selectors';
 import { initialState } from '../../../state/status-history/status-history.reducer';
 import { filter, take } from 'rxjs';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import * as d3 from 'd3';
 import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
-import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
+import { Instance, NIFI_NODE_CONFIG, StartOption, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorContextKey } from '../../../state/error';
@@ -81,8 +91,10 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
 
     details: { key: string; value: string }[] = [];
 
-    minDate = '';
-    maxDate = '';
+    formattedMinDate = '';
+    formattedMaxDate = '';
+    minDate = 0;
+    maxDate = 0;
     statusHistoryForm: FormGroup;
 
     nodeStats: Stats = {
@@ -101,6 +113,8 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
     nodes: any[] = [];
 
     instances: Instance[] = [];
+    filteredInstances: WritableSignal<Instance[]> = signal([]);
+    startTimeOptions: StartOption[] = [];
     instanceVisibility: any = {};
     selectedDescriptor: FieldDescriptor | null = null;
     private destroyRef: DestroyRef = inject(DestroyRef);
@@ -115,7 +129,8 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
         super();
         this.request = dialogRequest;
         this.statusHistoryForm = this.formBuilder.group({
-            fieldDescriptor: ''
+            fieldDescriptor: '',
+            start: new FormControl(0, Validators.required)
         });
     }
 
@@ -175,8 +190,12 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
                             return s.timestamp;
                         });
                     });
-                    this.minDate = this.nifiCommon.formatDateTime(new Date(minDate));
-                    this.maxDate = this.nifiCommon.formatDateTime(new Date(maxDate));
+                    this.formattedMinDate = this.nifiCommon.formatDateTime(new Date(minDate));
+                    this.formattedMaxDate = this.nifiCommon.formatDateTime(new Date(maxDate));
+
+                    this.minDate = minDate;
+                    this.maxDate = maxDate;
+                    this.updateStartTimeOptions();
                 }
             });
         this.fieldDescriptors$
@@ -308,6 +327,76 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
         }
         return 'unset neutral-color';
     }
+
+    startChanged(value: number) {
+        if (value === 0) {
+            this.filteredInstances.set(this.instances);
+        } else {
+            const filtered = this.instances.map((instance: Instance) => {
+                const filteredSnapshots = instance.snapshots.filter(
+                    (snapshot) => snapshot.timestamp >= this.maxDate - value
+                );
+                return {
+                    id: instance.id,
+                    label: instance.label,
+                    snapshots: filteredSnapshots
+                };
+            });
+            // only include the instances that have snapshots that meet the filter criteria
+            this.filteredInstances.set(filtered.filter((instances) => instances.snapshots.length > 0));
+        }
+    }
+
+    formatSelectedStartTime(value: number) {
+        const selected = this.startTimeOptions.find((option) => option.value === value);
+        if (selected) {
+            return selected.label;
+        }
+        return this.startTimeOptions[0].label;
+    }
+
+    private updateStartTimeOptions() {
+        const selected = this.statusHistoryForm.get('start')?.value;
+        const options: StartOption[] = [{ label: 'All', value: 0, formattedDate: this.formattedMinDate }];
+        const diff = this.maxDate - this.minDate;
+
+        if (diff > this.fiveMinutes) {
+            options.push({
+                label: 'Last 5 minutes',
+                value: this.fiveMinutes,
+                formattedDate: this.nifiCommon.formatDateTime(new Date(this.maxDate - this.fiveMinutes))
+            });
+        }
+        if (diff > this.tenMinutes) {
+            options.push({
+                label: 'Last 10 minutes',
+                value: this.tenMinutes,
+                formattedDate: this.nifiCommon.formatDateTime(new Date(this.maxDate - this.tenMinutes))
+            });
+        }
+        if (diff > this.thirtyMinutes) {
+            options.push({
+                label: 'Last 30 minutes',
+                value: this.thirtyMinutes,
+                formattedDate: this.nifiCommon.formatDateTime(new Date(this.maxDate - this.thirtyMinutes))
+            });
+        }
+        if (diff > this.sixtyMinutes) {
+            options.push({
+                label: 'Last hour',
+                value: this.sixtyMinutes,
+                formattedDate: this.nifiCommon.formatDateTime(new Date(this.maxDate - this.sixtyMinutes))
+            });
+        }
+        this.startTimeOptions = options;
+        // trigger the charts to update with potentially new data
+        this.startChanged(selected);
+    }
+
+    private readonly fiveMinutes = 5 * NiFiCommon.MILLIS_PER_MINUTE;
+    private readonly tenMinutes = 10 * NiFiCommon.MILLIS_PER_MINUTE;
+    private readonly thirtyMinutes = 30 * NiFiCommon.MILLIS_PER_MINUTE;
+    private readonly sixtyMinutes = NiFiCommon.MILLIS_PER_HOUR;
 
     protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;
     protected readonly ErrorContextKey = ErrorContextKey;

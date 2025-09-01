@@ -112,11 +112,13 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
         flowController.stopReportingTask(this);
     }
 
+    @Override
     public void enable() {
         verifyCanEnable();
         flowController.enableReportingTask(this);
     }
 
+    @Override
     public void disable() {
         verifyCanDisable();
         flowController.disableReportingTask(this);

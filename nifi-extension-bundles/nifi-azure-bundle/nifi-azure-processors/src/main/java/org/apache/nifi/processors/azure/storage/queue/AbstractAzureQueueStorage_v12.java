@@ -53,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
     public static final PropertyDescriptor QUEUE_NAME = new PropertyDescriptor.Builder()
             .name("Queue Name")
-            .displayName("Queue Name")
             .description("Name of the Azure Storage Queue")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -67,7 +66,6 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("Credentials Service")
-            .displayName("Credentials Service")
             .description("Controller Service used to obtain Azure Storage Credentials.")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
@@ -75,7 +73,6 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
 
     public static final PropertyDescriptor REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Request Timeout")
-            .displayName("Request Timeout")
             .description("The timeout for read or write requests to Azure Queue Storage. " +
                     "Defaults to 1 second.")
             .required(true)

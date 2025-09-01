@@ -54,6 +54,7 @@ public class StartAwsTranslateJob extends AbstractAwsMachineLearningJobStarter<
         return StartTextTranslationJobRequest.serializableBuilderClass();
     }
 
+    @Override
     protected String getAwsTaskId(final ProcessContext context, final StartTextTranslationJobResponse startTextTranslationJobResponse, final FlowFile flowFile) {
         return startTextTranslationJobResponse.jobId();
     }

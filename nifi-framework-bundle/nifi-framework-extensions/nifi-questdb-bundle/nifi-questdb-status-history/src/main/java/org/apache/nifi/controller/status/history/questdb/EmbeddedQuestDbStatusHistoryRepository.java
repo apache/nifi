@@ -101,7 +101,7 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
                 .build();
 
         storage = new BufferedStatusHistoryStorage(
-                new QuestDbStatusHistoryStorage(databaseManager.acquireClient()),
+                new QuestDbStatusHistoryStorage(databaseManager.acquireClient(), getDaysToKeepNodeData(niFiProperties), getDaysToKeepComponentData(niFiProperties)),
                 FormatUtils.getTimeDuration(niFiProperties.getQuestDbStatusRepositoryPersistFrequency(), TimeUnit.MILLISECONDS),
                 niFiProperties.getQuestDbStatusRepositoryPersistBatchSize()
         );

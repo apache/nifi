@@ -77,6 +77,7 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
         return validationFailureResults;
     }
 
+    @Override
     public String getName() {
         return name;
     }

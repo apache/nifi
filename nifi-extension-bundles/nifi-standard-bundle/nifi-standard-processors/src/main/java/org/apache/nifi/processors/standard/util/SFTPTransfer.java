@@ -175,7 +175,6 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor KEY_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Key Algorithms Allowed")
-            .displayName("Key Algorithms Allowed")
             .description("A comma-separated list of Key Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
                     + convertFactorySetToString(DEFAULT_KEY_ALGORITHM_NAMES))
             .required(false)
@@ -186,7 +185,6 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Ciphers Allowed")
-            .displayName("Ciphers Allowed")
             .description("A comma-separated list of Ciphers allowed for SFTP connections. Leave unset to allow all. Available options are: " + convertFactorySetToString(DEFAULT_CIPHER_NAMES))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -196,7 +194,6 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
             .name("Message Authentication Codes Allowed")
-            .displayName("Message Authentication Codes Allowed")
             .description("A comma-separated list of Message Authentication Codes allowed for SFTP connections. Leave unset to allow all. Available options are: "
                     + convertFactorySetToString(DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES))
             .required(false)
@@ -207,7 +204,6 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Key Exchange Algorithms Allowed")
-            .displayName("Key Exchange Algorithms Allowed")
             .description("A comma-separated list of Key Exchange Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
                     + convertFactorySetToString(DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES))
             .required(false)

@@ -52,14 +52,12 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
 
     static final PropertyDescriptor SCHEMA_REGISTRY_URL = new PropertyDescriptor.Builder()
             .name("Schema Registry URL")
-            .displayName("Schema Registry URL")
             .description("The URL of the Schema Registry e.g. http://localhost:8080")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .required(true)
             .build();
     static final PropertyDescriptor SCHEMA_GROUP_ID = new PropertyDescriptor.Builder()
             .name("Schema Group ID")
-            .displayName("Schema Group ID")
             .description("The artifact Group ID for the schemas")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -68,7 +66,6 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
             .build();
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Cache Size")
-            .displayName("Cache Size")
             .description("Specifies how many Schemas should be cached from the Schema Registry. The cache size must be "
                     + "a non-negative integer. When it is set to 0, the cache is effectively disabled.")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -78,7 +75,6 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
 
     static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
             .name("Cache Expiration")
-            .displayName("Cache Expiration")
             .description("Specifies how long a Schema that is cached should remain in the cache. Once this time period elapses, a "
                     + "cached version of a schema will no longer be used, and the service will have to communicate with the "
                     + "Schema Registry again in order to obtain the schema.")
@@ -88,7 +84,6 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
             .build();
     public static final PropertyDescriptor WEB_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
             .name("Web Client Service Provider")
-            .displayName("Web Client Service Provider")
             .description("Controller service for HTTP client operations")
             .required(true)
             .identifiesControllerService(WebClientServiceProvider.class)

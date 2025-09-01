@@ -109,21 +109,18 @@ public class JoinEnrichment extends BinFiles {
 
     static final PropertyDescriptor ORIGINAL_RECORD_READER = new PropertyDescriptor.Builder()
         .name("Original Record Reader")
-        .displayName("Original Record Reader")
         .description("The Record Reader for reading the 'original' FlowFile")
         .required(true)
         .identifiesControllerService(RecordReaderFactory.class)
         .build();
     static final PropertyDescriptor ENRICHMENT_RECORD_READER = new PropertyDescriptor.Builder()
         .name("Enrichment Record Reader")
-        .displayName("Enrichment Record Reader")
         .description("The Record Reader for reading the 'enrichment' FlowFile")
         .required(true)
         .identifiesControllerService(RecordReaderFactory.class)
         .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("Record Writer")
-        .displayName("Record Writer")
         .description("The Record Writer to use for writing the results. If the Record Writer is configured to inherit the schema from the Record, the schema that it will inherit will be the result " +
             "of merging both the 'original' record schema and the 'enrichment' record schema.")
         .required(true)
@@ -132,7 +129,6 @@ public class JoinEnrichment extends BinFiles {
 
     static final PropertyDescriptor JOIN_STRATEGY = new PropertyDescriptor.Builder()
         .name("Join Strategy")
-        .displayName("Join Strategy")
         .description("Specifies how to join the two FlowFiles into a single FlowFile")
         .required(true)
         .allowableValues(JOIN_WRAPPER, JOIN_SQL, JOIN_INSERT_ENRICHMENT_FIELDS)
@@ -140,7 +136,6 @@ public class JoinEnrichment extends BinFiles {
         .build();
     static final PropertyDescriptor SQL = new PropertyDescriptor.Builder()
         .name("SQL")
-        .displayName("SQL")
         .description("The SQL SELECT statement to evaluate. Expression Language may be provided, but doing so may result in poorer performance. Because this Processor is dealing with two FlowFiles " +
             "at a time, it's also important to understand how attributes will be referenced. If both FlowFiles have an attribute with the same name but different values, the Expression Language " +
             "will resolve to the value provided by the 'enrichment' FlowFile.")
@@ -162,7 +157,6 @@ public class JoinEnrichment extends BinFiles {
         .build();
     static final PropertyDescriptor INSERTION_RECORD_PATH = new PropertyDescriptor.Builder()
         .name("Insertion Record Path")
-        .displayName("Insertion Record Path")
         .description("Specifies where in the 'original' Record the 'enrichment' Record's fields should be inserted. Note that if the RecordPath " +
             "does not point to any existing field in the original Record, the enrichment will not be inserted.")
         .required(true)
@@ -174,7 +168,6 @@ public class JoinEnrichment extends BinFiles {
 
     static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
         .name("Timeout")
-        .displayName("Timeout")
         .description("Specifies the maximum amount of time to wait for the second FlowFile once the first arrives at the processor, after which point the first " +
             "FlowFile will be routed to the 'timeout' relationship.")
         .required(true)

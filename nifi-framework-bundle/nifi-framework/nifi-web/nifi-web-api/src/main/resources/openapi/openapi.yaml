@@ -24,3 +24,18 @@ openAPI:
     license:
       name: Apache 2.0
       url: https://www.apache.org/licenses/LICENSE-2.0.html
+  security:
+    - HTTPBearerJWT: []
+    - CookieSecureAuthorizationBearer: []
+  components:
+    securitySchemes:
+      HTTPBearerJWT:
+        description: HTTP Bearer authentication with JSON Web Token
+        type: http
+        scheme: Bearer
+        bearerFormat: JWT
+      CookieSecureAuthorizationBearer:
+        description: JSON Web Token authentication with session cookie
+        type: apiKey
+        in: cookie
+        name: __Secure-Authorization-Bearer

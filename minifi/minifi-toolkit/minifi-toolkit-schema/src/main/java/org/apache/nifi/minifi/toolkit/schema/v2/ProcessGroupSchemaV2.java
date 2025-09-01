@@ -95,6 +95,7 @@ public class ProcessGroupSchemaV2 extends BaseSchemaWithIdAndName implements Wri
         addIssuesIfNotNull(connections);
     }
 
+    @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = mapSupplier.get();
         String id = getId();

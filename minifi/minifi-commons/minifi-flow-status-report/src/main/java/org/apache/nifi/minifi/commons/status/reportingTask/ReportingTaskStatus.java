@@ -26,9 +26,6 @@ public class ReportingTaskStatus implements java.io.Serializable {
     private ReportingTaskHealth reportingTaskHealth;
     private List<BulletinStatus> bulletinList;
 
-    public ReportingTaskStatus() {
-    }
-
     public String getName() {
         return name;
     }

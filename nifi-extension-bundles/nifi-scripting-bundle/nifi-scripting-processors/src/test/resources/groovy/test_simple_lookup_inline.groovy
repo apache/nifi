@@ -30,7 +30,7 @@ class SimpleGroovyLookupService implements StringLookupService {
 
 
     @Override
-    Optional<String> lookup(Map<String, String> coordinates) {
+    Optional<String> lookup(Map<String, Object> coordinates) {
         final String key = coordinates.values().iterator().next()
         Optional.ofNullable(lookupTable[key])
     }

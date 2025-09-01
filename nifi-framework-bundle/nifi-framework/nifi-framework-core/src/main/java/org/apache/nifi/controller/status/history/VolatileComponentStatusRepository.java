@@ -175,7 +175,7 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
     public StatusHistory getNodeStatusHistory(final Date start, final Date end) {
         final List<NodeStatus> nodeStatusList = nodeStatuses.asList();
         final List<List<GarbageCollectionStatus>> gcStatusList = gcStatuses.asList();
-        final LinkedList<StatusSnapshot> snapshots = new LinkedList<>();
+        final List<StatusSnapshot> snapshots = new LinkedList<>();
 
         final Set<MetricDescriptor<?>> metricDescriptors = new HashSet<>();
         final Set<MetricDescriptor<NodeStatus>> nodeStatusDescriptors = new HashSet<>(DEFAULT_NODE_METRICS);

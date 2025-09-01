@@ -203,6 +203,7 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         }
     }
 
+    @Override
     public boolean isDestructable(final ResourceClaim claim) {
         if (claim == null) {
             return false;

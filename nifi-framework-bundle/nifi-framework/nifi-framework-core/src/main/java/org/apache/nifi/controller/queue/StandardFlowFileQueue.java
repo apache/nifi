@@ -214,6 +214,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     /**
      * Lock the queue so that other threads are unable to interact with the queue
      */
+    @Override
     public void lock() {
         writeLock.lock();
     }
@@ -221,6 +222,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     /**
      * Unlock the queue
      */
+    @Override
     public void unlock() {
         writeLock.unlock("external unlock");
     }

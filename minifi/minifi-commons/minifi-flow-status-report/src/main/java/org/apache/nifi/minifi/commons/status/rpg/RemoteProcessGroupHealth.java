@@ -23,9 +23,6 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
     private int activePortCount;
     private int inactivePortCount;
 
-    public RemoteProcessGroupHealth() {
-    }
-
     public String getTransmissionStatus() {
         return transmissionStatus;
     }

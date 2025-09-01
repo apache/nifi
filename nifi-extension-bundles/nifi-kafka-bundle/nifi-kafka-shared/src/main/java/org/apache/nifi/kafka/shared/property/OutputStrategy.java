@@ -25,7 +25,8 @@ public enum OutputStrategy implements DescribedValue {
     USE_VALUE("USE_VALUE", "Use Content as Value", "Write only the Kafka Record value to the FlowFile record."),
     USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the FlowFile record. (See processor's additional details for more information.)"),
     INJECT_METADATA("INJECT_METADATA", "Inject Metadata",
-            "Write the Kafka Record value to the FlowFile record and add a sub-record to it with key, headers, and metadata. (See processor's additional details for more information.)");
+            "Write the Kafka Record value to the FlowFile record and add a sub-record to it with key, headers, and metadata. (See processor's additional details for more information.)"),
+    INJECT_OFFSET("INJECT_OFFSET", "Inject Offset", "Write the Kafka Record value to the FlowFile record and write the Kafka Record offset to a field named kafkaOffset");
 
     private final String value;
     private final String displayName;

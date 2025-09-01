@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -100,7 +101,7 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
 
     private volatile BoxAPIConnection boxAPIConnection;
     private volatile EventStream eventStream;
-    protected volatile LinkedBlockingQueue<BoxEvent> events;
+    protected volatile BlockingQueue<BoxEvent> events;
     private volatile AtomicLong position = new AtomicLong(0);
 
     @Override
@@ -135,7 +136,7 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
             events = new LinkedBlockingQueue<>(queueCapacity);
         } else {
             // create new one with events from the old queue in case capacity has changed
-            final LinkedBlockingQueue<BoxEvent> newQueue = new LinkedBlockingQueue<>(queueCapacity);
+            final BlockingQueue<BoxEvent> newQueue = new LinkedBlockingQueue<>(queueCapacity);
             newQueue.addAll(events);
             events = newQueue;
         }

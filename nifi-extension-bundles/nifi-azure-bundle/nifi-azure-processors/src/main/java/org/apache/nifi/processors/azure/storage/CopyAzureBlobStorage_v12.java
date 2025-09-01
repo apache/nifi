@@ -123,7 +123,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor SOURCE_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("Source Storage Credentials")
-            .displayName("Source Storage Credentials")
             .description("Credentials Service used to obtain Azure Blob Storage Credentials to read Source Blob information")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
@@ -131,7 +130,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor SOURCE_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .name("Source Container Name")
-            .displayName("Source Container Name")
             .description("Name of the Azure storage container that will be copied")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -140,7 +138,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor SOURCE_BLOB_NAME = new PropertyDescriptor.Builder()
             .name("Source Blob Name")
-            .displayName("Source Blob Name")
             .description("Name of the Azure blob that will be copied")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)

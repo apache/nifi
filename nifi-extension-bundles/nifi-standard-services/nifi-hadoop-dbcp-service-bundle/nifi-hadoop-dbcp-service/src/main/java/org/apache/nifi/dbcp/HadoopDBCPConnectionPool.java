@@ -250,6 +250,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
      * @throws SQLException if there is an error while closing open connections
      */
     @OnDisabled
+    @Override
     public void shutdown() throws SQLException {
         validationResourceHolder.set(null);
         foundHadoopDependencies = null;

@@ -25,9 +25,6 @@ public class ConnectionResponseMessage extends ProtocolMessage {
 
     private ConnectionResponse connectionResponse;
 
-    public ConnectionResponseMessage() {
-    }
-
     public ConnectionResponse getConnectionResponse() {
         return connectionResponse;
     }

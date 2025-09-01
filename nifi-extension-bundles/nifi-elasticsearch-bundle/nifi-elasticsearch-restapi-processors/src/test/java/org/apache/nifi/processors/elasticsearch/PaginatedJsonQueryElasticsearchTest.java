@@ -32,14 +32,17 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
     public static void setUpBeforeClass() throws Exception {
         AbstractPaginatedJsonQueryElasticsearchTest.setUpBeforeClass();
     }
+    @Override
     AbstractPaginatedJsonQueryElasticsearch getProcessor() {
         return new PaginatedJsonQueryElasticsearch();
     }
 
+    @Override
     Scope getStateScope() {
         return null;
     }
 
+    @Override
     boolean isInput() {
         return true;
     }

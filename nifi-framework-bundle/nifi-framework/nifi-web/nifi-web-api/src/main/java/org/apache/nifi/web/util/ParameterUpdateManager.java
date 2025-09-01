@@ -169,7 +169,12 @@ public class ParameterUpdateManager {
             for (final ParameterContextEntity updatedContextEntity : updatedContextEntities) {
                 logger.info("Updating Parameter Context with ID {}", updatedContextEntity.getId());
 
-                updatedEntities.add(performParameterContextUpdate(asyncRequest, uri, replicateRequest, revision, updatedContextEntity));
+                final Revision contextRevision = new Revision(
+                        updatedContextEntity.getRevision().getVersion(),
+                        updatedContextEntity.getRevision().getClientId(),
+                        updatedContextEntity.getId());
+
+                updatedEntities.add(performParameterContextUpdate(asyncRequest, uri, replicateRequest, contextRevision, updatedContextEntity));
                 logger.info("Successfully updated Parameter Context with ID {}", updatedContextEntity.getId());
             }
             asyncRequest.markStepComplete();

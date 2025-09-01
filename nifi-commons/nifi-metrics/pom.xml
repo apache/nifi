@@ -31,12 +31,12 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
-            <version>4.2.33</version>
+            <version>4.2.36</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-            <version>4.2.33</version>
+            <version>4.2.36</version>
         </dependency>
     </dependencies>
 </project>

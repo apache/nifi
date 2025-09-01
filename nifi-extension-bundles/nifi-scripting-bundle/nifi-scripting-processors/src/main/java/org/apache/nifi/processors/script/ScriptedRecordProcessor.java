@@ -57,7 +57,6 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .displayName("Record Reader")
             .description("The Record Reader to use parsing the incoming FlowFile into Records")
             .required(true)
             .identifiesControllerService(RecordReaderFactory.class)
@@ -65,7 +64,6 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("Record Writer")
-            .displayName("Record Writer")
             .description("The Record Writer to use for serializing Records after they have been transformed")
             .required(true)
             .identifiesControllerService(RecordSetWriterFactory.class)

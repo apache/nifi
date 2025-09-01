@@ -82,8 +82,8 @@ public class SwappablePriorityQueue {
     // keeping these separate, we are able to guarantee that FlowFiles are swapped in in the same order
     // that they are swapped out.
     // Guarded by lock.
-    private PriorityQueue<FlowFileRecord> activeQueue;
-    private ArrayList<FlowFileRecord> swapQueue;
+    private Queue<FlowFileRecord> activeQueue;
+    private List<FlowFileRecord> swapQueue;
     private boolean swapMode = false;
     private volatile long topPenaltyExpiration = -1L;
 
@@ -122,7 +122,7 @@ public class SwappablePriorityQueue {
         try {
             this.priorities = new ArrayList<>(newPriorities);
 
-            final PriorityQueue<FlowFileRecord> newQueue = new PriorityQueue<>(Math.max(20, activeQueue.size()), new QueuePrioritizer(newPriorities));
+            final Queue<FlowFileRecord> newQueue = new PriorityQueue<>(Math.max(20, activeQueue.size()), new QueuePrioritizer(newPriorities));
             newQueue.addAll(activeQueue);
             activeQueue = newQueue;
         } finally {
@@ -181,7 +181,7 @@ public class SwappablePriorityQueue {
         // whatever data we don't write out to a swap file (because there isn't enough to fill a swap file) will be added back to the swap queue.
         // Since the swap queue cannot be processed until all swap files, we want to ensure that only the lowest priority data goes back onto it. Which means
         // that we must swap out the highest priority data that is currently on the swap queue.
-        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
+        final Queue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
         tempQueue.addAll(swapQueue);
 
         long bytesSwappedOut = 0L;
@@ -318,7 +318,7 @@ public class SwappablePriorityQueue {
         }
 
         // Swap Queue is not currently ordered. We want to migrate the highest priority FlowFiles to the Active Queue, then re-queue the lowest priority items.
-        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
+        final Queue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
         tempQueue.addAll(swapQueue);
 
         int recordsMigrated = 0;

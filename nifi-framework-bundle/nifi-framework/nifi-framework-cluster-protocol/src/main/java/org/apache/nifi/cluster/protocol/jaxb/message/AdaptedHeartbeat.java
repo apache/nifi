@@ -29,9 +29,6 @@ public class AdaptedHeartbeat {
     private byte[] payload;
     private NodeConnectionStatus connectionStatus;
 
-    public AdaptedHeartbeat() {
-    }
-
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeIdentifier() {
         return nodeIdentifier;

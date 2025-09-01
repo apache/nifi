@@ -38,6 +38,7 @@ public class AccessPolicyEntityMerger implements ComponentEntityMerger<AccessPol
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final AccessPolicyEntity clientEntity, final Map<NodeIdentifier, AccessPolicyEntity> entityMap) {
         final AccessPolicyDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, AccessPolicyDTO> dtoMap = new HashMap<>();

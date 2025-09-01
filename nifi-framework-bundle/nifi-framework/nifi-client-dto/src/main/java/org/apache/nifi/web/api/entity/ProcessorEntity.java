@@ -39,10 +39,12 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
      *
      * @return The ProcessorDTO object
      */
+    @Override
     public ProcessorDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ProcessorDTO component) {
         this.component = component;
     }

@@ -22,9 +22,6 @@ public class ValidationError implements java.io.Serializable {
     private String input;
     private String reason;
 
-    public ValidationError() {
-    }
-
     public String getSubject() {
         return subject;
     }

@@ -45,7 +45,6 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
     public static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
             .name("Web Client Service Provider")
-            .displayName("Web Client Service Provider")
             .description("Controller service for HTTP client operations.")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
@@ -53,7 +52,6 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
     public static final PropertyDescriptor CONNECT_SERVER = new PropertyDescriptor.Builder()
             .name("Connect Server")
-            .displayName("Connect Server")
             .description("HTTP endpoint of the 1Password Connect Server to connect to. Example: http://localhost:8080")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -61,7 +59,6 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
             .name("Access Token")
-            .displayName("Access Token")
             .description("Access Token used for authentication against the 1Password APIs.")
             .sensitive(true)
             .required(true)

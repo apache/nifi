@@ -29,9 +29,6 @@ public class ServiceBroadcastMessage extends ProtocolMessage {
 
     private int port;
 
-    public ServiceBroadcastMessage() {
-    }
-
     public String getServiceName() {
         return serviceName;
     }

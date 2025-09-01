@@ -129,7 +129,6 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     static final PropertyDescriptor MESSAGE_SELECTOR = new PropertyDescriptor.Builder()
             .name("Message Selector")
-            .displayName("Message Selector")
             .description("The JMS Message Selector to filter the messages that the processor will receive")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

@@ -78,7 +78,6 @@ public class EncodeContent extends AbstractProcessor {
 
     public static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
             .name("Line Output Mode")
-            .displayName("Line Output Mode")
             .description("Controls the line formatting for encoded content based on selected property values.")
             .required(true)
             .defaultValue(LineOutputMode.SINGLE_LINE)
@@ -90,7 +89,6 @@ public class EncodeContent extends AbstractProcessor {
 
     public static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
             .name("Encoded Line Length")
-            .displayName("Encoded Line Length")
             .description("Each line of encoded data will contain up to the configured number of characters, rounded down to the nearest multiple of 4.")
             .required(true)
             .defaultValue("76")

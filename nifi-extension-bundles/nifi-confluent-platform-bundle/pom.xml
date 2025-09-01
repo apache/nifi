@@ -23,6 +23,9 @@
 
 	<modules>
 		<module>nifi-confluent-schema-registry-service</module>
+		<module>nifi-confluent-protobuf-message-name-resolver</module>
 		<module>nifi-confluent-platform-nar</module>
+		<module>nifi-confluent-protobuf-antlr-parser</module>
+		<module>nifi-confluent-platform-schema-api</module>
 	</modules>
 </project>

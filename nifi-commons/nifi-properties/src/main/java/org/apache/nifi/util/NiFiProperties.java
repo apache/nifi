@@ -98,7 +98,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     // flowfile repository properties
     public static final String FLOWFILE_REPOSITORY_IMPLEMENTATION = "nifi.flowfile.repository.implementation";
-    public static final String FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION = "nifi.flowfile.repository.wal.implementation";
     public static final String FLOWFILE_REPOSITORY_ALWAYS_SYNC = "nifi.flowfile.repository.always.sync";
     public static final String FLOWFILE_REPOSITORY_DIRECTORY = "nifi.flowfile.repository.directory";
     public static final String FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL = "nifi.flowfile.repository.checkpoint.interval";
@@ -1425,6 +1424,7 @@ public class NiFiProperties extends ApplicationProperties {
         return getProperty(MAX_APPENDABLE_CLAIM_SIZE, DEFAULT_MAX_APPENDABLE_CLAIM_SIZE);
     }
 
+    @Override
     public String getProperty(final String key, final String defaultValue) {
         final String value = getProperty(key);
         return (value == null || value.isBlank()) ? defaultValue : value;

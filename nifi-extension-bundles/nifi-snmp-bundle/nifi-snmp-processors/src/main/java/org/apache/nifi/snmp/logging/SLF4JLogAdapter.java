@@ -35,70 +35,83 @@ public class SLF4JLogAdapter implements LogAdapter {
         this.logger = logger;
     }
 
+    @Override
     public boolean isDebugEnabled() {
         return logger.isDebugEnabled();
     }
 
+    @Override
     public boolean isInfoEnabled() {
         return logger.isInfoEnabled();
     }
 
+    @Override
     public boolean isWarnEnabled() {
         return logger.isWarnEnabled();
     }
 
-
+    @Override
     public void debug(final Serializable message) {
         if (isDebugEnabled()) {
             logger.debug("{}", message);
         }
     }
 
+    @Override
     public void info(final CharSequence message) {
         if (isInfoEnabled()) {
             logger.info("{}", message);
         }
     }
 
+    @Override
     public void warn(final Serializable message) {
         if (isWarnEnabled()) {
             logger.warn("{}", message);
         }
     }
 
+    @Override
     public void error(final Serializable message) {
         logger.error("{}", message);
     }
 
+    @Override
     public void error(final CharSequence message, final Throwable t) {
         logger.error("{}", message, t);
     }
 
+    @Override
     public void fatal(final Object message) {
         logger.error("{}", message);
     }
 
+    @Override
     public void fatal(final CharSequence message, final Throwable t) {
         logger.error("{}", message, t);
     }
 
-
+    @Override
     public LogLevel getEffectiveLogLevel() {
         return LogLevel.ALL;
     }
 
+    @Override
     public Iterator<Handler> getLogHandler() {
         throw new UnsupportedOperationException("Log handlers are not supported.");
     }
 
+    @Override
     public LogLevel getLogLevel() {
         return getEffectiveLogLevel();
     }
 
+    @Override
     public String getName() {
         return logger.getName();
     }
 
+    @Override
     public void setLogLevel(final LogLevel logLevel) {
         // no need to set log level
     }

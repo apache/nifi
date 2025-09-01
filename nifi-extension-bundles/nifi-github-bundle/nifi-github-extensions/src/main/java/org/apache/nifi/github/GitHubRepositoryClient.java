@@ -19,6 +19,8 @@
 
 package org.apache.nifi.github;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
@@ -31,9 +33,13 @@ import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.PagedIterable;
+import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
+import org.kohsuke.github.connector.GitHubConnectorResponse;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +71,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private static final String WRITE_ACCESS = "write";
 
     private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
-    private static final int COMMIT_PAGE_SIZE = 50;
+    private static final int COMMIT_PAGE_SIZE = 10;
 
     private final String repoOwner;
     private final String repoName;
@@ -76,6 +82,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private final GitHubAuthenticationType authenticationType;
     private final boolean canRead;
     private final boolean canWrite;
+
+    private static final int COMMIT_CACHE_SIZE = 1000;
+    private final Cache<String, GitCommit> commitCache = Caffeine.newBuilder()
+            .maximumSize(COMMIT_CACHE_SIZE)
+            .build();
 
     private GitHubRepositoryClient(final Builder builder) throws IOException, FlowRegistryException {
         final String apiUrl = Objects.requireNonNull(builder.apiUrl, "API URL is required");
@@ -93,6 +104,19 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
             case APP_INSTALLATION -> gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
         }
+
+        gitHubBuilder.withAbuseLimitHandler(new GitHubAbuseLimitHandler() {
+            @Override
+            public void onError(GitHubConnectorResponse connectorResponse) throws IOException {
+                String message;
+                try (final InputStream stream = connectorResponse.bodyStream()) {
+                    message = new String(stream.readAllBytes());
+                } catch (IOException e) {
+                    message = "Failed to read response body";
+                }
+                LOGGER.error("GitHub API request failed with status code: {}, message: {}", connectorResponse.statusCode(), message);
+            }
+        });
 
         gitHub = gitHubBuilder.build();
 
@@ -268,12 +292,15 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         return execute(() -> {
             try {
                 final GHRef branchGhRef = repository.getRef(branchRef);
-                final List<GHCommit> ghCommits = repository.queryCommits()
+                final PagedIterable<GHCommit> ghCommitsIterable = repository.queryCommits()
                         .path(resolvedPath)
                         .from(branchGhRef.getObject().getSha())
                         .pageSize(COMMIT_PAGE_SIZE)
-                        .list()
-                        .toList();
+                        .list();
+
+                // Get the first page of commits
+                final PagedIterator<GHCommit> ghCommitsIterator = ghCommitsIterable.iterator();
+                final List<GHCommit> ghCommits = ghCommitsIterator.nextPage();
 
                 final List<GitCommit> commits = new ArrayList<>();
                 for (final GHCommit ghCommit : ghCommits) {
@@ -407,13 +434,19 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
-        final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
-        return new GitCommit(
-                ghCommit.getSHA1(),
-                ghCommit.getAuthor().getLogin(),
-                shortInfo.getMessage(),
-                Instant.ofEpochMilli(shortInfo.getCommitDate().getTime())
-        );
+        GitCommit commit = commitCache.getIfPresent(ghCommit.getSHA1());
+        if (commit != null) {
+            return commit;
+        } else {
+            final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
+            commit = new GitCommit(
+                    ghCommit.getSHA1(),
+                    ghCommit.getAuthor().getLogin(),
+                    shortInfo.getMessage(),
+                    Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
+            commitCache.put(ghCommit.getSHA1(), commit);
+            return commit;
+        }
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {

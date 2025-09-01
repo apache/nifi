@@ -56,6 +56,7 @@ public class ContextPathRedirectPatternRule extends RedirectPatternRule {
     @Override
     public Rule.Handler apply(Rule.Handler input) throws IOException {
         return new Rule.Handler(input) {
+            @Override
             protected boolean handle(Response response, Callback callback) {
                 final String redirectUri = getRedirectUri(input);
                 response.setStatus(ContextPathRedirectPatternRule.this.getStatusCode());

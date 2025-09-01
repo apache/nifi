@@ -47,6 +47,7 @@ class GetBoxGroupMembersTest extends AbstractBoxFileTest {
 
     private final AtomicReference<Collection<BoxGroupMembership.Info>> membershipsHolder = new AtomicReference<>();
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
         final GetBoxGroupMembers processor = new GetBoxGroupMembers() {

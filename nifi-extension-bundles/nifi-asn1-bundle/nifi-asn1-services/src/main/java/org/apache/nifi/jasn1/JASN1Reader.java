@@ -275,7 +275,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
             throw new ProcessException("Could not create temporary directory for compiled ASN.1 files", e);
         }
 
-        HashMap<String, AsnModule> modulesByName = new HashMap<>();
+        HashMap<String, AsnModule> modulesByName = new HashMap<>(); // NOPMD
 
         Exception parseException = null;
         for (String asn1File : asnFilePaths) {

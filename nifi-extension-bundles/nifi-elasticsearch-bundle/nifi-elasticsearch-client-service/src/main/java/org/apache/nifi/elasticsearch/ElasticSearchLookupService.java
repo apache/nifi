@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -87,7 +88,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     private String type;
     private ObjectMapper mapper;
 
-    private volatile ConcurrentHashMap<String, RecordPath> recordPathMappings;
+    private volatile ConcurrentMap<String, RecordPath> recordPathMappings;
 
     private final List<PropertyDescriptor> descriptors;
 
@@ -228,21 +229,14 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     }
 
     private Map<String, Object> buildQuery(final Map<String, Object> coordinates) {
-        final Map<String, Object> query = new HashMap<>() {{
-            put("bool", new HashMap<String, Object>() {{
-                put("must", coordinates.entrySet().stream()
-                        .map(e -> new HashMap<String, Object>() {{
-                            if (e.getKey().contains(".")) {
-                                put("nested", getNested(e.getKey(), e.getValue()));
-                            } else {
-                                put("match", new HashMap<String, Object>() {{
-                                    put(e.getKey(), e.getValue());
-                                }});
-                            }
-                        }}).toList()
-                );
-            }});
-        }};
+        final Map<String, Object> query = Map.of("bool",
+                Map.of("must", coordinates.entrySet().stream()
+                        .map(e -> e.getKey().contains(".")
+                                        ? Map.of("nested", getNested(e.getKey(), e.getValue()))
+                                        : Map.of("match", Map.of(e.getKey(), e.getValue()))
+                        ).toList()
+                )
+        );
 
         return Map.of("size", 1, "query", query);
     }

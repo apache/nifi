@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,7 +65,7 @@ class UpdatePropertiesPropertyProviderTest {
 
         Map<String, Object> result = updatePropertiesPropertyProvider.getProperties();
 
-        LinkedHashSet<UpdatableProperty> expected = getUpdatableProperties(props);
+        Set<UpdatableProperty> expected = getUpdatableProperties(props);
 
         assertEquals(Collections.singletonMap(AVAILABLE_PROPERTIES, expected), result);
     }
@@ -76,7 +77,7 @@ class UpdatePropertiesPropertyProviderTest {
         assertEquals(Collections.singletonMap(AVAILABLE_PROPERTIES, getUpdatableProperties(new Properties())), properties);
     }
 
-    private static LinkedHashSet<UpdatableProperty> getUpdatableProperties(Properties props) {
+    private static Set<UpdatableProperty> getUpdatableProperties(Properties props) {
         return sortedPropertiesByKey().values()
             .stream()
             .filter(property -> !property.isSensitive())

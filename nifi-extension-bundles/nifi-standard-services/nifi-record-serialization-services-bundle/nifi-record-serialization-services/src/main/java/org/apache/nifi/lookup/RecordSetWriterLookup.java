@@ -59,7 +59,6 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
 
     static final PropertyDescriptor SERVICE_TO_USE = new PropertyDescriptor.Builder()
         .name("Service to Use")
-        .displayName("Service to Use")
         .description("Specifies the name of the user-defined property whose associated Controller Service should be used.")
         .required(true)
         .defaultValue("${recordsetwriter.name}")

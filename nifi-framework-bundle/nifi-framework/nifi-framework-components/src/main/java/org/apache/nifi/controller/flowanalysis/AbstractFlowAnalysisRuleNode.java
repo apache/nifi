@@ -366,6 +366,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
         return results;
     }
 
+    @Override
     public Optional<ProcessGroup> getParentProcessGroup() {
         return Optional.empty();
     }

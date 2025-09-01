@@ -49,6 +49,7 @@ public class AuthorizedClientExpirationCommand implements Runnable {
     /**
      * Run expiration command and send Token Revocation Requests for Refresh Tokens of expired Authorized Clients
      */
+    @Override
     public void run() {
         logger.debug("Delete Expired Authorized Clients started");
         final List<OidcAuthorizedClient> deletedAuthorizedClients = deleteExpired();

@@ -4109,6 +4109,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), versionedGroup);
     }
 
+    @Override
     public void discoverCompatibleBundles(final Map<String, ParameterProviderReference> parameterProviders) {
         BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), parameterProviders);
     }
@@ -5435,9 +5436,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(selectedBranch, bucketId, flowId, flowVersion);
             return flowRegistry.getFlowContents(clientUserContext, flowVersionLocation, fetchRemoteFlows);
         } catch (final FlowRegistryException e) {
-            logger.error(e.getMessage(), e);
-            throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
+            throw new IllegalArgumentException("Error retrieving flow [%s] in bucket [%s] branch [%s] with version [%s] using Flow Registry Client with ID [%s]: %s".formatted(flowId,
+                    bucketId, branch, flowVersion, registryId, e.getMessage()), e);
         } catch (final IOException ioe) {
             throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to retrieve a versioned flow", ioe);
         }
@@ -6079,14 +6079,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
 
     private Authorizable getAuthorizable(final Connectable connectable) {
-        switch (connectable.getConnectableType()) {
-            case REMOTE_INPUT_PORT:
-            case REMOTE_OUTPUT_PORT:
+        return switch (connectable.getConnectableType()) {
+            case REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT -> {
                 final String rpgId = ((RemoteGroupPort) connectable).getRemoteProcessGroup().getIdentifier();
-                return authorizableLookup.getRemoteProcessGroup(rpgId);
-            default:
-                return authorizableLookup.getLocalConnectable(connectable.getIdentifier());
-        }
+                yield authorizableLookup.getRemoteProcessGroup(rpgId);
+            }
+            default -> authorizableLookup.getLocalConnectable(connectable.getIdentifier());
+        };
     }
 
     private Authorizable getAuthorizable(final String componentTypeName, final InstantiatedVersionedComponent versionedComponent) {

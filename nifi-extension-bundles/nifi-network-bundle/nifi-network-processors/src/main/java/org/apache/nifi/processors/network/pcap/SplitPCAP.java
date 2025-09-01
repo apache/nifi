@@ -87,7 +87,6 @@ public class SplitPCAP extends AbstractProcessor {
 
     public static final PropertyDescriptor PCAP_MAX_SIZE = new PropertyDescriptor
             .Builder().name("PCAP Max Size")
-            .displayName("PCAP Max Size")
             .description("Maximum size of each output PCAP file. PCAP packets larger than the configured size result in routing FlowFiles to the failure relationship.")
             .required(true)
             .defaultValue("1 MB")

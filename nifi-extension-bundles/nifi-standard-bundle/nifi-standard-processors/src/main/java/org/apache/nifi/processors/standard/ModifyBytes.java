@@ -59,7 +59,6 @@ public class ModifyBytes extends AbstractProcessor {
 
     public static final PropertyDescriptor START_OFFSET = new PropertyDescriptor.Builder()
             .name("Start Offset")
-            .displayName("Start Offset")
             .description("Number of bytes removed at the beginning of the file.")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -68,7 +67,6 @@ public class ModifyBytes extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor END_OFFSET = new PropertyDescriptor.Builder()
             .name("End Offset")
-            .displayName("End Offset")
             .description("Number of bytes removed at the end of the file.")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -77,7 +75,6 @@ public class ModifyBytes extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor REMOVE_ALL = new PropertyDescriptor.Builder()
             .name("Remove All Content")
-            .displayName("Remove All Content")
             .description("Remove all content from the FlowFile superseding Start Offset and End Offset properties.")
             .required(true)
             .allowableValues("true", "false")

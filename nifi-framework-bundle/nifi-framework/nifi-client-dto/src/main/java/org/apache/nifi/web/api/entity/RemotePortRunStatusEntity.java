@@ -38,8 +38,8 @@ public class RemotePortRunStatusEntity extends ComponentRunStatusEntity {
      * @return The run status
      */
     @Schema(description = "The run status of the RemotePort.",
-            allowableValues = {"TRANSMITTING", "STOPPED"}
-    )
+            allowableValues = {"TRANSMITTING", "STOPPED"})
+    @Override
     public String getState() {
         return super.getState();
     }

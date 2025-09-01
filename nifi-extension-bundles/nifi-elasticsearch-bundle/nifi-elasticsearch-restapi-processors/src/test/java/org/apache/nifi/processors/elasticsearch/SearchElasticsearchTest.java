@@ -38,14 +38,17 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         AbstractPaginatedJsonQueryElasticsearchTest.setUpBeforeClass();
     }
 
+    @Override
     AbstractPaginatedJsonQueryElasticsearch getProcessor() {
         return new SearchElasticsearch();
     }
 
+    @Override
     Scope getStateScope() {
         return Scope.LOCAL;
     }
 
+    @Override
     boolean isInput() {
         return false;
     }

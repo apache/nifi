@@ -667,7 +667,7 @@ public class TestMonitorActivity {
         runner.enqueue("Incoming data");
 
         // Set future timestamp in state
-        final HashMap<String, String> existingState = new HashMap<>();
+        final Map<String, String> existingState = new HashMap<>();
         final long existingTimestamp = currentTimeMillis() - 1_000;
         existingState.put(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO,
                 String.valueOf(existingTimestamp));
@@ -701,7 +701,7 @@ public class TestMonitorActivity {
         runner.enqueue("Incoming data");
 
         // Set future timestamp in state
-        final HashMap<String, String> existingState = new HashMap<>();
+        final Map<String, String> existingState = new HashMap<>();
         final long existingTimestamp = currentTimeMillis() + 10_000;
         existingState.put(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO,
                 String.valueOf(existingTimestamp));
@@ -733,7 +733,7 @@ public class TestMonitorActivity {
         runner.setProperty(MonitorActivity.THRESHOLD, "1 ms");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
-        final HashMap<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key1", "value1");
         attributes.put("key2", "value2");
         runner.enqueue("Incoming data", attributes);
@@ -855,7 +855,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored
-        final HashMap<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key1", "value1");
         attributes.put("key2", "value2");
         runner.enqueue("Incoming data", attributes);
@@ -893,7 +893,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored
-        final HashMap<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key1", "value1");
         attributes.put("key2", "value2");
         runner.enqueue("Incoming data", attributes);
@@ -928,7 +928,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored
-        final HashMap<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key1", "value1");
         attributes.put("key2", "value2");
         runner.enqueue("Incoming data", attributes);
@@ -967,7 +967,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored
-        final HashMap<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key1", "value1");
         attributes.put("key2", "value2");
         runner.enqueue("Incoming data", attributes);
@@ -1002,7 +1002,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored, even if this node doesn't have activity, other node updated the cluster state.
-        final HashMap<String, String> clusterState = new HashMap<>();
+        final Map<String, String> clusterState = new HashMap<>();
         clusterState.put(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, String.valueOf(currentTimeMillis()));
         clusterState.put("key1", "value1");
         clusterState.put("key2", "value2");
@@ -1042,7 +1042,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored, even if this node doesn't have activity, other node updated the cluster state.
-        final HashMap<String, String> clusterState = new HashMap<>();
+        final Map<String, String> clusterState = new HashMap<>();
         clusterState.put(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, String.valueOf(currentTimeMillis()));
         clusterState.put("key1", "value1");
         clusterState.put("key2", "value2");
@@ -1078,7 +1078,7 @@ public class TestMonitorActivity {
         runner.clearTransferState();
 
         // Activity restored, even if this node doesn't have activity, other node updated the cluster state.
-        final HashMap<String, String> clusterState = new HashMap<>();
+        final Map<String, String> clusterState = new HashMap<>();
         clusterState.put(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO, String.valueOf(currentTimeMillis()));
         clusterState.put("key1", "value1");
         clusterState.put("key2", "value2");

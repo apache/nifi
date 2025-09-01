@@ -40,6 +40,7 @@ public class UserEntityMerger implements ComponentEntityMerger<UserEntity> {
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final UserEntity clientEntity, final Map<NodeIdentifier, UserEntity> entityMap) {
         final UserDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, UserDTO> dtoMap = new HashMap<>();

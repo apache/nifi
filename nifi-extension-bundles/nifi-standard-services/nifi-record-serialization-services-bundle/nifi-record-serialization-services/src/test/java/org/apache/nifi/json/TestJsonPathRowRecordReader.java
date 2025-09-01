@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -54,7 +55,7 @@ class TestJsonPathRowRecordReader {
     private final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
     private final String timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
 
-    private final LinkedHashMap<String, JsonPath> allJsonPaths = new LinkedHashMap<>();
+    private final Map<String, JsonPath> allJsonPaths = new LinkedHashMap<>();
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final TokenParserFactory parserFactory = new JsonParserFactory();
@@ -176,7 +177,7 @@ class TestJsonPathRowRecordReader {
         final List<RecordField> recordFields = Collections.singletonList(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(recordFields);
 
-        final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>();
+        final Map<String, JsonPath> jsonPaths = new LinkedHashMap<>();
         jsonPaths.put("timestamp", JsonPath.compile("$.timestamp"));
         jsonPaths.put("field_not_in_schema", JsonPath.compile("$.field_not_in_schema"));
 
@@ -199,7 +200,7 @@ class TestJsonPathRowRecordReader {
 
     @Test
     void testElementWithNestedData() throws IOException, MalformedRecordException {
-        final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
+        final Map<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("account", JsonPath.compile("$.account"));
 
         final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
@@ -235,7 +236,7 @@ class TestJsonPathRowRecordReader {
 
     @Test
     void testElementWithNestedArray() throws IOException, MalformedRecordException {
-        final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
+        final Map<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("accounts", JsonPath.compile("$.accounts"));
 
         final DataType accountRecordType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
@@ -314,7 +315,7 @@ class TestJsonPathRowRecordReader {
 
     @Test
     void testReadArrayDifferentSchemasWithOverride() throws IOException, MalformedRecordException {
-        final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
+        final Map<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("address2", JsonPath.compile("$.address2"));
 
         final List<RecordField> fields = getDefaultFields();
@@ -349,7 +350,7 @@ class TestJsonPathRowRecordReader {
 
     @Test
     void testPrimitiveTypeArrays() throws IOException, MalformedRecordException {
-        final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
+        final Map<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("accountIds", JsonPath.compile("$.accountIds"));
 
         final List<RecordField> fields = getDefaultFields();

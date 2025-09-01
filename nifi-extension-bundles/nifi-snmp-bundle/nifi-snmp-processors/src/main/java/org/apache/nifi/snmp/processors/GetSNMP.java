@@ -237,6 +237,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
         return PROPERTY_DESCRIPTORS;
     }
 
+    @Override
     protected String getTargetHost(final ProcessContext processContext, final FlowFile flowFile) {
         return processContext.getProperty(AGENT_HOST).evaluateAttributeExpressions(flowFile).getValue();
     }

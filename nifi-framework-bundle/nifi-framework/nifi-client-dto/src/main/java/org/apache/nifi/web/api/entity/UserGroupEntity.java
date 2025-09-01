@@ -33,10 +33,12 @@ public class UserGroupEntity extends ComponentEntity implements Permissible<User
      *
      * @return The UserGroupDTO object
      */
+    @Override
     public UserGroupDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(UserGroupDTO component) {
         this.component = component;
     }

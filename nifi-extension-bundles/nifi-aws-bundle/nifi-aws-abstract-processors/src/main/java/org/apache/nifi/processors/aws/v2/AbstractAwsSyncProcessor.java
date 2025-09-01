@@ -56,10 +56,12 @@ public abstract class AbstractAwsSyncProcessor<
      * @param context The process context
      * @return The created client
      */
+    @Override
     public T createClient(final ProcessContext context) {
         return createClient(context, getRegion(context));
     }
 
+    @Override
     public T createClient(final ProcessContext context, final Region region) {
         final U clientBuilder = createClientBuilder(context);
         this.configureClientBuilder(clientBuilder, region, context);

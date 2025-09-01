@@ -39,6 +39,7 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -113,7 +114,7 @@ public class StandardControllerServiceProviderTest {
 
     private ControllerServiceNode populateControllerService(ControllerServiceNode requiredService) { // Collection<ControllerServiceNode> serviceNodes) {
         ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
-        ArrayList<ControllerServiceNode> requiredServices = new ArrayList<>();
+        List<ControllerServiceNode> requiredServices = new ArrayList<>();
         if (requiredService != null) {
             requiredServices.add(requiredService);
         }
@@ -130,7 +131,7 @@ public class StandardControllerServiceProviderTest {
         when(scheduler.enableControllerService(any())).thenReturn(future);
         ControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(FlowManager.class), Mockito.mock(ExtensionManager.class));
 
-        final ArrayList<ControllerServiceNode> serviceNodes = new ArrayList<>();
+        final List<ControllerServiceNode> serviceNodes = new ArrayList<>();
         serviceNodes.add(populateControllerService(null));
         serviceNodes.add(populateControllerService(null));
         provider.enableControllerServices(serviceNodes);
@@ -147,7 +148,7 @@ public class StandardControllerServiceProviderTest {
         when(scheduler.enableControllerService(any())).thenReturn(future);
         ControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(FlowManager.class), Mockito.mock(ExtensionManager.class));
 
-        final ArrayList<ControllerServiceNode> serviceNodes = new ArrayList<>();
+        final List<ControllerServiceNode> serviceNodes = new ArrayList<>();
         ControllerServiceNode disabledController = populateControllerService(null);
         // Do not start because disabledController is not in the serviceNodes (list of services to start)
         serviceNodes.add(populateControllerService(disabledController));

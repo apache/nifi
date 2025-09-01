@@ -69,7 +69,6 @@ import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueS
 public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
     public static final PropertyDescriptor AUTO_DELETE = new PropertyDescriptor.Builder()
             .name("Auto Delete Messages")
-            .displayName("Auto Delete Messages")
             .description("Specifies whether the received message is to be automatically deleted from the queue.")
             .required(true)
             .allowableValues("true", "false")
@@ -79,7 +78,6 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
 
     public static final PropertyDescriptor MESSAGE_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Message Batch Size")
-            .displayName("Message Batch Size")
             .description("The number of messages to be retrieved from the queue.")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(1, 32, true))
@@ -88,7 +86,6 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
 
     public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Visibility Timeout")
-            .displayName("Visibility Timeout")
             .description("The duration during which the retrieved message should be invisible to other consumers.")
             .required(true)
             .defaultValue("30 secs")

@@ -474,7 +474,7 @@ public final class DtoFactory {
        final StateMapDTO dto = new StateMapDTO();
        dto.setScope(scope.toString());
 
-       final TreeMap<String, String> sortedState = new TreeMap<>(SortedStateUtils.getKeyComparator());
+       final Map<String, String> sortedState = new TreeMap<>(SortedStateUtils.getKeyComparator());
        final Map<String, String> state = stateMap.toMap();
        sortedState.putAll(state);
 
@@ -1181,6 +1181,8 @@ public final class DtoFactory {
 
        snapshot.setFlowFilesOut(connectionStatus.getOutputCount());
        snapshot.setBytesOut(connectionStatus.getOutputBytes());
+
+       snapshot.setLoadBalanceStatus(connectionStatus.getLoadBalanceStatus());
 
        ConnectionStatusPredictions predictions = connectionStatus.getPredictions();
        ConnectionStatusPredictionsSnapshotDTO predictionsDTO = null;

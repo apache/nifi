@@ -52,12 +52,13 @@ public class ParameterContextReferenceEntity implements Permissible<ParameterCon
      *
      * @return The permissions
      */
-    @Schema(description = "The permissions for this component."
-    )
+    @Schema(description = "The permissions for this component.")
+    @Override
     public PermissionsDTO getPermissions() {
         return permissions;
     }
 
+    @Override
     public void setPermissions(PermissionsDTO permissions) {
         this.permissions = permissions;
     }
@@ -67,10 +68,12 @@ public class ParameterContextReferenceEntity implements Permissible<ParameterCon
      *
      * @return The ParameterContextReferenceDTO object
      */
+    @Override
     public ParameterContextReferenceDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ParameterContextReferenceDTO component) {
         this.component = component;
     }

@@ -28,6 +28,7 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     /**
      * @return the UUID for this Parameter Context
      */
+    @Override
     String getIdentifier();
 
     /**

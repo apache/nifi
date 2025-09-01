@@ -40,8 +40,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
@@ -113,9 +113,7 @@ public class TestSplitAvro {
         final TestRunner runner = TestRunners.newTestRunner(new SplitAvro());
 
         final String filename = "users.avro";
-        runner.enqueue(users.toByteArray(), new HashMap<>() {{
-            put(CoreAttributes.FILENAME.key(), filename);
-        }});
+        runner.enqueue(users.toByteArray(), Map.of(CoreAttributes.FILENAME.key(), filename));
         runner.run();
 
         runner.assertTransferCount(SplitAvro.REL_SPLIT, 100);

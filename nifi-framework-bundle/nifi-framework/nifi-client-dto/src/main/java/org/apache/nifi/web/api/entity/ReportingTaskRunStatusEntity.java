@@ -38,8 +38,8 @@ public class ReportingTaskRunStatusEntity extends ComponentRunStatusEntity {
      * @return The run status
      */
     @Schema(description = "The run status of the ReportingTask.",
-            allowableValues = {"RUNNING", "STOPPED"}
-    )
+            allowableValues = {"RUNNING", "STOPPED"})
+    @Override
     public String getState() {
         return super.getState();
     }

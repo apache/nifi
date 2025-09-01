@@ -31,6 +31,7 @@ import java.util.Set;
 @Repository
 public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
 
+    @Override
     protected Port locatePort(final String portId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Port port = rootGroup.findOutputPort(portId);

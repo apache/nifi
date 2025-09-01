@@ -130,6 +130,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
         return PROPERTY_DESCRIPTORS;
     }
 
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {

@@ -32,10 +32,12 @@ public class FunnelEntity extends ComponentEntity implements Permissible<FunnelD
      *
      * @return The FunnelDTO object
      */
+    @Override
     public FunnelDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(FunnelDTO component) {
         this.component = component;
     }

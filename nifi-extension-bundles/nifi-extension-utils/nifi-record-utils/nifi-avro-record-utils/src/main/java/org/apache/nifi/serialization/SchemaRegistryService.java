@@ -100,7 +100,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         properties.add(SCHEMA_NAME);
         properties.add(SCHEMA_VERSION);
         properties.add(SCHEMA_BRANCH_NAME);
-        properties.add(SCHEMA_TEXT);
+        properties.add(buildSchemaTextProperty());
         properties.add(SCHEMA_REFERENCE_READER);
 
         return properties;
@@ -124,6 +124,10 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
     protected PropertyDescriptor getSchemaAccessStrategyDescriptor() {
         return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
+    }
+
+    protected PropertyDescriptor buildSchemaTextProperty() {
+        return SCHEMA_TEXT;
     }
 
     protected PropertyDescriptor buildStrategyProperty(final AllowableValue[] values) {

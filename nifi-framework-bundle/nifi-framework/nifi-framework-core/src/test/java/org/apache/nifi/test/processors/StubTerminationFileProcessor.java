@@ -25,9 +25,6 @@ public class StubTerminationFileProcessor extends AbstractProcessor {
 
     public static final int MAX_REMOVALS_PER_ITERATION = 200;
 
-    public StubTerminationFileProcessor() {
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         return;

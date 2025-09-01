@@ -65,7 +65,7 @@ public class TestPutEmail {
      */
     private static final class PutEmailExtension extends PutEmail {
         private MessagingException e;
-        private final ArrayList<Message> messages = new ArrayList<>();
+        private final List<Message> messages = new ArrayList<>();
 
         @Override
         protected void send(Message msg) throws MessagingException {

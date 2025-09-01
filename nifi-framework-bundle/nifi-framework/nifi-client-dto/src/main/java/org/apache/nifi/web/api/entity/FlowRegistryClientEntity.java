@@ -30,10 +30,12 @@ public class FlowRegistryClientEntity extends ComponentEntity implements Permiss
     private FlowRegistryClientDTO registry;
     private PermissionsDTO operatePermissions;
 
+    @Override
     public FlowRegistryClientDTO getComponent() {
         return registry;
     }
 
+    @Override
     public void setComponent(FlowRegistryClientDTO component) {
         this.registry = component;
     }

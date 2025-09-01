@@ -65,10 +65,12 @@ class SmbClient extends SMBClient {
         return client;
     }
 
+    @Override
     public Connection connect(final String hostname) throws IOException {
         return connect(hostname, DEFAULT_PORT);
     }
 
+    @Override
     public synchronized Connection connect(final String hostname, final int port) throws IOException {
         final Connection connection = super.connect(hostname, port);
 

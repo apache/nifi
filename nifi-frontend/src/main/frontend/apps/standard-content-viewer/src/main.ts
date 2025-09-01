@@ -18,19 +18,6 @@
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 import { AppModule } from './app/app.module';
 
-import 'codemirror/lib/codemirror';
-import 'codemirror/mode/yaml/yaml.js';
-import 'codemirror/mode/javascript/javascript.js';
-import 'codemirror/mode/xml/xml.js';
-import 'codemirror/addon/edit/closebrackets';
-import 'codemirror/addon/edit/matchbrackets';
-import 'codemirror/addon/fold/xml-fold';
-import 'codemirror/addon/fold/brace-fold';
-import 'codemirror/addon/fold/comment-fold';
-import 'codemirror/addon/fold/foldcode';
-import 'codemirror/addon/fold/foldgutter';
-import 'codemirror/addon/fold/markdown-fold';
-
 platformBrowserDynamic()
     .bootstrapModule(AppModule)
     .catch((err) => console.error(err));

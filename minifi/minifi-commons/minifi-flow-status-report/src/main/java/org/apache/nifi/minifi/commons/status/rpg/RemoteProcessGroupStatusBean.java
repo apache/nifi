@@ -30,9 +30,6 @@ public class RemoteProcessGroupStatusBean implements Serializable {
     private List<PortStatus> outputPortStatusList;
     private RemoteProcessGroupStats remoteProcessGroupStats;
 
-    public RemoteProcessGroupStatusBean() {
-    }
-
     public String getName() {
         return name;
     }

@@ -80,8 +80,10 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
         return validationFailureResults;
     }
 
+    @Override
     public abstract AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext);
 
+    @Override
     public String getName() {
         return name;
     }

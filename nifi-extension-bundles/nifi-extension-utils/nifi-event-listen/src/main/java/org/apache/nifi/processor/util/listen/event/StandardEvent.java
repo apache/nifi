@@ -45,6 +45,7 @@ public class StandardEvent<C extends SelectableChannel> implements Event<C> {
         return data;
     }
 
+    @Override
     public ChannelResponder<C> getResponder() {
         return responder;
     }

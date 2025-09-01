@@ -119,6 +119,7 @@ public class CalculateRecordStats extends AbstractProcessor {
 
     private RecordPathCache cache;
 
+    @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)

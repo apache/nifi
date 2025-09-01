@@ -123,7 +123,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         fileMetaData.setMimeType("application/vnd.google-apps.folder");
 
-        Drive.Files.Create create = driveService.files()
+        Drive.Files.Create create = driveService.files() //NOPMD
                 .create(fileMetaData)
                 .setSupportsAllDrives(true)
                 .setFields("id");
@@ -144,7 +144,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         AbstractInputStreamContent content = new ByteArrayContent("text/plain", fileContent.getBytes(StandardCharsets.UTF_8));
 
-        Drive.Files.Create create = driveService.files()
+        Drive.Files.Create create = driveService.files() //NOPMD
                 .create(fileMetadata, content)
                 .setSupportsAllDrives(true)
                 .setFields("id, name, modifiedTime, createdTime");

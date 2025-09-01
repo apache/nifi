@@ -23,9 +23,6 @@ public class BulletinStatus implements java.io.Serializable {
     private Date timestamp;
     private String message;
 
-    public BulletinStatus() {
-    }
-
     public Date getTimestamp() {
         return timestamp;
     }

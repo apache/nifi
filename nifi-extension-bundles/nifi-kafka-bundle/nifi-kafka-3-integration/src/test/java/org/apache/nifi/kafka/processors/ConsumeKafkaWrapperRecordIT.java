@@ -80,6 +80,7 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
     }
 
     static class RecordVerifier extends Verifier {
+        @Override
         void verify(final JsonNode jsonNode) {
             final ObjectNode key = assertInstanceOf(ObjectNode.class, jsonNode);
             assertEquals(2, key.size());
@@ -89,6 +90,7 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
     }
 
     static class StringVerifier extends Verifier {
+        @Override
         void verify(final JsonNode jsonNode) {
             final TextNode key = assertInstanceOf(TextNode.class, jsonNode);
             assertEquals(MESSAGE_KEY, key.asText());
@@ -96,6 +98,7 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
     }
 
     static class ByteArrayVerifier extends Verifier {
+        @Override
         void verify(final JsonNode jsonNode) {
             final ArrayNode key = assertInstanceOf(ArrayNode.class, jsonNode);
             assertEquals(MESSAGE_KEY.length(), key.size());

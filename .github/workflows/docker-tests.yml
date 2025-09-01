@@ -19,8 +19,11 @@ on:
   push:
     paths:
       - '.github/workflows/docker-tests.yml'
+      - 'pom.xml'
       - 'nifi-assembly/**'
       - 'nifi-docker/**'
+      - 'nifi-registry/pom.xml'
+      - 'nifi-registry/nifi-registry-core/**'
       - 'nifi-registry/nifi-registry-assembly/**'
       - 'nifi-registry/nifi-registry-docker-maven/**'
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
@@ -30,8 +33,11 @@ on:
   pull_request:
     paths:
       - '.github/workflows/docker-tests.yml'
+      - 'pom.xml'
       - 'nifi-assembly/**'
       - 'nifi-docker/**'
+      - 'nifi-registry/pom.xml'
+      - 'nifi-registry/nifi-registry-core/**'
       - 'nifi-registry/nifi-registry-assembly/**'
       - 'nifi-registry/nifi-registry-docker-maven/**'
       - 'nifi-toolkit/nifi-toolkit-assembly/**'

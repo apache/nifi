@@ -18,6 +18,7 @@ package org.apache.nifi.hl7.query.evaluator;
 
 public abstract class IntegerEvaluator implements Evaluator<Integer> {
 
+    @Override
     public Class<? extends Integer> getType() {
         return Integer.class;
     }

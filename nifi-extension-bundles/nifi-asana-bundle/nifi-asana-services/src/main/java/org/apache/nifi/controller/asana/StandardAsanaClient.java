@@ -89,6 +89,7 @@ public class StandardAsanaClient implements AsanaClient {
         }
     }
 
+    @Override
     public Stream<ProjectMembership> getProjectMemberships(Project project) {
         try {
             return collectionRequestToStream(

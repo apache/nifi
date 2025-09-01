@@ -82,7 +82,6 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
             .name("Pretty Print")
-            .displayName("Pretty Print")
             .description("Apply pretty print formatting to the output of the Jolt transform")
             .required(true)
             .allowableValues("true", "false")
@@ -91,7 +90,6 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
-            .displayName("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")
             .required(true)
             .defaultValue("20 MB")
@@ -209,6 +207,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
     }
 
     @OnScheduled
+    @Override
     public void setup(final ProcessContext context) {
         super.setup(context);
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();

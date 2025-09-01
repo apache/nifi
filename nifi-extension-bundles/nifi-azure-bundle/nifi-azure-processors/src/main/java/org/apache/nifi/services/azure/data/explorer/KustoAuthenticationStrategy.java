@@ -20,7 +20,10 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum KustoAuthenticationStrategy implements DescribedValue {
     APPLICATION_CREDENTIALS("Application Credentials", "Azure Application Registration with Application Key"),
-    MANAGED_IDENTITY("Managed Identity", "Azure Managed Identity");
+    MANAGED_IDENTITY("Managed Identity", "Azure Managed Identity"),
+    // This is required for tests going forward. This is not a breaking change, but permits developers to test locally without having to use a
+    // machine with Service Principal credentials or Managed Identity.
+    AZ_CLI_DEV_ONLY("Azure CLI (Dev Only)", "Azure CLI authentication, suitable for development purposes only");
 
     private final String displayName;
 

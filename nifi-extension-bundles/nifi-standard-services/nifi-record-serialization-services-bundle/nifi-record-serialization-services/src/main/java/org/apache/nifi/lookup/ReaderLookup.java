@@ -60,7 +60,6 @@ public class ReaderLookup extends AbstractControllerService implements RecordRea
 
     static final PropertyDescriptor SERVICE_TO_USE = new Builder()
         .name("Service to Use")
-        .displayName("Service to Use")
         .description("Specifies the name of the user-defined property whose associated Controller Service should be used.")
         .required(true)
         .defaultValue("${recordreader.name}")

@@ -327,7 +327,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         String pageToken = null;
         do {
-            final FileList result = driveService.files()
+            final FileList result = driveService.files() //NOPMD
                     .list()
                     .setSupportsAllDrives(true)
                     .setIncludeItemsFromAllDrives(true)

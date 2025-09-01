@@ -63,14 +63,12 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("Record Reader")
-        .displayName("Record Reader")
         .description("Specifies the Controller Service to use for reading incoming data")
         .required(true)
         .identifiesControllerService(RecordReaderFactory.class)
         .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("Record Writer")
-        .displayName("Record Writer")
         .description("Specifies the Controller Service to use for writing out the records")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)

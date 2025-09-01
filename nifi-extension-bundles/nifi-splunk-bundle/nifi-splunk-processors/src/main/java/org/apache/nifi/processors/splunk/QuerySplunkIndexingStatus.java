@@ -139,6 +139,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     }
 
     @OnScheduled
+    @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         maxQuerySize = context.getProperty(MAX_QUERY_SIZE).asInteger();
@@ -146,6 +147,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     }
 
     @OnStopped
+    @Override
     public void onStopped() {
         super.onStopped();
         maxQuerySize = null;

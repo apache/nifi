@@ -83,7 +83,6 @@ import java.util.stream.Stream;
 public class GetHDFSEvents extends AbstractHadoopProcessor {
     static final PropertyDescriptor POLL_DURATION = new PropertyDescriptor.Builder()
             .name("Poll Duration")
-            .displayName("Poll Duration")
             .description("The time before the polling method returns with the next batch of events if they exist. It may exceed this amount of time by up to the time required for an " +
                     "RPC to the NameNode.")
             .defaultValue("1 second")
@@ -93,7 +92,6 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor HDFS_PATH_TO_WATCH = new PropertyDescriptor.Builder()
             .name("HDFS Path to Watch")
-            .displayName("HDFS Path to Watch")
             .description("The HDFS path to get event notifications for. This property accepts both expression language and regular expressions. This will be evaluated during the " +
                     "OnScheduled phase.")
             .required(true)
@@ -104,7 +102,6 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor IGNORE_HIDDEN_FILES = new PropertyDescriptor.Builder()
             .name("Ignore Hidden Files")
-            .displayName("Ignore Hidden Files")
             .description("If true and the final component of the path associated with a given event starts with a '.' then that event will not be processed.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -114,7 +111,6 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor EVENT_TYPES = new PropertyDescriptor.Builder()
             .name("Event Types to Filter On")
-            .displayName("Event Types to Filter On")
             .description("A comma-separated list of event types to process. Valid event types are: append, close, create, metadata, rename, and unlink. Case does not matter.")
             .addValidator(new EventTypeValidator())
             .required(true)
@@ -123,7 +119,6 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor NUMBER_OF_RETRIES_FOR_POLL = new PropertyDescriptor.Builder()
             .name("IOException Retries During Event Polling")
-            .displayName("IOException Retries During Event Polling")
             .description("According to the HDFS admin API for event polling it is good to retry at least a few times. This number defines how many times the poll will be retried if it " +
                     "throws an IOException.")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)

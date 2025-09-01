@@ -55,6 +55,7 @@ public abstract class AbstractAwsAsyncProcessor<
      * @param context The process context
      * @return The created client
      */
+    @Override
     public T createClient(final ProcessContext context, final Region region) {
         final U clientBuilder = createClientBuilder(context);
         this.configureClientBuilder(clientBuilder, region, context);

@@ -113,6 +113,7 @@ public class CommandBuilder {
         return boundIds;
     }
 
+    @Override
     public String toString() {
         return "CommandBuilder[objectId=" + objectId + ", methodName=" + methodName + ", boundIds=" + boundIds.size() + "]";
     }

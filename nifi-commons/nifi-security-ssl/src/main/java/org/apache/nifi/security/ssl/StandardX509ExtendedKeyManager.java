@@ -62,6 +62,7 @@ public class StandardX509ExtendedKeyManager extends X509ExtendedKeyManager imple
         return keyManagerRef.get().chooseClientAlias(keyType, issuers, socket);
     }
 
+    @Override
     public String chooseEngineClientAlias(final String[] keyType, final Principal[] issuers, final SSLEngine engine) {
         return keyManagerRef.get().chooseEngineClientAlias(keyType, issuers, engine);
     }
@@ -76,6 +77,7 @@ public class StandardX509ExtendedKeyManager extends X509ExtendedKeyManager imple
         return keyManagerRef.get().chooseServerAlias(keyType, issuers, socket);
     }
 
+    @Override
     public String chooseEngineServerAlias(final String keyType, final Principal[] issuers, final SSLEngine engine) {
         return keyManagerRef.get().chooseEngineServerAlias(keyType, issuers, engine);
     }

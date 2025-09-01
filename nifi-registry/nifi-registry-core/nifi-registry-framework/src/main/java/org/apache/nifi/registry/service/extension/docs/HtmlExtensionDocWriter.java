@@ -147,20 +147,12 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     private void writeBundleInfo(final ExtensionMetadata extensionMetadata, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final BundleInfo bundleInfo = extensionMetadata.getBundleInfo();
 
-        final String extenstionType;
-        switch (extensionMetadata.getType()) {
-            case PROCESSOR:
-                extenstionType = "Processor";
-                break;
-            case CONTROLLER_SERVICE:
-                extenstionType = "Controller Service";
-                break;
-            case REPORTING_TASK:
-                extenstionType = "Reporting Task";
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown extension type: " + extensionMetadata.getType());
-        }
+        final String extenstionType = switch (extensionMetadata.getType()) {
+            case PROCESSOR -> "Processor";
+            case CONTROLLER_SERVICE -> "Controller Service";
+            case REPORTING_TASK -> "Reporting Task";
+            default -> throw new IllegalArgumentException("Unknown extension type: " + extensionMetadata.getType());
+        };
 
         xmlStreamWriter.writeStartElement("table");
 

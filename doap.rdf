@@ -27,16 +27,15 @@
     <name>Apache NiFi</name>
     <homepage rdf:resource="https://nifi.apache.org/" />
     <asfext:pmc rdf:resource="https://nifi.apache.org" />
-    <shortdesc>NiFi is an easy to use, powerful, and reliable system to process and
-distribute data</shortdesc>
-    <description>The mission of NiFi is the creation and maintenance of software related to providing an easy to use, powerful, and reliable system to process and distribute data.
-
-Apache NiFi MiNiFi is an edge data collection agent built to seamlessly integrate with and leverage the command and control of NiFi. There are both Java and C++ implementations.
-
-Apache NiFi Registry is a centralized registry for key configuration items including flow versions, assets, and extensions for Apache NiFi and Apache MiNiFi.</description>
+    <shortdesc>NiFi is an easy to use, powerful, and reliable system to process and distribute data</shortdesc>
+    <description>
+        The mission of NiFi is the creation and maintenance of software related to providing an easy to use, powerful, and reliable system to process and distribute data.
+        Apache NiFi MiNiFi is an edge data collection agent built to seamlessly integrate with and leverage the command and control of NiFi.
+        Apache NiFi Registry is a centralized registry for key configuration items including flow versions, assets, and extensions for Apache NiFi and Apache MiNiFi.
+    </description>
     <bug-database rdf:resource="https://issues.apache.org/jira/projects/NIFI" />
-    <mailing-list rdf:resource="https://nifi.apache.org/mailing_lists.html" />
-    <download-page rdf:resource="https://nifi.apache.org/download.html" />
+    <mailing-list rdf:resource="https://nifi.apache.org/community/contact/" />
+    <download-page rdf:resource="https://nifi.apache.org/download/" />
     <programming-language>Java</programming-language>
     <category rdf:resource="https://projects.apache.org/category/big-data" />
     <repository>

@@ -27,6 +27,7 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -139,7 +140,7 @@ public enum MiNiFiProperties {
         this.validator = validator;
     }
 
-    public static LinkedHashMap<String, MiNiFiProperties> sortedPropertiesByKey() {
+    public static Map<String, MiNiFiProperties> sortedPropertiesByKey() {
         return Arrays.stream(values())
             .sorted()
             .collect(Collectors.toMap(MiNiFiProperties::getKey, Function.identity(), (x, y) -> y, LinkedHashMap::new));

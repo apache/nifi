@@ -34,6 +34,7 @@ public class ConnectivityMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private Connectable destination;
 
+    @Override
     @BeforeEach
     public void setUp() {
         super.setUp();

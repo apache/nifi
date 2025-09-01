@@ -32,7 +32,7 @@ import org.apache.nifi.components.ValidationContext;
  */
 public class FilteredPropertiesValidationContextAdapter extends ValidationContextAdapter {
 
-    private HashMap<PropertyDescriptor, String> properties;
+    private final Map<PropertyDescriptor, String> properties;
 
     public FilteredPropertiesValidationContextAdapter(ValidationContext validationContext, Set<PropertyDescriptor> removedProperties) {
         super(validationContext);

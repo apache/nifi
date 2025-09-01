@@ -67,6 +67,7 @@ public interface ComponentScheduler {
         public void disableControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
         }
 
+        @Override
         public void startReportingTask(final ReportingTaskNode reportingTask) {
         }
 

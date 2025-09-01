@@ -32,6 +32,7 @@ public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
     private HazelcastInstance hazelcastInstance;
 
 
+    @Override
     @BeforeEach
     public void setUp() {
         final Config config = new Config();
@@ -43,6 +44,7 @@ public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
         super.setUp();
     }
 
+    @Override
     @AfterEach
     public void tearDown() {
         super.tearDown();

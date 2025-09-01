@@ -34,14 +34,17 @@ public enum UsmUserInputMethod implements DescribedValue {
         this.description = description;
     }
 
+    @Override
     public String getValue() {
         return value;
     }
 
+    @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public String getDescription() {
         return description;
     }

@@ -546,6 +546,9 @@ public abstract class AbstractEventAccess implements EventAccess {
             registeredFlowSnapshotMetadata.setBucketIdentifier(vci.getBucketIdentifier());
             registeredFlowSnapshotMetadata.setFlowIdentifier(vci.getFlowIdentifier());
             registeredFlowSnapshotMetadata.setVersion(vci.getVersion());
+            registeredFlowSnapshotMetadata.setFlowName(vci.getFlowName());
+            registeredFlowSnapshotMetadata.setRegistryIdentifier(vci.getRegistryIdentifier());
+            registeredFlowSnapshotMetadata.setRegistryName(vci.getRegistryName());
             status.setRegisteredFlowSnapshotMetadata(registeredFlowSnapshotMetadata);
             try {
                 final VersionedFlowStatus flowStatus = vci.getStatus();

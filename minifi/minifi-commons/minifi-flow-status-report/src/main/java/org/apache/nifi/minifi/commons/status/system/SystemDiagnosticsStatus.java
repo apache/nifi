@@ -26,9 +26,6 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
     private List<ContentRepositoryUsage> contentRepositoryUsageList;
     private FlowfileRepositoryUsage flowfileRepositoryUsage;
 
-    public SystemDiagnosticsStatus() {
-    }
-
     public List<GarbageCollectionStatus> getGarbageCollectionStatusList() {
         return garbageCollectionStatusList;
     }

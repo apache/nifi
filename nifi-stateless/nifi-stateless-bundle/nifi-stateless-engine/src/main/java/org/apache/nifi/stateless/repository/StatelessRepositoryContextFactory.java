@@ -62,6 +62,7 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
         return contentRepository;
     }
 
+    @Override
     public FlowFileRepository getFlowFileRepository() {
         return flowFileRepository;
     }

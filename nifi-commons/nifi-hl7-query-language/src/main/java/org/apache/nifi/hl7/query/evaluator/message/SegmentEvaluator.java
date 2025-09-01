@@ -34,6 +34,7 @@ public class SegmentEvaluator implements Evaluator<List> {
         this.segmentTypeEvaluator = segmentTypeEvaluator;
     }
 
+    @Override
     public List<HL7Segment> evaluate(final Map<String, Object> objectMap) {
         final String segmentType = segmentTypeEvaluator.evaluate(objectMap);
         if (segmentType == null) {
@@ -45,6 +46,7 @@ public class SegmentEvaluator implements Evaluator<List> {
         return (segments == null) ? Collections.<HL7Segment>emptyList() : segments;
     }
 
+    @Override
     public Class<? extends List> getType() {
         return List.class;
     }

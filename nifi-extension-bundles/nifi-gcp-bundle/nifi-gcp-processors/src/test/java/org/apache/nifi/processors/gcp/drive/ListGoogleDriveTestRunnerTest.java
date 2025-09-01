@@ -279,8 +279,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         inputFlowFileAttributes.put(GoogleDriveAttributes.LISTED_FOLDER_NAME, folderName);
         inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_ID, driveId);
         inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_NAME, driveName);
-
-        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
+        Set<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
 
         testRunner.run();
 

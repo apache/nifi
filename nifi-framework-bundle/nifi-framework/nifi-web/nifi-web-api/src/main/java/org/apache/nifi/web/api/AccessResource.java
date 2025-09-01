@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -104,6 +105,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = "Unable to create access token because an unexpected error occurred.")
             }
     )
+    @SecurityRequirements
     public Response createAccessToken(
             @Context final HttpServletRequest httpServletRequest,
             @Context final HttpServletResponse httpServletResponse,

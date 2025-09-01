@@ -172,11 +172,11 @@ public class PeerSelector {
      * @param unsortedMap the unordered map of peers to weights
      * @return the sorted (desc) map (by value)
      */
-    private static LinkedHashMap<PeerStatus, Double> sortMapByWeight(Map<PeerStatus, Double> unsortedMap) {
+    private static Map<PeerStatus, Double> sortMapByWeight(Map<PeerStatus, Double> unsortedMap) {
         List<Map.Entry<PeerStatus, Double>> list = new ArrayList<>(unsortedMap.entrySet());
         list.sort(Map.Entry.comparingByValue());
 
-        LinkedHashMap<PeerStatus, Double> result = new LinkedHashMap<>();
+        Map<PeerStatus, Double> result = new LinkedHashMap<>();
         for (int i = list.size() - 1; i >= 0; i--) {
             Map.Entry<PeerStatus, Double> entry = list.get(i);
             result.put(entry.getKey(), entry.getValue());
@@ -312,13 +312,13 @@ public class PeerSelector {
      * @param direction the direction of transfer ({@code SEND} weights the destinations higher if they have more flowfiles, {@code RECEIVE} weights them higher if they have fewer)
      * @return the ordered map of each peer to its relative weight
      */
-    LinkedHashMap<PeerStatus, Double> buildWeightedPeerMap(final Set<PeerStatus> statuses, final TransferDirection direction) {
+    Map<PeerStatus, Double> buildWeightedPeerMap(final Set<PeerStatus> statuses, final TransferDirection direction) {
         // Get all the destinations with their relative weights
         final Map<PeerStatus, Double> peerWorkloads = createDestinationMap(statuses, direction);
 
         if (!peerWorkloads.isEmpty()) {
             // This map is sorted, but not by key, so it cannot use SortedMap
-            LinkedHashMap<PeerStatus, Double> sortedPeerWorkloads = sortMapByWeight(peerWorkloads);
+            Map<PeerStatus, Double> sortedPeerWorkloads = sortMapByWeight(peerWorkloads);
 
             // Print the expected distribution of the peers
             printDistributionStatistics(sortedPeerWorkloads, direction);

@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -60,6 +61,7 @@ import java.util.stream.Stream;
  * sizes are large.
  *
  */
+@DeprecationNotice(reason = "NIFI-14846: Uses custom file format specific to Apache NiFi and minimal maintenance since initial implementation")
 @SideEffectFree
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "sequence file", "create", "sequencefile"})

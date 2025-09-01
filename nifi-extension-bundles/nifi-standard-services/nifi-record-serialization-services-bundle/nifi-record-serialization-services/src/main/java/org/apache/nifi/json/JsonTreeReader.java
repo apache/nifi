@@ -189,6 +189,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         return INFER_SCHEMA;
     }
 
+    @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);

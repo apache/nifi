@@ -379,6 +379,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getClassLoaderIsolationKey(validationContext);
     }
 
+    @Override
     public void verifyCanUpdateProperties(final Map<String, String> properties) {
         verifyModifiable();
 
@@ -644,6 +645,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return true;
     }
 
+    @Override
     public Map<PropertyDescriptor, PropertyConfiguration> getProperties() {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();

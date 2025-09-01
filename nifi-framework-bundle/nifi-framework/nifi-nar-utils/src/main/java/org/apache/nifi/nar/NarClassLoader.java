@@ -212,7 +212,7 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
     }
 
     private static List<File> initNativeLibDirList(File narWorkingDirectory) {
-        ArrayList<File> nativeLibDirList = new ArrayList<>();
+        List<File> nativeLibDirList = new ArrayList<>();
 
         nativeLibDirList.add(getNARNativeLibDir(narWorkingDirectory));
 

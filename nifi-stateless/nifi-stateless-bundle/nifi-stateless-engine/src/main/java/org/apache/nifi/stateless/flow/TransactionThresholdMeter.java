@@ -71,6 +71,7 @@ public class TransactionThresholdMeter {
         return false;
     }
 
+    @Override
     public String toString() {
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         return "TransactionThresholdMeter[flowFiles=" + flowFiles + ", bytes=" + bytes + ", elapsedTime=" + millis + " millis]";

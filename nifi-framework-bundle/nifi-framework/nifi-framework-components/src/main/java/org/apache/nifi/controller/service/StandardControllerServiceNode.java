@@ -246,6 +246,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return processGroup;
     }
 
+    @Override
     public Optional<ProcessGroup> getParentProcessGroup() {
         return Optional.ofNullable(this.processGroup);
     }
@@ -648,7 +649,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
 
                     if (completeExceptionallyOnFailure) {
-                        future.completeExceptionally(new IllegalStateException("Cannot enable " + this + " because it is not valid"));
+                        future.completeExceptionally(new IllegalStateException("Cannot enable " + StandardControllerServiceNode.this + " because it is not valid"));
                     }
 
                     return;

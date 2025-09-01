@@ -83,7 +83,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
                     logger.debug("Loading lookup table from file: {}", csvFile);
                 }
 
-                ConcurrentHashMap<String, Record> cache = new ConcurrentHashMap<>();
+                ConcurrentMap<String, Record> cache = new ConcurrentHashMap<>();
                 try (final InputStream is = new FileInputStream(csvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
                         final CSVParser records = csvFormat.builder().setHeader().setSkipHeaderRecord(true).get().parse(reader);

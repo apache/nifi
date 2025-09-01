@@ -60,20 +60,14 @@ public class StandardRepositoryRecordSerdeFactory implements RepositoryRecordSer
 
     @Override
     public UpdateType getUpdateType(final SerializedRepositoryRecord record) {
-        switch (record.getType()) {
-            case CONTENTMISSING:
-            case DELETE:
-                return UpdateType.DELETE;
-            case CREATE:
-                return UpdateType.CREATE;
-            case UPDATE:
-                return UpdateType.UPDATE;
-            case SWAP_OUT:
-                return UpdateType.SWAP_OUT;
-            case SWAP_IN:
-                return UpdateType.SWAP_IN;
-        }
-        return null;
+        return switch (record.getType()) {
+            case CONTENTMISSING, DELETE -> UpdateType.DELETE;
+            case CREATE -> UpdateType.CREATE;
+            case UPDATE -> UpdateType.UPDATE;
+            case SWAP_OUT -> UpdateType.SWAP_OUT;
+            case SWAP_IN -> UpdateType.SWAP_IN;
+            default -> null;
+        };
     }
 
     @Override

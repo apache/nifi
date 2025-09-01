@@ -48,6 +48,7 @@ public class ProcessGroupReplaceRequestEntity extends FlowUpdateRequestEntity<Pr
         return request;
     }
 
+    @Override
     public void setRequest(ProcessGroupReplaceRequestDTO request) {
         this.request = request;
     }

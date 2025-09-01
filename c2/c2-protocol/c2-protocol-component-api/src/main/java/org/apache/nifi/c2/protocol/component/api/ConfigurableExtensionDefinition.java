@@ -19,7 +19,6 @@ package org.apache.nifi.c2.protocol.component.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +38,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    public void setPropertyDescriptors(LinkedHashMap<String, PropertyDescriptor> propertyDescriptors) {
+    public void setPropertyDescriptors(Map<String, PropertyDescriptor> propertyDescriptors) {
         this.propertyDescriptors = propertyDescriptors;
     }
 

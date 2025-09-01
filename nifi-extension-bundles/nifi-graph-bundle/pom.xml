@@ -24,6 +24,10 @@
     <artifactId>nifi-graph-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <gremlin.version>3.7.4</gremlin.version>
+    </properties>
+
     <modules>
         <module>nifi-graph-test-clients</module>
         <module>nifi-graph-client-service-api</module>

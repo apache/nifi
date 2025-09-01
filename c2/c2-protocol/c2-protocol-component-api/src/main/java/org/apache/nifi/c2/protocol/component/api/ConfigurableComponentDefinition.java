@@ -17,7 +17,6 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +27,7 @@ public interface ConfigurableComponentDefinition {
 
     Map<String, PropertyDescriptor> getPropertyDescriptors();
 
-    void setPropertyDescriptors(LinkedHashMap<String, PropertyDescriptor> propertyDescriptors);
+    void setPropertyDescriptors(Map<String, PropertyDescriptor> propertyDescriptors);
 
     boolean getSupportsDynamicProperties();
 

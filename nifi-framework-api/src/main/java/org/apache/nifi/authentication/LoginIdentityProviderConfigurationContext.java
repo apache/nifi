@@ -27,6 +27,7 @@ public interface LoginIdentityProviderConfigurationContext extends NonComponentC
     /**
      * @return identifier for the authority provider
      */
+    @Override
     String getIdentifier();
 
     /**
@@ -37,6 +38,7 @@ public interface LoginIdentityProviderConfigurationContext extends NonComponentC
      *
      * @return Map of all properties
      */
+    @Override
     Map<String, String> getProperties();
 
     /**
@@ -45,5 +47,6 @@ public interface LoginIdentityProviderConfigurationContext extends NonComponentC
      * @param property the property to retrieve
      * @return the current property value (can be null)
      */
+    @Override
     String getProperty(String property);
 }

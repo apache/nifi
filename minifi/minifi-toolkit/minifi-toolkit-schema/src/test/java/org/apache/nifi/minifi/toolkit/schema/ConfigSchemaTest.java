@@ -118,7 +118,7 @@ public class ConfigSchemaTest {
     @Test
     public void testNifiPropertyOverrides() {
         Map<Object, Object> map = new HashMap<>();
-        HashMap<Object, Object> overrides = new HashMap<>();
+        Map<Object, Object> overrides = new HashMap<>();
         overrides.put("nifi.flowfile.repository.directory", "./flowfile_repository_override");
         overrides.put("nifi.content.repository.directory.default", "./content_repository_override");
         overrides.put("nifi.database.directory", "./database_repository_override");

@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command;
 
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.help.HelpFormatter;
+import org.apache.commons.cli.help.TextHelpAppendable;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.Command;
@@ -130,25 +131,28 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
             output.println();
         }
 
-        final PrintWriter printWriter = new PrintWriter(output);
+        try {
+            final PrintWriter printWriter = new PrintWriter(output);
+            final TextHelpAppendable appendable = new TextHelpAppendable(printWriter);
+            appendable.setMaxWidth(80);
 
-        final int width = 80;
-        final HelpFormatter hf = new HelpFormatter();
-        hf.setWidth(width);
+            appendable.appendParagraph(getDescription());
 
-        hf.printWrapped(printWriter, width, getDescription());
-        hf.printWrapped(printWriter, width, "");
+            if (isReferencable()) {
+                appendable.appendParagraph("PRODUCES BACK-REFERENCES");
+            }
 
-        if (isReferencable()) {
-            hf.printWrapped(printWriter, width, "PRODUCES BACK-REFERENCES");
-            hf.printWrapped(printWriter, width, "");
+            HelpFormatter.builder()
+                    .setHelpAppendable(appendable)
+                    .setShowSince(false)
+                    .get()
+                    .printHelp(getName(), null, getOptions(), null, false);
+
+            printWriter.println();
+            printWriter.flush();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to print command usage for " + getName(), e);
         }
-
-        hf.printHelp(printWriter, hf.getWidth(), getName(), null, getOptions(),
-                hf.getLeftPadding(), hf.getDescPadding(), null, false);
-
-        printWriter.println();
-        printWriter.flush();
     }
 
 

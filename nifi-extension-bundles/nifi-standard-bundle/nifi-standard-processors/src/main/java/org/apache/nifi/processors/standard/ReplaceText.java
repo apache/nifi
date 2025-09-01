@@ -221,7 +221,6 @@ public class ReplaceText extends AbstractProcessor {
         .build();
     static final PropertyDescriptor PREPEND_TEXT = new PropertyDescriptor.Builder()
         .name("Text to Prepend")
-        .displayName("Text to Prepend")
         .description("The text to prepend to the start of the FlowFile, or each line, depending on the configured value of the Evaluation Mode property")
         .required(true)
         .addValidator(Validator.VALID)
@@ -230,7 +229,6 @@ public class ReplaceText extends AbstractProcessor {
         .build();
     static final PropertyDescriptor APPEND_TEXT = new PropertyDescriptor.Builder()
         .name("Text to Append")
-        .displayName("Text to Append")
         .description("The text to append to the end of the FlowFile, or each line, depending on the configured value of the Evaluation Mode property")
         .required(true)
         .addValidator(Validator.VALID)

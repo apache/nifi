@@ -303,16 +303,10 @@ public class FormatUtils {
      * @return true if the unit is "weeks"; false otherwise
      */
     protected static boolean isWeek(final String rawUnit) {
-        switch (rawUnit) {
-            case "w":
-            case "wk":
-            case "wks":
-            case "week":
-            case "weeks":
-                return true;
-            default:
-                return false;
-        }
+        return switch (rawUnit) {
+            case "w", "wk", "wks", "week", "weeks" -> true;
+            default -> false;
+        };
     }
 
     /**
@@ -324,47 +318,16 @@ public class FormatUtils {
      * @return the TimeUnit
      */
     protected static TimeUnit determineTimeUnit(String rawUnit) {
-        switch (rawUnit.toLowerCase()) {
-            case "ns":
-            case "nano":
-            case "nanos":
-            case "nanoseconds":
-                return TimeUnit.NANOSECONDS;
-            case "µs":
-            case "micro":
-            case "micros":
-            case "microseconds":
-                return TimeUnit.MICROSECONDS;
-            case "ms":
-            case "milli":
-            case "millis":
-            case "milliseconds":
-                return TimeUnit.MILLISECONDS;
-            case "s":
-            case "sec":
-            case "secs":
-            case "second":
-            case "seconds":
-                return TimeUnit.SECONDS;
-            case "m":
-            case "min":
-            case "mins":
-            case "minute":
-            case "minutes":
-                return TimeUnit.MINUTES;
-            case "h":
-            case "hr":
-            case "hrs":
-            case "hour":
-            case "hours":
-                return TimeUnit.HOURS;
-            case "d":
-            case "day":
-            case "days":
-                return TimeUnit.DAYS;
-            default:
-                throw new IllegalArgumentException("Could not parse '" + rawUnit + "' to TimeUnit");
-        }
+        return switch (rawUnit.toLowerCase()) {
+            case "ns", "nano", "nanos", "nanoseconds" -> TimeUnit.NANOSECONDS;
+            case "µs", "micro", "micros", "microseconds" -> TimeUnit.MICROSECONDS;
+            case "ms", "milli", "millis", "milliseconds" -> TimeUnit.MILLISECONDS;
+            case "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS;
+            case "m", "min", "mins", "minute", "minutes" -> TimeUnit.MINUTES;
+            case "h", "hr", "hrs", "hour", "hours" -> TimeUnit.HOURS;
+            case "d", "day", "days" -> TimeUnit.DAYS;
+            default -> throw new IllegalArgumentException("Could not parse '" + rawUnit + "' to TimeUnit");
+        };
     }
 
     public static String formatUtilization(final double utilization) {

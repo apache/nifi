@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOrdinaryLeastSquares {
 
@@ -82,10 +83,10 @@ public class TestOrdinaryLeastSquares {
         predictorVars.put(1, 200 / 800.0);
         Double target = model.predictVariable(0, predictorVars, 750.0);
         Double rSquared = model.getScores().get("rSquared");
-        assert (rSquared > .90);
+        assertTrue(rSquared > .90);
         Date targetDate = new Date(target.longValue());
         Date testDate = new Date(timestamp.longValue());
-        assert (DateUtils.isSameDay(targetDate, testDate) && targetDate.after(testDate));
+        assertTrue(DateUtils.isSameDay(targetDate, testDate) && targetDate.after(testDate));
 
     }
 
@@ -112,8 +113,8 @@ public class TestOrdinaryLeastSquares {
         model.learn(Stream.of(features), Stream.of(labels));
         Double target = model.predict(predictor);
         Double rSquared = model.getScores().get("rSquared");
-        assert (rSquared > .90);
-        assert (target >= 950);
+        assertTrue(rSquared > .90);
+        assertTrue(target >= 950);
 
     }
 
@@ -140,13 +141,9 @@ public class TestOrdinaryLeastSquares {
         simpleRegression.learn(Stream.of(features), Stream.of(labels));
         double olsR2 = ordinaryLeastSquares.getScores().get("rSquared");
         double srR2 = simpleRegression.getScores().get("rSquared");
-        assert (!Double.isNaN(olsR2));
-        assert (!Double.isNaN(srR2));
-        Map<String, Double> olsScores = ordinaryLeastSquares.getScores();
-        Map<String, Double> srScores = simpleRegression.getScores();
-        System.out.print(olsScores.toString());
-        System.out.print(srScores.toString());
-        assert (olsR2 > srR2);
+        assertFalse(Double.isNaN(olsR2));
+        assertFalse(Double.isNaN(srR2));
+        assertTrue(olsR2 > srR2);
 
     }
 }

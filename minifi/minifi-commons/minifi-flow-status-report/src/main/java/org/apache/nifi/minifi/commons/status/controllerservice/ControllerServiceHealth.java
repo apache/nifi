@@ -26,9 +26,6 @@ public class ControllerServiceHealth implements java.io.Serializable {
     private boolean hasBulletins;
     private List<ValidationError> validationErrorList;
 
-    public ControllerServiceHealth() {
-    }
-
     public String getState() {
         return state;
     }

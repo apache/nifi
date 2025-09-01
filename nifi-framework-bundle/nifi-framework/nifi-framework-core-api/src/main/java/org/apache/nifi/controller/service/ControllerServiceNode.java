@@ -44,6 +44,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service
      *         does not belong to any Process Group
      */
+    @Override
     ProcessGroup getProcessGroup();
 
     /**

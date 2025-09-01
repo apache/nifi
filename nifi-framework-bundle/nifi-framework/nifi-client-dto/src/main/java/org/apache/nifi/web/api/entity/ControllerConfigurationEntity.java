@@ -56,12 +56,13 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
      *
      * @return The ControllerConfigurationDTO object
      */
-    @Schema(description = "The controller configuration."
-    )
+    @Schema(description = "The controller configuration.")
+    @Override
     public ControllerConfigurationDTO getComponent() {
         return controllerConfiguration;
     }
 
+    @Override
     public void setComponent(ControllerConfigurationDTO controllerConfiguration) {
         this.controllerConfiguration = controllerConfiguration;
     }
@@ -71,12 +72,13 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
      *
      * @return The permissions
      */
-    @Schema(description = "The permissions for this component."
-    )
+    @Schema(description = "The permissions for this component.")
+    @Override
     public PermissionsDTO getPermissions() {
         return permissions;
     }
 
+    @Override
     public void setPermissions(PermissionsDTO permissions) {
         this.permissions = permissions;
     }

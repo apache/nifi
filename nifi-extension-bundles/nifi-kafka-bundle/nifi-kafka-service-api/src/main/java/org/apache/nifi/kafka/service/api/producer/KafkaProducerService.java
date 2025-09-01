@@ -43,6 +43,7 @@ public interface KafkaProducerService extends Closeable {
      * Signal the Kafka `Producer` to close the producer connection.  This allows for graceful handling of
      * `ControllerService` misconfiguration issues (NIFI-12194).
      */
+    @Override
     void close();
 
     /**

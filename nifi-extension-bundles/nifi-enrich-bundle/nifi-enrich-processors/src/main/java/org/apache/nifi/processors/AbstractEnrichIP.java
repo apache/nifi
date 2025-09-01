@@ -58,7 +58,6 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor IP_ADDRESS_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("IP Address Attribute")
-            .displayName("IP Address Attribute")
             .required(true)
             .description("The name of an attribute whose value is a dotted decimal IP address for which enrichment should occur")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -68,7 +67,6 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
             .name("Log Level")
-            .displayName("Log Level")
             .required(true)
             .description("The Log Level to use when an IP is not found in the database. Accepted values: INFO, DEBUG, WARN, ERROR.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

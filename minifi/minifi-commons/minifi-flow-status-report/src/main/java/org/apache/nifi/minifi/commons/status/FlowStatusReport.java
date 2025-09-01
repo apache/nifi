@@ -42,9 +42,6 @@ public class FlowStatusReport implements java.io.Serializable {
     private List<String> errorsGeneratingReport;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public FlowStatusReport() {
-    }
-
     public List<ControllerServiceStatus> getControllerServiceStatusList() {
         return controllerServiceStatusList;
     }

@@ -35,14 +35,17 @@ public class StandardDataPacket implements DataPacket {
         this.size = size;
     }
 
+    @Override
     public Map<String, String> getAttributes() {
         return attributes;
     }
 
+    @Override
     public InputStream getData() {
         return stream;
     }
 
+    @Override
     public long getSize() {
         return size;
     }

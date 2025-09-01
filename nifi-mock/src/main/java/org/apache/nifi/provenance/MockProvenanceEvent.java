@@ -151,6 +151,7 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         return allAttrs;
     }
 
+    @Override
     public String getAttribute(final String attributeName) {
         if (updatedAttributes.containsKey(attributeName)) {
             return updatedAttributes.get(attributeName);

@@ -69,16 +69,11 @@ public class EqualsEvaluator extends BooleanEvaluator {
             return null;
         }
 
-        switch (type) {
-            case STRING:
-                return (String) value;
-            case DATE:
-                return String.valueOf(((Date) value).getTime());
-            case BOOLEAN:
-            case NUMBER:
-            default:
-                return String.valueOf(value);
-        }
+        return switch (type) {
+            case STRING -> (String) value;
+            case DATE -> String.valueOf(((Date) value).getTime());
+            default -> String.valueOf(value);
+        };
     }
 
     @Override

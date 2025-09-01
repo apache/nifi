@@ -52,6 +52,7 @@ import static org.mockito.Mockito.when;
 
 class TestConnectWebSocket extends TestListenWebSocket {
 
+    @Override
     @Test
     public void testSuccess() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);

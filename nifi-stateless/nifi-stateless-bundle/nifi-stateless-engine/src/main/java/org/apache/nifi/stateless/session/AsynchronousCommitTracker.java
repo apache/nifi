@@ -40,8 +40,8 @@ public class AsynchronousCommitTracker {
     private static final Logger logger = LoggerFactory.getLogger(AsynchronousCommitTracker.class);
 
     private final ProcessGroup rootGroup;
-    private final LinkedHashSet<Connectable> ready = new LinkedHashSet<>();
-    private final Stack<CommitCallbacks> commitCallbacks = new Stack<>();
+    private final LinkedHashSet<Connectable> ready = new LinkedHashSet<>(); // NOPMD
+    private final Stack<CommitCallbacks> commitCallbacks = new Stack<>(); //NOPMD
     private int flowFilesProduced = 0;
     private long bytesProduced = 0L;
     private boolean progressMade = false;

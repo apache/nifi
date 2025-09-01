@@ -46,7 +46,6 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -74,9 +73,7 @@ public class TestNodeClusterCoordinator {
     private final RevisionSnapshot emptyRevisionSnapshot = new RevisionSnapshot(Collections.emptyList(), 0L);
 
     private NiFiProperties createProperties() {
-        final Map<String, String> addProps = new HashMap<>();
-        addProps.put("nifi.zookeeper.connect.string", "localhost:2181");
-        return NiFiProperties.createBasicNiFiProperties(null, addProps);
+        return NiFiProperties.createBasicNiFiProperties(null, Map.of());
     }
 
     @BeforeEach

@@ -49,6 +49,7 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
         }
     }
 
+    @Override
     protected void writeJson(T event) throws IOException {
         super.writeJson(event);
         if (event.getDatabaseName() != null) {

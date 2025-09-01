@@ -39,22 +39,27 @@ public class BaseTableEventInfo extends BaseEventInfo implements TableEventInfo 
         }
     }
 
+    @Override
     public String getDatabaseName() {
         return databaseName;
     }
 
+    @Override
     public String getTableName() {
         return tableName;
     }
 
+    @Override
     public Long getTableId() {
         return tableId;
     }
 
+    @Override
     public List<ColumnDefinition> getColumns() {
         return columns;
     }
 
+    @Override
     public ColumnDefinition getColumnByIndex(int i) {
         try {
             return columns.get(i);

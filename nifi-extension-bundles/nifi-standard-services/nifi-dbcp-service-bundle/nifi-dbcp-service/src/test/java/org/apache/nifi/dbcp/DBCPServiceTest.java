@@ -18,13 +18,19 @@ package org.apache.nifi.dbcp;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -203,6 +209,41 @@ public class DBCPServiceTest {
         assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleDuration().toMillis());
 
         service.getDataSource().close();
+    }
+
+    @Test
+    public void testInvalidDriverDerby() throws URISyntaxException {
+        final URL driverURL = org.apache.derby.client.ClientAutoloadedDriver.class
+                .getProtectionDomain()
+                .getCodeSource()
+                .getLocation();
+
+        final File jarFile = new File(driverURL.toURI());
+
+        runner.setProperty(service, DBCPProperties.DB_DRIVER_LOCATION, jarFile.getAbsolutePath());
+        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "a.very.bad.jdbc.Driver");
+
+        final Collection<ConfigVerificationResult> verificationResults = runner.verify(service, Map.of());
+        assertEquals(1, verificationResults.size());
+
+        final ConfigVerificationResult result = verificationResults.stream().filter(r -> r.getVerificationStepName().equals("Configure Data Source")).findFirst().get();
+        assertTrue(result.getExplanation().contains("org.apache.derby.client.ClientAutoloadedDriver"));
+    }
+
+    @Test
+    public void testInvalidDriverNoResource() {
+        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "a.very.bad.jdbc.Driver");
+
+        final Collection<ValidationResult> validationResults = runner.validate(service);
+        assertEquals(0, validationResults.size());
+
+        AssertionFailedError thrown = assertThrows(AssertionFailedError.class, () -> {
+            runner.enableControllerService(service);
+        });
+
+        // Verify the underlying cause is what we expect
+        assertTrue(thrown.getMessage().contains("ProcessException"));
+        assertTrue(thrown.getMessage().contains("JDBC driver class 'a.very.bad.jdbc.Driver' not found. The property 'Database Driver Location(s)' should be set."));
     }
 
     private void assertConnectionNotNullDynamicProperty(final String propertyName, final String propertyValue) throws SQLException {

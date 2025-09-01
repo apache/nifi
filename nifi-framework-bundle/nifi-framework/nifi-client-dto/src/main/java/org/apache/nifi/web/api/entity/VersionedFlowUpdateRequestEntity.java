@@ -26,6 +26,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<VersionedFlowUpdateRequestDTO> {
 
     @Schema(description = "The Flow Update Request")
+    @Override
     public VersionedFlowUpdateRequestDTO getRequest() {
         if (request == null) {
             request = new VersionedFlowUpdateRequestDTO();
@@ -33,6 +34,7 @@ public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<Ve
         return request;
     }
 
+    @Override
     public void setRequest(VersionedFlowUpdateRequestDTO request) {
         this.request = request;
     }

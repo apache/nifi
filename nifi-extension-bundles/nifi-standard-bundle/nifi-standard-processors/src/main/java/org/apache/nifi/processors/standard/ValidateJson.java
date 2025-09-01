@@ -131,7 +131,6 @@ public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
             .name("Schema Access Strategy")
-            .displayName("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
             .allowableValues(JsonSchemaStrategy.class)
             .defaultValue(JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
@@ -140,7 +139,6 @@ public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
             .name(SCHEMA_NAME_PROPERTY_NAME)
-            .displayName(SCHEMA_NAME_PROPERTY_NAME)
             .description("Specifies the name of the schema to lookup in the Schema Registry property")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -151,7 +149,6 @@ public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
             .name("JSON Schema Registry")
-            .displayName("JSON Schema Registry")
             .description("Specifies the Controller Service to use for the JSON Schema Registry")
             .identifiesControllerService(JsonSchemaRegistry.class)
             .required(true)
@@ -160,7 +157,6 @@ public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor SCHEMA_CONTENT = new PropertyDescriptor.Builder()
             .name(SCHEMA_CONTENT_PROPERTY_NAME)
-            .displayName(SCHEMA_CONTENT_PROPERTY_NAME)
             .description("A URL or file path to the JSON schema or the actual JSON schema content")
             .required(true)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)

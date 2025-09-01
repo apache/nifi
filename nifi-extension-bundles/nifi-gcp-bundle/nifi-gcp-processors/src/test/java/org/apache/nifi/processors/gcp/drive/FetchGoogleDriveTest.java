@@ -56,6 +56,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     private static final String TEST_SHARED_DRIVE_ID = "drive-id";
     private static final String TEST_SHARED_DRIVE_NAME = "drive-name";
 
+    @Override
     @BeforeEach
     protected void setUp() throws Exception {
         final FetchGoogleDrive testSubject = new FetchGoogleDrive() {

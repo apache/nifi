@@ -42,3 +42,9 @@ export interface Stats {
     mean: string;
     nodes?: StatsNode[];
 }
+
+export interface StartOption {
+    label: string;
+    value: number;
+    formattedDate: string;
+}

@@ -166,6 +166,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
      *
      * @return Connected Event Sender
      */
+    @Override
     public EventSender<T> getEventSender() {
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap.remoteAddress(new InetSocketAddress(address, port));

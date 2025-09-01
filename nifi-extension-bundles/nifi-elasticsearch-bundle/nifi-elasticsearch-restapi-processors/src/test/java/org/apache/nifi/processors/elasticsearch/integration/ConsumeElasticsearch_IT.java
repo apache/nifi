@@ -25,10 +25,12 @@ class ConsumeElasticsearch_IT extends AbstractJsonQueryElasticsearch_IT {
     private static final String RANGE_FIELD = "num";
     private static final String RANGE_SORT_ORDER = "asc";
 
+    @Override
     ElasticsearchRestProcessor getProcessor() {
         return new ConsumeElasticsearch();
     }
 
+    @Override
     @BeforeEach
     public void setUp() {
         // Range Field is required; no Initial Value should result in a default "match_all" query being constructed

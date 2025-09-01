@@ -19,5 +19,6 @@ package org.apache.nifi.controller.repository;
 import org.wali.SerDeFactory;
 
 public interface RepositoryRecordSerdeFactory extends SerDeFactory<SerializedRepositoryRecord> {
+    @Override
     Long getRecordIdentifier(SerializedRepositoryRecord record);
 }

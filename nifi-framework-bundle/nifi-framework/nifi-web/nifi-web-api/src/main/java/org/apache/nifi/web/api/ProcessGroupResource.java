@@ -157,8 +157,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);
 
-    private static final String FLOW_ANALYSIS_REQUEST_TYPE = "flow-analysis-requests";
-
     private ProcessorResource processorResource;
     private InputPortResource inputPortResource;
     private OutputPortResource outputPortResource;
@@ -176,8 +174,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {
-        MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        MAPPER.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         MAPPER.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(MAPPER.getTypeFactory()));
         MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }

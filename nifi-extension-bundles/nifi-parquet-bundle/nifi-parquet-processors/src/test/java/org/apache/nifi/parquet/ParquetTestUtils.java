@@ -35,6 +35,8 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class ParquetTestUtils {
 
     public static File createUsersParquetFile(int numUsers) throws IOException {
@@ -70,7 +72,7 @@ public class ParquetTestUtils {
 
     private static Schema getSchema() throws IOException {
         try (InputStream schemaInputStream = ParquetTestUtils.class.getClassLoader().getResourceAsStream("avro/user.avsc")) {
-            assert schemaInputStream != null;
+            assertNotNull(schemaInputStream);
             final String schemaString = IOUtils.toString(schemaInputStream, StandardCharsets.UTF_8);
             return new Schema.Parser().parse(schemaString);
         }

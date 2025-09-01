@@ -134,9 +134,7 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testAnonymousWithOneProxy() {
         // override the setting to enable anonymous authentication
-        final Map<String, String> additionalProperties = new HashMap<>() {{
-            put(NiFiProperties.SECURITY_ANONYMOUS_AUTHENTICATION, Boolean.TRUE.toString());
-        }};
+        final Map<String, String> additionalProperties = Map.of(NiFiProperties.SECURITY_ANONYMOUS_AUTHENTICATION, Boolean.TRUE.toString());
         final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, additionalProperties);
         x509AuthenticationProvider = new X509AuthenticationProvider(certificateIdentityProvider, authorizer, properties);
 

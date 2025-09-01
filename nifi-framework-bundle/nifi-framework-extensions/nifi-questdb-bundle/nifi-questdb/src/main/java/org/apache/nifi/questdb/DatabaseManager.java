@@ -36,5 +36,6 @@ public interface DatabaseManager extends Closeable {
     /**
      * Finishes maintenance of the database. After calling, manager does not guarantee any connection with the database.
      */
+    @Override
     void close();
 }

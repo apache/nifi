@@ -49,6 +49,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
 import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.StandardRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
@@ -319,6 +320,15 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             .dependsOn(RECORD_WRITER)
             .build();
 
+    public static final PropertyDescriptor FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("FlowFile Handling On Schema Difference")
+            .description("The strategy used when records in a Kinesis Stream change their schema in a single batch.")
+            .required(true)
+            .defaultValue(SchemaDifferenceHandlingStrategy.CREATE_FLOW_FILE)
+            .allowableValues(SchemaDifferenceHandlingStrategy.class)
+            .dependsOn(RECORD_WRITER)
+            .build();
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
             .description("If a message from Kinesis cannot be parsed using the configured Record Reader" +
@@ -333,6 +343,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             RECORD_READER,
             RECORD_WRITER,
             OUTPUT_STRATEGY,
+            FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY,
             REGION,
             ENDPOINT_OVERRIDE,
             DYNAMODB_ENDPOINT_OVERRIDE,
@@ -727,12 +738,14 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 final RecordConverter recordConverter = OutputStrategy.USE_WRAPPER == outputStrategy
                         ? new RecordConverterWrapper()
                         : new RecordConverterIdentity();
+                final SchemaDifferenceHandlingStrategy schemaDifferenceHandlingStrategy = context.getProperty(FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY)
+                        .asAllowableValue(SchemaDifferenceHandlingStrategy.class);
                 return new KinesisRecordProcessorRecord(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
-                        getReaderFactory(context), getWriterFactory(context), recordConverter, recordProcessorBlocker
-                );
+                        getReaderFactory(context), getWriterFactory(context), recordConverter, recordProcessorBlocker,
+                        schemaDifferenceHandlingStrategy);
             } else {
                 return new KinesisRecordProcessorRaw(
                         sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),

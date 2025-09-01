@@ -202,8 +202,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private void createObjectMapper(final ConfigurationContext context) {
         mapper = new ObjectMapper();
         if (ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY);
         }
         prettyPrintWriter = mapper.writerWithDefaultPrettyPrinter();
     }

@@ -355,7 +355,7 @@ public class Wait extends AbstractProcessor {
         final boolean replaceOriginalAttributes = ATTRIBUTE_COPY_REPLACE.getValue().equals(attributeCopyMode);
         final AtomicReference<Signal> signalRef = new AtomicReference<>();
         // This map contains original counts before those are consumed to release incoming FlowFiles.
-        final HashMap<String, Long> originalSignalCounts = new HashMap<>();
+        final Map<String, Long> originalSignalCounts = new HashMap<>();
 
         final Consumer<FlowFile> transferToFailure = flowFile -> {
             flowFile = session.penalize(flowFile);

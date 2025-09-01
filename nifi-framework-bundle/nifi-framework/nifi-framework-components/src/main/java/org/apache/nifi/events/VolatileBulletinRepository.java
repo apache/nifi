@@ -282,36 +282,23 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     private String getBulletinStoreKey(final Bulletin bulletin) {
-        switch (bulletin.getSourceType()) {
-            case FLOW_CONTROLLER:
-                return CONTROLLER_BULLETIN_STORE_KEY;
-            case CONTROLLER_SERVICE:
-                return SERVICE_BULLETIN_STORE_KEY;
-            case REPORTING_TASK:
-                return REPORTING_TASK_BULLETIN_STORE_KEY;
-            case FLOW_ANALYSIS_RULE:
-                return FLOW_ANALYSIS_RULE_BULLETIN_STORE_KEY;
-            case PARAMETER_PROVIDER:
-                return PARAMETER_PROVIDER_BULLETIN_STORE_KEY;
-            case FLOW_REGISTRY_CLIENT:
-                return FLOW_REGISTRY_CLIENT_STORE_KEY;
-            default:
-                return bulletin.getGroupId();
-        }
+        return switch (bulletin.getSourceType()) {
+            case FLOW_CONTROLLER -> CONTROLLER_BULLETIN_STORE_KEY;
+            case CONTROLLER_SERVICE -> SERVICE_BULLETIN_STORE_KEY;
+            case REPORTING_TASK -> REPORTING_TASK_BULLETIN_STORE_KEY;
+            case FLOW_ANALYSIS_RULE -> FLOW_ANALYSIS_RULE_BULLETIN_STORE_KEY;
+            case PARAMETER_PROVIDER -> PARAMETER_PROVIDER_BULLETIN_STORE_KEY;
+            case FLOW_REGISTRY_CLIENT -> FLOW_REGISTRY_CLIENT_STORE_KEY;
+            default -> bulletin.getGroupId();
+        };
     }
 
     private boolean isControllerBulletin(final Bulletin bulletin) {
-        switch (bulletin.getSourceType()) {
-            case FLOW_CONTROLLER:
-            case CONTROLLER_SERVICE:
-            case REPORTING_TASK:
-            case FLOW_ANALYSIS_RULE:
-            case PARAMETER_PROVIDER:
-            case FLOW_REGISTRY_CLIENT:
-                return true;
-            default:
-                return false;
-        }
+        return switch (bulletin.getSourceType()) {
+            case FLOW_CONTROLLER, CONTROLLER_SERVICE, REPORTING_TASK, FLOW_ANALYSIS_RULE, PARAMETER_PROVIDER,
+                 FLOW_REGISTRY_CLIENT -> true;
+            default -> false;
+        };
     }
 
     private class DefaultBulletinProcessingStrategy implements BulletinProcessingStrategy {

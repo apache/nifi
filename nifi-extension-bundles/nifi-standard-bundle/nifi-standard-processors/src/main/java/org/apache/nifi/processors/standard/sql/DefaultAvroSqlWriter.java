@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.nifi.util.db.JdbcCommon.AvroConversionOptions;
@@ -35,9 +34,7 @@ public class DefaultAvroSqlWriter implements SqlWriter {
 
     private final AvroConversionOptions options;
 
-    private final Map<String, String> attributesToAdd = new HashMap<>() {{
-        put(CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
-    }};
+    private final Map<String, String> attributesToAdd = Map.of(CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
 
     public DefaultAvroSqlWriter(AvroConversionOptions options) {
         this.options = options;

@@ -42,10 +42,12 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
      *
      * @return The RemoteProcessGroupDTO object
      */
+    @Override
     public RemoteProcessGroupDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(RemoteProcessGroupDTO component) {
         this.component = component;
     }

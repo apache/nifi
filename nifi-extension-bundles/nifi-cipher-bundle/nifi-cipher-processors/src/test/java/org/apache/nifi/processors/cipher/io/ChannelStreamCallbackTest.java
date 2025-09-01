@@ -97,6 +97,7 @@ class ChannelStreamCallbackTest {
             super(BUFFER_CAPACITY);
         }
 
+        @Override
         protected ReadableByteChannel getReadableChannel(final InputStream inputStream) {
             return new BufferRemainingReadableByteChannel();
         }

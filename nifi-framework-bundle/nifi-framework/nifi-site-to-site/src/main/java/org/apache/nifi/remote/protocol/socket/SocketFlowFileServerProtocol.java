@@ -97,15 +97,10 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             } else {
                 handshakeResult.writeResponse(dos);
             }
-            switch (handshakeResult) {
-                case UNAUTHORIZED:
-                case PORT_NOT_IN_VALID_STATE:
-                case PORTS_DESTINATION_FULL:
-                    responseWritten = true;
-                    break;
-                default:
-                    throw e;
-            }
+            responseWritten = switch (handshakeResult) {
+                case UNAUTHORIZED, PORT_NOT_IN_VALID_STATE, PORTS_DESTINATION_FULL -> true;
+                default -> throw e;
+            };
         }
 
         // send "OK" response

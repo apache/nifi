@@ -34,7 +34,8 @@ import java.util.List;
  * Implementation of {@link org.apache.nifi.registry.flow.FlowRegistryClient} that uses GitHub for version controlling flows.
  */
 @Tags({"git", "github", "registry", "flow"})
-@CapabilityDescription("Flow Registry Client that uses the GitHub REST API to version control flows in a GitHub repository.")
+@CapabilityDescription("Flow Registry Client that uses the GitHub REST API to version control flows in a GitHub repository. "
+        + "Note that for a given flow, the registry client will retrieve at most the last 10 commits to limit API calls.")
 public class GitHubFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor GITHUB_API_URL = new PropertyDescriptor.Builder()

@@ -47,7 +47,6 @@ public interface ClientSideEncryptionSupport {
 
     PropertyDescriptor CSE_KEY_TYPE = new PropertyDescriptor.Builder()
             .name("Client-Side Encryption Key Type")
-            .displayName("Client-Side Encryption Key Type")
             .required(true)
             .allowableValues(ClientSideEncryptionMethod.class)
             .defaultValue(ClientSideEncryptionMethod.NONE)
@@ -56,7 +55,6 @@ public interface ClientSideEncryptionSupport {
 
     PropertyDescriptor CSE_KEY_ID = new PropertyDescriptor.Builder()
             .name("Client-Side Encryption Key ID")
-            .displayName("Client-Side Encryption Key ID")
             .description("Specifies the ID of the key to use for client-side encryption.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -66,7 +64,6 @@ public interface ClientSideEncryptionSupport {
 
     PropertyDescriptor CSE_LOCAL_KEY = new PropertyDescriptor.Builder()
             .name("Client-Side Encryption Local Key")
-            .displayName("Client-Side Encryption Local Key")
             .description("When using local client-side encryption, this is the raw key, encoded in hexadecimal")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)

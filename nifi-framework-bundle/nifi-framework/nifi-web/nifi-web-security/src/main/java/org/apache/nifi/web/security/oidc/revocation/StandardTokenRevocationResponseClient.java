@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 
@@ -95,7 +96,7 @@ public class StandardTokenRevocationResponseClient implements TokenRevocationRes
             requestEntity = null;
             logger.info("OIDC Revocation Endpoint not found");
         } else {
-            final LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+            final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
             parameters.add(OAuth2ParameterNames.TOKEN, revocationRequest.getToken());
 
             final String tokenTypeHint = revocationRequest.getTokenTypeHint();
@@ -103,7 +104,7 @@ public class StandardTokenRevocationResponseClient implements TokenRevocationRes
                 parameters.add(OAuth2ParameterNames.TOKEN_TYPE_HINT, tokenTypeHint);
             }
 
-            final HttpHeaders headers = new HttpHeaders();
+            final HttpHeaders headers = new HttpHeaders(); //NOPMD
             final String clientId = clientRegistration.getClientId();
             final String clientSecret = clientRegistration.getClientSecret();
             headers.setBasicAuth(clientId, clientSecret, StandardCharsets.UTF_8);

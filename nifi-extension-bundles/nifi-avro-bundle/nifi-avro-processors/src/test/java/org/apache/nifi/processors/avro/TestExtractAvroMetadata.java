@@ -19,6 +19,7 @@ package org.apache.nifi.processors.avro;
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -172,11 +173,11 @@ public class TestExtractAvroMetadata {
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/array.avsc"));
 
-        final GenericData.Array<String> data = new GenericData.Array<>(schema, Arrays.asList("one", "two", "three"));
-        final DatumWriter<GenericData.Array<String>> datumWriter = new GenericDatumWriter<>(schema);
+        final GenericArray<String> data = new GenericData.Array<>(schema, Arrays.asList("one", "two", "three"));
+        final DatumWriter<GenericArray<String>> datumWriter = new GenericDatumWriter<>(schema);
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final DataFileWriter<GenericData.Array<String>> dataFileWriter = new DataFileWriter<>(datumWriter);
+        final DataFileWriter<GenericArray<String>> dataFileWriter = new DataFileWriter<>(datumWriter);
         dataFileWriter.create(schema, out);
         dataFileWriter.append(data);
         dataFileWriter.append(data);
@@ -201,11 +202,11 @@ public class TestExtractAvroMetadata {
 
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/array.avsc"));
 
-        final GenericData.Array<String> data = new GenericData.Array<>(schema, Arrays.asList("one", "two", "three"));
-        final DatumWriter<GenericData.Array<String>> datumWriter = new GenericDatumWriter<>(schema);
+        final GenericArray<String> data = new GenericData.Array<>(schema, Arrays.asList("one", "two", "three"));
+        final DatumWriter<GenericArray<String>> datumWriter = new GenericDatumWriter<>(schema);
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        final DataFileWriter<GenericData.Array<String>> dataFileWriter = new DataFileWriter<>(datumWriter);
+        final DataFileWriter<GenericArray<String>> dataFileWriter = new DataFileWriter<>(datumWriter);
         dataFileWriter.setCodec(CodecFactory.deflateCodec(1));
         dataFileWriter.create(schema, out);
         dataFileWriter.append(data);

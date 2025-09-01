@@ -201,7 +201,6 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     public static final PropertyDescriptor TRANSLATION_PATTERN = new PropertyDescriptor.Builder()
             .name("Column Name Translation Pattern")
-            .displayName("Column Name Translation Pattern")
             .description("Column name will be normalized with this regular expression")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

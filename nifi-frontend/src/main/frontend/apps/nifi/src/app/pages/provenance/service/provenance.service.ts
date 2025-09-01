@@ -84,7 +84,7 @@ export class ProvenanceService {
             dataUri = `${dataUri}?${query}`;
         }
 
-        window.open(dataUri);
+        window.open(dataUri, '_blank', 'noreferrer');
     }
 
     viewContent(
@@ -133,7 +133,7 @@ export class ProvenanceService {
 
         // open the content viewer
         const contentViewerQuery: string = new URLSearchParams(contentViewerParameters).toString();
-        window.open(`${contentViewer}${contentViewerQuery}`);
+        window.open(`${contentViewer}${contentViewerQuery}`, '_blank', 'noreferrer');
     }
 
     replay(eventId: number, clusterNodeId?: string): Observable<any> {

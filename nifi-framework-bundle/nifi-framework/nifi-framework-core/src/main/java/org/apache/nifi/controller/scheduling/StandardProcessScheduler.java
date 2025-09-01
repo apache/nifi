@@ -163,6 +163,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      *
      * @param task the task to perform
      */
+    @Override
     public Future<?> submitFrameworkTask(final Runnable task) {
         final CompletableFuture<?> future = new CompletableFuture<>();
 
@@ -416,7 +417,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         return future;
     }
 
-    @SuppressWarnings("PMD.EmptyCatchBlock")
+    @Override
     public synchronized CompletableFuture<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(groupNode), true, true);
         lifecycleState.setScheduled(true);
@@ -476,7 +477,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
-                } catch (final TimeoutException e) {
+                } catch (final TimeoutException ignored) {
                     // Controller Services have not yet enabled. Keep waiting.
                     // We do not want to just wait for the Future.get() to return because we want to check if the desired state has changed.
                 } catch (final Exception e) {

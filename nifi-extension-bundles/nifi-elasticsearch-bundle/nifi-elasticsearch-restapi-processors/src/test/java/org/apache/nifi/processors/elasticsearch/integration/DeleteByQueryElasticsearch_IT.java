@@ -20,6 +20,7 @@ import org.apache.nifi.processors.elasticsearch.DeleteByQueryElasticsearch;
 import org.apache.nifi.processors.elasticsearch.ElasticsearchRestProcessor;
 
 public class DeleteByQueryElasticsearch_IT extends AbstractByQueryElasticsearch_IT {
+    @Override
     ElasticsearchRestProcessor getProcessor() {
         return new DeleteByQueryElasticsearch();
     }

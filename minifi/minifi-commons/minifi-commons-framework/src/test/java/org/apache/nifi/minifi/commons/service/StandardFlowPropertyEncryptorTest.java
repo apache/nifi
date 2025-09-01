@@ -286,7 +286,7 @@ public class StandardFlowPropertyEncryptorTest {
         return controllerServiceDefinition;
     }
 
-    private LinkedHashMap<String, PropertyDescriptor> convertVersionedPropertyDescriptorMapToPropertyDescriptorMap(Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
+    private Map<String, PropertyDescriptor> convertVersionedPropertyDescriptorMapToPropertyDescriptorMap(Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
         return propertyDescriptors.values()
             .stream()
             .map(propertyDescriptor -> entry(propertyDescriptor.getName(), convertPropertyDescriptor(propertyDescriptor)))

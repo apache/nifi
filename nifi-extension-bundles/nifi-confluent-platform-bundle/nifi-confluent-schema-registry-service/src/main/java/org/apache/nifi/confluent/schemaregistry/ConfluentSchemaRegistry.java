@@ -53,6 +53,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
@@ -215,7 +216,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
                 sslContext, username, password, getLogger(), httpHeaders);
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
-        final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS).longValue();
+        final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
 
         client = new CachingSchemaRegistryClient(restClient, cacheSize, cacheExpiration);
     }
@@ -229,12 +230,12 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             final List<String> baseUrls = getBaseURLs(validationContext);
             final List<String> insecure = baseUrls.stream()
                 .filter(url -> !url.startsWith("https"))
-                .collect(Collectors.toList());
+                .toList();
 
             if (!insecure.isEmpty()) {
                 results.add(new ValidationResult.Builder()
                     .subject(SCHEMA_REGISTRY_URLS.getDisplayName())
-                    .input(insecure.get(0))
+                    .input(insecure.getFirst())
                     .valid(false)
                     .explanation("When SSL Context is configured, all Schema Registry URL's must use HTTPS, not HTTP")
                     .build());
@@ -270,7 +271,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     private List<String> getBaseURLs(final PropertyContext context) {
         final String urls = context.getProperty(SCHEMA_REGISTRY_URLS).evaluateAttributeExpressions().getValue();
         final List<String> baseUrls = Stream.of(urls.split(","))
-            .map(url -> url.trim())
+            .map(String::trim)
             .collect(Collectors.toList());
 
         return baseUrls;
@@ -278,7 +279,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
     private RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         final Optional<String> schemaName = schemaIdentifier.getName();
-        if (!schemaName.isPresent()) {
+        if (schemaName.isEmpty()) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
         }
 
@@ -294,7 +295,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
     private RecordSchema retrieveSchemaById(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         final OptionalLong schemaId = schemaIdentifier.getSchemaVersionId();
-        if (!schemaId.isPresent()) {
+        if (schemaId.isEmpty()) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Id is not present");
         }
 
@@ -314,5 +315,15 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
         return schemaFields;
+    }
+
+    @Override
+    public boolean isSchemaDefinitionAccessSupported() {
+        return true;
+    }
+
+    @Override
+    public SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        return client.getSchemaDefinition(schemaIdentifier);
     }
 }

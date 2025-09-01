@@ -29,9 +29,6 @@ import java.util.List;
  */
 @XmlRootElement(name = "flowAnalysisResultEntity")
 public class FlowAnalysisResultEntity extends Entity {
-    public FlowAnalysisResultEntity() {
-    }
-
     private boolean flowAnalysisPending;
 
     private List<FlowAnalysisRuleDTO> rules = new ArrayList<>();

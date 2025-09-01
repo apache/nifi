@@ -16,28 +16,35 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { UaEditor } from './ua-editor.component';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { MockComponent } from 'ng-mocks';
+import { CodemirrorNifiLanguageService, Codemirror } from '@nifi/shared';
 import { PropertyHint } from '@nifi/shared';
-
-import 'codemirror/addon/hint/show-hint';
+import { MockComponent } from 'ng-mocks';
 
 describe('UaEditor', () => {
     let component: UaEditor;
     let fixture: ComponentFixture<UaEditor>;
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            imports: [UaEditor, HttpClientTestingModule, MockComponent(PropertyHint)]
-        });
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            imports: [UaEditor, MockComponent(Codemirror), MockComponent(PropertyHint)],
+            providers: [
+                {
+                    provide: CodemirrorNifiLanguageService,
+                    useValue: {
+                        setLanguageOptions: () => {},
+                        getLanguageSupport: () => ({})
+                    }
+                }
+            ]
+        }).compileComponents();
+
         fixture = TestBed.createComponent(UaEditor);
         component = fixture.componentInstance;
+        fixture.detectChanges();
     });
 
     it('should create', () => {
-        fixture.detectChanges();
         expect(component).toBeTruthy();
     });
 });

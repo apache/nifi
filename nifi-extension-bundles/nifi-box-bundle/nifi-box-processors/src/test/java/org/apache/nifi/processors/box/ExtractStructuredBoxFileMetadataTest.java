@@ -86,6 +86,7 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
     private BiFunction<String, String, BoxAIExtractStructuredResponse> templateResponseSupplier;
     private Function<InputStream, BoxAIExtractStructuredResponse> fieldsInputStreamResponseSupplier;
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
         // Default suppliers simply return the mock response.

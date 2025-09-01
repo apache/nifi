@@ -72,6 +72,7 @@ public class JvmMetricsDataSource implements ResettableDataSource {
         return value.replaceAll("[ -.]", "_");
     }
 
+    @Override
     public NiFiTableSchema getSchema() {
         return schema;
     }

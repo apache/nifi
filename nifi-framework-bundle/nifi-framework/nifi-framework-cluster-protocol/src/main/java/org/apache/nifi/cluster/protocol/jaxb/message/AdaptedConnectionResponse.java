@@ -36,9 +36,6 @@ public class AdaptedConnectionResponse {
     private List<NodeConnectionStatus> nodeStatuses;
     private ComponentRevisionSnapshot componentRevisions;
 
-    public AdaptedConnectionResponse() {
-    }
-
     @XmlJavaTypeAdapter(DataFlowAdapter.class)
     public DataFlow getDataFlow() {
         return dataFlow;

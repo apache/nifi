@@ -20,6 +20,7 @@ import org.apache.nifi.processors.elasticsearch.ElasticsearchRestProcessor;
 import org.apache.nifi.processors.elasticsearch.PaginatedJsonQueryElasticsearch;
 
 public class PaginatedJsonQueryElasticsearch_IT extends AbstractJsonQueryElasticsearch_IT {
+    @Override
     ElasticsearchRestProcessor getProcessor() {
         return new PaginatedJsonQueryElasticsearch();
     }

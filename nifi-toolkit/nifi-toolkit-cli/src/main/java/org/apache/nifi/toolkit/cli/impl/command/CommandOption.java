@@ -234,10 +234,10 @@ public enum CommandOption {
     }
 
     public Option createOption() {
-        return Option.builder(shortName).longOpt(longName).desc(description).hasArg(hasArg).build();
+        return Option.builder(shortName).longOpt(longName).desc(description).hasArg(hasArg).get();
     }
 
     public Option createOption(final String description) {
-        return Option.builder(shortName).longOpt(longName).desc(description).hasArg(hasArg).build();
+        return Option.builder(shortName).longOpt(longName).desc(description).hasArg(hasArg).get();
     }
 }

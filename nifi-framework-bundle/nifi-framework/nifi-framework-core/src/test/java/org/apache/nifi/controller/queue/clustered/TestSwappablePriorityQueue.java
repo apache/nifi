@@ -782,7 +782,7 @@ public class TestSwappablePriorityQueue {
         assertEquals(9998, queue.getActiveFlowFiles().size());
         assertEquals(1, queue.getFlowFileQueueSize().getSwappedCount());
         assertEquals(0, queue.getFlowFileQueueSize().getSwapFileCount());
-        assert (swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").isEmpty());
+        assertTrue(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").isEmpty());
 
         // Ensure that the min and total are still correct
         flowFileRecords.removeAll(polledRecords);

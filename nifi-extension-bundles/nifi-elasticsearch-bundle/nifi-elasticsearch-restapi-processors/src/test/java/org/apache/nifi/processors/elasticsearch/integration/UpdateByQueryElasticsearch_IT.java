@@ -20,6 +20,7 @@ import org.apache.nifi.processors.elasticsearch.ElasticsearchRestProcessor;
 import org.apache.nifi.processors.elasticsearch.UpdateByQueryElasticsearch;
 
 public class UpdateByQueryElasticsearch_IT extends AbstractByQueryElasticsearch_IT {
+    @Override
     ElasticsearchRestProcessor getProcessor() {
         return new UpdateByQueryElasticsearch();
     }

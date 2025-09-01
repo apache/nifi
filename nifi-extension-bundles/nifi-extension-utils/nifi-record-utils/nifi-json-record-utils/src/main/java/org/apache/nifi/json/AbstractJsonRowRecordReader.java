@@ -56,7 +56,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
-            .displayName("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")
             .required(true)
             .defaultValue(DEFAULT_MAX_STRING_LENGTH)
@@ -65,7 +64,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
     public static final PropertyDescriptor ALLOW_COMMENTS = new PropertyDescriptor.Builder()
             .name("Allow Comments")
-            .displayName("Allow Comments")
             .description("Whether to allow comments when parsing the JSON document")
             .required(true)
             .allowableValues("true", "false")

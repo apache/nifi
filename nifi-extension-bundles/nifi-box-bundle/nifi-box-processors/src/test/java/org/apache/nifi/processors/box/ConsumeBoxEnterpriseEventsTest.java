@@ -54,6 +54,7 @@ class ConsumeBoxEnterpriseEventsTest extends AbstractBoxFileTest {
 
     private TestConsumeBoxEnterpriseEvents processor;
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
         processor = new TestConsumeBoxEnterpriseEvents();

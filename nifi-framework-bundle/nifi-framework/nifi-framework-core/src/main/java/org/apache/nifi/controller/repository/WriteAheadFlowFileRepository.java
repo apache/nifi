@@ -83,13 +83,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
     private static final String RETAIN_ORPHANED_FLOWFILES = "nifi.flowfile.repository.retain.orphaned.flowfiles";
     private static final String FLOWFILE_REPO_CACHE_SIZE = "nifi.flowfile.repository.wal.cache.characters";
-
-    static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
-    static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
-    private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
     private static final int DEFAULT_CACHE_SIZE = 10_000_000;
 
-    private final String walImplementation;
     protected final NiFiProperties nifiProperties;
 
     private final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
@@ -145,7 +140,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         alwaysSync = false;
         checkpointDelayMillis = 0L;
         checkpointExecutor = null;
-        walImplementation = null;
         nifiProperties = null;
         retainOrphanedFlowFiles = true;
         maxCharactersToCache = 0;
@@ -158,12 +152,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final String orphanedFlowFileProperty = nifiProperties.getProperty(RETAIN_ORPHANED_FLOWFILES);
         retainOrphanedFlowFiles = orphanedFlowFileProperty == null || Boolean.parseBoolean(orphanedFlowFileProperty);
 
-        // determine the database file path and ensure it exists
-        String writeAheadLogImpl = nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION);
-        if (writeAheadLogImpl == null) {
-            writeAheadLogImpl = DEFAULT_WAL_IMPLEMENTATION;
-        }
-        this.walImplementation = writeAheadLogImpl;
         this.maxCharactersToCache = nifiProperties.getIntegerProperty(FLOWFILE_REPO_CACHE_SIZE, DEFAULT_CACHE_SIZE);
 
         final String directoryName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
@@ -202,15 +190,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
         this.serdeFactory = serdeFactory;
 
-        // The specified implementation can be plaintext or encrypted; the only difference is the serde factory
-        if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL) || walImplementation.equals(ENCRYPTED_SEQUENTIAL_ACCESS_WAL)) {
-            // TODO: May need to instantiate ESAWAL for clarity?
-            wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
-        } else {
-            throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION +
-                    "' has an invalid value of '" + walImplementation + "'. Please update nifi.properties to indicate a valid value for this property.");
-        }
-
+        wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
         logger.info("Initialized FlowFile Repository");
     }
 

@@ -428,9 +428,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                 if (obj instanceof Map) {
                     handler.process((Map) obj, iterator.hasNext());
                 } else {
-                    handler.process(new HashMap<>() {{
-                        put("result", obj);
-                    }}, iterator.hasNext());
+                    handler.process(Map.of("result", obj), iterator.hasNext());
                 }
                 count++;
             }

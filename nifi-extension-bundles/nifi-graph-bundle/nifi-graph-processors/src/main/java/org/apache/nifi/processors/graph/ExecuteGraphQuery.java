@@ -89,6 +89,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
     private volatile GraphClientService clientService;
 
     @OnScheduled
+    @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(GraphClientService.class);

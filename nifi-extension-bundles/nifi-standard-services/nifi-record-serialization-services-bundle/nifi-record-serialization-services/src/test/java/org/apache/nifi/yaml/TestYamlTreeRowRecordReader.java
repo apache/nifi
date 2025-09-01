@@ -614,16 +614,20 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedSchema, new HashMap<>() {{
-                put("integer", 1);
-                put("boolean", true);
-                put("booleanOrString", true);
-            }}),
-            new MapRecord(expectedSchema, new HashMap<>() {{
+            new MapRecord(expectedSchema, Map.of(
+                    "integer", 1,
+                    "boolean", true,
+                    "booleanOrString", true
+            )),
+            new MapRecord(expectedSchema, Map.of(
+                    "integer", 2,
+                    "string", "stringValue2",
+                    "booleanOrString", "booleanOrStringValue2"
+            )/*new HashMap<>() {{
                 put("integer", 2);
                 put("string", "stringValue2");
                 put("booleanOrString", "booleanOrStringValue2");
-            }})
+            }}*/)
         );
 
         testReadRecords(yamlPath, expected);
@@ -649,18 +653,16 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<>() {{
-                    put("integer", 1);
-                    put("boolean", true);
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema2, new HashMap<>() {{
-                    put("integer", 2);
-                    put("string", "stringValue2");
-                }}));
-            }})
+            new MapRecord(expectedRecordChoiceSchema, Map.of(
+                    "record", new MapRecord(expectedRecordSchema1, Map.of(
+                            "integer", 1,
+                            "boolean", true))
+            )),
+            new MapRecord(expectedRecordChoiceSchema, Map.of(
+                    "record", new MapRecord(expectedRecordSchema2, Map.of(
+                            "integer", 2,
+                            "string", "stringValue2"))
+            ))
         );
 
         testReadRecords(yamlPath, expected);
@@ -712,34 +714,32 @@ class TestYamlTreeRowRecordReader {
         //  while the explicit schema defines only (INT, BOOLEAN) and (INT, STRING) we can't tell which record schema to chose
         //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new Object[]{
-                        new MapRecord(expectedChildSchema1, new HashMap<>() {{
-                            put("integer", 11);
-                            put("boolean", true);
-                            put("extraString", "extraStringValue11");
-                        }}),
-                        new MapRecord(expectedChildSchema1, new HashMap<>() {{
-                            put("integer", 12);
-                            put("boolean", false);
-                            put("extraString", "extraStringValue12");
-                        }})
-                });
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new Object[]{
-                        new MapRecord(expectedChildSchema1, new HashMap<>() {{
-                            put("integer", 21);
-                            put("extraString", "extraStringValue21");
-                            put("string", "stringValue21");
-                        }}),
-                        new MapRecord(expectedChildSchema1, new HashMap<>() {{
-                            put("integer", 22);
-                            put("extraString", "extraStringValue22");
-                            put("string", "stringValue22");
-                        }})
-                });
-            }})
+            new MapRecord(expectedRecordChoiceSchema, Map.of("record", new Object[]{
+                        new MapRecord(expectedChildSchema1, Map.of(
+                                "integer", 11,
+                                "boolean", true,
+                                "extraString", "extraStringValue11"
+                        )),
+                        new MapRecord(expectedChildSchema1, Map.of(
+                                "integer", 12,
+                                "boolean", false,
+                                "extraString", "extraStringValue12"
+                        ))
+                })
+            ),
+            new MapRecord(expectedRecordChoiceSchema, Map.of("record", new Object[]{
+                        new MapRecord(expectedChildSchema1, Map.of(
+                                "integer", 21,
+                                "extraString", "extraStringValue21",
+                                "string", "stringValue21"
+                        )),
+                        new MapRecord(expectedChildSchema1, Map.of(
+                                "integer", 22,
+                                "extraString", "extraStringValue22",
+                                "string", "stringValue22"
+                        ))
+                })
+            )
         );
 
         testReadRecords(yamlPath, schema, expected);
@@ -755,14 +755,14 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "id", 42,
+                        "balance", 4750.89
+                )),
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "id", 43,
+                        "balance", 48212.38
+                ))
         );
 
         testNestedReadRecords(yamlPath, expected, "accounts");
@@ -778,10 +778,10 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }})
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "id", 42,
+                        "balance", 4750.89
+                ))
         );
 
         testNestedReadRecords(yamlPath, expected, "account");
@@ -797,14 +797,14 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                    new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                        put("id", "n312kj3");
-                        put("type", "employee");
-                    }}),
-                    new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                        put("id", "dl2kdff");
-                        put("type", "security");
-                    }})
+                    new MapRecord(expectedRecordSchema, Map.of(
+                            "id", "n312kj3",
+                            "type", "employee"
+                    )),
+                    new MapRecord(expectedRecordSchema, Map.of(
+                            "id", "dl2kdff",
+                            "type", "security"
+                    ))
         );
 
         testNestedReadRecords(yamlPath, expected, "accountIds");
@@ -837,14 +837,14 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "id", 42,
+                        "balance", 4750.89
+                )),
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "id", 43,
+                        "balance", 48212.38
+                ))
         );
 
         testNestedReadRecords(yamlPath, expectedRecordSchema, expected, "accounts", SchemaApplicationStrategy.SELECTED_PART);
@@ -864,10 +864,10 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Collections.singletonList(
-                new MapRecord(accountSchema, new HashMap<>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }})
+                new MapRecord(accountSchema, Map.of(
+                        "id", 42,
+                        "balance", 4750.89
+                ))
         );
 
         testNestedReadRecords(yamlPath, recordSchema, expected, "account", SchemaApplicationStrategy.WHOLE_JSON);
@@ -887,14 +887,14 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-                new MapRecord(accountSchema, new HashMap<>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(accountSchema, new HashMap<>() {{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
+                new MapRecord(accountSchema, Map.of(
+                        "id", 42,
+                        "balance", 4750.89
+                )),
+                new MapRecord(accountSchema, Map.of(
+                        "id", 43,
+                        "balance", 48212.38
+                ))
         );
 
         testNestedReadRecords(yamlPath, recordSchema, expected, "accounts", SchemaApplicationStrategy.WHOLE_JSON);
@@ -927,10 +927,10 @@ class TestYamlTreeRowRecordReader {
         ));
 
         List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<>() {{
-                    put("nestedLevel2Int", 111);
-                    put("nestedLevel2String", "root.level1.level2:string");
-                }})
+                new MapRecord(expectedRecordSchema, Map.of(
+                        "nestedLevel2Int", 111,
+                        "nestedLevel2String", "root.level1.level2:string"
+                ))
         );
 
         testNestedReadRecords(yamlPath, recordSchema, expected, "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON);

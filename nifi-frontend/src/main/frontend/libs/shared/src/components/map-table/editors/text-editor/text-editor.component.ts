@@ -15,16 +15,28 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output, Renderer2, ViewContainerRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Editor } from 'codemirror';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { Resizable } from '../../../resizable/resizable.component';
+import { Codemirror, CodeMirrorConfig } from '../../../codemirror/codemirror.component';
+import { Extension, EditorState, Prec } from '@codemirror/state';
+import {
+    keymap,
+    highlightActiveLine,
+    lineNumbers,
+    highlightActiveLineGutter,
+    EditorView,
+    rectangularSelection,
+    crosshairCursor
+} from '@codemirror/view';
+import { defaultKeymap, deleteLine, history, historyKeymap, redoSelection } from '@codemirror/commands';
+import { indentOnInput, indentUnit } from '@codemirror/language';
+import { MatLabel } from '@angular/material/form-field';
 import { MapTableItem } from '../../../../types';
 
 @Component({
@@ -33,11 +45,13 @@ import { MapTableItem } from '../../../../types';
         CommonModule,
         CdkDrag,
         CdkTrapFocus,
-        CodemirrorModule,
         MatButton,
         MatCheckbox,
         ReactiveFormsModule,
-        Resizable
+        Resizable,
+        MatLabel,
+        FormsModule,
+        Codemirror
     ],
     templateUrl: './text-editor.component.html',
     styleUrl: './text-editor.component.scss'
@@ -50,6 +64,7 @@ export class TextEditor {
         this.setEmptyStringChanged();
         this.itemSet = true;
     }
+
     @Input() width!: number;
     @Input() readonly: boolean = false;
 
@@ -57,15 +72,30 @@ export class TextEditor {
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     textEditorForm: FormGroup;
-    editor!: Editor;
     blank = false;
     itemSet = false;
+    codemirrorConfig: CodeMirrorConfig = {
+        plugins: [],
+        focusOnInit: true
+    };
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private viewContainerRef: ViewContainerRef,
-        private renderer: Renderer2
-    ) {
+    // Styling configuration
+    editorStyling = {
+        width: '100%',
+        height: '108px'
+    };
+
+    // Dynamic config getter that includes readonly state
+    get codemirrorConfigWithState(): CodeMirrorConfig {
+        return {
+            ...this.codemirrorConfig,
+            plugins: this.getExtensions(),
+            disabled: this.readonly,
+            readOnly: this.readonly
+        };
+    }
+
+    constructor(private formBuilder: FormBuilder) {
         this.textEditorForm = this.formBuilder.group({
             value: new FormControl(''),
             setEmptyString: new FormControl(false)
@@ -101,16 +131,8 @@ export class TextEditor {
             if (emptyStringChecked.value) {
                 this.textEditorForm.get('value')?.setValue('');
                 this.textEditorForm.get('value')?.disable();
-
-                if (this.editor) {
-                    this.editor.setOption('readOnly', 'nocursor');
-                }
             } else {
                 this.textEditorForm.get('value')?.enable();
-
-                if (this.editor) {
-                    this.editor.setOption('readOnly', false);
-                }
             }
         }
     }
@@ -122,50 +144,54 @@ export class TextEditor {
         // needed to display the 'Set Empty String' checkbox, the action buttons,
         // and the resize handle. If the amount of spacing needed for additional UX is needed for the `.editor` is
         // changed then this value should also be updated.
-        this.editor.setSize('100%', event.height - 112);
+        this.editorStyling.width = '100%';
+        this.editorStyling.height = `${event.height - 152}px`;
     }
 
     preventDrag(event: MouseEvent): void {
         event.stopPropagation();
     }
 
-    codeMirrorLoaded(codeEditor: any): void {
-        this.editor = codeEditor.codeMirror;
-        // The `.text-editor` minimum height is set to 220px. This is the height of the `.editor` overlay. The
-        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
-        // The height of the codemirror should be the height of the `.editor` overlay minus the 112px of spacing
-        // needed to display the 'Set Empty String' checkbox, the action buttons,
-        // and the resize handle so the initial height of the codemirror when opening should be 108px for a 220px tall
-        // `.editor` overlay. If the initial height of that overlay changes then this initial height should also be
-        // updated.
-        this.editor.setSize('100%', 108);
-
-        if (!this.readonly) {
-            this.editor.focus();
-            this.editor.execCommand('selectAll');
-        }
-
+    codeMirrorLoaded(): void {
         // disabling of the input through the form isn't supported until codemirror
         // has loaded so we must disable again if the value is an empty string
         if (this.textEditorForm.get('setEmptyString')?.value) {
             this.textEditorForm.get('value')?.disable();
-            this.editor.setOption('readOnly', 'nocursor');
         }
     }
 
-    getOptions(): any {
-        return {
-            readOnly: this.readonly,
-            lineNumbers: true,
-            matchBrackets: true,
-            theme: 'nifi',
-            extraKeys: {
-                Enter: () => {
-                    if (this.textEditorForm.dirty && this.textEditorForm.valid) {
-                        this.okClicked();
+    getExtensions(): Extension[] {
+        const setup: Extension[] = [
+            lineNumbers(),
+            history(),
+            indentUnit.of('    '),
+            EditorView.lineWrapping,
+            rectangularSelection(),
+            crosshairCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            highlightActiveLine(),
+            [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+            EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' }),
+            keymap.of([
+                { key: 'Mod-Enter', run: () => true }, // ignore Mod-Enter in `defaultKeymap` which is handled by `QueryShortcuts.ts`
+                { key: 'Mod-y', run: redoSelection },
+                { key: 'Shift-Mod-k', run: deleteLine },
+                {
+                    key: 'Enter',
+                    run: () => {
+                        if (this.textEditorForm.dirty && this.textEditorForm.valid) {
+                            this.okClicked();
+                            return true;
+                        }
+                        return false;
                     }
-                }
-            }
-        };
+                },
+                ...defaultKeymap,
+                ...historyKeymap
+            ])
+        ];
+
+        return setup;
     }
 }

@@ -149,7 +149,6 @@ public class AttributesToJSON extends AbstractProcessor {
 
     public static final PropertyDescriptor JSON_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
             .name("JSON Handling Strategy")
-            .displayName("JSON Handling Strategy")
             .description("Strategy to use for handling attributes which contain nested JSON.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -159,7 +158,6 @@ public class AttributesToJSON extends AbstractProcessor {
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
             .name("Pretty Print")
-            .displayName("Pretty Print")
             .description("Apply pretty print formatting to the output.")
             .required(true)
             .allowableValues("true", "false")

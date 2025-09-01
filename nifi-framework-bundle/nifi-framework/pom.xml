@@ -33,11 +33,9 @@
         <module>nifi-framework-components</module>
         <module>nifi-framework-core</module>
         <module>nifi-framework-cluster-protocol</module>
-        <module>nifi-framework-cluster-zookeeper</module>
         <module>nifi-framework-cluster</module>
         <module>nifi-framework-external-resource-utils</module>
         <module>nifi-framework-leader-election-shared</module>
-        <module>nifi-framework-zookeeper-leader-election</module>
         <module>nifi-framework-status-history-shared</module>
         <module>nifi-framework-nar-utils</module>
         <module>nifi-framework-nar-loading-utils</module>

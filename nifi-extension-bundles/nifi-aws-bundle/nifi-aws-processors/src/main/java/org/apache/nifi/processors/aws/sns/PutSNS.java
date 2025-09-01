@@ -85,7 +85,6 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
 
     public static final PropertyDescriptor MESSAGEGROUPID = new PropertyDescriptor.Builder()
             .name("Message Group ID")
-            .displayName("Message Group ID")
             .description("If using FIFO, the message group to which the flowFile belongs")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -94,7 +93,6 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
 
     public static final PropertyDescriptor MESSAGEDEDUPLICATIONID = new PropertyDescriptor.Builder()
             .name("Deduplication Message ID")
-            .displayName("Deduplication Message ID")
             .description("The token used for deduplication of sent messages")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

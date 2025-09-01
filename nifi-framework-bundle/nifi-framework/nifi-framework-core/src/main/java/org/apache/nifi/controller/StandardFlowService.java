@@ -313,24 +313,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             running.set(false);
 
+            // Stop Cluster Coordinator before Node Protocol Sender
             if (clusterCoordinator != null) {
                 try {
                     clusterCoordinator.shutdown();
                 } catch (final Throwable t) {
-                    logger.error("Failed to properly shutdown coordinator", t);
+                    logger.error("Failed to shutdown Cluster Coordinator", t);
+                }
+            }
+
+            // Stop Node Protocol Sender Listener to avoid receiving additional cluster messages while shutting down Controller
+            if (configuredForClustering && senderListener != null) {
+                try {
+                    senderListener.stop();
+                } catch (final IOException ioe) {
+                    logger.warn("Failed to stop Cluster Node Protocol Sender Listener", ioe);
                 }
             }
 
             if (!controller.isTerminated()) {
                 controller.shutdown(force);
-            }
-
-            if (configuredForClustering && senderListener != null) {
-                try {
-                    senderListener.stop();
-                } catch (final IOException ioe) {
-                    logger.warn("Protocol sender/listener did not stop gracefully", ioe);
-                }
             }
         } finally {
             writeLock.unlock();

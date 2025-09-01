@@ -73,7 +73,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor ADDRESS = new PropertyDescriptor.Builder()
             .name("Address")
-            .displayName("Address")
             .description("Internet Protocol Address on which to listen for OTLP Export Service Requests. The default value enables listening on all addresses.")
             .required(true)
             .defaultValue("0.0.0.0")
@@ -83,7 +82,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Port")
-            .displayName("Port")
             .description("TCP port number on which to listen for OTLP Export Service Requests over HTTP and gRPC")
             .required(true)
             .defaultValue("4317")
@@ -93,7 +91,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .displayName("SSL Context Service")
             .description("SSL Context Service enables TLS communication for HTTPS")
             .required(true)
             .identifiesControllerService(SSLContextProvider.class)
@@ -102,7 +99,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor CLIENT_AUTHENTICATION = new PropertyDescriptor.Builder()
             .name("Client Authentication")
-            .displayName("Client Authentication")
             .description("Client authentication policy for TLS communication with HTTPS")
             .required(true)
             .allowableValues(ClientAuth.values())
@@ -112,7 +108,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor WORKER_THREADS = new PropertyDescriptor.Builder()
             .name("Worker Threads")
-            .displayName("Worker Threads")
             .description("Number of threads responsible for decoding and queuing incoming OTLP Export Service Requests")
             .required(true)
             .defaultValue("2")
@@ -122,7 +117,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor QUEUE_CAPACITY = new PropertyDescriptor.Builder()
             .name("Queue Capacity")
-            .displayName("Queue Capacity")
             .description("Maximum number of OTLP request resource elements that can be received and queued")
             .required(true)
             .defaultValue("1000")
@@ -132,7 +126,6 @@ public class ListenOTLP extends AbstractProcessor {
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .displayName("Batch Size")
             .description("Maximum number of OTLP request resource elements included in each FlowFile produced")
             .required(true)
             .defaultValue("100")

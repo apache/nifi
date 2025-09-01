@@ -23,9 +23,6 @@ public class ConnectionStats implements java.io.Serializable {
     private int outputCount;
     private long outputBytes;
 
-    public ConnectionStats() {
-    }
-
     public int getInputCount() {
         return inputCount;
     }

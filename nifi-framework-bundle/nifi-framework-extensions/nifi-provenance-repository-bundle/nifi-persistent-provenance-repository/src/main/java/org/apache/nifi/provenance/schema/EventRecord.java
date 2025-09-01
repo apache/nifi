@@ -68,52 +68,31 @@ public class EventRecord implements Record {
 
     @Override
     public Object getFieldValue(final String fieldName) {
-        switch (fieldName) {
-            case EventFieldNames.EVENT_IDENTIFIER:
-                return eventId;
-            case EventFieldNames.ALTERNATE_IDENTIFIER:
-                return event.getAlternateIdentifierUri();
-            case EventFieldNames.CHILD_UUIDS:
-                return event.getChildUuids();
-            case EventFieldNames.COMPONENT_ID:
-                return event.getComponentId();
-            case EventFieldNames.COMPONENT_TYPE:
-                return event.getComponentType();
-            case EventFieldNames.CONTENT_CLAIM:
-                return contentClaimRecord;
-            case EventFieldNames.EVENT_DETAILS:
-                return event.getDetails();
-            case EventFieldNames.EVENT_DURATION:
-                return event.getEventDuration();
-            case EventFieldNames.EVENT_TIME:
-                return event.getEventTime();
-            case EventFieldNames.EVENT_TYPE:
-                return event.getEventType().name();
-            case EventFieldNames.FLOWFILE_ENTRY_DATE:
-                return event.getFlowFileEntryDate();
-            case EventFieldNames.FLOWFILE_UUID:
-                return event.getFlowFileUuid();
-            case EventFieldNames.LINEAGE_START_DATE:
-                return event.getLineageStartDate();
-            case EventFieldNames.PARENT_UUIDS:
-                return event.getParentUuids();
-            case EventFieldNames.PREVIOUS_ATTRIBUTES:
-                return event.getPreviousAttributes();
-            case EventFieldNames.PREVIOUS_CONTENT_CLAIM:
-                return previousClaimRecord;
-            case EventFieldNames.RELATIONSHIP:
-                return event.getRelationship();
-            case EventFieldNames.SOURCE_QUEUE_IDENTIFIER:
-                return event.getSourceQueueIdentifier();
-            case EventFieldNames.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER:
-                return event.getSourceSystemFlowFileIdentifier();
-            case EventFieldNames.TRANSIT_URI:
-                return event.getTransitUri();
-            case EventFieldNames.UPDATED_ATTRIBUTES:
-                return event.getUpdatedAttributes();
-        }
+        return switch (fieldName) {
+            case EventFieldNames.EVENT_IDENTIFIER -> eventId;
+            case EventFieldNames.ALTERNATE_IDENTIFIER -> event.getAlternateIdentifierUri();
+            case EventFieldNames.CHILD_UUIDS -> event.getChildUuids();
+            case EventFieldNames.COMPONENT_ID -> event.getComponentId();
+            case EventFieldNames.COMPONENT_TYPE -> event.getComponentType();
+            case EventFieldNames.CONTENT_CLAIM -> contentClaimRecord;
+            case EventFieldNames.EVENT_DETAILS -> event.getDetails();
+            case EventFieldNames.EVENT_DURATION -> event.getEventDuration();
+            case EventFieldNames.EVENT_TIME -> event.getEventTime();
+            case EventFieldNames.EVENT_TYPE -> event.getEventType().name();
+            case EventFieldNames.FLOWFILE_ENTRY_DATE -> event.getFlowFileEntryDate();
+            case EventFieldNames.FLOWFILE_UUID -> event.getFlowFileUuid();
+            case EventFieldNames.LINEAGE_START_DATE -> event.getLineageStartDate();
+            case EventFieldNames.PARENT_UUIDS -> event.getParentUuids();
+            case EventFieldNames.PREVIOUS_ATTRIBUTES -> event.getPreviousAttributes();
+            case EventFieldNames.PREVIOUS_CONTENT_CLAIM -> previousClaimRecord;
+            case EventFieldNames.RELATIONSHIP -> event.getRelationship();
+            case EventFieldNames.SOURCE_QUEUE_IDENTIFIER -> event.getSourceQueueIdentifier();
+            case EventFieldNames.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER -> event.getSourceSystemFlowFileIdentifier();
+            case EventFieldNames.TRANSIT_URI -> event.getTransitUri();
+            case EventFieldNames.UPDATED_ATTRIBUTES -> event.getUpdatedAttributes();
+            default -> null;
+        };
 
-        return null;
     }
 
     @SuppressWarnings("unchecked")

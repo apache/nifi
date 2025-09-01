@@ -245,9 +245,9 @@ public class AttributesToCSV extends AbstractProcessor {
         return result;
     }
 
-    private LinkedHashSet<String> attributeListStringToSet(String attributeList) {
+    private Set<String> attributeListStringToSet(String attributeList) {
         //take the user specified attribute list string and convert to list of strings.
-        LinkedHashSet<String> result = new LinkedHashSet<>();
+        Set<String> result = new LinkedHashSet<>();
         if (StringUtils.isNotBlank(attributeList)) {
             String[] ats = attributeList.split(SPLIT_REGEX);
             for (String str : ats) {

@@ -99,16 +99,13 @@ public class FlowDifferenceFilters {
     }
 
     private static ComponentNode getComponent(final FlowManager flowManager, final ComponentType componentType, final String componentId) {
-        switch (componentType) {
-            case CONTROLLER_SERVICE:
-                return flowManager.getControllerServiceNode(componentId);
-            case PROCESSOR:
-                return flowManager.getProcessorNode(componentId);
-            case REPORTING_TASK:
-                return flowManager.getReportingTaskNode(componentId);
-        }
+        return switch (componentType) {
+            case CONTROLLER_SERVICE -> flowManager.getControllerServiceNode(componentId);
+            case PROCESSOR -> flowManager.getProcessorNode(componentId);
+            case REPORTING_TASK -> flowManager.getReportingTaskNode(componentId);
+            default -> null;
+        };
 
-        return null;
     }
 
     // The Registry URL may change if, for instance, a registry is moved to a new host, or is made secure, the port changes, etc.
@@ -244,18 +241,15 @@ public class FlowDifferenceFilters {
             return false;
         }
 
-        switch (type) {
-            case RETRIED_RELATIONSHIPS_CHANGED:
-                return processorNode.getRetriedRelationships().isEmpty();
-            case RETRY_COUNT_CHANGED:
-                return processorNode.getRetryCount() == ProcessorNode.DEFAULT_RETRY_COUNT;
-            case MAX_BACKOFF_PERIOD_CHANGED:
-                return ProcessorNode.DEFAULT_MAX_BACKOFF_PERIOD.equals(processorNode.getMaxBackoffPeriod());
-            case BACKOFF_MECHANISM_CHANGED:
-                return ProcessorNode.DEFAULT_BACKOFF_MECHANISM == processorNode.getBackoffMechanism();
-            default:
-                return false;
-        }
+        return switch (type) {
+            case RETRIED_RELATIONSHIPS_CHANGED -> processorNode.getRetriedRelationships().isEmpty();
+            case RETRY_COUNT_CHANGED -> processorNode.getRetryCount() == ProcessorNode.DEFAULT_RETRY_COUNT;
+            case MAX_BACKOFF_PERIOD_CHANGED ->
+                    ProcessorNode.DEFAULT_MAX_BACKOFF_PERIOD.equals(processorNode.getMaxBackoffPeriod());
+            case BACKOFF_MECHANISM_CHANGED ->
+                    ProcessorNode.DEFAULT_BACKOFF_MECHANISM == processorNode.getBackoffMechanism();
+            default -> false;
+        };
     }
 
     public static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {

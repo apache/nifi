@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PutElasticsearchRecord_IT extends AbstractElasticsearch_IT<AbstractPutElasticsearch> {
+    @Override
     AbstractPutElasticsearch getProcessor() {
         return new PutElasticsearchRecord();
     }

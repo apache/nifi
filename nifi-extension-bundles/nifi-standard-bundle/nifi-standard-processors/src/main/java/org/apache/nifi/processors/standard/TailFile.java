@@ -262,7 +262,6 @@ public class TailFile extends AbstractProcessor {
 
     static final PropertyDescriptor LINE_START_PATTERN = new Builder()
         .name("Line Start Pattern")
-        .displayName("Line Start Pattern")
         .description("A Regular Expression to match against the start of a log line. If specified, any line that matches the expression, and any following lines, will be buffered until another line" +
             " matches the Expression. In doing this, we can avoid splitting apart multi-line messages in the file. This assumes that the data is in UTF-8 format.")
         .required(false)
@@ -273,7 +272,6 @@ public class TailFile extends AbstractProcessor {
 
     static final PropertyDescriptor MAX_BUFFER_LENGTH = new Builder()
         .name("Max Buffer Size")
-        .displayName("Max Buffer Size")
         .description("When using the Line Start Pattern, there may be situations in which the data in the file being tailed never matches the Regular Expression. This would result in the processor " +
             "buffering all data from the tailed file, which can quickly exhaust the heap. To avoid this, the Processor will buffer only up to this amount of data before flushing the buffer, even if" +
             " it means ingesting partial data from the file.")

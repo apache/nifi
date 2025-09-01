@@ -38,8 +38,8 @@ public class FlowAnalysisRuleRunStatusEntity extends ComponentRunStatusEntity {
      * @return The state
      */
     @Schema(description = "The state of the FlowAnalysisRule.",
-            allowableValues = {"ENABLED", "DISABLED"}
-    )
+            allowableValues = {"ENABLED", "DISABLED"})
+    @Override
     public String getState() {
         return super.getState();
     }

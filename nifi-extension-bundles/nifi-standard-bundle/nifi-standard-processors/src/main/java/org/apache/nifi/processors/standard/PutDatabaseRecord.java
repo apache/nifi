@@ -198,7 +198,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     static final PropertyDescriptor STATEMENT_TYPE_RECORD_PATH = new Builder()
             .name("Statement Type Record Path")
-            .displayName("Statement Type Record Path")
             .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE. "
                     + "(Debezium style operation types are also supported: \"r\" and \"c\" for INSERT, \"u\" for UPDATE, and \"d\" for DELETE)")
             .required(true)
@@ -209,7 +208,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     static final PropertyDescriptor DATA_RECORD_PATH = new Builder()
             .name("Data Record Path")
-            .displayName("Data Record Path")
             .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming" +
                     " Record and the Record that results from evaluating the RecordPath will be sent to" +
                     " the database instead of sending the entire incoming Record. If not specified, the entire incoming Record will be published to the database.")

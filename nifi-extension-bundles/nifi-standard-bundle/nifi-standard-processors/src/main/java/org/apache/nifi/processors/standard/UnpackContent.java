@@ -159,7 +159,6 @@ public class UnpackContent extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor ZIP_FILENAME_CHARSET = new PropertyDescriptor.Builder()
             .name("Filename Character Set")
-            .displayName("Filename Character Set")
             .description(
                 "If supplied this character set will be supplied to the Zip utility to attempt to decode filenames using the specific character set. "
                     + "If not specified the default platform character set will be used. This is useful if a Zip was created with a different character "
@@ -180,7 +179,6 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .displayName("Password")
             .description("Password used for decrypting Zip archives encrypted with ZipCrypto or AES. Configuring a password disables support for alternative Zip compression algorithms.")
             .required(false)
             .sensitive(true)
@@ -707,7 +705,7 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         // second pass adds fragment attributes
-        ArrayList<FlowFile> newList = new ArrayList<>(unpacked);
+        List<FlowFile> newList = new ArrayList<>(unpacked);
         unpacked.clear();
         for (FlowFile ff : newList) {
             FlowFile newFF = session.putAllAttributes(ff, Map.of(

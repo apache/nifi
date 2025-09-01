@@ -447,6 +447,14 @@ public class TestQuery {
         verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters, "unit - unit");
 
         verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters, "unit");
+
+        // Unquoted parameter reference with spaces should also work
+        verifyEquals("${#{test param}}", attributes, stateValues, parameters, "unit");
+
+        // Unquoted parameter used within a function argument
+        parameters.put("Date Format", "yyyy");
+        final String expectedYear = String.valueOf(java.time.LocalDate.now().getYear());
+        verifyEquals("${now():format(#{Date Format})}", attributes, stateValues, parameters, expectedYear);
     }
 
     @Test

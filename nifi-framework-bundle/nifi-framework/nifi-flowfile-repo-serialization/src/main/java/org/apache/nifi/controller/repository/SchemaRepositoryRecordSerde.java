@@ -71,25 +71,14 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
 
     @Override
     public void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
-        final RecordSchema schema;
-        switch (record.getType()) {
-            case CREATE:
-            case UPDATE:
-                schema = RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V2;
-                break;
-            case CONTENTMISSING:
-            case DELETE:
-                schema = RepositoryRecordSchema.DELETE_SCHEMA_V2;
-                break;
-            case SWAP_IN:
-                schema = RepositoryRecordSchema.SWAP_IN_SCHEMA_V2;
-                break;
-            case SWAP_OUT:
-                schema = RepositoryRecordSchema.SWAP_OUT_SCHEMA_V2;
-                break;
-            default:
-                throw new IllegalArgumentException("Received Repository Record with unknown Update Type: " + record.getType()); // won't happen.
-        }
+        final RecordSchema schema = switch (record.getType()) {
+            case CREATE, UPDATE -> RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V2;
+            case CONTENTMISSING, DELETE -> RepositoryRecordSchema.DELETE_SCHEMA_V2;
+            case SWAP_IN -> RepositoryRecordSchema.SWAP_IN_SCHEMA_V2;
+            case SWAP_OUT -> RepositoryRecordSchema.SWAP_OUT_SCHEMA_V2;
+            default ->
+                    throw new IllegalArgumentException("Received Repository Record with unknown Update Type: " + record.getType()); // won't happen.
+        };
 
         serializeRecord(record, out, schema, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V2);
     }
@@ -169,21 +158,15 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
 
         final String actionType = (String) record.getFieldValue(RepositoryRecordSchema.ACTION_TYPE_FIELD);
         final RepositoryRecordType recordType = RepositoryRecordType.valueOf(actionType);
-        switch (recordType) {
-            case CREATE:
-                return createRecord(record, RepositoryRecordType.CREATE, null);
-            case CONTENTMISSING:
-            case DELETE:
-                return deleteRecord(record);
-            case SWAP_IN:
-                return swapInRecord(record);
-            case SWAP_OUT:
-                return swapOutRecord(record);
-            case UPDATE:
-                return updateRecord(record);
-        }
+        return switch (recordType) {
+            case CREATE -> createRecord(record, RepositoryRecordType.CREATE, null);
+            case CONTENTMISSING, DELETE -> deleteRecord(record);
+            case SWAP_IN -> swapInRecord(record);
+            case SWAP_OUT -> swapOutRecord(record);
+            case UPDATE -> updateRecord(record);
+            default -> throw new IOException("Found unrecognized Update Type '" + actionType + "'");
+        };
 
-        throw new IOException("Found unrecognized Update Type '" + actionType + "'");
     }
 
 

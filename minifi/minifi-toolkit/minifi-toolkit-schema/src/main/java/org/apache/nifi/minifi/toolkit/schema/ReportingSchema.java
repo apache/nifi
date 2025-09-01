@@ -66,6 +66,7 @@ public class ReportingSchema extends BaseSchemaWithIdAndName {
         return true;
     }
 
+    @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = super.toMap();
         result.put(CLASS_KEY, reportingClass);

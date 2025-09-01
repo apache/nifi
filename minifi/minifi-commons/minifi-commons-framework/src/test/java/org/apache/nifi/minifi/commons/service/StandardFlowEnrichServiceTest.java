@@ -174,8 +174,7 @@ public class StandardFlowEnrichServiceTest {
 
     private String flowToString(VersionedDataflow versionedDataflow) {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         objectMapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(objectMapper.getTypeFactory()));
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 

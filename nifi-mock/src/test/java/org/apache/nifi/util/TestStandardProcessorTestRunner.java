@@ -330,10 +330,12 @@ public class TestStandardProcessorTestRunner {
 
         private boolean opmCalled = false;
 
+        @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             return List.of(namePropertyDescriptor);
         }
 
+        @Override
         public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
             getLogger().info("onPropertyModified called for PD {} with old value {} and new value {}", descriptor.getName(), oldValue, newValue);
             opmCalled = true;
@@ -354,6 +356,7 @@ public class TestStandardProcessorTestRunner {
                 .allowableValues("exampleName", "anotherExampleName")
                 .build();
 
+        @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             return List.of(namePropertyDescriptor);
         }

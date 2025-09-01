@@ -467,10 +467,10 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 stopWatch.getDuration(TimeUnit.MILLISECONDS)
         );
 
-        input = session.putAllAttributes(input, new HashMap<>() {{
-            put("elasticsearch.put.error.count", String.valueOf(errorRecords.get()));
-            put("elasticsearch.put.success.count", String.valueOf(successfulRecords.get()));
-        }});
+        input = session.putAllAttributes(input, Map.of(
+                "elasticsearch.put.error.count", String.valueOf(errorRecords.get()),
+                "elasticsearch.put.success.count", String.valueOf(successfulRecords.get())
+        ));
 
         session.transfer(input, REL_ORIGINAL);
     }

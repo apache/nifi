@@ -34,12 +34,14 @@ import org.gitlab4j.api.RepositoryApi;
 import org.gitlab4j.api.models.AccessLevel;
 import org.gitlab4j.api.models.Branch;
 import org.gitlab4j.api.models.Commit;
+import org.gitlab4j.api.models.CommitAction;
 import org.gitlab4j.api.models.Permissions;
 import org.gitlab4j.api.models.Project;
 import org.gitlab4j.api.models.ProjectAccess;
 import org.gitlab4j.api.models.RepositoryFile;
 import org.gitlab4j.api.models.TreeItem;
 import org.gitlab4j.models.Constants;
+import org.gitlab4j.models.Constants.Encoding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +52,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -226,19 +229,32 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
         return execute(() -> {
             final Optional<RepositoryFile> existingFileInfo = gitLab.getRepositoryFileApi().getOptionalFileInfo(projectPath, resolvedPath, branch);
-            if (existingFileInfo.isPresent()) {
-                LOGGER.debug("Updating existing file [{}]", resolvedPath);
-                final RepositoryFile existingFile = existingFileInfo.get();
-                existingFile.encodeAndSetContent(request.getContent());
-                gitLab.getRepositoryFileApi().updateFile(projectPath, existingFile, branch, request.getMessage());
-            } else {
-                LOGGER.debug("Creating new file [{}]", resolvedPath);
-                final RepositoryFile newFile = new RepositoryFile();
-                newFile.setFilePath(resolvedPath);
-                newFile.encodeAndSetContent(request.getContent());
-                gitLab.getRepositoryFileApi().createFile(projectPath, newFile, branch, request.getMessage());
-            }
-            return gitLab.getRepositoryFileApi().getFileInfo(projectPath, resolvedPath, branch).getCommitId();
+
+            // Create commit action
+            final CommitAction commitAction = new CommitAction();
+            commitAction.setAction(existingFileInfo.isPresent() ? CommitAction.Action.UPDATE : CommitAction.Action.CREATE);
+            commitAction.setFilePath(resolvedPath);
+            commitAction.setEncoding(Encoding.BASE64);
+
+            // Encode content to Base64
+            final String encodedContent = Base64.getEncoder().encodeToString(request.getContent().getBytes(StandardCharsets.UTF_8));
+            commitAction.setContent(encodedContent);
+
+            // Create the commit
+            final Commit commit = gitLab.getCommitsApi()
+                    .createCommit(
+                            projectPath,
+                            branch,
+                            request.getMessage(),
+                            null, // start_branch - null means use the branch parameter
+                            null, // author_email - null means use the authenticated user
+                            null, // author_name - null means use the authenticated user
+                            List.of(commitAction));
+
+            final String commitId = commit.getId();
+            LOGGER.debug("Successfully committed file [{}] with commit ID: {}", resolvedPath, commit.getId());
+
+            return commitId;
         });
     }
 

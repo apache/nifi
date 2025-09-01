@@ -606,6 +606,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.writable = writable;
         }
 
+        @Override
         public ResourceClaimDetailsDTO clone() {
             final ResourceClaimDetailsDTO other = new ResourceClaimDetailsDTO();
             other.setContainer(getContainer());

@@ -145,8 +145,17 @@ attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterRefer
 referenceOrFunction : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE ->
                       	^(EXPRESSION attributeRefOrFunctionCall functionCall*);
 
-parameterReference : PARAMETER_REFERENCE_START singleAttrRef RBRACE ->
-    ^(PARAMETER_REFERENCE singleAttrRef);
+// Parameter reference rule
+// Supports two forms:
+//   1) Legacy: "#{" singleAttrRef "}" where the name is either ATTRIBUTE_NAME or STRING_LITERAL
+//   2) New: a single PARAMETER_REFERENCE token produced by the lexer that already contains the
+//      normalized inner name (surrounding #{ } removed and optional inner quotes stripped).
+// Both forms are rewritten to the same AST shape: ^(PARAMETER_REFERENCE <child-token-with-name>)
+// so downstream consumers (ExpressionCompiler) can read child(0).getText() for the parameter name.
+parameterReference
+    : PARAMETER_REFERENCE_START singleAttrRef RBRACE -> ^(PARAMETER_REFERENCE singleAttrRef)
+    | p=PARAMETER_REFERENCE -> ^(PARAMETER_REFERENCE $p)
+    ;
 
 expression : referenceOrFunction;
 

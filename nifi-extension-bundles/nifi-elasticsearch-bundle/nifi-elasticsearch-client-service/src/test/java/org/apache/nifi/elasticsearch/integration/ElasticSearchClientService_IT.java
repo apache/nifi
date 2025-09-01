@@ -760,14 +760,12 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         final List<IndexOperationRequest> payload = new ArrayList<>();
         for (int x = 0; x < 20; x++) {
             final String index = x % 2 == 0 ? "bulk_a" : "bulk_b";
-            payload.add(new IndexOperationRequest(index, type, String.valueOf(x), new HashMap<>() {{
-                put("msg", "test");
-            }}, IndexOperationRequest.Operation.Index, null, false, null, null));
+            payload.add(new IndexOperationRequest(index, type, String.valueOf(x), Map.of("msg", "test"),
+                    IndexOperationRequest.Operation.Index, null, false, null, null));
         }
         for (int x = 0; x < 5; x++) {
-            payload.add(new IndexOperationRequest("bulk_c", type, String.valueOf(x), new HashMap<>() {{
-                put("msg", "test");
-            }}, IndexOperationRequest.Operation.Index, null, false, null, null));
+            payload.add(new IndexOperationRequest("bulk_c", type, String.valueOf(x), Map.of("msg", "test"),
+                    IndexOperationRequest.Operation.Index, null, false, null, null));
         }
         final IndexOperationResponse response = service.bulk(payload, new ElasticsearchRequestOptions(Map.of("refresh", "true"), null));
         assertNotNull(response);

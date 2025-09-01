@@ -17,7 +17,6 @@
 
 package org.apache.nifi.nar;
 
-import org.apache.curator.shaded.com.google.common.io.Files;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +155,7 @@ public class StandardNarPersistenceProviderTest {
     }
 
     private String readFile(final File file) throws IOException {
-        final List<String> fileLines = Files.readLines(file, StandardCharsets.UTF_8);
+        final List<String> fileLines = Files.readAllLines(file.toPath());
         assertEquals(1, fileLines.size());
         return fileLines.getFirst();
     }

@@ -260,7 +260,6 @@ public class HandleHttpRequest extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAXIMUM_THREADS = new PropertyDescriptor.Builder()
             .name("Maximum Threads")
-            .displayName("Maximum Threads")
             .description("The maximum number of threads that the embedded HTTP server will use for handling requests.")
             .required(true)
             .defaultValue("200")

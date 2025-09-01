@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
@@ -48,7 +49,7 @@ public class UpdatePropertiesPropertyProvider implements OperandPropertiesProvid
     public Map<String, Object> getProperties() {
         Map<String, String> bootstrapProperties = getBootstrapProperties();
 
-        LinkedHashSet<UpdatableProperty> updatableProperties = sortedPropertiesByKey().values()
+        Set<UpdatableProperty> updatableProperties = sortedPropertiesByKey().values()
             .stream()
             .filter(property -> !property.isSensitive())
             .filter(MiNiFiProperties::isModifiable)

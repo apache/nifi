@@ -379,7 +379,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
                 .map(File::getAbsolutePath)
                 .collect(Collectors.joining(File.pathSeparator));
 
-        HashSet<File> expected = new HashSet<>();
+        Set<File> expected = new HashSet<>();
         expected.add(dir1.toFile());
         expected.add(dir2.toFile());
         expected.add(dir3.toFile());

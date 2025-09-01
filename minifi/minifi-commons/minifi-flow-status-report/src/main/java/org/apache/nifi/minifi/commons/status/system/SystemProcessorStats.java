@@ -22,9 +22,6 @@ public class SystemProcessorStats implements java.io.Serializable {
     private double loadAverage;
     private int availableProcessors;
 
-    public SystemProcessorStats() {
-    }
-
     public double getLoadAverage() {
         return loadAverage;
     }

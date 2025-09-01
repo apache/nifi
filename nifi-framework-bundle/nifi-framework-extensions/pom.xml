@@ -24,6 +24,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-framework-kubernetes-bundle</module>
+        <module>nifi-framework-zookeeper-bundle</module>
         <module>nifi-kerberos-iaa-providers-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
         <module>nifi-provenance-repository-bundle</module>

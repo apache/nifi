@@ -64,10 +64,6 @@ public class NiFiWebApiConfiguration {
 
     private static final String LOGIN_FRAGMENT = "/login";
 
-    public NiFiWebApiConfiguration() {
-        super();
-    }
-
     /**
      * Audit Service implementation from nifi-administration
      *

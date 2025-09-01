@@ -82,11 +82,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-zookeeper-leader-election</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar-utils</artifactId>
             <scope>compile</scope>
         </dependency>

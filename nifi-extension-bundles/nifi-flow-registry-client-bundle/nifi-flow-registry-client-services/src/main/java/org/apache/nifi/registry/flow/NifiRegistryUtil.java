@@ -21,8 +21,7 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 
 final class NifiRegistryUtil {
-    NifiRegistryUtil() {
-        // Not to be instantiated
+    private NifiRegistryUtil() {
     }
 
     static FlowRegistryBucket convert(final Bucket bucket) {

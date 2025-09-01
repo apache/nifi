@@ -1,0 +1,196 @@
+@top Query { content }
+
+// Content can be literal text with embedded expressions, parameter references, comments, or just expressions
+content {
+  (Text | OutIdentifier | EscapedDollar | "{" | OutCloseBrace | ReferenceOrFunction | ParameterReference | Comment)*
+}
+
+// Treat bare closing braces as Text outside expressions/parameters
+OutCloseBrace[@name=Text] {
+  "}"
+}
+
+// Treat bare identifiers as Text outside expressions
+OutIdentifier[@name=Text] {
+  identifier
+}
+
+// Based on ANTLR parser rule: query : expression EOF
+expression {
+  ReferenceOrFunction
+}
+
+// Based on ANTLR parser rule: referenceOrFunction : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE
+ReferenceOrFunction {
+  ExpressionStart "{" AttributeRefOrFunctionCall ( ":" FunctionCall )* "}"
+}
+
+// Based on ANTLR parser rule: attributeRefOrFunctionCall : (attributeRef | standaloneFunction | parameterReference)
+AttributeRefOrFunctionCall {
+  AttributeRef |
+  StandaloneFunction |
+  ParameterReference
+}
+
+// Based on ANTLR parser rule: attributeRef : subject
+AttributeRef {
+  Subject
+}
+
+// Based on ANTLR parser rule: subject : attrName | expression
+Subject {
+  AttrName |
+  expression
+}
+
+// Based on ANTLR parser rule: attrName : singleAttrName | multiAttrName
+AttrName {
+  SingleAttrName |
+  MultiAttrName
+}
+
+// Based on ANTLR parser rule: singleAttrName : singleAttrRef
+SingleAttrName {
+  SingleAttrRef
+}
+
+// Based on ANTLR parser rule: singleAttrRef : ATTRIBUTE_NAME | STRING_LITERAL
+SingleAttrRef {
+  attributeName |
+  StringLiteral
+}
+
+// Context-specific rule for attribute names
+attributeName[@name=attributeName] {
+  identifier
+}
+
+// Based on ANTLR parser rule: multiAttrName : multiAttrFunction LPAREN stringArg (COMMA stringArg)* RPAREN
+MultiAttrName {
+  MultiAttrFunction "(" StringArg ( "," StringArg )* ")"
+}
+
+// Based on ANTLR parser rule: multiAttrFunction : ANY_ATTRIBUTE | ANY_MATCHING_ATTRIBUTE | ALL_ATTRIBUTES | ALL_MATCHING_ATTRIBUTES | ANY_DELINEATED_VALUE | ALL_DELINEATED_VALUES
+// Updated to use pattern matching instead of explicit function names
+MultiAttrFunction {
+  multiAttrFunctionName
+}
+
+// Based on ANTLR parser rule: functionCall : functionRef
+// Function calls MUST have parentheses - this prevents bare identifiers from being parsed as function calls
+FunctionCall {
+  functionName "(" ArgumentList? ")"
+}
+
+// Based on ANTLR parser rule: standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction | sevenArgStandaloneFunction
+StandaloneFunction {
+  standaloneFunctionName "(" ArgumentList? ")"
+}
+
+// Context-specific rule for standalone function names
+standaloneFunctionName[@name=standaloneFunctionName] {
+  identifier
+}
+
+// Context-specific rule for chained function names
+functionName[@name=functionName] {
+  identifier
+}
+
+ArgumentList {
+  AnyArg ( "," AnyArg )*
+}
+
+// Based on ANTLR parser rule: stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression
+StringArg {
+  StringLiteral |
+  FunctionCall |
+  expression
+}
+
+// Based on ANTLR parser rule: anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | ... | expression | parameterReference | NULL
+// Order matters: literals should be matched before more general function calls
+AnyArg {
+  WholeNumber |
+  Decimal |
+  StringLiteral |
+  BooleanLiteral |
+  Null |
+  FunctionCall |
+  expression |
+  ParameterReference
+}
+
+// Based on ANTLR parser rule: parameterReference : PARAMETER_REFERENCE_START parameterName RBRACE
+ParameterReference {
+  ParameterStart "{" ParameterName "}"
+}
+
+// Parameter name can be a quoted string or one or more identifiers (allowing spaces between words)
+ParameterName {
+  StringLiteral |
+  identifier+
+}
+
+@tokens {
+  ExpressionStart { "$" }
+  // Use a standalone '#' so that '{' remains a separate token for matching/highlighting
+  ParameterStart { "#" }
+
+  // Comment support matching ANTLR: COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n'
+  // Pattern: # + (any char except {) + (everything until newline including { and #)
+  // This ensures the entire comment line is consumed as one token
+  Comment { "#" ![{] (![\n])* ("\n" | @eof) }
+
+  // Escaped dollar signs: $$ -> single $
+  EscapedDollar { "$$" }
+
+  // Regular text (not starting with $ or #, and not whitespace, and not inside braces)
+  Text { ![$#{} \t\n\r]+ }
+
+  // Enhanced string literals with better escape handling matching ANTLR
+  StringLiteral {
+    "'" (!['\\\n\r\t] | EscapeSequence)* "'" |
+    '"' (!["\\\n\r\t] | EscapeSequence)* '"'
+  }
+
+  // Enhanced escape sequences matching ANTLR ESC fragment more precisely
+  EscapeSequence {
+    "\\" ("'" | '"' | "r" | "n" | "t" | "\\" | !['"rnt\\])
+  }
+
+  // Numbers - decimal has precedence over whole number
+  Decimal {
+    $[+-]? $[0-9]+ "." $[0-9]* ($[eE] $[+-]? $[0-9]+)? |
+    $[+-]? "." $[0-9]+ ($[eE] $[+-]? $[0-9]+)? |
+    $[+-]? $[0-9]+ $[eE] $[+-]? $[0-9]+
+  }
+
+  WholeNumber { $[+-]? $[0-9]+ }
+
+  // Boolean literals and null - specific tokens
+  BooleanLiteral { "true" | "false" }
+  Null { "null" }
+
+  // Multi-attribute function names using pattern matching
+  // Matches functions starting with "any" or "all" followed by a capitalized word
+  multiAttrFunctionName[@name=multiAttrFunctionName] {
+    ("any" | "all") $[A-Z] $[a-zA-Z]*
+  }
+
+  // Single identifier token - context determined by grammar
+  identifier { $[a-zA-Z] $[a-zA-Z0-9_.-]* }
+
+  // Updated precedence - Comment must come BEFORE ParameterStart to prevent conflicts
+  @precedence { EscapedDollar, Comment, ParameterStart, ExpressionStart, BooleanLiteral, Null, multiAttrFunctionName, identifier, Decimal, WholeNumber, StringLiteral, Text }
+
+  whitespace { $[ \t\n\r]+ }
+
+  // Add semicolon support matching ANTLR
+  "{" "}" "(" ")" ":" "," ";"
+}
+
+@skip { whitespace }
+
+// Note: Highlighting is applied dynamically by CodemirrorNifiLanguageService
+// instead of being baked into the grammar to support feature-based highlighting

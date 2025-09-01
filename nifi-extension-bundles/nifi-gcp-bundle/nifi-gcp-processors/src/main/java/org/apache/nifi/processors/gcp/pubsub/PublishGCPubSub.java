@@ -112,7 +112,6 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Input Batch Size")
-            .displayName("Input Batch Size")
             .description("Maximum number of FlowFiles processed for each Processor invocation")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -122,7 +121,6 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     public static final PropertyDescriptor MESSAGE_DERIVATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Message Derivation Strategy")
-            .displayName("Message Derivation Strategy")
             .description("The strategy used to publish the incoming FlowFile to the Google Cloud PubSub endpoint.")
             .required(true)
             .defaultValue(MessageDerivationStrategy.FLOWFILE_ORIENTED.getValue())
@@ -131,7 +129,6 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .displayName("Record Reader")
             .description("The Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -141,7 +138,6 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("Record Writer")
-            .displayName("Record Writer")
             .description("The Record Writer to use in order to serialize the data before sending to GCPubSub endpoint")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -151,7 +147,6 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     public static final PropertyDescriptor MAX_MESSAGE_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Message Size")
-            .displayName("Maximum Message Size")
             .description("The maximum size of a Google PubSub message in bytes. Defaults to 1 MB (1048576 bytes)")
             .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.FLOWFILE_ORIENTED.getValue())
             .required(true)

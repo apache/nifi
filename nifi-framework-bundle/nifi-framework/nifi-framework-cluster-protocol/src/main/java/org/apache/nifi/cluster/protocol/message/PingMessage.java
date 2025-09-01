@@ -28,9 +28,6 @@ public class PingMessage extends ProtocolMessage {
 
     private Date date = new Date();
 
-    public PingMessage() {
-    }
-
     public Date getDate() {
         return date;
     }

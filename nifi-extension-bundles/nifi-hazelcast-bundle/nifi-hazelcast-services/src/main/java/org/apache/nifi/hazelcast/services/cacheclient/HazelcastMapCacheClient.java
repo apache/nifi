@@ -112,7 +112,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
     @Override
     public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
-        final HashSet<K> keySet = new HashSet<>();
+        final Set<K> keySet = new HashSet<>();
         for (String key : cache.keySet()) {
             keySet.add(parseCacheEntryKey(key, keyDeserializer));
         }

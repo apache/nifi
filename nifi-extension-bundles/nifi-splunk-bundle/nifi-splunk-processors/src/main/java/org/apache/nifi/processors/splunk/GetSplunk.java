@@ -416,7 +416,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final String timeZone = context.getProperty(TIME_ZONE).getValue();
         final String timeFieldStrategy = context.getProperty(TIME_FIELD_STRATEGY).getValue();
 
-        final JobExportArgs exportArgs = new JobExportArgs();
+        final JobExportArgs exportArgs = new JobExportArgs(); //NOPMD
         exportArgs.setSearchMode(JobExportArgs.SearchMode.NORMAL);
         exportArgs.setOutputMode(JobExportArgs.OutputMode.valueOf(outputMode));
 
@@ -537,7 +537,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     }
 
     protected Service createSplunkService(final ProcessContext context) {
-        final ServiceArgs serviceArgs = new ServiceArgs();
+        final ServiceArgs serviceArgs = new ServiceArgs(); //NOPMD
 
         final String scheme = context.getProperty(SCHEME).getValue();
         serviceArgs.setScheme(scheme);

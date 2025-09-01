@@ -174,7 +174,6 @@ public class ValidateCsv extends AbstractProcessor {
 
     public static final PropertyDescriptor CSV_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("CSV Source Attribute")
-            .displayName("CSV Source Attribute")
             .description("The name of the attribute containing CSV data to be validated. If this property is blank, the FlowFile content will be validated.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

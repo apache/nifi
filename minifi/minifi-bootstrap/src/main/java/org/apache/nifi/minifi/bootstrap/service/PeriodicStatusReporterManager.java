@@ -73,6 +73,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
         }
     }
 
+    @Override
     public FlowStatusReport statusReport(String statusRequest) {
         MiNiFiStatus status = miNiFiStatusProvider.getStatus(miNiFiParameters.getMiNiFiPort(), miNiFiParameters.getMinifiPid());
 

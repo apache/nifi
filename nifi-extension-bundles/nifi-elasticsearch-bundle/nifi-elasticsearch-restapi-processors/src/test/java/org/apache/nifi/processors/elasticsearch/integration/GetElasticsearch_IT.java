@@ -30,10 +30,12 @@ import java.util.Objects;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GetElasticsearch_IT extends AbstractElasticsearch_IT<GetElasticsearch> {
+    @Override
     GetElasticsearch getProcessor() {
         return new GetElasticsearch();
     }
 
+    @Override
     @BeforeEach
     void before() throws Exception {
         super.before();

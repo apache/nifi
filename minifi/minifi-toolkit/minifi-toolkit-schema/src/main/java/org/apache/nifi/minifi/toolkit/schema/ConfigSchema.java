@@ -161,6 +161,7 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         processGroupSchema.getProcessGroupSchemas().forEach(p -> addProcessGroups(p, result));
     }
 
+    @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = mapSupplier.get();
         result.put(VERSION, getVersion());

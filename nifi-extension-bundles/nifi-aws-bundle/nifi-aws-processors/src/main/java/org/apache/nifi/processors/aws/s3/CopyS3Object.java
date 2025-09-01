@@ -60,28 +60,24 @@ public class CopyS3Object extends AbstractS3Processor {
     static final PropertyDescriptor SOURCE_BUCKET = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BUCKET_WITH_DEFAULT_VALUE)
             .name("Source Bucket")
-            .displayName("Source Bucket")
             .description("The bucket that contains the file to be copied.")
             .build();
 
     static final PropertyDescriptor SOURCE_KEY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(KEY)
             .name("Source Key")
-            .displayName("Source Key")
             .description("The source key in the source bucket")
             .build();
 
     static final PropertyDescriptor DESTINATION_BUCKET = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BUCKET_WITHOUT_DEFAULT_VALUE)
             .name("Destination Bucket")
-            .displayName("Destination Bucket")
             .description("The bucket that will receive the copy.")
             .build();
 
     static final PropertyDescriptor DESTINATION_KEY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(KEY)
             .name("Destination Key")
-            .displayName("Destination Key")
             .description("The target key in the target bucket")
             .defaultValue("${filename}-1")
             .build();

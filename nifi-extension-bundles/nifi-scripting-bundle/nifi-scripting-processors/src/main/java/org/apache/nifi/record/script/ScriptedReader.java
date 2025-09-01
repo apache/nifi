@@ -62,6 +62,7 @@ import java.util.Map;
 public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFactory> implements RecordReaderFactory {
 
     @OnEnabled
+    @Override
     public void onEnabled(final ConfigurationContext context) {
         synchronized (scriptingComponentHelper.isInitialized) {
             if (!scriptingComponentHelper.isInitialized.get()) {
@@ -119,6 +120,7 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
      * @param scriptBody An input stream associated with the script content
      * @return Whether the script was successfully reloaded
      */
+    @Override
     protected boolean reloadScript(final String scriptBody) {
         // note we are starting here with a fresh listing of validation
         // results since we are (re)loading a new/updated script. any

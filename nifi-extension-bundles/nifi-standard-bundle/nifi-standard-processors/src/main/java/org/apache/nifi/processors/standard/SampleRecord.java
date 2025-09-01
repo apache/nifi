@@ -451,7 +451,7 @@ public class SampleRecord extends AbstractProcessor {
     static class ReservoirSamplingStrategy implements SamplingStrategy {
         final RecordSetWriter writer;
         final int reservoirSize;
-        final ArrayList<Record> reservoir;
+        final List<Record> reservoir;
         int currentCount = 0;
         final Random randomNumberGenerator;
 

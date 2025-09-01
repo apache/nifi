@@ -27,9 +27,6 @@ public class ConnectionRequestMessage extends ProtocolMessage {
 
     private ConnectionRequest connectionRequest;
 
-    public ConnectionRequestMessage() {
-    }
-
     public ConnectionRequest getConnectionRequest() {
         return connectionRequest;
     }

@@ -107,6 +107,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         return nodeIdentifier;
     }
 
+    @Override
     public synchronized void register(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
                                       final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
                                       final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
@@ -120,6 +121,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         partitionQueue.add(partition);
     }
 
+    @Override
     public synchronized void unregister(final String connectionId) {
         final RegisteredPartition removedPartition = registeredPartitions.remove(connectionId);
 
@@ -142,6 +144,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         }
     }
 
+    @Override
     public synchronized int getRegisteredConnectionCount() {
         return registeredPartitions.size();
     }
@@ -150,11 +153,13 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         return new HashMap<>(registeredPartitions);
     }
 
+    @Override
     public void start() {
         running = true;
         logger.debug("{} started", this);
     }
 
+    @Override
     public void stop() {
         running = false;
         logger.debug("{} stopped", this);
@@ -182,10 +187,12 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         selector = null;
     }
 
+    @Override
     public boolean isRunning() {
         return running;
     }
 
+    @Override
     public boolean isPenalized() {
         final long endTimestamp = penalizationEnd.get();
         if (endTimestamp == 0) {
@@ -207,7 +214,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         this.penalizationEnd.set(System.currentTimeMillis() + PENALIZATION_MILLIS);
     }
 
-
+    @Override
     public boolean communicate() throws IOException {
         if (!running) {
             return false;
@@ -301,6 +308,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
      * We don't want to then just push all data to other nodes. We'd rather push the data out to other nodes slowly while waiting for the disconnected
      * node to reconnect. And if the node reconnects, we want to keep sending it data.
      */
+    @Override
     public void nodeDisconnected() {
         if (!loadBalanceSessionLock.tryLock()) {
             // If we are not able to obtain the loadBalanceSessionLock, we cannot access the load balance session.

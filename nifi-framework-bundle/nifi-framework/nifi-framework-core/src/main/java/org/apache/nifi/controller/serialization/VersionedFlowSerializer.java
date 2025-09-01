@@ -36,8 +36,7 @@ public class VersionedFlowSerializer implements FlowSerializer<VersionedDataflow
     private final ExtensionManager extensionManager;
 
     static {
-        JSON_CODEC.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        JSON_CODEC.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        JSON_CODEC.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         JSON_CODEC.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(JSON_CODEC.getTypeFactory()));
         JSON_CODEC.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }

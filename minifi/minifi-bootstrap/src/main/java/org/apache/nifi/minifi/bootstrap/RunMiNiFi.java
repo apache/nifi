@@ -269,7 +269,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     private ObjectMapper getObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         return objectMapper;
     }
 
