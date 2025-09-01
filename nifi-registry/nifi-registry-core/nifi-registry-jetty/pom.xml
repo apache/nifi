@@ -97,6 +97,17 @@
             </exclusions>
             <scope>compile</scope>
         </dependency>
+        <!-- Explicit JSP implementation using new Mortbay coordinates -->
+        <dependency>
+            <groupId>org.mortbay.jasper</groupId>
+            <artifactId>mortbay-apache-jsp</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mortbay.jasper</groupId>
+            <artifactId>mortbay-apache-el</artifactId>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-cert-builder</artifactId>

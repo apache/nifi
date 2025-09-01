@@ -106,7 +106,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>oauth2-oidc-sdk</artifactId>
-                <version>11.27.1</version>
+                <version>11.28</version>
             </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
@@ -309,7 +309,7 @@
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>4.2.34</version>
+                <version>4.2.36</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>

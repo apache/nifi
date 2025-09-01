@@ -30,8 +30,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import org.junit.jupiter.api.Test;
@@ -44,7 +43,7 @@ public class TestJsonEntitySerializer {
     public void testSerializeProcessor() throws IOException {
         final ObjectMapper jsonCodec = new ObjectMapper();
         jsonCodec.registerModule(new JakartaXmlBindAnnotationModule());
-        jsonCodec.setSerializationInclusion(Include.NON_NULL);
+        jsonCodec.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
         // Test that we can properly serialize a ProcessorEntity because it has many nested levels, including a Map
         final JsonEntitySerializer serializer = new JsonEntitySerializer(jsonCodec);
@@ -70,7 +69,7 @@ public class TestJsonEntitySerializer {
     public void testBulletinEntity() throws Exception {
         final ObjectMapper jsonCodec = new ObjectMapper();
         jsonCodec.registerModule(new JakartaXmlBindAnnotationModule());
-        jsonCodec.setSerializationInclusion(Include.NON_NULL);
+        jsonCodec.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         jsonCodec.setConfig(jsonCodec.getSerializationConfig().with(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY));
 
         final Date timestamp = new Date();
