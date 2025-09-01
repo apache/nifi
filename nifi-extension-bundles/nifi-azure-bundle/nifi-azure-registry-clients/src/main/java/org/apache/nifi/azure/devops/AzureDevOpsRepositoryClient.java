@@ -17,6 +17,7 @@
 
 package org.apache.nifi.azure.devops;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
@@ -34,7 +35,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -57,12 +61,81 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String BEARER = "Bearer ";
 
+    // Azure DevOps Git security namespace identifier used for permissions API
+    private static final String GIT_SECURITY_NAMESPACE = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87";
+    // Security token format used for repository-scoped permission checks
+    private static final String SECURITY_TOKEN_FORMAT = "repoV2/%s/%s";
+
+    // Common string values
+    private static final String EMPTY_STRING = "";
+    private static final String FORWARD_SLASH = "/";
+
+    // Path segments
+    private static final String SEGMENT_APIS = "_apis";
+    private static final String SEGMENT_PERMISSIONS = "permissions";
+    private static final String SEGMENT_GIT = "git";
+    private static final String SEGMENT_REPOSITORIES = "repositories";
+    private static final String SEGMENT_ITEMS = "items";
+    private static final String SEGMENT_REFS = "refs";
+    private static final String SEGMENT_COMMITS = "commits";
+    private static final String SEGMENT_PUSHES = "pushes";
+
+    // Permission bit for Generic Contribute
+    private static final String GENERIC_CONTRIBUTE_PERMISSION_BIT = "4";
+
+    // Query parameter names
+    private static final String PARAM_TOKENS = "tokens";
+    private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_INCLUDE_CONTENT = "includeContent";
+    private static final String PARAM_FORMAT = "format";
+    private static final String PARAM_VERSION = "version";
+    private static final String PARAM_VERSION_TYPE = "versionType";
+    private static final String PARAM_PATH = "path";
+    private static final String PARAM_SCOPE_PATH = "scopePath";
+    private static final String PARAM_TOP = "$top";
+    private static final String PARAM_SEARCH_ITEM_PATH = "searchCriteria.itemPath";
+    private static final String PARAM_SEARCH_ITEM_VERSION = "searchCriteria.itemVersion.version";
+    private static final String PARAM_SEARCH_ITEM_VERSION_TYPE = "searchCriteria.itemVersion.versionType";
+
+    // Common parameter values
+    private static final String INCLUDE_TRUE = "true";
+    private static final String FORMAT_OCTET_STREAM = "octetStream";
+    private static final String VERSION_TYPE_COMMIT = "commit";
+    private static final String REFS_HEADS_PREFIX = "refs/heads/";
+    private static final String FILTER_HEADS_PREFIX = "heads/";
+    private static final String OBJECT_TYPE_TREE = "tree";
+    private static final String OBJECT_TYPE_BLOB = "blob";
+    private static final String JSON_FIELD_VALUE = "value";
+    private static final String JSON_FIELD_PROJECT = "project";
+    private static final String JSON_FIELD_ID = "id";
+    private static final String JSON_FIELD_NAME = "name";
+    private static final String JSON_FIELD_GIT_OBJECT_TYPE = "gitObjectType";
+    private static final String JSON_FIELD_PATH = "path";
+    private static final String JSON_FIELD_AUTHOR = "author";
+    private static final String JSON_FIELD_COMMENT = "comment";
+    private static final String JSON_FIELD_DATE = "date";
+    private static final String JSON_FIELD_COMMIT_ID = "commitId";
+    private static final String JSON_FIELD_OBJECT_ID = "objectId";
+
+    // Change request constants
+    private static final String CHANGE_TYPE_ADD = "add";
+    private static final String CHANGE_TYPE_EDIT = "edit";
+    private static final String CHANGE_TYPE_DELETE = "delete";
+    private static final String CONTENT_TYPE_BASE64 = "base64encoded";
+
+    // Common query parameter names and values
+    private static final String VERSION_DESCRIPTOR_VERSION = "versionDescriptor.version";
+    private static final String VERSION_DESCRIPTOR_VERSION_TYPE = "versionDescriptor.versionType";
+    private static final String VERSION_TYPE_BRANCH = "branch";
+    private static final String RECURSION_LEVEL = "recursionLevel";
+    private static final String RECURSION_LEVEL_ONE_LEVEL = "OneLevel";
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String organization;
     private final String project;
     private final String repoName;
-    private final String apiUrl;
+    private final URL apiUrl;
     private final String repoPath;
     private final String clientId;
     private final OAuth2AccessTokenProvider tokenProvider;
@@ -92,8 +165,8 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         // attempt to retrieve repository information to validate access
         final URI uri = getUriBuilder().build();
         final JsonNode response = executeGet(uri);
-        final String projectId = response.get("project").get("id").asText();
-        final String repoId = response.get("id").asText();
+        final String projectId = response.get(JSON_FIELD_PROJECT).get(JSON_FIELD_ID).asText();
+        final String repoId = response.get(JSON_FIELD_ID).asText();
 
         canRead = true;
         canWrite = hasWriteAccess(projectId, repoId);
@@ -110,27 +183,25 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
      * @throws FlowRegistryException if an error occurs while checking access.
      */
     private boolean hasWriteAccess(final String projectId, final String repoId) throws FlowRegistryException {
-        final String securityNamespace = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87"; // Azure DevOps Git security namespace
-        final String securityToken = String.format("repoV2/%s/%s", projectId, repoId);
+        final String securityToken = String.format(SECURITY_TOKEN_FORMAT, projectId, repoId);
 
-        final URI uri = this.webClient.getHttpUriBuilder()
-                .scheme("https")
-                .host(apiUrl)
+        final URI uri = baseUriBuilder()
                 .addPathSegment(getOrganization())
-                .addPathSegment("_apis")
-                .addPathSegment("permissions")
-                .addPathSegment(securityNamespace)
-                .addPathSegment("4") // 4 is the permission bit for "Generic Contribute" in Azure DevOps Git
-                .addQueryParameter("tokens", securityToken)
+                .addPathSegment(SEGMENT_APIS)
+                .addPathSegment(SEGMENT_PERMISSIONS)
+                .addPathSegment(GIT_SECURITY_NAMESPACE)
+                .addPathSegment(GENERIC_CONTRIBUTE_PERMISSION_BIT) // 4 is the permission bit for "Generic Contribute" in Azure DevOps Git
+                .addQueryParameter(PARAM_TOKENS, securityToken)
                 .addQueryParameter(API, API_VERSION)
                 .build();
 
         final JsonNode response = executeGet(uri);
 
-        return response.has("value")
-                && response.get("value").isArray()
-                && response.get("value").size() > 0
-                && response.get("value").get(0).asBoolean();
+        final JsonNode values = response.get(JSON_FIELD_VALUE);
+        return values != null
+                && values.isArray()
+                && values.size() > 0
+                && values.get(0).asBoolean();
     }
 
     @Override
@@ -145,15 +216,15 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Set<String> getBranches() throws FlowRegistryException {
-        final URI uri = getUriBuilder().addPathSegment("refs")
-                .addQueryParameter("filter", "heads/")
+        final URI uri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX)
                 .addQueryParameter(API, API_VERSION)
                 .build();
         final JsonNode response = executeGet(uri);
         final Set<String> result = new HashSet<>();
-        for (JsonNode node : response.get("value")) {
-            final String name = node.get("name").asText();
-            result.add(name.replace("refs/heads/", ""));
+        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+            final String name = node.get(JSON_FIELD_NAME).asText();
+            result.add(name.replace(REFS_HEADS_PREFIX, EMPTY_STRING));
         }
         return result;
     }
@@ -161,19 +232,19 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     @Override
     public Set<String> getTopLevelDirectoryNames(final String branch) throws FlowRegistryException {
         final URI uri = listingUrl("")
-                .addQueryParameter("versionDescriptor.version", branch)
-                .addQueryParameter("versionDescriptor.versionType", "branch")
-                .addQueryParameter("recursionLevel", "OneLevel")
+                .addQueryParameter(VERSION_DESCRIPTOR_VERSION, branch)
+                .addQueryParameter(VERSION_DESCRIPTOR_VERSION_TYPE, VERSION_TYPE_BRANCH)
+                .addQueryParameter(RECURSION_LEVEL, RECURSION_LEVEL_ONE_LEVEL)
                 .build();
         final JsonNode response = executeGet(uri);
         final Set<String> result = new HashSet<>();
-        for (JsonNode node : response.get("value")) {
-            if ("tree".equalsIgnoreCase(node.get("gitObjectType").asText())) {
-                final String path = node.get("path").asText();
+        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+            if (OBJECT_TYPE_TREE.equalsIgnoreCase(node.get(JSON_FIELD_GIT_OBJECT_TYPE).asText())) {
+                final String path = node.get(JSON_FIELD_PATH).asText();
                 // Azure DevOps returns the requested directory as part of the
                 // listing results. Skip this entry so that the repository path
                 // is not reported as a bucket when no directories are present
-                if (!path.equals(getResolvedPath(""))) {
+                if (!path.equals(getResolvedPath(EMPTY_STRING))) {
                     final String name = getNameFromPath(path);
                     if (name != null) {
                         result.add(name);
@@ -187,16 +258,16 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     @Override
     public Set<String> getFileNames(final String directory, final String branch) throws FlowRegistryException {
         final URI uri = listingUrl(directory)
-                .addQueryParameter("versionDescriptor.version", branch)
-                .addQueryParameter("versionDescriptor.versionType", "branch")
-                .addQueryParameter("recursionLevel", "OneLevel")
+                .addQueryParameter(VERSION_DESCRIPTOR_VERSION, branch)
+                .addQueryParameter(VERSION_DESCRIPTOR_VERSION_TYPE, VERSION_TYPE_BRANCH)
+                .addQueryParameter(RECURSION_LEVEL, RECURSION_LEVEL_ONE_LEVEL)
                 .build();
         final JsonNode response = executeGet(uri);
         final Set<String> result = new HashSet<>();
-        for (JsonNode node : response.get("value")) {
-            if ("blob".equalsIgnoreCase(node.get("gitObjectType").asText())) {
-                final String path = node.get("path").asText();
-                final String[] parts = path.split("/");
+        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+            if (OBJECT_TYPE_BLOB.equalsIgnoreCase(node.get(JSON_FIELD_GIT_OBJECT_TYPE).asText())) {
+                final String path = node.get(JSON_FIELD_PATH).asText();
+                final String[] parts = path.split(FORWARD_SLASH);
                 final String name = parts[parts.length - 1];
                 result.add(name);
             }
@@ -206,19 +277,19 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public List<GitCommit> getCommits(final String path, final String branch) throws FlowRegistryException {
-        final URI uri = getUriBuilder().addPathSegment("commits")
-                .addQueryParameter("searchCriteria.itemPath", getResolvedPath(path))
-                .addQueryParameter("searchCriteria.itemVersion.version", branch)
-                .addQueryParameter("searchCriteria.itemVersion.versionType", "branch")
+        final URI uri = getUriBuilder().addPathSegment(SEGMENT_COMMITS)
+                .addQueryParameter(PARAM_SEARCH_ITEM_PATH, getResolvedPath(path))
+                .addQueryParameter(PARAM_SEARCH_ITEM_VERSION, branch)
+                .addQueryParameter(PARAM_SEARCH_ITEM_VERSION_TYPE, VERSION_TYPE_BRANCH)
                 .addQueryParameter(API, API_VERSION)
                 .build();
         final JsonNode response = executeGet(uri);
         final List<GitCommit> result = new ArrayList<>();
-        for (JsonNode node : response.get("value")) {
-            final String sha = node.get("commitId").asText();
-            final String author = node.get("author").get("name").asText();
-            final String message = node.get("comment").asText();
-            final Instant date = Instant.parse(node.get("author").get("date").asText());
+        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+            final String sha = node.get(JSON_FIELD_COMMIT_ID).asText();
+            final String author = node.get(JSON_FIELD_AUTHOR).get(JSON_FIELD_NAME).asText();
+            final String message = node.get(JSON_FIELD_COMMENT).asText();
+            final Instant date = Instant.parse(node.get(JSON_FIELD_AUTHOR).get(JSON_FIELD_DATE).asText());
             result.add(new GitCommit(sha, author, message, date));
         }
         return result;
@@ -227,10 +298,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
         final URI uri = itemUrl(path)
-                .addQueryParameter("versionDescriptor.version", branch)
-                .addQueryParameter("versionDescriptor.versionType", "branch")
-                .addQueryParameter("includeContent", "true")
-                .addQueryParameter("format", "octetStream")
+                .addQueryParameter(VERSION_DESCRIPTOR_VERSION, branch)
+                .addQueryParameter(VERSION_DESCRIPTOR_VERSION_TYPE, VERSION_TYPE_BRANCH)
+                .addQueryParameter(PARAM_INCLUDE_CONTENT, INCLUDE_TRUE)
+                .addQueryParameter(PARAM_FORMAT, FORMAT_OCTET_STREAM)
                 .build();
         return executeGetStream(uri);
     }
@@ -238,21 +309,21 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws FlowRegistryException {
         final URI uri = itemUrl(path)
-                .addQueryParameter("version", commitSha)
-                .addQueryParameter("versionType", "commit")
-                .addQueryParameter("includeContent", "true")
-                .addQueryParameter("format", "octetStream")
+                .addQueryParameter(PARAM_VERSION, commitSha)
+                .addQueryParameter(PARAM_VERSION_TYPE, VERSION_TYPE_COMMIT)
+                .addQueryParameter(PARAM_INCLUDE_CONTENT, INCLUDE_TRUE)
+                .addQueryParameter(PARAM_FORMAT, FORMAT_OCTET_STREAM)
                 .build();
         return executeGetStream(uri);
     }
 
     @Override
     public Optional<String> getContentSha(final String path, final String branch) throws FlowRegistryException {
-        final URI uri = getUriBuilder().addPathSegment("commits")
-                .addQueryParameter("searchCriteria.itemPath", getResolvedPath(path))
-                .addQueryParameter("searchCriteria.itemVersion.version", branch)
-                .addQueryParameter("searchCriteria.itemVersion.versionType", "branch")
-                .addQueryParameter("$top", "1")
+        final URI uri = getUriBuilder().addPathSegment(SEGMENT_COMMITS)
+                .addQueryParameter(PARAM_SEARCH_ITEM_PATH, getResolvedPath(path))
+                .addQueryParameter(PARAM_SEARCH_ITEM_VERSION, branch)
+                .addQueryParameter(PARAM_SEARCH_ITEM_VERSION_TYPE, VERSION_TYPE_BRANCH)
+                .addQueryParameter(PARAM_TOP, "1")
                 .addQueryParameter(API, API_VERSION)
                 .build();
 
@@ -261,9 +332,9 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
             return Optional.empty();
         }
 
-        final JsonNode values = response.get("value");
+        final JsonNode values = response.get(JSON_FIELD_VALUE);
         if (values != null && values.size() > 0) {
-            return Optional.ofNullable(values.get(0).get("commitId")).map(JsonNode::asText);
+            return Optional.ofNullable(values.get(0).get(JSON_FIELD_COMMIT_ID)).map(JsonNode::asText);
         } else {
             return Optional.empty();
         }
@@ -275,30 +346,39 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         final String branch = request.getBranch();
         final String message = request.getMessage();
         // Get branch current commit id
-        final URI refUri = getUriBuilder().addPathSegment("refs")
-                .addQueryParameter("filter", "heads/" + branch)
+        final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
                 .addQueryParameter(API, API_VERSION)
                 .build();
         final JsonNode refResponse = executeGet(refUri);
-        final String oldObjectId = refResponse.get("value").get(0).get("objectId").asText();
+        final String oldObjectId = refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
 
-        final URI pushUri = getUriBuilder().addPathSegment("pushes")
+        final URI pushUri = getUriBuilder().addPathSegment(SEGMENT_PUSHES)
                 .addQueryParameter(API, API_VERSION)
                 .build();
 
         final String changeType;
         if (request.getExistingContentSha() == null) {
             final Optional<String> existingSha = getContentSha(request.getPath(), branch);
-            changeType = existingSha.isPresent() ? "edit" : "add";
+            changeType = existingSha.isPresent() ? CHANGE_TYPE_EDIT : CHANGE_TYPE_ADD;
         } else {
-            changeType = "edit";
+            changeType = CHANGE_TYPE_EDIT;
         }
 
         final String encoded = Base64.getEncoder().encodeToString(request.getContent().getBytes(StandardCharsets.UTF_8));
-        final String json = String.format("{\"refUpdates\":[{\"name\":\"refs/heads/%s\",\"oldObjectId\":\"%s\"}],"
-                + "\"commits\":[{\"comment\":\"%s\",\"changes\":[{\"changeType\":\"%s\",\"item\":{\"path\":\"%s\"},"
-                + "\"newContent\":{\"content\":\"%s\",\"contentType\":\"base64encoded\"}}]}]}",
-                branch, oldObjectId, message, changeType, path, encoded);
+
+        final PushRequest pushRequest = new PushRequest(
+                List.of(new RefUpdate(REFS_HEADS_PREFIX + branch, oldObjectId)),
+                List.of(new Commit(message,
+                        List.of(new Change(changeType, new Item(path), new NewContent(encoded, CONTENT_TYPE_BASE64)))))
+        );
+
+        final String json;
+        try {
+            json = MAPPER.writeValueAsString(pushRequest);
+        } catch (final Exception e) {
+            throw new FlowRegistryException("Failed to serialize push request", e);
+        }
 
         final HttpResponseEntity response = this.webClient.getWebClientService()
                 .post()
@@ -314,7 +394,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         try {
             final JsonNode pushResponse = MAPPER.readTree(response.body());
-            return pushResponse.get("commits").get(0).get("commitId").asText();
+            return pushResponse.get(SEGMENT_COMMITS).get(0).get(JSON_FIELD_COMMIT_ID).asText();
         } catch (IOException e) {
             throw new FlowRegistryException("Failed to create content", e);
         }
@@ -323,20 +403,24 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
         final String path = getResolvedPath(filePath);
-        final URI refUri = getUriBuilder().addPathSegment("refs")
-                .addQueryParameter("filter", "heads/" + branch)
+        final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
                 .addQueryParameter(API, API_VERSION)
                 .build();
         final JsonNode refResponse = executeGet(refUri);
-        final String oldObjectId = refResponse.get("value").get(0).get("objectId").asText();
+        final String oldObjectId = refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
 
-        final URI pushUri = getUriBuilder().addPathSegment("pushes")
+        final URI pushUri = getUriBuilder().addPathSegment(SEGMENT_PUSHES)
                 .addQueryParameter(API, API_VERSION)
                 .build();
 
-        final String json = String.format("{\"refUpdates\":[{\"name\":\"refs/heads/%s\",\"oldObjectId\":\"%s\"}],"
-                + "\"commits\":[{\"comment\":\"%s\",\"changes\":[{\"changeType\":\"delete\",\"item\":{\"path\":\"%s\"}}]}]}",
-                branch, oldObjectId, commitMessage, path);
+        final PushRequest pushRequest = new PushRequest(
+                List.of(new RefUpdate(REFS_HEADS_PREFIX + branch, oldObjectId)),
+                List.of(new Commit(commitMessage,
+                        List.of(new Change(CHANGE_TYPE_DELETE, new Item(path), null))))
+        );
+
+        final String json = MAPPER.writeValueAsString(pushRequest);
 
         final HttpResponseEntity response = this.webClient.getWebClientService()
                 .post()
@@ -378,21 +462,47 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         return BEARER + tokenProvider.getAccessDetails().getAccessToken();
     }
 
+    // Request body types for Azure DevOps Push API
+    private record PushRequest(List<RefUpdate> refUpdates, List<Commit> commits) { }
+
+    private record RefUpdate(String name, String oldObjectId) { }
+
+    private record Commit(String comment, List<Change> changes) { }
+
+    private record Item(String path) { }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private record Change(String changeType, Item item, NewContent newContent) { }
+
+    private record NewContent(String content, String contentType) { }
+
     /**
      * Create URI builder for accessing the repository.
      *
      * @return HTTP URL Builder configured for repository access
      */
     private HttpUriBuilder getUriBuilder() {
-        return this.webClient.getHttpUriBuilder()
-                .scheme("https")
-                .host(apiUrl)
+        return baseUriBuilder()
                 .addPathSegment(getOrganization())
                 .addPathSegment(project)
-                .addPathSegment("_apis")
-                .addPathSegment("git")
-                .addPathSegment("repositories")
+                .addPathSegment(SEGMENT_APIS)
+                .addPathSegment(SEGMENT_GIT)
+                .addPathSegment(SEGMENT_REPOSITORIES)
                 .addPathSegment(repoName);
+    }
+
+    /**
+     * Create base URI builder from configured API URL supporting values with or without scheme
+     */
+    private HttpUriBuilder baseUriBuilder() {
+        final String scheme = apiUrl.getProtocol() == null ? "https" : apiUrl.getProtocol();
+        final String hostValue = apiUrl.getHost();
+        final int port = apiUrl.getPort();
+
+        return this.webClient.getHttpUriBuilder()
+                .scheme(scheme)
+                .host(hostValue)
+                .port(port);
     }
 
     /**
@@ -403,10 +513,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
      * @return HTTP URL Builder configured for item retrieval
      */
     private HttpUriBuilder itemUrl(final String path) {
-        final HttpUriBuilder builder = getUriBuilder().addPathSegment("items");
+        final HttpUriBuilder builder = getUriBuilder().addPathSegment(SEGMENT_ITEMS);
         builder.addQueryParameter(API, API_VERSION);
         if (path != null) {
-            builder.addQueryParameter("path", getResolvedPath(path));
+            builder.addQueryParameter(PARAM_PATH, getResolvedPath(path));
         }
         return builder;
     }
@@ -419,10 +529,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
      * @return HTTP URL Builder configured for listing items
      */
     private HttpUriBuilder listingUrl(final String directory) {
-        final HttpUriBuilder builder = getUriBuilder().addPathSegment("items");
+        final HttpUriBuilder builder = getUriBuilder().addPathSegment(SEGMENT_ITEMS);
         builder.addQueryParameter(API, API_VERSION);
         if (directory != null) {
-            builder.addQueryParameter("scopePath", getResolvedPath(directory));
+            builder.addQueryParameter(PARAM_SCOPE_PATH, getResolvedPath(directory));
         }
         return builder;
     }
@@ -436,27 +546,29 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
      *         duplicate slashes.
      */
     private String getResolvedPath(final String path) {
-        final String prefix = (repoPath == null || repoPath.isBlank())
-                ? ""
-                : (repoPath.startsWith("/") ? repoPath : "/" + repoPath);
-
-        final String normalizedPath = (path == null || path.isBlank())
-                ? ""
-                : (path.startsWith("/") ? path : "/" + path);
+        final String prefix = normalizeSegment(repoPath);
+        final String normalizedPath = normalizeSegment(path);
 
         if (prefix.isEmpty()) {
-            return normalizedPath.isEmpty() ? "/" : normalizedPath;
+            return normalizedPath.isEmpty() ? FORWARD_SLASH : normalizedPath;
         }
 
         if (normalizedPath.isEmpty()) {
             return prefix;
         }
 
-        if (normalizedPath.equals(prefix) || normalizedPath.startsWith(prefix + "/")) {
+        if (normalizedPath.equals(prefix) || normalizedPath.startsWith(prefix + FORWARD_SLASH)) {
             return normalizedPath;
         }
 
         return prefix + normalizedPath;
+    }
+
+    private static String normalizeSegment(final String segment) {
+        if (segment == null || segment.isBlank()) {
+            return EMPTY_STRING;
+        }
+        return segment.startsWith(FORWARD_SLASH) ? segment : FORWARD_SLASH + segment;
     }
 
     /**
@@ -470,7 +582,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         if (path == null) {
             return null;
         }
-        final String[] parts = path.split("/");
+        final String[] parts = path.split(FORWARD_SLASH);
         if (parts.length == 0) {
             return null;
         }
@@ -563,7 +675,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     public static class Builder {
         private String clientId;
-        private String apiUrl = "https://dev.azure.com";
+        private URL apiUrl;
         private String organization;
         private String project;
         private String repoName;
@@ -577,6 +689,15 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         }
 
         public Builder apiUrl(final String apiUrl) {
+            try {
+                this.apiUrl = new URI(apiUrl).toURL();
+            } catch (final MalformedURLException | URISyntaxException e) {
+                throw new IllegalArgumentException("API URL not valid: " + apiUrl, e);
+            }
+            return this;
+        }
+
+        public Builder apiUrl(final URL apiUrl) {
             this.apiUrl = apiUrl;
             return this;
         }
