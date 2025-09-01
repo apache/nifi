@@ -20,11 +20,11 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
-import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
@@ -330,7 +330,7 @@ class ConsumeKinesisIT {
             final MockProcessSession failingSession = createFailingSession(processor);
             try {
                 processor.onTrigger(runner.getProcessContext(), failingSession);
-            } catch (final MockProcessSession.TestFailedCommitException e) {
+            } catch (final FlowFileHandlingException __) {
                 failingSession.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
                 break; // Expected rollback occurred
             }
@@ -470,15 +470,11 @@ class ConsumeKinesisIT {
     }
 
     private MockProcessSession createFailingSession(final Processor processor) {
-        return new MockProcessSession(
-                new SharedSessionState(processor, new AtomicLong()),
-                processor,
-                true,
-                new MockStateManager(processor),
-                false,
-                false,
-                true
-        );
+        final SharedSessionState sharedState = new SharedSessionState(processor, new AtomicLong());
+
+        return MockProcessSession.builder(sharedState, processor)
+                .failCommit()
+                .build();
     }
 
     public static class TestConsumeKinesis extends ConsumeKinesis {
