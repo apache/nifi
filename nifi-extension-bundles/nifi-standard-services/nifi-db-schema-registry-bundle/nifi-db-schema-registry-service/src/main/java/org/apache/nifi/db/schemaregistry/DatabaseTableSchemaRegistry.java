@@ -82,10 +82,12 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
     static final PropertyDescriptor IGNORE_DEFAULT_VALUE = new PropertyDescriptor.Builder()
             .name("Ignore Default Value")
             .displayName("Ignore Default Value")
-            .description("If true, the default value of the column will be ignored.")
+            .description("If true, NiFi omits column values and lets the database apply defaults. "
+                    + "If false, NiFi or the developer must provide values explicitly. "
+                    + "Example: a column with DEFAULT CURRENT_TIMESTAMP will be set by the DB if true; otherwise, NiFi must set it.")
             .required(false)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
