@@ -32,13 +32,13 @@ import java.util.List;
 
 @Tags({ "git", "azure", "devops", "registry", "flow" })
 @CapabilityDescription("Flow Registry Client that uses the Azure DevOps Git REST API to version control flows in a repository.")
-public class AzureGitDevOpsFlowRegistryClient extends AbstractGitFlowRegistryClient {
+public class AzureDevOpsFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor AZURE_DEVOPS_API_URL = new PropertyDescriptor.Builder()
             .name("Azure DevOps API URL")
             .description("The base URL of the Azure DevOps instance")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue("dev.azure.com")
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .defaultValue("https://dev.azure.com")
             .required(true)
             .build();
 
