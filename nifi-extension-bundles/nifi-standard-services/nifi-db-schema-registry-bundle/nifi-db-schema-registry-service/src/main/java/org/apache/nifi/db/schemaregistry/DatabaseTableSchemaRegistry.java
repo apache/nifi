@@ -79,15 +79,26 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor IGNORE_DEFAULT_VALUE = new PropertyDescriptor.Builder()
+            .name("Ignore Default Value")
+            .displayName("Ignore Default Value")
+            .description("If true, the default value of the column will be ignored.")
+            .required(false)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-        DBCP_SERVICE,
-        CATALOG_NAME,
-        SCHEMA_NAME
+            DBCP_SERVICE,
+            CATALOG_NAME,
+            SCHEMA_NAME,
+            IGNORE_DEFAULT_VALUE
     );
 
     private volatile DBCPService dbcpService;
     private volatile String dbCatalogName;
     private volatile String dbSchemaName;
+    private volatile Boolean ignoreDefaultValues;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -99,6 +110,8 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         dbCatalogName = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions().getValue();
         dbSchemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions().getValue();
+        ignoreDefaultValues = Boolean.valueOf(context.getProperty(IGNORE_DEFAULT_VALUE).getValue());
+
     }
 
     @Override
@@ -125,8 +138,8 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         try {
             try (final Connection conn = dbcpService.getConnection()) {
                 final DatabaseMetaData databaseMetaData = conn.getMetaData();
-                    return getRecordSchemaFromMetadata(databaseMetaData, tableName);
-                }
+                return getRecordSchemaFromMetadata(databaseMetaData, tableName);
+            }
         } catch (SQLException sqle) {
             throw new IOException("Error retrieving schema for table " + schemaName.get(), sqle);
         }
@@ -161,6 +174,9 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         }
         final String nullableValue = columnResultSet.getString("IS_NULLABLE");
         final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
+        if (ignoreDefaultValues) {
+            return new RecordField(columnName, DataTypeUtils.getDataTypeFromSQLTypeValue(dataType), isNullable);
+        }
         return new RecordField(
                 columnName,
                 DataTypeUtils.getDataTypeFromSQLTypeValue(dataType),

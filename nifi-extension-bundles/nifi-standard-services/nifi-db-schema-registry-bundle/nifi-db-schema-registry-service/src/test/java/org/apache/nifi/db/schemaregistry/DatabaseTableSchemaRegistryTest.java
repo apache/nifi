@@ -66,7 +66,9 @@ public class DatabaseTableSchemaRegistryTest {
             "CREATE TABLE SCHEMA2.PERSONS (id2 integer primary key, name varchar(100)," +
                     " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000), dt date)",
             "CREATE TABLE UUID_TEST (id integer primary key, name VARCHAR(100))",
-            "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)"
+            "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)",
+            "CREATE TABLE SCHEMA1.DEFAULT_VALUE_TEST (id integer primary key, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+
     );
 
     private static final String SERVICE_ID = SimpleDBCPService.class.getName();
@@ -96,6 +98,7 @@ public class DatabaseTableSchemaRegistryTest {
             .addValidator(new DriverClassValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
+
 
     private TestRunner runner;
 
@@ -184,6 +187,25 @@ public class DatabaseTableSchemaRegistryTest {
         assertFalse(recordField.isPresent());
     }
 
+    @Test
+    public void testIgnoreDefault() throws Exception {
+        DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
+        runner.addControllerService("schemaRegistry", dbSchemaRegistry);
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.IGNORE_DEFAULT_VALUE, "true");
+        runner.enableControllerService(dbSchemaRegistry);
+        SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
+                .name("DEFAULT_VALUE_TEST")
+                .build();
+        RecordSchema recordSchema = dbSchemaRegistry.retrieveSchema(schemaIdentifier);
+        assertNotNull(recordSchema);
+        Optional<RecordField> recordField = recordSchema.getField("ID");
+        assertTrue(recordField.isPresent());
+        assertEquals(RecordFieldType.INT.getDataType(), recordField.get().getDataType());
+        recordField = recordSchema.getField("CREATED_AT");
+        assertTrue(recordField.isPresent());
+    }
     @Test
     public void testGetSchemaNotExists() throws Exception {
         DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
