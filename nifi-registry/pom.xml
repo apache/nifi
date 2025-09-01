@@ -114,6 +114,19 @@
                 </exclusions>
                 <scope>compile</scope>
             </dependency>
+            <!-- Managed Mortbay Jasper dependencies providing JSP implementation with new coordinates -->
+            <dependency>
+                <groupId>org.mortbay.jasper</groupId>
+                <artifactId>mortbay-apache-jsp</artifactId>
+                <version>10.1.44</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mortbay.jasper</groupId>
+                <artifactId>mortbay-apache-el</artifactId>
+                <version>10.1.44</version>
+                <scope>compile</scope>
+            </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty.http2</groupId>
                 <artifactId>jetty-http2-server</artifactId>
