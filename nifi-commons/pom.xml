@@ -68,6 +68,7 @@
         <module>nifi-write-ahead-log</module>
         <module>nifi-xml-processing</module>
         <module>nifi-calcite-utils</module>
+        <module>nifi-connector-utils</module>
     </modules>
     <properties>
         <guava.version>33.5.0-jre</guava.version>

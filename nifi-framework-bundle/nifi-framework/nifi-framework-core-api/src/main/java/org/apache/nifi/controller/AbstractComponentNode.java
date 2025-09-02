@@ -32,6 +32,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.ResourceReferenceFactory;
 import org.apache.nifi.components.resource.ResourceReferences;
@@ -68,6 +69,7 @@ import org.apache.nifi.validation.RuleViolation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -414,7 +416,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
     }
 
-    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterContext parameterContext) {
+    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterLookup parameterLookup) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
@@ -422,7 +424,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = createDescriptorToConfigMap(propertyValues);
             final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
-                getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
+                getProcessGroupIdentifier(), getIdentifier(), parameterLookup, false);
 
             final ValidationState validationState = performValidation(validationContext);
             final ValidationStatus validationStatus = validationState.getStatus();
@@ -469,6 +471,22 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return results;
+    }
+
+    @Override
+    public ValidationContext createValidationContext(final Map<String, String> propertyValues, final String annotationData,
+                final ParameterLookup parameterLookup, final boolean validateConnections) {
+
+        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+        final Map<PropertyDescriptor, PropertyConfiguration> descriptorToRawValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<String, String> entry : propertyValues.entrySet()) {
+            final PropertyDescriptor descriptor = getPropertyDescriptor(entry.getKey());
+            final PropertyConfiguration propertyConfiguration = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(descriptor, entry.getValue());
+            descriptorToRawValueMap.put(descriptor, propertyConfiguration);
+        }
+
+        return getValidationContextFactory().newValidationContext(descriptorToRawValueMap, annotationData, getProcessGroupIdentifier(), getIdentifier(),
+            parameterLookup, validateConnections);
     }
 
     private static Map<PropertyDescriptor, PropertyConfiguration> createDescriptorToConfigMap(final Map<PropertyDescriptor, String> propertyValues) {
@@ -1539,6 +1557,32 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         getIdentifier(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
             }
         }
+    }
+
+    protected List<ConnectorMethod> getConnectorMethods(final Class<?> componentClass) {
+        final List<ConnectorMethod> connectorMethods = new ArrayList<>();
+        for (final Method method : componentClass.getDeclaredMethods()) {
+            final ConnectorMethod annotation = method.getAnnotation(ConnectorMethod.class);
+            connectorMethods.add(annotation);
+        }
+
+        return connectorMethods;
+    }
+
+    protected Method discoverConnectorMethod(final Class<?> componentClass, final String connectorMethodName) {
+        for (final Method method : componentClass.getDeclaredMethods()) {
+            final ConnectorMethod annotation = method.getAnnotation(ConnectorMethod.class);
+            if (annotation != null && annotation.name().equals(connectorMethodName)) {
+                return method;
+            }
+        }
+
+        final Class<?> superClass = componentClass.getSuperclass();
+        if (superClass != null && !Object.class.equals(superClass)) {
+            return discoverConnectorMethod(superClass, connectorMethodName);
+        }
+
+        return null;
     }
 
     protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {

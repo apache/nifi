@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.Connectable;
@@ -31,6 +33,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -136,7 +139,8 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
         }
     }
 
-    public abstract List<ConfigVerificationResult> verifyConfiguration(ProcessContext processContext, ComponentLog logger, Map<String, String> attributes, ExtensionManager extensionManager);
+    public abstract List<ConfigVerificationResult> verifyConfiguration(ProcessContext processContext, ComponentLog logger, Map<String, String> attributes, ExtensionManager extensionManager,
+        ParameterLookup parameterLookup);
 
     public abstract void verifyCanTerminate();
 
@@ -213,12 +217,12 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @param administrativeYieldMillis
      *            the amount of milliseconds to wait for administrative yield
      * @param timeoutMillis the number of milliseconds to wait after triggering the Processor's @OnScheduled methods before timing out and considering
-* the startup a failure. This will result in the thread being interrupted and trying again.
+     * the startup a failure. This will result in the thread being interrupted and trying again.
      * @param processContextFactory
-*            a factory for creating instances of {@link ProcessContext}
+     *            a factory for creating instances of {@link ProcessContext}
      * @param schedulingAgentCallback
-*            the callback provided by the {@link ProcessScheduler} to
-*            execute upon successful start of the Processor
+     *            the callback provided by the {@link ProcessScheduler} to
+     *            execute upon successful start of the Processor
      */
     public abstract void runOnce(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
                                  SchedulingAgentCallback schedulingAgentCallback);
@@ -308,4 +312,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
+    public abstract Object invokeConnectorMethod(String methodName, Map<String, Object> arguments, ProcessContext processContext) throws InvocationFailedException;
+
+    public abstract List<ConnectorMethod> getConnectorMethods();
 }

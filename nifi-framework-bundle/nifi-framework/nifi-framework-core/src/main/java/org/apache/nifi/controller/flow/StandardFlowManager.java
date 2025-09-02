@@ -27,6 +27,13 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorStateTransition;
+import org.apache.nifi.components.connector.FlowContextFactory;
+import org.apache.nifi.components.connector.ProcessGroupFactory;
+import org.apache.nifi.components.connector.StandardConnectorConfigurationContext;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -56,12 +63,15 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.deprecation.log.DeprecationLogger;
 import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNodeFactory;
+import org.apache.nifi.logging.ConnectorLogObserver;
 import org.apache.nifi.logging.ControllerServiceLogObserver;
 import org.apache.nifi.logging.FlowAnalysisRuleLogObserver;
 import org.apache.nifi.logging.FlowRegistryClientLogObserver;
@@ -73,10 +83,16 @@ import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
+import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
@@ -92,6 +108,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,6 +117,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -281,13 +299,20 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     @Override
     public ProcessGroup createProcessGroup(final String id) {
+        return createProcessGroup(id, true);
+    }
+
+    private ProcessGroup createProcessGroup(final String id, final boolean registerGroup) {
         final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
             flowController.getReloadComponent(), flowController, nifiProperties, statelessGroupNodeFactory,
             flowController.getAssetManager());
-        onProcessGroupAdded(group);
+
+        if (registerGroup) {
+            onProcessGroupAdded(group);
+        }
 
         return group;
     }
@@ -717,6 +742,130 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
         logger.info("{} removed from Flow Controller", service);
+    }
+
+    @Override
+    public ConnectorNode createConnector(final String type, final String id, final BundleCoordinate coordinate, final boolean firstTimeAdded, final boolean registerLogObserver) {
+
+        requireNonNull(type, "Connector Type");
+        requireNonNull(id, "Connector ID");
+        requireNonNull(coordinate, "Bundle Coordinate");
+
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final String managedGroupId = UUID.nameUUIDFromBytes((id + "-root").getBytes(StandardCharsets.UTF_8)).toString();
+        final String workingGroupId = UUID.nameUUIDFromBytes((id + "-working").getBytes(StandardCharsets.UTF_8)).toString();
+        final ProcessGroup managedRootGroup = createProcessGroup(managedGroupId);
+
+        final String paramContextId = UUID.nameUUIDFromBytes((id + "-parameter-context").getBytes(StandardCharsets.UTF_8)).toString();
+        final String paramContextName = "Connector " + id + " Parameter Context";
+        final ParameterContext managedParameterContext = createParameterContext(paramContextId, paramContextName,
+            "Implicit Parameter Context for Connector " + id,
+            Collections.emptyMap(), Collections.emptyList(), null);
+        managedRootGroup.setParameterContext(managedParameterContext);
+
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        final ConnectorStateTransition stateTransition = connectorRepository.createStateTransition(type, id);
+        final StandardConnectorConfigurationContext activeConfigurationContext = new StandardConnectorConfigurationContext(flowController.getAssetManager(), null);
+        final ProcessGroupFactory processGroupFactory = groupId -> createProcessGroup(groupId, false);
+        final FlowContextFactory flowContextFactory = new FlowControllerFlowContextFactory(flowController, managedRootGroup, activeConfigurationContext, processGroupFactory);
+
+        final ConnectorNode connectorNode = new ExtensionBuilder()
+            .identifier(id)
+            .type(type)
+            .bundleCoordinate(coordinate)
+            .extensionManager(extensionManager)
+            .managedProcessGroup(managedRootGroup)
+            .activeConfigurationContext(activeConfigurationContext)
+            .flowContextFactory(flowContextFactory)
+            .flowController(flowController)
+            .connectorStateTransition(stateTransition)
+            .connectorInitializationContextBuilder(flowController.getConnectorRepository().createInitializationContextBuilder())
+            .buildConnector();
+
+        if (firstTimeAdded) {
+            try {
+                connectorNode.loadInitialFlow();
+            } catch (final Exception e) {
+                logger.error("Failed to load initial flow for Connector {}", connectorNode, e);
+                // TODO: Create a Ghosted Connector instead
+            }
+        }
+
+        // Establish the Connector as the parent authorizable of the managed root group
+        managedRootGroup.setExplicitParentAuthorizable(connectorNode);
+
+        // Set up logging for the connector
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        logRepository.setLogger(connectorNode.getComponentLog());
+        if (registerLogObserver) {
+            logRepository.addObserver(LogLevel.WARN, new ConnectorLogObserver(bulletinRepository, connectorNode));
+        }
+
+        if (firstTimeAdded) {
+            final Connector connector = connectorNode.getConnector();
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), connectorNode.getIdentifier())) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, connector);
+            } catch (final Exception e) {
+                if (registerLogObserver) {
+                    logRepository.removeAllObservers();
+                }
+                throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + connectorNode.getConnector(), e);
+            }
+
+            flowController.getConnectorRepository().addConnector(connectorNode);
+        } else {
+            flowController.getConnectorRepository().restoreConnector(connectorNode);
+        }
+
+        return connectorNode;
+    }
+
+    private void copyGroupContents(final ProcessGroup sourceGroup, final ProcessGroup destinationGroup, final String componentIdSeed) {
+        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
+            .mapSensitiveConfiguration(true)
+            .mapPropertyDescriptors(true)
+            .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
+            .sensitiveValueEncryptor(value -> value)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
+            .mapControllerServiceReferencesToVersionedId(true)
+            .mapFlowRegistryClientId(true)
+            .mapAssetReferences(true)
+            .build();
+
+        final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
+        final Map<String, VersionedParameterContext> parameterContexts = flowMapper.mapParameterContexts(sourceGroup, true, Map.of());
+        final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(sourceGroup, flowController.getControllerServiceProvider(), this, true);
+        final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
+        versionedExternalFlow.setFlowContents(versionedGroup);
+        versionedExternalFlow.setExternalControllerServices(Map.of());
+        versionedExternalFlow.setParameterProviders(Map.of());
+        versionedExternalFlow.setParameterContexts(parameterContexts);
+
+        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
+    }
+
+    private void gatherParameterContexts(final ProcessGroup sourceGroup, final Map<String, ParameterContext> parameterContexts) {
+        final ParameterContext parameterContext = sourceGroup.getParameterContext();
+        if (parameterContext != null && !parameterContexts.containsKey(parameterContext.getIdentifier())) {
+            parameterContexts.put(parameterContext.getIdentifier(), parameterContext);
+        }
+
+        for (final ProcessGroup childGroup : sourceGroup.getProcessGroups()) {
+            gatherParameterContexts(childGroup, parameterContexts);
+        }
+    }
+
+
+    @Override
+    public List<ConnectorNode> getAllConnectors() {
+        return flowController.getConnectorRepository().getConnectors();
+    }
+
+    @Override
+    public ConnectorNode getConnector(final String id) {
+        return flowController.getConnectorRepository().getConnector(id);
     }
 
     @Override

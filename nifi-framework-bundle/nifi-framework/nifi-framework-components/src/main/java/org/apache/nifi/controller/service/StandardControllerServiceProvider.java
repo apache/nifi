@@ -320,7 +320,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Future<Void> enableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
+    public CompletableFuture<Void> enableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         processScheduler.submitFrameworkTask(() -> {
             try {
@@ -392,7 +392,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Future<Void> enableControllerServiceAndDependencies(final ControllerServiceNode serviceNode) {
+    public CompletableFuture<Void> enableControllerServiceAndDependencies(final ControllerServiceNode serviceNode) {
         if (serviceNode.isActive()) {
             logger.debug("Enabling of Controller Service {} triggered but service already enabled", serviceNode);
             return CompletableFuture.completedFuture(null);

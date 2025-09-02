@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -60,7 +61,7 @@ public interface ProcessScheduler {
      *            will throw an {@link IllegalStateException}.
      * @throws IllegalStateException if the Processor is disabled
      */
-    Future<Void> startProcessor(ProcessorNode procNode, boolean failIfStopping);
+    CompletableFuture<Void> startProcessor(ProcessorNode procNode, boolean failIfStopping);
 
     /**
      * Starts scheduling the given processor to run once, after invoking all methods
@@ -117,7 +118,7 @@ public interface ProcessScheduler {
      * @param groupNode the group to start
      * @return a Future that will be completed whenever the group has started
      */
-    Future<Void> startStatelessGroup(StatelessGroupNode groupNode);
+    CompletableFuture<Void> startStatelessGroup(StatelessGroupNode groupNode);
 
     /**
      * Stops scheduling the given Stateless Group to run. Returns a Future that will be completed whenever all components within the group have been stopped
@@ -263,6 +264,16 @@ public interface ProcessScheduler {
      * @param service to disable
      */
     CompletableFuture<Void> disableControllerService(ControllerServiceNode service);
+
+    CompletableFuture<Void> startConnector(ConnectorNode connectorNode);
+
+    CompletableFuture<Void> stopConnector(ConnectorNode connectorNode);
+
+    void enableConnector(ConnectorNode connectorNode);
+
+    void disableConnector(ConnectorNode connectorNode);
+
+    void onConnectorRemoved(ConnectorNode connectorNode);
 
     /**
      * Submits the given task to be executed exactly once in a background thread

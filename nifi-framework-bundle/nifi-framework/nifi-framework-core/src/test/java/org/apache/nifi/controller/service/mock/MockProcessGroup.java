@@ -21,10 +21,12 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.connectable.ProcessGroupFlowFileActivity;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -904,6 +906,15 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public FlowFileActivity getFlowFileActivity() {
+        return new ProcessGroupFlowFileActivity(this);
+    }
+
+    @Override
+    public void setExplicitParentAuthorizable(final Authorizable parent) {
+    }
+
+    @Override
     public void setLogFileSuffix(String logFileSuffix) {
 
     }
@@ -912,4 +923,12 @@ public class MockProcessGroup implements ProcessGroup {
     public void terminateProcessor(ProcessorNode processor) {
     }
 
+    @Override
+    public CompletableFuture<Void> purge() {
+        processorMap.clear();
+        serviceMap.clear();
+        inputPortMap.clear();
+        outputPortMap.clear();
+        return CompletableFuture.completedFuture(null);
+    }
 }

@@ -22,6 +22,16 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.listen.ListenPortDefinition;
+import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorValueReference;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.connectable.Connectable;
@@ -53,7 +63,11 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedAsset;
+import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorPropertyGroup;
+import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
@@ -108,7 +122,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class NiFiRegistryFlowMapper {
+public class VersionedComponentFlowMapper {
     private static final String ENCRYPTED_PREFIX = "enc{";
     private static final String ENCRYPTED_SUFFIX = "}";
 
@@ -122,11 +136,11 @@ public class NiFiRegistryFlowMapper {
     // created before attempting to create the connection, where the ConnectableDTO is converted.
     private final Map<String, String> versionedComponentIds = new HashMap<>();
 
-    public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+    public VersionedComponentFlowMapper(final ExtensionManager extensionManager) {
         this(extensionManager, FlowMappingOptions.DEFAULT_OPTIONS);
     }
 
-    public NiFiRegistryFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions flowMappingOptions) {
+    public VersionedComponentFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions flowMappingOptions) {
         this.extensionManager = extensionManager;
         this.flowMappingOptions = flowMappingOptions;
 
@@ -1006,6 +1020,7 @@ public class NiFiRegistryFlowMapper {
                     .toList();
             versionedParameter.setReferencedAssets(assetIds);
         }
+
         return versionedParameter;
     }
 
@@ -1020,5 +1035,84 @@ public class NiFiRegistryFlowMapper {
         return scheduledState == ScheduledState.DISABLED
                 ? org.apache.nifi.flow.ScheduledState.DISABLED
                 : org.apache.nifi.flow.ScheduledState.ENABLED;
+    }
+
+    public VersionedConnector mapConnector(final ConnectorNode connectorNode) {
+        final VersionedConnector versionedConnector = new VersionedConnector();
+        versionedConnector.setInstanceIdentifier(connectorNode.getIdentifier());
+        versionedConnector.setName(connectorNode.getName());
+        versionedConnector.setScheduledState(mapConnectorState(connectorNode.getDesiredState()));
+        versionedConnector.setType(connectorNode.getComponentType());
+        versionedConnector.setBundle(mapBundle(connectorNode.getBundleCoordinate()));
+
+        final List<VersionedConfigurationStep> activeFlowConfiguration = createVersionedConfigurationSteps(connectorNode.getActiveFlowContext());
+        versionedConnector.setActiveFlowConfiguration(activeFlowConfiguration);
+
+        final List<VersionedConfigurationStep> workingFlowConfiguration = createVersionedConfigurationSteps(connectorNode.getWorkingFlowContext());
+        versionedConnector.setWorkingFlowConfiguration(workingFlowConfiguration);
+
+        return versionedConnector;
+    }
+
+    private List<VersionedConfigurationStep> createVersionedConfigurationSteps(final FrameworkFlowContext flowContext) {
+        if (flowContext == null) {
+            return Collections.emptyList();
+        }
+
+        final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
+        final List<VersionedConfigurationStep> configurationSteps = new ArrayList<>();
+
+        for (final ConfigurationStepConfiguration stepConfiguration : configuration.getConfigurationStepConfigurations()) {
+            final VersionedConfigurationStep versionedConfigurationStep = new VersionedConfigurationStep();
+            versionedConfigurationStep.setName(stepConfiguration.stepName());
+            configurationSteps.add(versionedConfigurationStep);
+
+            final List<VersionedConnectorPropertyGroup> propertyGroups = new ArrayList<>();
+            versionedConfigurationStep.setPropertyGroups(propertyGroups);
+
+            for (final PropertyGroupConfiguration groupConfiguration : stepConfiguration.propertyGroupConfigurations()) {
+                final VersionedConnectorPropertyGroup versionedGroup = new VersionedConnectorPropertyGroup();
+                versionedGroup.setName(groupConfiguration.groupName());
+                versionedGroup.setProperties(mapPropertyValues(groupConfiguration.propertyValues()));
+                propertyGroups.add(versionedGroup);
+            }
+        }
+
+        return configurationSteps;
+    }
+
+    private Map<String, VersionedConnectorValueReference> mapPropertyValues(final Map<String, ConnectorValueReference> propertyValues) {
+        final Map<String, VersionedConnectorValueReference> versionedProperties = new HashMap<>();
+        for (final Map.Entry<String, ConnectorValueReference> entry : propertyValues.entrySet()) {
+            final ConnectorValueReference valueReference = entry.getValue();
+
+            final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();
+            versionedReference.setValueType(valueReference.getValueType().name());
+
+            switch (valueReference) {
+                case StringLiteralValue stringLiteral -> versionedReference.setValue(stringLiteral.getValue());
+                case AssetReference assetRef -> versionedReference.setAssetId(assetRef.getAssetIdentifier());
+                case SecretReference secretRef -> {
+                    versionedReference.setProviderId(secretRef.getProviderId());
+                    versionedReference.setProviderName(secretRef.getProviderName());
+                    versionedReference.setSecretName(secretRef.getSecretName());
+                }
+            }
+
+            versionedProperties.put(entry.getKey(), versionedReference);
+        }
+        return versionedProperties;
+    }
+
+    private org.apache.nifi.flow.ScheduledState mapConnectorState(final ConnectorState connectorState) {
+        if (connectorState == null) {
+            return null;
+        }
+
+        return switch (connectorState) {
+            case DISABLED -> org.apache.nifi.flow.ScheduledState.DISABLED;
+            case RUNNING, STARTING -> org.apache.nifi.flow.ScheduledState.RUNNING;
+            default -> org.apache.nifi.flow.ScheduledState.ENABLED;
+        };
     }
 }

@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.cluster.ConnectionState;
+import org.apache.nifi.components.connector.StandaloneConnectorRequestReplicator;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
@@ -150,16 +151,17 @@ public class HeadlessNiFiServer implements NiFiServer {
                     extensionManager,
                     statusHistoryRepository,
                     null,
-                    stateManagerProvider
+                    stateManagerProvider,
+                    new StandaloneConnectorRequestReplicator()
             );
 
             flowService = StandardFlowService.createStandaloneInstance(
-                    flowController,
-                    props,
-                    null, // revision manager
-                    null, // NAR Manager
-                    null, // Asset Synchronizer
-                    authorizer);
+                flowController,
+                props,
+                null, // revision manager
+                null, // NAR Manager
+                null, // Asset Synchronizer
+                authorizer);
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();
             ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);

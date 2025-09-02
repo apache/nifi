@@ -48,7 +48,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testAddAndGet() throws IOException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties((String) null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -81,7 +81,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchAsync() throws InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties((String) null));
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -120,7 +120,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testSearchForInverseValue() throws InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties((String) null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");

@@ -61,7 +61,7 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
@@ -187,7 +187,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
     }
 
     private VersionedExternalFlow createVersionedExternalFlow(final ProcessGroup group, final FlowMappingOptions flowMappingOptions) {
-        final NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
+        final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
         final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapNonVersionedProcessGroup(group, flowController.getControllerServiceProvider());
         final Map<String, VersionedParameterContext> parameterContexts = flowMapper.mapParameterContexts(group, true, new HashMap<>());
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =

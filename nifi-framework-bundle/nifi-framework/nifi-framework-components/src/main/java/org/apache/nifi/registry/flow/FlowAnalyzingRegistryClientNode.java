@@ -45,7 +45,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
@@ -70,7 +70,7 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     private final FlowAnalyzer flowAnalyzer;
     private final RuleViolationsManager ruleViolationsManager;
     private final FlowManager flowManager;
-    private final NiFiRegistryFlowMapper flowMapper;
+    private final VersionedComponentFlowMapper flowMapper;
 
     public FlowAnalyzingRegistryClientNode(
             final FlowRegistryClientNode node,
@@ -78,7 +78,7 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
             final FlowAnalyzer flowAnalyzer,
             final RuleViolationsManager ruleViolationsManager,
             final FlowManager flowManager,
-            final NiFiRegistryFlowMapper flowMapper
+            final VersionedComponentFlowMapper flowMapper
     ) {
         this.node = Objects.requireNonNull(node);
         this.serviceProvider = Objects.requireNonNull(serviceProvider);
@@ -177,6 +177,13 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     @Override
     public void verifyCanUpdateProperties(final Map<String, String> properties) {
         node.verifyCanUpdateProperties(properties);
+    }
+
+    @Override
+    public ValidationContext createValidationContext(final Map<String, String> propertyValues, final String annotationData,
+            final ParameterLookup parameterLookup, final boolean validateConnections) {
+
+        return node.createValidationContext(propertyValues, annotationData, parameterLookup, validateConnections);
     }
 
     @Override

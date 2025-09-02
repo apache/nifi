@@ -27,7 +27,6 @@ import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
-import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.logging.ComponentLog;
 

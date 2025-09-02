@@ -32,6 +32,7 @@
         <module>nifi-bootstrap</module>
         <module>nifi-code-coverage</module>
         <module>nifi-mock</module>
+        <module>nifi-connector-mock-bundle</module>
         <module>nifi-extension-bundles</module>
         <module>nifi-extension-bom</module>
         <module>nifi-assembly</module>
@@ -44,6 +45,7 @@
         <module>nifi-registry</module>
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
+        <module>nifi-connectors</module>
         <module>c2</module>
     </modules>
     <url>https://nifi.apache.org</url>
@@ -116,7 +118,7 @@
         <node.version>v22.19.0</node.version>
 
         <!-- NiFi build -->
-        <nifi-api.version>2.6.0</nifi-api.version>
+        <nifi-api.version>2.7.0-SNAPSHOT</nifi-api.version>
         <nifi.nar.maven.plugin.version>2.2.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
