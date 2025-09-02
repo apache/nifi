@@ -471,6 +471,89 @@ describe('ParameterTable', () => {
         });
     });
 
+    describe('getInheritedParameterMessage', () => {
+        it('should return empty string for non inherited parameter', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.getInheritedParameterMessage(item)).toBe('');
+        });
+
+        it('should return generic message for inherited parameter with no permissions', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'contextId',
+                            permissions: {
+                                canRead: false,
+                                canWrite: false
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.getInheritedParameterMessage(item)).toBe(
+                'This parameter is inherited from another Parameter Context.'
+            );
+        });
+
+        it('should return parameter context specific message for inherited parameter with permissions', () => {
+            const name = 'contextName';
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'contextId',
+                            permissions: {
+                                canRead: true,
+                                canWrite: false
+                            },
+                            component: {
+                                id: 'contextId',
+                                name
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.getInheritedParameterMessage(item)).toBe(`This parameter is inherited from: ${name}`);
+        });
+    });
+
     describe('isVisible', () => {
         it('should consider deleted as not visible', () => {
             const item: ParameterItem = {

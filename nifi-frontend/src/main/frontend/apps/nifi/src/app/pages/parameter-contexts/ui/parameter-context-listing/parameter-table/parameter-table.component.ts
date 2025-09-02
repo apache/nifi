@@ -271,6 +271,18 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         }
     }
 
+    getInheritedParameterMessage(item: ParameterItem): string {
+        if (item.originalEntity.parameter.inherited) {
+            const parameterContext = item.originalEntity.parameter.parameterContext;
+            if (parameterContext?.permissions.canRead && parameterContext.component) {
+                return `This parameter is inherited from: ${parameterContext.component.name}`;
+            } else {
+                return 'This parameter is inherited from another Parameter Context.';
+            }
+        }
+        return '';
+    }
+
     isSensitiveParameter(item: ParameterItem): boolean {
         return item.originalEntity.parameter.sensitive;
     }

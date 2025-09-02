@@ -58,7 +58,7 @@
                                             class="fa fa-level-down primary-color"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
-                                            tooltipInputData="This parameter is inherited form another Parameter Context."
+                                            [tooltipInputData]="getInheritedParameterMessage(item)"
                                             [delayClose]="false"></i>
                                     }
                                 </div>
