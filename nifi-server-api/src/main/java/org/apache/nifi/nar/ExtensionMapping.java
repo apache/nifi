@@ -34,6 +34,7 @@ public class ExtensionMapping {
     private final Map<String, Set<BundleCoordinate>> flowAnalysisRuleNames = new HashMap<>();
     private final Map<String, Set<BundleCoordinate>> parameterProviderNames = new HashMap<>();
     private final Map<String, Set<BundleCoordinate>> flowRegistryClientNames = new HashMap<>();
+    private final Map<String, Set<BundleCoordinate>> connectorNames = new HashMap<>();
 
     private final BiFunction<Set<BundleCoordinate>, Set<BundleCoordinate>, Set<BundleCoordinate>> merger = (oldValue, newValue) -> {
         final Set<BundleCoordinate> merged = new HashSet<>();
@@ -102,6 +103,16 @@ public class ExtensionMapping {
         });
     }
 
+    void addConnector(final BundleCoordinate coordinate, final String connectorName) {
+        connectorNames.computeIfAbsent(connectorName, name -> new HashSet<>()).add(coordinate);
+    }
+
+    void addAllConnectors(final BundleCoordinate coordinate, final Collection<String> connectorNames) {
+        connectorNames.forEach(name -> {
+            addConnector(coordinate, name);
+        });
+    }
+
     void merge(final ExtensionMapping other) {
         other.getProcessorNames().forEach((name, otherCoordinates) -> {
             processorNames.merge(name, otherCoordinates, merger);
@@ -120,6 +131,9 @@ public class ExtensionMapping {
         });
         other.getFlowRegistryClientNames().forEach((name, otherCoordinates) -> {
             flowRegistryClientNames.merge(name, otherCoordinates, merger);
+        });
+        other.getConnectorNames().forEach((name, otherCoordinates) -> {
+            connectorNames.merge(name, otherCoordinates, merger);
         });
     }
 
@@ -147,6 +161,10 @@ public class ExtensionMapping {
         return Collections.unmodifiableMap(flowRegistryClientNames);
     }
 
+    public Map<String, Set<BundleCoordinate>> getConnectorNames() {
+        return Collections.unmodifiableMap(connectorNames);
+    }
+
     public Map<String, Set<BundleCoordinate>> getAllExtensionNames() {
         final Map<String, Set<BundleCoordinate>> extensionNames = new HashMap<>();
         extensionNames.putAll(processorNames);
@@ -155,6 +173,7 @@ public class ExtensionMapping {
         extensionNames.putAll(flowAnalysisRuleNames);
         extensionNames.putAll(parameterProviderNames);
         extensionNames.putAll(flowRegistryClientNames);
+        extensionNames.putAll(connectorNames);
         return extensionNames;
     }
 
@@ -179,6 +198,9 @@ public class ExtensionMapping {
         for (final Set<BundleCoordinate> coordinates : flowRegistryClientNames.values()) {
             size += coordinates.size();
         }
+        for (final Set<BundleCoordinate> coordinates : connectorNames.values()) {
+            size += coordinates.size();
+        }
 
         return size;
     }
@@ -189,6 +211,7 @@ public class ExtensionMapping {
                 && reportingTaskNames.isEmpty()
                 && flowAnalysisRuleNames.isEmpty()
                 && parameterProviderNames.isEmpty()
-                && flowRegistryClientNames.isEmpty();
+                && flowRegistryClientNames.isEmpty()
+                && connectorNames.isEmpty();
     }
 }

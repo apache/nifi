@@ -149,7 +149,7 @@ public class StatelessBootstrap {
      * @param parent the parent class loader that the given BlockListClassLoader should delegate to for classes that it does not block
      * @return an AllowListClassLoader that allows only the appropriate classes to be loaded from the given parent
      */
-    protected static AllowListClassLoader createExtensionRootClassLoader(final File narDirectory, final ClassLoader parent) throws IOException {
+    public static AllowListClassLoader createExtensionRootClassLoader(final File narDirectory, final ClassLoader parent) throws IOException {
         final File[] narDirectoryFiles = narDirectory.listFiles();
         if (narDirectoryFiles == null) {
             throw new IOException("Could not get a listing of the NAR directory");

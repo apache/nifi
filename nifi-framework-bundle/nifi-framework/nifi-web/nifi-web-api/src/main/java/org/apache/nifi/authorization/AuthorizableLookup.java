@@ -309,6 +309,12 @@ public interface AuthorizableLookup {
      */
     Authorizable getAuthorizableFromResource(final String resource);
 
+    /**
+     * Get the authorizable for the connector with the given ID
+     * @param connectorId the ID of the connector
+     * @return authorizable
+     */
+    Authorizable getConnector(String connectorId);
 
     /**
      * Get the authorizable for access to the System resource.

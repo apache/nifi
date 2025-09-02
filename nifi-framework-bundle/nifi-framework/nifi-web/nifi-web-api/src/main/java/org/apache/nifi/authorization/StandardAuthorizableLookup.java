@@ -607,6 +607,11 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     }
 
+    @Override
+    public Authorizable getConnector(final String connectorId) {
+        return controllerFacade.getFlowManager().getConnector(connectorId);
+    }
+
     private Authorizable handleResourceTypeContainingOtherResourceType(final String resource, final ResourceType resourceType) {
         // get the resource type
         final String baseResource = StringUtils.substringAfter(resource, resourceType.getValue());

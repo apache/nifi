@@ -268,7 +268,7 @@ public class TestThreadPoolRequestReplicator {
         when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenReturn(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
 
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null);
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties((String) null);
 
         final MockReplicationClient client = new MockReplicationClient();
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
@@ -329,7 +329,7 @@ public class TestThreadPoolRequestReplicator {
 
         final ClusterCoordinator coordinator = createClusterCoordinator();
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null);
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties((String) null);
 
         final MockReplicationClient client = new MockReplicationClient();
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
@@ -529,7 +529,7 @@ public class TestThreadPoolRequestReplicator {
     private void withReplicator(final WithReplicator function, final Status status, final long delayMillis, final RuntimeException failure,
                                 final String expectedRequestChain, final String expectedProxiedEntityGroups) {
         final ClusterCoordinator coordinator = createClusterCoordinator();
-        final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null);
+        final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties((String) null);
         final MockReplicationClient client = new MockReplicationClient();
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
         };

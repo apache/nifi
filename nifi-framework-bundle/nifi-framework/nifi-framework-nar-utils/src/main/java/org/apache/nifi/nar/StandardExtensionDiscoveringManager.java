@@ -55,6 +55,7 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.nifi.components.connector.Connector;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -134,6 +135,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(NarPersistenceProvider.class, new HashSet<>());
         definitionMap.put(AssetManager.class, new HashSet<>());
         definitionMap.put(FlowActionReporter.class, new HashSet<>());
+        definitionMap.put(Connector.class, new HashSet<>());
 
         additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));
     }
@@ -407,9 +409,12 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             serviceResourceUrls.add(serviceResourceUrlEnum.nextElement());
         }
 
-        final Enumeration<URL> parentResourceUrlEnum = bundle.getClassLoader().getParent().getResources(servicesFile);
-        while (parentResourceUrlEnum.hasMoreElements()) {
-            serviceResourceUrls.remove(parentResourceUrlEnum.nextElement());
+        final ClassLoader parentClassLoader = bundle.getClassLoader().getParent();
+        if (parentClassLoader != null) {
+            final Enumeration<URL> parentResourceUrlEnum = parentClassLoader.getResources(servicesFile);
+            while (parentResourceUrlEnum.hasMoreElements()) {
+                serviceResourceUrls.remove(parentResourceUrlEnum.nextElement());
+            }
         }
 
         return serviceResourceUrls;
@@ -420,7 +425,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     protected void registerExtensionClass(final Class<?> extensionType, final String implementationClassName, final Bundle bundle) {
-        final Set<ExtensionDefinition> registeredClasses = definitionMap.get(extensionType);
+        final Set<ExtensionDefinition> registeredClasses = definitionMap.computeIfAbsent(extensionType, type -> new HashSet<>());
         registerServiceClass(implementationClassName, extensionType, classNameBundleLookup, bundleCoordinateClassesLookup, bundle, registeredClasses);
     }
 
@@ -508,7 +513,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      */
     private static boolean multipleVersionsAllowed(Class<?> type) {
         return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type)
-                || FlowAnalysisRule.class.isAssignableFrom(type) || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
+                || FlowAnalysisRule.class.isAssignableFrom(type) || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type)
+                || Connector.class.isAssignableFrom(type);
     }
 
     protected boolean isInstanceClassLoaderRequired(final String classType, final Bundle bundle) {
@@ -863,6 +869,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 tempComponent = pythonBridge.createProcessor(procId, classType, bundleCoordinate.getVersion(), false, false);
             } else {
                 final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
+                if (!ConfigurableComponent.class.isAssignableFrom(componentClass)) {
+                    return null;
+                }
+
                 tempComponent = (ConfigurableComponent) componentClass.getDeclaredConstructor().newInstance();
             }
 

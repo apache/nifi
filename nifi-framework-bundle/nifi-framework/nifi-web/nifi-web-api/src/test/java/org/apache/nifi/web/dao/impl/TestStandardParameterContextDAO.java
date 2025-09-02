@@ -84,7 +84,7 @@ public class TestStandardParameterContextDAO {
         final NiFiUserDetails userDetail = new NiFiUserDetails(user);
         when(authentication.getPrincipal()).thenReturn(userDetail);
 
-        final ParameterReferenceManager parameterReferenceManager = new StandardParameterReferenceManager(flowController.getFlowManager());
+        final ParameterReferenceManager parameterReferenceManager = new StandardParameterReferenceManager(() -> flowController.getFlowManager().getRootGroup());
 
         final FlowManager flowManager = flowController.getFlowManager();
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();

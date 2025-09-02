@@ -132,7 +132,7 @@ class StandardRelyingPartyRegistrationRepositoryTest {
 
     private NiFiProperties getProperties() {
         final Properties properties = getStandardProperties();
-        return NiFiProperties.createBasicNiFiProperties(null, properties);
+        return NiFiProperties.createBasicNiFiProperties((String) null, properties);
     }
 
     private NiFiProperties getSingleLogoutProperties() {
@@ -140,7 +140,7 @@ class StandardRelyingPartyRegistrationRepositoryTest {
         properties.setProperty(NiFiProperties.SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED, Boolean.TRUE.toString());
         properties.setProperty(NiFiProperties.SECURITY_USER_SAML_SIGNATURE_ALGORITHM, SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512);
 
-        return NiFiProperties.createBasicNiFiProperties(null, properties);
+        return NiFiProperties.createBasicNiFiProperties((String) null, properties);
     }
 
     private Properties getStandardProperties() {

@@ -23,8 +23,10 @@ import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
+import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.BackoffMechanism;
@@ -120,6 +122,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     private volatile long schedulingNanos = 1L;
     private ComponentLog logger;
 
+    private final ConnectableFlowFileActivity flowFileActivity = new ConnectableFlowFileActivity();
 
     private StandardStatelessGroupNode(final Builder builder) {
         this.processGroup = builder.rootGroup;
@@ -152,6 +155,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
                 return;
             }
 
+            flowFileActivity.reset();
             currentState = ScheduledState.STARTING;
             logger.info("Starting {}", this);
         } finally {
@@ -1039,5 +1043,10 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             return new StandardStatelessGroupNode(this);
         }
 
+    }
+
+    @Override
+    public FlowFileActivity getFlowFileActivity() {
+        return flowFileActivity;
     }
 }

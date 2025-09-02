@@ -18,7 +18,6 @@ package org.apache.nifi.kafka.service.consumer;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -27,13 +26,11 @@ import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
-import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -178,59 +175,5 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         }
 
         return offsets;
-    }
-
-
-    private static class RecordIterable implements Iterable<ByteRecord> {
-        private final Iterator<ByteRecord> records;
-
-        private RecordIterable(final Iterable<ConsumerRecord<byte[], byte[]>> consumerRecords) {
-            this.records = new RecordIterator(consumerRecords);
-        }
-
-        @Override
-        public Iterator<ByteRecord> iterator() {
-            return records;
-        }
-    }
-
-    private static class RecordIterator implements Iterator<ByteRecord> {
-        private final Iterator<ConsumerRecord<byte[], byte[]>> consumerRecords;
-
-        private RecordIterator(final Iterable<ConsumerRecord<byte[], byte[]>> records) {
-            this.consumerRecords = records.iterator();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return consumerRecords.hasNext();
-        }
-
-        @Override
-        public ByteRecord next() {
-            final ConsumerRecord<byte[], byte[]> consumerRecord = consumerRecords.next();
-            final List<RecordHeader> recordHeaders = new ArrayList<>();
-            consumerRecord.headers().forEach(header -> {
-                final RecordHeader recordHeader = new RecordHeader(header.key(), header.value());
-                recordHeaders.add(recordHeader);
-            });
-
-            // Support Kafka tombstones
-            byte[] value = consumerRecord.value();
-            if (value == null) {
-                value = new byte[0];
-            }
-
-            return new ByteRecord(
-                    consumerRecord.topic(),
-                    consumerRecord.partition(),
-                    consumerRecord.offset(),
-                    consumerRecord.timestamp(),
-                    recordHeaders,
-                    consumerRecord.key(),
-                    value,
-                    1
-            );
-        }
     }
 }

@@ -55,14 +55,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestNiFiRegistryFlowMapper {
+public class TestVersionedComponentFlowMapper {
     private static final SensitiveValueEncryptor ENCRYPTOR = value -> new StringBuilder(value).reverse().toString();
 
     @Test
     public void testMappingProcessorWithSensitiveValuesGivesNullValue() {
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
         final FlowMappingOptions mappingOptions = FlowMappingOptions.DEFAULT_OPTIONS;
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
 
         final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
         final Map<String, String> properties = new HashMap<>();
@@ -84,7 +84,7 @@ public class TestNiFiRegistryFlowMapper {
     public void testMappingProcessorWithSensitiveValuesLeavesSensitiveParameterReference() {
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
         final FlowMappingOptions mappingOptions = FlowMappingOptions.DEFAULT_OPTIONS;
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
 
         final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
         final Map<String, String> properties = new HashMap<>();
@@ -110,7 +110,7 @@ public class TestNiFiRegistryFlowMapper {
             .sensitiveValueEncryptor(ENCRYPTOR)
             .build();
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
 
         final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
         final Map<String, String> properties = new HashMap<>();
@@ -145,7 +145,7 @@ public class TestNiFiRegistryFlowMapper {
             .mapControllerServiceReferencesToVersionedId(useVersionedId)
             .build();
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
 
         final ControllerServiceNode mockServiceNode = mock(ControllerServiceNode.class);
         when(mockServiceNode.getIdentifier()).thenReturn("1234");

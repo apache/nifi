@@ -34,7 +34,7 @@ public class PollingContext {
 
     public PollingContext(final String groupId, final Collection<String> topics,
             final AutoOffsetReset autoOffsetReset) {
-        this.groupId = Objects.requireNonNull(groupId, "Group ID required");
+        this.groupId = groupId;
         this.topics = Collections.unmodifiableCollection(Objects.requireNonNull(topics, "Topics required"));
         this.topicPattern = null;
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
@@ -42,7 +42,7 @@ public class PollingContext {
 
     public PollingContext(final String groupId, final Pattern topicPattern,
             final AutoOffsetReset autoOffsetReset) {
-        this.groupId = Objects.requireNonNull(groupId, "Group ID required");
+        this.groupId = groupId;
         this.topics = Collections.emptyList();
         this.topicPattern = Objects.requireNonNull(topicPattern, "Topic Patten required");
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");

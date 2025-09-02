@@ -22,7 +22,6 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
-import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 
@@ -33,14 +32,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class StandardParameterReferenceManager implements ParameterReferenceManager {
-    private final FlowManager flowManager;
+    private final Supplier<ProcessGroup> rootGroupLookup;
 
     // TODO: Consider reworking this so that we don't have to recurse through all components all the time and instead
     //  have a 'caching' impl that AbstractComponentNode.setProperties() adds to/subtracts from.
-    public StandardParameterReferenceManager(final FlowManager flowManager) {
-        this.flowManager = flowManager;
+    public StandardParameterReferenceManager(final Supplier<ProcessGroup> rootGroupLookup) {
+        this.rootGroupLookup = rootGroupLookup;
     }
 
     @Override
@@ -57,14 +57,14 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
     public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(final ParameterContext parameterContext, final String parameterName) {
         final List<ParameterReferencedControllerServiceData> referencedControllerServiceData = new ArrayList<>();
 
+        final ProcessGroup rootGroup = rootGroupLookup.get();
         final String versionedServiceId = parameterContext.getParameter(parameterName)
             .map(Parameter::getValue)
-            .map(this.flowManager::getControllerServiceNode)
+            .map(serviceId -> rootGroup.findControllerService(serviceId, true, true))
             .flatMap(VersionedComponent::getVersionedComponentId)
             .orElse(null);
 
 
-        final ProcessGroup rootGroup = flowManager.getRootGroup();
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 
         for (final ProcessGroup group : referencingGroups) {
@@ -90,7 +90,7 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
 
     @Override
     public Set<ProcessGroup> getProcessGroupsBound(final ParameterContext parameterContext) {
-        final ProcessGroup rootGroup = flowManager.getRootGroup();
+        final ProcessGroup rootGroup = rootGroupLookup.get();
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 
         return new HashSet<>(referencingGroups);
@@ -100,14 +100,13 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
                                                                       final Function<ProcessGroup, Collection<T>> componentFunction) {
         final Set<T> referencingComponents = new HashSet<>();
 
-        final ProcessGroup rootGroup = flowManager.getRootGroup();
+        final ProcessGroup rootGroup = rootGroupLookup.get();
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 
         for (final ProcessGroup group : referencingGroups) {
             for (final T componentNode : componentFunction.apply(group)) {
                 if (componentNode.isReferencingParameter(parameterName)) {
                     referencingComponents.add(componentNode);
-                    continue;
                 }
             }
         }

@@ -12,6 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 org.apache.nifi.test.processors.ModifiesClasspathProcessor
 org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor
 org.apache.nifi.controller.service.mock.DummyProcessor
+org.apache.nifi.components.connector.processors.CreateDummyFlowFile
+org.apache.nifi.components.connector.processors.DuplicateFlowFile
+org.apache.nifi.components.connector.processors.OverwriteFlowFile
+org.apache.nifi.components.connector.processors.TerminateFlowFile
+org.apache.nifi.components.connector.processors.LogFlowFileContents
+org.apache.nifi.components.connector.processors.ExposeFileValues
