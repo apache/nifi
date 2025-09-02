@@ -2725,7 +2725,7 @@ can be applied as icons or styling to the application.
 === Technologies
 
 The back end of Apache NiFi is written in Java. The web tier makes use of JAX-RS and JavaScript is extensively
-used to provide a user interface. We depend on several third-party JavaScript libraries, including D3 and JQuery,
+used to provide a user interface. We depend on several third-party JavaScript libraries, including D3 and Angular,
 among others. We make use of Apache Maven for our builds and Git for our version control system.
 
 Documentation is created in link:http://asciidoctor.org[AsciiDoc^].
