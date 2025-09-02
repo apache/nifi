@@ -167,7 +167,7 @@ class StandardRegistrationBuilderProviderTest {
     private NiFiProperties getProperties(final String metadataUrl) {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.SECURITY_USER_SAML_IDP_METADATA_URL, metadataUrl);
-        return NiFiProperties.createBasicNiFiProperties(null, properties);
+        return NiFiProperties.createBasicNiFiProperties((String) null, properties);
     }
 
     private NiFiProperties getPropertiesTrustStoreStrategy(final String metadataUrl) {
@@ -175,7 +175,7 @@ class StandardRegistrationBuilderProviderTest {
         properties.setProperty(NiFiProperties.SECURITY_USER_SAML_IDP_METADATA_URL, metadataUrl);
         properties.setProperty(NiFiProperties.SECURITY_USER_SAML_HTTP_CLIENT_TRUSTSTORE_STRATEGY, StandardRegistrationBuilderProvider.NIFI_TRUST_STORE_STRATEGY);
 
-        return NiFiProperties.createBasicNiFiProperties(null, properties);
+        return NiFiProperties.createBasicNiFiProperties((String) null, properties);
     }
 
     final String getMetadata() throws IOException {

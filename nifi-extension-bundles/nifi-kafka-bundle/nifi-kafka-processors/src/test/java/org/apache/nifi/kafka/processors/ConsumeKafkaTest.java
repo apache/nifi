@@ -17,6 +17,7 @@
 package org.apache.nifi.kafka.processors;
 
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
@@ -31,11 +32,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.kafka.processors.ConsumeKafka.CONNECTION_SERVICE;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.GROUP_ID;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.TOPICS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -96,10 +99,15 @@ class ConsumeKafkaTest {
         runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
 
         final List<ConfigVerificationResult> results = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
-        assertEquals(1, results.size());
+        final List<ConfigVerificationResult> successResults = results.stream()
+            .filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL)
+            .toList();
+        assertEquals(1, successResults.size());
 
-        final ConfigVerificationResult firstResult = results.iterator().next();
-        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, firstResult.getOutcome());
+        final boolean anyFailures = results.stream().anyMatch(result -> result.getOutcome() == Outcome.FAILED);
+        assertFalse(anyFailures, "At least one verification result was a failure: " + results);
+
+        final ConfigVerificationResult firstResult = successResults.getFirst();
         assertNotNull(firstResult.getExplanation());
     }
 
@@ -113,9 +121,14 @@ class ConsumeKafkaTest {
         runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
 
         final List<ConfigVerificationResult> results = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
-        assertEquals(1, results.size());
+        assertEquals(2, results.size());
 
-        final ConfigVerificationResult firstResult = results.iterator().next();
+        final List<ConfigVerificationResult> failedResults = results.stream()
+                .filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.FAILED)
+                .toList();
+        assertEquals(1, failedResults.size());
+
+        final ConfigVerificationResult firstResult = failedResults.getFirst();
         assertEquals(ConfigVerificationResult.Outcome.FAILED, firstResult.getOutcome());
         assertNotNull(firstResult.getExplanation());
     }

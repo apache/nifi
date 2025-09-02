@@ -314,4 +314,6 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
     void setMaxBackoffPeriod(String maxBackoffPeriod);
 
     String evaluateParameters(String value);
+
+    FlowFileActivity getFlowFileActivity();
 }

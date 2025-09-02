@@ -30,6 +30,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
+import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
@@ -95,34 +96,21 @@ public class FlowControllerConfiguration {
     private static final String COMPONENT_METRIC_REPORTER_IMPLEMENTATION = "nifi.component.metric.reporter.implementation";
 
     private NiFiProperties properties;
-
     private ExtensionDiscoveringManager extensionManager;
-
     private AuditService auditService;
-
     private Authorizer authorizer;
-
     private RevisionManager revisionManager;
-
     private LeaderElectionManager leaderElectionManager;
-
     private SSLContext sslContext;
-
     private X509KeyManager keyManager;
-
     private X509TrustManager trustManager;
-
     private StateManagerProvider stateManagerProvider;
-
     private BulletinRepository bulletinRepository;
-
     private NodeProtocolSender nodeProtocolSender;
-
     private NodeProtocolSenderListener nodeProtocolSenderListener;
-
     private HeartbeatMonitor heartbeatMonitor;
-
     private ClusterCoordinator clusterCoordinator;
+    private ConnectorRequestReplicator connectorRequestReplicator;
 
     @Autowired
     public void setProperties(final NiFiProperties properties) {
@@ -165,6 +153,11 @@ public class FlowControllerConfiguration {
     }
 
     @Autowired(required = false)
+    public void setConnectorRequestReplicator(final ConnectorRequestReplicator connectorRequestReplicator) {
+        this.connectorRequestReplicator = connectorRequestReplicator;
+    }
+
+    @Autowired(required = false)
     public void setSslContext(final SSLContext sslContext) {
         this.sslContext = sslContext;
     }
@@ -200,6 +193,7 @@ public class FlowControllerConfiguration {
         this.clusterCoordinator = clusterCoordinator;
     }
 
+
     /**
      * Flow Controller implementation depends on cluster configuration
      *
@@ -223,7 +217,8 @@ public class FlowControllerConfiguration {
                     extensionManager,
                     statusHistoryRepository(),
                     ruleViolationsManager(),
-                    stateManagerProvider
+                    stateManagerProvider,
+                    connectorRequestReplicator
             );
         } else {
             flowController = FlowController.createClusteredInstance(
@@ -243,7 +238,8 @@ public class FlowControllerConfiguration {
                     revisionManager,
                     statusHistoryRepository(),
                     ruleViolationsManager(),
-                    stateManagerProvider
+                    stateManagerProvider,
+                    connectorRequestReplicator
             );
         }
 

@@ -30,6 +30,8 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.MethodArgument;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -42,6 +44,7 @@ import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
+import org.apache.nifi.kafka.service.consumer.Kafka3AssignmentService;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.consumer.Subscription;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
@@ -64,6 +67,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -235,18 +240,25 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     public KafkaConsumerService getConsumerService(final PollingContext pollingContext) {
         Objects.requireNonNull(pollingContext, "Polling Context required");
 
-        final Subscription subscription = createSubscription(pollingContext);
+        final String groupId = pollingContext.getGroupId();
 
         final Properties properties = new Properties();
         properties.putAll(consumerProperties);
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, subscription.getGroupId());
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, subscription.getAutoOffsetReset().getValue());
+        if (groupId != null) {
+            properties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        }
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, pollingContext.getAutoOffsetReset().getValue());
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
 
-        return new Kafka3ConsumerService(getLogger(), consumer, subscription);
+        if (groupId == null) {
+            return new Kafka3AssignmentService(consumer, pollingContext.getTopics());
+        } else {
+            final Subscription subscription = createSubscription(pollingContext);
+            return new Kafka3ConsumerService(getLogger(), consumer, subscription);
+        }
     }
 
     private Subscription createSubscription(final PollingContext pollingContext) {
@@ -290,6 +302,26 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     public String getBrokerUri() {
         return uri;
     }
+
+    @ConnectorMethod(
+        name="listTopicNames",
+        description="Returns a list of topic names available in the Kafka cluster",
+        arguments = {
+            @MethodArgument(name = "context", type = ConfigurationContext.class, description = "The configuration context that specifies connectivity details")
+        })
+    public List<String> listTopicNames(final ConfigurationContext context) throws ExecutionException, InterruptedException {
+        final Properties clientProperties = getClientProperties(context);
+        final Properties consumerProperties = getConsumerProperties(context, clientProperties);
+
+        try (final Admin admin = Admin.create(consumerProperties)) {
+            final ListTopicsResult result = admin.listTopics();
+            final Set<String> topicNames = result.names().get();
+            final List<String> sortedTopicNames = new ArrayList<>(topicNames);
+            sortedTopicNames.sort(String.CASE_INSENSITIVE_ORDER);
+            return sortedTopicNames;
+        }
+    }
+
 
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext configurationContext, final ComponentLog verificationLogger, final Map<String, String> variables) {

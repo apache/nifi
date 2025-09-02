@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.aws.s3;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -26,6 +28,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import software.amazon.awssdk.awscore.defaultsmode.DefaultsMode;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -37,6 +40,7 @@ import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -341,5 +345,12 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         } else if (encryptionService != null) {
             attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
         }
+    }
+
+    @ConnectorMethod(name="getAvailableRegions", description="Returns the list of available AWS regions")
+    public List<String> getAvailableRegions() {
+        return RegionUtil.getAwsRegionAllowableValues().stream()
+            .map(AllowableValue::getValue)
+            .toList();
     }
 }

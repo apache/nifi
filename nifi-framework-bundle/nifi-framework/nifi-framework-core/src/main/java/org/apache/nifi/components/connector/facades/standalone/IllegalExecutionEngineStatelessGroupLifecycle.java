@@ -1,0 +1,46 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.components.connector.facades.standalone;
+
+import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
+import org.apache.nifi.groups.ProcessGroup;
+
+import java.util.concurrent.CompletableFuture;
+
+public class IllegalExecutionEngineStatelessGroupLifecycle implements StatelessGroupLifecycle {
+    private final ProcessGroup processGroup;
+
+    public IllegalExecutionEngineStatelessGroupLifecycle(final ProcessGroup processGroup) {
+        this.processGroup = processGroup;
+    }
+
+    @Override
+    public CompletableFuture<Void> start() {
+        throw new IllegalStateException("Cannot start " + processGroup + " as a Stateless Group because the Process Group is not configured to run using the Stateless Execution Engine");
+    }
+
+    @Override
+    public CompletableFuture<Void> stop() {
+        throw new IllegalStateException("Cannot stop " + processGroup + " as a Stateless Group because the Process Group is not configured to run using the Stateless Execution Engine");
+    }
+
+    @Override
+    public CompletableFuture<Void> terminate() {
+        throw new IllegalStateException("Cannot terminate " + processGroup + " as a Stateless Group because the Process Group is not configured to run using the Stateless Execution Engine");
+    }
+}

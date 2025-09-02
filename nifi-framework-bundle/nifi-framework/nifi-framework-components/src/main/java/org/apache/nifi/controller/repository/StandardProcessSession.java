@@ -600,7 +600,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             // Update the FlowFile Repository
             try {
                 final Collection<StandardRepositoryRecord> repoRecords = checkpoint.records.values();
-                context.getFlowFileRepository().updateRepository((Collection) repoRecords);
+                if (!repoRecords.isEmpty()) {
+                    context.getFlowFileRepository().updateRepository((Collection) repoRecords);
+                    context.getConnectable().getFlowFileActivity().updateLatestActivityTime();
+                }
             } catch (final IOException ioe) {
                 // if we fail to commit the session, we need to roll back
                 // the checkpoints as well because none of the checkpoints
@@ -982,7 +985,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         // Therefore, we create an Iterable that can iterate over each of these events, modifying them as needed, and returning them
         // in the appropriate order. This prevents an unnecessary step of creating an intermediate List and adding all of those values
         // to the List.
-        // This is done in a similar veign to how Java 8's streams work, iterating over the events and returning a processed version
+        // This is done in a similar vein to how Java 8's streams work, iterating over the events and returning a processed version
         // one-at-a-time as opposed to iterating over the entire Collection and putting the results in another Collection. However,
         // we don't want to change the Framework to require Java 8 at this time, because it's not yet as prevalent as we would desire
         final Map<String, FlowFileRecord> flowFileRecordMap = new HashMap<>();
@@ -990,6 +993,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             final FlowFileRecord flowFile = repoRecord.getCurrent();
             flowFileRecordMap.put(flowFile.getAttribute(CoreAttributes.UUID.key()), flowFile);
         }
+
+        // Update connectable to indicate how much data was received and sent.
+        updateTransferCounts(recordsToSubmit);
 
         final long commitNanos = System.nanoTime();
         final List<ProvenanceEventRecord> autoTermEvents = checkpoint.autoTerminatedEvents;
@@ -1037,6 +1043,23 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         provenanceRepo.registerEvents(iterable);
     }
 
+    private void updateTransferCounts(final Collection<ProvenanceEventRecord> events) {
+        int createdCount = 0;
+        long createdBytes = 0L;
+        for (final ProvenanceEventRecord event : events) {
+            if (event.getEventType() == ProvenanceEventType.CREATE) {
+                createdCount++;
+                createdBytes += event.getFileSize();
+            }
+        }
+
+        context.getConnectable().getFlowFileActivity().updateTransferCounts(
+            provenanceReporter.getFlowFilesReceived() + createdCount,
+            // For bytes, consider received and fetched; we don't include fetched in count, as the FlowFile count didn't change.
+            provenanceReporter.getBytesReceived() + provenanceReporter.getBytesFetched() + createdBytes,
+            provenanceReporter.getFlowFilesSent(),
+            provenanceReporter.getBytesSent());
+    }
 
     private void updateEventContentClaims(final ProvenanceEventBuilder builder, final FlowFile flowFile, final StandardRepositoryRecord repoRecord) {
         final ContentClaim originalClaim = repoRecord.getOriginalClaim();
@@ -1244,6 +1267,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         resetWriteClaims();
         resetReadClaim();
+
+        if (!recordValues.isEmpty()) {
+            context.getConnectable().getFlowFileActivity().updateLatestActivityTime();
+        }
 
         if (recordsToHandle.isEmpty()) {
             LOG.trace("{} was rolled back, but no events were performed by this ProcessSession", this);

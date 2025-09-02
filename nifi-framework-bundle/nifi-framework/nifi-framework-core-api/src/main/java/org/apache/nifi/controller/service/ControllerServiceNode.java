@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -30,6 +32,7 @@ import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterLookup;
 
 import java.util.List;
 import java.util.Map;
@@ -239,9 +242,11 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      * @param logger a logger that can be used when performing verification
      * @param variables variables that can be used to resolve property values via Expression Language
      * @param extensionManager extension manager that is used for obtaining appropriate NAR ClassLoaders
+     * @param parameterLookup the parameter lookup used to resolve parameter references
      * @return a list of results indicating whether or not the given configuration is valid
      */
-    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, Map<String, String> variables, ExtensionManager extensionManager);
+    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, Map<String, String> variables, ExtensionManager extensionManager,
+        ParameterLookup parameterLookup);
 
     /**
      * Sets a new proxy and implementation for this node.
@@ -258,4 +263,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
+    Object invokeConnectorMethod(String methodName, Map<String, Object> arguments, ConfigurationContext configurationContext) throws InvocationFailedException;
+
+    List<ConnectorMethod> getConnectorMethods();
 }

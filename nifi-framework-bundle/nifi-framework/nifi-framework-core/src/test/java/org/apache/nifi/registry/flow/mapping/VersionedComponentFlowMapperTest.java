@@ -119,7 +119,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class NiFiRegistryFlowMapperTest {
+public class VersionedComponentFlowMapperTest {
 
     private static final String PARAMETER_PROVIDER_ID = "id";
     @Mock
@@ -135,7 +135,7 @@ public class NiFiRegistryFlowMapperTest {
     @Mock
     private ParameterProvider parameterProvider;
 
-    private final NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(extensionManager);
+    private final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(extensionManager);
 
     private int counter = 1;
 

@@ -163,6 +163,7 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.parameter.StandardParameterContext.Builder;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheusutil.AbstractMetricsRegistry;
@@ -208,7 +209,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.Bulletin;
@@ -448,6 +449,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -1400,7 +1402,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public List<ComponentValidationResultEntity> validateComponents(final ParameterContextDTO parameterContextDto, final NiFiUser nifiUser) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
         final Set<ProcessGroup> boundProcessGroups = parameterContext.getParameterReferenceManager().getProcessGroupsBound(parameterContext);
-        final ParameterContext updatedParameterContext = new StandardParameterContext.Builder()
+        final ParameterContext updatedParameterContext = new Builder()
                 .id(parameterContext.getIdentifier())
                 .name(parameterContext.getName())
                 .parameterReferenceManager(ParameterReferenceManager.EMPTY)
@@ -1739,7 +1741,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .collect(Collectors.toMap(entity -> entity.getParameter().getName(), Function.identity()));
         parameterContextDto.getParameters().clear();
 
-        for (final Map.Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
+        for (final Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
             final ParameterEntity parameterEntity;
@@ -3625,7 +3627,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             ));
                     final Set<ParameterEntity> updatedParameterEntities = new LinkedHashSet<>();
                     entity.getComponent().setParameters(updatedParameterEntities);
-                    for (final Map.Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
+                    for (final Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
                         final String parameterName = parameterEntry.getKey();
                         final Parameter parameter = parameterEntry.getValue();
                         final ParameterEntity parameterEntity;
@@ -4112,6 +4114,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
                 case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
                 case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                case CONNECTOR -> authorizableLookup.getConnector(sourceId);
             };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
@@ -5316,7 +5319,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .mapAssetReferences(false)
                 .build();
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager(), mappingOptions);
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager(), mappingOptions);
         final InstantiatedVersionedProcessGroup versionedProcessGroup =
                 mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
@@ -5349,7 +5352,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, ExternalControllerServiceReference> externalControllerServices =
                 versionedProcessGroup.getExternalControllerServiceReferences().entrySet().stream()
                         .filter(e -> isServiceReferenced(e.getKey(), versionedProcessors, Collections.emptySet(), versionedProcessGroups))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
         // move any service at the current level into external services
         versionedProcessGroup.getControllerServices().stream()
@@ -5425,7 +5428,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Create a complete (include descendant flows) VersionedProcessGroup snapshot of the flow as it is
         // currently without any registry related fields populated, even if the flow is currently versioned.
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup =
                 mapper.mapNonVersionedProcessGroup(processGroup, controllerFacade.getControllerServiceProvider());
 
@@ -5600,13 +5603,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private InstantiatedVersionedProcessGroup createFlowSnapshot(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final InstantiatedVersionedProcessGroup versionedGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), false);
         return versionedGroup;
     }
 
     private Map<String, VersionedParameterContext> createVersionedParameterContexts(final ProcessGroup processGroup, final Map<String, ParameterProviderReference> parameterProviderReferences) {
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         return mapper.mapParameterContexts(processGroup, false, parameterProviderReferences);
     }
 
@@ -5638,7 +5641,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
@@ -5802,7 +5805,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(final String processGroupId, final RegisteredFlowSnapshot updatedSnapshot) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
@@ -6035,7 +6038,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             if (versionedIdOption.isPresent()) {
                 versionedId = versionedIdOption.get();
             } else {
-                versionedId = NiFiRegistryFlowMapper.generateVersionedComponentId(connectable.getIdentifier());
+                versionedId = VersionedComponentFlowMapper.generateVersionedComponentId(connectable.getIdentifier());
             }
 
             final List<Connectable> byVersionedId = destination.computeIfAbsent(versionedId, key -> new ArrayList<>());
@@ -6463,6 +6466,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case AccessPolicy -> authorizableLookup.getAccessPolicyById(sourceId);
                 case User, UserGroup -> authorizableLookup.getTenant();
                 case Label -> authorizableLookup.getLabel(sourceId);
+                case Connector -> authorizableLookup.getConnector(sourceId);
             };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, use the controller to see if permissions should be allowed
@@ -6529,7 +6533,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, PropertyHistoryDTO> propertyHistoryDtos = new LinkedHashMap<>();
         final Map<String, List<PreviousValue>> propertyHistory = auditService.getPreviousValues(componentId);
 
-        for (final Map.Entry<String, List<PreviousValue>> entry : propertyHistory.entrySet()) {
+        for (final Entry<String, List<PreviousValue>> entry : propertyHistory.entrySet()) {
             final List<PreviousValueDTO> previousValueDtos = new ArrayList<>();
 
             for (final PreviousValue previousValue : entry.getValue()) {
@@ -7249,8 +7253,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param extensionManager the extension manager to create the flow mapper with
      * @return a new NiFiRegistryFlowMapper instance
      */
-    protected NiFiRegistryFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
-        return new NiFiRegistryFlowMapper(extensionManager);
+    protected VersionedComponentFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+        return new VersionedComponentFlowMapper(extensionManager);
     }
 
     /**
@@ -7260,8 +7264,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param options          the flow mapping options
      * @return a new NiFiRegistryFlowMapper instance
      */
-    protected NiFiRegistryFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions options) {
-        return new NiFiRegistryFlowMapper(extensionManager, options);
+    protected VersionedComponentFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions options) {
+        return new VersionedComponentFlowMapper(extensionManager, options);
     }
 
     @Override

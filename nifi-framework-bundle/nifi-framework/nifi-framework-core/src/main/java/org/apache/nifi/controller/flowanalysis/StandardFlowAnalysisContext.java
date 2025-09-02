@@ -24,7 +24,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flowanalysis.FlowAnalysisContext;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +43,7 @@ public class StandardFlowAnalysisContext implements FlowAnalysisContext {
             ControllerServiceProvider controllerServiceProvider = flowController.getControllerServiceProvider();
             ExtensionManager extensionManager = flowController.getExtensionManager();
 
-            NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
+            VersionedComponentFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
 
             ControllerServiceNode controllerServiceNode = controllerServiceProvider.getControllerServiceNode(id);
 

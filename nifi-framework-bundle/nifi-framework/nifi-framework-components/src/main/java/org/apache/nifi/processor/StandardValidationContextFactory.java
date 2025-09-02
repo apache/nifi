@@ -22,7 +22,7 @@ import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.Map;
@@ -50,8 +50,8 @@ public class StandardValidationContextFactory implements ValidationContextFactor
 
     @Override
     public ValidationContext newValidationContext(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final String groupId, final String componentId,
-                                                  final ParameterContext parameterContext, final boolean validateConnections) {
-        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId, parameterContext, validateConnections);
+                                                  final ParameterLookup parameterLookup, final boolean validateConnections) {
+        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId, parameterLookup, validateConnections);
     }
 
     @Override

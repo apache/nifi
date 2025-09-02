@@ -43,13 +43,19 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.ComponentState;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.MethodArgument;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.scheduling.LifecycleState;
@@ -180,6 +186,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private volatile Set<String> retriedRelationships;
     private volatile BackoffMechanism backoffMechanism;
     private volatile String maxBackoffPeriod;
+
+    private final ConnectableFlowFileActivity flowFileActivity = new ConnectableFlowFileActivity();
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
@@ -982,7 +990,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfiguration(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes, final ExtensionManager extensionManager) {
+    public List<ConfigVerificationResult> verifyConfiguration(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes, final ExtensionManager extensionManager,
+            final ParameterLookup parameterLookup) {
+
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
@@ -990,7 +1000,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             final long startNanos = System.nanoTime();
             // Call super's verifyConfig, which will perform component validation
-            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), getProcessGroup().getParameterContext()));
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), parameterLookup));
             final long validationComplete = System.nanoTime();
 
             // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
@@ -1639,6 +1649,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         // Completion Timestamp is set to MAX_VALUE because we don't want to timeout until the task has a chance to run.
         final AtomicLong completionTimestampRef = new AtomicLong(Long.MAX_VALUE);
 
+        // Mark current time as latest activity time so that we don't show as idle when the processor was stopped.
+        flowFileActivity.reset();
+
         // Create a task to invoke the @OnScheduled annotation of the processor
         final Callable<Void> startupTask = () -> {
             final ScheduledState currentScheduleState = scheduledState.get();
@@ -1933,6 +1946,86 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    @Override
+    public List<ConnectorMethod> getConnectorMethods() {
+        return getConnectorMethods(getProcessor().getClass());
+    }
+
+    public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final ProcessContext processContext) throws InvocationFailedException {
+        final ConfigurableComponent component = getComponent();
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
+            final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
+            final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
+            final List<Object> argumentValues = new ArrayList<>();
+            for (final MethodArgument methodArgument : methodArguments) {
+                final Object argumentValue = arguments.get(methodArgument.name());
+                if (ProcessContext.class.equals(methodArgument.type())) {
+                    continue;
+                }
+
+                if (argumentValue == null && methodArgument.required()) {
+                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
+                        + methodArgument.name() + "' was not provided");
+                }
+
+                if (argumentValue != null && !(methodArgument.type().isAssignableFrom(argumentValue.getClass()))) {
+                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the argument '"
+                        + methodArgument.name() + "' is of type " + argumentValue.getClass().getName() + " defined by " + argumentValue.getClass().getClassLoader()
+                        + " but the method expects type " + methodArgument.type().getName() + " defined by " + methodArgument.type().getClassLoader());
+                }
+
+                argumentValues.add(argumentValue);
+            }
+
+            // Inject ProcessContext if the method signature supports it
+            final Class<?>[] argumentTypes = implementationMethod.getParameterTypes();
+            if (argumentTypes.length > 0 && ProcessContext.class.isAssignableFrom(argumentTypes[0])) {
+                argumentValues.addFirst(processContext);
+            }
+            if (argumentTypes.length > 1 && ProcessContext.class.isAssignableFrom(argumentTypes[argumentTypes.length - 1])) {
+                argumentValues.add(processContext);
+            }
+
+            try {
+                implementationMethod.setAccessible(true);
+                return implementationMethod.invoke(component, argumentValues.toArray());
+            } catch (final Exception e) {
+                throw new InvocationFailedException(e);
+            }
+        }
+    }
+
+    private MethodArgument[] getConnectorMethodArguments(final String methodName, final Method implementationMethod, final ConfigurableComponent component) throws InvocationFailedException {
+        if (implementationMethod == null) {
+            throw new InvocationFailedException("No such connector method '" + methodName + "' exists for " + component.getClass().getName());
+        }
+
+        final ConnectorMethod connectorMethodDefinition = implementationMethod.getAnnotation(ConnectorMethod.class);
+        final ComponentState[] componentStates = connectorMethodDefinition.allowedStates();
+        final ComponentState currentState = getComponentState();
+        final boolean validState = Set.of(componentStates).contains(currentState);
+        if (!validState) {
+            throw new IllegalStateException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because Processor is in state " + currentState
+                                            + " but the Connector Method does not allow invocation in this state");
+        }
+
+        final MethodArgument[] methodArguments = connectorMethodDefinition.arguments();
+        return methodArguments;
+    }
+
+    private ComponentState getComponentState() {
+        final ScheduledState scheduledState = getScheduledState();
+
+        return switch (scheduledState) {
+            case DISABLED -> ComponentState.PROCESSOR_DISABLED;
+            case STOPPED -> ComponentState.STOPPED;
+            case RUNNING, RUN_ONCE -> ComponentState.RUNNING;
+            case STARTING -> ComponentState.STARTING;
+            case STOPPING -> ComponentState.STOPPING;
+        };
+    }
+
     /**
      * Marks the processor as fully stopped, and completes any futures that are to be completed as a result
      */
@@ -2179,4 +2272,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    @Override
+    public FlowFileActivity getFlowFileActivity() {
+        return flowFileActivity;
+    }
 }

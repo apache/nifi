@@ -26,9 +26,11 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
@@ -58,11 +60,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -563,26 +568,110 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        final PollingContext pollingContext = createPollingContext(context);
-        final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext);
+        final PollingContext pollingContext = createPollingContext(context, null, AutoOffsetReset.EARLIEST);
+        try (final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext)) {
+            final ConfigVerificationResult partitionVerification = verifyPartitions(consumerService, pollingContext);
+            verificationResults.add(partitionVerification);
 
-        final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
-                .verificationStepName("Verify Topic Partitions");
+            final ConfigVerificationResult parsingResult = verifyCanParse(context, consumerService, verificationLogger);
+            verificationResults.add(parsingResult);
+        } catch (final IOException e) {
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Communicate with Kafka Broker")
+                .outcome(Outcome.FAILED)
+                .explanation("There was an I/O failure when communicating with Kafka: " + e)
+                .build());
+        }
+
+        return verificationResults;
+    }
+
+    private ConfigVerificationResult verifyPartitions(final KafkaConsumerService consumerService, final PollingContext pollingContext) {
+        final ConfigVerificationResult.Builder partitionVerification = new ConfigVerificationResult.Builder()
+            .verificationStepName("Verify Topic Partitions");
 
         try {
             final List<PartitionState> partitionStates = consumerService.getPartitionStates();
-            verificationPartitions
-                    .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                    .explanation(String.format("Partitions [%d] found for Topics %s", partitionStates.size(), pollingContext.getTopics()));
+            partitionVerification
+                .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                .explanation(String.format("Found [%d] partitions for Topics %s", partitionStates.size(), pollingContext.getTopics()));
         } catch (final Exception e) {
             getLogger().error("Topics {} Partition verification failed", pollingContext.getTopics(), e);
-            verificationPartitions
-                    .outcome(ConfigVerificationResult.Outcome.FAILED)
-                    .explanation(String.format("Topics %s Partition access failed: %s", pollingContext.getTopics(), e));
+            partitionVerification
+                .outcome(ConfigVerificationResult.Outcome.FAILED)
+                .explanation(String.format("Topics %s Partition access failed: %s", pollingContext.getTopics(), e));
         }
-        verificationResults.add(verificationPartitions.build());
 
-        return verificationResults;
+        return partitionVerification.build();
+    }
+
+    private ConfigVerificationResult verifyCanParse(final ProcessContext context, final KafkaConsumerService consumerService, final ComponentLog verificationLogger) {
+        final Iterable<ByteRecord> records = consumerService.poll(Duration.ofSeconds(60));
+        final ProcessingStrategy processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
+        if (processingStrategy != ProcessingStrategy.RECORD) {
+            return new ConfigVerificationResult.Builder()
+                .verificationStepName("Parse Records")
+                .outcome(Outcome.SKIPPED)
+                .explanation("Processing Strategy is set to " + processingStrategy.getValue() + " so skipping record parsing verification")
+                .build();
+        }
+
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        int recordIndex = 0;
+        for (final ByteRecord byteRecord : records) {
+            recordIndex++;
+            final Map<String, String> recordAttributes = KafkaUtils.toAttributes(
+                byteRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
+
+            try (final InputStream inputStream = new ByteArrayInputStream(byteRecord.getValue());
+                 final RecordReader reader = readerFactory.createRecordReader(recordAttributes, inputStream, byteRecord.getValue().length, verificationLogger)) {
+
+                while (reader.nextRecord() != null) {
+                }
+            } catch (final Exception e) {
+                return new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Records")
+                    .outcome(Outcome.FAILED)
+                    .explanation("Failed to parse Record number " + recordIndex + ": " + e)
+                    .build();
+            }
+        }
+
+        if (recordIndex == 0) {
+            return new ConfigVerificationResult.Builder()
+                .verificationStepName("Parse Records")
+                .outcome(Outcome.SKIPPED)
+                .explanation("No records were received to parse")
+                .build();
+        }
+
+        return new ConfigVerificationResult.Builder()
+            .verificationStepName("Parse Records")
+            .outcome(Outcome.SUCCESSFUL)
+            .explanation("Successfully parsed " + recordIndex + " records")
+            .build();
+    }
+
+
+    @ConnectorMethod(
+        name = "sampleTopics",
+        description = "Returns a list of sample data from the topics that would be consumed by this processor."
+    )
+    public List<byte[]> sampleTopics(final ProcessContext context) throws IOException {
+        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        final PollingContext pollingContext = createPollingContext(context, "nifi-validation-" + System.currentTimeMillis(), AutoOffsetReset.EARLIEST);
+        try (final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext)) {
+            final Iterable<ByteRecord> records = consumerService.poll(Duration.ofSeconds(60));
+            final List<byte[]> samples = new ArrayList<>();
+            for (final ByteRecord record : records) {
+                samples.add(record.getValue());
+                if (samples.size() >= 10) {
+                    break;
+                }
+            }
+
+            return samples;
+        }
     }
 
     private KafkaConsumerService getConsumerService(final ProcessContext context) {
@@ -671,6 +760,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final String groupId = context.getProperty(GROUP_ID).getValue();
         final String offsetReset = context.getProperty(AUTO_OFFSET_RESET).getValue();
         final AutoOffsetReset autoOffsetReset = AutoOffsetReset.valueOf(offsetReset.toUpperCase());
+        return createPollingContext(context, groupId, autoOffsetReset);
+    }
+
+    private PollingContext createPollingContext(final ProcessContext context, final String groupId, final AutoOffsetReset autoOffsetReset) {
         final String topics = context.getProperty(TOPICS).evaluateAttributeExpressions().getValue();
         final String topicFormat = context.getProperty(TOPIC_FORMAT).getValue();
 
@@ -687,4 +780,5 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         return pollingContext;
     }
+
 }

@@ -113,7 +113,7 @@ import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
@@ -312,7 +312,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     @Override
     public void synchronize(final ProcessGroup group, final VersionedExternalFlow versionedExternalFlow, final FlowSynchronizationOptions options) {
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(context.getExtensionManager(), context.getFlowMappingOptions());
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(context.getExtensionManager(), context.getFlowMappingOptions());
         final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(group, context.getControllerServiceProvider(), context.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Currently Loaded Flow", versionedGroup);
@@ -999,7 +999,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     private <T extends Connectable> Map<String, T> componentsById(final ProcessGroup group, final Function<ProcessGroup, Collection<T>> retrieveComponents) {
         return retrieveComponents.apply(group).stream()
             .collect(Collectors.toMap(component -> component.getVersionedComponentId().orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier())), Function.identity()));
+                VersionedComponentFlowMapper.generateVersionedComponentId(component.getIdentifier())), Function.identity()));
     }
 
     private <T> Map<String, T> componentsById(final ProcessGroup group, final Function<ProcessGroup, Collection<T>> retrieveComponents,
@@ -1007,7 +1007,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         return retrieveComponents.apply(group).stream()
             .collect(Collectors.toMap(component -> retrieveVersionedComponentId.apply(component).orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(retrieveId.apply(component))), Function.identity()));
+                VersionedComponentFlowMapper.generateVersionedComponentId(retrieveId.apply(component))), Function.identity()));
     }
 
     private void synchronizeFunnels(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Funnel> funnelsByVersionedId) {
@@ -1243,7 +1243,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final Map<String, Port> removedInputPortsByVersionId = new HashMap<>();
         group.getInputPorts()
             .forEach(port -> removedInputPortsByVersionId.put(port.getVersionedComponentId().orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(port.getIdentifier())), port));
+                VersionedComponentFlowMapper.generateVersionedComponentId(port.getIdentifier())), port));
 
         flowContents.getInputPorts().stream()
             .map(VersionedPort::getIdentifier)
@@ -1262,7 +1262,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final Map<String, Port> removedOutputPortsByVersionId = new HashMap<>();
         group.getOutputPorts()
             .forEach(port -> removedOutputPortsByVersionId.put(port.getVersionedComponentId().orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(port.getIdentifier())), port));
+                VersionedComponentFlowMapper.generateVersionedComponentId(port.getIdentifier())), port));
 
         flowContents.getOutputPorts().stream()
             .map(VersionedPort::getIdentifier)
@@ -1289,7 +1289,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         group.findAllProcessors()
                 .forEach(proc -> proposedProcessors.remove(proc.getVersionedComponentId().orElse(
-                        NiFiRegistryFlowMapper.generateVersionedComponentId(proc.getIdentifier()))));
+                        VersionedComponentFlowMapper.generateVersionedComponentId(proc.getIdentifier()))));
 
         for (final VersionedProcessor processorToAdd : proposedProcessors.values()) {
             final String processorToAddClass = processorToAdd.getType();
@@ -1320,7 +1320,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         group.findAllControllerServices()
                 .forEach(service -> proposedServices.remove(service.getVersionedComponentId().orElse(
-                        NiFiRegistryFlowMapper.generateVersionedComponentId(service.getIdentifier()))));
+                        VersionedComponentFlowMapper.generateVersionedComponentId(service.getIdentifier()))));
 
         for (final VersionedControllerService serviceToAdd : proposedServices.values()) {
             final String serviceToAddClass = serviceToAdd.getType();
@@ -1349,7 +1349,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         group.findAllConnections()
                 .forEach(conn -> proposedConnections.remove(conn.getVersionedComponentId().orElse(
-                        NiFiRegistryFlowMapper.generateVersionedComponentId(conn.getIdentifier()))));
+                        VersionedComponentFlowMapper.generateVersionedComponentId(conn.getIdentifier()))));
 
         for (final VersionedConnection connectionToAdd : proposedConnections.values()) {
             if (connectionToAdd.getPrioritizers() != null) {
@@ -3075,7 +3075,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     private String getServiceInstanceId(final String serviceVersionedComponentId, final ProcessGroup group) {
         for (final ControllerServiceNode serviceNode : group.getControllerServices(false)) {
             final String versionedId = serviceNode.getVersionedComponentId().orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
+                VersionedComponentFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
             if (versionedId.equals(serviceVersionedComponentId)) {
                 return serviceNode.getIdentifier();
             }
@@ -3695,7 +3695,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final String rpgId = connectableComponent.getGroupId();
                 final Optional<RemoteProcessGroup> rpgOption = group.getRemoteProcessGroups().stream()
                     .filter(component -> rpgId.equals(component.getIdentifier()) || rpgId.equals(component.getVersionedComponentId().orElse(
-                        NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
+                        VersionedComponentFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
                     .findAny();
 
                 if (rpgOption.isEmpty()) {
@@ -3721,7 +3721,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final String rpgId = connectableComponent.getGroupId();
                 final Optional<RemoteProcessGroup> rpgOption = group.getRemoteProcessGroups().stream()
                     .filter(component -> rpgId.equals(component.getIdentifier()) || rpgId.equals(component.getVersionedComponentId().orElse(
-                        NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
+                        VersionedComponentFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
                     .findAny();
 
                 if (rpgOption.isEmpty()) {
@@ -3922,12 +3922,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private <T extends org.apache.nifi.components.VersionedComponent & Connectable> boolean matchesId(final T component, final String id) {
-        return id.equals(component.getIdentifier()) || id.equals(component.getVersionedComponentId().orElse(NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier())));
+        return id.equals(component.getIdentifier()) || id.equals(component.getVersionedComponentId().orElse(VersionedComponentFlowMapper.generateVersionedComponentId(component.getIdentifier())));
     }
 
     private boolean matchesGroupId(final ProcessGroup group, final String groupId) {
         return groupId.equals(group.getIdentifier()) || group.getVersionedComponentId().orElse(
-            NiFiRegistryFlowMapper.generateVersionedComponentId(group.getIdentifier())).equals(groupId);
+            VersionedComponentFlowMapper.generateVersionedComponentId(group.getIdentifier())).equals(groupId);
     }
 
     private void findAllProcessors(final Set<VersionedProcessor> processors, final Set<VersionedProcessGroup> childGroups, final Map<String, VersionedProcessor> map) {
@@ -3979,7 +3979,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             // match group's current connections to proposed connections to determine if they've been removed
             for (final Connection connection : processGroup.getConnections()) {
                 final String versionedId = connection.getVersionedComponentId().orElse(
-                    NiFiRegistryFlowMapper.generateVersionedComponentId(connection.getIdentifier()));
+                    VersionedComponentFlowMapper.generateVersionedComponentId(connection.getIdentifier()));
                 final VersionedConnection proposedConnection = proposedConnectionsByVersionedId.get(versionedId);
                 if (proposedConnection == null) {
                     // connection doesn't exist in proposed connections, make sure it doesn't have any data in it
@@ -3998,7 +3998,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // match current child groups to proposed child groups to determine if they've been removed
         for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
             final String versionedId = childGroup.getVersionedComponentId().orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(childGroup.getIdentifier()));
+                VersionedComponentFlowMapper.generateVersionedComponentId(childGroup.getIdentifier()));
             final VersionedProcessGroup proposedChildGroup = proposedGroupsByVersionedId.get(versionedId);
             if (proposedChildGroup == null) {
                 if (verifyConnectionRemoval) {
@@ -4024,7 +4024,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         for (final ControllerServiceNode serviceNode : group.getControllerServices(false)) {
             final String serviceNodeVersionedComponentId = serviceNode.getVersionedComponentId().orElse(
-                NiFiRegistryFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
+                VersionedComponentFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
             if (serviceNodeVersionedComponentId.equals(versionedComponentId)) {
                 return serviceNode;
             }

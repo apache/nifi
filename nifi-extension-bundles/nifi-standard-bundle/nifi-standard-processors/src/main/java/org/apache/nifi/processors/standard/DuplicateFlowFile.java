@@ -43,7 +43,7 @@ import java.util.Set;
     + "generated copies are sent to the 'success' relationship. In addition, each FlowFile gets an attribute 'copy.index' set to the copy number, where the original FlowFile gets "
     + "a value of zero, and all copies receive incremented integer values.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "copy.index", description = "A zero-based incrementing integer value based on which copy the FlowFile is.")
+    @WritesAttribute(attribute = "copy.index", description = "A zero-based incrementing integer value based on which copy the FlowFile is.")
 })
 public class DuplicateFlowFile extends AbstractProcessor {
 

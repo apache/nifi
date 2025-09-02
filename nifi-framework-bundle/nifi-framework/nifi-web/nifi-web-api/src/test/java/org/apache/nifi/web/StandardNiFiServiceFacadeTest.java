@@ -75,7 +75,7 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.ComponentType;
@@ -326,7 +326,7 @@ public class StandardNiFiServiceFacadeTest {
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(extensionManager);
 
         final InstantiatedVersionedProcessGroup localRoot = new InstantiatedVersionedProcessGroup("local-root-instance", groupId);
@@ -512,7 +512,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // use spy to mock the make() method for generating a new flow mapper to make this testable
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(eq(extensionManager), any(FlowMappingOptions.class));
 
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
@@ -642,7 +642,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // use spy to mock the make() method for generating a new flow mapper to make this testable
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
 
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
@@ -702,7 +702,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // use spy to mock the make() method for generating a new flow mapper to make this testable
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
 
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = spy(new InstantiatedVersionedProcessGroup(UUID.randomUUID().toString(), UUID.randomUUID().toString()));

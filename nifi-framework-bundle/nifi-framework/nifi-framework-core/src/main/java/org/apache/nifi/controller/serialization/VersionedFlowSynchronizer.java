@@ -26,6 +26,16 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
+import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
+import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.ConnectorValueReference;
+import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
@@ -55,6 +65,10 @@ import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorPropertyGroup;
+import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -411,6 +425,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
                 versionedExternalFlow.setParameterContexts(versionedParameterContextMap);
                 versionedExternalFlow.setFlowContents(versionedFlow.getRootGroup());
+
+                // Inherit Connectors first. Because Connectors are a bit different, in that updates could result in Exceptions being thrown,
+                // due to the fact that they manipulate the flow, and changes can be aborted, we handle them first. This way, if there's any Exception,
+                // we can fail before updating parts of the flow that are not managed by Connectors.
+                inheritConnectors(controller, versionedFlow);
 
                 // Inherit controller-level components.
                 inheritControllerServices(controller, versionedFlow, affectedComponentSet);
@@ -1021,6 +1040,171 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 .flatMap(Collection::stream)
                 .map(Asset::getIdentifier)
                 .collect(Collectors.toSet());
+    }
+
+    private void inheritConnectors(final FlowController flowController, final VersionedDataflow dataflow) {
+        // TODO: We need to delete any Connectors that are no longer part of the flow.
+        //       This means we need to drain the Connector first, then stop it, then delete it. If unable to drain, we must fail...
+        //              perhaps we need a DRAINING state? Or do we just delete it and drop the data?
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+
+        final Set<String> proposedConnectorIds = new HashSet<>();
+        if (dataflow.getConnectors() != null) {
+            for (final VersionedConnector versionedConnector : dataflow.getConnectors()) {
+                proposedConnectorIds.add(versionedConnector.getInstanceIdentifier());
+
+                final ConnectorNode existingConnector = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
+                if (existingConnector == null) {
+                    logger.info("Connector {} of type {} with name {} is not in the current flow. Will add Connector.",
+                        versionedConnector.getInstanceIdentifier(), versionedConnector.getType(), versionedConnector.getName());
+
+                    addConnector(versionedConnector, connectorRepository, flowController.getFlowManager());
+                } else if (isConnectorConfigurationUpdated(existingConnector, versionedConnector)) {
+                    logger.info("{} configuration has changed, updating configuration", existingConnector);
+                    updateConnector(versionedConnector, connectorRepository);
+                } else {
+                    logger.debug("{} configuration is up to date, no update necessary", existingConnector);
+                }
+            }
+        }
+
+        for (final ConnectorNode existingConnector : connectorRepository.getConnectors()) {
+            if (!proposedConnectorIds.contains(existingConnector.getIdentifier())) {
+                logger.info("Connector {} is no longer part of the proposed flow. Will remove Connector.", existingConnector);
+                connectorRepository.stopConnector(existingConnector);
+                connectorRepository.removeConnector(existingConnector.getIdentifier());
+            }
+        }
+    }
+
+    private boolean isConnectorConfigurationUpdated(final ConnectorNode existingConnector, final VersionedConnector versionedConnector) {
+        final ConnectorConfiguration existingConfiguration = existingConnector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+
+        final List<VersionedConfigurationStep> versionedConfigurationSteps = versionedConnector.getActiveFlowConfiguration();
+        if (versionedConfigurationSteps == null || versionedConfigurationSteps.isEmpty()) {
+            return existingConfiguration != null && !existingConfiguration.getConfigurationStepConfigurations().isEmpty();
+        }
+
+        final Set<ConfigurationStepConfiguration> existingStepConfigurations = existingConfiguration.getConfigurationStepConfigurations();
+        if (existingStepConfigurations.size() != versionedConfigurationSteps.size()) {
+            return true;
+        }
+
+        final Map<String, ConfigurationStepConfiguration> existingStepsByName = existingStepConfigurations.stream()
+            .collect(Collectors.toMap(ConfigurationStepConfiguration::stepName, Function.identity()));
+
+        for (final VersionedConfigurationStep versionedStep : versionedConfigurationSteps) {
+            final ConfigurationStepConfiguration existingStep = existingStepsByName.get(versionedStep.getName());
+            if (existingStep == null) {
+                return true;
+            }
+
+            if (isConfigurationStepUpdated(existingStep, versionedStep)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isConfigurationStepUpdated(final ConfigurationStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
+        final List<PropertyGroupConfiguration> existingPropertyGroups = existingStep.propertyGroupConfigurations();
+        final List<VersionedConnectorPropertyGroup> versionedPropertyGroups = versionedStep.getPropertyGroups();
+
+        if (versionedPropertyGroups == null || versionedPropertyGroups.isEmpty()) {
+            return existingPropertyGroups != null && !existingPropertyGroups.isEmpty();
+        }
+
+        if (existingPropertyGroups.size() != versionedPropertyGroups.size()) {
+            return true;
+        }
+
+        final Map<String, PropertyGroupConfiguration> existingGroupsByName = new HashMap<>();
+        existingPropertyGroups.forEach(group -> existingGroupsByName.put(group.groupName(), group));
+
+        for (final VersionedConnectorPropertyGroup versionedGroup : versionedPropertyGroups) {
+            final PropertyGroupConfiguration existingGroup = existingGroupsByName.get(versionedGroup.getName());
+            if (existingGroup == null) {
+                return true;
+            }
+
+            if (isPropertyGroupUpdated(existingGroup, versionedGroup)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isPropertyGroupUpdated(final PropertyGroupConfiguration existingGroup, final VersionedConnectorPropertyGroup versionedGroup) {
+        final Map<String, ConnectorValueReference> existingProperties = existingGroup.propertyValues();
+        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedGroup.getProperties();
+
+        if (versionedProperties == null || versionedProperties.isEmpty()) {
+            return existingProperties != null && !existingProperties.isEmpty();
+        }
+
+        if (existingProperties.size() != versionedProperties.size()) {
+            return true;
+        }
+
+        for (final Map.Entry<String, VersionedConnectorValueReference> versionedEntry : versionedProperties.entrySet()) {
+            final String propertyName = versionedEntry.getKey();
+            final VersionedConnectorValueReference versionedRef = versionedEntry.getValue();
+            final ConnectorValueReference existingRef = existingProperties.get(propertyName);
+
+            final boolean valuesMatch = equals(versionedRef, existingRef);
+            if (!valuesMatch) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean equals(final VersionedConnectorValueReference versionedReference, final ConnectorValueReference existingReference) {
+        if (versionedReference == null && existingReference == null) {
+            return true;
+        }
+        if (versionedReference == null || existingReference == null) {
+            return false;
+        }
+
+        final String versionedValueType = versionedReference.getValueType();
+        final String existingValueType = existingReference.getValueType().name();
+        if (!Objects.equals(versionedValueType, existingValueType)) {
+            return false;
+        }
+
+        return switch (existingReference) {
+            case StringLiteralValue stringLiteral -> Objects.equals(stringLiteral.getValue(), versionedReference.getValue());
+            case AssetReference assetRef -> Objects.equals(assetRef.getAssetIdentifier(), versionedReference.getAssetId());
+            case SecretReference secretRef -> Objects.equals(secretRef.getProviderId(), versionedReference.getProviderId())
+                                              && Objects.equals(secretRef.getSecretName(), versionedReference.getSecretName());
+        };
+    }
+
+    private void addConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository, final FlowManager flowManager) {
+        final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedConnector.getBundle(), versionedConnector.getType());
+        final ConnectorNode connectorNode = flowManager.createConnector(versionedConnector.getType(), versionedConnector.getInstanceIdentifier(), coordinate, false, true);
+        connectorRepository.restoreConnector(connectorNode);
+        updateConnector(versionedConnector, connectorRepository);
+    }
+
+
+    private void updateConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository) {
+        final ConnectorNode connectorNode = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
+
+        connectorNode.setName(versionedConnector.getName());
+
+        // TODO: We don't want to throw an Exception here. Consider handling Connectors first so that we can get all Connectors in a state of
+        // prepareForUpdate. If any fails, we can restore them and throw an Exception. We don't want to be throwing an Exception in the middle
+        // of updating the flow.
+        try {
+            connectorRepository.inheritConfiguration(connectorNode, versionedConnector.getActiveFlowConfiguration(), versionedConnector.getBundle());
+        } catch (final FlowUpdateException e) {
+            throw new RuntimeException(connectorNode + " failed to inherit configuration", e);
+        }
     }
 
     private void inheritControllerServices(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {

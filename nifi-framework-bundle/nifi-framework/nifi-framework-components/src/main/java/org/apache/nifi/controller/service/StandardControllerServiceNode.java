@@ -36,6 +36,10 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.ComponentState;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.MethodArgument;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -97,6 +101,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
@@ -508,7 +513,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public List<ConfigVerificationResult> verifyConfiguration(final ConfigurationContext context, final ComponentLog logger, final Map<String, String> variables,
-                                                              final ExtensionManager extensionManager) {
+                                                              final ExtensionManager extensionManager, final ParameterLookup parameterLookup) {
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
@@ -517,7 +522,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
             final long startNanos = System.nanoTime();
             // Call super's verifyConfig, which will perform component validation
-            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), getProcessGroup() == null ? null : getProcessGroup().getParameterContext()));
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), parameterLookup));
             final long validationComplete = System.nanoTime();
 
             // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
@@ -686,6 +691,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         LOG.debug("Validation rescheduling rejected for {}", serviceNode, e);
                         future.completeExceptionally(new IllegalStateException("Enabling %s rejected: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
                     }
+
                     // Enable command rescheduled or rejected
                     return;
                 }
@@ -910,6 +916,88 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
             overwriteProperties(propertyConfig.getRawProperties());
         }
+    }
+
+    // TODO: Refactor, this is the same between ProcessorNode / ControllerServiceNode except for getComponentState
+    @Override
+    public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final ConfigurationContext configurationContext) throws InvocationFailedException {
+        final ConfigurableComponent component = getComponent();
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
+            final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
+            final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
+            final List<Object> argumentValues = new ArrayList<>();
+            for (final MethodArgument methodArgument : methodArguments) {
+                final Object argumentValue = arguments.get(methodArgument.name());
+                if (ConfigurationContext.class.equals(methodArgument.type())) {
+                    continue;
+                }
+
+                if (argumentValue == null && methodArgument.required()) {
+                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
+                                                       + methodArgument.name() + "' was not provided");
+                }
+
+                if (argumentValue != null && !(methodArgument.type().isAssignableFrom(argumentValue.getClass()))) {
+                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the argument '"
+                                                       + methodArgument.name() + "' is of type " + argumentValue.getClass().getName() + " defined by " + argumentValue.getClass().getClassLoader()
+                                                       + " but the method expects type " + methodArgument.type().getName() + " defined by " + methodArgument.type().getClassLoader());
+                }
+
+                argumentValues.add(argumentValue);
+            }
+
+            // Inject ConfigurationContext if the method signature supports it
+            // TODO: Can we move away from Maps and instead just use reflection to get the arguments directly?
+            final Class<?>[] argumentTypes = implementationMethod.getParameterTypes();
+            if (argumentTypes.length > 0 && ConfigurationContext.class.isAssignableFrom(argumentTypes[0])) {
+                argumentValues.addFirst(configurationContext);
+            }
+            if (argumentTypes.length > 1 && ConfigurationContext.class.isAssignableFrom(argumentTypes[argumentTypes.length - 1])) {
+                argumentValues.add(configurationContext);
+            }
+
+            try {
+                implementationMethod.setAccessible(true);
+                return implementationMethod.invoke(component, argumentValues.toArray());
+            } catch (final Exception e) {
+                throw new InvocationFailedException(e);
+            }
+        }
+    }
+
+    @Override
+    public List<ConnectorMethod> getConnectorMethods() {
+        return getConnectorMethods(getControllerServiceImplementation().getClass());
+    }
+
+    private MethodArgument[] getConnectorMethodArguments(final String methodName, final Method implementationMethod, final ConfigurableComponent component) throws InvocationFailedException {
+        if (implementationMethod == null) {
+            throw new InvocationFailedException("No such connector method '" + methodName + "' exists for " + component.getClass().getName());
+        }
+
+        final ConnectorMethod connectorMethodDefinition = implementationMethod.getAnnotation(ConnectorMethod.class);
+        final ComponentState[] componentStates = connectorMethodDefinition.allowedStates();
+        final ComponentState currentState = getComponentState();
+        final boolean validState = Set.of(componentStates).contains(currentState);
+        if (!validState) {
+            throw new IllegalStateException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because Processor is in state " + currentState
+                                            + " but the Connector Method does not allow invocation in this state");
+        }
+
+        final MethodArgument[] methodArguments = connectorMethodDefinition.arguments();
+        return methodArguments;
+    }
+
+    private ComponentState getComponentState() {
+        final ControllerServiceState scheduledState = getState();
+
+        return switch (scheduledState) {
+            case DISABLED -> ComponentState.STOPPED;
+            case DISABLING -> ComponentState.STOPPING;
+            case ENABLING -> ComponentState.STARTING;
+            case ENABLED -> ComponentState.RUNNING;
+        };
     }
 
     @Override
