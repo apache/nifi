@@ -128,7 +128,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
             <version>2.7.0-SNAPSHOT</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -288,6 +287,12 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-transport</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-connector-utils</artifactId>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

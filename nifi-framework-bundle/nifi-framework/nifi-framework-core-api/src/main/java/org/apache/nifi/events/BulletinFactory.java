@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.events;
 
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
@@ -66,6 +67,12 @@ public final class BulletinFactory {
             bulletin.setStackTrace(formatStackTrace(t));
         }
         return bulletin;
+    }
+
+    public static Bulletin createBulletin(final ConnectorNode connector, final String category, final String severity, final String message) {
+        final String groupId = connector.getProcessGroupIdentifier();
+        final String connectorName = connector.getName();
+        return createBulletin(null, connectorName, connector.getIdentifier(), ComponentType.CONNECTOR, connector.getName(), category, severity, message, null, null);
     }
 
     private static String buildGroupPath(ProcessGroup group) {

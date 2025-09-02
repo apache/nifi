@@ -123,7 +123,7 @@ class StandardServerProviderTest {
     void testGetServer() {
         final Properties applicationProperties = new Properties();
         applicationProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, RANDOM_PORT);
-        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, applicationProperties);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
 
         final StandardServerProvider provider = new StandardServerProvider(null);
 
@@ -137,7 +137,7 @@ class StandardServerProviderTest {
     void testGetServerHttps() {
         final Properties applicationProperties = new Properties();
         applicationProperties.setProperty(NiFiProperties.WEB_HTTPS_PORT, RANDOM_PORT);
-        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, applicationProperties);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
 
         final StandardServerProvider provider = new StandardServerProvider(sslContext);
 
@@ -151,7 +151,7 @@ class StandardServerProviderTest {
     void testGetServerStart() throws Exception {
         final Properties applicationProperties = new Properties();
         applicationProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, RANDOM_PORT);
-        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, applicationProperties);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
 
         final StandardServerProvider provider = new StandardServerProvider(null);
 
@@ -175,7 +175,7 @@ class StandardServerProviderTest {
         final Properties applicationProperties = new Properties();
         applicationProperties.setProperty(NiFiProperties.WEB_HTTPS_PORT, RANDOM_PORT);
         applicationProperties.setProperty(NiFiProperties.WEB_PROXY_HOST, PUBLIC_HOST);
-        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, applicationProperties);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
 
         final StandardServerProvider provider = new StandardServerProvider(sslContext);
 

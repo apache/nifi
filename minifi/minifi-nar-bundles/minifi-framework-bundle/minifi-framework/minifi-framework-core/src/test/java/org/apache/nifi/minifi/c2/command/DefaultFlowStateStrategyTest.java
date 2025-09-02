@@ -111,13 +111,13 @@ public class DefaultFlowStateStrategyTest {
         ProcessGroup rootProcessGroup = mock(ProcessGroup.class);
         RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
         Set<RemoteProcessGroup> remoteProcessGroups = Set.of(remoteProcessGroup);
-        CompletableFuture<Void> rootProcessGroupStopFuture = mock(CompletableFuture.class);
-        Future remoteProcessGroupStopFuture = mock(Future.class);
+        CompletableFuture<Void> rootProcessGroupStopFuture = CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> remoteProcessGroupStopFuture = CompletableFuture.completedFuture(null);
         ProcessGroup nestedProcessGroup = mock(ProcessGroup.class);
         RemoteProcessGroup nestedRemoteProcessGroup = mock(RemoteProcessGroup.class);
         Set<RemoteProcessGroup> nestedRemoteProcessGroups = Set.of(nestedRemoteProcessGroup);
-        CompletableFuture<Void> nestedProcessGroupStopFuture = mock(CompletableFuture.class);
-        Future nestedRemoteProcessGroupStopFuture = mock(Future.class);
+        CompletableFuture<Void> nestedProcessGroupStopFuture = CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> nestedRemoteProcessGroupStopFuture = CompletableFuture.completedFuture(null);
 
         when(flowManager.getRootGroup()).thenReturn(rootProcessGroup);
         when(rootProcessGroup.getRemoteProcessGroups()).thenReturn(remoteProcessGroups);

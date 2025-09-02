@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.flow;
 
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -392,6 +393,22 @@ public interface FlowManager extends ParameterProviderLookup {
     void withParameterContextResolution(Runnable parameterContextAction);
 
     ParameterContextManager getParameterContextManager();
+
+    /**
+     * Creates a connector using hte provided information.
+     * @param type the fully qualified class name of the connector
+     * @param id the unique ID of the connector
+     * @param coordinate the bundle coordinate for this connector
+     * @param firstTimeAdded whether or not this is the first time this connector is added to the graph. If {@code true}, will invoke methods
+     *                       annotated with the {@link org.apache.nifi.annotation.lifecycle.OnAdded} annotation.
+     * @param registerLogObserver whether or not to register a log observer for this connector
+     * @return the created connector
+     */
+    ConnectorNode createConnector(String type, String id, BundleCoordinate coordinate, boolean firstTimeAdded, boolean registerLogObserver);
+
+    List<ConnectorNode> getAllConnectors();
+
+    ConnectorNode getConnector(String id);
 
     /**
      * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port,
