@@ -1,0 +1,540 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.components.connector;
+
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.components.DescribedValue;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.processors.CreateDummyFlowFile;
+import org.apache.nifi.components.connector.processors.DuplicateFlowFile;
+import org.apache.nifi.components.connector.processors.LogFlowFileContents;
+import org.apache.nifi.components.connector.processors.OverwriteFlowFile;
+import org.apache.nifi.components.connector.processors.TerminateFlowFile;
+import org.apache.nifi.components.connector.services.CounterService;
+import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationState;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.StandardConnection;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.GarbageCollectionLog;
+import org.apache.nifi.controller.MockStateManagerProvider;
+import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.flow.StandardFlowManager;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueueFactory;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.scheduling.LifecycleStateManager;
+import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
+import org.apache.nifi.controller.scheduling.SchedulingAgent;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.mock.MockNodeTypeProvider;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.python.PythonBridge;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.validation.RuleViolationsManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class StandardConnectorNodeIT {
+
+    private StandardProcessScheduler processScheduler;
+    private StandardFlowManager flowManager;
+    private FlowEngine componentLifecycleThreadPool;
+    private ConnectorRepository connectorRepository;
+
+    @BeforeEach
+    public void setup() {
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
+        connectorRepository = new StandardConnectorRepository();
+
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
+        final StateManagerProvider stateManagerProvider = new MockStateManagerProvider();
+        final LifecycleStateManager lifecycleStateManager = new StandardLifecycleStateManager();
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.isInitialized()).thenReturn(true);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
+        when(flowController.getReloadComponent()).thenReturn(reloadComponent);
+
+        final RepositoryContextFactory repoContextFactory = mock(RepositoryContextFactory.class);
+        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
+        final ProvenanceRepository provRepo = mock(ProvenanceRepository.class);
+        final ContentRepository contentRepo = mock(ContentRepository.class);
+        when(repoContextFactory.getFlowFileRepository()).thenReturn(flowFileRepo);
+        when(repoContextFactory.getProvenanceRepository()).thenReturn(provRepo);
+        when(repoContextFactory.getContentRepository()).thenReturn(contentRepo);
+
+        when(flowController.getRepositoryContextFactory()).thenReturn(repoContextFactory);
+        when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+        when(flowController.getProvenanceRepository()).thenReturn(provRepo);
+        when(flowController.getBulletinRepository()).thenReturn(bulletinRepository);
+        when(flowController.getLifecycleStateManager()).thenReturn(lifecycleStateManager);
+        when(flowController.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
+        when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
+        when(flowController.getValidationTrigger()).thenReturn(mock(ValidationTrigger.class));
+
+        doAnswer(invocation -> {
+            return createConnection(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3), invocation.getArgument(4));
+        }).when(flowController).createConnection(anyString(), nullable(String.class), any(Connectable.class), any(Connectable.class), anyCollection());
+
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties");
+
+        final FlowFileEventRepository flowFileEventRepository = mock(FlowFileEventRepository.class);
+        final ParameterContextManager parameterContextManager = mock(ParameterContextManager.class);
+
+        final NodeTypeProvider nodeTypeProvider = new MockNodeTypeProvider();
+        componentLifecycleThreadPool = new FlowEngine(4, "Component Lifecycle Thread Pool", true);
+        processScheduler = new StandardProcessScheduler(componentLifecycleThreadPool, extensionManager, nodeTypeProvider, () -> controllerServiceProvider,
+            reloadComponent, stateManagerProvider, nifiProperties, lifecycleStateManager);
+        when(flowController.getProcessScheduler()).thenReturn(processScheduler);
+        processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, mock(SchedulingAgent.class));
+        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, mock(SchedulingAgent.class));
+
+        final Bundle systemBundle = SystemBundle.create(nifiProperties);
+        extensionManager.discoverExtensions(systemBundle, Set.of());
+
+        flowManager = new StandardFlowManager(nifiProperties, null, flowController, flowFileEventRepository, parameterContextManager);
+        flowManager.initialize(controllerServiceProvider, mock(PythonBridge.class), mock(FlowAnalyzer.class), mock(RuleViolationsManager.class));
+        final ProcessGroup rootGroup = flowManager.createProcessGroup("root");
+        rootGroup.setName("Root");
+        flowManager.setRootGroup(rootGroup);
+
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        if (componentLifecycleThreadPool != null) {
+            componentLifecycleThreadPool.shutdown();
+        }
+    }
+
+    @Test
+    public void testConnectorDynamicallyCreatingFlow() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+
+        // Configure the connector to log FlowFile contents, make 5 copies, and set text to "Second Iteration."
+        final ConnectorConfiguration configuration = createConnectorConfiguration("Second Iteration.", 5, true, false);
+        configure(connectorNode, configuration);
+
+        final List<ProcessorNode> processorsAfterUpdate = rootGroup.findAllProcessors();
+        assertEquals(5, processorsAfterUpdate.size());
+
+        final List<String> processorTypesAfterUpdate = processorsAfterUpdate.stream().map(ProcessorNode::getCanonicalClassName).toList();
+        assertTrue(processorTypesAfterUpdate.contains(CreateDummyFlowFile.class.getName()));
+        assertTrue(processorTypesAfterUpdate.contains(OverwriteFlowFile.class.getName()));
+        assertTrue(processorTypesAfterUpdate.contains(TerminateFlowFile.class.getName()));
+        assertTrue(processorTypesAfterUpdate.contains(DuplicateFlowFile.class.getName()));
+        assertTrue(processorTypesAfterUpdate.contains(LogFlowFileContents.class.getName()));
+
+        // Verify the OverwriteFlowFile processor has the correct content configured
+        final ProcessorNode overwriteProcessor = processorsAfterUpdate.stream()
+            .filter(p -> p.getCanonicalClassName().equals(OverwriteFlowFile.class.getName()))
+            .findFirst()
+            .orElseThrow();
+        assertEquals("Second Iteration.", overwriteProcessor.getEffectivePropertyValue(OverwriteFlowFile.CONTENT));
+
+        // Verify the DuplicateFlowFile processor is configured for 5 copies
+        final ProcessorNode duplicateProcessor = processorsAfterUpdate.stream()
+            .filter(p -> p.getCanonicalClassName().equals(DuplicateFlowFile.class.getName()))
+            .findFirst()
+            .orElseThrow();
+        assertEquals("5", duplicateProcessor.getEffectivePropertyValue(DuplicateFlowFile.NUM_DUPLICATES));
+
+        // Verify that all of the Connections were created
+        assertEquals(5, duplicateProcessor.getConnections().size());
+        final String outputPortId = duplicateProcessor.getProcessGroup().getOutputPorts().iterator().next().getIdentifier();
+        for (final Connection connection : duplicateProcessor.getConnections()) {
+            assertEquals(duplicateProcessor.getIdentifier(), connection.getSource().getIdentifier());
+            assertEquals(outputPortId, connection.getDestination().getIdentifier());
+        }
+    }
+
+    private void configure(final ConnectorNode connectorNode, final ConnectorConfiguration configuration) throws FlowUpdateException {
+        try (final FlowEngine flowEngine = new FlowEngine(1, "flow-engine")) {
+            connectorNode.prepareForUpdate();
+            for (final ConfigurationStepConfiguration stepConfig : configuration.getConfigurationStepConfigurations()) {
+                connectorNode.setConfiguration(stepConfig.stepName(), stepConfig.propertyGroupConfigurations());
+            }
+            connectorNode.applyUpdate();
+        }
+    }
+
+    private ConnectorNode initializeDynamicFlowConnector() {
+        final ConnectorNode connectorNode = flowManager.createConnector(DynamicFlowConnector.class.getName(), "dynamic-flow-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+        assertNotNull(connectorNode);
+
+        final Connector connector = connectorNode.getConnector();
+        assertNotNull(connector);
+        assertInstanceOf(DynamicFlowConnector.class, connector);
+
+        final DynamicFlowConnector flowConnector = (DynamicFlowConnector) connector;
+        assertTrue(flowConnector.isInitialized());
+
+        assertEquals(List.of(connectorNode), connectorRepository.getConnectors());
+
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        assertEquals(3, rootGroup.getProcessGroups().size());
+
+        final List<ProcessorNode> initialProcessors = rootGroup.findAllProcessors();
+        assertEquals(4, initialProcessors.size());
+        final List<String> initialProcessorTypes = initialProcessors.stream().map(ProcessorNode::getComponentType).toList();
+        assertTrue(initialProcessorTypes.contains(CreateDummyFlowFile.class.getSimpleName()));
+        assertTrue(initialProcessorTypes.contains(OverwriteFlowFile.class.getSimpleName()));
+        assertTrue(initialProcessorTypes.contains(TerminateFlowFile.class.getSimpleName()));
+        assertTrue(initialProcessorTypes.contains(DuplicateFlowFile.class.getSimpleName()));
+
+        return connectorNode;
+    }
+
+    private ConnectorNode initializeParameterConnector() {
+        final ConnectorNode connectorNode = flowManager.createConnector(ParameterConnector.class.getName(), "parameter-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+        assertNotNull(connectorNode);
+        assertEquals(List.of(connectorNode), connectorRepository.getConnectors());
+
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        assertEquals(3, rootGroup.getProcessors().size());
+
+        return connectorNode;
+    }
+
+    // Test a scenario where the connector is initialized and the Connector then changes the value of a parameter.
+    // This should result in any Processor that references that parameter being stopped and restarted. It should not result
+    // in non-referencing Processors being restarted.
+    @Test
+    public void testParameterUpdateRestartsReferencingProcessors() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeParameterConnector();
+        final Connector connector = connectorNode.getConnector();
+        assertNotNull(connector);
+        assertInstanceOf(ParameterConnector.class, connector);
+
+        final ParameterConnector flowConnector = (ParameterConnector) connector;
+        assertTrue(flowConnector.isInitialized());
+
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ParameterContext parameterContext = rootGroup.getParameterContext();
+        assertNotNull(parameterContext);
+        assertEquals(2, parameterContext.getParameters().size());
+        final Optional<Parameter> optionalParameter = parameterContext.getParameter("Text");
+        assertTrue(optionalParameter.isPresent());
+
+        final Parameter textParameter = optionalParameter.get();
+        assertEquals("Hello", textParameter.getValue());
+
+        // Set the value of the 'Text' property to Hi. This should result in the parameter context being updated.
+        final Map<String, ConnectorValueReference> sourceProperties = Map.of("Text", new StringLiteralValue("Hi."));
+        final PropertyGroupConfiguration sourcePropertyGroupConfiguration = new PropertyGroupConfiguration("Text Settings", sourceProperties);
+        final ConfigurationStepConfiguration sourceConfigurationStepConfiguration = new ConfigurationStepConfiguration("Text Configuration", List.of(sourcePropertyGroupConfiguration));
+        final ConnectorConfiguration connectorConfiguration = new ConnectorConfiguration(List.of(sourceConfigurationStepConfiguration));
+        configure(connectorNode, connectorConfiguration);
+
+        assertEquals("Hi.", parameterContext.getParameter("Text").orElseThrow().getValue());
+    }
+
+    @Test
+    public void testControllerServices() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+
+        final ConnectorConfiguration configuration = createConnectorConfiguration("Second Iteration", 5, true, true);
+        configure(connectorNode, configuration);
+
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final Set<ControllerServiceNode> serviceNodes = managedGroup.getControllerServices(true);
+        assertNotNull(serviceNodes);
+        assertEquals(1, serviceNodes.size());
+        assertInstanceOf(CounterService.class, serviceNodes.iterator().next().getControllerServiceImplementation());
+    }
+
+    @Test
+    public void testUpdateProcessorPropertyDataQueued() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final Connection connection = queueDataBySource(rootGroup, "Create FlowFile");
+
+        // Update Connector Property to ensure that the change is allowed with data queued
+        final ConnectorConfiguration configuration = createConnectorConfiguration("Second Iteration", 5, true, false);
+        configure(connectorNode, configuration);
+
+        assertEquals(1, connection.getFlowFileQueue().size().getObjectCount());
+    }
+
+    @Test
+    public void testRemoveConnectionDataQueued() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+
+        // Create a configuration that will result in the LogFlowFileContents processor being removed.
+        // Because the component is being removed, it should drain the queues before doing so.
+        final ConnectorConfiguration addLogConfiguration = createConnectorConfiguration("Second Iteration", 5, true, false);
+        configure(connectorNode, addLogConfiguration);
+
+        // Queue data between LogFlowFileContents and TerminateFlowFile
+        final Connection connection = queueDataByDestination(rootGroup, "Terminate FlowFile");
+
+        // Create a configuration that will result in the LogFlowFileContents processor being removed.
+        // Because the component is being removed and there's data queued in its incoming connection, it should fail.
+        final ConnectorConfiguration removeLogConfiguration = createConnectorConfiguration("Second Iteration", 5, false, false);
+
+        try (final FlowEngine flowEngine = new FlowEngine(1, "flow-engine")) {
+            connectorNode.prepareForUpdate();
+            final Throwable cause = assertThrows(FlowUpdateException.class, () -> configure(connectorNode, removeLogConfiguration));
+            connectorNode.abortUpdate(cause);
+
+            rootGroup.findAllConnections().contains(connection);
+            assertFalse(connection.getFlowFileQueue().isEmpty());
+        }
+    }
+
+
+    @Test
+    public void testDynamicProperties() throws IOException, FlowUpdateException {
+        final ConnectorNode connectorNode = flowManager.createConnector(DynamicAllowableValuesConnector.class.getName(), "dynamic-allowable-values-connector",
+            SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+        assertNotNull(connectorNode);
+
+        try (final FlowEngine flowEngine = new FlowEngine(1, "flow-engine")) {
+            connectorNode.prepareForUpdate();
+            assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
+
+            final Path tempFile = Files.createTempFile("StandardConnectorNodeIT", ".txt");
+            Files.writeString(tempFile, String.join("\n", "red", "blue", "yellow"));
+
+            final ConnectorConfiguration configuration = createFileConfiguration(tempFile.toFile().getAbsolutePath());
+            configure(connectorNode, configuration);
+
+            connectorNode.prepareForUpdate();
+            assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
+
+            final ConfigurationStep colorConfigurationStep = connectorNode.getConfigurationSteps().stream()
+                .filter(step -> step.getName().equals("Colors"))
+                .findFirst()
+                .orElseThrow();
+
+            assertNotNull(colorConfigurationStep);
+            assertEquals(1, colorConfigurationStep.getPropertyGroups().size());
+            final ConnectorPropertyGroup primaryColorsPropertyGroup = colorConfigurationStep.getPropertyGroups().getFirst();
+
+            final List<String> allowableValues = primaryColorsPropertyGroup.getProperties().getFirst().getAllowableValues().stream()
+                .map(DescribedValue::getValue)
+                .toList();
+            assertEquals(List.of("red", "blue", "yellow"), allowableValues);
+        }
+    }
+
+    @Test
+    public void testSimpleValidation() throws FlowUpdateException {
+        final ConnectorNode connectorNode = flowManager.createConnector(DynamicAllowableValuesConnector.class.getName(), "dynamic-allowable-values-connector",
+            SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+        assertNotNull(connectorNode);
+
+        try (final FlowEngine flowEngine = new FlowEngine(1, "testSimpleValidation")) {
+            connectorNode.prepareForUpdate();
+            assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
+
+            final ConnectorConfiguration configuration = createFileConfiguration("/non/existent/file");
+            configure(connectorNode, configuration);
+
+            final ValidationState validationState = connectorNode.performValidation();
+            assertNotNull(validationState);
+            assertEquals(ValidationStatus.INVALID, validationState.getStatus());
+            assertEquals(1, validationState.getValidationErrors().size());
+
+            final ValidationResult result = validationState.getValidationErrors().iterator().next();
+            result.getExplanation().contains("/non/existent/file");
+
+            final ConnectorConfiguration validConfig = createFileConfiguration(".");
+            configure(connectorNode, validConfig);
+
+            final ValidationState updatedValidationState = connectorNode.performValidation();
+            assertEquals(ValidationStatus.VALID, updatedValidationState.getStatus(),
+                "Expected valid state but invalid due to " + updatedValidationState.getValidationErrors());
+            assertEquals(List.of(), updatedValidationState.getValidationErrors());
+        }
+    }
+
+    @Test
+    public void testValidationWithParameterContext() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeParameterConnector();
+
+        final ValidationState initialValidationState = connectorNode.performValidation();
+        assertNotNull(initialValidationState);
+        assertEquals(ValidationStatus.VALID, initialValidationState.getStatus());
+        assertEquals(List.of(), initialValidationState.getValidationErrors());
+
+        final Map<String, ConnectorValueReference> sourceProperties = Map.of("Sleep Duration", new StringLiteralValue("Hi."));
+        final PropertyGroupConfiguration sourcePropertyGroupConfiguration = new PropertyGroupConfiguration("Text Settings", sourceProperties);
+        final ConfigurationStepConfiguration sourceConfigurationStepConfiguration = new ConfigurationStepConfiguration("Text Configuration", List.of(sourcePropertyGroupConfiguration));
+        final ConnectorConfiguration connectorConfiguration = new ConnectorConfiguration(List.of(sourceConfigurationStepConfiguration));
+        configure(connectorNode, connectorConfiguration);
+
+        final ValidationState validationState = connectorNode.performValidation();
+        assertNotNull(validationState);
+        assertEquals(ValidationStatus.INVALID, validationState.getStatus());
+        assertEquals(1, validationState.getValidationErrors().size());
+    }
+
+    private List<String> getConfigurationStepNames(final ConnectorNode connectorNode) {
+        return connectorNode.getConfigurationSteps().stream()
+            .map(ConfigurationStep::getName)
+            .toList();
+    }
+
+    private Connection queueDataBySource(final ProcessGroup group, final String sourceComponentName) {
+        return queueData(group, conn -> conn.getSource().getName().equals(sourceComponentName));
+    }
+
+    private Connection queueDataByDestination(final ProcessGroup group, final String destinationComponentName) {
+        return queueData(group, conn -> conn.getDestination().getName().equals(destinationComponentName));
+    }
+
+    private Connection queueData(final ProcessGroup group, final Predicate<Connection> connectionTest) {
+        final Connection connection = group.findAllConnections().stream()
+            .filter(connectionTest)
+            .findFirst()
+            .orElseThrow();
+
+        final FlowFileRecord flowFile = mock(FlowFileRecord.class);
+        connection.getFlowFileQueue().put(flowFile);
+        return connection;
+    }
+
+    private Connection createConnection(final String id, final String name, final Connectable source, final Connectable destination, final Collection<String> relationshipNames) {
+        final List<Relationship> relationships = relationshipNames.stream()
+            .map(relName -> new Relationship.Builder().name(relName).build())
+            .toList();
+
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        final List<FlowFileRecord> flowFileList = new ArrayList<>();
+
+        // Update mock to add FlowFiles to the queue
+        doAnswer(invocation -> {
+            flowFileList.add(invocation.getArgument(0));
+            return null;
+        }).when(flowFileQueue).put(any(FlowFileRecord.class));
+
+        // Update mock to return queue size and isEmpty status
+        when(flowFileQueue.size()).thenAnswer(invocation -> new QueueSize(flowFileList.size(), flowFileList.size()));
+        when(flowFileQueue.isEmpty()).thenAnswer(invocation -> flowFileList.isEmpty());
+        when(flowFileQueue.getLoadBalanceStrategy()).thenReturn(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE);
+        when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
+
+        final FlowFileQueueFactory flowFileQueueFactory = (loadBalanceStrategy, partitioningAttribute, processGroup) -> flowFileQueue;
+
+        final Connection connection = new StandardConnection.Builder(processScheduler)
+            .id(id)
+            .name(name)
+            .processGroup(destination.getProcessGroup())
+            .relationships(relationships)
+            .source(requireNonNull(source))
+            .destination(destination)
+            .flowFileQueueFactory(flowFileQueueFactory)
+            .build();
+
+        return connection;
+    }
+
+    private ConnectorConfiguration createConnectorConfiguration(final String sourceText, final int numberOfCopies, final boolean logContents, final boolean countFlowFiles) {
+        // Source configuration step
+        final Map<String, ConnectorValueReference> sourceProperties = Map.of(
+            "Source Text", new StringLiteralValue(sourceText),
+            "Count FlowFiles", new StringLiteralValue(Boolean.toString(countFlowFiles)));
+        final PropertyGroupConfiguration sourcePropertyGroupConfiguration = new PropertyGroupConfiguration("Source Settings", sourceProperties);
+        final ConfigurationStepConfiguration sourceConfigurationStepConfiguration = new ConfigurationStepConfiguration("Source", List.of(sourcePropertyGroupConfiguration));
+
+        // Duplication configuration step
+        final Map<String, ConnectorValueReference> duplicationProperties = Map.of("Number of Copies", new StringLiteralValue(Integer.toString(numberOfCopies)));
+        final PropertyGroupConfiguration duplicationPropertyGroupConfiguration = new PropertyGroupConfiguration(null, duplicationProperties);
+        final ConfigurationStepConfiguration duplicationConfigurationStepConfiguration = new ConfigurationStepConfiguration("Duplication", List.of(duplicationPropertyGroupConfiguration));
+
+        // Destination configuration step
+        final Map<String, ConnectorValueReference> destinationProperties = Map.of("Log FlowFile Contents", new StringLiteralValue(Boolean.toString(logContents)));
+        final PropertyGroupConfiguration destinationPropertyGroupConfiguration = new PropertyGroupConfiguration(null, destinationProperties);
+        final ConfigurationStepConfiguration destinationConfigurationStepConfiguration = new ConfigurationStepConfiguration("Destination", List.of(destinationPropertyGroupConfiguration));
+
+        return new ConnectorConfiguration(List.of(sourceConfigurationStepConfiguration, duplicationConfigurationStepConfiguration, destinationConfigurationStepConfiguration));
+    }
+
+    private ConnectorConfiguration createFileConfiguration(final String filename) {
+        // File configuration step
+        final Map<String, ConnectorValueReference> fileProperties = Map.of("File Path", new StringLiteralValue(filename));
+        final PropertyGroupConfiguration filePropertyGroupConfiguration = new PropertyGroupConfiguration("", fileProperties);
+        final ConfigurationStepConfiguration fileConfigurationStepConfiguration = new ConfigurationStepConfiguration("File", List.of(filePropertyGroupConfiguration));
+
+        return new ConnectorConfiguration(List.of(fileConfigurationStepConfiguration));
+    }
+}

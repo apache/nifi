@@ -80,7 +80,7 @@ public class X509AuthenticationProviderTest {
             return AuthorizationResult.approved();
         });
 
-        x509AuthenticationProvider = new X509AuthenticationProvider(authorizer, NiFiProperties.createBasicNiFiProperties(null));
+        x509AuthenticationProvider = new X509AuthenticationProvider(authorizer, NiFiProperties.createBasicNiFiProperties((String) null));
     }
 
     @Test

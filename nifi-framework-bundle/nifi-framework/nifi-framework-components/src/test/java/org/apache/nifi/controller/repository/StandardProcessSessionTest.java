@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
@@ -46,6 +47,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -107,6 +109,8 @@ class StandardProcessSessionTest {
         when(repositoryContext.createContentClaimWriteCache(isA(PerformanceTracker.class))).thenReturn(contentClaimWriteCache);
         when(repositoryContext.getConnectable()).thenReturn(connectable);
         when(connectable.getIdentifier()).thenReturn(Connectable.class.getSimpleName());
+        final FlowFileActivity flowFileActivity = mock(FlowFileActivity.class);
+        when(connectable.getFlowFileActivity()).thenReturn(flowFileActivity);
 
         session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker);
     }

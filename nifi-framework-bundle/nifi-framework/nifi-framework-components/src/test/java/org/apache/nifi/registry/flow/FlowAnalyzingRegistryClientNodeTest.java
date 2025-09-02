@@ -23,7 +23,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.junit.jupiter.api.Assertions;
@@ -64,7 +64,7 @@ class FlowAnalyzingRegistryClientNodeTest {
     FlowManager flowManager;
 
     @Mock
-    NiFiRegistryFlowMapper flowMapper;
+    VersionedComponentFlowMapper flowMapper;
 
     @Mock
     InstantiatedVersionedProcessGroup nonVersionedProcessGroup;

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller.queue;
 
+import java.util.concurrent.Future;
+
 /**
  * Represents the status of a Drop FlowFile Request that has been issued to
  * a {@link FlowFileQueue}. When a queue is requested to drop its FlowFiles,
@@ -75,4 +77,9 @@ public interface DropFlowFileStatus {
      * @return the reason that the state is set to a Failure state, or <code>null</code> if the state is not {@link DropFlowFileState#FAILURE}.
      */
     String getFailureReason();
+
+    /**
+     * @return a Future that can be used to determine when the drop operation has completed
+     */
+    Future<Void> getCompletionFuture();
 }

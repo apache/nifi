@@ -44,7 +44,7 @@ import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -524,7 +524,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String groupId = versionControlInformation.getGroupId();
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(flowController.getExtensionManager());
         final InstantiatedVersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowManager(), false);
 
         updateVersionControlInformation(group, flowSnapshot, versionControlInformation, versionedComponentMapping);

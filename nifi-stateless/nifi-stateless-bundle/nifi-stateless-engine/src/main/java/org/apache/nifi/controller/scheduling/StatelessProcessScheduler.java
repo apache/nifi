@@ -20,6 +20,7 @@ package org.apache.nifi.controller.scheduling;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
@@ -128,7 +129,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public Future<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
+    public CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
@@ -195,7 +196,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public Future<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
+    public CompletableFuture<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
         throw new UnsupportedOperationException();
     }
 
@@ -332,6 +333,30 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     public CompletableFuture<Void> disableControllerService(final ControllerServiceNode service) {
         logger.info("Disabling {}", service);
         return service.disable(componentLifeCycleThreadPool);
+    }
+
+    @Override
+    public CompletableFuture<Void> startConnector(final ConnectorNode connectorNode) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CompletableFuture<Void> stopConnector(final ConnectorNode connectorNode) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void enableConnector(final ConnectorNode connectorNode) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void disableConnector(final ConnectorNode connectorNode) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void onConnectorRemoved(final ConnectorNode connectorNode) {
     }
 
     @Override

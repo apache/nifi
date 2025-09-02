@@ -637,7 +637,7 @@ public abstract class AbstractFlowManager implements FlowManager {
             throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
         }
 
-        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this::getRootGroup);
         final ParameterContext parameterContext = new StandardParameterContext.Builder()
                 .id(id)
                 .name(name)

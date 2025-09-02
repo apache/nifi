@@ -30,7 +30,7 @@ import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,13 +47,13 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
     private final Authorizer authorizer;
     private final FlowManager flowManager;
-    private final NiFiRegistryFlowMapper flowMapper;
+    private final VersionedComponentFlowMapper flowMapper;
     private final ControllerServiceProvider controllerServiceProvider;
     private final ControllerServiceApiLookup controllerServiceApiLookup;
 
     public StandardControllerServiceResolver(final Authorizer authorizer,
                                              final FlowManager flowManager,
-                                             final NiFiRegistryFlowMapper flowMapper,
+                                             final VersionedComponentFlowMapper flowMapper,
                                              final ControllerServiceProvider controllerServiceProvider,
                                              final ControllerServiceApiLookup controllerServiceApiLookup) {
         this.authorizer = authorizer;

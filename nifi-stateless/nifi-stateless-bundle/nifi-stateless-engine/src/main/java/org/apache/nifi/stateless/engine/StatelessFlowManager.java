@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -440,6 +441,21 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public void removeRootControllerService(final ControllerServiceNode service) {
+    }
+
+    @Override
+    public ConnectorNode createConnector(final String type, final String id, final BundleCoordinate coordinate, final boolean firstTimeAdded, final boolean registerLogObserver) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<ConnectorNode> getAllConnectors() {
+        return List.of();
+    }
+
+    @Override
+    public ConnectorNode getConnector(final String id) {
+        return null;
     }
 
     @Override

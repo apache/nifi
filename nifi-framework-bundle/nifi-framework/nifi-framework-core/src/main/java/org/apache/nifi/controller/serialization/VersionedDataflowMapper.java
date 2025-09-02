@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.serialization;
 
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
@@ -25,6 +26,9 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
+import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -40,7 +44,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.SensitiveValueEncryptor;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 
@@ -52,7 +56,7 @@ public class VersionedDataflowMapper {
     private static final VersionedFlowEncodingVersion ENCODING_VERSION = new VersionedFlowEncodingVersion(2, 0);
 
     private final FlowController flowController;
-    private final NiFiRegistryFlowMapper flowMapper;
+    private final VersionedComponentFlowMapper flowMapper;
     private final ScheduledStateLookup stateLookup;
 
     public VersionedDataflowMapper(final FlowController flowController, final ExtensionManager extensionManager, final SensitiveValueEncryptor encryptor, final ScheduledStateLookup stateLookup) {
@@ -73,7 +77,7 @@ public class VersionedDataflowMapper {
             .mapAssetReferences(true)
             .build();
 
-        flowMapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
+        flowMapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
     }
 
     public VersionedDataflow createMapping() {
@@ -86,9 +90,21 @@ public class VersionedDataflowMapper {
         dataflow.setReportingTasks(mapReportingTasks());
         dataflow.setFlowAnalysisRules(mapFlowAnalysisRules());
         dataflow.setParameterProviders(mapParameterProviders());
+        dataflow.setConnectors(mapConnectors());
         dataflow.setRootGroup(mapRootGroup());
 
         return dataflow;
+    }
+
+    private List<VersionedConnector> mapConnectors() {
+        final List<VersionedConnector> connectors = new ArrayList<>();
+
+        for (final ConnectorNode connectorNode : flowController.getConnectorRepository().getConnectors()) {
+            final VersionedConnector versionedConnector = flowMapper.mapConnector(connectorNode);
+            connectors.add(versionedConnector);
+        }
+
+        return connectors;
     }
 
     private List<VersionedControllerService> mapControllerServices() {
