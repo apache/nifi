@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -31,8 +32,10 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.SchedulingAgentCallback;
@@ -48,6 +51,7 @@ import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
@@ -88,13 +92,16 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessScheduler.class);
 
-    private final FlowController flowController;
     private final long administrativeYieldMillis;
     private final String administrativeYieldDuration;
     private final StateManagerProvider stateManagerProvider;
     private final long processorStartTimeoutMillis;
     private final LifecycleStateManager lifecycleStateManager;
     private final AtomicLong frameworkTaskThreadIndex = new AtomicLong(1L);
+    private final ExtensionManager extensionManager;
+    private final NodeTypeProvider nodeTypeProvider;
+    private final Supplier<ControllerServiceProvider> controllerServiceProviderFactory;
+    private final ReloadComponent reloadComponent;
 
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
 
@@ -104,12 +111,24 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
     public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController,
+        final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties, final LifecycleStateManager lifecycleStateManager) {
+
+        this(componentLifecycleThreadPool, flowController.getExtensionManager(), flowController, flowController::getControllerServiceProvider,
+            flowController.getReloadComponent(), stateManagerProvider, nifiProperties, lifecycleStateManager);
+    }
+
+    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final ExtensionManager extensionManager, final NodeTypeProvider nodeTypeProvider,
+                                    final Supplier<ControllerServiceProvider> controllerServiceProviderFactory, final ReloadComponent reloadComponent,
                                     final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties,
                                     final LifecycleStateManager lifecycleStateManager) {
+
         this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
-        this.flowController = flowController;
         this.stateManagerProvider = stateManagerProvider;
         this.lifecycleStateManager = lifecycleStateManager;
+        this.extensionManager = extensionManager;
+        this.nodeTypeProvider = nodeTypeProvider;
+        this.controllerServiceProviderFactory = controllerServiceProviderFactory;
+        this.reloadComponent = reloadComponent;
 
         administrativeYieldDuration = nifiProperties.getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
@@ -119,7 +138,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     public ControllerServiceProvider getControllerServiceProvider() {
-        return flowController.getControllerServiceProvider();
+        return controllerServiceProviderFactory.get();
     }
 
     private StateManager getStateManager(final String componentId) {
@@ -239,7 +258,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void shutdownReportingTask(final ReportingTaskNode reportingTask) {
         final ConfigurationContext configContext = reportingTask.getConfigurationContext();
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getReportingTask().getClass(), reportingTask.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getReportingTask().getClass(), reportingTask.getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask.getReportingTask(), configContext);
         }
     }
@@ -247,7 +266,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
         final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, serviceImplClass, serviceNode.getIdentifier())) {
             final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
         }
@@ -295,7 +314,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             return;
                         }
 
-                        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), reportingTask.getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                         }
 
@@ -310,7 +329,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             + "ReportingTask and will attempt to schedule it again after {}",
                             reportingTask, e.toString(), administrativeYieldDuration, e);
 
-                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), reportingTask.getIdentifier())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
                     }
@@ -349,7 +368,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             synchronized (lifecycleState) {
                 lifecycleState.setScheduled(false);
 
-                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), reportingTask.getIdentifier())) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                 } catch (final Exception e) {
                     final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
@@ -390,7 +409,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true, false);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            getStateManager(procNode), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode), lifecycleState::isTerminated, nodeTypeProvider);
 
         final boolean scheduleActions = procNode.getProcessGroup().resolveExecutionEngine() != ExecutionEngine.STATELESS;
 
@@ -421,12 +440,21 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         LOG.info("Starting {}", procNode);
+
+        procNode.reloadAdditionalResourcesIfNecessary();
+
         procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback, failIfStopping, scheduleActions);
         return future;
     }
 
     @Override
     public synchronized CompletableFuture<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
+        final ScheduledState initialState = groupNode.getDesiredState();
+        if (initialState != ScheduledState.RUNNING) {
+            LOG.warn("{} scheduled to run but its desired state is {}, not RUNNING; will not start the group", groupNode, initialState);
+            return CompletableFuture.failedFuture(new IllegalStateException("Attempted to start %s but its desired state is %s, not RUNNING".formatted(groupNode, initialState)));
+        }
+
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(groupNode), true, true);
         lifecycleState.setScheduled(true);
 
@@ -495,7 +523,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 }
             }
 
-            LOG.info("{} is no scheduled to run. Disabling {} Controller Services", groupNode.getProcessGroup(), allServices.size());
+            LOG.info("{} is no longer scheduled to run. Disabling {} Controller Services", groupNode.getProcessGroup(), allServices.size());
 
             // Cancel all service start futures, interrupting them if they are waiting
             for (final Future<?> serviceStartFuture : serviceStartFutures) {
@@ -523,7 +551,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true, false);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            getStateManager(procNode), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode), lifecycleState::isTerminated, nodeTypeProvider);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -564,7 +592,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false, false);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
-            getStateManager(procNode), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode), lifecycleState::isTerminated, nodeTypeProvider);
 
         LOG.info("Stopping {}", procNode);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState, lifecycleMethods);
@@ -597,7 +625,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         try {
             final Set<URL> additionalUrls = procNode.getAdditionalClasspathResources(procNode.getPropertyDescriptors());
-            flowController.getReloadComponent().reload(procNode, procNode.getCanonicalClassName(), procNode.getBundleCoordinate(), additionalUrls);
+            reloadComponent.reload(procNode, procNode.getCanonicalClassName(), procNode.getBundleCoordinate(), additionalUrls);
         } catch (final ProcessorInstantiationException e) {
             // This shouldn't happen because we already have been able to instantiate the processor before
             LOG.error("Failed to replace instance of Processor for {} when terminating Processor", procNode);
@@ -741,7 +769,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
             final StateManager stateManager = (connectable instanceof ProcessorNode) ? getStateManager((ProcessorNode) connectable) : getStateManager(connectable.getIdentifier());
             final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, stateManager);
-            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }
         }
@@ -852,7 +880,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         return enableControllerService(service, true);
     }
 
+    @Override
+    public CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final ConfigurationContext configurationContext) {
+        return enableControllerService(service, true, configurationContext);
+    }
+
     private CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final boolean completeFutureExceptionally) {
+        return enableControllerService(service, completeFutureExceptionally, null);
+    }
+
+    private CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final boolean completeFutureExceptionally,
+            final ConfigurationContext configurationContext) {
+
         if (service.isActive()) {
             LOG.debug("{} is already active, so not enabling it again", service);
             return CompletableFuture.completedFuture(null);
@@ -860,15 +899,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         LOG.info("Enabling {}", service);
 
+        service.reloadAdditionalResourcesIfNecessary();
+
         final List<CompletableFuture<Void>> futures = new ArrayList<>();
         final List<ControllerServiceNode> dependentServices = service.getRequiredControllerServices();
         for (final ControllerServiceNode dependentService : dependentServices) {
             // Enable Controller Service but if it fails, do not complete the future Exceptionally. This allows us to wait up until the
             // timeout for the service to enable, even if it needs to retry in order to do so.
-            futures.add(enableControllerService(dependentService, completeFutureExceptionally));
+            // Note: dependent services always use their own configuration, not the provided configurationContext
+            futures.add(enableControllerService(dependentService, completeFutureExceptionally, null));
         }
 
-        futures.add(service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, completeFutureExceptionally));
+        futures.add(service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, completeFutureExceptionally, configurationContext));
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
@@ -888,6 +930,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 return disableControllerServiceWithStandaloneThreadPool(service);
             }
         }
+    }
+
+    @Override
+    public CompletableFuture<Void> startConnector(final ConnectorNode connectorNode) {
+        // TODO: Implement
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CompletableFuture<Void> stopConnector(final ConnectorNode connectorNode) {
+        // TODO: Implement
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void onConnectorRemoved(final ConnectorNode connectorNode) {
+        lifecycleStateManager.removeLifecycleState(connectorNode.getIdentifier());
     }
 
     private CompletableFuture<Void> disableControllerServiceWithStandaloneThreadPool(final ControllerServiceNode service) {

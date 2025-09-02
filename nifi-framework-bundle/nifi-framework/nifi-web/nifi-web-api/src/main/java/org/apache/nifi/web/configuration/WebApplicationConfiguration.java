@@ -18,6 +18,7 @@ package org.apache.nifi.web.configuration;
 
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.audit.NiFiAuditor;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.StandardAuthorizableLookup;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -31,6 +32,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
+import org.apache.nifi.web.NiFiConnectorWebContext;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.NiFiServiceFacadeLock;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
@@ -44,9 +46,11 @@ import org.apache.nifi.web.api.metrics.jmx.JmxMetricsCollector;
 import org.apache.nifi.web.api.metrics.jmx.JmxMetricsResultConverter;
 import org.apache.nifi.web.api.metrics.jmx.JmxMetricsService;
 import org.apache.nifi.web.api.metrics.jmx.StandardJmxMetricsService;
+import org.apache.nifi.web.connector.StandardNiFiConnectorWebContext;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.controller.ControllerSearchService;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.impl.ComponentDAO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.search.query.RegexSearchQueryParser;
@@ -104,6 +108,10 @@ public class WebApplicationConfiguration {
 
     private NiFiServiceFacade serviceFacade;
 
+    private ConnectorDAO connectorDAO;
+
+    private AuthorizableLookup authorizableLookup;
+
     public WebApplicationConfiguration(
             final Authorizer authorizer,
             final AccessPolicyDAO accessPolicyDao,
@@ -145,6 +153,16 @@ public class WebApplicationConfiguration {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
+    public void setConnectorDAO(final ConnectorDAO connectorDAO) {
+        this.connectorDAO = connectorDAO;
+    }
+
+    @Autowired
+    public void setAuthorizableLookup(final AuthorizableLookup authorizableLookup) {
+        this.authorizableLookup = authorizableLookup;
+    }
+
     @Bean
     public EntityFactory entityFactory() {
         return new EntityFactory();
@@ -168,6 +186,8 @@ public class WebApplicationConfiguration {
         dtoFactory.setControllerServiceProvider(flowController.getControllerServiceProvider());
         dtoFactory.setEntityFactory(entityFactory());
         dtoFactory.setExtensionManager(extensionManager);
+        dtoFactory.setConnectorRepository(flowController.getConnectorRepository());
+        dtoFactory.setRuntimeManifestService(runtimeManifestService);
         return dtoFactory;
     }
 
@@ -251,6 +271,15 @@ public class WebApplicationConfiguration {
         context.setRequestReplicator(requestReplicator);
         context.setReportingTaskProvider(flowController);
         context.setServiceFacade(serviceFacade);
+        return context;
+    }
+
+    @Bean
+    public NiFiConnectorWebContext nifiConnectorWebContext() {
+        final StandardNiFiConnectorWebContext context = new StandardNiFiConnectorWebContext();
+        context.setConnectorDAO(connectorDAO);
+        context.setAuthorizer(authorizer);
+        context.setAuthorizableLookup(authorizableLookup);
         return context;
     }
 

@@ -23,7 +23,7 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,11 +32,11 @@ import java.util.Set;
 
 public class VersionedReportingTaskSnapshotMapper {
 
-    private final NiFiRegistryFlowMapper flowMapper;
+    private final VersionedComponentFlowMapper flowMapper;
     private final ControllerServiceProvider controllerServiceProvider;
 
     public VersionedReportingTaskSnapshotMapper(final ExtensionManager extensionManager, final ControllerServiceProvider controllerServiceProvider) {
-        this.flowMapper = new NiFiRegistryFlowMapper(extensionManager);
+        this.flowMapper = new VersionedComponentFlowMapper(extensionManager);
         this.controllerServiceProvider = controllerServiceProvider;
     }
 

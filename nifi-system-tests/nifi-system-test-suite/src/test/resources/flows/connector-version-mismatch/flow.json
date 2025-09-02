@@ -1,0 +1,52 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 10,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "flowAnalysisRules": [],
+  "connectors": [
+    {
+      "instanceIdentifier": "11111111-1111-1111-1111-111111111111",
+      "name": "Test NopConnector",
+      "type": "org.apache.nifi.connectors.tests.system.NopConnector",
+      "bundle": {
+        "group": "org.apache.nifi",
+        "artifact": "nifi-system-test-extensions-nar",
+        "version": "1.0.0-nonexistent"
+      },
+      "scheduledState": "ENABLED",
+      "activeFlowConfiguration": [],
+      "workingFlowConfiguration": []
+    }
+  ],
+  "rootGroup": {
+    "identifier": "root-group-identifier",
+    "instanceIdentifier": "root-group-instance-id",
+    "name": "NiFi Flow",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+  }
+}

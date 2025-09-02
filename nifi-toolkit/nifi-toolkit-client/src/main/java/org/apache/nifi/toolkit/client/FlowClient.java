@@ -20,6 +20,7 @@ import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
@@ -229,4 +230,11 @@ public interface FlowClient {
      * @return list of flows
      */
     VersionedFlowsEntity getFlowRegistryFlows(String registryClientId, String branch, String bucket) throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves all of the Connectors.
+     *
+     * @return the list of Connectors
+     */
+    ConnectorsEntity getConnectors() throws NiFiClientException, IOException;
 }

@@ -1510,6 +1510,11 @@ Global access policies govern the following system level authorizations:
 |Parameter Contexts
 |`/parameter-contexts`
 
+|access connectors
+|Allows users to view/modify Connectors
+|N/A
+|`/connectors`
+
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
 |Data Provenance

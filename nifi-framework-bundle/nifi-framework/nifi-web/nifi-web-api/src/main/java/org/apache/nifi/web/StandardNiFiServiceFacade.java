@@ -52,6 +52,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -71,11 +72,19 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorUpdateContext;
+import org.apache.nifi.components.connector.Secret;
+import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
@@ -162,7 +171,7 @@ import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
-import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.parameter.StandardParameterContext.Builder;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheusutil.AbstractMetricsRegistry;
@@ -208,7 +217,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.Bulletin;
@@ -241,7 +250,9 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ComponentValidationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -289,6 +300,7 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RequiredPermissionDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SecretDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
@@ -312,6 +324,7 @@ import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
@@ -326,6 +339,7 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
@@ -333,9 +347,13 @@ import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -381,6 +399,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -397,7 +416,9 @@ import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
@@ -448,6 +469,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -477,6 +499,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private BulletinRepository bulletinRepository;
 
     // data access objects
+    private ComponentStateDAO componentStateDAO;
     private ProcessorDAO processorDAO;
     private ProcessGroupDAO processGroupDAO;
     private RemoteProcessGroupDAO remoteProcessGroupDAO;
@@ -488,6 +511,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ConnectionDAO connectionDAO;
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
+    private ConnectorDAO connectorDAO;
     private FlowAnalysisRuleDAO flowAnalysisRuleDAO;
     private ParameterProviderDAO parameterProviderDAO;
     private UserDAO userDAO;
@@ -776,6 +800,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyCreateReportingTask(ReportingTaskDTO reportingTaskDTO) {
         reportingTaskDAO.verifyCreate(reportingTaskDTO);
+    }
+
+    @Override
+    public void verifyCreateConnector(final ConnectorDTO connectorDTO) {
+        connectorDAO.verifyCreate(connectorDTO);
     }
 
     @Override
@@ -1398,7 +1427,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public List<ComponentValidationResultEntity> validateComponents(final ParameterContextDTO parameterContextDto, final NiFiUser nifiUser) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
         final Set<ProcessGroup> boundProcessGroups = parameterContext.getParameterReferenceManager().getProcessGroupsBound(parameterContext);
-        final ParameterContext updatedParameterContext = new StandardParameterContext.Builder()
+        final ParameterContext updatedParameterContext = new Builder()
                 .id(parameterContext.getIdentifier())
                 .name(parameterContext.getName())
                 .parameterReferenceManager(ParameterReferenceManager.EMPTY)
@@ -1736,7 +1765,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .collect(Collectors.toMap(entity -> entity.getParameter().getName(), Function.identity()));
         parameterContextDto.getParameters().clear();
 
-        for (final Map.Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
+        for (final Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
             final ParameterEntity parameterEntity;
@@ -2067,6 +2096,68 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ComponentStateDTO getConnectorProcessorState(final String connectorId, final String processorId) {
+        final ProcessorNode processor = locateConnectorProcessor(connectorId, processorId);
+        final StateMap clusterState = isClustered() ? componentStateDAO.getState(processor, Scope.CLUSTER) : null;
+        final StateMap localState = componentStateDAO.getState(processor, Scope.LOCAL);
+        return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public void verifyCanClearConnectorProcessorState(final String connectorId, final String processorId) {
+        final ProcessorNode processor = locateConnectorProcessor(connectorId, processorId);
+        processor.verifyCanClearState();
+    }
+
+    @Override
+    public ComponentStateDTO clearConnectorProcessorState(final String connectorId, final String processorId, final ComponentStateDTO componentStateDTO) {
+        final ProcessorNode processor = locateConnectorProcessor(connectorId, processorId);
+        componentStateDAO.clearState(processor, componentStateDTO);
+        return getConnectorProcessorState(connectorId, processorId);
+    }
+
+    @Override
+    public ComponentStateDTO getConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        final StateMap clusterState = isClustered() ? componentStateDAO.getState(controllerService, Scope.CLUSTER) : null;
+        final StateMap localState = componentStateDAO.getState(controllerService, Scope.LOCAL);
+        return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public void verifyCanClearConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        controllerService.verifyCanClearState();
+    }
+
+    @Override
+    public ComponentStateDTO clearConnectorControllerServiceState(final String connectorId, final String controllerServiceId, final ComponentStateDTO componentStateDTO) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        componentStateDAO.clearState(controllerService, componentStateDTO);
+        return getConnectorControllerServiceState(connectorId, controllerServiceId);
+    }
+
+    private ProcessorNode locateConnectorProcessor(final String connectorId, final String processorId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessorNode processor = managedGroup.findProcessor(processorId);
+        if (processor == null) {
+            throw new ResourceNotFoundException("Unable to find processor with id '%s' within connector '%s'.".formatted(processorId, connectorId));
+        }
+        return processor;
+    }
+
+    private ControllerServiceNode locateConnectorControllerService(final String connectorId, final String controllerServiceId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ControllerServiceNode controllerService = managedGroup.findControllerService(controllerServiceId, false, true);
+        if (controllerService == null) {
+            throw new ResourceNotFoundException("Unable to find controller service with id '%s' within connector '%s'.".formatted(controllerServiceId, connectorId));
+        }
+        return controllerService;
+    }
+
+    @Override
     public ConnectionEntity deleteConnection(final Revision revision, final String connectionId) {
         final Connection connection = connectionDAO.getConnection(connectionId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connection);
@@ -2087,7 +2178,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ListingRequestDTO deleteFlowFileListingRequest(final String connectionId, final String listingRequestId) {
-        final Connection connection = connectionDAO.getConnection(connectionId);
+        final Connection connection = connectionDAO.getConnection(connectionId, true);
         final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.deleteFlowFileListingRequest(connectionId, listingRequestId));
 
         // include whether the source and destination are running
@@ -2498,7 +2589,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ListingRequestDTO createFlowFileListingRequest(final String connectionId, final String listingRequestId) {
-        final Connection connection = connectionDAO.getConnection(connectionId);
+        final Connection connection = connectionDAO.getConnection(connectionId, true);
         final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.createFlowFileListingRequest(connectionId, listingRequestId));
 
         // include whether the source and destination are running
@@ -3448,6 +3539,405 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createReportingTaskEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
     }
 
+    private ConnectorStatusDTO createConnectorStatusDto(final ConnectorNode connectorNode) {
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroupStatus managedGroupStatus = controllerFacade.getProcessGroupStatus(managedProcessGroup.getIdentifier());
+        return dtoFactory.createConnectorStatusDto(connectorNode, managedGroupStatus);
+    }
+
+    @Override
+    public ConnectorEntity createConnector(final Revision revision, final ConnectorDTO connectorDTO) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(controllerFacade.getExtensionManager(), connectorDTO.getType(), connectorDTO.getBundle());
+            final ConnectorNode connector = connectorDAO.createConnector(connectorDTO.getType(), connectorDTO.getId(), coordinate, true, true);
+
+            controllerFacade.save();
+
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(connector);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode connector = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connector);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(connector));
+        final ConnectorStatusDTO status = createConnectorStatusDto(connector);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, status);
+    }
+
+    @Override
+    public Set<ConnectorEntity> getConnectors() {
+        return connectorDAO.getConnectors().stream().map(node -> {
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(node.getIdentifier()));
+            final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+            final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+            final ConnectorStatusDTO status = createConnectorStatusDto(node);
+            return entityFactory.createConnectorEntity(dto, revision, permissions, operatePermissions, status);
+        }).collect(Collectors.toSet());
+    }
+
+    @Override
+    public ConnectorEntity getConnector(final String id) {
+        final ConnectorNode node = connectorDAO.getConnector(id);
+        final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(node.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO status = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(dto, revision, permissions, operatePermissions, status);
+    }
+
+    @Override
+    public void verifyUpdateConnector(final ConnectorDTO connectorDTO) {
+        // No-op placeholder for future detailed verification
+    }
+
+    @Override
+    public ConnectorEntity updateConnector(final Revision revision, final ConnectorDTO connectorDTO) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.updateConnector(connectorDTO);
+
+            controllerFacade.save();
+
+            final ConnectorNode node = connectorDAO.getConnector(connectorDTO.getId());
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    @Override
+    public void verifyDeleteConnector(final String id) {
+        // For now, DAO will enforce state; expose hook for symmetry
+    }
+
+    @Override
+    public ConnectorEntity deleteConnector(final Revision revision, final String id) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            connectorDAO.deleteConnector(id);
+            controllerFacade.save();
+
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorDTO dto = snapshot.getComponent();
+        final PermissionsDTO permissions = new PermissionsDTO();
+        permissions.setCanRead(Boolean.FALSE);
+        permissions.setCanWrite(Boolean.FALSE);
+        final PermissionsDTO operatePermissions = new PermissionsDTO();
+        operatePermissions.setCanRead(Boolean.FALSE);
+        operatePermissions.setCanWrite(Boolean.FALSE);
+        return entityFactory.createConnectorEntity(dto, dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, null);
+    }
+
+    @Override
+    public ConnectorEntity scheduleConnector(final Revision revision, final String id, final ScheduledState state) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            switch (state) {
+                case RUNNING -> connectorDAO.startConnector(id);
+                case STOPPED -> connectorDAO.stopConnector(id);
+                default -> throw new IllegalArgumentException("Unsupported scheduled state for Connector: " + state);
+            }
+            controllerFacade.save();
+
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    @Override
+    public void verifyDrainConnector(final String id) {
+        final ConnectorNode connector = connectorDAO.getConnector(id);
+        final ConnectorState currentState = connector.getCurrentState();
+        if (currentState != ConnectorState.STOPPED) {
+            throw new IllegalStateException("Cannot drain FlowFiles for Connector " + id + " because it is not currently stopped. Current state: " + currentState);
+        }
+    }
+
+    @Override
+    public ConnectorEntity drainConnector(final Revision revision, final String id) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.drainFlowFiles(id);
+            controllerFacade.save();
+
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    @Override
+    public void verifyCancelConnectorDrain(final String id) {
+        connectorDAO.verifyCancelDrainFlowFile(id);
+    }
+
+    @Override
+    public ConnectorEntity cancelConnectorDrain(final Revision revision, final String id) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.cancelDrainFlowFiles(id);
+            controllerFacade.save();
+
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    @Override
+    public ConfigurationStepNamesEntity getConnectorConfigurationSteps(final String id) {
+        final ConnectorNode node = connectorDAO.getConnector(id);
+        final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+
+        return entityFactory.createConfigurationStepNamesEntity(dto);
+    }
+
+    @Override
+    public ConfigurationStepEntity getConnectorConfigurationStep(final String id, final String configurationStepName) {
+        final ConnectorNode node = connectorDAO.getConnector(id);
+        final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(node.getIdentifier()));
+
+        return entityFactory.createConfigurationStepEntity(dto, configurationStepName, revision);
+    }
+
+    @Override
+    public ConfigurationStepEntity updateConnectorConfigurationStep(final Revision revision, final String id,
+            final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepConfiguration) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            // Update the configuration step
+            connectorDAO.updateConnectorConfigurationStep(id, configurationStepName, configurationStepConfiguration);
+            controllerFacade.save();
+
+            // Return updated connector DTO
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        // Create and return the configuration step entity
+        return entityFactory.createConfigurationStepEntity(snapshot.getComponent(), configurationStepName, dtoFactory.createRevisionDTO(snapshot.getLastModification()));
+    }
+
+    @Override
+    public ConnectorEntity applyConnectorUpdate(final Revision revision, final String connectorId) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final ConnectorUpdateContext updateContext = controllerFacade::saveImmediate;
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.applyConnectorUpdate(connectorId, updateContext);
+
+            final ConnectorNode node = connectorDAO.getConnector(connectorId);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    @Override
+    public ConnectorEntity discardConnectorUpdate(final Revision revision, final String connectorId) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.discardWorkingConfiguration(connectorId);
+
+            final ConnectorNode node = connectorDAO.getConnector(connectorId);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(node);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    @Override
+    public ProcessGroupFlowEntity getConnectorFlow(final String connectorId, final String processGroupId, final boolean uiOnly) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroup targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
+        if (targetProcessGroup == null) {
+            throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
+        }
+        return createProcessGroupFlowEntity(targetProcessGroup, uiOnly);
+    }
+
+    @Override
+    public ProcessGroupStatusEntity getConnectorProcessGroupStatus(final String id, final Boolean recursive) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(id);
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final String processGroupId = managedProcessGroup.getIdentifier();
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connectorNode);
+        final ProcessGroupStatusDTO dto = dtoFactory.createProcessGroupStatusDto(managedProcessGroup, controllerFacade.getProcessGroupStatus(processGroupId));
+
+        // prune the response as necessary
+        if (!Boolean.TRUE.equals(recursive)) {
+            pruneChildGroups(dto.getAggregateSnapshot());
+            if (dto.getNodeSnapshots() != null) {
+                for (final NodeProcessGroupStatusSnapshotDTO nodeSnapshot : dto.getNodeSnapshots()) {
+                    pruneChildGroups(nodeSnapshot.getStatusSnapshot());
+                }
+            }
+        }
+
+        return entityFactory.createProcessGroupStatusEntity(dto, permissions);
+    }
+
+    @Override
+    public Set<ControllerServiceEntity> getConnectorControllerServices(final String connectorId, final String processGroupId,
+            final boolean includeAncestorGroups, final boolean includeDescendantGroups, final boolean includeReferencingComponents) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroup targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
+        if (targetProcessGroup == null) {
+            throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
+        }
+
+        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+        serviceNodes.addAll(targetProcessGroup.getControllerServices(includeAncestorGroups));
+
+        if (includeDescendantGroups) {
+            serviceNodes.addAll(targetProcessGroup.findAllControllerServices());
+        }
+
+        return serviceNodes.stream()
+                .map(serviceNode -> createControllerServiceEntity(serviceNode, includeReferencingComponents))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public void verifyCanVerifyConnectorConfigurationStep(final String connectorId, final String configurationStepName) {
+        connectorDAO.verifyCanVerifyConfigurationStep(connectorId, configurationStepName);
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> performConnectorConfigurationStepVerification(final String connectorId,
+            final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepConfiguration) {
+        final List<ConfigVerificationResult> verificationResults = connectorDAO.verifyConfigurationStep(connectorId, configurationStepName, configurationStepConfiguration);
+        return verificationResults.stream()
+                .map(result -> dtoFactory.createConfigVerificationResultDto(result))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public SearchResultsDTO searchConnector(final String connectorId, final String query) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        return controllerFacade.searchConnector(query, managedProcessGroup);
+    }
+
+    @Override
+    public ConnectorPropertyAllowableValuesEntity getConnectorPropertyAllowableValues(final String connectorId,
+            final String stepName, final String groupName, final String propertyName, final String filter) {
+        // groupName is retained for REST API backward compatibility but is no longer used by the underlying API
+        final List<DescribedValue> allowableValues = connectorDAO.fetchAllowableValues(connectorId, stepName, propertyName, filter);
+
+        final List<AllowableValueEntity> allowableValueEntities = allowableValues.stream()
+                .map(av -> entityFactory.createAllowableValueEntity(dtoFactory.createAllowableValueDto(av), true))
+                .collect(Collectors.toList());
+
+        return entityFactory.createConnectorPropertyAllowableValuesEntity(stepName, groupName, propertyName, allowableValueEntities);
+    }
+
+    @Override
+    public void verifyCreateConnectorAsset(final String connectorId) {
+        connectorDAO.verifyCreateAsset(connectorId);
+    }
+
+    @Override
+    public AssetEntity createConnectorAsset(final String connectorId, final String assetId, final String assetName, final InputStream content) throws IOException {
+        final Asset createdAsset = connectorDAO.createAsset(connectorId, assetId, assetName, content);
+        return dtoFactory.createAssetEntity(createdAsset);
+    }
+
+    @Override
+    public List<AssetEntity> getConnectorAssets(final String connectorId) {
+        return connectorDAO.getAssets(connectorId).stream()
+            .map(dtoFactory::createAssetEntity)
+            .toList();
+    }
+
+    @Override
+    public Optional<Asset> getConnectorAsset(final String assetId) {
+        return connectorDAO.getAsset(assetId);
+    }
+
+    @Override
+    public void verifyPurgeConnectorFlowFiles(final String connectorId) {
+        connectorDAO.verifyPurgeFlowFiles(connectorId);
+    }
+
+    @Override
+    public void purgeConnectorFlowFiles(final String connectorId, final String requestor) {
+        connectorDAO.purgeFlowFiles(connectorId, requestor);
+    }
+
     @Override
     public ReportingTaskEntity updateReportingTask(final Revision revision, final ReportingTaskDTO reportingTaskDTO) {
         // get the component, ensure we have access to it, and perform the update request
@@ -3616,7 +4106,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             ));
                     final Set<ParameterEntity> updatedParameterEntities = new LinkedHashSet<>();
                     entity.getComponent().setParameters(updatedParameterEntities);
-                    for (final Map.Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
+                    for (final Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
                         final String parameterName = parameterEntry.getKey();
                         final Parameter parameter = parameterEntry.getValue();
                         final ParameterEntity parameterEntity;
@@ -3861,7 +4351,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ListingRequestDTO getFlowFileListingRequest(final String connectionId, final String listingRequestId) {
-        final Connection connection = connectionDAO.getConnection(connectionId);
+        final Connection connection = connectionDAO.getConnection(connectionId, true);
         final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.getFlowFileListingRequest(connectionId, listingRequestId));
 
         // include whether the source and destination are running
@@ -3965,6 +4455,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public Set<DocumentedTypeDTO> getConnectorTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getConnectorTypes(bundleGroup, bundleArtifact, type);
+    }
+
+    @Override
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
                                                             final String bundleGroup, final String bundleArtifact, final String type) {
         return controllerFacade.getControllerServiceTypes(serviceType, serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion, bundleGroup, bundleArtifact, type);
@@ -4040,8 +4535,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ConnectorDefinition getConnectorDefinition(final String group, final String artifact, final String version, final String type) {
+        final ConnectorDefinition connectorDefinition = controllerFacade.getConnectorDefinition(group, artifact, version, type);
+        if (connectorDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return connectorDefinition;
+    }
+
+    @Override
     public String getAdditionalDetails(String group, String artifact, String version, String type) {
         return controllerFacade.getAdditionalDetails(group, artifact, version, type);
+    }
+
+    @Override
+    public String getStepDocumentation(final String group, final String artifact, final String version, final String connectorType, final String stepName) {
+        return controllerFacade.getStepDocumentation(group, artifact, version, connectorType, stepName);
     }
 
     @Override
@@ -4103,6 +4612,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
                 case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
                 case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                case CONNECTOR -> authorizableLookup.getConnector(sourceId);
                 default -> throw new IllegalArgumentException("Unexpected ComponentType: " + type);
             };
         } catch (final ResourceNotFoundException e) {
@@ -4951,6 +5461,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setPoliciesPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getPolicies()));
         entity.setSystemPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getSystem()));
         entity.setParameterContextPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getParameterContexts()));
+        entity.setConnectorsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getConnectors()));
         entity.setCanVersionFlows(CollectionUtils.isNotEmpty(flowRegistryDAO.getFlowRegistryClients().stream().map(c -> c.getIdentifier()).collect(Collectors.toSet())));
 
         entity.setRestrictedComponentsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getRestrictedComponents()));
@@ -4977,12 +5488,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId, final boolean uiOnly) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        return createProcessGroupFlowEntity(processGroup, uiOnly);
+    }
 
+    private ProcessGroupFlowEntity createProcessGroupFlowEntity(final ProcessGroup processGroup, final boolean uiOnly) {
         // Get the Process Group Status but we only need a status depth of one because for any child process group,
         // we ignore the status of each individual components. I.e., if Process Group A has child Group B, and child Group B
         // has a Processor, we don't care about the individual stats of that Processor because the ProcessGroupFlowEntity
         // doesn't include that anyway. So we can avoid including the information in the status that is returned.
-        final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId, 1);
+        final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(processGroup.getIdentifier(), 1);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
         return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus,
@@ -5308,7 +5822,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .mapAssetReferences(false)
                 .build();
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager(), mappingOptions);
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager(), mappingOptions);
         final InstantiatedVersionedProcessGroup versionedProcessGroup =
                 mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
@@ -5341,7 +5855,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, ExternalControllerServiceReference> externalControllerServices =
                 versionedProcessGroup.getExternalControllerServiceReferences().entrySet().stream()
                         .filter(e -> isServiceReferenced(e.getKey(), versionedProcessors, Collections.emptySet(), versionedProcessGroups))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
         // move any service at the current level into external services
         versionedProcessGroup.getControllerServices().stream()
@@ -5417,7 +5931,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Create a complete (include descendant flows) VersionedProcessGroup snapshot of the flow as it is
         // currently without any registry related fields populated, even if the flow is currently versioned.
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup =
                 mapper.mapNonVersionedProcessGroup(processGroup, controllerFacade.getControllerServiceProvider());
 
@@ -5592,13 +6106,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private InstantiatedVersionedProcessGroup createFlowSnapshot(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final InstantiatedVersionedProcessGroup versionedGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), false);
         return versionedGroup;
     }
 
     private Map<String, VersionedParameterContext> createVersionedParameterContexts(final ProcessGroup processGroup, final Map<String, ParameterProviderReference> parameterProviderReferences) {
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         return mapper.mapParameterContexts(processGroup, false, parameterProviderReferences);
     }
 
@@ -5632,7 +6146,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new NiFiCoreException("Failed to retrieve flow with Flow Registry in order to calculate local differences due to " + e.getMessage(), e);
         }
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
@@ -5796,7 +6310,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(final String processGroupId, final RegisteredFlowSnapshot updatedSnapshot) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
@@ -6029,7 +6543,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             if (versionedIdOption.isPresent()) {
                 versionedId = versionedIdOption.get();
             } else {
-                versionedId = NiFiRegistryFlowMapper.generateVersionedComponentId(connectable.getIdentifier());
+                versionedId = VersionedComponentFlowMapper.generateVersionedComponentId(connectable.getIdentifier());
             }
 
             final List<Connectable> byVersionedId = destination.computeIfAbsent(versionedId, key -> new ArrayList<>());
@@ -6455,6 +6969,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case AccessPolicy -> authorizableLookup.getAccessPolicyById(sourceId);
                 case User, UserGroup -> authorizableLookup.getTenant();
                 case Label -> authorizableLookup.getLabel(sourceId);
+                case Connector -> authorizableLookup.getConnector(sourceId);
                 default -> throw new IllegalArgumentException("Unexpected Component: " + type);
             };
         } catch (final ResourceNotFoundException e) {
@@ -6522,7 +7037,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, PropertyHistoryDTO> propertyHistoryDtos = new LinkedHashMap<>();
         final Map<String, List<PreviousValue>> propertyHistory = auditService.getPreviousValues(componentId);
 
-        for (final Map.Entry<String, List<PreviousValue>> entry : propertyHistory.entrySet()) {
+        for (final Entry<String, List<PreviousValue>> entry : propertyHistory.entrySet()) {
             final List<PreviousValueDTO> previousValueDtos = new ArrayList<>();
 
             for (final PreviousValue previousValue : entry.getValue()) {
@@ -7044,6 +7559,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         componentTypesEntity.setParameterProviderTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ParameterProvider.class)));
         componentTypesEntity.setFlowRegistryClientTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, FlowRegistryClient.class)));
         componentTypesEntity.setFlowAnalysisRuleTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, FlowAnalysisRule.class)));
+        componentTypesEntity.setConnectorTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, Connector.class)));
         return componentTypesEntity;
     }
 
@@ -7242,8 +7758,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param extensionManager the extension manager to create the flow mapper with
      * @return a new NiFiRegistryFlowMapper instance
      */
-    protected NiFiRegistryFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
-        return new NiFiRegistryFlowMapper(extensionManager);
+    protected VersionedComponentFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+        return new VersionedComponentFlowMapper(extensionManager);
     }
 
     /**
@@ -7253,8 +7769,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param options          the flow mapping options
      * @return a new NiFiRegistryFlowMapper instance
      */
-    protected NiFiRegistryFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions options) {
-        return new NiFiRegistryFlowMapper(extensionManager, options);
+    protected VersionedComponentFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions options) {
+        return new VersionedComponentFlowMapper(extensionManager, options);
     }
 
     @Override
@@ -7350,6 +7866,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Autowired
+    public void setConnectorDAO(final ConnectorDAO connectorDAO) {
+        this.connectorDAO = connectorDAO;
+    }
+
+    @Autowired
     public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
         this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
     }
@@ -7357,6 +7878,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
+    }
+
+    @Autowired
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 
     @Autowired
@@ -7488,5 +8014,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public Set<String> filterComponents(final String groupId, final Function<ProcessGroup, Set<String>> getComponents) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         return getComponents.apply(processGroup);
+    }
+
+    @Override
+    public SecretsEntity getSecrets() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final List<Secret> secrets = controllerFacade.getAllSecrets();
+        final List<SecretDTO> secretDtos = secrets.stream()
+                .filter(secret -> isSecretAuthorized(secret, user))
+                .map(dtoFactory::createSecretDto)
+                .toList();
+        return entityFactory.createSecretsEntity(secretDtos);
+    }
+
+    private boolean isSecretAuthorized(final Secret secret, final NiFiUser user) {
+        if (secret instanceof AuthorizableSecret authorizableSecret) {
+            final AuthorizationResult result = authorizableSecret.checkAuthorization(authorizer, RequestAction.READ, user);
+            return Result.Approved.equals(result.getResult());
+        }
+        return true;
     }
 }

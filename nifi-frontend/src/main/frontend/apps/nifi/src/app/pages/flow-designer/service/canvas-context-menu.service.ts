@@ -887,7 +887,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     const selectionData = selection.datum();
                     this.store.dispatch(
                         navigateToProvenanceForComponent({
-                            id: selectionData.id
+                            id: selectionData.id,
+                            componentType: selectionData.type
                         })
                     );
                 }

@@ -59,6 +59,15 @@ public interface ProcessGroupDAO {
     ProcessGroup getProcessGroup(String groupId);
 
     /**
+     * Gets the specified process group, optionally including Connector-managed ProcessGroups in the search.
+     *
+     * @param groupId The process group id
+     * @param includeConnectorManaged Whether to search Connector-managed ProcessGroups
+     * @return The process group
+     */
+    ProcessGroup getProcessGroup(String groupId, boolean includeConnectorManaged);
+
+    /**
      * Gets all of the process groups.
      *
      * @param parentGroupId The parent group id

@@ -1,0 +1,103 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.mock.connector.server;
+
+import org.apache.nifi.components.DescribedValue;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.ConnectorValueReference;
+import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
+import org.apache.nifi.flow.VersionedExternalFlow;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
+public interface ConnectorTestRunner extends Closeable {
+    String SECRET_PROVIDER_ID = "TestRunnerSecretsManager";
+    String SECRET_PROVIDER_NAME = "TestRunnerSecretsManager";
+
+    void applyUpdate() throws FlowUpdateException;
+
+    void configure(String stepName, StepConfiguration configuration) throws FlowUpdateException;
+
+    void configure(String stepName, Map<String, String> propertyValues) throws FlowUpdateException;
+
+    void configure(String stepName, Map<String, String> propertyValues, Map<String, ConnectorValueReference> propertyReferences) throws FlowUpdateException;
+
+    SecretReference createSecretReference(String secretName);
+
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, Map<String, String> propertyValueOverrides);
+
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, Map<String, String> propertyValueOverrides, Map<String, ConnectorValueReference> referenceOverrides);
+
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, StepConfiguration configurationOverrides);
+
+    void addSecret(String name, String value);
+
+    AssetReference addAsset(File file);
+
+    AssetReference addAsset(String assetName, InputStream contents);
+
+    void startConnector();
+
+    void stopConnector();
+
+    void waitForDataIngested(Duration maxWaitTime);
+
+    void waitForIdle(Duration maxWaitTime);
+
+    void waitForIdle(Duration minimumIdleTime, Duration maxWaitTime);
+
+    List<ValidationResult> validate();
+
+    /**
+     * Returns the HTTP port on which the embedded Jetty server is listening, or -1 if no server is running.
+     *
+     * @return the HTTP port, or -1 if not applicable
+     */
+    default int getHttpPort() {
+        return -1;
+    }
+
+    List<DescribedValue> fetchAllowableValues(String stepName, String propertyName);
+
+    /*
+     * Returns a {@link VersionedExternalFlow} representing the current state of the Active Flow Context.
+     * The Active Flow Context is the flow that is currently running (or most recently ran) in the Connector.
+     * This is useful for making assertions about how the flow is configured after updates have been applied.
+     *
+     * @return the VersionedExternalFlow for the Active Flow Context
+     */
+    VersionedExternalFlow getActiveFlowSnapshot();
+
+    /**
+     * Returns a {@link VersionedExternalFlow} representing the current state of the Working Flow Context.
+     * The Working Flow Context is the flow that reflects configuration changes that have been made
+     * but not yet applied. This is useful for making assertions about how the flow will be configured
+     * once the update is applied.
+     *
+     * @return the VersionedExternalFlow for the Working Flow Context
+     */
+    VersionedExternalFlow getWorkingFlowSnapshot();
+}

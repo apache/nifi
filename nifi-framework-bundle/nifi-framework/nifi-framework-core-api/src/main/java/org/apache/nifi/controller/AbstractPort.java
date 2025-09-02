@@ -25,8 +25,10 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.groups.ProcessGroup;
@@ -95,6 +97,8 @@ public abstract class AbstractPort implements Port {
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
+
+    private final ConnectableFlowFileActivity flowFileActivity = new ConnectableFlowFileActivity();
 
     public AbstractPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler) {
         this.id = requireNonNull(id);
@@ -438,6 +442,7 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void onSchedulingStart() {
+        flowFileActivity.reset();
         scheduledState.set(ScheduledState.RUNNING);
         logger.info("{} started", this);
     }
@@ -736,5 +741,10 @@ public abstract class AbstractPort implements Port {
     @Override
     public void setPortFunction(final PortFunction portFunction) {
         this.portFunction.set(requireNonNull(portFunction));
+    }
+
+    @Override
+    public FlowFileActivity getFlowFileActivity() {
+        return flowFileActivity;
     }
 }

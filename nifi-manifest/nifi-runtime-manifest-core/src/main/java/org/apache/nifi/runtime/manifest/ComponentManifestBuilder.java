@@ -17,6 +17,7 @@
 package org.apache.nifi.runtime.manifest;
 
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -64,6 +65,12 @@ public interface ComponentManifestBuilder {
      * @return the builder
      */
     ComponentManifestBuilder addFlowRegistryClient(FlowRegistryClientDefinition flowRegistryClientDefinition);
+
+    /**
+     * @param connectorDefinition a connector definition to add
+     * @return the builder
+     */
+    ComponentManifestBuilder addConnector(ConnectorDefinition connectorDefinition);
 
     /**
      * @return a component manifest containing all the added definitions

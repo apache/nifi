@@ -290,6 +290,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
             case FLOW_ANALYSIS_RULE -> FLOW_ANALYSIS_RULE_BULLETIN_STORE_KEY;
             case PARAMETER_PROVIDER -> PARAMETER_PROVIDER_BULLETIN_STORE_KEY;
             case FLOW_REGISTRY_CLIENT -> FLOW_REGISTRY_CLIENT_STORE_KEY;
+            case CONNECTOR -> bulletin.getSourceId();
             default -> bulletin.getGroupId();
         };
     }

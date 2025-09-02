@@ -36,6 +36,13 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.Secret;
+import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -63,6 +70,7 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryUtil;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -75,7 +83,7 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.ComponentType;
@@ -85,6 +93,7 @@ import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
@@ -94,6 +103,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
+import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
@@ -102,10 +112,13 @@ import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
+import org.apache.nifi.web.dao.ComponentStateDAO;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.UserDAO;
@@ -325,7 +338,7 @@ public class StandardNiFiServiceFacadeTest {
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(extensionManager);
 
         final InstantiatedVersionedProcessGroup localRoot = new InstantiatedVersionedProcessGroup("local-root-instance", groupId);
@@ -511,7 +524,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // use spy to mock the make() method for generating a new flow mapper to make this testable
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(eq(extensionManager), any(FlowMappingOptions.class));
 
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
@@ -641,7 +654,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // use spy to mock the make() method for generating a new flow mapper to make this testable
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
 
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
@@ -701,7 +714,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // use spy to mock the make() method for generating a new flow mapper to make this testable
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
-        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
         when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
 
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = spy(new InstantiatedVersionedProcessGroup(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
@@ -1548,6 +1561,38 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
+    public void testSearchConnector() {
+        final String connectorId = "connector-id";
+        final String searchQuery = "test-search";
+        final String managedGroupId = "managed-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.getIdentifier()).thenReturn(managedGroupId);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        final SearchResultsDTO expectedResults = new SearchResultsDTO();
+        when(controllerFacade.searchConnector(searchQuery, managedProcessGroup)).thenReturn(expectedResults);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final SearchResultsDTO results = serviceFacade.searchConnector(connectorId, searchQuery);
+
+        assertNotNull(results);
+        verify(connectorDAO).getConnector(connectorId);
+        verify(connectorNode).getActiveFlowContext();
+        verify(flowContext).getManagedProcessGroup();
+        verify(controllerFacade).searchConnector(searchQuery, managedProcessGroup);
+    }
+
+    @Test
     public void testUpdateAllCountersWithEmptyCounters() {
         // Mock ControllerFacade to return empty list
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
@@ -1663,5 +1708,322 @@ public class StandardNiFiServiceFacadeTest {
 
         assertNotNull(result);
         assertEquals(0, result.getBulletinsCleared());
+    }
+
+    @Test
+    public void testGetSecretsFiltersUnauthorizedSecrets() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final AuthorizableSecret authorizedSecret = mock(AuthorizableSecret.class);
+        when(authorizedSecret.getProviderName()).thenReturn("provider1");
+        when(authorizedSecret.getGroupName()).thenReturn("group1");
+        when(authorizedSecret.getName()).thenReturn("authorized-secret");
+        when(authorizedSecret.getDescription()).thenReturn("An authorized secret");
+        when(authorizedSecret.checkAuthorization(any(Authorizer.class), any(), any())).thenReturn(AuthorizationResult.approved());
+
+        final AuthorizableSecret unauthorizedSecret = mock(AuthorizableSecret.class);
+        when(unauthorizedSecret.getProviderName()).thenReturn("provider2");
+        when(unauthorizedSecret.getGroupName()).thenReturn("group2");
+        when(unauthorizedSecret.getName()).thenReturn("unauthorized-secret");
+        when(unauthorizedSecret.getDescription()).thenReturn("An unauthorized secret");
+        when(unauthorizedSecret.checkAuthorization(any(Authorizer.class), any(), any())).thenReturn(AuthorizationResult.denied());
+
+        when(controllerFacade.getAllSecrets()).thenReturn(List.of(authorizedSecret, unauthorizedSecret));
+
+        final SecretsEntity result = serviceFacade.getSecrets();
+
+        assertNotNull(result);
+        assertNotNull(result.getSecrets());
+        assertEquals(1, result.getSecrets().size());
+        assertEquals("authorized-secret", result.getSecrets().get(0).getName());
+    }
+
+    @Test
+    public void testGetSecretsWithNonAuthorizableSecrets() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final Secret nonAuthorizableSecret = mock(Secret.class);
+        when(nonAuthorizableSecret.getProviderName()).thenReturn("provider1");
+        when(nonAuthorizableSecret.getGroupName()).thenReturn("group1");
+        when(nonAuthorizableSecret.getName()).thenReturn("non-authorizable-secret");
+        when(nonAuthorizableSecret.getDescription()).thenReturn("A non-authorizable secret");
+
+        when(controllerFacade.getAllSecrets()).thenReturn(List.of(nonAuthorizableSecret));
+
+        final SecretsEntity result = serviceFacade.getSecrets();
+
+        assertNotNull(result);
+        assertNotNull(result.getSecrets());
+        assertEquals(1, result.getSecrets().size());
+        assertEquals("non-authorizable-secret", result.getSecrets().get(0).getName());
+    }
+
+    @Test
+    public void testGetSecretsWithEmptyList() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        when(controllerFacade.getAllSecrets()).thenReturn(List.of());
+
+        final SecretsEntity result = serviceFacade.getSecrets();
+
+        assertNotNull(result);
+        assertNotNull(result.getSecrets());
+        assertTrue(result.getSecrets().isEmpty());
+    }
+
+    // -----------------
+    // Connector State Tests
+    // -----------------
+
+    @Test
+    public void testGetConnectorProcessorState() {
+        final String connectorId = "connector-id";
+        final String processorId = "processor-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final ComponentStateDAO componentStateDAO = mock(ComponentStateDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setComponentStateDAO(componentStateDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        final Processor processor = mock(Processor.class);
+        final StateMap localStateMap = mock(StateMap.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessor(processorId)).thenReturn(processorNode);
+        when(processorNode.getProcessor()).thenReturn(processor);
+        when(componentStateDAO.getState(processorNode, Scope.LOCAL)).thenReturn(localStateMap);
+
+        final ComponentStateDTO expectedDto = new ComponentStateDTO();
+        expectedDto.setComponentId(processorId);
+        when(dtoFactory.createComponentStateDTO(eq(processorId), eq(processor.getClass()), eq(localStateMap), any())).thenReturn(expectedDto);
+
+        final ComponentStateDTO result = serviceFacade.getConnectorProcessorState(connectorId, processorId);
+
+        assertNotNull(result);
+        assertEquals(processorId, result.getComponentId());
+        verify(connectorDAO).getConnector(connectorId);
+        verify(managedProcessGroup).findProcessor(processorId);
+        verify(componentStateDAO).getState(processorNode, Scope.LOCAL);
+    }
+
+    @Test
+    public void testGetConnectorProcessorStateNotFound() {
+        final String connectorId = "connector-id";
+        final String processorId = "non-existent-processor-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessor(processorId)).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorProcessorState(connectorId, processorId));
+    }
+
+    @Test
+    public void testVerifyCanClearConnectorProcessorState() {
+        final String connectorId = "connector-id";
+        final String processorId = "processor-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessor(processorId)).thenReturn(processorNode);
+
+        // Should not throw
+        serviceFacade.verifyCanClearConnectorProcessorState(connectorId, processorId);
+
+        verify(processorNode).verifyCanClearState();
+    }
+
+    @Test
+    public void testClearConnectorProcessorState() {
+        final String connectorId = "connector-id";
+        final String processorId = "processor-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final ComponentStateDAO componentStateDAO = mock(ComponentStateDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setComponentStateDAO(componentStateDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        final Processor processor = mock(Processor.class);
+        final StateMap localStateMap = mock(StateMap.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessor(processorId)).thenReturn(processorNode);
+        when(processorNode.getProcessor()).thenReturn(processor);
+        when(componentStateDAO.getState(processorNode, Scope.LOCAL)).thenReturn(localStateMap);
+
+        final ComponentStateDTO expectedDto = new ComponentStateDTO();
+        expectedDto.setComponentId(processorId);
+        when(dtoFactory.createComponentStateDTO(eq(processorId), eq(processor.getClass()), eq(localStateMap), any())).thenReturn(expectedDto);
+
+        final ComponentStateDTO result = serviceFacade.clearConnectorProcessorState(connectorId, processorId, null);
+
+        assertNotNull(result);
+        assertEquals(processorId, result.getComponentId());
+        verify(componentStateDAO).clearState(processorNode, null);
+    }
+
+    @Test
+    public void testGetConnectorControllerServiceState() {
+        final String connectorId = "connector-id";
+        final String controllerServiceId = "controller-service-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final ComponentStateDAO componentStateDAO = mock(ComponentStateDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setComponentStateDAO(componentStateDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
+        final ControllerService controllerService = mock(ControllerService.class);
+        final StateMap localStateMap = mock(StateMap.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(controllerServiceNode);
+        when(controllerServiceNode.getControllerServiceImplementation()).thenReturn(controllerService);
+        when(componentStateDAO.getState(controllerServiceNode, Scope.LOCAL)).thenReturn(localStateMap);
+
+        final ComponentStateDTO expectedDto = new ComponentStateDTO();
+        expectedDto.setComponentId(controllerServiceId);
+        when(dtoFactory.createComponentStateDTO(eq(controllerServiceId), eq(controllerService.getClass()), eq(localStateMap), any())).thenReturn(expectedDto);
+
+        final ComponentStateDTO result = serviceFacade.getConnectorControllerServiceState(connectorId, controllerServiceId);
+
+        assertNotNull(result);
+        assertEquals(controllerServiceId, result.getComponentId());
+        verify(connectorDAO).getConnector(connectorId);
+        verify(managedProcessGroup).findControllerService(controllerServiceId, false, true);
+        verify(componentStateDAO).getState(controllerServiceNode, Scope.LOCAL);
+    }
+
+    @Test
+    public void testGetConnectorControllerServiceStateNotFound() {
+        final String connectorId = "connector-id";
+        final String controllerServiceId = "non-existent-controller-service-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorControllerServiceState(connectorId, controllerServiceId));
+    }
+
+    @Test
+    public void testVerifyCanClearConnectorControllerServiceState() {
+        final String connectorId = "connector-id";
+        final String controllerServiceId = "controller-service-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(controllerServiceNode);
+
+        // Should not throw
+        serviceFacade.verifyCanClearConnectorControllerServiceState(connectorId, controllerServiceId);
+
+        verify(controllerServiceNode).verifyCanClearState();
+    }
+
+    @Test
+    public void testClearConnectorControllerServiceState() {
+        final String connectorId = "connector-id";
+        final String controllerServiceId = "controller-service-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final ComponentStateDAO componentStateDAO = mock(ComponentStateDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setComponentStateDAO(componentStateDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
+        final ControllerService controllerService = mock(ControllerService.class);
+        final StateMap localStateMap = mock(StateMap.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(controllerServiceNode);
+        when(controllerServiceNode.getControllerServiceImplementation()).thenReturn(controllerService);
+        when(componentStateDAO.getState(controllerServiceNode, Scope.LOCAL)).thenReturn(localStateMap);
+
+        final ComponentStateDTO expectedDto = new ComponentStateDTO();
+        expectedDto.setComponentId(controllerServiceId);
+        when(dtoFactory.createComponentStateDTO(eq(controllerServiceId), eq(controllerService.getClass()), eq(localStateMap), any())).thenReturn(expectedDto);
+
+        final ComponentStateDTO result = serviceFacade.clearConnectorControllerServiceState(connectorId, controllerServiceId, null);
+
+        assertNotNull(result);
+        assertEquals(controllerServiceId, result.getComponentId());
+        verify(componentStateDAO).clearState(controllerServiceNode, null);
     }
 }

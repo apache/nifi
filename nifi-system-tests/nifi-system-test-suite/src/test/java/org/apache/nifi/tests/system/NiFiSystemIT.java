@@ -89,6 +89,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public static final String TEST_PYTHON_EXTENSIONS_ARTIFACT_ID = "python-extensions";
     public static final String TEST_PARAM_PROVIDERS_PACKAGE = "org.apache.nifi.parameter.tests.system";
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
+    public static final String TEST_CONNECTORS_PACKAGE = "org.apache.nifi.connectors.tests.system";
     public static final String TEST_CS_PACKAGE = "org.apache.nifi.cs.tests.system";
     public static final String TEST_REPORTING_TASK_PACKAGE = "org.apache.nifi.reporting";
     public static final String TEST_FLOW_ANALYSIS_RULE_PACKAGE = "org.apache.nifi.flowanalysis";
@@ -260,12 +261,14 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getClientUtil().disableControllerLevelServices();
         getClientUtil().disableFlowAnalysisRules();
         getClientUtil().stopTransmitting("root");
+        getClientUtil().stopConnectors();
         getClientUtil().deleteAll("root");
         getClientUtil().deleteControllerLevelServices();
         getClientUtil().deleteReportingTasks();
         getClientUtil().deleteFlowAnalysisRules();
         getClientUtil().deleteParameterContexts();
         getClientUtil().deleteParameterProviders();
+        getClientUtil().deleteConnectors();
 
         logger.info("Finished destroyFlow");
     }
@@ -464,6 +467,29 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         waitForQueueCountToMatch(connectionId, size -> size == queueSize, String.valueOf(queueSize));
 
         logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
+    }
+
+    protected void waitForConnectorMinQueueCount(final String connectorId, final int minQueueSize) throws InterruptedException {
+        logger.info("Waiting for Queue Count of at least {} in Connector {}", minQueueSize, connectorId);
+
+        waitFor(() -> {
+            try {
+                final ProcessGroupStatusEntity statusEntity = getNifiClient().getConnectorClient().getStatus(connectorId, true);
+                final int currentSize = statusEntity.getProcessGroupStatus().getAggregateSnapshot().getFlowFilesQueued();
+                logEverySecond("Current Queue Size for Connector {} = {}, Waiting for at least {}", connectorId, currentSize, minQueueSize);
+                return currentSize >= minQueueSize;
+            } catch (final Exception e) {
+                logger.error("Failed to get connector queue count", e);
+                return false;
+            }
+        });
+
+        logger.info("Queue Count for Connector {} is now at least {}", connectorId, minQueueSize);
+    }
+
+    protected int getConnectorQueuedFlowFileCount(final String connectorId) throws NiFiClientException, IOException {
+        final ProcessGroupStatusEntity statusEntity = getNifiClient().getConnectorClient().getStatus(connectorId, true);
+        return statusEntity.getProcessGroupStatus().getAggregateSnapshot().getFlowFilesQueued();
     }
 
     private void waitForQueueCountToMatch(final String connectionId, final Predicate<Integer> test, final String queueSizeDescription) throws InterruptedException {

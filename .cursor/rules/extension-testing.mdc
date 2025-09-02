@@ -1,0 +1,80 @@
+---
+description: Testing guidance for NiFi extensions (Processors, Controller Services, Connectors). Covers nifi-mock and TestRunner usage.
+alwaysApply: false
+---
+
+# Extension Testing
+
+This rule applies when writing tests for NiFi extensions: Processors, Controller Services, and Connectors.
+
+## Unit Tests
+
+Unit tests should be used to test individual classes and methods in isolation. This often
+will result in mocking dependency classes. However, if there already exists a Mock
+implementation of an interface or dependency class, it is preferred to use the existing
+Mock implementation. Similarly, for simple classes, it is preferable to make use of the
+real implementation of a class rather than creating a Mock implementation. We are infinitely
+more interested in having tests that are fast, reliable, correct, and easy to maintain than
+we are in having tests that adhere to strict and arbitrary definitions of what constitutes
+a "unit test."
+
+## Use nifi-mock
+
+Tests for extensions should always make use of the `nifi-mock` mocking framework. This is
+done through the `TestRunner` interface and its standard implementation, obtained via
+`TestRunners.newTestRunner(processor)`.
+
+The `TestRunner` provides methods for:
+- Setting property values (`setProperty`)
+- Enqueueing FlowFiles (`enqueue`)
+- Running the processor (`run`)
+- Asserting transfer to relationships (`assertTransferCount`, `assertAllFlowFilesTransferred`)
+- Validating processor configuration (`assertValid`, `assertNotValid`)
+- Asserting content and attributes of FlowFiles (`assertContentEquals`, `assertAttributeEquals`, etc.)
+
+## No System Tests for Extensions
+
+System tests are not expected for extensions. Extensions are tested at the unit level using
+`nifi-mock`. The `nifi-mock` framework provides sufficient isolation and simulation of the
+NiFi runtime environment.
+
+## What to Test
+
+- **Property validation:** If the extension has a custom Validator, it
+- **customValidate:** If the extension overrides the `customValidate` method, test that it correctly
+  validates the configuration and produces appropriate validation results.
+- **Relationship routing:** Verify that FlowFiles are routed to the correct relationship
+  based on input and configuration.
+- **Content transformation:** For processors that modify FlowFile content, verify that
+  output content matches expectations.
+- **Attribute handling:** Verify that expected attributes are set on output FlowFiles.
+- **Error handling:** Verify that error conditions (bad input, misconfiguration, simulated
+  failures) are handled correctly, typically by routing to a failure relationship.
+
+## What NOT to Test
+
+- **NiFi framework behavior:** Do not attempt to test the behavior of the NiFi framework itself.
+  For example, do not test that `session.commitAsync()` actually commits a transaction. Instead,
+  focus on testing that your extension behaves correctly when `commitAsync` is called, and trust
+  that the NiFi framework will handle the commit correctly.
+- **Validator behavior:** If a custom validator is used by an extension, that custom validator should
+  be tested separate as a unit test for the validator itself. However, if the extension point provides
+  a `customValidate` method, that should absolutely be tested as part of the extension's unit tests.
+- **The PropertyDescriptors that are returned:** Do not test that the `getSupportedPropertyDescriptors`
+  method returns the expected PropertyDescriptors. This is an anti-pattern because it does not properly
+  test that the extension abides by the contract of the API. For example, if a new PropertyDescriptor is
+  added whose default is to behave the same way as the old behavior, the test should absolutely pass.
+  However, if the test is written to expect a specific set of PropertyDescriptors, then the test will fail,
+  leading to confusion and unnecessary maintenance.
+
+## Controller Service Testing
+
+When a processor depends on a Controller Service, use `TestRunner.addControllerService`
+and `TestRunner.enableControllerService` to wire up either a real or mock implementation
+of the service for testing.
+
+## TestContainers
+
+For Processors that interact with external systems, it can be helpful to use TestContainers to spin up
+a temporary instance of the external system for testing. This allows for more realistic integration tests
+without requiring the user to have the external system installed and running on their machine.

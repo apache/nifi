@@ -1,0 +1,419 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.toolkit.client;
+
+import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+
+/**
+ * Client for interacting with the Connector REST endpoints.
+ */
+public interface ConnectorClient {
+
+    /**
+     * Creates a new connector.
+     *
+     * @param connectorEntity the connector entity to create
+     * @return the created connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity createConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Gets a connector by ID.
+     *
+     * @param connectorId the connector ID
+     * @return the connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity getConnector(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Updates a connector.
+     *
+     * @param connectorEntity the connector entity with updates
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity updateConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Deletes a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the deleted connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity deleteConnector(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Deletes a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to delete
+     * @return the deleted connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity deleteConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Starts a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity startConnector(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Starts a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to start
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity startConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Stops a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity stopConnector(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Stops a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to stop
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity stopConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Initiates draining of FlowFiles for a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity drainConnector(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Initiates draining of FlowFiles for a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to drain
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity drainConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Cancels an ongoing drain operation for a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity cancelDrain(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Cancels an ongoing drain operation for a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to cancel draining for
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity cancelDrain(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the configuration step names for a connector.
+     *
+     * @param connectorId the connector ID
+     * @return the configuration step names entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConfigurationStepNamesEntity getConfigurationSteps(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets a specific configuration step for a connector.
+     *
+     * @param connectorId the connector ID
+     * @param configurationStepName the configuration step name
+     * @return the configuration step entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConfigurationStepEntity getConfigurationStep(String connectorId, String configurationStepName) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the allowable values for a property in a configuration step.
+     *
+     * @param connectorId the connector ID
+     * @param configurationStepName the configuration step name
+     * @param propertyGroupName the property group name
+     * @param propertyName the property name
+     * @param filter optional filter for the allowable values
+     * @return the allowable values entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorPropertyAllowableValuesEntity getPropertyAllowableValues(String connectorId, String configurationStepName,
+            String propertyGroupName, String propertyName, String filter) throws NiFiClientException, IOException;
+
+    /**
+     * Updates a configuration step for a connector.
+     *
+     * @param configurationStepEntity the configuration step entity with updates
+     * @return the updated configuration step entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConfigurationStepEntity updateConfigurationStep(ConfigurationStepEntity configurationStepEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Submits a configuration step verification request.
+     *
+     * @param requestEntity the verification request entity
+     * @return the verification request entity with status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    VerifyConnectorConfigStepRequestEntity submitConfigStepVerificationRequest(VerifyConnectorConfigStepRequestEntity requestEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Gets a configuration step verification request.
+     *
+     * @param connectorId the connector ID
+     * @param configurationStepName the configuration step name
+     * @param requestId the verification request ID
+     * @return the verification request entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    VerifyConnectorConfigStepRequestEntity getConfigStepVerificationRequest(String connectorId, String configurationStepName,
+            String requestId) throws NiFiClientException, IOException;
+
+    /**
+     * Deletes a configuration step verification request.
+     *
+     * @param connectorId the connector ID
+     * @param configurationStepName the configuration step name
+     * @param requestId the verification request ID
+     * @return the deleted verification request entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    VerifyConnectorConfigStepRequestEntity deleteConfigStepVerificationRequest(String connectorId, String configurationStepName,
+            String requestId) throws NiFiClientException, IOException;
+
+    /**
+     * Applies an update to a connector.
+     *
+     * @param connectorEntity the connector entity with revision
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity applyUpdate(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the flow for the process group managed by a connector.
+     *
+     * @param connectorId the connector ID
+     * @return the process group flow entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ProcessGroupFlowEntity getFlow(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the flow for a specific process group within a connector's managed flow.
+     *
+     * @param connectorId the connector ID
+     * @param processGroupId the process group ID within the connector's managed flow
+     * @return the process group flow entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ProcessGroupFlowEntity getFlow(String connectorId, String processGroupId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the status for the process group managed by a connector.
+     *
+     * @param connectorId the connector ID
+     * @param recursive whether to include status for all descendant components
+     * @return the process group status entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ProcessGroupStatusEntity getStatus(String connectorId, boolean recursive) throws NiFiClientException, IOException;
+
+    /**
+     * Creates an asset in the given connector.
+     *
+     * @param connectorId the connector ID
+     * @param assetName the asset name
+     * @param file the file
+     * @return the created asset entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    AssetEntity createAsset(String connectorId, String assetName, File file) throws NiFiClientException, IOException;
+
+    /**
+     * Lists the assets for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @return the list of asset entities
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    AssetsEntity getAssets(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the content of the given asset.
+     *
+     * @param connectorId the connector ID
+     * @param assetId the asset ID
+     * @param outputDirectory the directory to write the asset content
+     * @return the path to the asset content
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    Path getAssetContent(String connectorId, String assetId, File outputDirectory) throws NiFiClientException, IOException;
+
+    /**
+     * Creates a request to purge all FlowFiles for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @return the drop request entity containing the purge request status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    DropRequestEntity createPurgeRequest(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the status of a purge request for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @param purgeRequestId the purge request ID
+     * @return the drop request entity containing the purge request status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    DropRequestEntity getPurgeRequest(String connectorId, String purgeRequestId) throws NiFiClientException, IOException;
+
+    /**
+     * Deletes (cancels) a purge request for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @param purgeRequestId the purge request ID
+     * @return the drop request entity containing the final purge request status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    DropRequestEntity deletePurgeRequest(String connectorId, String purgeRequestId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the state for a processor within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param processorId the processor ID
+     * @return the component state entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity getProcessorState(String connectorId, String processorId) throws NiFiClientException, IOException;
+
+    /**
+     * Clears the state for a processor within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param processorId the processor ID
+     * @return the component state entity after clearing
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity clearProcessorState(String connectorId, String processorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the state for a controller service within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param controllerServiceId the controller service ID
+     * @return the component state entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity getControllerServiceState(String connectorId, String controllerServiceId) throws NiFiClientException, IOException;
+
+    /**
+     * Clears the state for a controller service within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param controllerServiceId the controller service ID
+     * @return the component state entity after clearing
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity clearControllerServiceState(String connectorId, String controllerServiceId) throws NiFiClientException, IOException;
+
+    /**
+     * Indicates that mutable requests should indicate that the client has
+     * acknowledged that the node is disconnected.
+     */
+    void acknowledgeDisconnectedNode();
+}

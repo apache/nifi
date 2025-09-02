@@ -67,7 +67,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1102,7 +1102,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public Future<?> stopTransmitting() {
+    public CompletableFuture<Void> stopTransmitting() {
         writeLock.lock();
         try {
             verifyCanStopTransmitting();
@@ -1117,13 +1117,15 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
             configuredToTransmit.set(false);
 
-            return scheduler.submitFrameworkTask(this::waitForPortShutdown);
+            final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+            scheduler.submitFrameworkTask(() -> waitForPortShutdown(completableFuture));
+            return completableFuture;
         } finally {
             writeLock.unlock();
         }
     }
 
-    private void waitForPortShutdown() {
+    private void waitForPortShutdown(final CompletableFuture<Void> completableFuture) {
         // Wait for the ports to stop
         try {
             for (final RemoteGroupPort port : getInputPorts()) {
@@ -1149,6 +1151,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
         } finally {
             transmitting.set(false);
+            completableFuture.complete(null);
         }
     }
 

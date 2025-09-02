@@ -1,0 +1,107 @@
+---
+description: Development patterns for NiFi extensions (Processors, Controller Services, Connectors). Covers Property Descriptors, Relationships, and common patterns.
+alwaysApply: false
+---
+
+# Extension Development
+
+This rule applies when developing NiFi extensions: Processors, Controller Services, and Connectors.
+
+## Property Descriptors
+
+Property Descriptors are defined as `static final` fields on the component class using
+`PropertyDescriptor.Builder`.
+
+- **Naming:** Use clear, descriptive names. The `displayName` field should never be used. Make the
+  name itself clear and concise. Use Title Case for property names.
+- **Required vs. optional:** Mark properties as `.required(true)` when the component cannot
+  function without them. Prefer sensible defaults via `.defaultValue(...)` when possible.
+  When a default value is provided, the property will always have a value. The `required` flag in this
+  case is more of a documentation aid to indicate the importance of the property.
+- **Validators:** Always attach an appropriate `Validator` (e.g., `StandardValidators.NON_EMPTY_VALIDATOR`,
+  `StandardValidators.POSITIVE_INTEGER_VALIDATOR`). The Validator can be left off only when Allowable Values
+  are provided. In this case, do not include a Validator because it is redundant and confusing.
+- **Expression Language:** If a property should support Expression Language, add
+  `.expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)` or the
+  appropriate scope. Always document when Expression Language is supported in the property
+  description. Some developers tend to go overboard here and feel like Expression Language should be supported
+  everywhere, but this is a mistake! The default assumption should be that Expression Language is not supported
+  unless the value is expected to be different for every FlowFile that is processed.
+- **Dependencies:** Use `.dependsOn(...)` to conditionally show properties based on the
+  values of other properties. This keeps the configuration UI clean and avoids exposing
+  irrelevant properties. If there is a dependency, it is important to understand that `.required(true)` means that
+  this property is required IF AND ONLY IF the dependency condition is met.
+
+## Processors
+
+- The `onTrigger` method should be focused on processing FlowFiles. Keep setup and teardown
+  logic in lifecycle methods when possible.
+- Prefer `session.read()` and `session.write()` with callbacks over directly working with
+  streams to ensure proper resource management.
+- Prefer `session.commitAsync()` over `session.commit()`. The `commit` method was the original implementation,
+  but it has now been deprecated in favor of `commitAsync`. The `commitAsync` call provide a clearer, cleaner
+  interface for handling post-commit actions including success and failure callbacks. In addition, the async
+  method allows Processors to be used much more efficiently in a Stateless NiFi flow.
+
+### Processor Lifecycle Annotations
+
+- Use `@OnScheduled` for setup that should happen once before the processor starts
+  running (e.g., creating clients, compiling patterns).
+- Use `@OnStopped` for cleanup (e.g., closing clients, releasing resources).
+- `@OnUnscheduled` is rarely used but can be used to interrupt long-running processes when the Processor is stopped.
+  Generally, though, it is preferable to write the Processor in such a way that long-running processes check `isScheduled()`
+  and stop gracefully if the return value is `false`.
+
+### Relationships
+- **Declaration**: Relationships are defined as `static final` fields using `new Relationship.Builder()`.
+  Relationship names should generally be lowercase.
+- **Success and Failure:** Most processors define at least a `success` and `failure`
+  relationship. Use `REL_SUCCESS` and `REL_FAILURE` as constant names.
+- **Original relationship:** Processors that enrich or fork FlowFiles often include an
+  `original` relationship for the unmodified input FlowFile.
+
+### Use Case Documentation
+The `@UseCase` and `@MultiProcessorUseCase` annotations help document common usage patterns for Processors.
+This is helpful for users to understand when and how to use the component effectively. It is equally important
+for Agents that can determine which components should be used for a given task.
+
+- Use `@UseCase` to document common use cases for the Processor. This helps users understand
+  when and how to use the component effectively. This is unnecessary for Processors that serve a single use case
+  that is clearly described by the component name and description. For example, a Processor that consumes messages
+  from a specific service likely does not need a `@UseCase` annotation because its purpose is clear.
+- Use `@MultiProcessorUseCase` to document well-known patterns that involve multiple Processors working
+  together to achieve a common goal. Examples include List/Fetch patterns, Fork/Join patterns, etc.
+  The `@MultiProcessorUseCase` annotation should not be added to each individual Processor involved in the pattern.
+  Rather, the convention is to add the annotation to the last Processor in the flow that completes the pattern.
+  Some Processors will have one or more `@UseCase` annotations and no `@MultiProcessorUseCase` annotations,
+  while some will have one or more `@MultiProcessorUseCase` annotations and no `@UseCase` annotations.
+
+
+## Controller Services
+
+Controller Services are objects that can be shared across multiple components. This is typically done for
+clients that connect to external systems in order to avoid creating many connections, or in order to share
+configuration across multiple components without the user having to duplicate configuration. Controller Services
+can also be helpful for abstracting away some piece of functionality into a separate extension point so that the
+implementation can be swapped out by the user. For example, Record Readers and Writers are implemented as Controller
+Services so that the user can simply choose which format they want to read and write in a flexible and reusable way.
+
+That said, Controller Services can be more onerous to configure and maintain for the user, so they should
+be used sparingly and only when there is a clear benefit to doing so.
+
+### Controller Service Lifecycle Annotations
+
+- Use `@OnScheduled` for setup that should happen once before the service is enabled (e.g., creating clients, compiling patterns).
+- Use `@OnDisabled` for cleanup (e.g., closing clients, releasing resources).
+
+
+## General Patterns
+
+- Use `ComponentLog` (obtained via `getLogger()`) for all logging, not SLF4J directly.
+  This ensures log messages are associated with the component instance and that they generate Bulletins.
+- Use `@CapabilityDescription` to provide a clear and concise description of what the component does. This should not
+  be used for configuration details.
+- Use `@Tags` to provide relevant keywords that help users find the component.
+- Use `@SeeAlso` to reference related components.
+- Use `@WritesAttributes` and `@ReadsAttributes` to document which FlowFile attributes are read and written by the component.
+- Use `@DynamicProperty` to document any dynamic properties supported by the component.

@@ -33,6 +33,7 @@ public class ComponentManifest implements Serializable {
     private List<ParameterProviderDefinition> parameterProviders;
     private List<FlowRegistryClientDefinition> flowRegistryClients;
     private List<FlowAnalysisRuleDefinition> flowAnalysisRules;
+    private List<ConnectorDefinition> connectors;
 
     @Schema(description = "Public interfaces defined in this bundle")
     public List<DefinedType> getApis() {
@@ -95,6 +96,15 @@ public class ComponentManifest implements Serializable {
 
     public void setFlowRegistryClients(List<FlowRegistryClientDefinition> flowRegistryClients) {
         this.flowRegistryClients = flowRegistryClients;
+    }
+
+    @Schema(description = "Connectors provided in this bundle")
+    public List<ConnectorDefinition> getConnectors() {
+        return (connectors != null ? Collections.unmodifiableList(connectors) : null);
+    }
+
+    public void setConnectors(List<ConnectorDefinition> connectors) {
+        this.connectors = connectors;
     }
 
 }

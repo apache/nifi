@@ -27,6 +27,7 @@ import org.apache.nifi.asset.AssetReferenceLookup;
 import org.apache.nifi.asset.StandardAssetManager;
 import org.apache.nifi.asset.StandardAssetManagerInitializationContext;
 import org.apache.nifi.asset.StandardAssetReferenceLookup;
+import org.apache.nifi.asset.StandardConnectorAssetManager;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -48,6 +49,20 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.components.ClassLoaderAwarePythonBridge;
+import org.apache.nifi.components.connector.ConnectorConfigurationProvider;
+import org.apache.nifi.components.connector.ConnectorConfigurationProviderInitializationContext;
+import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
+import org.apache.nifi.components.connector.ConnectorRequestReplicator;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
+import org.apache.nifi.components.connector.StandardConnectorConfigurationProviderInitializationContext;
+import org.apache.nifi.components.connector.StandardConnectorRepoInitializationContext;
+import org.apache.nifi.components.connector.StandardConnectorRepository;
+import org.apache.nifi.components.connector.StandardConnectorValidationTrigger;
+import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.components.connector.secrets.SecretsManagerInitializationContext;
+import org.apache.nifi.components.connector.secrets.StandardSecretsManagerInitializationContext;
 import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
@@ -190,7 +205,7 @@ import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -266,6 +281,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String DEFAULT_PROVENANCE_REPO_IMPLEMENTATION = "org.apache.nifi.provenance.VolatileProvenanceRepository";
     public static final String DEFAULT_SWAP_MANAGER_IMPLEMENTATION = "org.apache.nifi.controller.FileSystemSwapManager";
     public static final String DEFAULT_ASSET_MANAGER_IMPLEMENTATION = StandardAssetManager.class.getName();
+    public static final String DEFAULT_CONNECTOR_ASSET_MANAGER_IMPLEMENTATION = StandardConnectorAssetManager.class.getName();
+    public static final String DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION = StandardConnectorRepository.class.getName();
+    public static final String DEFAULT_SECRETS_MANAGER_IMPLEMENTATION = ParameterProviderSecretsManager.class.getName();
 
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
@@ -281,6 +299,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final ProvenanceRepository provenanceRepository;
     private final BulletinRepository bulletinRepository;
     private final AssetManager assetManager;
+    private final AssetManager connectorAssetManager;
     private final LifecycleStateManager lifecycleStateManager;
     private final StandardProcessScheduler processScheduler;
     private final SnippetManager snippetManager;
@@ -300,6 +319,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
     private final RevisionManager revisionManager;
+    private final ConnectorRepository connectorRepository;
 
     private final ConnectionLoadBalanceServer loadBalanceServer;
     private final NioAsyncLoadBalanceClientRegistry loadBalanceClientRegistry;
@@ -328,6 +348,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final FlowEngine validationThreadPool;
     private final FlowEngine flowAnalysisThreadPool;
     private final ValidationTrigger validationTrigger;
+    private final ConnectorValidationTrigger connectorValidationTrigger;
     private final ReloadComponent reloadComponent;
     private final VerifiableComponentFactory verifiableComponentFactory;
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
@@ -338,6 +359,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final RepositoryContextFactory repositoryContextFactory;
     private final RingBufferGarbageCollectionLog gcLog;
     private final Optional<FlowEngine> longRunningTaskMonitorThreadPool;
+
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -413,7 +435,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ExtensionDiscoveringManager extensionManager,
             final StatusHistoryRepository statusHistoryRepository,
             final RuleViolationsManager ruleViolationsManager,
-            final StateManagerProvider stateManagerProvider
+            final StateManagerProvider stateManagerProvider,
+            final ConnectorRequestReplicator connectorRequestReplicator
     ) {
 
         return new FlowController(
@@ -434,7 +457,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 null,
                 statusHistoryRepository,
                 ruleViolationsManager,
-                stateManagerProvider
+                stateManagerProvider,
+                connectorRequestReplicator
         );
     }
 
@@ -455,7 +479,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository,
             final RuleViolationsManager ruleViolationsManager,
-            final StateManagerProvider stateManagerProvider
+            final StateManagerProvider stateManagerProvider,
+            final ConnectorRequestReplicator connectorRequestReplicator
     ) {
 
         return new FlowController(
@@ -476,7 +501,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 revisionManager,
                 statusHistoryRepository,
                 ruleViolationsManager,
-                stateManagerProvider
+                stateManagerProvider,
+                connectorRequestReplicator
         );
     }
 
@@ -498,7 +524,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository,
             final RuleViolationsManager ruleViolationsManager,
-            final StateManagerProvider stateManagerProvider
+            final StateManagerProvider stateManagerProvider,
+            final ConnectorRequestReplicator connectorRequestReplicator
     ) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
@@ -567,21 +594,26 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         lifecycleStateManager = new StandardLifecycleStateManager();
+        reloadComponent = new StandardReloadComponent(this);
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, stateManagerProvider, this.nifiProperties, lifecycleStateManager);
 
         parameterContextManager = new StandardParameterContextManager();
         final long maxAppendableBytes = getMaxAppendableBytes();
-        repositoryContextFactory = new RepositoryContextFactory(
-                contentRepository,
-                flowFileRepository,
-                flowFileEventRepository,
-                counterRepositoryRef.get(),
-                getComponentMetricReporter(),
-                provenanceRepository,
-                stateManagerProvider,
-                maxAppendableBytes
+        repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository,
+            counterRepositoryRef.get(), componentMetricReporter, provenanceRepository, stateManagerProvider, maxAppendableBytes);
+
+        assetManager = createAssetManager(
+            nifiProperties,
+            NiFiProperties.ASSET_MANAGER_IMPLEMENTATION,
+            NiFiProperties.ASSET_MANAGER_PREFIX,
+            DEFAULT_ASSET_MANAGER_IMPLEMENTATION
         );
-        assetManager = createAssetManager(nifiProperties);
+        connectorAssetManager = createAssetManager(
+            nifiProperties,
+            NiFiProperties.CONNECTOR_ASSET_MANAGER_IMPLEMENTATION,
+            NiFiProperties.CONNECTOR_ASSET_MANAGER_PREFIX,
+            DEFAULT_CONNECTOR_ASSET_MANAGER_IMPLEMENTATION
+        );
 
         this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
         if (ruleViolationsManager != null) {
@@ -602,9 +634,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 parameterContextManager
         );
 
+        connectorRequestReplicator.setFlowManager(flowManager);
+
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
-        controllerServiceResolver = new StandardControllerServiceResolver(authorizer, flowManager, new NiFiRegistryFlowMapper(extensionManager),
+        controllerServiceResolver = new StandardControllerServiceResolver(authorizer, flowManager, new VersionedComponentFlowMapper(extensionManager),
                 controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
+
+        final SecretsManager secretsManager = createSecretsManager(nifiProperties, extensionManager, flowManager);
+        final ConnectorConfigurationProvider connectorConfigurationProvider = createConnectorConfigurationProvider(nifiProperties, extensionManager, connectorAssetManager);
+        connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, connectorAssetManager, secretsManager, this, connectorRequestReplicator,
+            connectorConfigurationProvider);
 
         final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider);
         final ClassLoader pythonBridgeClassLoader = rawPythonBridge.getClass().getClassLoader();
@@ -658,7 +697,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
 
         this.snippetManager = new SnippetManager();
-        this.reloadComponent = new StandardReloadComponent(this);
         this.verifiableComponentFactory = new StandardVerifiableComponentFactory(this, this.nifiProperties);
 
         final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
@@ -668,6 +706,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         this.validationThreadPool = new FlowEngine(5, "Validate Components", true);
         this.validationTrigger = new StandardValidationTrigger(validationThreadPool, this::isInitialized);
+        this.connectorValidationTrigger = new StandardConnectorValidationTrigger(validationThreadPool, this::isInitialized);
 
         if (remoteInputSocketPort == null) {
             LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
@@ -858,7 +897,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return ResourceFactory.getControllerResource();
     }
 
-    private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ExtensionManager extensionManager, final ResourceClaimManager contentClaimManager) {
+    private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ExtensionManager extensionManager, final ResourceClaimManager resourceClaimManager) {
         final String implementationClassName = properties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION, DEFAULT_FLOWFILE_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create FlowFile Repository because the NiFi Properties is missing the following property: "
@@ -868,13 +907,120 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         try {
             final FlowFileRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, FlowFileRepository.class, properties);
             synchronized (created) {
-                created.initialize(contentClaimManager);
+                created.initialize(resourceClaimManager);
             }
 
             return created;
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static ConnectorRepository createConnectorRepository(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager,
+                final AssetManager assetManager, final SecretsManager secretsManager, final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator,
+                final ConnectorConfigurationProvider connectorConfigurationProvider) {
+
+        final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_REPOSITORY_IMPLEMENTATION, DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION);
+
+        try {
+            // Discover implementations of Connector Repository. This is not done at startup because the ConnectorRepository class is not
+            // provided in the list of standard extension points. This is due to the fact that ConnectorRepository lives in the nifi-framework-core-api, and
+            // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
+            final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorRepository.class, SecretsManager.class, ConnectorConfigurationProvider.class);
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), additionalExtensionTypes, true);
+            final ConnectorRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
+
+            final ConnectorRepositoryInitializationContext initializationContext = new StandardConnectorRepoInitializationContext(
+                flowManager,
+                extensionManager,
+                secretsManager,
+                assetManager,
+                nodeTypeProvider,
+                requestReplicator,
+                connectorConfigurationProvider
+            );
+
+            synchronized (created) {
+                // Ensure that any NAR dependencies are available when we initialize the ConnectorRepository
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "connector-repository")) {
+                    created.initialize(initializationContext);
+                }
+            }
+
+            LOG.info("Created Connector Repository of type {}", created.getClass().getSimpleName());
+
+            return created;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static SecretsManager createSecretsManager(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager) {
+        final String implementationClassName = properties.getProperty(NiFiProperties.SECRETS_MANAGER_IMPLEMENTATION, DEFAULT_SECRETS_MANAGER_IMPLEMENTATION);
+
+        try {
+            // Discover implementations of Secrets Manager. This is not done at startup because the SecretsManager class is not
+            // provided in the list of standard extension points. This is due to the fact that SecretsManager lives in the nifi-framework-core-api, and
+            // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(SecretsManager.class), true);
+            final SecretsManager created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, SecretsManager.class, properties);
+
+            final SecretsManagerInitializationContext initializationContext = new StandardSecretsManagerInitializationContext(flowManager);
+
+            synchronized (created) {
+                // Ensure that any NAR dependencies are available when we initialize the ConnectorRepository
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "secrets-manager")) {
+                    created.initialize(initializationContext);
+                }
+            }
+
+            LOG.info("Created Secrets Manager of type {}", created.getClass().getSimpleName());
+
+            return created;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static ConnectorConfigurationProvider createConnectorConfigurationProvider(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager,
+                final AssetManager connectorAssetManager) {
+        final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION);
+        if (implementationClassName == null || implementationClassName.isBlank()) {
+            LOG.info("No Connector Configuration Provider implementation configured; external connector configuration management is disabled");
+            return null;
+        }
+
+        try {
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(ConnectorConfigurationProvider.class), true);
+            final ConnectorConfigurationProvider created = NarThreadContextClassLoader.createInstance(
+                extensionManager, implementationClassName, ConnectorConfigurationProvider.class, properties);
+
+            final Map<String, String> initializationProperties = properties.getPropertiesWithPrefix(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX)
+                .entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> entry.getKey().substring(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX.length()),
+                    Map.Entry::getValue
+                ));
+
+            final ConnectorConfigurationProviderInitializationContext initializationContext =
+                new StandardConnectorConfigurationProviderInitializationContext(initializationProperties, connectorAssetManager);
+
+            synchronized (created) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "connector-configuration-provider")) {
+                    created.initialize(initializationContext);
+                }
+            }
+
+            LOG.info("Created Connector Configuration Provider of type {}", created.getClass().getSimpleName());
+
+            return created;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create Connector Configuration Provider", e);
+        }
+    }
+
+    public ConnectorRepository getConnectorRepository() {
+        return connectorRepository;
     }
 
     private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {
@@ -1192,7 +1338,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             Supplier<VersionedProcessGroup> rootProcessGroupSupplier = () -> {
                 ProcessGroup rootProcessGroup = getFlowManager().getRootGroup();
 
-                NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(getExtensionManager());
+                VersionedComponentFlowMapper mapper = FlowAnalysisUtil.createMapper(getExtensionManager());
 
                 InstantiatedVersionedProcessGroup versionedRootProcessGroup = mapper.mapNonVersionedProcessGroup(
                     rootProcessGroup,
@@ -1390,14 +1536,14 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
-    private AssetManager createAssetManager(final NiFiProperties properties) {
-        final String implementationClassName = properties.getProperty(NiFiProperties.ASSET_MANAGER_IMPLEMENTATION, DEFAULT_ASSET_MANAGER_IMPLEMENTATION);
+    private AssetManager createAssetManager(final NiFiProperties properties, final String implementationClassProperty, final String propertyPrefix, final String defaultImplementationClass) {
+        final String implementationClassName = properties.getProperty(implementationClassProperty, defaultImplementationClass);
 
         try {
             final AssetManager assetManager = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, AssetManager.class, properties);
             final AssetReferenceLookup assetReferenceLookup = new StandardAssetReferenceLookup(parameterContextManager);
-            final Map<String, String> relevantNiFiProperties = properties.getPropertiesWithPrefix(NiFiProperties.ASSET_MANAGER_PREFIX);
-            final int prefixLength = NiFiProperties.ASSET_MANAGER_PREFIX.length();
+            final Map<String, String> relevantNiFiProperties = properties.getPropertiesWithPrefix(propertyPrefix);
+            final int prefixLength = propertyPrefix.length();
             final Map<String, String> assetManagerProperties = relevantNiFiProperties.entrySet().stream()
                 .collect(Collectors.toMap(entry -> entry.getKey().substring(prefixLength), Map.Entry::getValue));
 
@@ -1415,9 +1561,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
 
                 @Override
-                public Asset createAsset(final String parameterContextId, final String assetName, final InputStream contents) throws IOException {
+                public Asset createAsset(final String ownerId, final String assetName, final InputStream contents) throws IOException {
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
-                        return assetManager.createAsset(parameterContextId, assetName, contents);
+                        return assetManager.createAsset(ownerId, assetName, contents);
+                    }
+                }
+
+                @Override
+                public Asset saveAsset(final String ownerId, final String assetId, final String assetName, final InputStream contents) throws IOException {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.saveAsset(ownerId, assetId, assetName, contents);
                     }
                 }
 
@@ -1429,16 +1582,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
 
                 @Override
-                public List<Asset> getAssets(final String parameterContextId) {
+                public List<Asset> getAssets(final String ownerId) {
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
-                        return assetManager.getAssets(parameterContextId);
+                        return assetManager.getAssets(ownerId);
                     }
                 }
 
                 @Override
-                public Asset createMissingAsset(final String parameterContextId, final String assetName) {
+                public Asset createMissingAsset(final String ownerId, final String assetName) {
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
-                        return assetManager.createMissingAsset(parameterContextId, assetName);
+                        return assetManager.createMissingAsset(ownerId, assetName);
                     }
                 }
 
@@ -1460,6 +1613,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public AssetManager getAssetManager() {
         return assetManager;
+    }
+
+    public AssetManager getConnectorAssetManager() {
+        return connectorAssetManager;
     }
 
     private ProvenanceRepository createProvenanceRepository(final NiFiProperties properties) {
@@ -1492,6 +1649,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public ValidationTrigger getValidationTrigger() {
         return validationTrigger;
+    }
+
+    public ConnectorValidationTrigger getConnectorValidationTrigger() {
+        return connectorValidationTrigger;
     }
 
     public PropertyEncryptor getEncryptor() {
@@ -1530,6 +1691,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public LifecycleStateManager getLifecycleStateManager() {
         return lifecycleStateManager;
     }
+
     public SnippetManager getSnippetManager() {
         return snippetManager;
     }
@@ -2075,7 +2237,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @return the process group or null if not group is found
      */
     private ProcessGroup lookupGroup(final String id) {
-        final ProcessGroup group = flowManager.getGroup(id);
+        final ProcessGroup group = flowManager.getGroup(id, null);
         if (group == null) {
             throw new IllegalStateException("No Group with ID " + id + " exists");
         }

@@ -99,6 +99,11 @@ public class AllowListClassLoader extends ClassLoader {
             return true;
         }
 
+        // TODO: Delete this
+        if (name.startsWith("org.mockito") || name.startsWith("net.bytebuddy") || name.startsWith("org.testcontainers")) {
+            return true;
+        }
+
         // If the class has a module whose name is allowed, allow it.
         // The module is obtained by calling Class.getModule(). However, that method is only available in Java 9.
         // Since this codebase must be Java 8 compatible we can't make that method call. So we use Reflection to determine

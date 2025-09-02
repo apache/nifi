@@ -17,9 +17,12 @@
 
 package org.apache.nifi.controller.queue;
 
+import java.util.concurrent.CompletableFuture;
+
 public class DropFlowFileRequest implements DropFlowFileStatus {
     private final String identifier;
     private final long submissionTime = System.currentTimeMillis();
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
     private volatile QueueSize originalSize;
     private volatile QueueSize currentSize;
@@ -85,6 +88,11 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return failureReason;
     }
 
+    @Override
+    public CompletableFuture<Void> getCompletionFuture() {
+        return completionFuture;
+    }
+
     public synchronized void setState(final DropFlowFileState state) {
         setState(state, null);
     }
@@ -93,6 +101,12 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         this.state = state;
         this.failureReason = explanation;
         this.lastUpdated = System.currentTimeMillis();
+
+        if (state == DropFlowFileState.CANCELED || state == DropFlowFileState.COMPLETE) {
+            completionFuture.complete(null);
+        } else if (state == DropFlowFileState.FAILURE) {
+            completionFuture.completeExceptionally(new RuntimeException(explanation));
+        }
     }
 
     public synchronized boolean cancel() {
@@ -101,6 +115,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         }
 
         this.state = DropFlowFileState.CANCELED;
+        completionFuture.complete(null);
         return true;
     }
 }

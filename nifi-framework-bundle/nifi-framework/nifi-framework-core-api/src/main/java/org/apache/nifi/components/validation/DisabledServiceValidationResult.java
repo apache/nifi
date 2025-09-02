@@ -19,7 +19,10 @@ package org.apache.nifi.components.validation;
 
 import org.apache.nifi.components.ValidationResult;
 
+import java.util.regex.Pattern;
+
 public class DisabledServiceValidationResult extends ValidationResult {
+    private static final Pattern MESSAGE_PATTERN = Pattern.compile("Controller Service with ID (.+) is disabled");
     private String serviceId;
 
     public DisabledServiceValidationResult(final String subject, final String serviceId) {
@@ -38,5 +41,16 @@ public class DisabledServiceValidationResult extends ValidationResult {
 
     public String getControllerServiceIdentifier() {
         return serviceId;
+    }
+
+    public static boolean isMatch(final ValidationResult result) {
+        if (result instanceof DisabledServiceValidationResult) {
+            return true;
+        }
+        if (result.isValid()) {
+            return false;
+        }
+
+        return MESSAGE_PATTERN.matcher(result.getExplanation()).matches();
     }
 }

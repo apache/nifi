@@ -40,13 +40,14 @@ class AssetsRestApiClient extends NiFiRestApiClient {
 
     private static final String NIFI_API_PATH_PART = "nifi-api";
     private static final String PARAMETER_CONTEXTS_PATH_PART = "parameter-contexts";
+    private static final String CONNECTORS_PATH_PART = "connectors";
     private static final String ASSETS_PATH_PART = "assets";
 
     public AssetsRestApiClient(final WebClientService webClientService, final String host, final int port, final boolean secure) {
         super(webClientService, host, port, secure);
     }
 
-    public AssetsEntity getAssets(final String parameterContextId) {
+    public AssetsEntity getParameterContextAssets(final String parameterContextId) {
         final URI requestUri = new StandardHttpUriBuilder()
                 .scheme(baseUri.getScheme())
                 .host(baseUri.getHost())
@@ -56,7 +57,7 @@ class AssetsRestApiClient extends NiFiRestApiClient {
                 .addPathSegment(parameterContextId)
                 .addPathSegment(ASSETS_PATH_PART)
                 .build();
-        logger.debug("Requesting Asset listing from {}", requestUri);
+        logger.debug("Requesting Parameter Context Asset listing from {}", requestUri);
 
         // Send the replicated header so that the cluster coordinator does not replicate the request, otherwise this call can happen when no nodes
         // are considered connected and result in a 500 exception that can't easily be differentiated from other unknown errors
@@ -68,7 +69,7 @@ class AssetsRestApiClient extends NiFiRestApiClient {
         return executeEntityRequest(requestUri, requestBodySpec, AssetsEntity.class);
     }
 
-    public InputStream getAssetContent(final String parameterContextId, final String assetId) {
+    public InputStream getParameterContextAssetContent(final String parameterContextId, final String assetId) {
         final URI requestUri = new StandardHttpUriBuilder()
                 .scheme(baseUri.getScheme())
                 .host(baseUri.getHost())
@@ -79,7 +80,53 @@ class AssetsRestApiClient extends NiFiRestApiClient {
                 .addPathSegment(ASSETS_PATH_PART)
                 .addPathSegment(assetId)
                 .build();
-        logger.debug("Getting asset content from {}", requestUri);
+        logger.debug("Getting Parameter Context asset content from {}", requestUri);
+
+        try {
+            final HttpResponseEntity response = webClientService.get()
+                    .uri(requestUri)
+                    .header(ACCEPT_HEADER, APPLICATION_OCTET_STREAM)
+                    .retrieve();
+            return getResponseBody(requestUri, response);
+        } catch (final WebClientServiceException e) {
+            throw new NiFiRestApiRetryableException(e.getMessage(), e);
+        }
+    }
+
+    public AssetsEntity getConnectorAssets(final String connectorId) {
+        final URI requestUri = new StandardHttpUriBuilder()
+                .scheme(baseUri.getScheme())
+                .host(baseUri.getHost())
+                .port(baseUri.getPort())
+                .addPathSegment(NIFI_API_PATH_PART)
+                .addPathSegment(CONNECTORS_PATH_PART)
+                .addPathSegment(connectorId)
+                .addPathSegment(ASSETS_PATH_PART)
+                .build();
+        logger.debug("Requesting Connector Asset listing from {}", requestUri);
+
+        // Send the replicated header so that the cluster coordinator does not replicate the request, otherwise this call can happen when no nodes
+        // are considered connected and result in a 500 exception that can't easily be differentiated from other unknown errors
+        final HttpRequestBodySpec requestBodySpec = webClientService.get()
+                .uri(requestUri)
+                .header(ACCEPT_HEADER, APPLICATION_JSON)
+                .header(REQUEST_REPLICATED_HEADER, Boolean.TRUE.toString());
+
+        return executeEntityRequest(requestUri, requestBodySpec, AssetsEntity.class);
+    }
+
+    public InputStream getConnectorAssetContent(final String connectorId, final String assetId) {
+        final URI requestUri = new StandardHttpUriBuilder()
+                .scheme(baseUri.getScheme())
+                .host(baseUri.getHost())
+                .port(baseUri.getPort())
+                .addPathSegment(NIFI_API_PATH_PART)
+                .addPathSegment(CONNECTORS_PATH_PART)
+                .addPathSegment(connectorId)
+                .addPathSegment(ASSETS_PATH_PART)
+                .addPathSegment(assetId)
+                .build();
+        logger.debug("Getting Connector asset content from {}", requestUri);
 
         try {
             final HttpResponseEntity response = webClientService.get()

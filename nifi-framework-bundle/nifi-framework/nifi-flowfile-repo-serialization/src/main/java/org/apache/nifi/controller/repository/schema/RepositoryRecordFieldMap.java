@@ -39,15 +39,16 @@ public class RepositoryRecordFieldMap implements Record {
     public Object getFieldValue(final String fieldName) {
         return switch (fieldName) {
             case RepositoryRecordSchema.ACTION_TYPE -> record.getType().name();
-            case RepositoryRecordSchema.RECORD_ID -> record.getFlowFileRecord().getId();
+            case RepositoryRecordSchema.RECORD_ID -> flowFile == null ? null : flowFile.getId();
             case RepositoryRecordSchema.SWAP_LOCATION -> record.getSwapLocation();
-            case FlowFileSchema.ATTRIBUTES -> flowFile.getAttributes();
-            case FlowFileSchema.ENTRY_DATE -> flowFile.getEntryDate();
-            case FlowFileSchema.FLOWFILE_SIZE -> flowFile.getSize();
-            case FlowFileSchema.LINEAGE_START_DATE -> flowFile.getLineageStartDate();
-            case FlowFileSchema.LINEAGE_START_INDEX -> flowFile.getLineageStartIndex();
-            case FlowFileSchema.QUEUE_DATE -> flowFile.getLastQueueDate();
-            case FlowFileSchema.QUEUE_DATE_INDEX -> flowFile.getQueueDateIndex();
+            case RepositoryRecordSchema.ORIGINAL_SWAP_LOCATION -> record.getOriginalSwapLocation();
+            case FlowFileSchema.ATTRIBUTES -> flowFile == null ? null : flowFile.getAttributes();
+            case FlowFileSchema.ENTRY_DATE -> flowFile == null ? null : flowFile.getEntryDate();
+            case FlowFileSchema.FLOWFILE_SIZE -> flowFile == null ? null : flowFile.getSize();
+            case FlowFileSchema.LINEAGE_START_DATE -> flowFile == null ? null : flowFile.getLineageStartDate();
+            case FlowFileSchema.LINEAGE_START_INDEX -> flowFile == null ? null : flowFile.getLineageStartIndex();
+            case FlowFileSchema.QUEUE_DATE -> flowFile == null ? null : flowFile.getLastQueueDate();
+            case FlowFileSchema.QUEUE_DATE_INDEX -> flowFile == null ? null : flowFile.getQueueDateIndex();
             case FlowFileSchema.CONTENT_CLAIM -> {
                 final ContentClaimFieldMap contentClaimFieldMap = record.getContentClaim() == null ? null
                         : new ContentClaimFieldMap(record.getContentClaim(), record.getClaimOffset(), contentClaimSchema);

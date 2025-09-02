@@ -36,6 +36,7 @@ public class NarDetailsEntity extends Entity {
     private Set<DocumentedTypeDTO> parameterProviderTypes;
     private Set<DocumentedTypeDTO> flowRegistryClientTypes;
     private Set<DocumentedTypeDTO> flowAnalysisRuleTypes;
+    private Set<DocumentedTypeDTO> connectorTypes;
 
     @Schema(description = "The NAR summary")
     public NarSummaryDTO getNarSummary() {
@@ -107,5 +108,14 @@ public class NarDetailsEntity extends Entity {
     @Schema(description = "The FlowAnalysisRule types contained in the NAR")
     public void setFlowAnalysisRuleTypes(final Set<DocumentedTypeDTO> flowAnalysisRuleTypes) {
         this.flowAnalysisRuleTypes = flowAnalysisRuleTypes;
+    }
+
+    @Schema(description = "The Connector types contained in the NAR")
+    public Set<DocumentedTypeDTO> getConnectorTypes() {
+        return connectorTypes;
+    }
+
+    public void setConnectorTypes(final Set<DocumentedTypeDTO> connectorTypes) {
+        this.connectorTypes = connectorTypes;
     }
 }

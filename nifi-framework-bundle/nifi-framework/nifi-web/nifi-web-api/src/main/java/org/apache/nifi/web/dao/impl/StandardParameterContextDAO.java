@@ -350,7 +350,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             if (parameter != null) {
                 final List<Asset> assets = parameter.getReferencedAssets() == null ? Collections.emptyList() : parameter.getReferencedAssets();
                 for (final Asset asset : assets) {
-                    if (!asset.getParameterContextIdentifier().equals(parameterContextDto.getId())) {
+                    if (!asset.getOwnerIdentifier().equals(parameterContextDto.getId())) {
                         throw new IllegalArgumentException(String.format("Parameter [%s] is not allowed to reference asset [%s] which does not belong to parameter context [%s]",
                                 parameter.getDescriptor().getName(), asset.getName(), parameterContextDto.getId()));
                     }

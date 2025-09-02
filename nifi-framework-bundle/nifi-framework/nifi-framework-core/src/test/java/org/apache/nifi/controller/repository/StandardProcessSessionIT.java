@@ -20,6 +20,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.BackoffMechanism;
@@ -199,6 +200,7 @@ public class StandardProcessSessionIT {
         when(connectable.getComponentType()).thenReturn("Unit Test Component");
         when(connectable.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
         when(connectable.getMaxBackoffPeriod()).thenReturn("1 sec");
+        when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
 
         Mockito.doAnswer((Answer<Set<Connection>>) invocation -> {
             final Object[] arguments = invocation.getArguments();
@@ -213,7 +215,7 @@ public class StandardProcessSessionIT {
         }).when(connectable).getConnections(Mockito.any(Relationship.class));
 
         when(connectable.getConnections()).thenReturn(new HashSet<>(connList));
-
+        when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
         contentRepo = new MockContentRepository();
         contentRepo.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         flowFileRepo = new MockFlowFileRepository(contentRepo);
@@ -2958,6 +2960,7 @@ public class StandardProcessSessionIT {
         when(connectable.getIdentifier()).thenReturn("connectable-1");
         when(connectable.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
         when(connectable.getComponentType()).thenReturn("Unit Test Component");
+        when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
 
         Mockito.doAnswer((Answer<Set<Connection>>) invocation -> {
             final Object[] arguments = invocation.getArguments();

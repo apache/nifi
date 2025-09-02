@@ -23,7 +23,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.junit.jupiter.api.Assertions;
@@ -64,7 +64,7 @@ class FlowAnalyzingRegistryClientNodeTest {
     FlowManager flowManager;
 
     @Mock
-    NiFiRegistryFlowMapper flowMapper;
+    VersionedComponentFlowMapper flowMapper;
 
     @Mock
     InstantiatedVersionedProcessGroup nonVersionedProcessGroup;
@@ -90,7 +90,7 @@ class FlowAnalyzingRegistryClientNodeTest {
     @BeforeEach
     public void setUp() {
         Mockito.when(versionedProcessGroup.getInstanceIdentifier()).thenReturn(INSTANCE_IDENTIFIER);
-        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(processGroup);
+        Mockito.when(flowManager.getGroup(Mockito.anyString(), Mockito.eq(null))).thenReturn(processGroup);
         Mockito.when(flowMapper.mapNonVersionedProcessGroup(Mockito.same(processGroup), Mockito.same(serviceProvider))).thenReturn(nonVersionedProcessGroup);
         Mockito.when(ruleViolation1.getEnforcementPolicy()).thenReturn(EnforcementPolicy.ENFORCE);
         Mockito.when(ruleViolation2.getEnforcementPolicy()).thenReturn(EnforcementPolicy.ENFORCE);

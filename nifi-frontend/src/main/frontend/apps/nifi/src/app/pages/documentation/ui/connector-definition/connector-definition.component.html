@@ -1,0 +1,209 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (connectorDefinitionState) {
+    @if (isInitialLoading(connectorDefinitionState)) {
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    } @else {
+        @if (connectorDefinitionState.connectorDefinition; as connectorDefinition) {
+            <div class="flex flex-col gap-y-4 p-4">
+                <h3 class="primary-color">
+                    {{ formatExtensionName(connectorDefinition.type) }} {{ connectorDefinition.version }}
+                </h3>
+                <div class="flex flex-col gap-y-4">
+                    @if (connectorDefinition.deprecated) {
+                        <div class="caution-color-background p-4 flex flex-col gap-y-2">
+                            @if (connectorDefinition.deprecationReason) {
+                                <div>{{ connectorDefinition.deprecationReason }}</div>
+                            } @else {
+                                <div>
+                                    Please be aware this connector is deprecated and may be removed in the near future.
+                                </div>
+                            }
+                            @if (connectorDefinition.deprecationAlternatives) {
+                                <div>
+                                    <div>See Alternatives</div>
+                                    <see-also [extensionTypes]="connectorDefinition.deprecationAlternatives"></see-also>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div>
+                        <div>Bundle</div>
+                        <div class="tertiary-color font-medium">
+                            {{ connectorDefinition.group }} | {{ connectorDefinition.artifact }}
+                        </div>
+                    </div>
+                    @if (connectorDefinition.typeDescription) {
+                        <div>
+                            <div>Description</div>
+                            <div class="tertiary-color font-medium">{{ connectorDefinition.typeDescription }}</div>
+                        </div>
+                    }
+                    @if (connectorDefinition.tags) {
+                        <div>
+                            <div>Tags</div>
+                            <div class="tertiary-color font-medium">
+                                {{ connectorDefinition.tags.join(', ') }}
+                            </div>
+                        </div>
+                    }
+                    @if (hasConfigurationSteps(connectorDefinition.configurationSteps)) {
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <h2>Configuration Steps</h2>
+                                <div>
+                                    <button
+                                        type="button"
+                                        mat-icon-button
+                                        class="primary-icon-button"
+                                        title="Expand All"
+                                        (click)="expandAllSteps()">
+                                        <i class="fa fa-expand fa-rotate-45"></i>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        mat-icon-button
+                                        class="primary-icon-button"
+                                        title="Collapse All"
+                                        (click)="collapseAllSteps()">
+                                        <i class="fa fa-compress fa-rotate-45"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <mat-accordion multi #stepsAccordion="matAccordion">
+                                @for (
+                                    step of connectorDefinition.configurationSteps;
+                                    track step.name;
+                                    let first = $first
+                                ) {
+                                    <mat-expansion-panel
+                                        [expanded]="first"
+                                        (afterExpand)="onStepExpanded(connectorDefinition, step)">
+                                        <mat-expansion-panel-header>
+                                            <mat-panel-title>{{ step.name }}</mat-panel-title>
+                                        </mat-expansion-panel-header>
+                                        <div class="flex flex-col gap-y-4">
+                                            @if (step.description) {
+                                                <div class="tertiary-color">{{ step.description }}</div>
+                                            }
+                                            @if (step.documented) {
+                                                <mat-expansion-panel [expanded]="true">
+                                                    <mat-expansion-panel-header>
+                                                        <mat-panel-title>Step Documentation</mat-panel-title>
+                                                    </mat-expansion-panel-header>
+                                                    <div class="step-documentation">
+                                                        @if (isStepDocumentationLoading(step.name)) {
+                                                            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+                                                        } @else if (getStepDocumentationError(step.name); as error) {
+                                                            <div>{{ error }}</div>
+                                                        } @else if (getStepDocumentation(step.name); as documentation) {
+                                                            <markdown [data]="documentation"></markdown>
+                                                        }
+                                                    </div>
+                                                </mat-expansion-panel>
+                                            }
+                                            @if (hasPropertyGroups(step.propertyGroups)) {
+                                                @for (group of step.propertyGroups; track group.name) {
+                                                    <div class="property-group flex flex-col gap-y-2 mb-4">
+                                                        <div class="flex justify-between items-center">
+                                                            <h4>{{ group.name }}</h4>
+                                                        </div>
+                                                        @if (group.description) {
+                                                            <div class="tertiary-color">
+                                                                {{ group.description }}
+                                                            </div>
+                                                        }
+                                                        @if (hasProperties(group.properties)) {
+                                                            <div class="flex justify-between items-center">
+                                                                <div class="tertiary-color">
+                                                                    In the list below required properties are shown with
+                                                                    an asterisk (*). Other properties are considered
+                                                                    optional.
+                                                                </div>
+                                                                <div>
+                                                                    <button
+                                                                        type="button"
+                                                                        mat-icon-button
+                                                                        class="primary-icon-button"
+                                                                        title="Expand All"
+                                                                        (click)="
+                                                                            expandAllProperties(propertiesAccordion)
+                                                                        ">
+                                                                        <i class="fa fa-expand fa-rotate-45"></i>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        mat-icon-button
+                                                                        class="primary-icon-button"
+                                                                        title="Collapse All"
+                                                                        (click)="
+                                                                            collapseAllProperties(propertiesAccordion)
+                                                                        ">
+                                                                        <i class="fa fa-compress fa-rotate-45"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <mat-accordion multi #propertiesAccordion="matAccordion">
+                                                                @for (
+                                                                    property of group.properties;
+                                                                    track property.name
+                                                                ) {
+                                                                    <mat-expansion-panel>
+                                                                        <mat-expansion-panel-header>
+                                                                            <mat-panel-title
+                                                                                [title]="formatPropertyTitle(property)">
+                                                                                {{ formatPropertyTitle(property) }}
+                                                                            </mat-panel-title>
+                                                                            <mat-panel-description
+                                                                                [title]="property.description">
+                                                                                {{ property.description }}
+                                                                            </mat-panel-description>
+                                                                        </mat-expansion-panel-header>
+                                                                        <connector-property-definition
+                                                                            [propertyDescriptor]="property"
+                                                                            [lookupProperty]="
+                                                                                lookupProperty(group.properties!)
+                                                                            "></connector-property-definition>
+                                                                    </mat-expansion-panel>
+                                                                }
+                                                            </mat-accordion>
+                                                        }
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    </mat-expansion-panel>
+                                }
+                            </mat-accordion>
+                        </div>
+                    }
+                    @if (connectorDefinition.seeAlso) {
+                        <div>
+                            <h2>See Also</h2>
+                            <see-also [extensionTypes]="connectorDefinition.seeAlso"></see-also>
+                        </div>
+                    }
+                </div>
+            </div>
+        } @else if (connectorDefinitionState.error) {
+            <div class="p-4">
+                {{ connectorDefinitionState.error }}
+            </div>
+        }
+    }
+}

@@ -34,11 +34,13 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.connectable.ProcessGroupFlowFileActivity;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -105,7 +107,7 @@ import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -138,6 +140,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -170,6 +173,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
     private static final SecureRandom randomGenerator = new SecureRandom();
+    private final String connectorId;
 
     private final ProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
@@ -196,6 +200,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
     private volatile int maxConcurrentTasks = 1;
     private volatile String statelessFlowTimeout = "1 min";
+    private volatile Authorizable explicitParentAuthorizable;
+    private final FlowFileActivity flowFileActivity = new ProcessGroupFlowFileActivity(this);
 
     private FlowFileConcurrency flowFileConcurrency = FlowFileConcurrency.UNBOUNDED;
     private volatile FlowFileGate flowFileGate = new UnboundedFlowFileGate();
@@ -225,7 +231,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
                                 final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory,
-                                final AssetManager assetManager) {
+                                final AssetManager assetManager, final String connectorId) {
 
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
@@ -239,6 +245,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.reloadComponent = reloadComponent;
         this.nodeTypeProvider = nodeTypeProvider;
         this.assetManager = assetManager;
+        this.connectorId = connectorId;
 
         name = new AtomicReference<>();
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -294,7 +301,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Authorizable getParentAuthorizable() {
-        return getParent();
+        return explicitParentAuthorizable == null ? getParent() : explicitParentAuthorizable;
     }
 
     @Override
@@ -330,6 +337,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         this.name.set(name);
         setLoggingAttributes();
+    }
+
+    @Override
+    public Optional<String> getConnectorIdentifier() {
+        return Optional.ofNullable(connectorId);
     }
 
     @Override
@@ -1574,6 +1586,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         aggregateDropFlowFileStatus.setState(null);
 
         AtomicBoolean processedAtLeastOne = new AtomicBoolean(false);
+        final List<CompletableFuture<Void>> completionFutures = new ArrayList<>();
 
         connections.stream()
             .map(Connection::getFlowFileQueue)
@@ -1581,10 +1594,21 @@ public final class StandardProcessGroup implements ProcessGroup {
             .forEach(additionalDropFlowFileStatus -> {
                 aggregate(aggregateDropFlowFileStatus, additionalDropFlowFileStatus);
                 processedAtLeastOne.set(true);
+                completionFutures.add(additionalDropFlowFileStatus.getCompletionFuture());
             });
 
         if (processedAtLeastOne.get()) {
             resultDropFlowFileStatus = aggregateDropFlowFileStatus;
+
+            // When all individual drop requests complete, mark the aggregate as complete
+            CompletableFuture.allOf(completionFutures.toArray(new CompletableFuture[0]))
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        aggregateDropFlowFileStatus.setState(DropFlowFileState.FAILURE, throwable.getMessage());
+                    } else {
+                        aggregateDropFlowFileStatus.setState(DropFlowFileState.COMPLETE);
+                    }
+                });
         } else {
             resultDropFlowFileStatus = null;
         }
@@ -1715,7 +1739,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Future<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
+    public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
         readLock.lock();
         try {
             if (getProcessor(processor.getIdentifier()) == null) {
@@ -1730,8 +1754,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             } else if (state == ScheduledState.RUNNING) {
                 return CompletableFuture.completedFuture(null);
             }
-
-            processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.startProcessor(processor, failIfStopping);
         } finally {
@@ -2095,7 +2117,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             return this;
         }
 
-        final ProcessGroup group = flowManager.getGroup(id);
+        final ProcessGroup group = flowManager.getGroup(id, getConnectorIdentifier().orElse(null));
         if (group == null) {
             return null;
         }
@@ -3842,16 +3864,22 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ComponentScheduler defaultComponentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
         final ComponentScheduler retainExistingStateScheduler = new RetainExistingStateComponentScheduler(this, defaultComponentScheduler);
 
-        final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
+        final FlowSynchronizationOptions.Builder flowSynchronizationBuilder = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(retainExistingStateScheduler)
             .ignoreLocalModifications(!verifyNotDirty)
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
             .updateGroupSettings(updateSettings)
-            .updateRpgUrls(false)
-            .propertyDecryptor(value -> null)
-            .build();
+            .updateRpgUrls(false);
+        // Connectors should not have encrypted values copied from versioned flow. However we do need to decrypt parameter references.
+        if (getConnectorIdentifier().isPresent()) {
+            flowSynchronizationBuilder.propertyDecryptor(value -> value);
+        } else {
+            flowSynchronizationBuilder.propertyDecryptor(value -> null);
+        }
+
+        final FlowSynchronizationOptions synchronizationOptions = flowSynchronizationBuilder.build();
 
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapSensitiveConfiguration(false)
@@ -3924,7 +3952,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // because this allows us to find the Controller Service when doing a Flow Diff.
             ancestorServiceIds = parentGroup.getControllerServices(true).stream()
                 .map(cs -> cs.getVersionedComponentId().orElse(
-                    NiFiRegistryFlowMapper.generateVersionedComponentId(cs.getIdentifier())))
+                    VersionedComponentFlowMapper.generateVersionedComponentId(cs.getIdentifier())))
                 .collect(Collectors.toSet());
         }
 
@@ -3969,7 +3997,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         try {
-            final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager);
+            final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager);
             final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowManager, false);
 
             final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
@@ -4542,6 +4570,48 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public String getStatelessFlowTimeout() {
         return statelessFlowTimeout;
+    }
+
+    @Override
+    public FlowFileActivity getFlowFileActivity() {
+        return flowFileActivity;
+    }
+
+    @Override
+    public void setExplicitParentAuthorizable(final Authorizable parent) {
+        this.explicitParentAuthorizable = parent;
+    }
+
+    @Override
+    public CompletableFuture<Void> purge() {
+        final CompletableFuture<Void> purgeFuture = new CompletableFuture<>();
+
+        Thread.ofVirtual().name("Purge " + this).start(() -> {
+            try {
+                stopProcessing().get();
+                controllerServiceProvider.disableControllerServicesAsync(getControllerServices(true)).get();
+                purgeQueues();
+                removeComponents(this);
+
+                purgeFuture.complete(null);
+            } catch (final Throwable t) {
+                purgeFuture.completeExceptionally(t);
+            }
+        });
+
+        return purgeFuture;
+    }
+
+    private void purgeQueues() throws ExecutionException, InterruptedException {
+        for (final Connection connection : getConnections()) {
+            final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
+            if (flowFileQueue.isEmpty()) {
+                continue;
+            }
+
+            final DropFlowFileStatus status = connection.getFlowFileQueue().dropFlowFiles("purge-queues-" + getIdentifier(), "Framework");
+            status.getCompletionFuture().get();
+        }
     }
 
     @Override

@@ -20,10 +20,8 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.components.validation.VerifiableComponentFactory;
@@ -31,6 +29,7 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.controller.MockStateManagerProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
@@ -45,7 +44,6 @@ import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.service.mock.ServiceC;
-import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -64,14 +62,12 @@ import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,41 +88,7 @@ import static org.mockito.Mockito.when;
 
 public class TestStandardControllerServiceProvider {
 
-    private static final StateManagerProvider stateManagerProvider = new StateManagerProvider() {
-        @Override
-        public StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
-            final StateManager stateManager = Mockito.mock(StateManager.class);
-            final StateMap emptyStateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty());
-            try {
-                Mockito.when(stateManager.getState(any(Scope.class))).thenReturn(emptyStateMap);
-            } catch (IOException e) {
-                throw new AssertionError();
-            }
-
-            return stateManager;
-        }
-
-        @Override
-        public void shutdown() {
-        }
-
-        @Override
-        public void enableClusterProvider() {
-        }
-
-        @Override
-        public void disableClusterProvider() {
-        }
-
-        @Override
-        public void onComponentRemoved(final String componentId) {
-        }
-
-        @Override
-        public boolean isClusterProviderEnabled() {
-            return false;
-        }
-    };
+    private static final StateManagerProvider stateManagerProvider = new MockStateManagerProvider();
 
     private static NiFiProperties niFiProperties;
     private static ExtensionDiscoveringManager extensionManager;

@@ -127,6 +127,16 @@ public interface FlowFileSwapManager {
     void purge();
 
     /**
+     * Deletes the swap file at the given location without updating the FlowFile Repository.
+     * This method is intended for use after the FlowFile Repository has already been updated
+     * to reflect that the FlowFiles are no longer in this swap file.
+     *
+     * @param swapLocation the location of the swap file to delete
+     * @throws IOException if unable to delete the swap file
+     */
+    void deleteSwapFile(String swapLocation) throws IOException;
+
+    /**
      * Returns the ID of the queue that the given swap file belongs to
      * @param swapLocation the swap location
      * @return the ID of the queue, or <code>null</code> if unknown

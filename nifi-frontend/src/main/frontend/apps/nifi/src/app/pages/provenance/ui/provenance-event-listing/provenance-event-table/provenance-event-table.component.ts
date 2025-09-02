@@ -338,12 +338,13 @@ export class ProvenanceEventTable implements AfterViewInit {
             return false;
         }
 
-        return !(event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port');
+        return !(event.componentType === 'Remote Output Port' || event.componentType === 'Remote Input Port');
     }
 
     goToClicked(event: ProvenanceEventSummary): void {
         this.goToEventSource({
             componentId: event.componentId,
+            componentType: event.componentType,
             groupId: event.groupId
         });
     }

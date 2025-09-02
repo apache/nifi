@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -30,6 +32,7 @@ import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterLookup;
 
 import java.util.List;
 import java.util.Map;
@@ -110,6 +113,20 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      * @return a CompletableFuture that can be used to wait for the service to finish enabling
      */
     CompletableFuture<Void> enable(ScheduledExecutorService scheduler, long administrativeYieldMillis, boolean completeExceptionallyOnFailure);
+
+    /**
+     * Enables this service using the provided ConfigurationContext, calling any method annotated with @OnEnabled and updating the state of the service.
+     * This allows enabling a service with temporary/override property values without modifying the service's configuration.
+     *
+     * @param scheduler implementation of {@link ScheduledExecutorService} used to initiate service enabling task as well as its retries
+     * @param administrativeYieldMillis the amount of milliseconds to wait for administrative yield
+     * @param completeExceptionallyOnFailure if the Controller Service cannot be enabled because it is invalid or throws an Exception from the @OnEnabled lifecycle method,
+     *                                       dictates whether the CompletableFuture should be completed exceptionally or not
+     * @param configurationContext the ConfigurationContext to use when enabling the service, or null to use the default
+     *
+     * @return a CompletableFuture that can be used to wait for the service to finish enabling
+     */
+    CompletableFuture<Void> enable(ScheduledExecutorService scheduler, long administrativeYieldMillis, boolean completeExceptionallyOnFailure, ConfigurationContext configurationContext);
 
     /**
      * Will disable this service. Disabling of the service typically means
@@ -238,9 +255,11 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      * @param logger a logger that can be used when performing verification
      * @param variables variables that can be used to resolve property values via Expression Language
      * @param extensionManager extension manager that is used for obtaining appropriate NAR ClassLoaders
+     * @param parameterLookup the parameter lookup used to resolve parameter references
      * @return a list of results indicating whether or not the given configuration is valid
      */
-    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, Map<String, String> variables, ExtensionManager extensionManager);
+    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, Map<String, String> variables, ExtensionManager extensionManager,
+        ParameterLookup parameterLookup);
 
     /**
      * Sets a new proxy and implementation for this node.
@@ -257,4 +276,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
+    String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ConfigurationContext configurationContext) throws InvocationFailedException;
+
+    List<ConnectorMethod> getConnectorMethods();
 }

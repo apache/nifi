@@ -31,13 +31,25 @@ public interface AssetManager {
 
     /**
      * Creates a new Asset with the given name and contents.
-     * @param parameterContextId the id of the parameter context
+     * @param ownerId the id of the resource that this asset belongs to
      * @param assetName the name of the asset
      * @param contents the contents of the asset
      * @return the created asset
      * @throws IOException if there is an error creating the asset
      */
-    Asset createAsset(String parameterContextId, String assetName, InputStream contents) throws IOException;
+    Asset createAsset(String ownerId, String assetName, InputStream contents) throws IOException;
+
+    /**
+     * Saves the given asset. If an asset already exists with the given identifier, the content will be replaced.
+     *
+     * @param ownerId the id of the resource that this asset belongs to
+     * @param assetId the identifier of the asset
+     * @param assetName the name of the asset
+     * @param contents the new contents of the asset
+     * @return the created or updated Asset
+     * @throws IOException if there is an error writing the asset
+     */
+    Asset saveAsset(String ownerId, String assetId, String assetName, InputStream contents) throws IOException;
 
     /**
      * Retrieves the Asset with the given id, if it exists.
@@ -47,22 +59,22 @@ public interface AssetManager {
     Optional<Asset> getAsset(String id);
 
     /**
-     * Retrieves the Assets that belong to the given parameter context.
-     * @param parameterContextId the id of the parameter context
-     * @return the list of assets for the given context
+     * Retrieves the Assets that belong to the given owner.
+     * @param ownerId the id of the owner resource
+     * @return the list of assets for the given owner
      */
-    List<Asset> getAssets(String parameterContextId);
+    List<Asset> getAssets(String ownerId);
 
     /**
-     * Creates an Asset with the given name and associates it with the given parameter context. If the asset already exists, it is returned. Otherwise, an asset is created
+     * Creates an Asset with the given name and associates it with the given owner. If the asset already exists, it is returned. Otherwise, an asset is created
      * but the underlying file is not created. This allows the asset to be referenced but any component that attempts to use the asset will still see a File that does not exist, which
      * will typically lead to an invalid component.
      *
-     * @param parameterContextId the id of the parameter context
+     * @param ownerId the id of the owner
      * @param assetName the name of the asset
      * @return the created asset
      */
-    Asset createMissingAsset(String parameterContextId, String assetName);
+    Asset createMissingAsset(String ownerId, String assetName);
 
     /**
      * Deletes the Asset with the given id, if it exists.

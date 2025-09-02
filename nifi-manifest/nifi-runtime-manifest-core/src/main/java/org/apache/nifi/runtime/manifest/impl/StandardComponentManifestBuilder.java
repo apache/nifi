@@ -17,6 +17,7 @@
 package org.apache.nifi.runtime.manifest.impl;
 
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -39,6 +40,7 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     private final List<ParameterProviderDefinition> parameterProviders = new ArrayList<>();
     private final List<FlowAnalysisRuleDefinition> flowAnalysisRules = new ArrayList<>();
     private final List<FlowRegistryClientDefinition> flowRegistryClients = new ArrayList<>();
+    private final List<ConnectorDefinition> connectors = new ArrayList<>();
 
     @Override
     public ComponentManifestBuilder addProcessor(final ProcessorDefinition processorDefinition) {
@@ -95,6 +97,15 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     }
 
     @Override
+    public ComponentManifestBuilder addConnector(final ConnectorDefinition connectorDefinition) {
+        if (connectorDefinition == null) {
+            throw new IllegalArgumentException("Connector definition cannot be null");
+        }
+        connectors.add(connectorDefinition);
+        return this;
+    }
+
+    @Override
     public ComponentManifest build() {
         final ComponentManifest componentManifest = new ComponentManifest();
         componentManifest.setProcessors(new ArrayList<>(processors));
@@ -103,6 +114,7 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
         componentManifest.setParameterProviders(new ArrayList<>(parameterProviders));
         componentManifest.setFlowAnalysisRules(new ArrayList<>(flowAnalysisRules));
         componentManifest.setFlowRegistryClients(new ArrayList<>(flowRegistryClients));
+        componentManifest.setConnectors(new ArrayList<>(connectors));
         return componentManifest;
     }
 

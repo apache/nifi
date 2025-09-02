@@ -1,0 +1,76 @@
+{
+  "flowContents": {
+    "identifier": "9caa5337-2e56-3711-a344-b29bce96d3e2",
+    "instanceIdentifier": "77e61da1-0199-1000-ffff-ffff90f30b8d",
+    "name": "Choose Color",
+    "comments": "",
+    "position": {
+      "x": 61.0,
+      "y": -181.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "2abf1573-d8ee-38ad-a745-083fdb1a8903",
+        "instanceIdentifier": "09b902c7-c4b7-3e92-8246-ef0a0bb685e7",
+        "name": "Choose Color",
+        "comments": "",
+        "position": {
+          "x": -355.5,
+          "y": -399.0
+        },
+        "type": "org.apache.nifi.components.connector.processors.ExposeFileValues",
+        "bundle": {
+          "group": "default",
+          "artifact": "system",
+          "version": "unversioned"
+        },
+        "properties": {
+        },
+        "propertyDescriptors": {
+        },
+        "style": {},
+        "schedulingPeriod": "1 min",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "9caa5337-2e56-3711-a344-b29bce96d3e2"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}

@@ -33,6 +33,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -43,6 +44,9 @@ import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.listen.ListenComponent;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -494,6 +498,18 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets the Connector types that this controller supports.
+     *
+     * @param bundleGroupFilter    if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter           if specified, type must match
+     * @return types
+     */
+    public Set<DocumentedTypeDTO> getConnectorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(Connector.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+    /**
      * Gets the FlowFileComparator types that this controller supports.
      *
      * @return the FlowFileComparator types that this controller supports
@@ -664,6 +680,29 @@ public class ControllerFacade implements Authorizable {
         return componentManifest.getFlowAnalysisRules().stream().filter(flowAnalysisRuleDefinition -> type.equals(flowAnalysisRuleDefinition.getType())).findFirst().orElse(null);
     }
 
+    public ConnectorDefinition getConnectorDefinition(final String group, final String artifact, final String version, final String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        final List<ConnectorDefinition> connectorDefinitions = componentManifest.getConnectors();
+        if (connectorDefinitions == null) {
+            return null;
+        }
+        final ConnectorDefinition connectorDefinition = connectorDefinitions.stream()
+                .filter(definition -> group.equals(definition.getGroup())
+                        && artifact.equals(definition.getArtifact())
+                        && version.equals(definition.getVersion())
+                        && type.equals(definition.getType()))
+                .findFirst()
+                .orElse(null);
+
+        if (connectorDefinition != null && connectorDefinition.getConfigurationSteps() != null) {
+            final Map<String, File> stepDocumentation = runtimeManifestService.discoverStepDocumentation(group, artifact, version, type);
+            final Set<String> documentedSteps = stepDocumentation.keySet();
+            connectorDefinition.getConfigurationSteps().forEach(step -> step.setDocumented(documentedSteps.contains(step.getName())));
+        }
+
+        return connectorDefinition;
+    }
+
     public String getAdditionalDetails(String group, String artifact, String version, String type) {
         final Map<String, File> additionalDetailsMap = runtimeManifestService.discoverAdditionalDetails(group, artifact, version);
         final File additionalDetailsFile = additionalDetailsMap.get(type);
@@ -677,6 +716,22 @@ public class ControllerFacade implements Authorizable {
         } catch (final IOException e) {
             throw new RuntimeException("Unable to load additional details content for "
                     + additionalDetailsFile.getAbsolutePath() + " due to: " + e.getMessage(), e);
+        }
+    }
+
+    public String getStepDocumentation(final String group, final String artifact, final String version, final String connectorType, final String stepName) {
+        final Map<String, File> stepDocsMap = runtimeManifestService.discoverStepDocumentation(group, artifact, version, connectorType);
+        final File stepDocFile = stepDocsMap.get(stepName);
+
+        if (stepDocFile == null) {
+            throw new ResourceNotFoundException("Unable to find step documentation for step [%s] in connector [%s]".formatted(stepName, connectorType));
+        }
+
+        try (final Stream<String> stepDocLines = Files.lines(stepDocFile.toPath())) {
+            return stepDocLines.collect(Collectors.joining("\n"));
+        } catch (final IOException e) {
+            throw new RuntimeException("Unable to load step documentation content for "
+                    + stepDocFile.getAbsolutePath() + " due to: " + e.getMessage(), e);
         }
     }
 
@@ -958,6 +1013,10 @@ public class ControllerFacade implements Authorizable {
         flowService.saveFlowChanges(TimeUnit.SECONDS, writeDelaySeconds);
     }
 
+    public void saveImmediate() throws IOException {
+        flowService.saveFlowChanges();
+    }
+
     /**
      * Returns the socket port that the local instance is listening on for
      * Site-to-Site communications
@@ -1013,6 +1072,9 @@ public class ControllerFacade implements Authorizable {
         resources.add(ResourceFactory.getResourceResource());
         resources.add(ResourceFactory.getSiteToSiteResource());
         resources.add(ResourceFactory.getParameterContextsResource());
+        resources.add(ResourceFactory.getConnectorsResource());
+        resources.add(ResourceFactory.getDataResource(ResourceFactory.getConnectorsResource()));
+        resources.add(ResourceFactory.getProvenanceDataResource(ResourceFactory.getConnectorsResource()));
 
         // add each parameter context
         flowController.getFlowManager().getParameterContextManager().getParameterContexts().forEach(parameterContext -> resources.add(parameterContext.getResource()));
@@ -1126,6 +1188,16 @@ public class ControllerFacade implements Authorizable {
             resources.add(flowRegistryResource);
             resources.add(ResourceFactory.getPolicyResource(flowRegistryResource));
             resources.add(ResourceFactory.getOperationResource(flowRegistryResource));
+        }
+
+        // add each connector
+        for (final ConnectorNode connector : flowController.getFlowManager().getAllConnectors()) {
+            final Resource connectorResource = connector.getResource();
+            resources.add(connectorResource);
+            resources.add(ResourceFactory.getDataResource(connectorResource));
+            resources.add(ResourceFactory.getProvenanceDataResource(connectorResource));
+            resources.add(ResourceFactory.getPolicyResource(connectorResource));
+            resources.add(ResourceFactory.getOperationResource(connectorResource));
         }
 
         return resources;
@@ -1791,7 +1863,9 @@ public class ControllerFacade implements Authorizable {
 
         final Connectable connectable = findLocalConnectable(dto.getComponentId());
         if (connectable != null) {
-            dto.setGroupId(connectable.getProcessGroup().getIdentifier());
+            final ProcessGroup connectableGroup = connectable.getProcessGroup();
+            dto.setGroupId(connectableGroup.getIdentifier());
+            connectableGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(connectable.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
@@ -1807,7 +1881,13 @@ public class ControllerFacade implements Authorizable {
 
         final RemoteGroupPort remoteGroupPort = root.findRemoteGroupPort(dto.getComponentId());
         if (remoteGroupPort != null) {
-            dto.setGroupId(remoteGroupPort.getProcessGroupIdentifier());
+            final String remoteGroupPortGroupId = remoteGroupPort.getProcessGroupIdentifier();
+            dto.setGroupId(remoteGroupPortGroupId);
+
+            final ProcessGroup remotePortGroup = root.findProcessGroup(remoteGroupPortGroupId);
+            if (remotePortGroup != null) {
+                remotePortGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
+            }
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(remoteGroupPort.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
@@ -1822,7 +1902,9 @@ public class ControllerFacade implements Authorizable {
 
         final Connection connection = root.findConnection(dto.getComponentId());
         if (connection != null) {
-            dto.setGroupId(connection.getProcessGroup().getIdentifier());
+            final ProcessGroup connectionGroup = connection.getProcessGroup();
+            dto.setGroupId(connectionGroup.getIdentifier());
+            connectionGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(connection.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
@@ -1917,6 +1999,24 @@ public class ControllerFacade implements Authorizable {
         return listenPorts;
     }
 
+    /**
+     * Searches within a connector's encapsulated process group for the specified term.
+     *
+     * @param searchLiteral search string specified by the user
+     * @param connectorProcessGroup the connector's managed process group to search within
+     * @return result
+     */
+    public SearchResultsDTO searchConnector(final String searchLiteral, final ProcessGroup connectorProcessGroup) {
+        final SearchResultsDTO results = new SearchResultsDTO();
+        final SearchQuery searchQuery = searchQueryParser.parse(searchLiteral, NiFiUserUtils.getNiFiUser(), connectorProcessGroup, connectorProcessGroup);
+
+        if (!StringUtils.isEmpty(searchQuery.getTerm())) {
+            controllerSearchService.search(searchQuery, results);
+        }
+
+        return results;
+    }
+
     public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
         flowController.verifyComponentTypesInSnippet(versionedFlow);
     }
@@ -1959,6 +2059,15 @@ public class ControllerFacade implements Authorizable {
 
     public VersionedReportingTaskImporter createReportingTaskImporter() {
         return new StandardVersionedReportingTaskImporter(flowController);
+    }
+
+    /**
+     * Gets all secrets from the SecretsManager.
+     *
+     * @return list of all secrets available from all secret providers
+     */
+    public List<Secret> getAllSecrets() {
+        return flowController.getConnectorRepository().getSecretsManager().getAllSecrets();
     }
 
     /*

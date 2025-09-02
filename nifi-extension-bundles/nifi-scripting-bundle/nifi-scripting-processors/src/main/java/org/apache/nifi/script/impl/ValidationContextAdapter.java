@@ -115,4 +115,9 @@ public abstract class ValidationContextAdapter implements ValidationContext {
     public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
         return innerValidationContext.isDependencySatisfied(propertyDescriptor, propertyDescriptorLookup);
     }
+
+    @Override
+    public String evaluateParameters(final String value) {
+        return innerValidationContext.evaluateParameters(value);
+    }
 }

@@ -135,11 +135,17 @@ public interface NiFiClient extends Closeable {
 
     SnippetClient getSnippetClient(RequestConfig requestConfig);
 
-    // ----- SnippetClient -----
+    // ----- SystemDiagnosticsClient -----
 
     SystemDiagnosticsClient getSystemsDiagnosticsClient();
 
     SystemDiagnosticsClient getSystemsDiagnosticsClient(RequestConfig requestConfig);
+
+    // ----- ConnectorClient -----
+
+    ConnectorClient getConnectorClient();
+
+    ConnectorClient getConnectorClient(RequestConfig requestConfig);
 
     /**
      * The builder interface that implementations should provide for obtaining the

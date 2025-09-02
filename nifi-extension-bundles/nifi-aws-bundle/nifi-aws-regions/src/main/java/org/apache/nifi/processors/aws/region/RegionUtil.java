@@ -100,7 +100,7 @@ public final class RegionUtil {
      *
      * @return All available AWS regions as AllowableValues.
      */
-    private static List<AllowableValue> getAwsRegionAllowableValues() {
+    public static List<AllowableValue> getAwsRegionAllowableValues() {
         final List<AllowableValue> values = new ArrayList<>();
         for (final Region region : Region.regions()) {
             values.add(createAwsRegionAllowableValue(region));

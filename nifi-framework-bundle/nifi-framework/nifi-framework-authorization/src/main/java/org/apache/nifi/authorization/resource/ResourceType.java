@@ -44,7 +44,8 @@ public enum ResourceType {
     Operation("/operation"),
     Tenant("/tenants"),
     ParameterContext("/parameter-contexts"),
-    ParameterProvider("/parameter-providers");
+    ParameterProvider("/parameter-providers"),
+    Connector("/connectors");
 
     final String value;
 

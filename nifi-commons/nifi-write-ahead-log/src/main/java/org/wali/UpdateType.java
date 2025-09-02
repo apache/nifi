@@ -45,5 +45,13 @@ public enum UpdateType {
      * Used to indicate that a Record that was previously Swapped Out is now
      * being Swapped In
      */
-    SWAP_IN;
+    SWAP_IN,
+    /**
+     * Used to indicate that a Swap File has been deleted
+     */
+    SWAP_FILE_DELETED,
+    /**
+     * Used to indicate that a Swap File has been renamed
+     */
+    SWAP_FILE_RENAMED;
 }
