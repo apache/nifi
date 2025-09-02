@@ -305,10 +305,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canGoToParameter(item: ParameterItem): boolean {
-        return (
-            item.originalEntity.parameter.inherited === true &&
-            item.originalEntity.parameter.parameterContext?.permissions.canRead == true
-        );
+        return this.canOverride(item) && item.originalEntity.parameter.parameterContext?.permissions.canRead == true;
     }
 
     getParameterLink(item: ParameterItem): string[] {
@@ -319,8 +316,12 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         return [];
     }
 
+    isOverridden(item: ParameterItem): boolean {
+        return item.originalEntity.parameter.inherited === true && item.updatedEntity !== undefined;
+    }
+
     canOverride(item: ParameterItem): boolean {
-        return item.originalEntity.parameter.inherited === true;
+        return item.originalEntity.parameter.inherited === true && item.updatedEntity === undefined;
     }
 
     overrideParameter(item: ParameterItem): void {
@@ -346,8 +347,13 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     canEdit(item: ParameterItem): boolean {
         const canWrite: boolean = item.originalEntity.canWrite == true;
         const provided: boolean = item.originalEntity.parameter.provided == true;
-        const inherited: boolean = item.originalEntity.parameter.inherited == true;
-        return canWrite && !provided && !inherited;
+
+        if (item.originalEntity.parameter.inherited) {
+            const overridden: boolean = this.isOverridden(item);
+            return canWrite && !provided && overridden;
+        }
+
+        return canWrite && !provided;
     }
 
     editClicked(item: ParameterItem): void {
@@ -423,8 +429,13 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     canDelete(item: ParameterItem): boolean {
         const canWrite: boolean = item.originalEntity.canWrite == true;
         const provided: boolean = item.originalEntity.parameter.provided == true;
-        const inherited: boolean = item.originalEntity.parameter.inherited == true;
-        return canWrite && !provided && !inherited;
+
+        if (item.originalEntity.parameter.inherited) {
+            const overridden: boolean = this.isOverridden(item);
+            return canWrite && !provided && overridden;
+        }
+
+        return canWrite && !provided;
     }
 
     deleteClicked(item: ParameterItem): void {
