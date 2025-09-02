@@ -155,6 +155,7 @@
                         <parameter-table
                             formControlName="parameters"
                             [canAddParameters]="!request.parameterContext?.component?.parameterProviderConfiguration"
+                            [inheritsParameters]="inheritsParameters(request.parameterContext?.component?.parameters)"
                             [createNewParameter]="createNewParameter"
                             [editParameter]="editParameter"></parameter-table>
                     </div>

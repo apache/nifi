@@ -16,7 +16,7 @@
  */
 
 import { AfterViewInit, ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -31,6 +31,8 @@ import { ParameterContextListingState } from '../../../state/parameter-context-l
 import { showOkDialog } from '../../../state/parameter-context-listing/parameter-context-listing.actions';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatLabel } from '@angular/material/select';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -54,7 +56,10 @@ export interface ParameterItem {
         ParameterReferences,
         MatMenu,
         MatMenuItem,
-        MatMenuTrigger
+        MatMenuTrigger,
+        MatLabel,
+        MatCheckbox,
+        FormsModule
     ],
     styleUrls: ['./parameter-table.component.scss'],
     providers: [
@@ -69,6 +74,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() canAddParameters = true;
+    @Input() inheritsParameters = false;
 
     protected readonly TextTip = TextTip;
 
@@ -87,6 +93,8 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     onTouched!: () => void;
     onChange!: (parameters: ParameterEntity[]) => void;
 
+    showInheritedParameters: boolean = true;
+
     constructor(
         private store: Store<ParameterContextListingState>,
         private changeDetector: ChangeDetectorRef,
@@ -103,7 +111,19 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     isVisible(item: ParameterItem): boolean {
-        return !item.deleted;
+        if (item.deleted) {
+            return false;
+        }
+
+        if (
+            !this.showInheritedParameters &&
+            item.originalEntity.parameter.inherited &&
+            !item.updatedEntity?.parameter
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     registerOnChange(onChange: (parameters: ParameterEntity[]) => void): void {

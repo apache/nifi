@@ -145,6 +145,13 @@ export class EditParameterContext extends TabbedDialog {
         return '';
     }
 
+    inheritsParameters(parameters: ParameterEntity[] | undefined): boolean {
+        if (parameters) {
+            return parameters.some((parameterEntity) => parameterEntity.parameter?.inherited);
+        }
+        return false;
+    }
+
     submitForm() {
         if (this.isNew) {
             const payload: any = {
