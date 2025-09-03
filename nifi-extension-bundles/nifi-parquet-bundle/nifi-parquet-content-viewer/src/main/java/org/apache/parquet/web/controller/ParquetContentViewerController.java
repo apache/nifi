@@ -16,12 +16,14 @@
  */
 package org.apache.parquet.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.conf.Configuration;
@@ -46,9 +48,9 @@ import java.util.List;
 
 public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
     private static final long MAX_CONTENT_SIZE = 1024 * 1024 * 2; // 10MB
     private static final int BUFFER_SIZE = 8 * 1024; // 8KB
-    private static final String indent = "    ";
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
@@ -109,14 +111,7 @@ public class ParquetContentViewerController extends HttpServlet {
                         outputStream.write(",\n".getBytes());
                     }
 
-                    outputStream.write((indent + "{\n").getBytes());
-                    for (Schema.Field field : fields) {
-                        outputStream.write((indent + indent).getBytes());
-                        outputStream.write(("\"" + field.name() + "\": ").getBytes());
-                        outputStream.write(formatValue(field, record.get(field.name())).getBytes());
-                        outputStream.write("\n".getBytes());
-                    }
-                    outputStream.write((indent + "}").getBytes());
+                    outputStream.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(recordToMap(record)));
                 }
                 outputStream.write("\n]".getBytes());
             }
@@ -126,21 +121,32 @@ public class ParquetContentViewerController extends HttpServlet {
         }
     }
 
-    private String formatValue(Schema.Field field, Object value) {
-        if (value == null) {
-            return "";
+    private static Object recordToMap(Object obj) {
+        switch (obj) {
+            case GenericRecord record -> {
+                java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+                for (Schema.Field field : record.getSchema().getFields()) {
+                    map.put(field.name(), recordToMap(record.get(field.name())));
+                }
+                return map;
+            }
+            case java.util.Collection<?> coll -> {
+                List<Object> list = new ArrayList<>();
+                for (Object elem : coll) {
+                    list.add(recordToMap(elem));
+                }
+                return list;
+            }
+            case GenericData.EnumSymbol enumSymbol -> {
+                return enumSymbol.toString();
+            }
+            case org.apache.avro.util.Utf8 utf8 -> {
+                return utf8.toString();
+            }
+            case null, default -> {
+                return obj;
+            }
         }
-
-        Schema schema = field.schema();
-        Schema.Type type = schema.getType();
-
-        if (type == Schema.Type.STRING
-                || (type == Schema.Type.UNION
-                    && schema.getTypes().stream().anyMatch(s -> s.getType() == Schema.Type.STRING))) {
-            return "\"" + value + "\"";
-        }
-
-        return value.toString();
     }
 
     private byte[] getInputStreamBytes(final InputStream inputStream) throws IOException {
