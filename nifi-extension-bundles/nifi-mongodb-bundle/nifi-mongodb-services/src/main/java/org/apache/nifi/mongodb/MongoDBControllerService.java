@@ -111,40 +111,56 @@ public class MongoDBControllerService extends AbstractControllerService implemen
             final String authMechanism;
             if (authMechanismMatcher.find()) {
                 authMechanism = authMechanismMatcher.group(1);
-                uri = authMechanismMatcher.replaceFirst(uri.contains("?") ? "?" : "");
-                // If trailing & or ? is left, clean up
-                uri = uri.replaceAll("[&?]+$", "");
             } else {
                 authMechanism = null;
             }
 
-            final ConnectionString cs = new ConnectionString(uri);
-            final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
-
-            if (authMechanism != null && user != null && passw != null) {
-                final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(authMechanism.toUpperCase());
-
-                switch (mechanism) {
-                    case SCRAM_SHA_1 -> builder.credential(MongoCredential.createScramSha1Credential(user, database, passw.toCharArray()));
-                    case SCRAM_SHA_256 -> builder.credential(MongoCredential.createScramSha256Credential(user, database, passw.toCharArray()));
-                    case MONGODB_AWS -> builder.credential(MongoCredential.createAwsCredential(user, passw.toCharArray()));
-                    case PLAIN -> builder.credential(MongoCredential.createPlainCredential(user, database, passw.toCharArray()));
-                    default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username and password: " + mechanism);
-                }
-            } else if (authMechanism != null) {
-                final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(authMechanism.toUpperCase());
-                switch (mechanism) {
-                    case MONGODB_X509 -> builder.credential(MongoCredential.createMongoX509Credential(user));
-                    case MONGODB_OIDC -> builder.credential(MongoCredential.createOidcCredential(user));
-                    case GSSAPI -> builder.credential(MongoCredential.createGSSAPICredential(user));
-                    default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username only: " + mechanism);
-                }
-            } else if (user != null && passw != null) {
-                final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
-                builder.credential(credential);
+            // When properties specify the user, and the URI includes an authMechanism but no user in the URI,
+            // the Mongo driver would attempt to build credentials from the URI and fail. In that case, remove the
+            // authMechanism from the URI to allow property-based credentials. If the URI already includes user info,
+            // keep the mechanism so the URI remains valid; property credentials will override later.
+            final boolean hasUserInfoInUri = uri.matches("(?i)^mongodb(?:\\+srv)?://[^/]*@.*");
+            final String effectiveUri;
+            if (authMechanism != null && user != null && !hasUserInfoInUri) {
+                String stripped = AUTH_MECHANISM_PATTERN.matcher(uri).replaceFirst(uri.contains("?") ? "?" : "");
+                stripped = stripped.replaceAll("[&?]+$", "");
+                effectiveUri = stripped;
+            } else {
+                effectiveUri = uri;
             }
 
+            final ConnectionString cs = new ConnectionString(effectiveUri);
+            final String database = cs.getDatabase() == null ? "admin" : cs.getDatabase();
+
+            // Apply connection string first to avoid clearing explicitly set credentials later
             builder.applyConnectionString(cs);
+
+            // If properties specify a user, apply credentials based on properties and mechanism
+            if (user != null) {
+                if (authMechanism != null) {
+                    final AuthenticationMechanism mechanism = AuthenticationMechanism.fromMechanismName(authMechanism.toUpperCase());
+
+                    if (passw != null) {
+                        switch (mechanism) {
+                            case SCRAM_SHA_1 -> builder.credential(MongoCredential.createScramSha1Credential(user, database, passw.toCharArray()));
+                            case SCRAM_SHA_256 -> builder.credential(MongoCredential.createScramSha256Credential(user, database, passw.toCharArray()));
+                            case MONGODB_AWS -> builder.credential(MongoCredential.createAwsCredential(user, passw.toCharArray()));
+                            case PLAIN -> builder.credential(MongoCredential.createPlainCredential(user, database, passw.toCharArray()));
+                            default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username and password: " + mechanism);
+                        }
+                    } else { // user only
+                        switch (mechanism) {
+                            case MONGODB_X509 -> builder.credential(MongoCredential.createMongoX509Credential(user));
+                            case MONGODB_OIDC -> builder.credential(MongoCredential.createOidcCredential(user));
+                            case GSSAPI -> builder.credential(MongoCredential.createGSSAPICredential(user));
+                            default -> throw new IllegalArgumentException("Unsupported authentication mechanism with username only: " + mechanism);
+                        }
+                    }
+                } else if (passw != null) {
+                    final MongoCredential credential = MongoCredential.createCredential(user, database, passw.toCharArray());
+                    builder.credential(credential);
+                }
+            }
 
             if (sslContext != null) {
                 builder.applyToSslSettings(sslBuilder -> sslBuilder.enabled(true).context(sslContext));
