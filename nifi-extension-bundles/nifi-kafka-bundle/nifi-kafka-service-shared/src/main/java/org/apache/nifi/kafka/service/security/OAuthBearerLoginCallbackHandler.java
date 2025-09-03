@@ -17,12 +17,11 @@
 package org.apache.nifi.kafka.service.security;
 
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
+import org.apache.kafka.common.security.oauthbearer.ClientJwtValidator;
+import org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerTokenCallback;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.ConfigurationUtils;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.JaasOptionsUtils;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.LoginAccessTokenValidator;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.ValidateException;
 import org.apache.nifi.kafka.shared.login.OAuthBearerLoginConfigProvider;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -31,11 +30,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.login.AppConfigurationEntry;
+
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.kafka.common.config.SaslConfigs.SASL_OAUTHBEARER_SCOPE_CLAIM_NAME;
-import static org.apache.kafka.common.config.SaslConfigs.SASL_OAUTHBEARER_SUB_CLAIM_NAME;
 
 /**
  * {@link org.apache.kafka.common.security.auth.AuthenticateCallbackHandler} implementation to support OAuth 2 in NiFi Kafka components.
@@ -50,7 +47,7 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
     public static final String PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER = "nifi.oauth2.access.token.provider";
 
     private OAuth2AccessTokenProvider accessTokenProvider;
-    private LoginAccessTokenValidator accessTokenValidator;
+    private ClientJwtValidator accessTokenValidator;
 
     @Override
     public void configure(final Map<String, ?> configs, final String saslMechanism, final List<AppConfigurationEntry> jaasConfigEntries) {
@@ -73,7 +70,8 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
         }
 
         this.accessTokenProvider = accessTokenProvider;
-        this.accessTokenValidator = createAccessTokenValidator(configs, saslMechanism);
+        this.accessTokenValidator = new ClientJwtValidator();
+        this.accessTokenValidator.configure(configs, saslMechanism, List.of());
     }
 
     @Override
@@ -98,7 +96,7 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
         try {
             final OAuthBearerToken token = accessTokenValidator.validate(accessToken);
             callback.token(token);
-        } catch (ValidateException e) {
+        } catch (JwtValidatorException e) {
             LOGGER.error("Could not validate and parse access token", e);
             callback.error("invalid_token", e.getMessage(), null);
         }
@@ -106,12 +104,5 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
 
     @Override
     public void close() {
-    }
-
-    private LoginAccessTokenValidator createAccessTokenValidator(final Map<String, ?> configs, final String saslMechanism) {
-        final ConfigurationUtils cu = new ConfigurationUtils(configs, saslMechanism);
-        final String scopeClaimName = cu.get(SASL_OAUTHBEARER_SCOPE_CLAIM_NAME);
-        final String subClaimName = cu.get(SASL_OAUTHBEARER_SUB_CLAIM_NAME);
-        return new LoginAccessTokenValidator(scopeClaimName, subClaimName);
     }
 }
