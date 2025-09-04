@@ -23,8 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +40,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -192,6 +196,38 @@ public class NarUnpackerTest {
         NarUnpacker.mapExtension(unpackedNarDir, bundleCoordinate, extensionMapping);
 
         assertTrue(extensionMapping.isEmpty());
+    }
+
+    @Test
+    public void testUnpackNarHandlesManifestBeforeMetaInfDirectory(@TempDir final Path tempDir) throws IOException {
+        // Create a minimal NAR with problematic entry order: MANIFEST first, then META-INF/ directory
+        final File narFile = tempDir.resolve("bad-order.nar").toFile();
+        try (FileOutputStream fos = new FileOutputStream(narFile);
+             JarOutputStream jos = new JarOutputStream(fos)) {
+            // MANIFEST first (without prior META-INF/ dir entry)
+            final JarEntry manifestEntry = new JarEntry("META-INF/MANIFEST.MF");
+            jos.putNextEntry(manifestEntry);
+            final byte[] manifestBytes = (
+                    "Manifest-Version: 1.0\n" +
+                    "NAR-Group: org.example\n" +
+                    "NAR-Id: test-nar\n" +
+                    "NAR-Version: 1.0.0\n\n"
+            ).getBytes(StandardCharsets.UTF_8);
+            jos.write(manifestBytes);
+            jos.closeEntry();
+
+            // META-INF/ directory entry added after
+            final JarEntry metaInfDir = new JarEntry("META-INF/");
+            jos.putNextEntry(metaInfDir);
+            jos.closeEntry();
+        }
+
+        final File baseWorkingDir = tempDir.resolve("work").toFile();
+
+        // Should unpack successfully despite directory entry order
+        final File unpackedDir = NarUnpacker.unpackNar(narFile, baseWorkingDir, true, NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
+        final File manifestOut = new File(unpackedDir, "META-INF/MANIFEST.MF");
+        assertTrue(manifestOut.isFile(), "Manifest should be unpacked even when META-INF/ entry comes later");
     }
 
     private NiFiProperties loadSpecifiedProperties(final Map<String, String> others) {
