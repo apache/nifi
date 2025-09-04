@@ -54,6 +54,8 @@ import java.util.regex.Pattern;
 public class MongoDBControllerService extends AbstractControllerService implements MongoDBClientService {
     // Regex to find authMechanism value (case-insensitive)
     private static final Pattern AUTH_MECHANISM_PATTERN = Pattern.compile("(?i)(?:[?&])authmechanism=([^&]*)");
+    // Regex to find the user from the URI if specified
+    private static final Pattern USER_PATTERN = Pattern.compile("(?i)^mongodb(?:\\+srv)?://[^/]*@.*");
     private String uri;
 
     @OnEnabled
@@ -119,7 +121,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
             // the Mongo driver would attempt to build credentials from the URI and fail. In that case, remove the
             // authMechanism from the URI to allow property-based credentials. If the URI already includes user info,
             // keep the mechanism so the URI remains valid; property credentials will override later.
-            final boolean hasUserInfoInUri = uri.matches("(?i)^mongodb(?:\\+srv)?://[^/]*@.*");
+            final boolean hasUserInfoInUri = USER_PATTERN.matcher(uri).matches();
             final String effectiveUri;
             if (authMechanism != null && user != null && !hasUserInfoInUri) {
                 String stripped = AUTH_MECHANISM_PATTERN.matcher(uri).replaceFirst(uri.contains("?") ? "?" : "");

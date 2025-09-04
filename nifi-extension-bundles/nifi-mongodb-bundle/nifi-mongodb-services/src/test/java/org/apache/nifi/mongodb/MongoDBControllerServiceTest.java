@@ -56,9 +56,8 @@ public class MongoDBControllerServiceTest {
             if (service != null) {
                 service.onDisable();
             }
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Ignore during cleanup
-            System.err.println("Error during service cleanup: " + e.getMessage());
         }
     }
 
