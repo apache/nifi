@@ -70,7 +70,6 @@ public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.C
     }
 
     public interface Config extends RelRule.Config {
-        // This impl comes directly from the Calcite documentation.
         Config DEFAULT = new StandardConfig()
             .withOperandSupplier(b0 -> b0.operand(Project.class).anyInputs());
 
