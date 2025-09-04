@@ -16,7 +16,7 @@
  */
 
 import { AfterViewInit, ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -31,6 +31,8 @@ import { ParameterContextListingState } from '../../../state/parameter-context-l
 import { showOkDialog } from '../../../state/parameter-context-listing/parameter-context-listing.actions';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatLabel } from '@angular/material/select';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -54,7 +56,10 @@ export interface ParameterItem {
         ParameterReferences,
         MatMenu,
         MatMenuItem,
-        MatMenuTrigger
+        MatMenuTrigger,
+        MatLabel,
+        MatCheckbox,
+        FormsModule
     ],
     styleUrls: ['./parameter-table.component.scss'],
     providers: [
@@ -69,6 +74,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() canAddParameters = true;
+    @Input() inheritsParameters = false;
 
     protected readonly TextTip = TextTip;
 
@@ -87,6 +93,8 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     onTouched!: () => void;
     onChange!: (parameters: ParameterEntity[]) => void;
 
+    showInheritedParameters: boolean = true;
+
     constructor(
         private store: Store<ParameterContextListingState>,
         private changeDetector: ChangeDetectorRef,
@@ -103,7 +111,19 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     isVisible(item: ParameterItem): boolean {
-        return !item.deleted;
+        if (item.deleted) {
+            return false;
+        }
+
+        if (
+            !this.showInheritedParameters &&
+            item.originalEntity.parameter.inherited &&
+            !item.updatedEntity?.parameter
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     registerOnChange(onChange: (parameters: ParameterEntity[]) => void): void {
@@ -251,6 +271,18 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         }
     }
 
+    getInheritedParameterMessage(item: ParameterItem): string {
+        if (item.originalEntity.parameter.inherited) {
+            const parameterContext = item.originalEntity.parameter.parameterContext;
+            if (parameterContext?.permissions.canRead && parameterContext.component) {
+                return `This parameter is inherited from: ${parameterContext.component.name}`;
+            } else {
+                return 'This parameter is inherited from another Parameter Context.';
+            }
+        }
+        return '';
+    }
+
     isSensitiveParameter(item: ParameterItem): boolean {
         return item.originalEntity.parameter.sensitive;
     }
@@ -285,10 +317,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canGoToParameter(item: ParameterItem): boolean {
-        return (
-            item.originalEntity.parameter.inherited === true &&
-            item.originalEntity.parameter.parameterContext?.permissions.canRead == true
-        );
+        return this.canOverride(item) && item.originalEntity.parameter.parameterContext?.permissions.canRead == true;
     }
 
     getParameterLink(item: ParameterItem): string[] {
@@ -299,8 +328,12 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         return [];
     }
 
+    isOverridden(item: ParameterItem): boolean {
+        return item.originalEntity.parameter.inherited === true && item.updatedEntity !== undefined;
+    }
+
     canOverride(item: ParameterItem): boolean {
-        return item.originalEntity.parameter.inherited === true;
+        return item.originalEntity.parameter.inherited === true && item.updatedEntity === undefined;
     }
 
     overrideParameter(item: ParameterItem): void {
@@ -326,8 +359,13 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     canEdit(item: ParameterItem): boolean {
         const canWrite: boolean = item.originalEntity.canWrite == true;
         const provided: boolean = item.originalEntity.parameter.provided == true;
-        const inherited: boolean = item.originalEntity.parameter.inherited == true;
-        return canWrite && !provided && !inherited;
+
+        if (item.originalEntity.parameter.inherited) {
+            const overridden: boolean = this.isOverridden(item);
+            return canWrite && !provided && overridden;
+        }
+
+        return canWrite && !provided;
     }
 
     editClicked(item: ParameterItem): void {
@@ -403,8 +441,13 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     canDelete(item: ParameterItem): boolean {
         const canWrite: boolean = item.originalEntity.canWrite == true;
         const provided: boolean = item.originalEntity.parameter.provided == true;
-        const inherited: boolean = item.originalEntity.parameter.inherited == true;
-        return canWrite && !provided && !inherited;
+
+        if (item.originalEntity.parameter.inherited) {
+            const overridden: boolean = this.isOverridden(item);
+            return canWrite && !provided && overridden;
+        }
+
+        return canWrite && !provided;
     }
 
     deleteClicked(item: ParameterItem): void {
