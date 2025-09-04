@@ -27,7 +27,7 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.9.4.0</version>
+                <version>4.9.4.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
