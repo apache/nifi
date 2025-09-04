@@ -38,10 +38,9 @@ public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.C
         final Project project = call.rel(0);
 
         // Attempt to locate NiFiTableScan as immediate input
-        if (!(project.getInput() instanceof NiFiTableScan)) {
+        if (!(project.getInput() instanceof NiFiTableScan scan)) {
             return;
         }
-        final NiFiTableScan scan = (NiFiTableScan) project.getInput();
 
         final int[] fields = getProjectionFields(project.getProjects());
         if (fields == null) {
