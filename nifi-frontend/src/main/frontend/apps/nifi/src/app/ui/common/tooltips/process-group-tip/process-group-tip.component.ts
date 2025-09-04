@@ -17,7 +17,7 @@
 
 import { Component, Input } from '@angular/core';
 import { BoundProcessGroup } from '../../../../state/shared';
-import { ProcessGroupReferences } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/process-group-references/process-group-references.component';
+import { ProcessGroupReferences } from '../../process-group-references/process-group-references.component';
 
 @Component({
     selector: 'process-group-tip',

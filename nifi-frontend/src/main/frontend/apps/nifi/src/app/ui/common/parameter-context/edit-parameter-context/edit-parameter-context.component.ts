@@ -38,7 +38,7 @@ import {
     ParameterEntity,
     ParameterProviderConfiguration
 } from '../../../../state/shared';
-import { ProcessGroupReferences } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/process-group-references/process-group-references.component';
+import { ProcessGroupReferences } from '../../process-group-references/process-group-references.component';
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../../parameter-references/parameter-references.component';
 import { RouterLink } from '@angular/router';
