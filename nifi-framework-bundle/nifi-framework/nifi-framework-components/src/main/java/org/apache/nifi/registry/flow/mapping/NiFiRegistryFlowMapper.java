@@ -885,6 +885,7 @@ public class NiFiRegistryFlowMapper {
         final Set<VersionedParameter> parameters = mapParameters(parameterContext);
 
         final VersionedParameterContext versionedContext = new VersionedParameterContext();
+        versionedContext.setDescription(parameterContext.getDescription());
         versionedContext.setName(parameterContext.getName());
         versionedContext.setParameters(parameters);
         versionedContext.setInheritedParameterContexts(parameterContext.getInheritedParameterContextNames());
