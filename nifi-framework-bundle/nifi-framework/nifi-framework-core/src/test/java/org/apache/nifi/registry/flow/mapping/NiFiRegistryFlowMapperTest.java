@@ -308,6 +308,7 @@ public class NiFiRegistryFlowMapperTest {
                 .getReferencedControllerServiceData(any(ParameterContext.class), anyString())).thenReturn(Collections.emptyList());
             when(processGroup.getParameterContext()).thenReturn(parameterContext);
             when(parameterContext.getName()).thenReturn("context" + (counter++));
+            when(parameterContext.getDescription()).thenReturn("context-description");
             final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
             when(parameterContext.getInheritedParameterContextNames()).thenReturn(Collections.singletonList("other-context"));
@@ -355,6 +356,7 @@ public class NiFiRegistryFlowMapperTest {
 
     private void verifyParameterContext(final ParameterContext parameterContext, final VersionedParameterContext versionedParameterContext) {
         assertEquals(parameterContext.getName(), versionedParameterContext.getName());
+        assertEquals(parameterContext.getDescription(), versionedParameterContext.getDescription());
 
         final Collection<Parameter> parameters = parameterContext.getParameters().values();
         final Set<VersionedParameter> versionedParameters = versionedParameterContext.getParameters();
