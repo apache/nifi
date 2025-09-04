@@ -136,18 +136,19 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     protected Record createRecord(final ResultSet rs) throws SQLException {
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
 
-        // Read values using ResultSet column indexes in the same order as schema fields.
-        // With projection pushdown in calcite-utils, index order matches SELECT order.
-        // Fall back to label-based retrieval for mocks or drivers that return null by index.
+        // Prefer label-based retrieval when possible to support tests/drivers that stub by label,
+        // with index-based fallback (projection pushdown ensures index order matches SELECT order).
         int columnIndex = 1;
         for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
             final RecordFieldType fieldType = field.getDataType().getFieldType();
 
-            Object raw = (fieldType == TIMESTAMP) ? rs.getTimestamp(columnIndex) : rs.getObject(columnIndex);
-
-            if (raw == null && rsColumnNames.contains(fieldName)) {
+            Object raw = null;
+            if (rsColumnNames.contains(fieldName)) {
                 raw = (fieldType == TIMESTAMP) ? rs.getTimestamp(fieldName) : rs.getObject(fieldName);
+            }
+            if (raw == null) {
+                raw = (fieldType == TIMESTAMP) ? rs.getTimestamp(columnIndex) : rs.getObject(columnIndex);
             }
 
             values.put(fieldName, normalizeValue(raw));
