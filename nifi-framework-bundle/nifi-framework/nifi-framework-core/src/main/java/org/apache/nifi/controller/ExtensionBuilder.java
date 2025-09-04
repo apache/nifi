@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
@@ -85,6 +86,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.net.URL;
@@ -507,6 +509,9 @@ public class ExtensionBuilder {
        applyDefaultSettings(procNode);
        applyDefaultRunDuration(procNode);
 
+       // Ensure StateManager is initialized with component's Stateful capabilities
+       getStateManagerForComponent(identifier, processor.getComponent().getClass());
+
        return procNode;
    }
 
@@ -526,6 +531,9 @@ public class ExtensionBuilder {
            taskNode.setName(componentType);
        }
 
+       // Ensure StateManager is initialized with component's Stateful capabilities
+       getStateManagerForComponent(identifier, reportingTask.getComponent().getClass());
+
        return taskNode;
    }
 
@@ -534,7 +542,7 @@ public class ExtensionBuilder {
    }
 
    private ParameterProviderNode createParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final boolean creationSuccessful) {
-       final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, ruleViolationsManager, flowAnalyzer);
+       final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
        final ParameterProviderNode parameterProviderNode;
        if (creationSuccessful) {
            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
@@ -551,11 +559,14 @@ public class ExtensionBuilder {
            parameterProviderNode.setName(componentType);
        }
 
+       // Ensure StateManager is initialized with component's Stateful capabilities
+       getStateManagerForComponent(identifier, parameterProvider.getComponent().getClass());
+
        return parameterProviderNode;
    }
 
    private FlowRegistryClientNode createFlowRegistryClientNode(final LoggableComponent<FlowRegistryClient> client, final boolean creationSuccessful) {
-       final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, ruleViolationsManager, flowAnalyzer);
+       final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
        final StandardFlowRegistryClientNode clientNode;
 
        if (creationSuccessful) {
@@ -668,7 +679,8 @@ public class ExtensionBuilder {
            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
-           final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
+           final StateManager stateManager = getStateManagerForComponent(identifier, serviceImpl.getClass());
+
            final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
                    serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
            serviceImpl.initialize(initContext);
@@ -748,7 +760,7 @@ public class ExtensionBuilder {
        }
 
        if (!cobundledApis.isEmpty()) {
-           final String message = String.format("Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.",
+           final String message = "Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.".formatted(
                originalExtensionType.getName(), org.apache.nifi.util.StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", "));
            throw new InstantiationException(message);
        }
@@ -846,6 +858,9 @@ public class ExtensionBuilder {
            ruleNode.setName(componentType);
        }
 
+       // Ensure StateManager is initialized with component's Stateful capabilities
+       getStateManagerForComponent(identifier, flowAnalysisRule.getComponent().getClass());
+
        return ruleNode;
    }
 
@@ -940,5 +955,14 @@ public class ExtensionBuilder {
                Thread.currentThread().setContextClassLoader(ctxClassLoader);
            }
        }
+   }
+
+   /**
+    * Determines Stateful drop key support for the given component class and obtains the corresponding StateManager.
+    */
+   private StateManager getStateManagerForComponent(final String componentId, final Class<?> componentClass) {
+       final Stateful stateful = componentClass.getAnnotation(Stateful.class);
+       final boolean dropStateKeySupported = stateful != null && stateful.dropStateKeySupported();
+       return stateManagerProvider.getStateManager(componentId, dropStateKeySupported);
    }
 }

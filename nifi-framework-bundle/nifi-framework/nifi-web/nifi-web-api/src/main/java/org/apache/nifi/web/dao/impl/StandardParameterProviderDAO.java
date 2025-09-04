@@ -31,16 +31,17 @@ import org.apache.nifi.controller.parameter.ParameterProviderInstantiationExcept
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
@@ -298,9 +299,9 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
     }
 
     @Override
-    public void clearState(final String parameterProviderId) {
+    public void clearState(final String parameterProviderId, final ComponentStateDTO componentStateDTO) {
         final ParameterProviderNode parameterProvider = locateParameterProvider(parameterProviderId);
-        componentStateDAO.clearState(parameterProvider);
+        componentStateDAO.clearState(parameterProvider, componentStateDTO);
     }
 
     @Override
