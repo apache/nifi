@@ -1,0 +1,28 @@
+{
+  "namespace": "nifi",
+  "name": "decimal_types",
+  "type": "record",
+  "fields": [
+    {
+      "name": "dec_bytes",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 9,
+        "scale": 2
+      }
+    },
+    {
+      "name": "dec_fixed",
+      "type": {
+        "type": "fixed",
+        "name": "decfixed",
+        "size": 4,
+        "logicalType": "decimal",
+        "precision": 9,
+        "scale": 2
+      }
+    }
+  ]
+}
+

@@ -775,32 +775,66 @@ public class AvroTypeUtil {
                     final BigDecimal decimal = rawDecimal.scale() == desiredScale
                         ? rawDecimal : rawDecimal.setScale(desiredScale, RoundingMode.HALF_UP);
                     return fieldSchema.getType() == Type.BYTES
-                        ? new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType) //return GenericByte
-                        : new Conversions.DecimalConversion().toFixed(decimal, fieldSchema, logicalType); //return GenericFixed
+                        ? new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType)
+                        : new Conversions.DecimalConversion().toFixed(decimal, fieldSchema, logicalType);
                 }
                 if (rawValue instanceof byte[]) {
-                    return ByteBuffer.wrap((byte[]) rawValue);
+                    final byte[] bytes = (byte[]) rawValue;
+                    if (fieldSchema.getType() == Type.FIXED) {
+                        final int expectedSize = fieldSchema.getFixedSize();
+                        if (bytes.length != expectedSize) {
+                            throw new IllegalTypeConversionException("Cannot convert byte[] of length " + bytes.length +
+                                " to FIXED(" + expectedSize + ") for field '" + fieldName + "'");
+                        }
+                        return new GenericData.Fixed(fieldSchema, bytes);
+                    }
+                    return ByteBuffer.wrap(bytes);
                 }
                 if (rawValue instanceof String) {
-                    return ByteBuffer.wrap(((String) rawValue).getBytes(charset));
+                    final byte[] bytes = ((String) rawValue).getBytes(charset);
+                    if (fieldSchema.getType() == Type.FIXED) {
+                        final int expectedSize = fieldSchema.getFixedSize();
+                        if (bytes.length != expectedSize) {
+                            throw new IllegalTypeConversionException("Cannot convert String bytes of length " + bytes.length +
+                                " to FIXED(" + expectedSize + ") for field '" + fieldName + "'");
+                        }
+                        return new GenericData.Fixed(fieldSchema, bytes);
+                    }
+                    return ByteBuffer.wrap(bytes);
                 }
                 if (rawValue instanceof Object[]) {
-                    if (fieldSchema.getType() == Type.FIXED && "INT96".equals(fieldSchema.getName())) {
-                        Object[] rawObjects = (Object[]) rawValue;
-                        byte[] rawBytes = new byte[rawObjects.length];
-                        for (int elementIndex = 0; elementIndex < rawObjects.length; elementIndex++) {
-                            rawBytes[elementIndex] = (Byte) rawObjects[elementIndex];
+                    final Object[] rawObjects = (Object[]) rawValue;
+                    final byte[] bytes = new byte[rawObjects.length];
+                    for (int elementIndex = 0; elementIndex < rawObjects.length; elementIndex++) {
+                        final Object o = rawObjects[elementIndex];
+                        if (!(o instanceof Byte)) {
+                            throw new IllegalTypeConversionException("Cannot convert non-Byte element in Object[] to binary for field '" + fieldName + "'");
                         }
-
-                        return new GenericData.Fixed(fieldSchema, rawBytes);
-                    } else {
-                        return convertByteArray((Object[]) rawValue);
+                        bytes[elementIndex] = (Byte) o;
                     }
+
+                    if (fieldSchema.getType() == Type.FIXED) {
+                        final int expectedSize = fieldSchema.getFixedSize();
+                        if (bytes.length != expectedSize) {
+                            throw new IllegalTypeConversionException("Cannot convert Object[] of length " + bytes.length +
+                                " to FIXED(" + expectedSize + ") for field '" + fieldName + "'");
+                        }
+                        return new GenericData.Fixed(fieldSchema, bytes);
+                    }
+                    return ByteBuffer.wrap(bytes);
                 }
                 try {
                     if (rawValue instanceof Blob blob) {
                         final InputStream binaryStream = blob.getBinaryStream();
                         final byte[] bytes = binaryStream.readAllBytes();
+                        if (fieldSchema.getType() == Type.FIXED) {
+                            final int expectedSize = fieldSchema.getFixedSize();
+                            if (bytes.length != expectedSize) {
+                                throw new IllegalTypeConversionException("Cannot convert Blob of length " + bytes.length +
+                                    " to FIXED(" + expectedSize + ") for field '" + fieldName + "'");
+                            }
+                            return new GenericData.Fixed(fieldSchema, bytes);
+                        }
                         return ByteBuffer.wrap(bytes);
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer");
