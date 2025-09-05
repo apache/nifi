@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis;
 
-import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +24,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.RECORD_READER;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.PROCESSING_STRATEGY;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.ProcessingStrategy.FLOW_FILE;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.ProcessingStrategy.RECORD;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,8 +41,8 @@ class ConsumeKinesisTest {
     }
 
     @Test
-    void getRelationshipsWhenReaderNotSet() {
-        testRunner.removeProperty(RECORD_READER);
+    void getRelationshipsForFlowFileProcessingStrategy() {
+        testRunner.setProperty(PROCESSING_STRATEGY, FLOW_FILE);
 
         final Set<Relationship> relationships = testRunner.getProcessor().getRelationships();
 
@@ -51,12 +50,8 @@ class ConsumeKinesisTest {
     }
 
     @Test
-    void getRelationshipsWhenReaderSet() throws InitializationException {
-        final RecordReaderFactory reader = new JsonTreeReader();
-        final String readerId = "reader";
-        testRunner.addControllerService(readerId, reader);
-
-        testRunner.setProperty(RECORD_READER, readerId);
+    void getRelationshipsForRecordProcessingStrategy() {
+        testRunner.setProperty(PROCESSING_STRATEGY, RECORD);
 
         final Set<Relationship> relationships = testRunner.getProcessor().getRelationships();
 
