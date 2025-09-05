@@ -192,7 +192,7 @@ final class ReaderRecordProcessor {
                 try {
                     outputStream.close();
                 } catch (final IOException ioe) {
-                    logger.warn("Failed to close FlowFile output stream: {}", ioe.getMessage());
+                    logger.debug("Failed to close FlowFile output stream: {}", ioe.getMessage());
                     e.addSuppressed(ioe);
                 }
                 throw e;
@@ -204,7 +204,7 @@ final class ReaderRecordProcessor {
                 try {
                     outputStream.close();
                 } catch (final IOException ioe) {
-                    logger.warn("Failed to close FlowFile output stream: {}", ioe.getMessage());
+                    logger.debug("Failed to close FlowFile output stream: {}", ioe.getMessage());
                     processException.addSuppressed(ioe);
                 }
                 throw processException;
@@ -252,7 +252,7 @@ final class ReaderRecordProcessor {
                 try {
                     writer.close();
                 } catch (final IOException ioe) {
-                    logger.warn("Failed to close writer: {}", ioe.getMessage());
+                    logger.debug("Failed to close writer: {}", ioe.getMessage());
                     processException.addSuppressed(ioe);
                 }
 

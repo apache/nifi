@@ -161,7 +161,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     public void consumerLeaseLost(final ShardBufferId bufferId) {
         final ShardBuffer buffer = shardBuffers.remove(bufferId);
 
-        logger.info("Lease lost for buffer {}. Invalidating it", bufferId);
+        logger.info("Lease lost for buffer {}: Invalidating", bufferId);
 
         if (buffer != null) {
             final Collection<RecordBatch> invalidatedBatches = buffer.invalidate();
@@ -640,8 +640,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                     return; // Success, exit retry loop.
                 } catch (final ThrottlingException | InvalidStateException | KinesisClientLibDependencyException e) {
                     if (attempt == MAX_RETRY_ATTEMPTS) {
-                        logger.error("Failed to checkpoint after {} attempts, giving up. Last error: {}",
-                                MAX_RETRY_ATTEMPTS, e.getMessage(), e);
+                        logger.error("Failed to checkpoint after {} attempts, giving up", MAX_RETRY_ATTEMPTS, e);
                         return; // Max attempts reached, give up.
                     }
 
@@ -658,7 +657,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                         return;
                     }
                 } catch (final ShutdownException e) {
-                    logger.warn("Failed to checkpoint records due to shutdown: {}. Ignoring checkpoint", e.getMessage(), e);
+                    logger.warn("Failed to checkpoint records due to shutdown. Ignoring checkpoint", e);
                     return; // Don't retry on shutdown.
                 }
             }

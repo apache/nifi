@@ -397,7 +397,7 @@ class ConsumeKinesisIT {
         runner.enableControllerService(credentialsService);
 
         runner.setProperty(ConsumeKinesis.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials");
-        runner.setProperty(ConsumeKinesis.KINESIS_STREAM_NAME, streamName);
+        runner.setProperty(ConsumeKinesis.STREAM_NAME, streamName);
         runner.setProperty(ConsumeKinesis.APPLICATION_NAME, applicationName);
         runner.setProperty(ConsumeKinesis.REGION, localstack.getRegion());
         runner.setProperty(ConsumeKinesis.INITIAL_STREAM_POSITION, ConsumeKinesis.InitialPosition.TRIM_HORIZON);
