@@ -30,15 +30,27 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
     private static final String MODULE_CLASS = "software.amazon.msk.auth.iam.IAMLoginModule";
 
     private static final String AWS_PROFILE_NAME_KEY = "awsProfileName";
+    private static final String ROLE_ARN_KEY = "awsRoleArn";
+    private static final String ROLE_SESSION_NAME_KEY = "awsRoleSessionName";
 
     @Override
     public String getConfiguration(PropertyContext context) {
         final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
+        final String assumeRoleArn = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
+        final String assumeRoleSessionName = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
 
         final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS, REQUIRED);
 
         if (StringUtils.isNotBlank(awsProfileName)) {
             builder.append(AWS_PROFILE_NAME_KEY, awsProfileName);
+        }
+
+        if (StringUtils.isNotBlank(assumeRoleArn)) {
+            builder.append(ROLE_ARN_KEY, assumeRoleArn);
+        }
+
+        if (StringUtils.isNotBlank(assumeRoleSessionName)) {
+            builder.append(ROLE_SESSION_NAME_KEY, assumeRoleSessionName);
         }
 
         return builder.build();
