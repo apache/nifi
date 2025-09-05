@@ -80,7 +80,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     public ShardBufferId createBuffer(final String shardId) {
         final ShardBufferId id = new ShardBufferId(shardId, bufferIdCounter.getAndIncrement());
 
-        logger.info("Creating new buffer for shard {} with id {}", shardId, id);
+        logger.debug("Creating new buffer for shard {} with id {}", shardId, id);
 
         shardBuffers.put(id, new ShardBuffer(id, logger, checkpointIntervalMillis));
         buffersToLease.add(id);
@@ -135,7 +135,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return;
         }
 
-        logger.info("Finishing consumption for buffer {}. Checkpointing the ended shard", bufferId);
+        logger.debug("Finishing consumption for buffer {}. Checkpointing the ended shard", bufferId);
         buffer.checkpointEndedShard(checkpointer);
 
         logger.debug("Removing buffer with id {} after successful ended shard checkpoint", bufferId);
@@ -150,7 +150,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return;
         }
 
-        logger.info("Shutting down the buffer {}. Checkpointing last consumed record", bufferId);
+        logger.debug("Shutting down the buffer {}. Checkpointing last consumed record", bufferId);
         buffer.shutdownBuffer(checkpointer);
 
         logger.debug("Removing buffer with id {} after successful last consumed record checkpoint", bufferId);
@@ -161,7 +161,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     public void consumerLeaseLost(final ShardBufferId bufferId) {
         final ShardBuffer buffer = shardBuffers.remove(bufferId);
 
-        logger.info("Lease lost for buffer {}: Invalidating", bufferId);
+        logger.debug("Lease lost for buffer {}: Invalidating", bufferId);
 
         if (buffer != null) {
             final Collection<RecordBatch> invalidatedBatches = buffer.invalidate();
