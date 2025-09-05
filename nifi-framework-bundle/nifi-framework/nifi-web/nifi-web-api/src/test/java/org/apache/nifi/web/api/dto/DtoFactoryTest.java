@@ -16,11 +16,17 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarManifest;
 import org.apache.nifi.nar.NarNode;
@@ -28,6 +34,7 @@ import org.apache.nifi.nar.NarSource;
 import org.apache.nifi.nar.NarState;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -47,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -221,5 +229,171 @@ public class DtoFactoryTest {
         assertEquals(narManifest.getDependencyGroup(), coordinateDTO.getGroup());
         assertEquals(narManifest.getDependencyId(), coordinateDTO.getArtifact());
         assertEquals(narManifest.getDependencyVersion(), coordinateDTO.getVersion());
+    }
+
+    private Bundle createBundle(final String group, final String id, final String version) {
+        final BundleCoordinate coordinate = new BundleCoordinate(group, id, version);
+        final BundleDetails details = new BundleDetails.Builder()
+                .workingDir(new File("."))
+                .coordinate(coordinate)
+                .build();
+        return new Bundle(details, getClass().getClassLoader());
+    }
+
+    @Test
+    void testControllerServiceMultipleVersionsAvailableGhostWithOneCompatibleBundle() {
+        final String group = "com.example";
+        final String id = "test-service";
+
+        final BundleCoordinate currentCoordinate = new BundleCoordinate(group, id, "1.0.0");
+        final Bundle compatible = createBundle(group, id, "1.1.0");
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final String canonicalClassName = "com.example.ControllerService";
+        when(extensionManager.getBundles(canonicalClassName)).thenReturn(Collections.singletonList(compatible));
+
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        when(serviceNode.getIdentifier()).thenReturn("svc-1");
+        when(serviceNode.getName()).thenReturn("Service");
+        when(serviceNode.getCanonicalClassName()).thenReturn(canonicalClassName);
+        when(serviceNode.getBundleCoordinate()).thenReturn(currentCoordinate);
+        when(serviceNode.getAnnotationData()).thenReturn(null);
+        when(serviceNode.getComments()).thenReturn(null);
+        when(serviceNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
+        when(serviceNode.getState()).thenReturn(ControllerServiceState.DISABLED);
+        when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
+        when(serviceNode.isRestricted()).thenReturn(false);
+        when(serviceNode.isDeprecated()).thenReturn(false);
+        when(serviceNode.isExtensionMissing()).thenReturn(true); // ghost component
+        when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(serviceNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
+        final ControllerService controllerService = mock(ControllerService.class);
+        when(controllerService.getPropertyDescriptors()).thenReturn(Collections.emptyList());
+        when(serviceNode.getControllerServiceImplementation()).thenReturn(controllerService);
+        when(serviceNode.getValidationStatus(anyLong(), any())).thenReturn(ValidationStatus.VALID);
+        when(serviceNode.getValidationErrors()).thenReturn(Collections.emptyList());
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
+        assertTrue(dto.getMultipleVersionsAvailable(), "Ghost service with one compatible bundle should allow change version");
+    }
+
+    @Test
+    void testControllerServiceMultipleVersionsAvailableNotGhostWithOneCompatibleBundle() {
+        final String group = "com.example";
+        final String id = "test-service";
+
+        final BundleCoordinate currentCoordinate = new BundleCoordinate(group, id, "1.0.0");
+        final Bundle compatible = createBundle(group, id, "1.1.0");
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final String canonicalClassName = "com.example.ControllerService";
+        when(extensionManager.getBundles(canonicalClassName)).thenReturn(Collections.singletonList(compatible));
+
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        when(serviceNode.getIdentifier()).thenReturn("svc-1");
+        when(serviceNode.getName()).thenReturn("Service");
+        when(serviceNode.getCanonicalClassName()).thenReturn(canonicalClassName);
+        when(serviceNode.getBundleCoordinate()).thenReturn(currentCoordinate);
+        when(serviceNode.getAnnotationData()).thenReturn(null);
+        when(serviceNode.getComments()).thenReturn(null);
+        when(serviceNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
+        when(serviceNode.getState()).thenReturn(ControllerServiceState.DISABLED);
+        when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
+        when(serviceNode.isRestricted()).thenReturn(false);
+        when(serviceNode.isDeprecated()).thenReturn(false);
+        when(serviceNode.isExtensionMissing()).thenReturn(false); // not ghost
+        when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(serviceNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
+        final ControllerService controllerService = mock(ControllerService.class);
+        when(controllerService.getPropertyDescriptors()).thenReturn(Collections.emptyList());
+        when(serviceNode.getControllerServiceImplementation()).thenReturn(controllerService);
+        when(serviceNode.getValidationStatus(anyLong(), any())).thenReturn(ValidationStatus.VALID);
+        when(serviceNode.getValidationErrors()).thenReturn(Collections.emptyList());
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
+        assertFalse(dto.getMultipleVersionsAvailable(), "Non-ghost service with one compatible bundle should not allow change version");
+    }
+
+    @Test
+    void testControllerServiceMultipleVersionsAvailableNotGhostWithTwoCompatibleBundles() {
+        final String group = "com.example";
+        final String id = "test-service";
+
+        final BundleCoordinate currentCoordinate = new BundleCoordinate(group, id, "1.0.0");
+        final Bundle compatible1 = createBundle(group, id, "1.1.0");
+        final Bundle compatible2 = createBundle(group, id, "1.2.0");
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final String canonicalClassName = "com.example.ControllerService";
+        when(extensionManager.getBundles(canonicalClassName)).thenReturn(Arrays.asList(compatible1, compatible2));
+
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        when(serviceNode.getIdentifier()).thenReturn("svc-1");
+        when(serviceNode.getName()).thenReturn("Service");
+        when(serviceNode.getCanonicalClassName()).thenReturn(canonicalClassName);
+        when(serviceNode.getBundleCoordinate()).thenReturn(currentCoordinate);
+        when(serviceNode.getAnnotationData()).thenReturn(null);
+        when(serviceNode.getComments()).thenReturn(null);
+        when(serviceNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
+        when(serviceNode.getState()).thenReturn(ControllerServiceState.DISABLED);
+        when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
+        when(serviceNode.isRestricted()).thenReturn(false);
+        when(serviceNode.isDeprecated()).thenReturn(false);
+        when(serviceNode.isExtensionMissing()).thenReturn(false); // not ghost
+        when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(serviceNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
+        final ControllerService controllerService = mock(ControllerService.class);
+        when(controllerService.getPropertyDescriptors()).thenReturn(Collections.emptyList());
+        when(serviceNode.getControllerServiceImplementation()).thenReturn(controllerService);
+        when(serviceNode.getValidationStatus(anyLong(), any())).thenReturn(ValidationStatus.VALID);
+        when(serviceNode.getValidationErrors()).thenReturn(Collections.emptyList());
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
+        assertTrue(dto.getMultipleVersionsAvailable(), "Non-ghost service with two compatible bundles should allow change version");
+    }
+
+    @Test
+    void testFlowRegistryClientMultipleVersionsAvailableGhostWithOneCompatibleBundle() {
+        final String group = "com.example";
+        final String id = "test-registry-client";
+
+        final BundleCoordinate currentCoordinate = new BundleCoordinate(group, id, "1.0.0");
+        final Bundle compatible = createBundle(group, id, "1.1.0");
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final String canonicalClassName = "com.example.FlowRegistryClient";
+        when(extensionManager.getBundles(canonicalClassName)).thenReturn(Collections.singletonList(compatible));
+
+        final FlowRegistryClientNode clientNode = mock(FlowRegistryClientNode.class);
+        when(clientNode.getIdentifier()).thenReturn("client-1");
+        when(clientNode.getName()).thenReturn("Client");
+        when(clientNode.getDescription()).thenReturn("desc");
+        when(clientNode.getCanonicalClassName()).thenReturn(canonicalClassName);
+        when(clientNode.getBundleCoordinate()).thenReturn(currentCoordinate);
+        when(clientNode.getAnnotationData()).thenReturn(null);
+        when(clientNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
+        when(clientNode.isBranchingSupported()).thenReturn(false);
+        when(clientNode.isRestricted()).thenReturn(false);
+        when(clientNode.isDeprecated()).thenReturn(false);
+        when(clientNode.isExtensionMissing()).thenReturn(true); // ghost component
+        when(clientNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
+        when(clientNode.getPropertyDescriptors()).thenReturn(Collections.emptyList());
+        when(clientNode.getValidationStatus(anyLong(), any())).thenReturn(ValidationStatus.VALID);
+        when(clientNode.getValidationErrors()).thenReturn(Collections.emptyList());
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final FlowRegistryClientDTO dto = dtoFactory.createRegistryDto(clientNode);
+        assertTrue(dto.getMultipleVersionsAvailable(), "Ghost registry client with one compatible bundle should allow change version");
     }
 }
