@@ -23,7 +23,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericArray;
-import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
@@ -459,7 +458,7 @@ public abstract class TestWriteAvroResult {
                     assertEquals(o, bb.get());
                 }
             } else if (recordValue instanceof Object[]) {
-                assertInstanceOf(Array.class, avroValue, fieldName + " should have been instanceof Array");
+                assertInstanceOf(GenericArray.class, avroValue, fieldName + " should have been instanceof GenericArray");
                 final GenericArray<?> avroArray = (GenericArray<?>) avroValue;
                 final Object[] recordArray = (Object[]) recordValue;
                 assertEquals(recordArray.length, avroArray.size(),
