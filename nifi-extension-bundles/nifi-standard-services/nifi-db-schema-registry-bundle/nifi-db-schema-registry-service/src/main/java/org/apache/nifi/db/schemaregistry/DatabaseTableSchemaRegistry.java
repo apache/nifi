@@ -29,6 +29,7 @@ import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
@@ -137,7 +138,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
             final List<RecordField> recordFields = new ArrayList<>();
             while (columnResultSet.next()) {
-                recordFields.add(createRecordFieldFromColumn(columnResultSet));
+                recordFields.add(createRecordFieldFromColumn(columnResultSet, tableName));
             }
 
             // If no columns are found, check that the table exists
@@ -148,7 +149,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         }
     }
 
-    private RecordField createRecordFieldFromColumn(final ResultSet columnResultSet) throws SQLException {
+    private RecordField createRecordFieldFromColumn(final ResultSet columnResultSet, final String tableName) throws SQLException {
         // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
         final String defaultValue = columnResultSet.getString("COLUMN_DEF");
         final String columnName = columnResultSet.getString("COLUMN_NAME");
@@ -159,12 +160,25 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         } else {
             dataType = columnResultSet.getInt("DATA_TYPE");
         }
+        final DataType fieldDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(dataType);
         final String nullableValue = columnResultSet.getString("IS_NULLABLE");
         final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
+
+        final String fieldDefaultValue;
+
+        if (defaultValue == null) {
+            fieldDefaultValue = null;
+        } else if (DataTypeUtils.isCompatibleDataType(defaultValue, fieldDataType)) {
+            fieldDefaultValue = defaultValue;
+        } else {
+            getLogger().info("Table [{}] Column [{}] Default Value [{}] not compatible with Data Type [{}]", tableName, columnName, defaultValue, fieldDataType);
+            fieldDefaultValue = null;
+        }
+
         return new RecordField(
                 columnName,
-                DataTypeUtils.getDataTypeFromSQLTypeValue(dataType),
-                defaultValue,
+                fieldDataType,
+                fieldDefaultValue,
                 isNullable);
     }
 
