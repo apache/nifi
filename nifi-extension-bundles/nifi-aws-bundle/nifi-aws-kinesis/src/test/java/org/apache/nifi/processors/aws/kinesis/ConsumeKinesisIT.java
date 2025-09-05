@@ -403,7 +403,7 @@ class ConsumeKinesisIT {
         runner.setProperty(ConsumeKinesis.INITIAL_STREAM_POSITION, ConsumeKinesis.InitialPosition.TRIM_HORIZON);
         runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, ConsumeKinesis.ProcessingStrategy.FLOW_FILE);
 
-        runner.setProperty(ConsumeKinesis.METRICS_DESTINATION, ConsumeKinesis.MetricsDestination.CLOUDWATCH);
+        runner.setProperty(ConsumeKinesis.METRICS_PUBLISHING, ConsumeKinesis.MetricsPublishing.CLOUDWATCH);
 
         runner.setProperty(ConsumeKinesis.MAX_BYTES_TO_BUFFER, "10 MB");
 
