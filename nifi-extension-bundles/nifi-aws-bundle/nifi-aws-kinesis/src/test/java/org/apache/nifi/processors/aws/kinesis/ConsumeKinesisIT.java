@@ -401,6 +401,7 @@ class ConsumeKinesisIT {
         runner.setProperty(ConsumeKinesis.APPLICATION_NAME, applicationName);
         runner.setProperty(ConsumeKinesis.REGION, localstack.getRegion());
         runner.setProperty(ConsumeKinesis.INITIAL_STREAM_POSITION, ConsumeKinesis.InitialPosition.TRIM_HORIZON);
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, ConsumeKinesis.ProcessingStrategy.FLOW_FILE);
 
         runner.setProperty(ConsumeKinesis.METRICS_DESTINATION, ConsumeKinesis.MetricsDestination.CLOUDWATCH);
 
@@ -423,6 +424,7 @@ class ConsumeKinesisIT {
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA.getValue());
         runner.enableControllerService(jsonWriter);
 
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, ConsumeKinesis.ProcessingStrategy.RECORD);
         runner.setProperty(ConsumeKinesis.RECORD_READER, "json-reader");
         runner.setProperty(ConsumeKinesis.RECORD_WRITER, "json-writer");
 
