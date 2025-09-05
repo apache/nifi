@@ -17,7 +17,7 @@
 
 ## Record processing
 
-When _Record Reader_ and _Record Writer_ properties are set, _ConsumeKinesis_ operates in Record mode.
+When _Processing Strategy_ property is set to _RECORD_, _ConsumeKinesis_ operates in Record mode.
 In this mode, the processor reads records from Kinesis streams using the configured _Record Reader_,
 and writes them to FlowFiles using the configured _Record Writer_.
 

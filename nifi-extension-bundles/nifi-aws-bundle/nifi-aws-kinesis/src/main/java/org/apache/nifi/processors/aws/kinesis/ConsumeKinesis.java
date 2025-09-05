@@ -181,15 +181,23 @@ public class ConsumeKinesis extends AbstractProcessor {
             .defaultValue(RegionUtilV2.createAllowableValue(Region.US_WEST_2).getValue())
             .build();
 
+    static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Processing Strategy")
+            .description("Strategy for processing Kinesis Records and writing serialized output to FlowFiles")
+            .required(true)
+            .allowableValues(ProcessingStrategy.class)
+            .defaultValue(ProcessingStrategy.FLOW_FILE)
+            .build();
+
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
             .description("""
                     The Record Reader to use for parsing the data received from Kinesis.
-                    If not set, the records are written one per FlowFile without parsing.
 
                     The Record Reader is responsible for providing schemas for the records. If the schemas change frequently,
                     it might hinder performance of the processor. (See processor's additional details for more information.)""")
-            .required(false)
+            .required(true)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
 
@@ -197,7 +205,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             .name("Record Writer")
             .description("The Record Writer to use for serializing records.")
             .required(true)
-            .dependsOn(RECORD_READER)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
             .identifiesControllerService(RecordSetWriterFactory.class)
             .build();
 
@@ -259,6 +267,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             APPLICATION_NAME,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
+            PROCESSING_STRATEGY,
             RECORD_READER,
             RECORD_WRITER,
             INITIAL_STREAM_POSITION,
@@ -290,8 +299,11 @@ public class ConsumeKinesis extends AbstractProcessor {
     private volatile String streamName;
     private volatile RecordBuffer.ForProcessor recordBuffer;
 
-    private volatile boolean useReader = false;
     private volatile Optional<ReaderRecordProcessor> readerRecordProcessor = Optional.empty();
+
+    // An instance filed, so that it can be read in getRelationships.
+    private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.from(
+            PROCESSING_STRATEGY.getDefaultValue());
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -300,23 +312,25 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return useReader ? RECORD_FILE_RELATIONSHIPS : RAW_FILE_RELATIONSHIPS;
+        return switch (processingStrategy) {
+            case FLOW_FILE -> RAW_FILE_RELATIONSHIPS;
+            case RECORD -> RECORD_FILE_RELATIONSHIPS;
+        };
     }
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (descriptor.equals(RECORD_READER)) {
-            useReader = newValue != null;
+        if (descriptor.equals(PROCESSING_STRATEGY)) {
+            processingStrategy = ProcessingStrategy.from(newValue);
         }
     }
 
     @OnScheduled
     public void setup(final ProcessContext context) {
-        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        if (recordReaderFactory != null) {
-            final RecordSetWriterFactory recordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-            readerRecordProcessor = Optional.of(new ReaderRecordProcessor(recordReaderFactory, recordWriterFactory, getLogger()));
-        }
+        readerRecordProcessor = switch (processingStrategy) {
+            case FLOW_FILE -> Optional.empty();
+            case RECORD -> Optional.of(createReaderRecordProcessor(context));
+        };
 
         final Region region = Region.of(context.getProperty(REGION).getValue());
         final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
@@ -415,6 +429,12 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         return builder;
+    }
+
+    private ReaderRecordProcessor createReaderRecordProcessor(final ProcessContext context) {
+        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory recordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        return new ReaderRecordProcessor(recordReaderFactory, recordWriterFactory, getLogger());
     }
 
     private static InitialPositionInStreamExtended getInitialPosition(final ProcessContext context) {
@@ -574,6 +594,37 @@ public class ConsumeKinesis extends AbstractProcessor {
             if (bufferId != null) {
                 recordBuffer.shutdownShardConsumption(bufferId, shutdownRequestedInput.checkpointer());
             }
+        }
+    }
+
+    enum ProcessingStrategy implements DescribedValue {
+        FLOW_FILE("Write one FlowFile for each consumed Kinesis Record"),
+        RECORD("Write one FlowFile containing multiple consumed Kinesis Records processed with Record Reader and Record Writer");
+
+        private final String description;
+
+        ProcessingStrategy(final String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return name();
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+
+        private static ProcessingStrategy from(final String name) {
+            // As long as getValue() returns name(), using valueOf is fine.
+            return ProcessingStrategy.valueOf(name);
         }
     }
 
