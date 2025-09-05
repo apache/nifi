@@ -82,7 +82,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -259,12 +258,12 @@ public class ConsumeKinesis extends AbstractProcessor {
             .defaultValue("5 sec")
             .build();
 
-    static final PropertyDescriptor METRICS_DESTINATION = new PropertyDescriptor.Builder()
-            .name("Metrics Destination")
+    static final PropertyDescriptor METRICS_PUBLISHING = new PropertyDescriptor.Builder()
+            .name("Metrics Publishing")
             .description("Specifies where Kinesis usage metrics are published to.")
             .required(true)
-            .allowableValues(MetricsDestination.class)
-            .defaultValue(MetricsDestination.NONE)
+            .allowableValues(MetricsPublishing.class)
+            .defaultValue(MetricsPublishing.DISABLED)
             .build();
 
     static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
@@ -282,7 +281,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             MAX_BYTES_TO_BUFFER,
             CHECKPOINT_INTERVAL,
             PROXY_CONFIGURATION_SERVICE,
-            METRICS_DESTINATION
+            METRICS_PUBLISHING
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -459,9 +458,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     }
 
     private static @Nullable MetricsFactory configureMetricsFactory(final ProcessContext context) {
-        final MetricsDestination destination = context.getProperty(METRICS_DESTINATION).asAllowableValue(MetricsDestination.class);
-        return switch (destination) {
-            case NONE -> new NullMetricsFactory();
+        final MetricsPublishing metricsPublishing = context.getProperty(METRICS_PUBLISHING).asAllowableValue(MetricsPublishing.class);
+        return switch (metricsPublishing) {
+            case DISABLED -> new NullMetricsFactory();
             case LOGS -> new LogMetricsFactory();
             case CLOUDWATCH -> null; // If no metrics factory was provided, CloudWatch metrics factory is used by default.
         };
@@ -692,15 +691,15 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    enum MetricsDestination implements DescribedValue {
-        NONE("None", "No metrics are published"),
+    enum MetricsPublishing implements DescribedValue {
+        DISABLED("Disabled", "No metrics are published"),
         LOGS("Logs", "Metrics are published to application logs"),
         CLOUDWATCH("CloudWatch", "Metrics are published to Amazon CloudWatch");
 
         private final String displayName;
         private final String description;
 
-        MetricsDestination(final String displayName, final String description) {
+        MetricsPublishing(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
