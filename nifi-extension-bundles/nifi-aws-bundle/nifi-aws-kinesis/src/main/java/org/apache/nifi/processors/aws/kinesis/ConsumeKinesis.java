@@ -92,7 +92,6 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RE
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SHARD_ID;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.STREAM_NAME;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -105,7 +104,7 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FI
         Uses DynamoDB for check pointing and coordination, and CloudWatch (optional) for metrics.
         Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.""")
 @WritesAttributes({
-        @WritesAttribute(attribute = STREAM_NAME,
+        @WritesAttribute(attribute = ConsumeKinesisAttributes.STREAM_NAME,
                 description = "The name of the Kinesis Stream from which all Kinesis Records in the Flow File were read"),
         @WritesAttribute(attribute = SHARD_ID,
                 description = "Shard ID from which all Kinesis Records in the Flow File were read"),
@@ -153,8 +152,8 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KiB
     private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
 
-    static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .name("Amazon Kinesis Stream Name")
+    static final PropertyDescriptor STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("Stream Name")
             .description("The name of the Kinesis stream to consume from.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -256,7 +255,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            KINESIS_STREAM_NAME,
+            STREAM_NAME,
             APPLICATION_NAME,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
@@ -344,7 +343,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 .httpClient(createHttpClientBuilder(context).build())
                 .build();
 
-        streamName = context.getProperty(KINESIS_STREAM_NAME).getValue();
+        streamName = context.getProperty(STREAM_NAME).getValue();
         final InitialPositionInStreamExtended initialPositionExtended = getInitialPosition(context);
         final SingleStreamTracker streamTracker = new SingleStreamTracker(streamName, initialPositionExtended);
 
@@ -370,9 +369,11 @@ public class ConsumeKinesis extends AbstractProcessor {
                 configsBuilder.retrievalConfig()
         );
 
-        final Thread schedulerThread = new Thread(kinesisScheduler);
+        final String schedulerThreadName = "%s-Scheduler-%s".formatted(getClass().getSimpleName(), getIdentifier());
+        final Thread schedulerThread = new Thread(kinesisScheduler, schedulerThreadName);
         schedulerThread.setDaemon(true);
         schedulerThread.start();
+        // The thread is stopped when kinesisScheduler is shutdown in the onStopped method.
     }
 
     /**
@@ -460,9 +461,9 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final Optional<ShardBufferLease> maybeLease = recordBuffer.acquireBufferLease();
+        final Optional<ShardBufferLease> leaseAcquired = recordBuffer.acquireBufferLease();
 
-        maybeLease.ifPresentOrElse(
+        leaseAcquired.ifPresentOrElse(
                 lease -> processRecordsFromBuffer(session, lease),
                 context::yield
         );
@@ -490,7 +491,6 @@ public class ConsumeKinesis extends AbstractProcessor {
                     __ -> rollbackRecords(lease)
             );
         } catch (final RuntimeException e) {
-            getLogger().error("Failed to process records from Kinesis stream: {}", e.getMessage());
             rollbackRecords(lease);
             throw e;
         }
@@ -550,7 +550,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         @Override
         public void processRecords(final ProcessRecordsInput processRecordsInput) {
             if (bufferId == null) {
-                throw new IllegalStateException("Tried to process records before initialize.");
+                throw new IllegalStateException("Buffer ID not found: Record Processor not initialized");
             }
             recordBuffer.addRecords(bufferId, processRecordsInput.records(), processRecordsInput.checkpointer());
         }
@@ -577,7 +577,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    public enum InitialPosition implements DescribedValue {
+    enum InitialPosition implements DescribedValue {
         TRIM_HORIZON("Trim Horizon", "Start reading at the last untrimmed record in the shard in the system, which is the oldest data record in the shard."),
         LATEST("Latest", "Start reading just after the most recent record in the shard, so that you always read the most recent data in the shard."),
         AT_TIMESTAMP("At Timestamp", "Start reading at the record with the specified timestamp.");
@@ -606,10 +606,10 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    public enum MetricsDestination implements DescribedValue {
-        NONE("None", "The Kinesis Client Library won't publish any metrics."),
-        LOGS("Logs", "The Kinesis Client Library will publish metrics with the standard logger."),
-        CLOUDWATCH("CloudWatch", "The Kinesis Client Library will publish metrics to Amazon CloudWatch.");
+    enum MetricsDestination implements DescribedValue {
+        NONE("None", "No metrics are published"),
+        LOGS("Logs", "Metrics are published to application logs"),
+        CLOUDWATCH("CloudWatch", "Metrics are published to Amazon CloudWatch");
 
         private final String displayName;
         private final String description;
