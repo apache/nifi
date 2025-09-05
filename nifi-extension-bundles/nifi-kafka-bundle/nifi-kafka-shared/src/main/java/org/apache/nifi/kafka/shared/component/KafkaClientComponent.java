@@ -120,6 +120,27 @@ public interface KafkaClientComponent {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    PropertyDescriptor AWS_ASSUME_ROLE_ARN = new PropertyDescriptor.Builder()
+            .name("Assume Role ARN")
+            .description("The AWS Role ARN for cross-account access when using AWS MSK IAM. Used with Assume Role Session Name.")
+            .required(false)
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AWS_MSK_IAM
+            )
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    PropertyDescriptor AWS_ASSUME_ROLE_SESSION_NAME = new PropertyDescriptor.Builder()
+            .name("Assume Role Session Name")
+            .description("The AWS Role Session Name for cross-account access. Used in conjunction with Assume Role ARN.")
+            .required(true)
+            .dependsOn(AWS_ASSUME_ROLE_ARN)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("Service supporting SSL communication with Kafka brokers")
