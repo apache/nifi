@@ -82,7 +82,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SUB_SEQUENCE_NUMBER;
@@ -151,6 +156,8 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static final int KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK = 16;
     private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KiB
     private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
+
+    private static final Duration KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT = Duration.ofMinutes(3);
 
     static final PropertyDescriptor STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Stream Name")
@@ -463,20 +470,48 @@ public class ConsumeKinesis extends AbstractProcessor {
     @OnStopped
     public void onStopped() {
         if (kinesisScheduler != null) {
-            kinesisScheduler.shutdown();
+            shutdownScheduler();
+            kinesisScheduler = null;
         }
         if (kinesisClient != null) {
             kinesisClient.close();
+            kinesisClient = null;
         }
         if (dynamoDbClient != null) {
             dynamoDbClient.close();
+            dynamoDbClient = null;
         }
         if (cloudWatchClient != null) {
             cloudWatchClient.close();
+            cloudWatchClient = null;
         }
 
         recordBuffer = null;
         readerRecordProcessor = Optional.empty();
+    }
+
+    private void shutdownScheduler() {
+        final long start = System.nanoTime();
+        getLogger().debug("Shutting down Kinesis Scheduler");
+
+        boolean gracefulShutdownSucceeded;
+        try {
+            gracefulShutdownSucceeded = kinesisScheduler.startGracefulShutdown().get(KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT.getSeconds(), SECONDS);
+            if (!gracefulShutdownSucceeded) {
+                getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully. See the logs for more details");
+            }
+        } catch (final RuntimeException | InterruptedException | ExecutionException | TimeoutException e) {
+            getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully", e);
+            gracefulShutdownSucceeded = false;
+        }
+
+        if (!gracefulShutdownSucceeded) {
+            getLogger().warn("Falling back to a forceful shutdown of Kinesis Scheduler");
+            kinesisScheduler.shutdown();
+        }
+
+        final long finish = System.nanoTime();
+        getLogger().debug("Shutdown of Kinesis Scheduler finished. Total duration: {} seconds", NANOSECONDS.toSeconds(finish - start));
     }
 
     @Override
