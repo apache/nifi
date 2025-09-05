@@ -34,7 +34,6 @@ import org.springframework.context.annotation.Primary;
 public class ObjectMapperProvider {
 
     private static final ObjectMapper mapper = JsonMapper.builder()
-            .serializationInclusion(JsonInclude.Include.NON_NULL)
             .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
             .annotationIntrospector(new JakartaXmlBindAnnotationIntrospector(TypeFactory.defaultInstance()))
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

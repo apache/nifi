@@ -46,6 +46,7 @@ import {
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 import { selectBackNavigation } from '../../../state/navigation/navigation.selectors';
+import { popBackNavigation } from '../../../state/navigation/navigation.actions';
 
 @Component({
     selector: 'navigation',
@@ -157,5 +158,9 @@ export class Navigation implements OnInit, OnDestroy {
         this.disableAnimations = disableAnimations;
         this.storage.setItem('disable-animations', this.disableAnimations.toString());
         window.location.reload();
+    }
+
+    popBackNavigation(): void {
+        this.store.dispatch(popBackNavigation());
     }
 }

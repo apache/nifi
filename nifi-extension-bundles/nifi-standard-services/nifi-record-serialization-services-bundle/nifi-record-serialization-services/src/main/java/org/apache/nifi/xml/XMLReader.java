@@ -160,7 +160,8 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSourceFactory<XmlNode> sourceFactory = (variables, contentStream) -> {
             String contentFieldName = trim(context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue());
             contentFieldName = (contentFieldName == null) ? "value" : contentFieldName;
-            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables), parseXmlAttributes);
+            final String attributePrefix = trim(context.getProperty(ATTRIBUTE_PREFIX).evaluateAttributeExpressions(variables).getValue());
+            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables), parseXmlAttributes, attributePrefix);
         };
         final Supplier<SchemaInferenceEngine<XmlNode>> schemaInference = () -> new XmlSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 

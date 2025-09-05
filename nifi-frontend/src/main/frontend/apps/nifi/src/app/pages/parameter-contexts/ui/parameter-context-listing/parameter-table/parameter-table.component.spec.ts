@@ -111,4 +111,561 @@ describe('ParameterTable', () => {
             }
         ]);
     });
+
+    describe('isOverridden', () => {
+        it('should consider non inherited or modified as not overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isOverridden(item)).toBe(false);
+        });
+
+        it('should consider inherited but not modified as not overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isOverridden(item)).toBe(false);
+        });
+
+        it('should consider non inherited modified as not overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isOverridden(item)).toBe(false);
+        });
+
+        it('should consider inherited modified as overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isOverridden(item)).toBe(true);
+        });
+    });
+
+    describe('canOverridden', () => {
+        it('should consider non inherited or modified as not able overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(false);
+        });
+
+        it('should consider inherited but not modified as able to override', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(true);
+        });
+
+        it('should consider non inherited and modified as not able to override', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(false);
+        });
+
+        it('should consider inherited and modified as not able to override', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(false);
+        });
+    });
+
+    describe('canOverride', () => {
+        it('should consider non inherited or modified as not able overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(false);
+        });
+
+        it('should consider inherited but not modified as able to override', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(true);
+        });
+
+        it('should consider non inherited and modified as not able to override', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(false);
+        });
+
+        it('should consider inherited and modified as not able to override', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canOverride(item)).toBe(false);
+        });
+    });
+
+    describe('canEdit', () => {
+        it('should consider inherited and not modified as unable to edit', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canEdit(item)).toBe(false);
+        });
+
+        it('should consider inherited and modified as able to edit', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canEdit(item)).toBe(true);
+        });
+
+        it('should consider not inherited and not modified as able to edit', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.canEdit(item)).toBe(true);
+        });
+    });
+
+    describe('getInheritedParameterMessage', () => {
+        it('should return empty string for non inherited parameter', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.getInheritedParameterMessage(item)).toBe('');
+        });
+
+        it('should return generic message for inherited parameter with no permissions', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'contextId',
+                            permissions: {
+                                canRead: false,
+                                canWrite: false
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.getInheritedParameterMessage(item)).toBe(
+                'This parameter is inherited from another Parameter Context.'
+            );
+        });
+
+        it('should return parameter context specific message for inherited parameter with permissions', () => {
+            const name = 'contextName';
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'contextId',
+                            permissions: {
+                                canRead: true,
+                                canWrite: false
+                            },
+                            component: {
+                                id: 'contextId',
+                                name
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.getInheritedParameterMessage(item)).toBe(`This parameter is inherited from: ${name}`);
+        });
+    });
+
+    describe('isVisible', () => {
+        it('should consider deleted as not visible', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: true,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isVisible(item)).toBe(false);
+        });
+
+        it('should consider not deleted and as visible', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isVisible(item)).toBe(true);
+        });
+
+        it('should show inherited parameters', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isVisible(item)).toBe(true);
+        });
+
+        it('should show not inherited parameters', () => {
+            component.showInheritedParameters = false;
+
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isVisible(item)).toBe(false);
+        });
+
+        it('should show overridden inherited parameters', () => {
+            component.showInheritedParameters = false;
+
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+            expect(component.isVisible(item)).toBe(true);
+        });
+    });
 });

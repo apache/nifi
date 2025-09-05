@@ -223,7 +223,7 @@
     </nav>
     @if (backNavigation(); as navigation) {
         <div class="pl-2 py-2">
-            <a [routerLink]="navigation.route">
+            <a (click)="popBackNavigation()" [routerLink]="navigation.route">
                 <i class="fa fa-arrow-left primary-color mr-2"></i>
                 Back to {{ navigation.context }}
             </a>
