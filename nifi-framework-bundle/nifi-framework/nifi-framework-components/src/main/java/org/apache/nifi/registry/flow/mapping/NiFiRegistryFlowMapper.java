@@ -925,8 +925,20 @@ public class NiFiRegistryFlowMapper {
             } else {
                 final String referencedVersionServiceId = referencedControllerServiceData.getFirst().getVersionedServiceId();
                 final String parameterValue = parameter.getValue();
-                final String serviceId = getId(Optional.ofNullable(referencedVersionServiceId), parameterValue);
-                versionedParameter = mapParameter(parameter, serviceId);
+
+                // If a referenced Versioned Service ID is available, use it directly. Do not attempt to
+                // generate or cache a mapping using a null component identifier.
+                if (referencedVersionServiceId != null) {
+                    versionedParameter = mapParameter(parameter, referencedVersionServiceId);
+                } else if (parameterValue != null && !parameterValue.isBlank()) {
+                    // If the parameter has a concrete (non-empty) value referencing a service instance id,
+                    // generate a stable Versioned ID for it.
+                    final String serviceId = getId(Optional.empty(), parameterValue);
+                    versionedParameter = mapParameter(parameter, serviceId);
+                } else {
+                    // No referenced service and no parameter value specified; map as null to avoid NPE
+                    versionedParameter = mapParameter(parameter, null);
+                }
             }
         } else {
             versionedParameter = mapParameter(parameter);
