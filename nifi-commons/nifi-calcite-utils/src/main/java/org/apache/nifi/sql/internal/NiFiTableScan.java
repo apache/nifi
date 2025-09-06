@@ -51,6 +51,13 @@ class NiFiTableScan extends TableScan implements EnumerableRel {
         super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), Collections.emptyList(), table);
         this.fields = fields;
         fieldExpression = Expressions.constant(fields);
+        // Ensure projection pushdown rule is registered with the planner, as some Calcite versions
+        // may not invoke the RelNode#register() method.
+        try {
+            cluster.getPlanner().addRule(new NiFiProjectTableScanRule(NiFiProjectTableScanRule.Config.DEFAULT));
+        } catch (Exception ignored) {
+            // Rule may already be registered; intentionally ignored to avoid duplicate registration errors.
+        }
     }
 
     @Override
