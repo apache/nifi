@@ -84,6 +84,13 @@
                             "type": "long",
                             "logicalType": "timestamp-millis"
                         } ]
+                    },
+                    {
+                        "name": "datetime",
+                        "type": ["null", {
+                            "type": "long",
+                            "logicalType": "timestamp-millis"
+                        } ]
                     }
                 ]
             }
