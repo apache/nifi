@@ -18,6 +18,7 @@ package org.apache.nifi.kafka.shared.component;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
@@ -107,13 +108,26 @@ public interface KafkaClientComponent {
             )
             .build();
 
+    PropertyDescriptor AWS_ROLE_SOURCE = new PropertyDescriptor.Builder()
+            .name("AWS Role Source")
+            .description("Select how AWS credentials are sourced for AWS MSK IAM: Default Profile searches standard locations," +
+                    " Specified Profile selects a named profile, or Specified Role configures a Role ARN and Session Name.")
+            .required(true)
+            .allowableValues(AwsRoleSource.class)
+            .defaultValue(AwsRoleSource.DEFAULT_PROFILE.getValue())
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AWS_MSK_IAM
+            )
+            .build();
+
     PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
             .name("aws.profile.name")
             .displayName("AWS Profile Name")
             .description("The Amazon Web Services Profile to select when multiple profiles are available.")
             .dependsOn(
-                    SASL_MECHANISM,
-                    SaslMechanism.AWS_MSK_IAM
+                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AwsRoleSource.SPECIFIED_PROFILE
             )
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -125,8 +139,8 @@ public interface KafkaClientComponent {
             .description("The AWS Role ARN for cross-account access when using AWS MSK IAM. Used with Assume Role Session Name.")
             .required(false)
             .dependsOn(
-                    SASL_MECHANISM,
-                    SaslMechanism.AWS_MSK_IAM
+                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AwsRoleSource.SPECIFIED_ROLE
             )
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -136,7 +150,10 @@ public interface KafkaClientComponent {
             .name("Assume Role Session Name")
             .description("The AWS Role Session Name for cross-account access. Used in conjunction with Assume Role ARN.")
             .required(true)
-            .dependsOn(AWS_ASSUME_ROLE_ARN)
+            .dependsOn(
+                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AwsRoleSource.SPECIFIED_ROLE
+            )
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();

@@ -43,9 +43,23 @@ class AwsMskIamLoginConfigProviderTest {
     }
 
     @Test
-    void testConfigurationIncludesAssumeRoleProperties() {
+    void testConfigurationWithSpecifiedProfile() {
         runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.AWS_MSK_IAM);
+        runner.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, "SPECIFIED_PROFILE");
         runner.setProperty(KafkaClientComponent.AWS_PROFILE_NAME, "myProfile");
+
+        final PropertyContext context = runner.getProcessContext();
+        final String configuration = provider.getConfiguration(context);
+
+        assertNotNull(configuration);
+        assertTrue(configuration.contains(IAM_LOGIN_MODULE), "IAM Login Module not present");
+        assertTrue(configuration.contains("awsProfileName=\"myProfile\""), "awsProfileName JAAS option not present");
+    }
+
+    @Test
+    void testConfigurationWithSpecifiedRole() {
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.AWS_MSK_IAM);
+        runner.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, "SPECIFIED_ROLE");
         runner.setProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN, "arn:aws:iam::123456789012:role/MyRole");
         runner.setProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME, "MySession");
 
@@ -54,9 +68,7 @@ class AwsMskIamLoginConfigProviderTest {
 
         assertNotNull(configuration);
         assertTrue(configuration.contains(IAM_LOGIN_MODULE), "IAM Login Module not present");
-        assertTrue(configuration.contains("awsProfileName=\"myProfile\""), "awsProfileName JAAS option not present");
         assertTrue(configuration.contains("awsRoleArn=\"arn:aws:iam::123456789012:role/MyRole\""), "awsRoleArn JAAS option not present");
         assertTrue(configuration.contains("awsRoleSessionName=\"MySession\""), "awsRoleSessionName JAAS option not present");
     }
 }
-

@@ -52,6 +52,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
                 descriptors.remove();
                 // Add AWS MSK properties
                 descriptors.add(AWS_SASL_MECHANISM);
+                descriptors.add(KafkaClientComponent.AWS_ROLE_SOURCE);
                 descriptors.add(KafkaClientComponent.AWS_PROFILE_NAME);
                 descriptors.add(KafkaClientComponent.AWS_ASSUME_ROLE_ARN);
                 descriptors.add(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME);

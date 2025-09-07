@@ -18,6 +18,7 @@ package org.apache.nifi.kafka.shared.login;
 
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.util.StringUtils;
 
 import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.REQUIRED;
@@ -35,22 +36,24 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
 
     @Override
     public String getConfiguration(PropertyContext context) {
+        final AwsRoleSource roleSource = context.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
         final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
         final String assumeRoleArn = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
         final String assumeRoleSessionName = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
 
         final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS, REQUIRED);
 
-        if (StringUtils.isNotBlank(awsProfileName)) {
+        if (roleSource == AwsRoleSource.SPECIFIED_PROFILE && StringUtils.isNotBlank(awsProfileName)) {
             builder.append(AWS_PROFILE_NAME_KEY, awsProfileName);
         }
 
-        if (StringUtils.isNotBlank(assumeRoleArn)) {
-            builder.append(ROLE_ARN_KEY, assumeRoleArn);
-        }
-
-        if (StringUtils.isNotBlank(assumeRoleSessionName)) {
-            builder.append(ROLE_SESSION_NAME_KEY, assumeRoleSessionName);
+        if (roleSource == AwsRoleSource.SPECIFIED_ROLE) {
+            if (StringUtils.isNotBlank(assumeRoleArn)) {
+                builder.append(ROLE_ARN_KEY, assumeRoleArn);
+            }
+            if (StringUtils.isNotBlank(assumeRoleSessionName)) {
+                builder.append(ROLE_SESSION_NAME_KEY, assumeRoleSessionName);
+            }
         }
 
         return builder.build();
