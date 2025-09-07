@@ -20,6 +20,7 @@ package org.apache.nifi.azure.devops;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
@@ -29,8 +30,6 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.MediaType;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,7 +52,6 @@ import java.util.Set;
  * Git Repository Client implementation for Azure DevOps using the REST API.
  */
 public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AzureDevOpsRepositoryClient.class);
 
     private static final String API = "api-version";
     private static final String API_VERSION = "7.2-preview";
@@ -140,6 +138,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     private final String clientId;
     private final OAuth2AccessTokenProvider tokenProvider;
     private WebClientServiceProvider webClient;
+    private final ComponentLog logger;
 
     private final boolean canRead;
     private final boolean canWrite;
@@ -161,6 +160,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         clientId = Objects.requireNonNull(builder.clientId, "Client ID is required");
         webClient = Objects.requireNonNull(builder.webClient, "Web Client is required");
+        logger = Objects.requireNonNull(builder.logger, "ComponentLog required");
 
         // attempt to retrieve repository information to validate access
         final URI uri = getUriBuilder().build();
@@ -171,7 +171,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         canRead = true;
         canWrite = hasWriteAccess(projectId, repoId);
 
-        LOGGER.info("Created {} for clientId = [{}], repository [{}]", getClass().getSimpleName(), clientId, repoName);
+        logger.info("Created {} for Flow Registry Client ID = [{}], repository [{}]", getClass().getSimpleName(), clientId, repoName);
     }
 
     /**
@@ -216,6 +216,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Set<String> getBranches() throws FlowRegistryException {
+        logger.debug("Getting branches for repo [{}]", repoName);
         final URI uri = getUriBuilder().addPathSegment(SEGMENT_REFS)
                 .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX)
                 .addQueryParameter(API, API_VERSION)
@@ -231,6 +232,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Set<String> getTopLevelDirectoryNames(final String branch) throws FlowRegistryException {
+        logger.debug("Getting top-level directories for repo [{}] on branch [{}]", repoName, branch);
         final URI uri = listingUrl("")
                 .addQueryParameter(VERSION_DESCRIPTOR_VERSION, branch)
                 .addQueryParameter(VERSION_DESCRIPTOR_VERSION_TYPE, VERSION_TYPE_BRANCH)
@@ -257,6 +259,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Set<String> getFileNames(final String directory, final String branch) throws FlowRegistryException {
+        logger.debug("Getting file names in directory [{}] for repo [{}] on branch [{}]", directory, repoName, branch);
         final URI uri = listingUrl(directory)
                 .addQueryParameter(VERSION_DESCRIPTOR_VERSION, branch)
                 .addQueryParameter(VERSION_DESCRIPTOR_VERSION_TYPE, VERSION_TYPE_BRANCH)
@@ -277,8 +280,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public List<GitCommit> getCommits(final String path, final String branch) throws FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting commits for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repoName);
         final URI uri = getUriBuilder().addPathSegment(SEGMENT_COMMITS)
-                .addQueryParameter(PARAM_SEARCH_ITEM_PATH, getResolvedPath(path))
+                .addQueryParameter(PARAM_SEARCH_ITEM_PATH, resolvedPath)
                 .addQueryParameter(PARAM_SEARCH_ITEM_VERSION, branch)
                 .addQueryParameter(PARAM_SEARCH_ITEM_VERSION_TYPE, VERSION_TYPE_BRANCH)
                 .addQueryParameter(API, API_VERSION)
@@ -297,6 +302,8 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting content for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repoName);
         final URI uri = itemUrl(path)
                 .addQueryParameter(VERSION_DESCRIPTOR_VERSION, branch)
                 .addQueryParameter(VERSION_DESCRIPTOR_VERSION_TYPE, VERSION_TYPE_BRANCH)
@@ -308,6 +315,8 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting content for [{}] from commit [{}] in repo [{}]", resolvedPath, commitSha, repoName);
         final URI uri = itemUrl(path)
                 .addQueryParameter(PARAM_VERSION, commitSha)
                 .addQueryParameter(PARAM_VERSION_TYPE, VERSION_TYPE_COMMIT)
@@ -319,8 +328,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Optional<String> getContentSha(final String path, final String branch) throws FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting latest commit SHA affecting [{}] on branch [{}] in repo [{}]", resolvedPath, branch, repoName);
         final URI uri = getUriBuilder().addPathSegment(SEGMENT_COMMITS)
-                .addQueryParameter(PARAM_SEARCH_ITEM_PATH, getResolvedPath(path))
+                .addQueryParameter(PARAM_SEARCH_ITEM_PATH, resolvedPath)
                 .addQueryParameter(PARAM_SEARCH_ITEM_VERSION, branch)
                 .addQueryParameter(PARAM_SEARCH_ITEM_VERSION_TYPE, VERSION_TYPE_BRANCH)
                 .addQueryParameter(PARAM_TOP, "1")
@@ -329,6 +340,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         final JsonNode response = executeGetAllowingNotFound(uri);
         if (response == null) {
+            logger.warn("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
             return Optional.empty();
         }
 
@@ -336,6 +348,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         if (values != null && values.size() > 0) {
             return Optional.ofNullable(values.get(0).get(JSON_FIELD_COMMIT_ID)).map(JsonNode::asText);
         } else {
+            logger.warn("Unable to get content SHA for [{}] from branch [{}] because no commits were found", resolvedPath, branch);
             return Optional.empty();
         }
     }
@@ -345,6 +358,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         final String path = getResolvedPath(request.getPath());
         final String branch = request.getBranch();
         final String message = request.getMessage();
+        logger.debug("Creating content at path [{}] on branch [{}] in repo [{}]", path, branch, repoName);
         // Get branch current commit id
         final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
                 .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
@@ -403,6 +417,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
         final String path = getResolvedPath(filePath);
+        logger.debug("Deleting file [{}] in repo [{}] on branch [{}]", path, repoName, branch);
         final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
                 .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
                 .addQueryParameter(API, API_VERSION)
@@ -682,6 +697,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         private String repoPath;
         private OAuth2AccessTokenProvider oauthService;
         private WebClientServiceProvider webClient;
+        private ComponentLog logger;
 
         public Builder clientId(final String clientId) {
             this.clientId = clientId;
@@ -729,6 +745,11 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         public Builder webClient(final WebClientServiceProvider webClient) {
             this.webClient = webClient;
+            return this;
+        }
+
+        public Builder logger(final ComponentLog logger) {
+            this.logger = logger;
             return this;
         }
 

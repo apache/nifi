@@ -115,6 +115,7 @@ public class AzureDevOpsFlowRegistryClient extends AbstractGitFlowRegistryClient
                 .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
                 .oauthService(context.getProperty(OAUTH_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class))
                 .webClient(context.getProperty(WEBCLIENT_SERVICE).asControllerService(WebClientServiceProvider.class))
+                .logger(getLogger())
                 .build();
     }
 
