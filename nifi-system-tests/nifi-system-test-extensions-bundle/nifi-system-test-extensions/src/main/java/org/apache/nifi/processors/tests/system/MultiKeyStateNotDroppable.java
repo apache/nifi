@@ -28,9 +28,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,7 +43,7 @@ public class MultiKeyStateNotDroppable extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return new HashSet<>(Collections.singletonList(REL_SUCCESS));
+        return Set.of(REL_SUCCESS);
     }
 
     @Override

@@ -489,7 +489,7 @@ public class ProcessorResource extends ApplicationResource {
      * @throws InterruptedException if interrupted
      */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
     @Operation(

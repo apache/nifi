@@ -55,60 +55,77 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         }
     }
 
-    private void clearState(final String componentId, ComponentStateDTO componentStateDTO) {
+    private void clearState(final String componentId, final ComponentStateDTO componentStateDTO) {
         try {
             final StateManager manager = stateManagerProvider.getStateManager(componentId);
             if (manager == null) {
                 throw new ResourceNotFoundException("State for the specified component %s could not be found.".formatted(componentId));
             }
 
+            // No DTO provided: clear both scopes
             if (componentStateDTO == null) {
-                // clear both state's at the same time
                 manager.clear(Scope.CLUSTER);
                 manager.clear(Scope.LOCAL);
-            } else if (manager.getState(Scope.LOCAL) != null && !manager.getState(Scope.LOCAL).toMap().isEmpty() && !stateManagerProvider.isClusterProviderEnabled()) {
-                // we are in standalone mode, all state is local
-                if (manager.isStateKeyDropSupported()) {
-                    final Map<String, String> newState = toStateMap(componentStateDTO.getLocalState());
-                    final Map<String, String> currentState = manager.getState(Scope.LOCAL).toMap();
+                return;
+            }
 
-                    if (hasExactlyOneKeyRemoved(currentState, newState)) {
-                        manager.setState(newState, Scope.LOCAL);
+            // Determine if there is existing local state
+            final StateMap localStateMap = manager.getState(Scope.LOCAL);
+            final boolean hasLocalState = localStateMap != null && !localStateMap.toMap().isEmpty();
+
+            if (hasLocalState) {
+                // Local state exists
+                if (!stateManagerProvider.isClusterProviderEnabled()) {
+                    // Standalone mode: allow selective local key removal
+                    if (!manager.isStateKeyDropSupported()) {
+                        throw new IllegalStateException("Selective state key removal is not supported for component %s with local state.".formatted(componentId));
+                    }
+
+                    final Map<String, String> newLocalState = toStateMap(componentStateDTO.getLocalState());
+                    final Map<String, String> currentLocalState = localStateMap.toMap();
+
+                    if (hasExactlyOneKeyRemoved(currentLocalState, newLocalState)) {
+                        manager.setState(newLocalState, Scope.LOCAL);
                     } else {
                         throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
                     }
                 } else {
+                    // Cluster mode with existing local state: do not allow selective removal
                     throw new IllegalStateException("Selective state key removal is not supported for component %s with local state.".formatted(componentId));
                 }
-            } else if (manager.getState(Scope.LOCAL) != null && !manager.getState(Scope.LOCAL).toMap().isEmpty()) {
-                throw new IllegalStateException("Selective state key removal is not supported for component %s with local state.".formatted(componentId));
-            } else if (componentStateDTO.getClusterState() != null && !componentStateDTO.getClusterState().getState().isEmpty()) {
-                if (manager.isStateKeyDropSupported()) {
-                    final Map<String, String> newState = toStateMap(componentStateDTO.getClusterState());
-                    final Map<String, String> currentState = manager.getState(Scope.CLUSTER).toMap();
+                return;
+            }
 
-                    if (hasExactlyOneKeyRemoved(currentState, newState)) {
-                        manager.setState(newState, Scope.CLUSTER);
-                    } else {
-                        throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
-                    }
-
-                    // we clear local anyway
-                    manager.clear(Scope.LOCAL);
-                } else {
+            // No local state present, check for cluster state selective removal
+            final StateMapDTO clusterStateMapDto = componentStateDTO.getClusterState();
+            if (clusterStateMapDto != null && clusterStateMapDto.getState() != null && !clusterStateMapDto.getState().isEmpty()) {
+                if (!manager.isStateKeyDropSupported()) {
                     throw new IllegalStateException("Selective state key removal is not supported for component %s with cluster state.".formatted(componentId));
                 }
-            } else {
-                // clear both state's at the same time
-                manager.clear(Scope.CLUSTER);
+
+                final Map<String, String> newClusterState = toStateMap(clusterStateMapDto);
+                final Map<String, String> currentClusterState = manager.getState(Scope.CLUSTER).toMap();
+
+                if (hasExactlyOneKeyRemoved(currentClusterState, newClusterState)) {
+                    manager.setState(newClusterState, Scope.CLUSTER);
+                } else {
+                    throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
+                }
+
+                // Ensure local state is cleared
                 manager.clear(Scope.LOCAL);
+                return;
             }
+
+            // Default: clear both scopes
+            manager.clear(Scope.CLUSTER);
+            manager.clear(Scope.LOCAL);
         } catch (final IOException ioe) {
             throw new IllegalStateException("Unable to clear the state for the specified component %s: %s".formatted(componentId, ioe), ioe);
         }
     }
 
-    public boolean hasExactlyOneKeyRemoved(Map<String, String> currentState, Map<String, String> newState) {
+    private boolean hasExactlyOneKeyRemoved(Map<String, String> currentState, Map<String, String> newState) {
         // Check if newState has exactly one less key
         if (currentState.size() - newState.size() != 1) {
             return false;

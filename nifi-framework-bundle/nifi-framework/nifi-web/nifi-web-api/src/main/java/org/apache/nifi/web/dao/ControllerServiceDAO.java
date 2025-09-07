@@ -153,5 +153,5 @@ public interface ControllerServiceDAO {
      * @param controllerServiceId controller service id
      * @param componentStateDTO   state of the controller service
      */
-    void clearState(final String controllerServiceId, final ComponentStateDTO componentStateDTO);
+    void clearState(String controllerServiceId, ComponentStateDTO componentStateDTO);
 }
