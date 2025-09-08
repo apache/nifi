@@ -85,8 +85,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     private static final String OBSOLETE_PROXY_PORT = "assume-role-proxy-port";
 
     public static final PropertyDescriptor USE_DEFAULT_CREDENTIALS = new PropertyDescriptor.Builder()
-        .name("default-credentials")
-        .displayName("Use Default Credentials")
+        .name("Use Default Credentials")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -98,8 +97,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor PROFILE_NAME = new PropertyDescriptor.Builder()
-        .name("profile-name")
-        .displayName("Profile Name")
+        .name("Profile Name")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -116,8 +114,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ACCESS_KEY_ID = new PropertyDescriptor.Builder()
-        .name("Access Key")
-        .displayName("Access Key ID")
+        .name("Access Key ID")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -125,8 +122,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
-        .name("Secret Key")
-        .displayName("Secret Access Key")
+        .name("Secret Access Key")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -134,8 +130,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor USE_ANONYMOUS_CREDENTIALS = new PropertyDescriptor.Builder()
-        .name("anonymous-credentials")
-        .displayName("Use Anonymous Credentials")
+        .name("Use Anonymous Credentials")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -165,8 +160,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_REGION = new PropertyDescriptor.Builder()
-        .name("assume-role-sts-region")
-        .displayName("Assume Role STS Region")
+        .name("Assume Role STS Region")
         .description("The AWS Security Token Service (STS) region")
         .dependsOn(ASSUME_ROLE_ARN)
         .allowableValues(getAvailableRegions())
@@ -174,8 +168,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_EXTERNAL_ID = new PropertyDescriptor.Builder()
-        .name("assume-role-external-id")
-        .displayName("Assume Role External ID")
+        .name("Assume Role External ID")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -185,8 +178,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("assume-role-ssl-context-service")
-        .displayName("Assume Role SSL Context Service")
+        .name("Assume Role SSL Context Service")
         .description("SSL Context Service used when connecting to the STS Endpoint.")
         .identifiesControllerService(SSLContextProvider.class)
         .required(false)
@@ -194,8 +186,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-        .name("assume-role-proxy-configuration-service")
-        .displayName("Assume Role Proxy Configuration Service")
+        .name("Assume Role Proxy Configuration Service")
         .identifiesControllerService(ProxyConfigurationService.class)
         .required(false)
         .description("Proxy configuration for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account.")
@@ -203,8 +194,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_ENDPOINT = new PropertyDescriptor.Builder()
-        .name("assume-role-sts-endpoint")
-        .displayName("Assume Role STS Endpoint Override")
+        .name("Assume Role STS Endpoint Override")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -218,8 +208,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
-        .name("assume-role-sts-signer-override")
-        .displayName("Assume Role STS Signer Override")
+        .name("Assume Role STS Signer Override")
         .description("The AWS STS library uses Signature Version 4 by default. This property allows you to plug in your own custom signer implementation.")
         .required(false)
         .allowableValues(EnumSet.of(DEFAULT_SIGNER, AWS_V4_SIGNER, CUSTOM_SIGNER))
@@ -228,8 +217,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor MAX_SESSION_TIME = new PropertyDescriptor.Builder()
-        .name("Session Time")
-        .displayName("Assume Role Session Time")
+        .name("Assume Role Session Time")
         .description("Session time for role based session (between 900 and 3600 seconds). This is used in conjunction with Assume Role ARN.")
         .defaultValue("3600")
         .required(false)
@@ -239,8 +227,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
-        .name("custom-signer-class-name")
-        .displayName("Custom Signer Class Name")
+        .name("Custom Signer Class Name")
         .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -249,8 +236,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
-        .name("custom-signer-module-location")
-        .displayName("Custom Signer Module Location")
+        .name("Custom Signer Module Location")
         .description("Comma-separated list of paths to files and/or directories which contain the custom signer's JAR file and its dependencies (if any).")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -307,6 +293,21 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         ProxyServiceMigration.migrateProxyProperties(config, ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, null, null);
+        config.renameProperty("default-credentials", USE_DEFAULT_CREDENTIALS.getName());
+        config.renameProperty("profile-name", PROFILE_NAME.getName());
+        config.renameProperty("Access Key", ACCESS_KEY_ID.getName());
+        config.renameProperty("Secret Key", SECRET_KEY.getName());
+        config.renameProperty("anonymous-credentials", USE_ANONYMOUS_CREDENTIALS.getName());
+        config.renameProperty("assume-role-sts-region", ASSUME_ROLE_STS_REGION.getName());
+        config.renameProperty("assume-role-external-id", ASSUME_ROLE_EXTERNAL_ID.getName());
+        config.renameProperty("assume-role-ssl-context-service", ASSUME_ROLE_SSL_CONTEXT_SERVICE.getName());
+        config.renameProperty("assume-role-proxy-configuration-service", ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE.getName());
+        config.renameProperty("assume-role-sts-endpoint", ASSUME_ROLE_STS_ENDPOINT.getName());
+        config.renameProperty("assume-role-sts-signer-override", ASSUME_ROLE_STS_SIGNER_OVERRIDE.getName());
+        config.renameProperty("Session Time", MAX_SESSION_TIME.getName());
+        config.renameProperty("custom-signer-class-name", ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME.getName());
+        config.renameProperty("custom-signer-module-location", ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION.getName());
+
     }
 
     @Override

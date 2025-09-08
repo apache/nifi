@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.kinesis.stream;
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +27,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestPutKinesisStream {
@@ -78,5 +81,17 @@ public class TestPutKinesisStream {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisStream.REL_FAILURE);
 
         assertNotNull(flowFiles.get(0).getAttribute(PutKinesisStream.AWS_KINESIS_ERROR_MESSAGE));
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("amazon-kinesis-stream-partition-key", PutKinesisStream.KINESIS_PARTITION_KEY.getName(),
+                        "message-batch-size", PutKinesisStream.BATCH_SIZE.getName(),
+                        "max-message-buffer-size", PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB.getName(),
+                        "kinesis-stream-name", PutKinesisStream.KINESIS_STREAM_NAME.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 }

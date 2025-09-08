@@ -18,6 +18,8 @@ package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -126,5 +128,15 @@ public class TestPutSQS {
         assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.entries().get(0).messageDeduplicationId());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of("aws-region", AbstractAwsProcessor.REGION.getName(),
+                "message-group-id", PutSQS.MESSAGEGROUPID.getName(),
+                "deduplication-message-id", PutSQS.MESSAGEDEDUPLICATIONID.getName());
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 }

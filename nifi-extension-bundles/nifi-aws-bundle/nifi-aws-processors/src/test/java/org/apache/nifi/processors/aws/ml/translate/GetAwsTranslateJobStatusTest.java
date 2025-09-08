@@ -22,6 +22,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,27 +40,26 @@ import software.amazon.awssdk.services.translate.model.OutputDataConfig;
 import software.amazon.awssdk.services.translate.model.TextTranslationJobProperties;
 
 import java.time.Instant;
-import java.util.Collections;
+import java.util.Map;
 
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
+import static org.apache.nifi.processors.aws.v2.AbstractAwsProcessor.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class GetAwsTranslateJobStatusTest {
+    private static final String DEFAULT_TASK_ID_ATTRIBUTE_NAME = "awsTaskId";
     private static final String TEST_TASK_ID = "testJobId";
     private static final String OUTPUT_LOCATION_PATH = "outputLocationPath";
-    private static final String REASON_OF_FAILURE = "reasonOfFailure";
     private static final String CONTENT_STRING = "content";
     private TestRunner runner;
     @Mock
     private TranslateClient mockTranslateClient;
-
-    private GetAwsTranslateJobStatus processor;
 
     @Captor
     private ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor;
@@ -72,7 +72,7 @@ public class GetAwsTranslateJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        processor = new GetAwsTranslateJobStatus() {
+        GetAwsTranslateJobStatus processor = new GetAwsTranslateJobStatus() {
             @Override
             public TranslateClient getClient(final ProcessContext context) {
                 return mockTranslateClient;
@@ -149,10 +149,19 @@ public class GetAwsTranslateJobStatusTest {
         testTranslateJob(job, REL_FAILURE);
     }
 
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
+                "awsTaskId", TASK_ID.getName());
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private void testTranslateJob(final TextTranslationJobProperties job, final Relationship expectedRelationship) {
         final DescribeTextTranslationJobResponse response = DescribeTextTranslationJobResponse.builder().textTranslationJobProperties(job).build();
         when(mockTranslateClient.describeTextTranslationJob(requestCaptor.capture())).thenReturn(response);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
+        runner.enqueue(CONTENT_STRING, Map.of(DEFAULT_TASK_ID_ATTRIBUTE_NAME, TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(expectedRelationship);

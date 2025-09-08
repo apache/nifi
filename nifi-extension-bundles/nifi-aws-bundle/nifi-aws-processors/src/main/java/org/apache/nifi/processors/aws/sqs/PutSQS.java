@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -84,8 +85,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
             .build();
 
     public static final PropertyDescriptor MESSAGEGROUPID = new PropertyDescriptor.Builder()
-            .name("message-group-id")
-            .displayName("Message Group ID")
+            .name("Message Group ID")
             .description("If using FIFO, the message group to which the FlowFile belongs")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -93,8 +93,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
             .build();
 
     public static final PropertyDescriptor MESSAGEDEDUPLICATIONID = new PropertyDescriptor.Builder()
-            .name("deduplication-message-id")
-            .displayName("Deduplication Message ID")
+            .name("Deduplication Message ID")
             .description("The token used for deduplication of sent messages")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -199,6 +198,13 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         session.transfer(flowFile, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         session.getProvenanceReporter().send(flowFile, queueUrl, transmissionMillis);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("aws-region", REGION.getName());
+        config.renameProperty("message-group-id", MESSAGEGROUPID.getName());
+        config.renameProperty("deduplication-message-id", MESSAGEDEDUPLICATIONID.getName());
     }
 
     @Override

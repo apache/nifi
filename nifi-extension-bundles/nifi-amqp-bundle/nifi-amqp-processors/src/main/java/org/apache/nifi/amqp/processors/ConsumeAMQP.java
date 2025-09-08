@@ -32,6 +32,7 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -83,8 +84,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor AUTO_ACKNOWLEDGE = new PropertyDescriptor.Builder()
-        .name("auto.acknowledge")
-        .displayName("Auto-Acknowledge Messages")
+        .name("Auto-Acknowledge Messages")
         .description(" If false (Non-Auto-Acknowledge), the messages will be acknowledged by the processor after transferring the FlowFiles to success and committing "
             + "the NiFi session. Non-Auto-Acknowledge mode provides 'at-least-once' delivery semantics. "
             + "If true (Auto-Acknowledge), messages that are delivered to the AMQP Client will be auto-acknowledged by the AMQP Broker just after sending them out. "
@@ -95,8 +95,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .required(true)
         .build();
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("batch.size")
-        .displayName("Batch Size")
+        .name("Batch Size")
         .description("The maximum number of messages that should be processed in a single session. Once this many messages have been received (or once no more messages are readily available), "
             + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged to the AMQP Broker. Setting this value to a larger number "
             + "could result in better performance, particularly for very small messages, but can also result in more messages being duplicated upon sudden restart of NiFi.")
@@ -106,8 +105,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .required(true)
         .build();
     static final PropertyDescriptor PREFETCH_COUNT = new PropertyDescriptor.Builder()
-        .name("prefetch.count")
-        .displayName("Prefetch Count")
+        .name("Prefetch Count")
         .description("The maximum number of unacknowledged messages for the consumer. If consumer has this number of unacknowledged messages, AMQP broker will "
                + "no longer send new messages until consumer acknowledges some of the messages already delivered to it."
                + "Allowed values: from 0 to 65535. 0 means no limit")
@@ -118,16 +116,14 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
 
     public static final PropertyDescriptor HEADER_FORMAT = new PropertyDescriptor.Builder()
-        .name("header.format")
-        .displayName("Header Output Format")
+        .name("Header Output Format")
         .description("Defines how to output headers from the received message")
         .allowableValues(OutputHeaderFormat.class)
         .defaultValue(OutputHeaderFormat.COMMA_SEPARATED_STRING)
         .required(true)
         .build();
     public static final PropertyDescriptor HEADER_KEY_PREFIX = new PropertyDescriptor.Builder()
-        .name("header.key.prefix")
-        .displayName("Header Key Prefix")
+        .name("Header Key Prefix")
         .description("Text to be prefixed to header keys as the are added to the FlowFile attributes. Processor will append '.' to the value of this property")
         .defaultValue(DEFAULT_HEADERS_KEY_PREFIX)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -136,8 +132,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
 
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
-        .name("header.separator")
-        .displayName("Header Separator")
+        .name("Header Separator")
         .description("The character that is used to separate key-value for header in String. The value must be only one character."
                 )
         .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
@@ -146,8 +141,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .required(false)
         .build();
     static final PropertyDescriptor REMOVE_CURLY_BRACES = new PropertyDescriptor.Builder()
-        .name("remove.curly.braces")
-        .displayName("Remove Curly Braces")
+        .name("Remove Curly Braces")
         .description("If true Remove Curly Braces, Curly Braces in the header will be automatically remove.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("False")
@@ -180,6 +174,17 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     );
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("auto.acknowledge", AUTO_ACKNOWLEDGE.getName());
+        config.renameProperty("batch.size", BATCH_SIZE.getName());
+        config.renameProperty("prefetch.count", PREFETCH_COUNT.getName());
+        config.renameProperty("header.format", HEADER_FORMAT.getName());
+        config.renameProperty("header.key.prefix", HEADER_KEY_PREFIX.getName());
+        config.renameProperty("header.separator", HEADER_SEPARATOR.getName());
+        config.renameProperty("remove.curly.braces", REMOVE_CURLY_BRACES.getName());
+    }
 
     /**
      * Will construct a {@link FlowFile} containing the body of the consumed AMQP message (if {@link GetResponse} returned by {@link AMQPConsumer} is

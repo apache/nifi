@@ -29,6 +29,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.s3.api.MetadataTarget;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -194,5 +195,15 @@ class TestGetS3ObjectMetadata {
         when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class))).thenThrow(exception);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
+                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 }

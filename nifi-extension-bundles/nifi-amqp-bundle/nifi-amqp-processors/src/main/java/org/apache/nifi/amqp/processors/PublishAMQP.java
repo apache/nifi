@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -112,8 +113,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
-            .name("header.separator")
-            .displayName("Header Separator")
+            .name("Header Separator")
             .description("The character that is used to split key-value for headers. The value must only one character. "
                     + "Otherwise you will get an error message")
             .defaultValue(",")
@@ -208,6 +208,11 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     @Override
     protected AMQPPublisher createAMQPWorker(final ProcessContext context, final Connection connection) {
         return new AMQPPublisher(connection, getLogger());
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("header.separator", HEADER_SEPARATOR.getName());
     }
 
     /**

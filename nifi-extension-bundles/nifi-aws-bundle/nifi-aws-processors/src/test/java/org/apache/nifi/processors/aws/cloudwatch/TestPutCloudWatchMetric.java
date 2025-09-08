@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.cloudwatch;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -282,5 +283,17 @@ public class TestPutCloudWatchMetric {
 
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of("MetricName", PutCloudWatchMetric.METRIC_NAME.getName(),
+                "maximum", PutCloudWatchMetric.MAXIMUM.getName(),
+                "minimum", PutCloudWatchMetric.MINIMUM.getName(),
+                "sampleCount", PutCloudWatchMetric.SAMPLECOUNT.getName(),
+                "sum", PutCloudWatchMetric.SUM.getName());
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 }

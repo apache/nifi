@@ -29,6 +29,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,6 +99,17 @@ public class TestCopyS3Object {
         runner.run();
 
         runner.assertTransferCount(CopyS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("canned-acl", AbstractS3Processor.CANNED_ACL.getName(),
+                        "custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
+                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
     private Map<String, String> setupRun() {

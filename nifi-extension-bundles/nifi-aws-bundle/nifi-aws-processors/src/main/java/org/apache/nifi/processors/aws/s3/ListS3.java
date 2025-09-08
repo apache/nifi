@@ -60,6 +60,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -150,8 +151,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     " Any property that relates to the persisting state will be ignored.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
-        .name("listing-strategy")
-        .displayName("Listing Strategy")
+        .name("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
@@ -177,8 +177,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         .build();
 
     public static final PropertyDescriptor DELIMITER = new Builder()
-            .name("delimiter")
-            .displayName("Delimiter")
+            .name("Delimiter")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -187,8 +186,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor PREFIX = new Builder()
-            .name("prefix")
-            .displayName("Prefix")
+            .name("Prefix")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -196,8 +194,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor USE_VERSIONS = new Builder()
-            .name("use-versions")
-            .displayName("Use Versions")
+            .name("Use Versions")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -207,8 +204,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor LIST_TYPE = new Builder()
-            .name("list-type")
-            .displayName("List Type")
+            .name("List Type")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
@@ -220,8 +216,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor MIN_AGE = new Builder()
-            .name("min-age")
-            .displayName("Minimum Object Age")
+            .name("Minimum Object Age")
             .description("The minimum age that an S3 object must be in order to be considered; any object younger than this amount of time (according to last modification date) will be ignored")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -229,8 +224,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor MAX_AGE = new Builder()
-            .name("max-age")
-            .displayName("Maximum Object Age")
+            .name("Maximum Object Age")
             .description("The maximum age that an S3 object can be in order to be considered; any object older than this amount of time (according to last modification date) will be ignored")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -238,16 +232,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor WRITE_OBJECT_TAGS = new Builder()
-            .name("write-s3-object-tags")
-            .displayName("Write Object Tags")
+            .name("Write Object Tags")
             .description("If set to 'True', the tags associated with the S3 object will be written as FlowFile attributes")
             .required(true)
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
             .defaultValue("false")
             .build();
+
     public static final PropertyDescriptor REQUESTER_PAYS = new Builder()
-            .name("requester-pays")
-            .displayName("Requester Pays")
+            .name("Requester Pays")
             .required(true)
             .description("If true, indicates that the requester consents to pay any charges associated with listing "
                     + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.  Note that this "
@@ -260,8 +253,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor WRITE_USER_METADATA = new Builder()
-            .name("write-s3-user-metadata")
-            .displayName("Write User Metadata")
+            .name("Write User Metadata")
             .description("If set to 'True', the user defined metadata associated with the S3 object will be added to FlowFile attributes/records")
             .required(true)
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
@@ -269,8 +261,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
             "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
         .required(false)
@@ -385,6 +376,22 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     public void initObjectAgeThresholds(ProcessContext context) {
         minObjectAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         maxObjectAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("listing-strategy", LISTING_STRATEGY.getName());
+        config.renameProperty("delimiter", DELIMITER.getName());
+        config.renameProperty("prefix", PREFIX.getName());
+        config.renameProperty("use-versions", USE_VERSIONS.getName());
+        config.renameProperty("list-type", LIST_TYPE.getName());
+        config.renameProperty("min-age", MIN_AGE.getName());
+        config.renameProperty("max-age", MAX_AGE.getName());
+        config.renameProperty("write-s3-object-tags", WRITE_OBJECT_TAGS.getName());
+        config.renameProperty("requester-pays", REQUESTER_PAYS.getName());
+        config.renameProperty("write-s3-user-metadata", WRITE_USER_METADATA.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
     }
 
     protected ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> createListedEntityTracker() {

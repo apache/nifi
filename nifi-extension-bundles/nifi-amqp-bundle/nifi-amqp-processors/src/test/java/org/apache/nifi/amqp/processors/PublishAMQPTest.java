@@ -22,6 +22,7 @@ import com.rabbitmq.client.GetResponse;
 import org.apache.nifi.amqp.processors.PublishAMQP.InputHeaderSource;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -231,6 +232,14 @@ public class PublishAMQPTest {
         runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
         runner.setProperty(PublishAMQP.HEADERS_PATTERN, "*");
         runner.assertNotValid();
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of("header.separator", PublishAMQP.HEADER_SEPARATOR.getName());
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void setConnectionProperties(TestRunner runner) {
