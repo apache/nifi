@@ -155,7 +155,7 @@ public class RuntimeManifestGenerator {
 
     private RuntimeManifestSerializer createRuntimeManifestSerializer() {
         final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
         final ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
         return new JacksonRuntimeManifestSerializer(objectWriter);

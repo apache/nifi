@@ -34,6 +34,7 @@ import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.serialize.FlowSnapshotSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kohsuke.github.GitHubBuilder;
 import org.mockito.ArgumentCaptor;
 
 import java.io.ByteArrayInputStream;
@@ -45,6 +46,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -82,6 +84,13 @@ public class GitHubFlowRegistryClientTest {
         when(repositoryClient.hasReadPermission()).thenReturn(true);
         when(repositoryClient.hasWritePermission()).thenReturn(true);
         when(repositoryClient.getTopLevelDirectoryNames(anyString())).thenReturn(Set.of("existing-bucket", ".github"));
+    }
+
+    @Test
+    public void testGitHubClientInitializationFailsWithIncompatibleJackson() {
+        assertDoesNotThrow(() -> new GitHubBuilder()
+                .withEndpoint("https://api.github.com")
+                .build());
     }
 
     @Test

@@ -1,0 +1,16 @@
+{
+  "namespace": "nifi",
+  "name": "data_types",
+  "type": "record",
+  "fields": [
+    {
+      "name": "fixed",
+      "type": {
+        "type": "fixed",
+        "name": "fixed16",
+        "size": 16
+      }
+    }
+  ]
+}
+

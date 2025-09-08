@@ -40,10 +40,16 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
     private final XMLEventReader xmlEventReader;
     private final String contentFieldName;
     private final boolean parseXmlAttributes;
+    private final String attributePrefix;
 
     public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXmlAttributes) throws IOException {
+        this(in, contentFieldName, ignoreWrapper, parseXmlAttributes, null);
+    }
+
+    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXmlAttributes, final String attributePrefix) throws IOException {
         this.contentFieldName = contentFieldName;
         this.parseXmlAttributes = parseXmlAttributes;
+        this.attributePrefix = attributePrefix;
         try {
             final XMLEventReaderProvider provider = new StandardXMLEventReaderProvider();
             xmlEventReader = provider.getEventReader(new StreamSource(in));
@@ -148,8 +154,9 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         final Iterator<?> attributeIterator = startElement.getAttributes();
         while (attributeIterator.hasNext()) {
             final Attribute attribute = (Attribute) attributeIterator.next();
-            final String attributeName = attribute.getName().getLocalPart();
-            childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+            final String rawName = attribute.getName().getLocalPart();
+            final String fieldName = attributePrefix == null ? rawName : attributePrefix + rawName;
+            childNodes.put(fieldName, new XmlTextNode(fieldName, attribute.getValue()));
         }
     }
 }

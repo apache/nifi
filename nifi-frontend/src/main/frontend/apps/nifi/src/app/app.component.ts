@@ -30,7 +30,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { NiFiState } from './state';
 import { Store } from '@ngrx/store';
 import { BackNavigation } from './state/navigation';
-import { popBackNavigation, pushBackNavigation } from './state/navigation/navigation.actions';
+import { popBackNavigationByRouteBoundary, pushBackNavigation } from './state/navigation/navigation.actions';
 import { filter, map, tap } from 'rxjs';
 import { concatLatestFrom } from '@ngrx/operators';
 import { selectBackNavigation } from './state/navigation/navigation.selectors';
@@ -95,7 +95,7 @@ export class AppComponent implements OnDestroy {
                     );
                 } else if (previousBackNavigation) {
                     this.store.dispatch(
-                        popBackNavigation({
+                        popBackNavigationByRouteBoundary({
                             url: event.url
                         })
                     );

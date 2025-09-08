@@ -255,9 +255,9 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
     private List<ConsumeChannel> createChannels(final ProcessContext context, final App slackApp) throws SlackApiException, IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
         if (context.getProperty(INCLUDE_NULL_FIELDS).asBoolean()) {
-            objectMapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+            objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
         } else {
-            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         }
 
         final ConsumeSlackClient client = initializeClient(slackApp);

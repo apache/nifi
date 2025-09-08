@@ -20,8 +20,11 @@ package org.apache.nifi.avro;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
+import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericArray;
-import org.apache.avro.generic.GenericData.Array;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -34,6 +37,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -52,16 +56,19 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public abstract class TestWriteAvroResult {
 
@@ -323,6 +330,114 @@ public abstract class TestWriteAvroResult {
         }
     }
 
+    @Test
+    public void testFixedFieldWritesAsGenericFixed() throws IOException {
+        // Avro schema with a single fixed(16) field
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/fixed16.avsc"));
+
+        // NiFi record schema: represent FIXED as an array of BYTEs
+        final List<RecordField> fields = Collections.singletonList(
+                new RecordField("fixed", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
+
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        // 16-byte value (e.g., UUID bytes). Use NiFi's typical byte[] -> Object[]
+        // conversion path
+        final byte[] bytes = new byte[16];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = (byte) i;
+        }
+        final Map<String, Object> values = new HashMap<>();
+        values.put("fixed", AvroTypeUtil.convertByteArray(bytes));
+        final Record record = new MapRecord(recordSchema, values);
+
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (final RecordSetWriter writer = new WriteAvroResultWithSchema(schema, out, CodecFactory.nullCodec())) {
+            writer.write(RecordSet.of(record.getSchema(), record));
+        }
+
+        // Read back and verify Fixed value is written as GenericFixed with matching
+        // bytes
+        final byte[] written = out.toByteArray();
+        try (final DataFileStream<GenericRecord> dfs = new DataFileStream<>(new ByteArrayInputStream(written), new GenericDatumReader<>())) {
+            final GenericRecord rec = dfs.next();
+            assertNotNull(rec);
+            final Object fixedObj = rec.get("fixed");
+            assertInstanceOf(GenericFixed.class, fixedObj);
+            final byte[] actual = ((GenericFixed) fixedObj).bytes();
+            assertArrayEquals(bytes, actual);
+        }
+    }
+
+    @Test
+    public void testFixedFieldWrongLength() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/fixed16.avsc"));
+
+        final List<RecordField> fields = Collections.singletonList(
+                new RecordField("fixed", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        // Wrong length: 15 bytes instead of required 16
+        final byte[] bytes = new byte[15];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = (byte) i;
+        }
+        final Map<String, Object> values = new HashMap<>();
+        values.put("fixed", AvroTypeUtil.convertByteArray(bytes));
+        final Record record = new MapRecord(recordSchema, values);
+
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (final RecordSetWriter writer = new WriteAvroResultWithSchema(schema, out, CodecFactory.nullCodec())) {
+            assertThrows(IllegalTypeConversionException.class, () -> writer.write(RecordSet.of(record.getSchema(), record)));
+        }
+    }
+
+    @Test
+    public void testDecimalBytesAndFixedRoundTrip() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/decimals-bytes-fixed.avsc"));
+
+        // Both fields are DECIMAL(9,2) in NiFi's record schema
+        final List<RecordField> fields = Arrays.asList(
+                new RecordField("dec_bytes", RecordFieldType.DECIMAL.getDecimalDataType(9, 2)),
+                new RecordField("dec_fixed", RecordFieldType.DECIMAL.getDecimalDataType(9, 2)));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        final BigDecimal expected = new BigDecimal("12345.67");
+        final Map<String, Object> values = new HashMap<>();
+        values.put("dec_bytes", expected);
+        values.put("dec_fixed", expected);
+        final Record record = new MapRecord(recordSchema, values);
+
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (final RecordSetWriter writer = new WriteAvroResultWithSchema(schema, out, CodecFactory.nullCodec())) {
+            writer.write(RecordSet.of(record.getSchema(), record));
+        }
+
+        // Read back the values and convert from logical decimal representations
+        final byte[] written = out.toByteArray();
+        try (final DataFileStream<GenericRecord> dfs = new DataFileStream<>(new ByteArrayInputStream(written), new GenericDatumReader<>())) {
+            final GenericRecord rec = dfs.next();
+            assertNotNull(rec);
+
+            // BYTES logical decimal → ByteBuffer
+            final Schema bytesFieldSchema = schema.getField("dec_bytes").schema();
+            final LogicalType bytesLogicalType = bytesFieldSchema.getLogicalType();
+            final Object bytesObj = rec.get("dec_bytes");
+            assertInstanceOf(ByteBuffer.class, bytesObj);
+            final BigDecimal fromBytes = new Conversions.DecimalConversion().fromBytes((ByteBuffer) bytesObj, bytesFieldSchema, bytesLogicalType);
+
+            // FIXED logical decimal → GenericFixed
+            final Schema fixedFieldSchema = schema.getField("dec_fixed").schema();
+            final LogicalType fixedLogicalType = fixedFieldSchema.getLogicalType();
+            final Object fixedObj = rec.get("dec_fixed");
+            assertInstanceOf(GenericFixed.class, fixedObj);
+            final BigDecimal fromFixed = new Conversions.DecimalConversion().fromFixed((GenericFixed) fixedObj, fixedFieldSchema, fixedLogicalType);
+
+            assertEquals(expected, fromBytes);
+            assertEquals(expected, fromFixed);
+        }
+    }
+
     protected void assertMatch(final Record record, final GenericRecord avroRecord) {
         for (final String fieldName : record.getSchema().getFieldNames()) {
             Object avroValue = avroRecord.get(fieldName);
@@ -343,7 +458,7 @@ public abstract class TestWriteAvroResult {
                     assertEquals(o, bb.get());
                 }
             } else if (recordValue instanceof Object[]) {
-                assertInstanceOf(Array.class, avroValue, fieldName + " should have been instanceof Array");
+                assertInstanceOf(GenericArray.class, avroValue, fieldName + " should have been instanceof GenericArray");
                 final GenericArray<?> avroArray = (GenericArray<?>) avroValue;
                 final Object[] recordArray = (Object[]) recordValue;
                 assertEquals(recordArray.length, avroArray.size(),

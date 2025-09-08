@@ -52,6 +52,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
@@ -66,7 +67,8 @@ public class DatabaseTableSchemaRegistryTest {
             "CREATE TABLE SCHEMA2.PERSONS (id2 integer primary key, name varchar(100)," +
                     " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000), dt date)",
             "CREATE TABLE UUID_TEST (id integer primary key, name VARCHAR(100))",
-            "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)"
+            "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)",
+            "CREATE TABLE CONSTANTS (id integer primary key, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     );
 
     private static final String SERVICE_ID = SimpleDBCPService.class.getName();
@@ -195,6 +197,34 @@ public class DatabaseTableSchemaRegistryTest {
                 .name("NOT_A_TABLE")
                 .build();
         assertThrows(SchemaNotFoundException.class, () -> dbSchemaRegistry.retrieveSchema(schemaIdentifier));
+    }
+
+    @Test
+    public void testGetSchemaCurrentTimestampIgnored() throws Exception {
+        final DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
+        runner.addControllerService("schemaRegistry", dbSchemaRegistry);
+
+        runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
+
+        runner.enableControllerService(dbSchemaRegistry);
+
+        final SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
+                .name("CONSTANTS")
+                .build();
+        final RecordSchema recordSchema = dbSchemaRegistry.retrieveSchema(schemaIdentifier);
+        assertNotNull(recordSchema);
+
+        final Optional<RecordField> idField = recordSchema.getField("ID");
+        assertTrue(idField.isPresent());
+        assertEquals(RecordFieldType.INT.getDataType(), idField.get().getDataType());
+
+        final Optional<RecordField> createdFieldFound = recordSchema.getField("CREATED");
+        assertTrue(createdFieldFound.isPresent());
+        final RecordField createdField = createdFieldFound.get();
+        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), createdField.getDataType());
+
+        // Default Value of CURRENT_TIMESTAMP ignored
+        assertNull(createdField.getDefaultValue());
     }
 
     private static class SimpleDBCPService extends AbstractControllerService implements DBCPService {

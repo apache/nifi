@@ -978,6 +978,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     final Set<AccessPolicySummaryEntity> policyEntities = policies.stream().map(this::createAccessPolicySummaryEntity).collect(Collectors.toSet());
                     return dtoFactory.createUserDto(user, tenantEntities, policyEntities);
                 });
+        logger.info("Tenant User [{}] updated by [{}]", userDTO.getIdentity(), NiFiUserUtils.getNiFiUserIdentity());
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(usersAuthorizable);
         return entityFactory.createUserEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
@@ -996,6 +997,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     return dtoFactory.createUserGroupDto(userGroup, tenantEntities, policyEntities);
                 }
         );
+
+        logger.info("Tenant Group [{}] updated by [{}]", userGroupDTO.getIdentity(), NiFiUserUtils.getNiFiUserIdentity());
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(userGroupsAuthorizable);
         return entityFactory.createUserGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
@@ -2151,6 +2154,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 false, // no user specific policies to remove
                 dtoFactory.createUserDto(user, userGroups, policyEntities));
 
+        logger.info("Tenant User [{}] deleted by [{}]", snapshot.getIdentity(), NiFiUserUtils.getNiFiUserIdentity());
+
         return entityFactory.createUserEntity(snapshot, null, permissions);
     }
 
@@ -2185,6 +2190,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> userGroupDAO.deleteUserGroup(userGroupId),
                 false, // no user group specific policies to remove
                 dtoFactory.createUserGroupDto(userGroup, users, policyEntities));
+
+        logger.info("Tenant Group [{}] deleted by [{}]", snapshot.getIdentity(), NiFiUserUtils.getNiFiUserIdentity());
 
         return entityFactory.createUserGroupEntity(snapshot, null, permissions);
     }
@@ -2586,6 +2593,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public UserEntity createUser(final Revision revision, final UserDTO userDTO) {
         final String creator = NiFiUserUtils.getNiFiUserIdentity();
         final User newUser = userDAO.createUser(userDTO);
+
+        logger.info("Tenant User [{}] created by [{}]", userDTO.getIdentity(), creator);
+
         final Set<TenantEntity> tenantEntities = userGroupDAO.getUserGroupsForUser(newUser.getIdentifier()).stream()
                 .map(g -> g.getIdentifier()).map(mapUserGroupIdToTenantEntity(false)).collect(Collectors.toSet());
         final Set<AccessPolicySummaryEntity> policyEntities = userGroupDAO.getAccessPoliciesForUser(newUser.getIdentifier()).stream()
@@ -2637,6 +2647,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<AccessPolicySummaryEntity> policyEntities = userGroupDAO.getAccessPoliciesForUserGroup(newUserGroup.getIdentifier()).stream()
                 .map(ap -> createAccessPolicySummaryEntity(ap)).collect(Collectors.toSet());
         final UserGroupDTO newUserGroupDto = dtoFactory.createUserGroupDto(newUserGroup, tenantEntities, policyEntities);
+
+        logger.info("Tenant Group [{}] created by [{}]", userGroupDTO.getIdentity(), creator);
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getTenant());
         return entityFactory.createUserGroupEntity(newUserGroupDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), permissions);
@@ -5436,9 +5448,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(selectedBranch, bucketId, flowId, flowVersion);
             return flowRegistry.getFlowContents(clientUserContext, flowVersionLocation, fetchRemoteFlows);
         } catch (final FlowRegistryException e) {
-            logger.error(e.getMessage(), e);
-            throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
+            throw new IllegalArgumentException("Error retrieving flow [%s] in bucket [%s] branch [%s] with version [%s] using Flow Registry Client with ID [%s]: %s".formatted(flowId,
+                    bucketId, branch, flowVersion, registryId, e.getMessage()), e);
         } catch (final IOException ioe) {
             throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to retrieve a versioned flow", ioe);
         }

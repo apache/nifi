@@ -88,6 +88,7 @@ public class MockProcessSession implements ProcessSession {
     private final StateManager stateManager;
     private final boolean allowSynchronousCommits;
     private final boolean allowRecursiveReads;
+    private final boolean failCommit;
 
     private boolean committed = false;
     private boolean rolledBack = false;
@@ -109,11 +110,16 @@ public class MockProcessSession implements ProcessSession {
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
                               final boolean allowSynchronousCommits) {
-        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, false);
+        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, false, false);
     }
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
                               final boolean allowSynchronousCommits, final boolean allowRecursiveReads) {
+        this(sharedState, processor, enforceStreamsClosed, stateManager, allowSynchronousCommits, allowRecursiveReads, false);
+    }
+
+    private MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
+                              final boolean allowSynchronousCommits, final boolean allowRecursiveReads, final boolean failCommit) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
@@ -122,6 +128,11 @@ public class MockProcessSession implements ProcessSession {
         this.stateManager = stateManager;
         this.allowSynchronousCommits = allowSynchronousCommits;
         this.allowRecursiveReads = allowRecursiveReads;
+        this.failCommit = failCommit;
+    }
+
+    public static Builder builder(final SharedSessionState sharedState, final Processor processor) {
+        return new Builder(sharedState, processor);
     }
 
     @Override
@@ -285,12 +296,21 @@ public class MockProcessSession implements ProcessSession {
                 "enabled by calling TestRunner.");
         }
 
-        commitInternal();
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
+            rollback();
+            throw t;
+        }
     }
 
     private void commitInternal() {
         if (!beingProcessed.isEmpty()) {
             throw new FlowFileHandlingException("Cannot commit session because the following FlowFiles have not been removed or transferred: " + beingProcessed);
+        }
+
+        if (failCommit) {
+            throw new FlowFileHandlingException("Cannot commit session because the session was requested to fail by a test");
         }
 
         closeStreams(openInputStreams, enforceStreamsClosed);
@@ -313,7 +333,12 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commitAsync() {
-        commitInternal();
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
+            rollback();
+            throw t;
+        }
     }
 
     @Override
@@ -1455,5 +1480,68 @@ public class MockProcessSession implements ProcessSession {
         final String curUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         final String providedUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         return curUuid.equals(providedUuid);
+    }
+
+    public static final class Builder {
+
+        private final SharedSessionState sharedState;
+        private final Processor processor;
+        private StateManager stateManager;
+
+        private boolean enforceStreamsClosed = true;
+        private boolean allowRecursiveReads;
+        private boolean allowSynchronousCommits;
+        private boolean failCommit;
+
+        private Builder(final SharedSessionState sharedState, final Processor processor) {
+            this.sharedState = sharedState;
+            this.processor = processor;
+            this.stateManager = new MockStateManager(processor);
+        }
+
+        public Builder stateManager(final StateManager stateManager) {
+            this.stateManager = stateManager;
+            return this;
+        }
+
+        public Builder enforceStreamsClosed(final boolean enforceStreamsClosed) {
+            this.enforceStreamsClosed = enforceStreamsClosed;
+            return this;
+        }
+
+        public Builder allowSynchronousCommits() {
+            return allowSynchronousCommits(true);
+        }
+
+        public Builder allowSynchronousCommits(final boolean allowSynchronousCommits) {
+            this.allowSynchronousCommits = allowSynchronousCommits;
+            return this;
+        }
+
+        public Builder allowRecursiveReads(final boolean allowRecursiveReads) {
+            this.allowRecursiveReads = allowRecursiveReads;
+            return this;
+        }
+
+        public Builder failCommit() {
+            return failCommit(true);
+        }
+
+        public Builder failCommit(final boolean failCommit) {
+            this.failCommit = failCommit;
+            return this;
+        }
+
+        public MockProcessSession build() {
+            return new MockProcessSession(
+                    sharedState,
+                    processor,
+                    enforceStreamsClosed,
+                    stateManager,
+                    allowSynchronousCommits,
+                    allowRecursiveReads,
+                    failCommit
+            );
+        }
     }
 }

@@ -17,7 +17,7 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { NavigationState } from './index';
-import { popBackNavigation, pushBackNavigation } from './navigation.actions';
+import { popBackNavigation, popBackNavigationByRouteBoundary, pushBackNavigation } from './navigation.actions';
 import { produce } from 'immer';
 
 export const initialState: NavigationState = {
@@ -40,7 +40,7 @@ export const navigationReducer = createReducer(
             }
         });
     }),
-    on(popBackNavigation, (state, { url }) => {
+    on(popBackNavigationByRouteBoundary, (state, { url }) => {
         return produce(state, (draftState) => {
             // pop any back navigation that is outside the bounds of the current url
             while (draftState.backNavigations.length > 0) {
@@ -50,6 +50,13 @@ export const navigationReducer = createReducer(
                 } else {
                     break;
                 }
+            }
+        });
+    }),
+    on(popBackNavigation, (state) => {
+        return produce(state, (draftState) => {
+            if (draftState.backNavigations.length > 0) {
+                draftState.backNavigations.pop();
             }
         });
     })

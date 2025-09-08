@@ -24,7 +24,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../pages/parameter-contexts/state/parameter-context-listing/parameter-context-listing.reducer';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
-import { ParameterContextEntity } from '../../../../state/shared';
+import { ParameterContextEntity, ParameterEntity } from '../../../../state/shared';
 
 import { EditParameterContextRequest } from '../index';
 
@@ -258,5 +258,69 @@ describe('EditParameterContext', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    describe('inheritsParameters', () => {
+        it('should return true if parameters are inherited', () => {
+            const parameters: ParameterEntity[] = [
+                {
+                    canWrite: true,
+                    parameter: {
+                        name: 'one',
+                        description: 'Description for one.',
+                        sensitive: false,
+                        value: 'value',
+                        provided: false,
+                        referencingComponents: [],
+                        parameterContext: {
+                            id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                            permissions: {
+                                canRead: true,
+                                canWrite: true
+                            },
+                            component: {
+                                id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                                name: 'params 1'
+                            }
+                        },
+                        inherited: true
+                    }
+                }
+            ];
+            expect(component.inheritsParameters(parameters)).toBe(true);
+        });
+
+        it('should return false if parameters are not inherited', () => {
+            const parameters: ParameterEntity[] = [
+                {
+                    canWrite: true,
+                    parameter: {
+                        name: 'one',
+                        description: 'Description for one.',
+                        sensitive: false,
+                        value: 'value',
+                        provided: false,
+                        referencingComponents: [],
+                        parameterContext: {
+                            id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                            permissions: {
+                                canRead: true,
+                                canWrite: true
+                            },
+                            component: {
+                                id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                                name: 'params 1'
+                            }
+                        },
+                        inherited: false
+                    }
+                }
+            ];
+            expect(component.inheritsParameters(parameters)).toBe(false);
+        });
+
+        it('should return false if parameters undefined', () => {
+            expect(component.inheritsParameters(undefined)).toBe(false);
+        });
     });
 });

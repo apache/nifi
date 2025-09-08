@@ -224,13 +224,13 @@
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>mortbay-apache-jsp</artifactId>
-                <version>11.0.10</version>
+                <version>11.0.10.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>mortbay-apache-el</artifactId>
-                <version>11.0.10</version>
+                <version>11.0.10.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

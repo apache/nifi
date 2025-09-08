@@ -29,8 +29,7 @@ public class JacksonUtils {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     static {
-        MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        MAPPER.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         MAPPER.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(MAPPER.getTypeFactory()));
         MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }

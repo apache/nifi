@@ -107,11 +107,10 @@ public class StandardNiFiUser implements NiFiUser {
             return false;
         }
 
-        if (!(obj instanceof NiFiUser)) {
+        if (!(obj instanceof NiFiUser other)) {
             return false;
         }
 
-        final NiFiUser other = (NiFiUser) obj;
         return Objects.equals(this.identity, other.getIdentity());
     }
 
@@ -125,13 +124,13 @@ public class StandardNiFiUser implements NiFiUser {
     @Override
     public String toString() {
         final String formattedGroups;
-        if (groups == null) {
-            formattedGroups = "none";
+        if (allGroups == null || allGroups.isEmpty()) {
+            formattedGroups = "";
         } else {
-            formattedGroups = String.join(", ", groups);
+            formattedGroups = String.join(", ", allGroups);
         }
 
-        return String.format("identity[%s], groups[%s]", getIdentity(), formattedGroups);
+        return "Identity [%s] Groups [%s]".formatted(identity, formattedGroups);
     }
 
     /**

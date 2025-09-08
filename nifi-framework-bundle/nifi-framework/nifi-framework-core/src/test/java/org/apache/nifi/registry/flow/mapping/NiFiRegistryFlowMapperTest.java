@@ -30,6 +30,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.BackoffMechanism;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -72,6 +73,8 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableDescriptor;
@@ -152,6 +155,63 @@ public class NiFiRegistryFlowMapperTest {
         when(parameterProviderNode.getBundleCoordinate()).thenReturn(bundleCoordinates);
 
         when(parameterProvider.getIdentifier()).thenReturn(PARAMETER_PROVIDER_ID);
+    }
+
+    /**
+     * Fix for NIFI-14935: mapping parameter contexts should not NPE when a Reference Parameter to a
+     * Controller Service has a null/empty value and the referenced versioned service id is null. The
+     * parameter should be mapped with a null value.
+     */
+    @Test
+    public void testMapParameterReferenceToServiceWithNullValueMapsNull() {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+
+        // Parameter Context with one parameter that references a Controller Service but has a null value
+        final ParameterContext parameterContext = mock(ParameterContext.class, Answers.RETURNS_DEEP_STUBS);
+        when(processGroup.getParameterContext()).thenReturn(parameterContext);
+        when(parameterContext.getName()).thenReturn("ctx");
+        when(parameterContext.getInheritedParameterContextNames()).thenReturn(Collections.emptyList());
+
+        final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();
+        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
+                .name("ssl-service-ref")
+                .description("Reference to SSL Context Service")
+                .sensitive(false)
+                .build();
+        final Parameter parameter = mock(Parameter.class);
+        when(parameter.getDescriptor()).thenReturn(parameterDescriptor);
+        when(parameter.getValue()).thenReturn(null); // empty/null parameter value
+        parametersMap.put(parameterDescriptor, parameter);
+        when(parameterContext.getParameters()).thenReturn(parametersMap);
+
+        // Parameter is referenced by a property that identifies a Controller Service; versioned service id is null
+        final ParameterReferenceManager referenceManager = parameterContext.getParameterReferenceManager();
+        final PropertyDescriptor referencingProperty = new PropertyDescriptor.Builder()
+                .name("SSL Context Service")
+                .identifiesControllerService(ControllerService.class)
+                .build();
+        final ParameterReferencedControllerServiceData referencedData = new ParameterReferencedControllerServiceData(
+                parameterDescriptor.getName(),
+                mock(ComponentNode.class),
+                referencingProperty,
+                ControllerService.class,
+                null // referenced versioned service id is null
+        );
+        when(referenceManager.getReferencedControllerServiceData(parameterContext, parameterDescriptor.getName()))
+                .thenReturn(Collections.singletonList(referencedData));
+
+        // Mapping should succeed and the parameter value should be null
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
+        final Map<String, VersionedParameterContext> mapped =
+                flowMapper.mapParameterContexts(processGroup, true, parameterProviderReferences);
+
+        final VersionedParameterContext ctx = mapped.get("ctx");
+        assertNotNull(ctx);
+        final VersionedParameter versionedParameter = ctx.getParameters().stream()
+                .filter(p -> p.getName().equals("ssl-service-ref"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected parameter not found"));
+        assertNull(versionedParameter.getValue());
     }
 
     /**
@@ -308,6 +368,7 @@ public class NiFiRegistryFlowMapperTest {
                 .getReferencedControllerServiceData(any(ParameterContext.class), anyString())).thenReturn(Collections.emptyList());
             when(processGroup.getParameterContext()).thenReturn(parameterContext);
             when(parameterContext.getName()).thenReturn("context" + (counter++));
+            when(parameterContext.getDescription()).thenReturn("context-description");
             final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
             when(parameterContext.getInheritedParameterContextNames()).thenReturn(Collections.singletonList("other-context"));
@@ -355,6 +416,7 @@ public class NiFiRegistryFlowMapperTest {
 
     private void verifyParameterContext(final ParameterContext parameterContext, final VersionedParameterContext versionedParameterContext) {
         assertEquals(parameterContext.getName(), versionedParameterContext.getName());
+        assertEquals(parameterContext.getDescription(), versionedParameterContext.getDescription());
 
         final Collection<Parameter> parameters = parameterContext.getParameters().values();
         final Set<VersionedParameter> versionedParameters = versionedParameterContext.getParameters();

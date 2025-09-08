@@ -190,6 +190,8 @@
                         <exclude>src/test/resources/avro/avro_schemaless_decimal.avsc</exclude>
                         <exclude>src/test/resources/avro/datatypes.avsc</exclude>
                         <exclude>src/test/resources/avro/decimals.avsc</exclude>
+                        <exclude>src/test/resources/avro/decimals-bytes-fixed.avsc</exclude>
+                        <exclude>src/test/resources/avro/fixed16.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types-nullable.avsc</exclude>
                         <exclude>src/test/resources/avro/multiple-types.avsc</exclude>

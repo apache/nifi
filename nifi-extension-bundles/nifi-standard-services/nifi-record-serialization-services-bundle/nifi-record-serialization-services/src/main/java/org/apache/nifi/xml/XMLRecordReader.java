@@ -348,8 +348,8 @@ public class XMLRecordReader implements RecordReader {
 
             if (dropUnknown) {
                 if (schema != null) {
-                    final Optional<RecordField> field = schema.getField(attributeName);
-                    if (field.isPresent()) {
+                    final boolean allowed = schema.getField(fieldName).isPresent() || schema.getField(attributeName).isPresent();
+                    if (allowed) {
                         recordValues.put(fieldName, attribute.getValue());
                     }
                 }
@@ -482,18 +482,15 @@ public class XMLRecordReader implements RecordReader {
             final String targetFieldName = attributePrefix == null ? attributeName : attributePrefix + attributeName;
 
             if (dropUnknown) {
-                final Optional<RecordField> field = schema.getField(attributeName);
-                if (field.isPresent()) {
-
-                    // dropUnknown == true && coerceTypes == true
+                final Optional<RecordField> fieldPrefixed = schema.getField(targetFieldName);
+                final Optional<RecordField> fieldRaw = schema.getField(attributeName);
+                if (fieldPrefixed.isPresent() || fieldRaw.isPresent()) {
                     if (coerceTypes) {
                         final Object value;
-                        final DataType dataType = field.get().getDataType();
-                        if ((value = parseStringForType(attribute.getValue(), attributeName, dataType)) != null) {
+                        final DataType dataType = fieldPrefixed.map(RecordField::getDataType).orElseGet(() -> fieldRaw.get().getDataType());
+                        if ((value = parseStringForType(attribute.getValue(), targetFieldName, dataType)) != null) {
                             recordValues.put(targetFieldName, value);
                         }
-
-                    // dropUnknown == true && coerceTypes == false
                     } else {
                         recordValues.put(targetFieldName, attribute.getValue());
                     }
@@ -503,9 +500,11 @@ public class XMLRecordReader implements RecordReader {
                 // dropUnknown == false && coerceTypes == true
                 if (coerceTypes) {
                     final Object value;
-                    final Optional<RecordField> field = schema.getField(attributeName);
-                    if (field.isPresent()) {
-                        if ((value = parseStringForType(attribute.getValue(), attributeName, field.get().getDataType())) != null) {
+                    final Optional<RecordField> fieldPrefixed = schema.getField(targetFieldName);
+                    final Optional<RecordField> fieldRaw = schema.getField(attributeName);
+                    if (fieldPrefixed.isPresent() || fieldRaw.isPresent()) {
+                        final DataType dataType = fieldPrefixed.map(RecordField::getDataType).orElseGet(() -> fieldRaw.get().getDataType());
+                        if ((value = parseStringForType(attribute.getValue(), targetFieldName, dataType)) != null) {
                             recordValues.put(targetFieldName, value);
                         }
                     } else {

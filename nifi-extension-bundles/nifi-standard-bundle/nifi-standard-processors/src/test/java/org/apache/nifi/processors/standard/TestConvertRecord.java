@@ -28,6 +28,7 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -35,6 +36,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.xml.XMLReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -75,6 +77,47 @@ public class TestConvertRecord {
     @BeforeEach
     void setUp() {
         runner = TestRunners.newTestRunner(ConvertRecord.class);
+    }
+
+    @Test
+    public void testXMLReaderAttributePrefixWithInferredSchema() throws InitializationException {
+        // Configure XML Reader to infer schema, parse attributes, and prefix attribute field names
+        final XMLReader xmlReader = new XMLReader();
+        final String xmlReaderId = "xml-reader";
+        runner.addControllerService(xmlReaderId, xmlReader);
+        runner.setProperty(xmlReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        // Use single-record mode to keep element name as a nested field (e.g., "to")
+        runner.setProperty(xmlReader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        runner.setProperty(xmlReader, XMLReader.PARSE_XML_ATTRIBUTES, "true");
+        runner.setProperty(xmlReader, XMLReader.ATTRIBUTE_PREFIX, "attr_");
+        runner.setProperty(xmlReader, XMLReader.CONTENT_FIELD_NAME, "tagval");
+        runner.enableControllerService(xmlReader);
+
+        // Configure JSON Writer to inherit schema from reader
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        final String jsonWriterId = "json-writer";
+        runner.addControllerService(jsonWriterId, jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ConvertRecord.RECORD_READER, xmlReaderId);
+        runner.setProperty(ConvertRecord.RECORD_WRITER, jsonWriterId);
+
+        final String input = """
+                <note>
+                  <to alias=\"Toto\">Thomas Mills</to>
+                </note>
+                """;
+
+        runner.enqueue(input);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
+
+        // Expected behavior: attribute field uses configured prefix
+        final String expected = "[{\"to\":{\"attr_alias\":\"Toto\",\"tagval\":\"Thomas Mills\"}}]";
+        assertEquals(expected, new String(flowFile.toByteArray(), StandardCharsets.UTF_8));
     }
 
     @Test

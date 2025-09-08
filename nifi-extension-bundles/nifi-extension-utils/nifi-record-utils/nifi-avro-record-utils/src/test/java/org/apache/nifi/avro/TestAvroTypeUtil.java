@@ -804,8 +804,9 @@ public class TestAvroTypeUtil {
 
         final Schema fixedSchema = Schema.createFixed("blob", "blob", NAMESPACE, bytes.length);
         final Object converted = AvroTypeUtil.convertToAvroObject(blob, fixedSchema, StandardCharsets.UTF_8);
-        assertInstanceOf(ByteBuffer.class, converted);
-        assertEquals(inputBuffer, converted);
+        assertInstanceOf(GenericFixed.class, converted);
+        final GenericFixed genericFixed = (GenericFixed) converted;
+        assertEquals(inputBuffer, ByteBuffer.wrap(genericFixed.bytes()));
     }
 
     @Test

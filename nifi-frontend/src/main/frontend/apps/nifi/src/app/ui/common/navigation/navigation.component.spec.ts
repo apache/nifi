@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Navigation } from './navigation.component';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -32,10 +32,12 @@ import { selectLoginConfiguration } from '../../../state/login-configuration/log
 import * as fromLoginConfiguration from '../../../state/login-configuration/login-configuration.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
 import { navigationFeatureKey } from '../../../state/navigation';
+import { popBackNavigation } from '../../../state/navigation/navigation.actions';
 
 describe('Navigation', () => {
     let component: Navigation;
     let fixture: ComponentFixture<Navigation>;
+    let store: MockStore;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -67,6 +69,8 @@ describe('Navigation', () => {
                 })
             ]
         });
+
+        store = TestBed.inject(MockStore);
         fixture = TestBed.createComponent(Navigation);
         component = fixture.componentInstance;
         fixture.detectChanges();
@@ -74,5 +78,13 @@ describe('Navigation', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should pop back navigation', () => {
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+        component.popBackNavigation();
+
+        expect(dispatchSpy).toHaveBeenCalledWith(popBackNavigation());
     });
 });

@@ -26,7 +26,7 @@
     <properties>
         <skip.integration.tests>false</skip.integration.tests>
         <skip.unit.tests>false</skip.unit.tests>
-        <kafka-clients.version>4.0.0</kafka-clients.version>
+        <kafka-clients.version>4.1.0</kafka-clients.version>
     </properties>
 
     <modules>

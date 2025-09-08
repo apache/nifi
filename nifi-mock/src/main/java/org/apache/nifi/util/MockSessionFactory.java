@@ -47,7 +47,12 @@ public class MockSessionFactory implements ProcessSessionFactory {
 
     @Override
     public ProcessSession createSession() {
-        final MockProcessSession session = new MockProcessSession(sharedState, processor, enforceReadStreamsClosed, stateManager, allowSynchronousSessionCommits, allowRecursiveReads);
+        final MockProcessSession session = MockProcessSession.builder(sharedState, processor)
+                .enforceStreamsClosed(enforceReadStreamsClosed)
+                .stateManager(stateManager)
+                .allowSynchronousCommits(allowSynchronousSessionCommits)
+                .allowRecursiveReads(allowRecursiveReads)
+                .build();
         createdSessions.add(session);
         return session;
     }

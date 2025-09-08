@@ -46,7 +46,6 @@
                     "node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js",
                     "node_modules/clipboard/dist/clipboard.min.js"
                 ],
-                "allowedCommonJsDependencies": ["codemirror"],
                 "preserveSymlinks": true
             },
             "configurations": {
