@@ -114,7 +114,7 @@ public interface KafkaClientComponent {
                     " Specified Profile selects a named profile, or Specified Role configures a Role ARN and Session Name.")
             .required(true)
             .allowableValues(AwsRoleSource.class)
-            .defaultValue(AwsRoleSource.DEFAULT_PROFILE.getValue())
+            .defaultValue(AwsRoleSource.DEFAULT_PROFILE)
             .dependsOn(
                     SASL_MECHANISM,
                     SaslMechanism.AWS_MSK_IAM
@@ -129,15 +129,15 @@ public interface KafkaClientComponent {
                     KafkaClientComponent.AWS_ROLE_SOURCE,
                     AwsRoleSource.SPECIFIED_PROFILE
             )
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     PropertyDescriptor AWS_ASSUME_ROLE_ARN = new PropertyDescriptor.Builder()
-            .name("Assume Role ARN")
+            .name("AWS Assume Role ARN")
             .description("The AWS Role ARN for cross-account access when using AWS MSK IAM. Used with Assume Role Session Name.")
-            .required(false)
+            .required(true)
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
                     AwsRoleSource.SPECIFIED_ROLE
@@ -147,7 +147,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor AWS_ASSUME_ROLE_SESSION_NAME = new PropertyDescriptor.Builder()
-            .name("Assume Role Session Name")
+            .name("AWS Assume Role Session Name")
             .description("The AWS Role Session Name for cross-account access. Used in conjunction with Assume Role ARN.")
             .required(true)
             .dependsOn(

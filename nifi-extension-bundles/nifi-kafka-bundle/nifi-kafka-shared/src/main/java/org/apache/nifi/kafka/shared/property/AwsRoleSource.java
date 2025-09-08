@@ -22,23 +22,21 @@ import org.apache.nifi.components.DescribedValue;
  * AWS Role Source strategy for AWS MSK IAM credentials selection
  */
 public enum AwsRoleSource implements DescribedValue {
-    DEFAULT_PROFILE("DEFAULT_PROFILE", "Default Profile", "Use the default AWS credentials provider chain to locate credentials."),
-    SPECIFIED_PROFILE("SPECIFIED_PROFILE", "Specified Profile", "Use the configured AWS Profile Name from the default credentials file."),
-    SPECIFIED_ROLE("SPECIFIED_ROLE", "Specified Role", "Assume a specific AWS Role using the configured Role ARN and Session Name.");
+    DEFAULT_PROFILE("Default Profile", "Use the default AWS credentials provider chain to locate credentials."),
+    SPECIFIED_PROFILE("Specified Profile", "Use the configured AWS Profile Name from the default credentials file."),
+    SPECIFIED_ROLE("Specified Role", "Assume a specific AWS Role using the configured Role ARN and Session Name.");
 
-    private final String value;
     private final String displayName;
     private final String description;
 
-    AwsRoleSource(final String value, final String displayName, final String description) {
-        this.value = value;
+    AwsRoleSource(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }
 
     @Override
     public String getValue() {
-        return value;
+        return name();
     }
 
     @Override

@@ -37,23 +37,21 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
     @Override
     public String getConfiguration(PropertyContext context) {
         final AwsRoleSource roleSource = context.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
-        final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
-        final String assumeRoleArn = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
-        final String assumeRoleSessionName = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
-
         final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS, REQUIRED);
 
-        if (roleSource == AwsRoleSource.SPECIFIED_PROFILE && StringUtils.isNotBlank(awsProfileName)) {
-            builder.append(AWS_PROFILE_NAME_KEY, awsProfileName);
+        if (roleSource == AwsRoleSource.SPECIFIED_PROFILE) {
+            final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
+            if (!StringUtils.isBlank(awsProfileName)) {
+                builder.append(AWS_PROFILE_NAME_KEY, awsProfileName);
+            }
         }
 
         if (roleSource == AwsRoleSource.SPECIFIED_ROLE) {
-            if (StringUtils.isNotBlank(assumeRoleArn)) {
-                builder.append(ROLE_ARN_KEY, assumeRoleArn);
-            }
-            if (StringUtils.isNotBlank(assumeRoleSessionName)) {
-                builder.append(ROLE_SESSION_NAME_KEY, assumeRoleSessionName);
-            }
+            final String assumeRoleArn = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
+            final String assumeRoleSessionName = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
+
+            builder.append(ROLE_ARN_KEY, assumeRoleArn);
+            builder.append(ROLE_SESSION_NAME_KEY, assumeRoleSessionName);
         }
 
         return builder.build();
