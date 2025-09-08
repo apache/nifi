@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,6 +69,9 @@ public class StandaloneStateKeyDropIT extends AbstractStateKeyDropIT {
     @Test
     public void testCannotDropStateKeyIfFlagNotTrue() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity multi = getClientUtil().createProcessor("MultiKeyStateNotDroppable");
+
+        assertFalse(getNifiClient().getProcessorClient().getProcessorState(multi.getId()).getComponentState().isDropStateKeySupported());
+
         runProcessorOnce(multi);
 
         final Map<String, String> currentState = getProcessorState(multi.getId(), Scope.LOCAL);

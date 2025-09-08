@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -62,6 +63,9 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     public void testCannotDropStateKeyIfFlagNotTrue() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyStateNotDroppable");
         final String processorId = processor.getId();
+
+        assertFalse(getNifiClient().getProcessorClient().getProcessorState(processorId).getComponentState().isDropStateKeySupported());
+
         runProcessorOnce(processor);
 
         final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
@@ -81,6 +85,9 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
     public void testCannotDropStateKeyWithMismatchedState() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity processor = getClientUtil().createProcessor("MultiKeyState");
         final String processorId = processor.getId();
+
+        assertTrue(getNifiClient().getProcessorClient().getProcessorState(processorId).getComponentState().isDropStateKeySupported());
+
         runProcessorOnce(processor);
 
         final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
