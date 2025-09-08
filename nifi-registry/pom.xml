@@ -163,18 +163,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.mortbay.jasper</groupId>
-                <artifactId>mortbay-apache-jsp</artifactId>
-                <version>10.1.44</version>
-                <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.mortbay.jasper</groupId>
-                <artifactId>mortbay-apache-el</artifactId>
-                <version>10.1.44</version>
-                <scope>compile</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.eclipse.jetty.http2</groupId>
                 <artifactId>jetty-http2-server</artifactId>
                 <version>${nifi.registry.jetty.version}</version>
