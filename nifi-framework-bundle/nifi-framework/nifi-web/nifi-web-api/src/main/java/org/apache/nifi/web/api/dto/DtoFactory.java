@@ -286,8 +286,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class DtoFactory {
@@ -2853,21 +2851,13 @@ public final class DtoFactory {
        return differencesByComponent.keySet();
    }
 
-   private static final Pattern DIFFERENCE_DESCRIPTION_PATTERN = Pattern.compile(".*artifact='(.*)'.*version='(.*)'].*version='(.*)']'$");
-
    /*
     * Create a custom difference with a simpler difference description, only for matching descriptions.
     */
    DifferenceDTO createDifferenceDto(final FlowDifference difference) {
        final DifferenceDTO dto = new DifferenceDTO();
        dto.setDifferenceType(difference.getDifferenceType().getDescription());
-
-       String description = difference.getDescription();
-       final Matcher matcher = DIFFERENCE_DESCRIPTION_PATTERN.matcher(description);
-       if (matcher.matches()) {
-           description = matcher.group(1) + " version " + matcher.group(2) + " to " + matcher.group(3);
-       }
-       dto.setDifference(description);
+       dto.setDifference(difference.getDescription());
        return dto;
    }
 

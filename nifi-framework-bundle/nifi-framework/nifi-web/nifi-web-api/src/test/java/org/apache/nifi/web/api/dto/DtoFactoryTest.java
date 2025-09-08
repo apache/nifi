@@ -228,22 +228,6 @@ public class DtoFactoryTest {
         verifyDependencyCoordinateDTO(narManifest, dependencyCoordinateDTO);
     }
 
-    @Test
-    void testBundleDifferenceDescription() {
-        final Bundle oldBundle = new Bundle("org.apache.nifi", "nifi-standard-nar", "1.28.1");
-        final Bundle newBundle = new Bundle("org.apache.nifi", "nifi-standard-nar", "2.4.0");
-        final String description = String.format("From '%s' to '%s'", oldBundle, newBundle);
-        final FlowDifference difference = new StandardFlowDifference(
-                DifferenceType.BUNDLE_CHANGED,
-                null, null, null, null, null,
-                description
-        );
-        final DtoFactory dtoFactory = new DtoFactory();
-        DifferenceDTO differenceDTO = dtoFactory.createDifferenceDto(difference);
-        assertEquals(DifferenceType.BUNDLE_CHANGED.getDescription(), differenceDTO.getDifferenceType());
-        assertEquals("nifi-standard-nar version 1.28.1 to 2.4.0", differenceDTO.getDifference());
-    }
-
     private void verifyCoordinateDTO(final NarManifest narManifest, final NarCoordinateDTO coordinateDTO) {
         assertEquals(narManifest.getGroup(), coordinateDTO.getGroup());
         assertEquals(narManifest.getId(), coordinateDTO.getArtifact());
