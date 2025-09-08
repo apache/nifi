@@ -16,10 +16,16 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestGetAzureQueueStorage_v12 extends AbstractTestAzureQueueStorage_v12 {
     @BeforeEach
@@ -75,5 +81,15 @@ public class TestGetAzureQueueStorage_v12 extends AbstractTestAzureQueueStorage_
         runner.setProperty(GetAzureQueueStorage_v12.REQUEST_TIMEOUT, "31 secs");
 
         runner.assertNotValid();
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of(
+                AzureStorageUtils.STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME, GetAzureQueueStorage_v12.ENDPOINT_SUFFIX.getName()
+        );
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 }

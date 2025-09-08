@@ -53,9 +53,10 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 
 public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
 
+    public static final String OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME = "blob-name";
+
     public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
-            .name("blob-name")
-            .displayName("Blob Name")
+            .name("Blob Name")
             .description("The full name of the blob")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

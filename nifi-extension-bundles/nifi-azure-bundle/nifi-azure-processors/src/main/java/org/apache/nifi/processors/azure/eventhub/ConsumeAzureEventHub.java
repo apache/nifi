@@ -129,16 +129,14 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN = "BlobEndpoint=https://%s.blob.core.%s/;SharedAccessSignature=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
-            .name("event-hub-namespace")
-            .displayName("Event Hub Namespace")
+            .name("Event Hub Namespace")
             .description("The namespace that the Azure Event Hubs is assigned to. This is generally equal to <Event Hub Names>-ns.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .build();
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
-            .name("event-hub-name")
-            .displayName("Event Hub Name")
+            .name("Event Hub Name")
             .description("The name of the event hub to pull messages from.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -146,21 +144,16 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .build();
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor ACCESS_POLICY_NAME = new PropertyDescriptor.Builder()
-            .name("event-hub-shared-access-policy-name")
-            .displayName("Shared Access Policy Name")
+            .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Listen claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
-    static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureEventHubUtils.POLICY_PRIMARY_KEY)
-            .name("event-hub-shared-access-policy-primary-key")
-            .build();
+    static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
     static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
-            .name("event-hub-consumer-group")
-            .displayName("Consumer Group")
+            .name("Consumer Group")
             .description("The name of the consumer group to use.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -169,8 +162,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("The Record Reader to use for reading received messages." +
                     " The event hub name can be referred by Expression Language '${eventhub.name}' to access a schema.")
             .identifiesControllerService(RecordReaderFactory.class)
@@ -178,8 +170,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .required(false)
             .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("The Record Writer to use for serializing Records to an output FlowFile." +
                     " The event hub name can be referred by Expression Language '${eventhub.name}' to access a schema." +
                     " If not specified, each message will create a FlowFile.")
@@ -194,16 +185,14 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             "end-of-stream", "End of stream",
             "Ignore old retained messages even if exist, start reading new ones from now.");
     static final PropertyDescriptor INITIAL_OFFSET = new PropertyDescriptor.Builder()
-            .name("event-hub-initial-offset")
-            .displayName("Initial Offset")
+            .name("Initial Offset")
             .description("Specify where to start receiving messages if offset is not yet stored in the checkpoint store.")
             .required(true)
             .allowableValues(INITIAL_OFFSET_START_OF_STREAM, INITIAL_OFFSET_END_OF_STREAM)
             .defaultValue(INITIAL_OFFSET_END_OF_STREAM)
             .build();
     static final PropertyDescriptor PREFETCH_COUNT = new PropertyDescriptor.Builder()
-            .name("event-hub-prefetch-count")
-            .displayName("Prefetch Count")
+            .name("Prefetch Count")
             .defaultValue("The number of messages to fetch from the event hub before processing." +
                     " This parameter affects throughput." +
                     " The more prefetch count, the better throughput in general, but consumes more resources (RAM)." +
@@ -217,8 +206,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .required(true)
             .build();
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("event-hub-batch-size")
-            .displayName("Batch Size")
+            .name("Batch Size")
             .description("The number of messages to process within a NiFi session." +
                     " This parameter affects throughput and consistency." +
                     " NiFi commits its session and Event Hubs checkpoints after processing this number of messages." +
@@ -231,8 +219,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .required(true)
             .build();
     static final PropertyDescriptor RECEIVE_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("event-hub-message-receive-timeout")
-            .displayName("Message Receive Timeout")
+            .name("Message Receive Timeout")
             .description("The amount of time this consumer should wait to receive the Batch Size before returning.")
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -241,8 +228,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .build();
 
     static final PropertyDescriptor CHECKPOINT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("checkpoint-strategy")
-            .displayName("Checkpoint Strategy")
+            .name("Checkpoint Strategy")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(CheckpointStrategy.class)
@@ -251,8 +237,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .build();
 
     static final PropertyDescriptor STORAGE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .name("storage-account-name")
-            .displayName("Storage Account Name")
+            .name("Storage Account Name")
             .description("Name of the Azure Storage account to store event hub consumer group state.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -260,8 +245,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
     static final PropertyDescriptor STORAGE_ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .name("storage-account-key")
-            .displayName("Storage Account Key")
+            .name("Storage Account Key")
             .description("The Azure Storage account key to store event hub consumer group state.")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -270,8 +254,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
     static final PropertyDescriptor STORAGE_SAS_TOKEN = new PropertyDescriptor.Builder()
-            .name("storage-sas-token")
-            .displayName("Storage SAS Token")
+            .name("Storage SAS Token")
             .description("The Azure Storage SAS token to store Event Hub consumer group state. Always starts with a ? character.")
             .sensitive(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(SAS_TOKEN_PATTERN, true,
@@ -281,8 +264,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
-            .name("storage-container-name")
-            .displayName("Storage Container Name")
+            .name("Storage Container Name")
             .description("Name of the Azure Storage container to store the event hub consumer group state." +
                     " If not specified, event hub name is used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -358,6 +340,23 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         config.removeProperty("event-hub-consumer-hostname");
+        config.renameProperty("event-hub-namespace", NAMESPACE.getName());
+        config.renameProperty("event-hub-name", EVENT_HUB_NAME.getName());
+        config.renameProperty("event-hub-shared-access-policy-name", ACCESS_POLICY_NAME.getName());
+        config.renameProperty("event-hub-consumer-group", CONSUMER_GROUP.getName());
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("event-hub-initial-offset", INITIAL_OFFSET.getName());
+        config.renameProperty("event-hub-prefetch-count", PREFETCH_COUNT.getName());
+        config.renameProperty("event-hub-batch-size", BATCH_SIZE.getName());
+        config.renameProperty("event-hub-message-receive-timeout", RECEIVE_TIMEOUT.getName());
+        config.renameProperty("checkpoint-strategy", CHECKPOINT_STRATEGY.getName());
+        config.renameProperty("storage-account-name", STORAGE_ACCOUNT_NAME.getName());
+        config.renameProperty("storage-account-key", STORAGE_ACCOUNT_KEY.getName());
+        config.renameProperty("storage-sas-token", STORAGE_SAS_TOKEN.getName());
+        config.renameProperty("storage-container-name", STORAGE_CONTAINER_NAME.getName());
+        config.renameProperty("event-hub-shared-access-policy-primary-key", POLICY_PRIMARY_KEY.getName());
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, USE_MANAGED_IDENTITY.getName());
     }
 
     @Override
