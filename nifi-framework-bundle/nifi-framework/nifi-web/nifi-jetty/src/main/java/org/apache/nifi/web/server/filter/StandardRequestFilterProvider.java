@@ -22,8 +22,8 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
 import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
-import org.eclipse.jetty.ee10.servlet.FilterHolder;
-import org.eclipse.jetty.ee10.servlets.DoSFilter;
+import org.eclipse.jetty.ee11.servlet.FilterHolder;
+import org.eclipse.jetty.ee11.servlets.DoSFilter;
 
 import jakarta.servlet.Filter;
 import java.util.ArrayList;

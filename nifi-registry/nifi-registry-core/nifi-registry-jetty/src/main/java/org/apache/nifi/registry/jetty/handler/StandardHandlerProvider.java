@@ -78,7 +78,7 @@ public class StandardHandlerProvider implements HandlerProvider {
 
     private static final String WEB_INF_JAR_PATTERN = ".*/spring-[^/]*\\.jar$";
 
-    private static final String CONTAINER_JAR_PATTERN = ".*/jetty-jakarta-servlet-api-[^/]*\\.jar$|.*jakarta.servlet.jsp.jstl-[^/]*\\.jar";
+    private static final String CONTAINER_JAR_PATTERN = ".*/jetty-(jakarta-)?servlet-api-[^/]*\\.jar$|.*jakarta.servlet.jsp.jstl-[^/]*\\.jar";
 
     private final String docsDirectory;
 
