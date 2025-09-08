@@ -136,7 +136,7 @@
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <jetty.version>12.1.0</jetty.version>
+        <jetty.version>12.1.1</jetty.version>
         <jackson.bom.version>2.19.2</jackson.bom.version>
         <avro.version>1.11.4</avro.version>
         <jaxb.runtime.version>4.0.5</jaxb.runtime.version>
