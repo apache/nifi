@@ -23,8 +23,10 @@ import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -140,5 +142,17 @@ public class TestFlowDifferenceFilters {
 
         assertTrue(FlowDifferenceFilters.isScheduledStateNew(flowDifference));
     }
-}
 
+    @Test
+    public void testIsLocalScheduleStateChangeWithNullComponentADoesNotNPE() {
+        // Simulate DEEP comparison producing a scheduled state change for a newly added component (no local A)
+        final FlowDifference flowDifference = Mockito.mock(FlowDifference.class);
+        Mockito.when(flowDifference.getDifferenceType()).thenReturn(DifferenceType.SCHEDULED_STATE_CHANGED);
+        Mockito.when(flowDifference.getComponentA()).thenReturn(null);
+        Mockito.when(flowDifference.getValueA()).thenReturn("RUNNING");
+        Mockito.when(flowDifference.getValueB()).thenReturn("RUNNING");
+
+        // Should not throw and should return false since no local component
+        assertFalse(FlowDifferenceFilters.isLocalScheduleStateChange(flowDifference));
+    }
+}

@@ -379,6 +379,12 @@ public class AffectedComponentSet {
             }
         }
 
+        // With DEEP comparison, configuration differences for newly added components may reference a null local component (Component A).
+        // These do not affect any existing local components, so ignore them.
+        if (difference.getComponentA() == null) {
+            return;
+        }
+
         if (differenceType == DifferenceType.COMPONENT_REMOVED && difference.getComponentA().getComponentType() == ComponentType.PROCESS_GROUP) {
             // If a Process Group is removed, we need to consider any component within the Process Group as affected also
             addAllComponentsWithinGroup(difference.getComponentA().getInstanceIdentifier());

@@ -20,6 +20,8 @@ package org.apache.nifi.controller.serialization;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -82,5 +84,19 @@ public class TestAffectedComponentSet {
         final AffectedComponentSet removed = setA.removeComponents(componentSetFilter);
         assertEquals(2, setA.getComponentCount());
         assertEquals(8, removed.getComponentCount());
+    }
+
+    @Test
+    public void testAddAffectedComponentsWithNullComponentADoesNotNPE() {
+        final AffectedComponentSet set = new AffectedComponentSet(controller);
+
+        // Simulate a DEEP comparison config difference on an added Process Group
+        final FlowDifference difference = Mockito.mock(FlowDifference.class);
+        when(difference.getDifferenceType()).thenReturn(DifferenceType.EXECUTION_ENGINE_CHANGED);
+        when(difference.getComponentA()).thenReturn(null); // Newly added PG => local component is null
+
+        // Should not throw and should not add any local components
+        set.addAffectedComponents(difference);
+        assertEquals(0, set.getComponentCount());
     }
 }
