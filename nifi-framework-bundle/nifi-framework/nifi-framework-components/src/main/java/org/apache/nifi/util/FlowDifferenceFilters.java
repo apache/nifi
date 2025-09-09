@@ -321,6 +321,11 @@ public class FlowDifferenceFilters {
             return false;
         }
 
+        // If there is no local component, this is a change affecting only the proposed flow.
+        if (fd.getComponentA() == null) {
+            return false;
+        }
+
         if (fd.getComponentA().getComponentType() == ComponentType.CONTROLLER_SERVICE) {
             return true;
         }
