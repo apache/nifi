@@ -53,7 +53,7 @@ public class StandardIssuerProvider implements IssuerProvider {
     private String getResolvedHost(final String host) {
         final String resolvedHost;
 
-        if (host == null || host.isEmpty()) {
+        if (host == null || host.isBlank()) {
             resolvedHost = getLocalHost();
         } else {
             resolvedHost = host;
@@ -65,7 +65,15 @@ public class StandardIssuerProvider implements IssuerProvider {
     private String getLocalHost() {
         try {
             final InetAddress localHostAddress = InetAddress.getLocalHost();
-            return localHostAddress.getCanonicalHostName();
+            final String canonicalHostName = localHostAddress.getCanonicalHostName();
+            final String localHost;
+            if (canonicalHostName.isBlank()) {
+                // Handle empty Canonical Host Name which can be returned on macOS
+                localHost = localHostAddress.getHostAddress();
+            } else {
+                localHost = canonicalHostName;
+            }
+            return localHost;
         } catch (final UnknownHostException e) {
             throw new IllegalStateException("Failed to resolve local host address", e);
         }

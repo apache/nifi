@@ -18,14 +18,12 @@ package org.apache.nifi.web.security.jwt.provider;
 
 import org.junit.jupiter.api.Test;
 
-import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class StandardIssuerProviderTest {
     private static final String HTTPS_SCHEME = "https";
@@ -52,27 +50,17 @@ class StandardIssuerProviderTest {
 
     @Test
     void testGetIssuerNullHostResolved() {
-        final String localHost = getLocalHost();
-        assumeFalse(localHost == null);
-
         final StandardIssuerProvider provider = new StandardIssuerProvider(null, PORT);
 
         final URI issuer = provider.getIssuer();
 
-        assertNotNull(issuer);
         assertEquals(HTTPS_SCHEME, issuer.getScheme());
-        assertEquals(localHost, issuer.getHost());
+
+        final String host = issuer.getHost();
+        assertNotNull(host, "Host not found in Issuer [%s]".formatted(issuer));
+        assertFalse(host.isEmpty(), "Host is empty in Issue [%s]".formatted(issuer));
         assertEquals(PORT, issuer.getPort());
         assertEquals(EMPTY, issuer.getPath());
         assertNull(issuer.getQuery());
-    }
-
-    private String getLocalHost() {
-        try {
-            final InetAddress localHostAddress = InetAddress.getLocalHost();
-            return localHostAddress.getCanonicalHostName();
-        } catch (final UnknownHostException e) {
-            return null;
-        }
     }
 }
