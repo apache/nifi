@@ -29,23 +29,29 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class StandardStateManager implements StateManager {
     private final StateProvider localProvider;
     private final StateProvider clusterProvider;
     private final String componentId;
-    private final boolean dropStateKeySupported;
+    private final Supplier<Boolean> dropStateKeySupportedSupplier;
 
     public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider, final String componentId) {
-        this(localProvider, clusterProvider, componentId, false);
+        this(localProvider, clusterProvider, componentId, () -> false);
     }
 
     public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider,
             final String componentId, final boolean dropStateKeySupported) {
+        this(localProvider, clusterProvider, componentId, () -> dropStateKeySupported);
+    }
+
+    public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider,
+                                final String componentId, final Supplier<Boolean> dropStateKeySupportedSupplier) {
         this.localProvider = localProvider;
         this.clusterProvider = clusterProvider;
         this.componentId = componentId;
-        this.dropStateKeySupported = dropStateKeySupported;
+        this.dropStateKeySupportedSupplier = dropStateKeySupportedSupplier;
     }
 
     private StateProvider getProvider(final Scope scope) {
@@ -95,7 +101,7 @@ public class StandardStateManager implements StateManager {
 
     @Override
     public boolean isStateKeyDropSupported() {
-        return dropStateKeySupported;
+        return dropStateKeySupportedSupplier.get();
     }
 
     @Override

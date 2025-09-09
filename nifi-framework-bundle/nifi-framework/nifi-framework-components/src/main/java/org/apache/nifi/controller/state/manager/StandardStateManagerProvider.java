@@ -17,6 +17,20 @@
 
 package org.apache.nifi.controller.state.manager;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
@@ -36,6 +50,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.components.state.ComponentStateCapabilitiesResolver;
 import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.state.ConfigParseException;
@@ -57,22 +72,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 public class StandardStateManagerProvider implements StateManagerProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
 
@@ -83,6 +82,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     private final StateProvider localStateProvider;
     private final StateProvider clusterStateProvider;
     private final StateProvider previousClusterStateProvider;
+
+    private volatile ComponentStateCapabilitiesResolver capabilitiesResolver = componentId -> false;
 
     public StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider) {
         this.localStateProvider = localStateProvider;
@@ -557,13 +558,20 @@ public class StandardStateManagerProvider implements StateManagerProvider {
      * @return the StateManager that can be used by the component with the given ID, or <code>null</code> if none exists
      */
     @Override
-    public synchronized StateManager getStateManager(final String componentId, boolean dropStateKeySupported) {
+    public synchronized StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
+        // Delegate to single-source method ignoring the dropStateKeySupported parameter
+        return getStateManager(componentId);
+    }
+
+    @Override
+    public synchronized StateManager getStateManager(final String componentId) {
         StateManager stateManager = stateManagers.get(componentId);
         if (stateManager != null) {
             return stateManager;
         }
 
-        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId, dropStateKeySupported);
+        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId,
+                () -> capabilitiesResolver != null && capabilitiesResolver.isDropStateKeySupported(componentId));
         stateManagers.put(componentId, stateManager);
         return stateManager;
     }
@@ -630,5 +638,10 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     @Override
     public boolean isClusterProviderEnabled() {
         return nifiProperties.isClustered() && clusterStateProvider != null && clusterStateProvider.isEnabled();
+    }
+
+    @Override
+    public void setComponentStateCapabilitiesResolver(final ComponentStateCapabilitiesResolver resolver) {
+        this.capabilitiesResolver = resolver;
     }
 }

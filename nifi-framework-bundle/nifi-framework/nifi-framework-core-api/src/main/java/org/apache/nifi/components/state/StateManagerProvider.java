@@ -48,6 +48,16 @@ public interface StateManagerProvider {
     StateManager getStateManager(String componentId, boolean dropStateKeySupported);
 
     /**
+     * Sets the resolver used to determine per-component state capabilities such as whether dropping a specific state key is supported.
+     * Default implementation is a no-op.
+     *
+     * @param resolver capability resolver
+     */
+    default void setComponentStateCapabilitiesResolver(ComponentStateCapabilitiesResolver resolver) {
+        // no-op by default
+    }
+
+    /**
      * Notifies the State Manager Provider that the component with the given ID has been removed from the NiFi instance
      * and will no longer be needed, so the appropriate resource cleanup can take place.
      *
