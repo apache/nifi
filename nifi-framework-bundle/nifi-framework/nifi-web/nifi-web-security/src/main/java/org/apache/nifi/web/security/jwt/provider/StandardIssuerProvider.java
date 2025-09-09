@@ -18,13 +18,20 @@ package org.apache.nifi.web.security.jwt.provider;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Standard Issuer Provider with configurable host and port for HTTPS URI construction
  */
 public class StandardIssuerProvider implements IssuerProvider {
-    private static final String URI_FORMAT = "https://%s:%d";
+    private static final String HTTPS_SCHEME = "https";
+
+    private static final Pattern HOST_CHARACTERS_PATTERN = Pattern.compile("[^a-zA-Z0-9-.]");
+
+    private static final String REPLACEMENT_CHARACTER = "-";
 
     private final URI issuer;
 
@@ -36,8 +43,11 @@ public class StandardIssuerProvider implements IssuerProvider {
      */
     public StandardIssuerProvider(final String host, final int port) {
         final String resolvedHost = getResolvedHost(host);
-        final String uri = URI_FORMAT.formatted(resolvedHost, port);
-        this.issuer = URI.create(uri);
+        try {
+            this.issuer = new URI(HTTPS_SCHEME, null, resolvedHost, port, null, null, null);
+        } catch (final URISyntaxException e) {
+            throw new IllegalStateException("URI construction failed with Host [%s]".formatted(resolvedHost), e);
+        }
     }
 
     /**
@@ -59,7 +69,8 @@ public class StandardIssuerProvider implements IssuerProvider {
             resolvedHost = host;
         }
 
-        return resolvedHost;
+        final Matcher resolvedHostMatcher = HOST_CHARACTERS_PATTERN.matcher(resolvedHost);
+        return resolvedHostMatcher.replaceAll(REPLACEMENT_CHARACTER);
     }
 
     private String getLocalHost() {
