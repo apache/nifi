@@ -16,7 +16,8 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ComponentStateRequest, ComponentStateResponse } from './index';
+import { ComponentStateRequest, ComponentStateResponse, ClearStateEntryRequest } from './index';
+import { ErrorContext } from '../error';
 
 const COMPONENT_STATE_PREFIX = '[Component State]';
 
@@ -33,6 +34,16 @@ export const loadComponentStateSuccess = createAction(
 export const openComponentStateDialog = createAction(`${COMPONENT_STATE_PREFIX} Open Component State Dialog`);
 
 export const clearComponentState = createAction(`${COMPONENT_STATE_PREFIX} Clear Component State`);
+
+export const clearComponentStateEntry = createAction(
+    `${COMPONENT_STATE_PREFIX} Clear Component State Entry`,
+    props<{ request: ClearStateEntryRequest }>()
+);
+
+export const clearComponentStateFailure = createAction(
+    `${COMPONENT_STATE_PREFIX} Clear Component State Failure`,
+    props<{ errorContext: ErrorContext }>()
+);
 
 export const reloadComponentState = createAction(`${COMPONENT_STATE_PREFIX} Reload Component State`);
 

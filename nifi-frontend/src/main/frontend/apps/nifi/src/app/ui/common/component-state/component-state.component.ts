@@ -15,20 +15,22 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Input } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Input, Signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
-import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
+import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';
-import { clearComponentState } from '../../../state/component-state/component-state.actions';
+import { clearComponentState, clearComponentStateEntry } from '../../../state/component-state/component-state.actions';
 import {
     selectCanClear,
+    selectClearing,
     selectComponentName,
-    selectComponentState
+    selectComponentState,
+    selectDropStateKeySupported
 } from '../../../state/component-state/component-state.selectors';
 import { debounceTime, Observable } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -38,10 +40,11 @@ import { MatInputModule } from '@angular/material/input';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
+import { concatLatestFrom } from '@ngrx/operators';
+import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'component-state',
-    templateUrl: './component-state.component.html',
     imports: [
         MatButtonModule,
         MatDialogModule,
@@ -51,8 +54,11 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
         ReactiveFormsModule,
         MatFormFieldModule,
         MatInputModule,
-        ContextErrorBanner
+        ContextErrorBanner,
+        NifiTooltipDirective,
+        NifiSpinnerDirective
     ],
+    templateUrl: './component-state.component.html',
     styleUrls: ['./component-state.component.scss']
 })
 export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterViewInit {
@@ -60,7 +66,8 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
     componentName$: Observable<string> = this.store.select(selectComponentName).pipe(isDefinedAndNotNull());
-    canClear$: Observable<boolean> = this.store.select(selectCanClear).pipe(isDefinedAndNotNull());
+    dropStateKeySupported$: Observable<boolean> = this.store.select(selectDropStateKeySupported);
+    clearing: Signal<boolean> = this.store.selectSignal(selectClearing);
 
     displayedColumns: string[] = ['key', 'value'];
     dataSource: MatTableDataSource<StateItem> = new MatTableDataSource<StateItem>();
@@ -71,6 +78,7 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     totalEntries = 0;
     filteredEntries = 0;
     partialResults = false;
+    canClear = false;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     constructor(
@@ -85,6 +93,7 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
             .select(selectComponentState)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
             .subscribe((componentState) => {
+                this.totalEntries = 0;
                 this.stateDescription = componentState.stateDescription;
 
                 const stateItems: StateItem[] = [];
@@ -124,6 +133,29 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
                     const nodeIndex = this.displayedColumns.indexOf('scope');
                     if (nodeIndex > -1) {
                         this.displayedColumns.splice(nodeIndex, 1);
+                    }
+                }
+            });
+
+        // Subscribe to dropStateKeySupported to conditionally show actions column
+        this.dropStateKeySupported$
+            .pipe(
+                concatLatestFrom(() => this.store.select(selectCanClear).pipe(isDefinedAndNotNull())),
+                takeUntilDestroyed()
+            )
+            .subscribe(([dropStateKeySupported, canClear]) => {
+                this.canClear = canClear;
+
+                if (canClear && dropStateKeySupported) {
+                    // Add actions column if it's not already present
+                    if (!this.displayedColumns.includes('actions')) {
+                        this.displayedColumns.push('actions');
+                    }
+                } else {
+                    // Remove actions column if it is present
+                    const actionsIndex = this.displayedColumns.indexOf('actions');
+                    if (actionsIndex > -1) {
+                        this.displayedColumns.splice(actionsIndex, 1);
                     }
                 }
             });
@@ -194,5 +226,22 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
         this.store.dispatch(clearComponentState());
     }
 
+    clearComponentStateEntry(item: StateItem): void {
+        // Determine the scope based on the item's scope property
+        // If scope is 'Cluster', it's cluster state
+        // Otherwise, it's local state (could be node address or empty)
+        const scope = item.scope === 'Cluster' ? 'CLUSTER' : 'LOCAL';
+
+        this.store.dispatch(
+            clearComponentStateEntry({
+                request: {
+                    keyToDelete: item.key,
+                    scope
+                }
+            })
+        );
+    }
+
     protected readonly ErrorContextKey = ErrorContextKey;
+    protected readonly TextTip = TextTip;
 }

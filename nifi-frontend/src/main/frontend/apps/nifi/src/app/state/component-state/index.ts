@@ -31,6 +31,17 @@ export interface ClearComponentStateRequest {
     componentUri: string;
 }
 
+export interface ClearComponentStateEntryRequest {
+    componentUri: string;
+    keyToDelete: string;
+    scope: 'LOCAL' | 'CLUSTER';
+}
+
+export interface ClearStateEntryRequest {
+    keyToDelete: string;
+    scope: 'LOCAL' | 'CLUSTER';
+}
+
 export interface ComponentStateResponse {
     componentState: ComponentState;
 }
@@ -54,11 +65,16 @@ export interface StateMap {
     totalEntryCount: number;
 }
 
+export interface ComponentStateEntity {
+    componentState: ComponentState;
+}
+
 export interface ComponentState {
     componentId: string;
     localState?: StateMap;
     clusterState?: StateMap;
     stateDescription: string;
+    dropStateKeySupported?: boolean;
 }
 
 export interface ComponentStateState {
@@ -66,5 +82,6 @@ export interface ComponentStateState {
     componentUri: string | null;
     componentState: ComponentState | null;
     canClear: boolean | null;
-    status: 'pending' | 'loading' | 'success';
+    clearing: boolean;
+    status: 'pending' | 'loading' | 'success' | 'error';
 }

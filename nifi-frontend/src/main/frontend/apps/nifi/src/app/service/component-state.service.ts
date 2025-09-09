@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ClearComponentStateRequest, LoadComponentStateRequest } from '../state/component-state';
+import { ClearComponentStateRequest, ComponentStateEntity, LoadComponentStateRequest } from '../state/component-state';
 import { Observable } from 'rxjs';
 import { NiFiCommon } from '@nifi/shared';
 
@@ -28,11 +28,21 @@ export class ComponentStateService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    getComponentState(request: LoadComponentStateRequest): Observable<any> {
-        return this.httpClient.get(`${this.nifiCommon.stripProtocol(request.componentUri)}/state`);
+    getComponentState(request: LoadComponentStateRequest): Observable<ComponentStateEntity> {
+        return this.httpClient.get<ComponentStateEntity>(
+            `${this.nifiCommon.stripProtocol(request.componentUri)}/state`
+        );
     }
 
     clearComponentState(request: ClearComponentStateRequest): Observable<any> {
-        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.componentUri)}/state/clear-requests`, {});
+        return this.httpClient
+            .post(`${this.nifiCommon.stripProtocol(request.componentUri)}/state/clear-requests`, {});
+    }
+
+    clearComponentStateEntry(componentUri: string, componentStateEntity: ComponentStateEntity): Observable<any> {
+        // To clear a specific state entry, we send the updated state
+        // without the key to be cleared in the ComponentStateEntity format
+        return this.httpClient
+            .post(`${this.nifiCommon.stripProtocol(componentUri)}/state/clear-requests`, componentStateEntity);
     }
 }
