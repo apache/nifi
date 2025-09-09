@@ -82,7 +82,15 @@ public class ConnectableTask {
         this.numRelationships = connectable.getRelationships().size();
         this.flowController = flowController;
 
-        final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), lifecycleState::isTerminated);
+        final StateManager baseStateManager;
+        if (connectable instanceof ProcessorNode processorNode) {
+            final org.apache.nifi.processor.Processor processor = processorNode.getProcessor();
+            final Class<?> componentClass = processor == null ? null : processor.getClass();
+            baseStateManager = flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier(), componentClass);
+        } else {
+            baseStateManager = flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier());
+        }
+        final StateManager stateManager = new TaskTerminationAwareStateManager(baseStateManager, lifecycleState::isTerminated);
         if (connectable instanceof ProcessorNode) {
             processContext = new StandardProcessContext(
                     (ProcessorNode) connectable, flowController.getControllerServiceProvider(), stateManager, lifecycleState::isTerminated, flowController);

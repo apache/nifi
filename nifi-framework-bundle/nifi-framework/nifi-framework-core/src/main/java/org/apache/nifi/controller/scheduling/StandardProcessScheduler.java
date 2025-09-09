@@ -126,6 +126,15 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         return stateManagerProvider.getStateManager(componentId);
     }
 
+    private StateManager getStateManager(final String componentId, final Class<?> componentClass) {
+        return stateManagerProvider.getStateManager(componentId, componentClass);
+    }
+
+    private StateManager getStateManager(final ProcessorNode procNode) {
+        final Class<?> componentClass = procNode.getProcessor() == null ? null : procNode.getProcessor().getClass();
+        return getStateManager(procNode.getIdentifier(), componentClass);
+    }
+
     public void scheduleFrameworkTask(final Runnable task, final String taskName, final long initialDelay, final long delay, final TimeUnit timeUnit) {
         Thread.ofVirtual()
             .name(taskName)
@@ -382,7 +391,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true, false);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode), lifecycleState::isTerminated, flowController);
 
         final boolean scheduleActions = procNode.getProcessGroup().resolveExecutionEngine() != ExecutionEngine.STATELESS;
 
@@ -515,7 +524,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true, false);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -556,7 +565,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false, false);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
-            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode), lifecycleState::isTerminated, flowController);
 
         LOG.info("Stopping {}", procNode);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState, lifecycleMethods);

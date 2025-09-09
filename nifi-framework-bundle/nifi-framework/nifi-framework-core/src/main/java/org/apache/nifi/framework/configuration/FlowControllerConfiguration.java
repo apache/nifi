@@ -35,7 +35,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
-import org.apache.nifi.controller.state.FlowManagerStateCapabilitiesResolver;
 import org.apache.nifi.controller.status.history.JsonNodeStatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
@@ -239,9 +238,6 @@ public class FlowControllerConfiguration {
                     stateManagerProvider
             );
         }
-
-        // Configure StateManagerProvider with a resolver based on the FlowManager
-        stateManagerProvider.setComponentStateCapabilitiesResolver(new FlowManagerStateCapabilitiesResolver(flowController.getFlowManager()));
 
         return flowController;
     }

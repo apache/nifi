@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.Query;
@@ -50,7 +51,6 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
-import org.apache.nifi.components.state.ComponentStateCapabilitiesResolver;
 import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.state.ConfigParseException;
@@ -82,8 +82,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     private final StateProvider localStateProvider;
     private final StateProvider clusterStateProvider;
     private final StateProvider previousClusterStateProvider;
-
-    private volatile ComponentStateCapabilitiesResolver capabilitiesResolver = componentId -> false;
+    private final ConcurrentMap<String, AtomicBoolean> dropStateKeySupported = new ConcurrentHashMap<>();
 
     public StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider) {
         this.localStateProvider = localStateProvider;
@@ -558,9 +557,20 @@ public class StandardStateManagerProvider implements StateManagerProvider {
      * @return the StateManager that can be used by the component with the given ID, or <code>null</code> if none exists
      */
     @Override
-    public synchronized StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
-        // Delegate to single-source method ignoring the dropStateKeySupported parameter
-        return getStateManager(componentId);
+    public synchronized StateManager getStateManager(final String componentId, final boolean dropSupportedFlag) {
+        final AtomicBoolean dropSupported = dropStateKeySupported.computeIfAbsent(componentId, id -> new AtomicBoolean(false));
+        if (dropSupportedFlag) {
+            dropSupported.set(true);
+        }
+
+        StateManager stateManager = stateManagers.get(componentId);
+        if (stateManager != null) {
+            return stateManager;
+        }
+
+        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId, dropSupported::get);
+        stateManagers.put(componentId, stateManager);
+        return stateManager;
     }
 
     @Override
@@ -570,8 +580,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             return stateManager;
         }
 
-        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId,
-                () -> capabilitiesResolver != null && capabilitiesResolver.isDropStateKeySupported(componentId));
+        final AtomicBoolean dropSupported = dropStateKeySupported.computeIfAbsent(componentId, id -> new AtomicBoolean(false));
+        stateManager = new StandardStateManager(localStateProvider, clusterStateProvider, componentId, dropSupported::get);
         stateManagers.put(componentId, stateManager);
         return stateManager;
     }
@@ -633,6 +643,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                 logger.warn("Component with ID {} was removed from NiFi instance but failed to cleanup resources used to maintain its clustered state", componentId, e);
             }
         }
+
+        dropStateKeySupported.remove(componentId);
     }
 
     @Override
@@ -640,8 +652,4 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return nifiProperties.isClustered() && clusterStateProvider != null && clusterStateProvider.isEnabled();
     }
 
-    @Override
-    public void setComponentStateCapabilitiesResolver(final ComponentStateCapabilitiesResolver resolver) {
-        this.capabilitiesResolver = resolver;
-    }
 }

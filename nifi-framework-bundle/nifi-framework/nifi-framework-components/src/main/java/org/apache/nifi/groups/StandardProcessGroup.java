@@ -660,11 +660,16 @@ public final class StandardProcessGroup implements ProcessGroup {
         return stateManagerProvider.getStateManager(componentId);
     }
 
+    private StateManager getStateManager(final ProcessorNode processorNode) {
+        final Class<?> componentClass = processorNode.getProcessor() == null ? null : processorNode.getProcessor().getClass();
+        return stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass);
+    }
+
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, node.getProcessor().getClass(), node.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider,
-                    getStateManager(node.getIdentifier()), () -> false, nodeTypeProvider);
+                    getStateManager(node), () -> false, nodeTypeProvider);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -3866,8 +3871,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private ProcessContext createProcessContext(final ProcessorNode processorNode) {
+        final org.apache.nifi.processor.Processor processor = processorNode.getProcessor();
+        final Class<?> componentClass = processor == null ? null : processor.getClass();
         return new StandardProcessContext(processorNode, controllerServiceProvider,
-            stateManagerProvider.getStateManager(processorNode.getIdentifier()), () -> false, nodeTypeProvider);
+            stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass), () -> false, nodeTypeProvider);
     }
 
     private ConfigurationContext createConfigurationContext(final ComponentNode component) {

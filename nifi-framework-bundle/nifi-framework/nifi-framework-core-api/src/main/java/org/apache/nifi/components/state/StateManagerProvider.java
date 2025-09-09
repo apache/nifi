@@ -17,6 +17,8 @@
 
 package org.apache.nifi.components.state;
 
+import org.apache.nifi.annotation.behavior.Stateful;
+
 /**
  * <p>
  * Interface that provides a mechanism for obtaining the {@link StateManager} for a particular component
@@ -48,13 +50,20 @@ public interface StateManagerProvider {
     StateManager getStateManager(String componentId, boolean dropStateKeySupported);
 
     /**
-     * Sets the resolver used to determine per-component state capabilities such as whether dropping a specific state key is supported.
-     * Default implementation is a no-op.
+     * Returns the StateManager for the given component identifier, using the provided component class to
+     * determine whether dropping individual state keys is supported based on the {@link Stateful} annotation.
      *
-     * @param resolver capability resolver
+     * @param componentId the id of the component for which the StateManager should be returned
+     * @param componentClass the component class if known; may be null
+     * @return the StateManager for the component with the given ID, or null if none exists
      */
-    default void setComponentStateCapabilitiesResolver(ComponentStateCapabilitiesResolver resolver) {
-        // no-op by default
+    default StateManager getStateManager(final String componentId, final Class<?> componentClass) {
+        boolean dropSupported = false;
+        if (componentClass != null) {
+            final Stateful stateful = componentClass.getAnnotation(Stateful.class);
+            dropSupported = stateful != null && stateful.dropStateKeySupported();
+        }
+        return getStateManager(componentId, dropSupported);
     }
 
     /**
