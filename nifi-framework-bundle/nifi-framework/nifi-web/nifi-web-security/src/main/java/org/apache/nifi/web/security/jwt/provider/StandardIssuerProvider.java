@@ -50,7 +50,7 @@ public class StandardIssuerProvider implements IssuerProvider {
         return issuer;
     }
 
-    private String getResolvedHost(final String host) {
+    private static String getResolvedHost(final String host) {
         final String resolvedHost;
 
         if (host == null || host.isEmpty()) {
@@ -62,10 +62,10 @@ public class StandardIssuerProvider implements IssuerProvider {
         return resolvedHost;
     }
 
-    private String getLocalHost() {
+    private static String getLocalHost() {
         try {
             final InetAddress localHostAddress = InetAddress.getLocalHost();
-            return localHostAddress.getCanonicalHostName();
+            return localHostAddress.getHostName();
         } catch (final UnknownHostException e) {
             throw new IllegalStateException("Failed to resolve local host address", e);
         }

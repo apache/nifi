@@ -25,7 +25,6 @@ import java.net.UnknownHostException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class StandardIssuerProviderTest {
     private static final String HTTPS_SCHEME = "https";
@@ -51,9 +50,8 @@ class StandardIssuerProviderTest {
     }
 
     @Test
-    void testGetIssuerNullHostResolved() {
+    void testGetIssuerNullHostResolved() throws UnknownHostException {
         final String localHost = getLocalHost();
-        assumeFalse(localHost == null);
 
         final StandardIssuerProvider provider = new StandardIssuerProvider(null, PORT);
 
@@ -67,12 +65,8 @@ class StandardIssuerProviderTest {
         assertNull(issuer.getQuery());
     }
 
-    private String getLocalHost() {
-        try {
-            final InetAddress localHostAddress = InetAddress.getLocalHost();
-            return localHostAddress.getCanonicalHostName();
-        } catch (final UnknownHostException e) {
-            return null;
-        }
+    private String getLocalHost() throws UnknownHostException {
+        final InetAddress localHostAddress = InetAddress.getLocalHost();
+        return localHostAddress.getHostName();
     }
 }
