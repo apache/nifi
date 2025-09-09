@@ -38,7 +38,6 @@ class AwsMskIamLoginConfigProviderTest {
     @BeforeEach
     void setUp() {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        runner.setValidateExpressionUsage(false);
         provider = new AwsMskIamLoginConfigProvider();
     }
 

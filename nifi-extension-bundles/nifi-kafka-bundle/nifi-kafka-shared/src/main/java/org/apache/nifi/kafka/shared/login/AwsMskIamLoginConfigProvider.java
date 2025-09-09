@@ -40,7 +40,7 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
         final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS, REQUIRED);
 
         if (roleSource == AwsRoleSource.SPECIFIED_PROFILE) {
-            final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
+            final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).getValue();
             if (!StringUtils.isBlank(awsProfileName)) {
                 builder.append(AWS_PROFILE_NAME_KEY, awsProfileName);
             }

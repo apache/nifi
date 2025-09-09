@@ -131,7 +131,7 @@ public interface KafkaClientComponent {
             )
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     PropertyDescriptor AWS_ASSUME_ROLE_ARN = new PropertyDescriptor.Builder()

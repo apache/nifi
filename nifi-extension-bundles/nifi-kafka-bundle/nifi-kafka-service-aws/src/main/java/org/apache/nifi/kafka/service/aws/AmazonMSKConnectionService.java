@@ -19,8 +19,10 @@ package org.apache.nifi.kafka.service.aws;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 
 import java.util.ArrayList;
@@ -65,5 +67,14 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return supportedPropertyDescriptors;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        // For backward compatibility: if an AWS Profile Name was configured previously,
+        // set AWS Role Source to SPECIFIED_PROFILE
+        if (config.isPropertySet(KafkaClientComponent.AWS_PROFILE_NAME)) {
+            config.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.SPECIFIED_PROFILE.name());
+        }
     }
 }
