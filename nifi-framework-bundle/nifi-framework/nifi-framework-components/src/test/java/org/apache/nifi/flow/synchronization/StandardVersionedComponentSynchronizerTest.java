@@ -1071,6 +1071,81 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testScopedControllerServiceReplacesExternalReference() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // A processor currently references a service outside the versioned group. The proposed flow introduces a
+        // resolvable scoped service, which must take precedence over the existing external reference.
+        final String externalServiceId = "external-service-id";
+        final String scopedServiceId = "scoped-service-id";
+        final String scopedServiceVersionedId = "scoped-service-versioned-id";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(descriptor.getName());
+        versionedDescriptor.setIdentifiesControllerService(true);
+
+        final ProcessorNode processorNode = createMockProcessor();
+        final ProcessGroup parentGroup = mock(ProcessGroup.class);
+        when(processorNode.getPropertyDescriptor(descriptor.getName())).thenReturn(descriptor);
+        when(processorNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(externalServiceId, null, null, null)));
+        when(processorNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, externalServiceId));
+        when(processorNode.getEffectivePropertyValue(descriptor)).thenReturn(externalServiceId);
+        when(group.getParent()).thenReturn(parentGroup);
+
+        final ControllerServiceNode scopedService = createMockControllerService();
+        when(scopedService.getIdentifier()).thenReturn(scopedServiceId);
+        when(scopedService.getVersionedComponentId()).thenReturn(Optional.of(scopedServiceVersionedId));
+        when(group.getControllerServices(false)).thenReturn(Set.of(scopedService));
+
+        final ControllerServiceNode externalService = createMockControllerService();
+        when(parentGroup.findControllerService(externalServiceId, false, true)).thenReturn(externalService);
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(Map.of(descriptor.getName(), versionedDescriptor));
+        versionedProcessor.setProperties(Map.of(descriptor.getName(), scopedServiceVersionedId));
+
+        final ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captor.capture(), anyBoolean(), any());
+
+        assertEquals(scopedServiceId, captor.getValue().get(descriptor.getName()));
+    }
+
+    @Test
+    public void testExternalControllerServiceRetainedWhenProposedServiceNotResolvable() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // When the proposed service is not visible from the component's group, preserve the existing external reference
+        // instead of replacing it with an unresolved versioned component identifier.
+        final String externalServiceId = "external-service-id";
+        final String proposedServiceVersionedId = "unresolved-service-versioned-id";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(descriptor.getName());
+        versionedDescriptor.setIdentifiesControllerService(true);
+
+        final ProcessorNode processorNode = createMockProcessor();
+        final ProcessGroup parentGroup = mock(ProcessGroup.class);
+        final ControllerServiceNode externalService = createMockControllerService();
+        when(processorNode.getPropertyDescriptor(descriptor.getName())).thenReturn(descriptor);
+        when(processorNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(externalServiceId, null, null, null)));
+        when(processorNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, externalServiceId));
+        when(processorNode.getEffectivePropertyValue(descriptor)).thenReturn(externalServiceId);
+        when(group.getParent()).thenReturn(parentGroup);
+        when(parentGroup.findControllerService(externalServiceId, false, true)).thenReturn(externalService);
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(Map.of(descriptor.getName(), versionedDescriptor));
+        versionedProcessor.setProperties(Map.of(descriptor.getName(), proposedServiceVersionedId));
+
+        final ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captor.capture(), anyBoolean(), any());
+
+        assertEquals(externalServiceId, captor.getValue().get(descriptor.getName()));
+    }
+
+    @Test
     public void testExternalControllerServiceParameterReferencePreserved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         // A controller-service-identifying property is configured with a Parameter reference (#{svc}) that resolves to a
         // controller service living outside this process group. The proposed (versioned) flow references the property via
