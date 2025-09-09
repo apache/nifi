@@ -21,7 +21,7 @@
             @if (bulletinEntity.canRead) {
                 <li>
                     <div class="inline-flex flex-wrap gap-x-1.5">
-                        <div class="inline-flex flex-wrap gap-x-1.5" [copy]="bulletinEntity.bulletin.message">
+                        <div class="inline-flex flex-wrap gap-x-1.5">
                             <div>{{ bulletinEntity.bulletin.timestamp }}</div>
                             @if (bulletinEntity.nodeAddress) {
                                 <div>{{ bulletinEntity.nodeAddress }}</div>
@@ -30,7 +30,9 @@
                                 {{ bulletinEntity.bulletin.level }}
                             </div>
                         </div>
-                        <pre class="whitespace-pre-wrap">{{ bulletinEntity.bulletin.message }}</pre>
+                        <pre class="whitespace-pre-wrap" [copy]="getBulletinCopyMessage(bulletinEntity)">{{
+                            bulletinEntity.bulletin.message
+                        }}</pre>
                     </div>
                 </li>
             }

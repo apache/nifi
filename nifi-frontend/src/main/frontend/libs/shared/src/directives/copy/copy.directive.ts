@@ -18,7 +18,7 @@
  */
 
 import { Directive, ElementRef, HostListener, Input, NgZone, Renderer2, inject } from '@angular/core';
-import { fromEvent, Subscription, switchMap, take } from 'rxjs';
+import { fromEvent, Subscription, switchMap, take, tap } from 'rxjs';
 
 @Directive({
     selector: '[copy]',
@@ -49,8 +49,13 @@ export class CopyDirective {
 
                 // run outside the angular zone to prevent unnecessary change detection cycles
                 this.subscription = this.zone.runOutsideAngular(() => {
-                    return fromEvent(cb, 'click')
+                    return fromEvent<MouseEvent>(cb, 'click')
                         .pipe(
+                            tap((event: MouseEvent) => {
+                                // prevent copy click from triggering parent click handlers
+                                event.stopPropagation();
+                                event.preventDefault();
+                            }),
                             switchMap(() => navigator.clipboard.writeText(this.copy)),
                             take(1)
                         )

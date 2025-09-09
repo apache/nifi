@@ -181,6 +181,7 @@ export interface BulletinEntity {
         category: string;
         level: string;
         message: string;
+        stackTrace?: string;
         sourceName: string;
         timestamp: string;
         nodeAddress?: string;

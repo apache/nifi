@@ -35,4 +35,28 @@ describe('Bulletins', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    it('should return proper severity classes', () => {
+        expect(component.getSeverity('error')).toBe('bulletin-error error-color');
+        expect(component.getSeverity('warn')).toBe('bulletin-warn caution-color');
+        expect(component.getSeverity('warning')).toBe('bulletin-warn caution-color');
+        expect(component.getSeverity('info')).toBe('bulletin-normal success-color-default');
+    });
+
+    it('should compose bulletin copy message with optional stack trace', () => {
+        const withStack = {
+            bulletin: {
+                message: 'm',
+                stackTrace: 'st'
+            }
+        } as any;
+        const withoutStack = {
+            bulletin: {
+                message: 'm'
+            }
+        } as any;
+
+        expect(component.getBulletinCopyMessage(withStack)).toBe('m\n\nst');
+        expect(component.getBulletinCopyMessage(withoutStack)).toBe('m');
+    });
 });
