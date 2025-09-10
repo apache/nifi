@@ -22,6 +22,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextProvider;
@@ -48,7 +49,6 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.MAX_SESSION_TIME;
 
-
 /**
  * Supports AWS credentials via Assume Role.  Assume Role is a derived credential strategy, requiring a primary
  * credential to retrieve and periodically refresh temporary credentials.
@@ -73,6 +73,10 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
     @Override
     public boolean canCreateDerivedCredential(final PropertyContext propertyContext) {
+        if (propertyContext.getProperty(AWSCredentialsProviderControllerService.OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            return false;
+        }
+
         final String assumeRoleArn = propertyContext.getProperty(ASSUME_ROLE_ARN).getValue();
         final String assumeRoleName = propertyContext.getProperty(ASSUME_ROLE_NAME).getValue();
         if (assumeRoleArn != null && !assumeRoleArn.isEmpty()

@@ -34,6 +34,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
@@ -44,6 +45,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.Ex
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.FileCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.ImplicitDefaultCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.NamedProfileCredentialsStrategy;
+import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.WebIdentityCredentialsStrategy;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -61,7 +63,8 @@ import java.util.List;
 @CapabilityDescription("Defines credentials for Amazon Web Services processors. " +
         "Uses default credentials without configuration. " +
         "Default credentials support EC2 instance profile/role, default user profile, environment variables, etc. " +
-        "Additional options include access key / secret key pairs, credentials file, named profile, and assume role credentials.")
+        "Additional options include access key / secret key pairs, credentials file, named profile, assume role credentials, " +
+        "and OAuth2 OIDC Web Identity-based temporary credentials using the same Assume Role properties.")
 @Tags({ "aws", "credentials", "provider" })
 @Restricted(
     restrictions = {
@@ -215,6 +218,13 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+        .name("OAuth2 Access Token Provider")
+        .description("Controller Service providing OAuth2/OIDC tokens to exchange for AWS temporary credentials using STS AssumeRoleWithWebIdentity.")
+        .identifiesControllerService(OAuth2AccessTokenProvider.class)
+        .required(false)
+        .build();
+
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         USE_DEFAULT_CREDENTIALS,
@@ -230,13 +240,15 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         ASSUME_ROLE_SSL_CONTEXT_SERVICE,
         ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE,
         ASSUME_ROLE_STS_REGION,
-        ASSUME_ROLE_STS_ENDPOINT
+        ASSUME_ROLE_STS_ENDPOINT,
+        OAUTH2_ACCESS_TOKEN_PROVIDER
     );
 
     private volatile AwsCredentialsProvider credentialsProvider;
 
     private final List<CredentialsStrategy> strategies = List.of(
         // Primary Credential Strategies
+        new WebIdentityCredentialsStrategy(),
         new ExplicitDefaultCredentialsStrategy(),
         new AccessKeyPairCredentialsStrategy(),
         new FileCredentialsStrategy(),
@@ -318,6 +330,19 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
                 selectedStrategy);
             if (strategyValidationFailures != null) {
                 validationFailureResults.addAll(strategyValidationFailures);
+            }
+        }
+
+        final boolean oauth2Configured = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+        if (oauth2Configured) {
+            final boolean roleArnSet = validationContext.getProperty(ASSUME_ROLE_ARN).isSet();
+            final boolean roleNameSet = validationContext.getProperty(ASSUME_ROLE_NAME).isSet();
+            if (!roleArnSet || !roleNameSet) {
+                validationFailureResults.add(new ValidationResult.Builder()
+                        .subject(ASSUME_ROLE_ARN.getDisplayName())
+                        .valid(false)
+                        .explanation("Web Identity (OIDC) requires both '" + ASSUME_ROLE_ARN.getDisplayName() + "' and '" + ASSUME_ROLE_NAME.getDisplayName() + "' to be set")
+                        .build());
             }
         }
 

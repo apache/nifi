@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
@@ -31,6 +34,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.CREDENTIALS_FILE;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.SECRET_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class AWSCredentialsProviderControllerServiceTest {
@@ -331,5 +335,74 @@ public class AWSCredentialsProviderControllerServiceTest {
         assertNotNull(credentialsProvider);
         assertEquals(DefaultCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
+    }
+
+    @Test
+    public void testWebIdentityPropertiesAreValidAndServiceEnables() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+
+        final MockOAuth2AccessTokenProvider tokenProvider = new MockOAuth2AccessTokenProvider();
+        runner.addControllerService("oauth2", tokenProvider);
+        runner.enableControllerService(tokenProvider);
+
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.OAUTH2_ACCESS_TOKEN_PROVIDER, "oauth2");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "arn:aws:iam::123456789012:role/test");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "nifi-test");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_2.id());
+
+        runner.enableControllerService(serviceImpl);
+        runner.assertValid(serviceImpl);
+
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+        assertNotNull(service);
+
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
+        assertNotNull(credentialsProvider);
+        assertEquals("WebIdentityRefreshingCredentialsProvider", credentialsProvider.getClass().getSimpleName());
+    }
+
+    @Test
+    public void testWebIdentityDoesNotChainAssumeRoleDerivedProvider() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+
+        final MockOAuth2AccessTokenProvider tokenProvider = new MockOAuth2AccessTokenProvider();
+        runner.addControllerService("oauth2", tokenProvider);
+        runner.enableControllerService(tokenProvider);
+
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.OAUTH2_ACCESS_TOKEN_PROVIDER, "oauth2");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "arn:aws:iam::123456789012:role/test");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "nifi-test");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_2.id());
+
+        runner.enableControllerService(serviceImpl);
+        runner.assertValid(serviceImpl);
+
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+        assertNotNull(service);
+
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
+        assertNotNull(credentialsProvider);
+        assertFalse(StsAssumeRoleCredentialsProvider.class.isAssignableFrom(credentialsProvider.getClass()),
+                "Derived AssumeRole should not be chained when OAuth2 (Web Identity) is configured");
+    }
+
+    private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+        @Override
+        public AccessToken getAccessDetails() {
+            final AccessToken token = new AccessToken();
+            token.setAccessToken("dummy-access-token");
+            return token;
+        }
+
+        @Override
+        public void refreshAccessDetails() {
+            // no-op
+        }
     }
 }
