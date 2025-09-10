@@ -44,6 +44,7 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -84,7 +85,7 @@ public class ConnectableTask {
 
         final StateManager baseStateManager;
         if (connectable instanceof ProcessorNode processorNode) {
-            final org.apache.nifi.processor.Processor processor = processorNode.getProcessor();
+            final Processor processor = processorNode.getProcessor();
             final Class<?> componentClass = processor == null ? null : processor.getClass();
             baseStateManager = flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier(), componentClass);
         } else {

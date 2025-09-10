@@ -514,6 +514,7 @@ public class ExtensionBuilder {
        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
        final ReportingTaskNode taskNode;
        if (creationSuccessful) {
+           stateManagerProvider.getStateManager(identifier, reportingTask.getComponent().getClass());
            taskNode = new StandardReportingTaskNode(reportingTask, identifier, flowController, processScheduler,
                    validationContextFactory, reloadComponent, extensionManager, validationTrigger);
            taskNode.setName(taskNode.getReportingTask().getClass().getSimpleName());
@@ -537,6 +538,7 @@ public class ExtensionBuilder {
        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
        final ParameterProviderNode parameterProviderNode;
        if (creationSuccessful) {
+           stateManagerProvider.getStateManager(identifier, parameterProvider.getComponent().getClass());
            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
                    flowController.getControllerServiceProvider(), validationContextFactory, reloadComponent, extensionManager,
                    validationTrigger);
@@ -668,7 +670,7 @@ public class ExtensionBuilder {
            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
-           final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
+           final StateManager stateManager = stateManagerProvider.getStateManager(identifier, serviceImpl.getClass());
            final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
                    serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
            serviceImpl.initialize(initContext);
@@ -834,6 +836,7 @@ public class ExtensionBuilder {
        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
        final FlowAnalysisRuleNode ruleNode;
        if (creationSuccessful) {
+           stateManagerProvider.getStateManager(identifier, flowAnalysisRule.getComponent().getClass());
            ruleNode = new StandardFlowAnalysisRuleNode(flowAnalysisRule, identifier, flowController,
                validationContextFactory, ruleViolationsManager, reloadComponent, extensionManager, validationTrigger);
            ruleNode.setName(ruleNode.getFlowAnalysisRule().getClass().getSimpleName());

@@ -54,13 +54,7 @@ public class RepositoryContextFactory {
     }
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
-        final StateManager stateManager;
-        if (connectable instanceof org.apache.nifi.controller.ProcessorNode processorNode) {
-            final Class<?> componentClass = processorNode.getProcessor() == null ? null : processorNode.getProcessor().getClass();
-            stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier(), componentClass);
-        } else {
-            stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
-        }
+        final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
         return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo, stateManager, maxAppendableClaimBytes);
     }
 

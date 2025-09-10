@@ -50,7 +50,8 @@ public class StandardFlowAnalysisRuleContext extends AbstractFlowAnalysisRuleCon
 
     @Override
     public StateManager getStateManager() {
-        return flowController.getStateManagerProvider().getStateManager(getFlowAnalysisRule().getIdentifier());
+        final Class<?> componentClass = getFlowAnalysisRule() == null ? null : getFlowAnalysisRule().getClass();
+        return flowController.getStateManagerProvider().getStateManager(getFlowAnalysisRule().getIdentifier(), componentClass);
     }
 
     @Override

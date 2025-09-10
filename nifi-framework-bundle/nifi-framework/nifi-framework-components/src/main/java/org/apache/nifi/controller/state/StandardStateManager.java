@@ -42,11 +42,6 @@ public class StandardStateManager implements StateManager {
     }
 
     public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider,
-            final String componentId, final boolean dropStateKeySupported) {
-        this(localProvider, clusterProvider, componentId, () -> dropStateKeySupported);
-    }
-
-    public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider,
                                 final String componentId, final Supplier<Boolean> dropStateKeySupportedSupplier) {
         this.localProvider = localProvider;
         this.clusterProvider = clusterProvider;

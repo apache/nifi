@@ -51,7 +51,8 @@ public class StandardReportingContext extends AbstractReportingContext implement
 
     @Override
     public StateManager getStateManager() {
-        return flowController.getStateManagerProvider().getStateManager(getReportingTask().getIdentifier());
+        final Class<?> componentClass = getReportingTask() == null ? null : getReportingTask().getClass();
+        return flowController.getStateManagerProvider().getStateManager(getReportingTask().getIdentifier(), componentClass);
     }
 
     @Override
