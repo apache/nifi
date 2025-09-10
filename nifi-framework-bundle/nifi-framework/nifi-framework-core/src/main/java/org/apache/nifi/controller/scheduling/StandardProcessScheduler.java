@@ -741,7 +741,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
-            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, getStateManager(connectable.getIdentifier()));
+            final StateManager stateManager = (connectable instanceof ProcessorNode) ? getStateManager((ProcessorNode) connectable) : getStateManager(connectable.getIdentifier());
+            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, stateManager);
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }

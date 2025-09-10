@@ -656,10 +656,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         return this.scheduler.getActiveThreadCount(statelessGroupNode) > 0;
     }
 
-    private StateManager getStateManager(final String componentId) {
-        return stateManagerProvider.getStateManager(componentId);
-    }
-
     private StateManager getStateManager(final ProcessorNode processorNode) {
         final Class<?> componentClass = processorNode.getProcessor() == null ? null : processorNode.getProcessor().getClass();
         return stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass);
@@ -1235,7 +1231,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider,
-                    getStateManager(processor.getIdentifier()), () -> false, nodeTypeProvider);
+                    getStateManager(processor), () -> false, nodeTypeProvider);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);

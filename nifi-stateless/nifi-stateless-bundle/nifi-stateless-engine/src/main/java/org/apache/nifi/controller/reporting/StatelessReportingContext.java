@@ -52,7 +52,8 @@ public class StatelessReportingContext extends AbstractReportingContext implemen
 
     @Override
     public StateManager getStateManager() {
-        return statelessEngine.getStateManagerProvider().getStateManager(getReportingTask().getIdentifier());
+        final Class<?> componentClass = getReportingTask() == null ? null : getReportingTask().getClass();
+        return statelessEngine.getStateManagerProvider().getStateManager(getReportingTask().getIdentifier(), componentClass);
     }
 
     @Override

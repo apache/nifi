@@ -19,6 +19,7 @@ package org.apache.nifi.controller.scheduling;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -54,7 +55,10 @@ public class RepositoryContextFactory {
     }
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
-        final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
+        final Class<?> componentClass = (connectable instanceof ProcessorNode && ((ProcessorNode) connectable).getProcessor() != null)
+                ? ((ProcessorNode) connectable).getProcessor().getClass()
+                : null;
+        final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier(), componentClass);
         return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo, stateManager, maxAppendableClaimBytes);
     }
 
