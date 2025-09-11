@@ -23,7 +23,8 @@ import { MatButtonModule } from '@angular/material/button';
     selector: 'error-banner',
     imports: [MatButtonModule, NgClass],
     templateUrl: './error-banner.component.html',
-    styleUrls: ['./error-banner.component.scss']
+    styleUrls: ['./error-banner.component.scss'],
+    standalone: true
 })
 export class ErrorBanner {
     @Input() messages: string[] | null = null;

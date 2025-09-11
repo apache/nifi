@@ -25,6 +25,7 @@ import { Observable } from 'rxjs';
 import { selectBannerErrors } from '../../state/error/error.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../error-banner/error-banner.component';
+import { NiFiErrorContextKey, NiFiRegistryErrorContextKey } from '../../state/error';
 
 @Component({
     selector: 'context-error-banner',
@@ -34,10 +35,12 @@ import { ErrorBanner } from '../error-banner/error-banner.component';
     standalone: true
 })
 export class ContextErrorBanner implements OnDestroy {
-    private _context!: string;
-    @Input({ required: true }) set context(context: string) {
+    private _context!: NiFiRegistryErrorContextKey | NiFiErrorContextKey;
+    @Input({ required: true }) set context(context: NiFiRegistryErrorContextKey | NiFiErrorContextKey) {
         this._context = context;
-        this.messages$ = this.store.select(selectBannerErrors(this._context)).pipe(takeUntilDestroyed(this.destroyRef));
+        this.messages$ = this.store
+            .select(selectBannerErrors(String(this._context)))
+            .pipe(takeUntilDestroyed(this.destroyRef));
     }
 
     get context() {

@@ -22,12 +22,44 @@ export interface ErrorDetail {
     message: string;
 }
 
-export interface ErrorContextKey {
-    [key: string]: string;
+export enum NiFiErrorContextKey {
+    ACCESS_POLICIES = 'access-policies',
+    QUEUE = 'queue',
+    CLUSTER = 'cluster',
+    PROVENANCE = 'provenance',
+    COMPONENT_STATE = 'component-state',
+    STATUS_HISTORY = 'status-history',
+    SYSTEM_DIAGNOSTICS = 'system-diagnostics',
+    CONTROLLER_SERVICES = 'controller-services',
+    FLOW = 'flow',
+    MANAGE_REMOTE_PORTS = 'manage-remote-ports',
+    PARAMETER_CONTEXTS = 'parameter-contexts',
+    PARAMETER_PROVIDERS = 'parameter-providers',
+    REGISTRY_CLIENTS = 'registry-clients',
+    REPORTING_TASKS = 'report-tasks',
+    USERS = 'users',
+    PROCESS_GROUP = 'process-group',
+    REMOTE_PROCESS_GROUP = 'remote-process-group',
+    PROCESSOR = 'processor',
+    CONNECTION = 'connection',
+    PORT = 'port',
+    REGISTRY_IMPORT = 'registry-import',
+    LABEL = 'label',
+    FLOW_VERSION = 'flow-version',
+    FUNNEL = 'funnel',
+    LOCAL_EXTENSIONS = 'local-extensions',
+    LINEAGE = 'lineage',
+    FLOW_ANALYSIS_RULES = 'flow-analysis-rules'
+}
+
+export enum NiFiRegistryErrorContextKey {
+    DELETE_DROPLET = 'delete droplet',
+    CREATE_DROPLET = 'create droplet',
+    IMPORT_DROPLET_VERSION = 'import droplet version'
 }
 
 export interface ErrorContext {
-    context: ErrorContextKey;
+    context: NiFiRegistryErrorContextKey | NiFiErrorContextKey;
     errors: string[];
 }
 
@@ -41,3 +73,8 @@ export interface ErrorState {
     fullScreenError: ErrorDetail | null;
     routedToFullScreenError: boolean;
 }
+
+export * from './error.selectors';
+export * from './error.reducer';
+export * from './error.actions';
+export { ErrorEffects } from './error.effects';

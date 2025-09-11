@@ -22,7 +22,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { concatLatestFrom } from '@ngrx/operators';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
-import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '@nifi/shared';
+import { MEDIUM_DIALOG, NiFiRegistryErrorContextKey, SMALL_DIALOG, XL_DIALOG } from '@nifi/shared';
 import { NiFiState } from '../index';
 import { DropletsService } from '../../service/droplets.service';
 import * as DropletsActions from './droplets.actions';
@@ -38,11 +38,10 @@ import {
     ExportFlowVersionDialogData
 } from '../../pages/resources/feature/ui/export-flow-version-dialog/export-flow-version-dialog.component';
 import { FlowVersionsDialogComponent } from '../../pages/resources/feature/ui/flow-versions-dialog/flow-versions-dialog.component';
-import { ErrorHelper } from '../../service/error-helper.service';
-import * as ErrorActions from '../../state/error/error.actions';
+import { ErrorHelper } from '@nifi/shared';
+import * as ErrorActions from '@nifi/shared';
 import { selectStatus } from './droplets.selectors';
 import { Router } from '@angular/router';
-import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class DropletsEffects {
@@ -111,7 +110,7 @@ export class DropletsEffects {
                             this.store.dispatch(
                                 DropletsActions.dropletsBannerError({
                                     errorContext: {
-                                        context: ErrorContextKey.DELETE_DROPLET,
+                                        context: NiFiRegistryErrorContextKey.DELETE_DROPLET,
                                         errors: [this.errorHelper.getErrorString(errorResponse)]
                                     }
                                 })
@@ -174,7 +173,7 @@ export class DropletsEffects {
                             this.store.dispatch(
                                 DropletsActions.dropletsBannerError({
                                     errorContext: {
-                                        context: ErrorContextKey.CREATE_DROPLET,
+                                        context: NiFiRegistryErrorContextKey.CREATE_DROPLET,
                                         errors: [this.errorHelper.getErrorString(errorResponse)]
                                     }
                                 })
@@ -209,7 +208,7 @@ export class DropletsEffects {
                             this.store.dispatch(
                                 DropletsActions.dropletsBannerError({
                                     errorContext: {
-                                        context: ErrorContextKey.IMPORT_DROPLET_VERSION,
+                                        context: NiFiRegistryErrorContextKey.IMPORT_DROPLET_VERSION,
                                         errors: [this.errorHelper.getErrorString(errorResponse)]
                                     }
                                 })

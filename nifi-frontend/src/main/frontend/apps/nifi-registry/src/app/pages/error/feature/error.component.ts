@@ -17,17 +17,17 @@
 
 import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { selectFullScreenError } from '../../../state/error/error.selectors';
+import { selectFullScreenError } from '@nifi/shared';
 import { NiFiState } from '../../../state';
-import { resetErrorState } from '../../../state/error/error.actions';
+import { resetErrorState } from '@nifi/shared';
 import { AsyncPipe } from '@angular/common';
-// import { PageContent } from '../../../ui/common/page-content/page-content.component';
 
 @Component({
     selector: 'error',
     templateUrl: './error.component.html',
     imports: [AsyncPipe],
-    styleUrls: ['./error.component.scss']
+    styleUrls: ['./error.component.scss'],
+    standalone: true
 })
 export class Error implements OnDestroy {
     errorDetail$ = this.store.select(selectFullScreenError);

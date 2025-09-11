@@ -33,7 +33,7 @@ import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
 import { DropletsEffects } from './state/droplets/droplets.effects';
 import { BucketsEffects } from './state/buckets/buckets.effects';
-import { ErrorEffects } from './state/error/error.effects';
+import { ErrorEffects } from '@nifi/shared';
 import { ResourcesComponent } from './pages/resources/feature/resources.component';
 
 const entry = localStorage.getItem('disable-animations');

@@ -24,8 +24,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { NiFiState } from '../index';
 import * as BucketsActions from './buckets.actions';
 import { BucketsService } from '../../service/buckets.service';
-import { ErrorHelper } from '../../service/error-helper.service';
-import * as ErrorActions from '../../state/error/error.actions';
+import { ErrorHelper } from '@nifi/shared';
+import * as ErrorActions from '@nifi/shared';
 
 @Injectable()
 export class BucketsEffects {
