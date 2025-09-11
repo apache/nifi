@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ErrorContext, ErrorContextKey, ErrorDetail } from './index';
+import { ErrorContext, ErrorDetail, NiFiErrorContextKey, NiFiRegistryErrorContextKey } from '.';
 
 export const fullScreenError = createAction(
     '[Error] Full Screen Error',
@@ -29,7 +29,7 @@ export const addBannerError = createAction('[Error] Add Banner Error', props<{ e
 
 export const clearBannerErrors = createAction(
     '[Error] Clear Banner Errors',
-    props<{ context: keyof ErrorContextKey }>()
+    props<{ context: NiFiRegistryErrorContextKey | NiFiErrorContextKey }>()
 );
 
 export const resetErrorState = createAction('[Error] Reset Error State');

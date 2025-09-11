@@ -17,7 +17,7 @@
 
 import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
+import { CloseOnEscapeDialog, NiFiCommon, NiFiRegistryErrorContextKey } from '@nifi/shared';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -28,7 +28,6 @@ import { Store } from '@ngrx/store';
 import { createNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
 import { ContextErrorBanner } from '@nifi/shared';
-import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
 
 export interface ImportNewFlowDialogData {
     buckets: Bucket[];
@@ -54,7 +53,7 @@ export interface ImportNewFlowDialogData {
 export class ImportNewFlowDialogComponent extends CloseOnEscapeDialog implements OnInit {
     @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
-    protected readonly ErrorContextKey = ErrorContextKey;
+    protected readonly ErrorContextKey = NiFiRegistryErrorContextKey;
     fileToUpload: File | null = null;
     writableBuckets: Bucket[] = [];
     buckets: Bucket[] = [];

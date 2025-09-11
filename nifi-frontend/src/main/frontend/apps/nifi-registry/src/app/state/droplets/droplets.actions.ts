@@ -24,7 +24,7 @@ import {
     ImportFlowRequest,
     LoadDropletsResponse
 } from '.';
-import { ErrorContext } from '../error';
+import { ErrorContext } from '@nifi/shared';
 
 export const loadDroplets = createAction('[Droplets] Load Droplets');
 

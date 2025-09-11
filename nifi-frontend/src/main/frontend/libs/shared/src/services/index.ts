@@ -23,3 +23,4 @@ export * from './theming.service';
 export * from './map-table-helper.service';
 export * from './el.service';
 export * from './codemirror-nifi-language/codemirror-nifi-language.service';
+export * from './error-helper.service';
