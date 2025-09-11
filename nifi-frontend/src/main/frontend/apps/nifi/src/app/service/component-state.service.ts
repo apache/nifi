@@ -35,14 +35,15 @@ export class ComponentStateService {
     }
 
     clearComponentState(request: ClearComponentStateRequest): Observable<any> {
-        return this.httpClient
-            .post(`${this.nifiCommon.stripProtocol(request.componentUri)}/state/clear-requests`, {});
+        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.componentUri)}/state/clear-requests`, {});
     }
 
     clearComponentStateEntry(componentUri: string, componentStateEntity: ComponentStateEntity): Observable<any> {
         // To clear a specific state entry, we send the updated state
         // without the key to be cleared in the ComponentStateEntity format
-        return this.httpClient
-            .post(`${this.nifiCommon.stripProtocol(componentUri)}/state/clear-requests`, componentStateEntity);
+        return this.httpClient.post(
+            `${this.nifiCommon.stripProtocol(componentUri)}/state/clear-requests`,
+            componentStateEntity
+        );
     }
 }

@@ -31,12 +31,6 @@ export interface ClearComponentStateRequest {
     componentUri: string;
 }
 
-export interface ClearComponentStateEntryRequest {
-    componentUri: string;
-    keyToDelete: string;
-    scope: 'LOCAL' | 'CLUSTER';
-}
-
 export interface ClearStateEntryRequest {
     keyToDelete: string;
     scope: 'LOCAL' | 'CLUSTER';
