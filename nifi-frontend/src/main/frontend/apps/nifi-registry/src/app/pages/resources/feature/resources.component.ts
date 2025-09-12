@@ -35,13 +35,12 @@ import { Store } from '@ngrx/store';
 import { MatTableDataSource } from '@angular/material/table';
 import { Observable } from 'rxjs';
 import { Sort } from '@angular/material/sort';
-import { NiFiCommon, selectQueryParams } from '@nifi/shared';
+import { NiFiCommon } from '@nifi/shared';
 import { loadBuckets } from '../../../state/buckets/buckets.actions';
 import { Bucket } from '../../../state/buckets';
 import { selectBuckets } from '../../../state/buckets/buckets.selectors';
 import { DropletTableFilterContext } from './ui/droplet-table-filter/droplet-table-filter.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
 
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -93,23 +92,10 @@ export class ResourcesComponent implements OnInit {
 
     constructor(
         private store: Store,
-        private nifiCommon: NiFiCommon,
-        private router: Router,
-        private activatedRoute: ActivatedRoute
+        private nifiCommon: NiFiCommon
     ) {
         this.droplets$ = this.store.select(selectDroplets).pipe(takeUntilDestroyed());
         this.buckets$ = this.store.select(selectBuckets).pipe(takeUntilDestroyed());
-        this.store
-            .select(selectQueryParams)
-            .pipe(takeUntilDestroyed())
-            .subscribe((queryParams) => {
-                if (queryParams) {
-                    this.filterTerm = queryParams['filterTerm'] || '';
-                    this.filterBucket = queryParams['filterBucket'] || 'All';
-                    this.filterColumn = queryParams['filterColumn'] || '';
-                    this.dataSource.filter = JSON.stringify(queryParams);
-                }
-            });
     }
 
     ngOnInit(): void {
@@ -206,18 +192,11 @@ export class ResourcesComponent implements OnInit {
     }
 
     applyFilter(filter: DropletTableFilterContext) {
-        const { filterTerm, filterColumn, filterBucket } = filter;
         if (!filter || !this.dataSource) {
             return;
         }
 
         this.dataSource.filter = JSON.stringify(filter);
-
-        this.router.navigate([], {
-            relativeTo: this.activatedRoute,
-            queryParams: { filterTerm, filterColumn, filterBucket },
-            queryParamsHandling: 'merge'
-        });
     }
 
     refreshDropletsListing() {

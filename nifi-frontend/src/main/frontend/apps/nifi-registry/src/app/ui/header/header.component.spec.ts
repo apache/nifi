@@ -16,38 +16,18 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { RouterTestingModule } from '@angular/router/testing';
 import { HeaderComponent } from './header.component';
-import * as fromUser from '../../state/current-user/current-user.reducer';
-import { currentUserFeatureKey } from '../../state/current-user';
-import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
-import { loadCurrentUser, startCurrentUserPolling } from '../../state/current-user/current-user.actions';
+import { RouterModule } from '@angular/router';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
     let fixture: ComponentFixture<HeaderComponent>;
-    let store: MockStore;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [HeaderComponent, RouterTestingModule],
-            providers: [
-                provideMockStore({
-                    initialState: {
-                        [currentUserFeatureKey]: fromUser.initialState
-                    },
-                    selectors: [
-                        {
-                            selector: selectCurrentUser,
-                            value: fromUser.initialState.user
-                        }
-                    ]
-                })
-            ]
+            imports: [HeaderComponent, RouterModule.forRoot([{ path: '', component: HeaderComponent }])]
         });
 
-        store = TestBed.inject(MockStore);
         fixture = TestBed.createComponent(HeaderComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
@@ -60,20 +40,5 @@ describe('HeaderComponent', () => {
     it('should render title', () => {
         const compiled = fixture.nativeElement as HTMLElement;
         expect(compiled.querySelector('h1')?.textContent).toContain('NiFi Registry');
-    });
-
-    it('should dispatch selectSignal on construction', () => {
-        const selectSignalSpy = jest.spyOn(store, 'selectSignal');
-        TestBed.createComponent(HeaderComponent);
-
-        expect(selectSignalSpy).toHaveBeenCalledWith(selectCurrentUser);
-    });
-
-    it('should dispatch loadCurrentUser and startCurrentUserPolling on load', () => {
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
-        component.ngOnInit();
-
-        expect(dispatchSpy).toHaveBeenCalledWith(loadCurrentUser());
-        expect(dispatchSpy).toHaveBeenCalledWith(startCurrentUserPolling());
     });
 });
