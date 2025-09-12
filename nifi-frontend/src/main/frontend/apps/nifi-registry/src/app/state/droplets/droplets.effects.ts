@@ -69,9 +69,18 @@ export class DropletsEffects {
                                 }
                             })
                         ),
-                        catchError((errorResponse: HttpErrorResponse) =>
-                            of(this.errorHelper.handleLoadingError(status, errorResponse))
-                        )
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    DropletsActions.dropletsBannerError({
+                                        errorContext: {
+                                            context: NiFiRegistryErrorContextKey.LOAD_DROPLETS,
+                                            errors: [this.errorHelper.getErrorString(errorResponse)]
+                                        }
+                                    })
+                                );
+                            }
+                        })
                     )
                 );
             })

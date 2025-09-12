@@ -53,6 +53,7 @@ export enum NiFiErrorContextKey {
 }
 
 export enum NiFiRegistryErrorContextKey {
+    LOAD_DROPLETS = 'load droplets',
     DELETE_DROPLET = 'delete droplet',
     CREATE_DROPLET = 'create droplet',
     IMPORT_DROPLET_VERSION = 'import droplet version'
