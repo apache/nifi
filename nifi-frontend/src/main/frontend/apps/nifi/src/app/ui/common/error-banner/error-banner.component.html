@@ -29,7 +29,7 @@
                 <div class="error-banner-message">{{ messages[0] }}</div>
             } @else {
                 <ul>
-                    @for (message of messages; track message) {
+                    @for (message of messages; track $index) {
                         <li class="error-banner-message">{{ message }}</li>
                     }
                 </ul>
