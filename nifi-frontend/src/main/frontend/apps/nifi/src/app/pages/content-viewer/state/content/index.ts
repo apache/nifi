@@ -15,8 +15,21 @@
  * limitations under the License.
  */
 
+import { FlowFile } from '../../../queue/state/queue-listing';
+import { ProvenanceEvent } from '../../../../state/shared';
+
 export const contentFeatureKey = 'content';
 
 export interface ContentState {
     ref: string | null;
+    data: SideBarData;
+}
+
+export interface loadSideBarDataRequestSuccess {
+    data: SideBarData;
+}
+
+export interface SideBarData {
+    flowFile: FlowFile | undefined;
+    provEvent: ProvenanceEvent | undefined;
 }

@@ -19,9 +19,22 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as QueueListingActions from './queue-listing.actions';
-import { Store } from '@ngrx/store';
+import { select, Store } from '@ngrx/store';
 import { CanvasState } from '../../../flow-designer/state';
-import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    filter,
+    from,
+    interval,
+    map,
+    mergeMap,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap
+} from 'rxjs';
 import { selectConnectionIdFromRoute, selectActiveListingRequest } from './queue-listing.selectors';
 import { QueueService } from '../../service/queue.service';
 import { ListingRequest } from './index';
@@ -294,9 +307,7 @@ export class QueueListingEffects {
                                 this.store.dispatch(
                                     QueueListingActions.viewFlowFileContent({
                                         request: {
-                                            uri: request.flowfile.uri,
-                                            mimeType: request.flowfile.mimeType,
-                                            clusterNodeId: request.clusterNodeId
+                                            flowfileSummary: request.flowfile
                                         }
                                     })
                                 );
@@ -324,10 +335,28 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.viewFlowFileContent),
                 map((action) => action.request),
-                concatLatestFrom(() => this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
-                tap(([request, about]) => {
-                    this.queueService.viewContent(request, about.contentViewerUrl);
-                })
+                switchMap((request) =>
+                    this.store.pipe(
+                        take(1),
+                        select(selectAbout),
+                        filter((about) => about != null),
+                        mergeMap((about) =>
+                            this.queueService.getFlowFile(request.flowfileSummary).pipe(
+                                take(1),
+                                map(() => {
+                                    return this.queueService.viewContent(request, about.contentViewerUrl);
+                                }),
+                                catchError((errorResponse: HttpErrorResponse) =>
+                                    of(
+                                        ErrorActions.snackBarError({
+                                            error: this.errorHelper.getErrorString(errorResponse)
+                                        })
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
             ),
         { dispatch: false }
     );
