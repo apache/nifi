@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -51,6 +52,7 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDA
 import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 
 @DefaultSchedule(period = "10 mins")
+@Stateful(scopes = { Scope.LOCAL, Scope.CLUSTER }, description = "Stores the number of generated FlowFiles", dropStateKeySupported = true)
 public class GenerateFlowFile extends AbstractProcessor {
     public static final PropertyDescriptor FILE_SIZE = new Builder()
         .name("File Size")

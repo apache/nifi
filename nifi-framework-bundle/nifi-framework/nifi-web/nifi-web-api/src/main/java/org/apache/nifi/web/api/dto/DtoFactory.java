@@ -439,6 +439,7 @@ public final class DtoFactory {
        final ComponentStateDTO dto = new ComponentStateDTO();
        dto.setComponentId(componentId);
        dto.setStateDescription(getStateDescription(componentClass));
+       dto.setDropStateKeySupported(getDropStateKeySupported(componentClass));
        dto.setLocalState(createStateMapDTO(Scope.LOCAL, localState));
        dto.setClusterState(createStateMapDTO(Scope.CLUSTER, clusterState));
        return dto;
@@ -457,6 +458,22 @@ public final class DtoFactory {
        } else {
            return null;
        }
+   }
+
+   /**
+    * Gets whether dropping state by key is supported for the component.
+    * Defaults to false when annotation not present or field not specified.
+    *
+    * @param componentClass the component class
+    * @return true if dropping state by key is supported; false otherwise
+    */
+   private boolean getDropStateKeySupported(final Class<?> componentClass) {
+       final Stateful statefulAnnotation = componentClass.getAnnotation(Stateful.class);
+       boolean result = false;
+       if (statefulAnnotation != null) {
+           result = statefulAnnotation.dropStateKeySupported();
+       }
+       return result;
    }
 
    /**

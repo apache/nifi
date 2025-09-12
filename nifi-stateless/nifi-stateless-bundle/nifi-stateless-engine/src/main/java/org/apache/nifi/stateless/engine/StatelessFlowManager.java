@@ -139,7 +139,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     @Override
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
         return new StandardRemoteProcessGroup(id, uris, null, statelessEngine.getProcessScheduler(), statelessEngine.getBulletinRepository(), sslContext,
-            statelessEngine.getStateManagerProvider().getStateManager(id), TimeUnit.SECONDS.toMillis(30));
+            statelessEngine.getStateManagerProvider().getStateManager(id, StandardRemoteProcessGroup.class), TimeUnit.SECONDS.toMillis(30));
     }
 
     @Override
@@ -179,7 +179,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             }
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
-                final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id);
+                final Class<?> componentClass = procNode.getProcessor() == null ? null : procNode.getProcessor().getClass();
+                final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id, componentClass);
                 final StandardProcessContext processContext = new StandardProcessContext(procNode, statelessEngine.getControllerServiceProvider(),
                         stateManager, () -> false, new StatelessNodeTypeProvider());
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor(), processContext);
