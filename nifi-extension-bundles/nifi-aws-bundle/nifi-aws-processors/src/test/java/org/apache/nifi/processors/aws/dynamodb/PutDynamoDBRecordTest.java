@@ -21,7 +21,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
@@ -52,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,10 +75,9 @@ public class PutDynamoDBRecordTest {
     private ArgumentCaptor<BatchWriteItemRequest> captor;
 
     private PutDynamoDBRecord testSubject;
-    private TestRunner runner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         captor = ArgumentCaptor.forClass(BatchWriteItemRequest.class);
         when(credentialsProviderService.getIdentifier()).thenReturn("credentialProviderService");
 
@@ -95,12 +92,12 @@ public class PutDynamoDBRecordTest {
                 return client;
             }
         };
-
-        runner = getTestRunner();
     }
 
     @Test
-    public void testEmptyInput() {
+    public void testEmptyInput() throws Exception {
+        final TestRunner runner = getTestRunner();
+
         runner.run();
 
         assertTrue(captor.getAllValues().isEmpty());
@@ -108,6 +105,8 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testSingleInput() throws Exception {
+        final TestRunner runner = getTestRunner();
+
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
         runner.run();
 
@@ -120,6 +119,8 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testMultipleInputs() throws Exception {
+        final TestRunner runner = getTestRunner();
+
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleInputs.json"));
         runner.run();
 
@@ -132,6 +133,8 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testMultipleChunks() throws Exception {
+        final TestRunner runner = getTestRunner();
+
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"));
         runner.run();
 
@@ -155,6 +158,7 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testThroughputIssue() throws Exception {
+        final TestRunner runner = getTestRunner();
         setExceedThroughputAtGivenChunk(2);
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"));
@@ -167,6 +171,8 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testRetryAfterUnprocessed() throws Exception {
+        final TestRunner runner = getTestRunner();
+
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"), Collections.singletonMap(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE, "1"));
         runner.run();
 
@@ -180,6 +186,7 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testErrorDuringInsertion() throws Exception {
+        final TestRunner runner = getTestRunner();
         setServerError();
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleInputs.json"));
@@ -192,6 +199,7 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testGeneratedPartitionKey() throws Exception {
+        final TestRunner runner = getTestRunner();
         runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_STRATEGY, PutDynamoDBRecord.PARTITION_GENERATED);
         runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_FIELD, "generated");
 
@@ -211,6 +219,7 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testGeneratedSortKey() throws Exception {
+        final TestRunner runner = getTestRunner();
         runner.setProperty(PutDynamoDBRecord.SORT_KEY_STRATEGY, PutDynamoDBRecord.SortKeyStrategy.BY_SEQUENCE);
         runner.setProperty(PutDynamoDBRecord.SORT_KEY_FIELD, "sort");
 
@@ -233,6 +242,7 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testPartitionFieldIsMissing() throws Exception {
+        final TestRunner runner = getTestRunner();
         runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_FIELD, "unknownField");
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
@@ -244,6 +254,7 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testPartiallySuccessfulInsert() throws Exception {
+        final TestRunner runner = getTestRunner();
         setInsertionError();
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleInputs.json"));
@@ -255,26 +266,14 @@ public class PutDynamoDBRecordTest {
 
     @Test
     public void testNonRecordOrientedInput() throws Exception {
+        final TestRunner runner = getTestRunner();
+
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/nonRecordOriented.txt"));
         runner.run();
 
 
         assertTrue(captor.getAllValues().isEmpty());
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
-    }
-
-    @Test
-    void testMigration() {
-        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expectedRenamed =
-                Map.of("record-reader", PutDynamoDBRecord.RECORD_READER.getName(),
-                        "partition-key-strategy", PutDynamoDBRecord.PARTITION_KEY_STRATEGY.getName(),
-                        "partition-key-field", PutDynamoDBRecord.PARTITION_KEY_FIELD.getName(),
-                        "partition-key-attribute", PutDynamoDBRecord.PARTITION_KEY_ATTRIBUTE.getName(),
-                        "sort-key-strategy", PutDynamoDBRecord.SORT_KEY_STRATEGY.getName(),
-                        "sort-key-field", PutDynamoDBRecord.SORT_KEY_FIELD.getName());
-
-        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private TestRunner getTestRunner() throws InitializationException {

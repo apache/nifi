@@ -202,7 +202,6 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("aws-region", REGION.getName());
         config.renameProperty("message-group-id", MESSAGEGROUPID.getName());
         config.renameProperty("deduplication-message-id", MESSAGEDEDUPLICATIONID.getName());
     }

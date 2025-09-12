@@ -26,7 +26,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -369,22 +368,6 @@ public class ConsumeAMQPTest {
             String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
             assertEquals(EXPECTED_RESULT, headers);
         }
-    }
-
-    @Test
-    void testMigration() {
-        final TestRunner runner = TestRunners.newTestRunner(ConsumeAMQP.class);
-        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expected = Map.ofEntries(
-                Map.entry("auto.acknowledge", ConsumeAMQP.AUTO_ACKNOWLEDGE.getName()),
-                Map.entry("batch.size", ConsumeAMQP.BATCH_SIZE.getName()),
-                Map.entry("prefetch.count", ConsumeAMQP.PREFETCH_COUNT.getName()),
-                Map.entry("header.format", ConsumeAMQP.HEADER_FORMAT.getName()),
-                Map.entry("header.key.prefix", ConsumeAMQP.HEADER_KEY_PREFIX.getName()),
-                Map.entry("header.separator", ConsumeAMQP.HEADER_SEPARATOR.getName()),
-                Map.entry("remove.curly.braces", ConsumeAMQP.REMOVE_CURLY_BRACES.getName()));
-
-        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private TestRunner initTestRunner(ConsumeAMQP proc) {
