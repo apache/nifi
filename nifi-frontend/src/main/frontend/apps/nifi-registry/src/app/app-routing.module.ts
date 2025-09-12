@@ -26,7 +26,7 @@ const routes: Routes = [
         loadComponent: () => Error
     },
     {
-        path: 'resources',
+        path: 'explorer',
         component: ResourcesComponent,
         children: [
             {
@@ -37,11 +37,11 @@ const routes: Routes = [
     },
     {
         path: 'nifi-registry',
-        redirectTo: 'resources'
+        redirectTo: 'explorer'
     },
     {
         path: '',
-        redirectTo: 'resources',
+        redirectTo: 'explorer',
         pathMatch: 'full'
     },
     {
