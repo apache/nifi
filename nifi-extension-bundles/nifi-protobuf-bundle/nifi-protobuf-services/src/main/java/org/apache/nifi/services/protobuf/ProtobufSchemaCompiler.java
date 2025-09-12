@@ -129,7 +129,8 @@ final class ProtobufSchemaCompiler {
                 final Schema compiledSchema = createAndLoadSchema(tempDir);
                 logger.debug("Successfully compiled schema for identifier: {}", schemaDefinition.getIdentifier());
                 return compiledSchema;
-
+            } catch (final IllegalStateException e) {
+                throw new SchemaCompilationException(e); // Illegal state exception is thrown by the wire library for schema issues
             } catch (final Exception e) {
                 throw new RuntimeException("Failed to compile Protobuf schema for identifier: " + schemaDefinition.getIdentifier(), e);
             }
@@ -149,8 +150,6 @@ final class ProtobufSchemaCompiler {
 
         try {
             return function.apply(tempDir);
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
         } finally {
             safeDeleteDirectory(tempDir);
         }
@@ -247,6 +246,6 @@ final class ProtobufSchemaCompiler {
 
     @FunctionalInterface
     private interface WithTemporaryDirectory<T> {
-        T apply(Path tempDir) throws Exception;
+        T apply(Path tempDir);
     }
 }
