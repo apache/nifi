@@ -35,7 +35,7 @@ import { Store } from '@ngrx/store';
 import { MatTableDataSource } from '@angular/material/table';
 import { Observable } from 'rxjs';
 import { Sort } from '@angular/material/sort';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, ContextErrorBanner, NiFiRegistryErrorContextKey } from '@nifi/shared';
 import { loadBuckets } from '../../../state/buckets/buckets.actions';
 import { Bucket } from '../../../state/buckets';
 import { selectBuckets } from '../../../state/buckets/buckets.selectors';
@@ -60,13 +60,15 @@ import { DropletTableComponent } from './ui/droplet-table/droplet-table.componen
         DropletTableFilterComponent,
         MatButtonModule,
         MatButtonModule,
-        DropletTableComponent
+        DropletTableComponent,
+        ContextErrorBanner
     ],
     templateUrl: './resources.component.html',
     styleUrl: './resources.component.scss',
     standalone: true
 })
 export class ResourcesComponent implements OnInit {
+    protected readonly ErrorContextKey = NiFiRegistryErrorContextKey;
     droplets$: Observable<Droplet[]>;
     buckets$: Observable<Bucket[]>;
     buckets: Bucket[] = [];

@@ -18,6 +18,7 @@
 <div class="pb-5 px-5 flex flex-col h-full">
     <div class="h-full flex flex-col">
         <h3 class="primary-color">Resources</h3>
+        <context-error-banner [context]="ErrorContextKey.LOAD_DROPLETS"></context-error-banner>
         <div class="flex justify-between items-baseline">
             <droplet-table-filter
                 [buckets]="buckets"
