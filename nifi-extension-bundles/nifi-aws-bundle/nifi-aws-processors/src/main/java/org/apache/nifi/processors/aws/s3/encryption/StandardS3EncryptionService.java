@@ -36,6 +36,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
@@ -80,8 +81,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
                     STRATEGY_NAME_CSE_C, CSE_C);
 
     public static final PropertyDescriptor ENCRYPTION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("encryption-strategy")
-            .displayName("Encryption Strategy")
+            .name("Encryption Strategy")
             .description("Strategy to use for S3 data encryption and decryption.")
             .allowableValues(NONE, SSE_S3, SSE_KMS, SSE_C, CSE_KMS, CSE_C)
             .required(true)
@@ -89,8 +89,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor ENCRYPTION_VALUE = new PropertyDescriptor.Builder()
-            .name("key-id-or-key-material")
-            .displayName("Key ID or Key Material")
+            .name("Key ID or Key Material")
             .description("For None and Server-side S3: not used. For Server-side KMS and Client-side KMS: the KMS Key ID must be configured. " +
                     "For Server-side Customer Key and Client-side Customer Key: the Key Material must be specified in Base64 encoded form. " +
                     "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Key, it can be an AES-256, AES-192 or AES-128 key.")
@@ -101,8 +100,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor KMS_REGION = new PropertyDescriptor.Builder()
-            .name("kms-region")
-            .displayName("KMS Region")
+            .name("KMS Region")
             .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
             .required(false)
             .allowableValues(RegionUtilV1.getAvailableRegions())
@@ -195,6 +193,13 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("encryption-strategy", ENCRYPTION_STRATEGY.getName());
+        config.renameProperty("key-id-or-key-material", ENCRYPTION_VALUE.getName());
+        config.renameProperty("kms-region", KMS_REGION.getName());
     }
 
     @Override

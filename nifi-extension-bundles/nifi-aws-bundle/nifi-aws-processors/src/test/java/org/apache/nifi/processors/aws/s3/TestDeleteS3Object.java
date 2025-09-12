@@ -23,6 +23,7 @@ import com.amazonaws.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -145,6 +146,16 @@ public class TestDeleteS3Object {
         assertEquals("test-key", request.getKey());
         assertEquals("test-version", request.getVersionId());
         Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
+                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
 }

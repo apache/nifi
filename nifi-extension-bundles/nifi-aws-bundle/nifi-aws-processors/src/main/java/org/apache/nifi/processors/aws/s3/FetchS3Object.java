@@ -45,6 +45,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -231,8 +232,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 public class FetchS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
-            .name("requester-pays")
-            .displayName("Requester Pays")
+            .name("Requester Pays")
             .required(true)
             .description("If true, indicates that the requester consents to pay any charges associated with retrieving objects from "
                     + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.")
@@ -244,8 +244,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("range-start")
-            .displayName("Range Start")
+            .name("Range Start")
             .description("The byte position at which to start reading from the object. An empty value or a value of " +
                     "zero will start reading at the beginning of the object.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -254,8 +253,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("range-length")
-            .displayName("Range Length")
+            .name("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start. An empty " +
                     "value or a value that extends beyond the end of the object will read to the end of the object.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
@@ -440,6 +438,14 @@ public class FetchS3Object extends AbstractS3Processor {
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
         session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("requester-pays", REQUESTER_PAYS.getName());
+        config.renameProperty("range-start", RANGE_START.getName());
+        config.renameProperty("range-length", RANGE_LENGTH.getName());
     }
 
     private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {

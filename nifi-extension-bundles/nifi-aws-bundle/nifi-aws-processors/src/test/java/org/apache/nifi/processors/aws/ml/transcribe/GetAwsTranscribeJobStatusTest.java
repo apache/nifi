@@ -22,6 +22,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,7 @@ import software.amazon.awssdk.services.transcribe.model.Transcript;
 import software.amazon.awssdk.services.transcribe.model.TranscriptionJob;
 import software.amazon.awssdk.services.transcribe.model.TranscriptionJobStatus;
 
-import java.util.Collections;
+import java.util.Map;
 
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.FAILURE_REASON_ATTRIBUTE;
@@ -46,11 +47,13 @@ import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobSta
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
+import static org.apache.nifi.processors.aws.v2.AbstractAwsProcessor.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class GetAwsTranscribeJobStatusTest {
+    private static final String DEFAULT_TASK_ID_ATTRIBUTE_NAME = "awsTaskId";
     private static final String TEST_TASK_ID = "testJobId";
     private static final String OUTPUT_LOCATION_PATH = "outputLocationPath";
     private static final String REASON_OF_FAILURE = "reasonOfFailure";
@@ -58,8 +61,6 @@ public class GetAwsTranscribeJobStatusTest {
     private TestRunner runner;
     @Mock
     private TranscribeClient mockTranscribeClient;
-
-    private GetAwsTranscribeJobStatus processor;
 
     @Captor
     private ArgumentCaptor<GetTranscriptionJobRequest> requestCaptor;
@@ -72,7 +73,7 @@ public class GetAwsTranscribeJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        processor = new GetAwsTranscribeJobStatus() {
+        GetAwsTranscribeJobStatus processor = new GetAwsTranscribeJobStatus() {
             @Override
             public TranscribeClient getClient(final ProcessContext context) {
                 return mockTranscribeClient;
@@ -136,10 +137,19 @@ public class GetAwsTranscribeJobStatusTest {
         runner.assertAllFlowFilesContainAttribute(FAILURE_REASON_ATTRIBUTE);
     }
 
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
+                "awsTaskId", TASK_ID.getName());
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private void testTranscribeJob(final TranscriptionJob job, final Relationship expectedRelationship) {
         final GetTranscriptionJobResponse response = GetTranscriptionJobResponse.builder().transcriptionJob(job).build();
         when(mockTranscribeClient.getTranscriptionJob(requestCaptor.capture())).thenReturn(response);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
+        runner.enqueue(CONTENT_STRING, Map.of(DEFAULT_TASK_ID_ATTRIBUTE_NAME, TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(expectedRelationship);

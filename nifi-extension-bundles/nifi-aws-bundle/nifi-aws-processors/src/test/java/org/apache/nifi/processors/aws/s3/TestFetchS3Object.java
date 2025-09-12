@@ -34,6 +34,7 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -357,6 +358,20 @@ public class TestFetchS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("encryption-service", AbstractS3Processor.ENCRYPTION_SERVICE.getName(),
+                        "custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
+                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName(),
+                        "requester-pays", FetchS3Object.REQUESTER_PAYS.getName(),
+                        "range-start", FetchS3Object.RANGE_START.getName(),
+                        "range-length", FetchS3Object.RANGE_LENGTH.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
 }
