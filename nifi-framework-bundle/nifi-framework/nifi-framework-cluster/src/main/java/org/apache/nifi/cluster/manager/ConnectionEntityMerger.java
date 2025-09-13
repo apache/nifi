@@ -61,6 +61,10 @@ public class ConnectionEntityMerger implements ComponentEntityMerger<ConnectionE
         if (selectedRelationships != null) {
             clientEntity.getComponent().setSelectedRelationships(new TreeSet<>(selectedRelationships));
         }
+        final Set<String> retriedRelationships = clientEntity.getComponent() == null ? null : clientEntity.getComponent().getRetriedRelationships();
+        if (retriedRelationships != null) {
+            clientEntity.getComponent().setRetriedRelationships(new TreeSet<>(retriedRelationships));
+        }
 
     }
 

@@ -38,6 +38,7 @@ public class ConnectionDTO extends ComponentDTO {
     private Long zIndex;
     private Set<String> selectedRelationships;
     private Set<String> availableRelationships;
+    private Set<String> retriedRelationships;
 
     private Long backPressureObjectThreshold;
     private String backPressureDataSizeThreshold;
@@ -159,6 +160,20 @@ public class ConnectionDTO extends ComponentDTO {
 
     public void setAvailableRelationships(Set<String> availableRelationships) {
         this.availableRelationships = availableRelationships;
+    }
+
+    /**
+     * @return relationships that are configured to be retried from the source of the connection. This property is read only
+     */
+    @Schema(description = "The relationships from the source of the connection that are configured to be retried.",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    public Set<String> getRetriedRelationships() {
+        return retriedRelationships;
+    }
+
+    public void setRetriedRelationships(Set<String> retriedRelationships) {
+        this.retriedRelationships = retriedRelationships;
     }
 
     /**
