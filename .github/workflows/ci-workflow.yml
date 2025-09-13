@@ -43,6 +43,7 @@ env:
     --no-transfer-progress
     --fail-fast
     -D dir-only
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
