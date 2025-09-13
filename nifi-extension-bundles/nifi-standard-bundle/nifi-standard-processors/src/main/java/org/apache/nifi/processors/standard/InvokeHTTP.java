@@ -185,7 +185,6 @@ public class InvokeHTTP extends AbstractProcessor {
             REMOTE_DN,
             EXCEPTION_CLASS,
             EXCEPTION_MESSAGE,
-            CoreAttributes.UUID.key(),
             CoreAttributes.PATH.key()
     );
 
