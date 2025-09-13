@@ -21,3 +21,6 @@ nb-configuration.xml
 /nifi-nar-bundles/nifi-py4j-bundle/nifi-python-extension-api/src/main/python/dist/
 __pycache__
 .cursor/
+
+# Develocity
+.mvn/.develocity/
