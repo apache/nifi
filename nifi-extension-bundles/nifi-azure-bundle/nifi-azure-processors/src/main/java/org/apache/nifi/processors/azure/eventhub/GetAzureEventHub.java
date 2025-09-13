@@ -431,7 +431,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final EventData eventData = partitionEvent.getData();
 
         attributes.put("eventhub.enqueued.timestamp", String.valueOf(eventData.getEnqueuedTime()));
-        attributes.put("eventhub.offset", String.valueOf(eventData.getOffset()));
+        attributes.put("eventhub.offset", eventData.getOffsetString());
         attributes.put("eventhub.sequence", String.valueOf(eventData.getSequenceNumber()));
 
         final PartitionContext partitionContext = partitionEvent.getPartitionContext();

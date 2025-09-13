@@ -66,7 +66,7 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
         assertEquals(CONSUMER_GROUP, checkpoint.getConsumerGroup());
         assertEquals(PARTITION_ID_1, checkpoint.getPartitionId());
 
-        assertEquals(OFFSET, checkpoint.getOffset());
+        assertEquals(OFFSET, checkpoint.getOffsetString());
         assertEquals(SEQUENCE_NUMBER, checkpoint.getSequenceNumber());
     }
 

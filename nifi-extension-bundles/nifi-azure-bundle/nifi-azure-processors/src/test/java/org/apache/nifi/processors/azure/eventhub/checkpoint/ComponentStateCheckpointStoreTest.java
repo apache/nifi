@@ -275,7 +275,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         addToState(checkpoint1);
 
-        Checkpoint newCheckpoint = createCheckpoint(PARTITION_ID_2, 20L, 2L);
+        Checkpoint newCheckpoint = createCheckpoint(PARTITION_ID_2, "20", 2L);
 
         checkpointStore.updateCheckpoint(newCheckpoint).block();
 
@@ -294,7 +294,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         addToState(checkpoint2);
 
         Checkpoint updatedCheckpoint = copy(checkpoint2)
-                .setOffset(20L)
+                .setOffsetString("20")
                 .setSequenceNumber(2L);
 
         checkpointStore.updateCheckpoint(updatedCheckpoint).block();
@@ -305,7 +305,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @Test
     void testCheckpointWithNullOffset() {
-        checkpoint1.setOffset(null);
+        checkpoint1.setOffsetString(null);
 
         checkpointStore.updateCheckpoint(checkpoint1).block();
 
