@@ -36,9 +36,8 @@ permissions:
 jobs:
   build:
     timeout-minutes: 120
-    runs-on:
-      - ubuntu-latest
-    name: Ubuntu Java 21
+    runs-on: ubuntu-24.04
+    name: Build
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

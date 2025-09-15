@@ -103,7 +103,7 @@ permissions:
 jobs:
   build_and_test:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Ubuntu Java 21
     steps:
       - name: Checkout Code
