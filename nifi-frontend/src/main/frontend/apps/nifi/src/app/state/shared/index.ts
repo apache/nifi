@@ -245,6 +245,11 @@ export interface BulletinsTipInput {
     bulletins: BulletinEntity[];
 }
 
+export interface PropertyValueTipInput {
+    parameters: ParameterEntity[];
+    property: Property;
+}
+
 export interface PropertyTipInput {
     descriptor: PropertyDescriptor;
     propertyHistory?: PropertyHistory;
