@@ -26,9 +26,11 @@ import okhttp3.Response;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
@@ -793,7 +795,7 @@ public class TestListenHTTP {
 
         IntStream.rangeClosed(0, 1).forEach(i -> {
             try (ByteArrayInputStream content = new ByteArrayInputStream(data)) {
-                Map<String, String> attributes = Map.of("filename", "file" + i);
+                Map<String, String> attributes = Map.of(CoreAttributes.FILENAME.key(), "file" + i);
                 packager.packageFlowFile(content, baos, attributes, data.length);
             } catch (IOException e) {
                 fail();
@@ -803,7 +805,8 @@ public class TestListenHTTP {
         final byte[] flowFileV3Package = baos.toByteArray();
         final RequestBody requestBody = RequestBody.create(flowFileV3Package, MediaType.parse(StandardFlowFileMediaType.VERSION_3.getMediaType()));
         final Request request = requestBuilder.post(requestBody)
-                .addHeader("filename", "data.flowfilev3")
+                .addHeader(CoreAttributes.FILENAME.key(), "data.flowfilev3")
+                .addHeader(CoreAttributes.UUID.key(), "dummy-uuid")
                 .build();
 
         try (final Response response = okHttpClient.newCall(request).execute()) {
@@ -814,8 +817,14 @@ public class TestListenHTTP {
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 2);
         IntStream.rangeClosed(0, 1).forEach(i -> {
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).get(i);
-            flowFile.assertAttributeEquals("filename", "file" + i);
+            flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file" + i);
 
+        });
+
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(2, provenanceEvents.size());
+        provenanceEvents.forEach(provenanceEvent -> {
+            assertEquals("urn:nifi:dummy-uuid", provenanceEvent.getSourceSystemFlowFileIdentifier());
         });
     }
 
