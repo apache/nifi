@@ -19,6 +19,15 @@
     @if (data?.parameter; as parameter) {
         <div class="flex flex-col gap-y-3">
             <div class="parameter-name text-lg font-bold">{{ parameter.name }}</div>
+            @if (!parameter.sensitive) {
+                @if (parameter.value === null) {
+                    <div class="unset neutral-color">No value set</div>
+                } @else if (parameter.value === '') {
+                    <div class="unset neutral-color">Empty string set</div>
+                } @else {
+                    <div class="line-clamp-[20] leading-4 whitespace-pre font-mono text-sm">{{ parameter.value }}</div>
+                }
+            }
             @if (hasDescription(parameter)) {
                 <div>{{ parameter.description }}</div>
             } @else {
