@@ -132,7 +132,6 @@ public abstract class AbstractAwsMachineLearningJobStarter<
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
-        config.renameProperty("aws-region", REGION.getName());
         config.renameProperty("json-payload", JSON_PAYLOAD.getName());
     }
 
