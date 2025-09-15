@@ -138,6 +138,7 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
     protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException {
         return BitbucketRepositoryClient.builder()
                 .clientId(getIdentifier())
+                .logger(getLogger())
                 .apiUrl(context.getProperty(BITBUCKET_API_URL).getValue())
                 .apiVersion(context.getProperty(BITBUCKET_API_VERSION).getValue())
                 .workspace(context.getProperty(WORKSPACE_NAME).getValue())
