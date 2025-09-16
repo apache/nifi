@@ -46,6 +46,7 @@ import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -335,6 +336,24 @@ public class TestPutS3Object {
         final Signer signer = SignerFactory.createSigner(signerName, new SignerParams("s3", "us-west-2"));
         assertNotNull(signer);
         assertSame(CustomS3Signer.class, signer.getClass());
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("canned-acl", AbstractS3Processor.CANNED_ACL.getName(),
+                        "custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
+                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName(),
+                        "encryption-service", AbstractS3Processor.ENCRYPTION_SERVICE.getName(),
+                        "use-chunked-encoding", AbstractS3Processor.USE_CHUNKED_ENCODING.getName(),
+                        "use-path-style-access", AbstractS3Processor.USE_PATH_STYLE_ACCESS.getName(),
+                        "server-side-encryption", PutS3Object.SERVER_SIDE_ENCRYPTION.getName(),
+                        "s3-object-tags-prefix", PutS3Object.OBJECT_TAGS_PREFIX.getName(),
+                        "s3-object-remove-tags-prefix", PutS3Object.REMOVE_TAG_PREFIX.getName(),
+                        "s3-temporary-directory-multipart", PutS3Object.MULTIPART_TEMP_DIR.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
     public static class CustomS3Signer extends AWSS3V4Signer {

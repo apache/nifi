@@ -17,11 +17,11 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,22 +40,24 @@ import software.amazon.awssdk.services.textract.model.GetExpenseAnalysisRequest;
 import software.amazon.awssdk.services.textract.model.GetExpenseAnalysisResponse;
 import software.amazon.awssdk.services.textract.model.JobStatus;
 
+import java.util.Map;
+
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_THROTTLED;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
+import static org.apache.nifi.processors.aws.v2.AbstractAwsProcessor.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class GetAwsTextractJobStatusTest {
+    private static final String DEFAULT_TASK_ID_ATTRIBUTE_NAME = "awsTaskId";
     private static final String TEST_TASK_ID = "testTaskId";
     private TestRunner runner;
     @Mock
     private TextractClient mockTextractClient;
-
-    private GetAwsTextractJobStatus processor;
 
     @Captor
     private ArgumentCaptor<GetDocumentAnalysisRequest> documentAnalysisCaptor;
@@ -72,7 +74,7 @@ public class GetAwsTextractJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        processor = new GetAwsTextractJobStatus() {
+        GetAwsTextractJobStatus processor = new GetAwsTextractJobStatus() {
             @Override
             public TextractClient getClient(final ProcessContext context) {
                 return mockTextractClient;
@@ -110,8 +112,8 @@ public class GetAwsTextractJobStatusTest {
         final GetDocumentAnalysisResponse response = GetDocumentAnalysisResponse.builder()
                 .jobStatus(jobStatus).build();
         when(mockTextractClient.getDocumentAnalysis(documentAnalysisCaptor.capture())).thenReturn(response);
-        runner.enqueue("content", ImmutableMap.of(
-                TASK_ID.getName(), TEST_TASK_ID,
+        runner.enqueue("content", Map.of(
+                DEFAULT_TASK_ID_ATTRIBUTE_NAME, TEST_TASK_ID,
                 StartAwsTextractJob.TEXTRACT_TYPE_ATTRIBUTE, TextractType.DOCUMENT_ANALYSIS.getType()));
         runner.run();
 
@@ -144,12 +146,22 @@ public class GetAwsTextractJobStatusTest {
         testTextractExpenseAnalysis(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
     }
 
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
+                "awsTaskId", TASK_ID.getName(),
+                "textract-type", GetAwsTextractJobStatus.TEXTRACT_TYPE.getName());
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private void testTextractExpenseAnalysis(final JobStatus jobStatus, final Relationship expectedRelationship) {
         runner.setProperty(GetAwsTextractJobStatus.TEXTRACT_TYPE, TextractType.EXPENSE_ANALYSIS.getType());
         final GetExpenseAnalysisResponse response = GetExpenseAnalysisResponse.builder()
                 .jobStatus(jobStatus).build();
         when(mockTextractClient.getExpenseAnalysis(expenseAnalysisRequestCaptor.capture())).thenReturn(response);
-        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID));
+        runner.enqueue("content", Map.of(DEFAULT_TASK_ID_ATTRIBUTE_NAME, TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(expectedRelationship);
@@ -187,7 +199,7 @@ public class GetAwsTextractJobStatusTest {
         final GetDocumentTextDetectionResponse response = GetDocumentTextDetectionResponse.builder()
                 .jobStatus(jobStatus).build();
         when(mockTextractClient.getDocumentTextDetection(documentTextDetectionCaptor.capture())).thenReturn(response);
-        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID));
+        runner.enqueue("content", Map.of(DEFAULT_TASK_ID_ATTRIBUTE_NAME, TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(expectedRelationship);

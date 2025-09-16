@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -76,8 +77,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
     public static final String AWS_KINESIS_SEQUENCE_NUMBER = "aws.kinesis.sequence.number";
 
     public static final PropertyDescriptor KINESIS_PARTITION_KEY = new PropertyDescriptor.Builder()
-        .displayName("Amazon Kinesis Stream Partition Key")
-        .name("amazon-kinesis-stream-partition-key")
+        .name("Stream Partition Key")
         .description("The partition key attribute.  If it is not set, a random value is used")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${kinesis.partition.key}")
@@ -85,8 +85,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR).build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .displayName("Message Batch Size")
-            .name("message-batch-size")
+            .name("Message Batch Size")
             .description("Batch size for messages (1-500).")
             .defaultValue("250")
             .required(false)
@@ -95,9 +94,8 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("max-message-buffer-size")
-            .displayName("Max message buffer size (MB)")
-            .description("Max message buffer size in Mega-bytes")
+            .name("Max Message Buffer Size")
+            .description("Max message buffer size defined with standard data size units")
             .defaultValue("1 MB")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -105,8 +103,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             .build();
 
     static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .name("kinesis-stream-name")
-            .displayName("Amazon Kinesis Stream Name")
+            .name("Stream Name")
             .description("The name of Kinesis Stream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -216,6 +213,15 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("amazon-kinesis-stream-partition-key", KINESIS_PARTITION_KEY.getName());
+        config.renameProperty("message-batch-size", BATCH_SIZE.getName());
+        config.renameProperty("max-message-buffer-size", MAX_MESSAGE_BUFFER_SIZE_MB.getName());
+        config.renameProperty("kinesis-stream-name", KINESIS_STREAM_NAME.getName());
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -111,8 +112,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .build();
 
     public static final PropertyDescriptor METRIC_NAME = new PropertyDescriptor.Builder()
-            .name("MetricName")
-            .displayName("Metric Name")
+            .name("Metric Name")
             .description("The name of the metric")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -144,8 +144,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .build();
 
     public static final PropertyDescriptor MAXIMUM = new PropertyDescriptor.Builder()
-            .name("maximum")
-            .displayName("Maximum")
+            .name("Maximum")
             .description("The maximum value of the sample set. Must be a double")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -153,8 +152,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .build();
 
     public static final PropertyDescriptor MINIMUM = new PropertyDescriptor.Builder()
-            .name("minimum")
-            .displayName("Minimum")
+            .name("Minimum")
             .description("The minimum value of the sample set. Must be a double")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -162,8 +160,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .build();
 
     public static final PropertyDescriptor SAMPLECOUNT = new PropertyDescriptor.Builder()
-            .name("sampleCount")
-            .displayName("Sample Count")
+            .name("Sample Count")
             .description("The number of samples used for the statistic set. Must be a double")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -171,8 +168,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .build();
 
     public static final PropertyDescriptor SUM = new PropertyDescriptor.Builder()
-            .name("sum")
-            .displayName("Sum")
+            .name("Sum")
             .description("The sum of values for the sample set. Must be a double")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -234,6 +230,16 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("MetricName", METRIC_NAME.getName());
+        config.renameProperty("maximum", MAXIMUM.getName());
+        config.renameProperty("minimum", MINIMUM.getName());
+        config.renameProperty("sampleCount", SAMPLECOUNT.getName());
+        config.renameProperty("sum", SUM.getName());
     }
 
     @Override
