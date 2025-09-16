@@ -218,7 +218,8 @@ public class PutBigQueryIT {
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
         runner.setProperty(jsonReader, DateTimeUtils.DATE_FORMAT, "MM/dd/yyyy");
         runner.setProperty(jsonReader, DateTimeUtils.TIME_FORMAT, "HH:mm:ss");
-        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "MM-dd-yyyy HH:mm:ss Z");
+        // Use zone name format to parse values like "UTC"
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "MM-dd-yyyy HH:mm:ss z");
         runner.enableControllerService(jsonReader);
 
         runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
@@ -468,7 +469,8 @@ public class PutBigQueryIT {
         Field date = Field.newBuilder("date", LegacySQLTypeName.DATE).setMode(Field.Mode.NULLABLE).build();
         Field time = Field.newBuilder("time", LegacySQLTypeName.TIME).setMode(Field.Mode.NULLABLE).build();
         Field full = Field.newBuilder("full", LegacySQLTypeName.TIMESTAMP).setMode(Field.Mode.NULLABLE).build();
-        Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full).setMode(Field.Mode.NULLABLE).build();
+        Field datetime = Field.newBuilder("datetime", StandardSQLTypeName.DATETIME).setMode(Field.Mode.NULLABLE).build();
+        Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full, datetime).setMode(Field.Mode.NULLABLE).build();
 
         Field numeric = Field.newBuilder("numeric", StandardSQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build();
         Field floatc = Field.newBuilder("floatc", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
