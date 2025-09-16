@@ -212,6 +212,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty("header.separator", HEADER_SEPARATOR.getName());
     }
 

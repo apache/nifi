@@ -177,6 +177,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty("auto.acknowledge", AUTO_ACKNOWLEDGE.getName());
         config.renameProperty("batch.size", BATCH_SIZE.getName());
         config.renameProperty("prefetch.count", PREFETCH_COUNT.getName());

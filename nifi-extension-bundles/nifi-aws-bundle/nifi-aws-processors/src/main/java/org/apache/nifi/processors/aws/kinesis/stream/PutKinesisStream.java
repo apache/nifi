@@ -77,7 +77,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
     public static final String AWS_KINESIS_SEQUENCE_NUMBER = "aws.kinesis.sequence.number";
 
     public static final PropertyDescriptor KINESIS_PARTITION_KEY = new PropertyDescriptor.Builder()
-        .name("Amazon Kinesis Stream Partition Key")
+        .name("Stream Partition Key")
         .description("The partition key attribute.  If it is not set, a random value is used")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${kinesis.partition.key}")
@@ -94,8 +94,8 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("Max message buffer size (MB)")
-            .description("Max message buffer size in Mega-bytes")
+            .name("Max Message Buffer Size")
+            .description("Max message buffer size defined with standard data size units")
             .defaultValue("1 MB")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -103,7 +103,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             .build();
 
     static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .name("Amazon Kinesis Stream Name")
+            .name("Stream Name")
             .description("The name of Kinesis Stream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
