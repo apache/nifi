@@ -172,7 +172,6 @@ public class StandardHandlerProvider implements HandlerProvider {
 
     private ErrorPageErrorHandler getErrorHandler() {
         final ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
-        errorHandler.setShowServlet(false);
         errorHandler.setShowStacks(false);
         errorHandler.setShowMessageInTitle(false);
         return errorHandler;

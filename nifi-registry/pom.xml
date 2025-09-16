@@ -35,10 +35,6 @@
         <module>nifi-registry-docker-maven</module>
     </modules>
     <properties>
-        <nifi.registry.jetty.version>12.1.1</nifi.registry.jetty.version>
-        <servlet-api.version>6.1.0</servlet-api.version>
-        <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
-        <jersey.bom.version>4.0.0-M3</jersey.bom.version>
         <spring.boot.version>3.5.6</spring.boot.version>
         <flyway.version>11.13.1</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
@@ -51,14 +47,14 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-bom</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty.ee10</groupId>
                 <artifactId>jetty-ee10-bom</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -88,25 +84,25 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-alpn-server</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-alpn-java-server</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty.ee10</groupId>
                 <artifactId>jetty-ee10-glassfish-jstl</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty.ee10</groupId>
                 <artifactId>jetty-ee10-annotations</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
@@ -165,7 +161,7 @@
             <dependency>
                 <groupId>org.eclipse.jetty.http2</groupId>
                 <artifactId>jetty-http2-server</artifactId>
-                <version>${nifi.registry.jetty.version}</version>
+                <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
 	    <!-- NiFi Registry Modules -->
