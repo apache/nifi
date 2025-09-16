@@ -72,14 +72,14 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
                 ? context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue()
                 : new String(readFlowFileContent(session, flowFile), StandardCharsets.UTF_8);
 
-        if (isEmpty(documentId)) {
-            throw new ProcessException("Document ID is missing. Please provide a valid Document ID through processor property or FlowFile content.");
-        }
-
         final CouchbaseContext couchbaseContext = getCouchbaseContext(context, flowFile);
         final CouchbaseClient couchbaseClient = connectionService.getClient(couchbaseContext);
 
         try {
+            if (isEmpty(documentId)) {
+                throw new CouchbaseException("Document ID is missing. Please provide a valid Document ID through processor property or FlowFile content.");
+            }
+
             final CouchbaseGetResult result = couchbaseClient.getDocument(documentId);
             flowFile = session.write(flowFile, out -> out.write(result.resultContent()));
 
