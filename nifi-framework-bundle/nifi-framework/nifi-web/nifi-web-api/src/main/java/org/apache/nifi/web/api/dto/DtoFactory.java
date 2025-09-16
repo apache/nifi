@@ -752,6 +752,14 @@ public final class DtoFactory {
                }
 
                dto.getSelectedRelationships().add(selectedRelationship.getName());
+
+               // Check if this selected relationship is configured to be retried from the source
+               if (connection.getSource().isRelationshipRetried(selectedRelationship)) {
+                   if (dto.getRetriedRelationships() == null) {
+                       dto.setRetriedRelationships(new TreeSet<>(Collator.getInstance(Locale.US)));
+                   }
+                   dto.getRetriedRelationships().add(selectedRelationship.getName());
+               }
            }
        }
 
@@ -4502,6 +4510,7 @@ public final class DtoFactory {
        copy.setName(original.getName());
        copy.setParentGroupId(original.getParentGroupId());
        copy.setSelectedRelationships(copy(original.getSelectedRelationships()));
+       copy.setRetriedRelationships(copy(original.getRetriedRelationships()));
        copy.setFlowFileExpiration(original.getFlowFileExpiration());
        copy.setBackPressureObjectThreshold(original.getBackPressureObjectThreshold());
        copy.setBackPressureDataSizeThreshold(original.getBackPressureDataSizeThreshold());
