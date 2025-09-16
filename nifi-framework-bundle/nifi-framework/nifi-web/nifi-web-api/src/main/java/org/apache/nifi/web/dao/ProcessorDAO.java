@@ -19,6 +19,7 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
@@ -143,7 +144,8 @@ public interface ProcessorDAO {
     /**
      * Clears the state of the specified processor.
      *
-     * @param processorId processor id
+     * @param processorId       processor id
+     * @param componentStateDTO state of the processor
      */
-    void clearState(String processorId);
+    void clearState(final String processorId, final ComponentStateDTO componentStateDTO);
 }

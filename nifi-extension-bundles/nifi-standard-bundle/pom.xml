@@ -34,7 +34,7 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
-        <tika.version>3.2.2</tika.version>
+        <tika.version>3.2.3</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -106,7 +106,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>12.8</version>
+                <version>12.9</version>
             </dependency>
             <dependency>
                 <groupId>javax.jms</groupId>
@@ -230,7 +230,7 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.8</version>
+                <version>1.5.9</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -19,6 +19,7 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 
@@ -127,7 +128,8 @@ public interface ReportingTaskDAO {
     /**
      * Clears the state of the specified reporting task.
      *
-     * @param reportingTaskId reporting task id
+     * @param reportingTaskId   reporting task id
+     * @param componentStateDTO state of the reporting task
      */
-    void clearState(String reportingTaskId);
+    void clearState(final String reportingTaskId, final ComponentStateDTO componentStateDTO);
 }

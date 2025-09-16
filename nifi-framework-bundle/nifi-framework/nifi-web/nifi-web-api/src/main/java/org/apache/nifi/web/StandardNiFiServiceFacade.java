@@ -875,8 +875,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearFlowAnalysisRuleState(String flowAnalysisRuleId) {
-        flowAnalysisRuleDAO.clearState(flowAnalysisRuleId);
+    public ComponentStateDTO clearFlowAnalysisRuleState(final String flowAnalysisRuleId, final ComponentStateDTO componentStateDTO) {
+        flowAnalysisRuleDAO.clearState(flowAnalysisRuleId, componentStateDTO);
+        return this.getFlowAnalysisRuleState(flowAnalysisRuleId);
     }
 
     @Override
@@ -2003,8 +2004,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearProcessorState(final String processorId) {
-        processorDAO.clearState(processorId);
+    public ComponentStateDTO clearProcessorState(final String processorId, final ComponentStateDTO componentStateDTO) {
+        processorDAO.clearState(processorId, componentStateDTO);
+        return this.getProcessorState(processorId);
     }
 
     @Override
@@ -2013,8 +2015,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearControllerServiceState(final String controllerServiceId) {
-        controllerServiceDAO.clearState(controllerServiceId);
+    public ComponentStateDTO clearControllerServiceState(final String controllerServiceId, final ComponentStateDTO componentStateDTO) {
+        controllerServiceDAO.clearState(controllerServiceId, componentStateDTO);
+        return this.getControllerServiceState(controllerServiceId);
     }
 
     @Override
@@ -2023,8 +2026,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearReportingTaskState(final String reportingTaskId) {
-        reportingTaskDAO.clearState(reportingTaskId);
+    public ComponentStateDTO clearReportingTaskState(final String reportingTaskId, final ComponentStateDTO componentStateDTO) {
+        reportingTaskDAO.clearState(reportingTaskId, componentStateDTO);
+        return this.getReportingTaskState(reportingTaskId);
     }
 
     @Override
@@ -2033,8 +2037,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearParameterProviderState(final String parameterProviderId) {
-        parameterProviderDAO.clearState(parameterProviderId);
+    public ComponentStateDTO clearParameterProviderState(final String parameterProviderId, final ComponentStateDTO componentStateDTO) {
+        parameterProviderDAO.clearState(parameterProviderId, componentStateDTO);
+        return this.getParameterProviderState(parameterProviderId);
     }
 
     @Override

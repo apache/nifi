@@ -55,7 +55,7 @@ public class GetAzureEventHubTest {
     private static final String CONSUMER_GROUP = "$Default";
     private static final Instant ENQUEUED_TIME = Instant.now();
     private static final long SEQUENCE_NUMBER = 32;
-    private static final long OFFSET = 64;
+    private static final String OFFSET = "64";
     private static final String PARTITION_ID = "0";
     private static final String CONTENT = String.class.getSimpleName();
 
@@ -135,7 +135,7 @@ public class GetAzureEventHubTest {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetAzureEventHub.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(CONTENT);
         flowFile.assertAttributeEquals("eventhub.enqueued.timestamp", ENQUEUED_TIME.toString());
-        flowFile.assertAttributeEquals("eventhub.offset", Long.toString(OFFSET));
+        flowFile.assertAttributeEquals("eventhub.offset", OFFSET);
         flowFile.assertAttributeEquals("eventhub.sequence", Long.toString(SEQUENCE_NUMBER));
         flowFile.assertAttributeEquals("eventhub.name", EVENT_HUB_NAME);
     }
@@ -217,7 +217,7 @@ public class GetAzureEventHubTest {
         }
 
         @Override
-        public Long getOffset() {
+        public String getOffsetString() {
             return OFFSET;
         }
 

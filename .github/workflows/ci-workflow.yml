@@ -43,6 +43,7 @@ env:
     --no-transfer-progress
     --fail-fast
     -D dir-only
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -55,7 +56,7 @@ permissions:
 jobs:
   ubuntu-build-en:
     timeout-minutes: 120
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Ubuntu Corretto JDK 21 EN
     steps:
       - name: Clear Disk Space
@@ -128,7 +129,7 @@ jobs:
 
   macos-build-jp:
     timeout-minutes: 150
-    runs-on: macos-14
+    runs-on: macos-15
     name: MacOS Zulu JDK 21 JP
     steps:
       - name: System Information
@@ -203,7 +204,7 @@ jobs:
 
   windows-build:
     timeout-minutes: 150
-    runs-on: windows-latest
+    runs-on: windows-2025
     name: Windows Zulu JDK 21 FR
     steps:
       - name: System Information

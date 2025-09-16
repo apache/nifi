@@ -24,21 +24,29 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.processor.SimpleProcessLogger;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class StandardStateManager implements StateManager {
     private final StateProvider localProvider;
     private final StateProvider clusterProvider;
     private final String componentId;
+    private final Supplier<Boolean> dropStateKeySupportedSupplier;
 
     public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider, final String componentId) {
+        this(localProvider, clusterProvider, componentId, () -> false);
+    }
+
+    public StandardStateManager(final StateProvider localProvider, final StateProvider clusterProvider,
+                                final String componentId, final Supplier<Boolean> dropStateKeySupportedSupplier) {
         this.localProvider = localProvider;
         this.clusterProvider = clusterProvider;
         this.componentId = componentId;
+        this.dropStateKeySupportedSupplier = dropStateKeySupportedSupplier;
     }
 
     private StateProvider getProvider(final Scope scope) {
@@ -84,6 +92,11 @@ public class StandardStateManager implements StateManager {
     public void clear(final Scope scope) throws IOException {
         getLogger(componentId).debug("Clearing {} State", scope);
         getProvider(scope).clear(componentId);
+    }
+
+    @Override
+    public boolean isStateKeyDropSupported() {
+        return dropStateKeySupportedSupplier.get();
     }
 
     @Override

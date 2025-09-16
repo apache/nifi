@@ -42,13 +42,15 @@ import {
     Property,
     PropertyDependency,
     PropertyDescriptor,
-    PropertyTipInput
+    PropertyTipInput,
+    PropertyValueTipInput
 } from '../../../state/shared';
 import { PropertyTip } from '../tooltips/property-tip/property-tip.component';
 import { NfEditor } from './editors/nf-editor/nf-editor.component';
 import {
     CdkConnectedOverlay,
     CdkOverlayOrigin,
+    ConnectedPosition,
     ConnectionPositionPair,
     OriginConnectionPosition,
     OverlayConnectionPosition
@@ -59,6 +61,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConvertToParameterResponse } from '../../../pages/flow-designer/service/parameter-helper.service';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { PropertyItem } from './property-item';
+import { PropertyValueTip } from '../tooltips/property-value-tip/property-value-tip.component';
 
 @Component({
     selector: 'property-table',
@@ -137,6 +140,14 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         overlayY: 'center'
     };
     public editorPositions: ConnectionPositionPair[] = [];
+
+    tooltipPosition: ConnectedPosition = {
+        originX: 'start',
+        originY: 'bottom',
+        overlayX: 'start',
+        overlayY: 'top',
+        offsetY: 4
+    };
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -431,6 +442,13 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         };
     }
 
+    getPropertyValueTipData(item: PropertyItem): PropertyValueTipInput {
+        return {
+            property: item,
+            parameters: this.parameterContext?.component?.parameters || []
+        };
+    }
+
     hasAllowableValues(item: PropertyItem): boolean {
         return Array.isArray(item.descriptor.allowableValues);
     }
@@ -617,4 +635,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         }
         return false;
     }
+
+    protected readonly PropertyValueTip = PropertyValueTip;
 }

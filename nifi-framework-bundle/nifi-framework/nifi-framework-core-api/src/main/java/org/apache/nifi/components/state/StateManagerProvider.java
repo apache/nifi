@@ -17,6 +17,8 @@
 
 package org.apache.nifi.components.state;
 
+import org.apache.nifi.annotation.behavior.Stateful;
+
 /**
  * <p>
  * Interface that provides a mechanism for obtaining the {@link StateManager} for a particular component
@@ -32,7 +34,37 @@ public interface StateManagerProvider {
      * @return the StateManager for the component with the given ID, or <code>null</code> if no State Manager
      *         exists for the component with the given ID
      */
-    StateManager getStateManager(String componentId);
+    default StateManager getStateManager(String componentId) {
+        return getStateManager(componentId, false);
+    }
+
+    /**
+     * Returns the StateManager for the component with the given ID with the capability of dropping individual
+     * state keys if supported
+     *
+     * @param componentId the id of the component for which the StateManager should be returned
+     * @param dropStateKeySupported whether the component supports dropping specific state keys
+     * @return the StateManager for the component with the given ID, or <code>null</code> if no State Manager
+     *         exists for the component with the given ID
+     */
+    StateManager getStateManager(String componentId, boolean dropStateKeySupported);
+
+    /**
+     * Returns the StateManager for the given component identifier, using the provided component class to
+     * determine whether dropping individual state keys is supported based on the {@link Stateful} annotation.
+     *
+     * @param componentId the id of the component for which the StateManager should be returned
+     * @param componentClass the component class if known; may be null
+     * @return the StateManager for the component with the given ID, or null if none exists
+     */
+    default StateManager getStateManager(final String componentId, final Class<?> componentClass) {
+        boolean dropSupported = false;
+        if (componentClass != null) {
+            final Stateful stateful = componentClass.getAnnotation(Stateful.class);
+            dropSupported = stateful != null && stateful.dropStateKeySupported();
+        }
+        return getStateManager(componentId, dropSupported);
+    }
 
     /**
      * Notifies the State Manager Provider that the component with the given ID has been removed from the NiFi instance
@@ -57,4 +89,11 @@ public interface StateManagerProvider {
      * state, even when components request a clustered provider
      */
     void disableClusterProvider();
+
+    /**
+     * Returns whether the Cluster State Provider is enabled.
+     *
+     * @return true if the Cluster State Provider is enabled, false otherwise
+     */
+    boolean isClusterProviderEnabled();
 }

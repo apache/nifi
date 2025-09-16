@@ -39,7 +39,7 @@ abstract class AbstractCheckpointStoreTest {
     static final Long LAST_MODIFIED_TIME = 1234567890L;
     static final String ETAG = "my-etag";
 
-    static final Long OFFSET = 10L;
+    static final String OFFSET = "10";
     static final Long SEQUENCE_NUMBER = 1L;
 
     PartitionOwnership partitionOwnership1;
@@ -83,7 +83,7 @@ abstract class AbstractCheckpointStoreTest {
                 .setETag(null);
     }
 
-    Checkpoint createCheckpoint(String partitionId, Long offset, Long sequenceNumber) {
+    Checkpoint createCheckpoint(String partitionId, String offset, Long sequenceNumber) {
         return createCheckpoint(
                 EVENT_HUB_NAMESPACE,
                 EVENT_HUB_NAME,
@@ -99,14 +99,14 @@ abstract class AbstractCheckpointStoreTest {
             String eventHubName,
             String consumerGroup,
             String partitionId,
-            Long offset,
+            String offset,
             Long sequenceNumber) {
         return new TestableCheckpoint()
                 .setFullyQualifiedNamespace(fullyQualifiedNamespace)
                 .setEventHubName(eventHubName)
                 .setConsumerGroup(consumerGroup)
                 .setPartitionId(partitionId)
-                .setOffset(offset)
+                .setOffsetString(offset)
                 .setSequenceNumber(sequenceNumber);
     }
 
@@ -135,7 +135,7 @@ abstract class AbstractCheckpointStoreTest {
                 .setEventHubName(original.getEventHubName())
                 .setConsumerGroup(original.getConsumerGroup())
                 .setPartitionId(original.getPartitionId())
-                .setOffset(original.getOffset())
+                .setOffsetString(original.getOffsetString())
                 .setSequenceNumber(original.getSequenceNumber());
     }
 
@@ -200,7 +200,7 @@ abstract class AbstractCheckpointStoreTest {
                     && Objects.equals(getEventHubName(), that.getEventHubName())
                     && Objects.equals(getConsumerGroup(), that.getConsumerGroup())
                     && Objects.equals(getPartitionId(), that.getPartitionId())
-                    && Objects.equals(getOffset(), that.getOffset())
+                    && Objects.equals(getOffsetString(), that.getOffsetString())
                     && Objects.equals(getSequenceNumber(), that.getSequenceNumber());
         }
 
@@ -211,7 +211,7 @@ abstract class AbstractCheckpointStoreTest {
                     getEventHubName(),
                     getConsumerGroup(),
                     getPartitionId(),
-                    getOffset(),
+                    getOffsetString(),
                     getSequenceNumber()
             );
         }

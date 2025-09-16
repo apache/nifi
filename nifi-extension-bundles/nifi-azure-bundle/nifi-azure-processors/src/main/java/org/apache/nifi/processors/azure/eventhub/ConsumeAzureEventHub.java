@@ -620,7 +620,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     ) {
         if (lastEnqueuedEventProperties != null) {
             attributes.put("eventhub.enqueued.timestamp", String.valueOf(lastEnqueuedEventProperties.getEnqueuedTime()));
-            attributes.put("eventhub.offset", String.valueOf(lastEnqueuedEventProperties.getOffset()));
+            attributes.put("eventhub.offset", lastEnqueuedEventProperties.getOffsetString());
             attributes.put("eventhub.sequence", String.valueOf(lastEnqueuedEventProperties.getSequenceNumber()));
         }
 

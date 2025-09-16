@@ -24,6 +24,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 
 public interface ComponentStateDAO {
 
@@ -41,7 +42,17 @@ public interface ComponentStateDAO {
      *
      * @param processor processor
      */
-    void clearState(ProcessorNode processor);
+    default void clearState(ProcessorNode processor) {
+        clearState(processor, null);
+    }
+
+    /**
+     * Clears the state for the specified processor.
+     *
+     * @param processor         processor
+     * @param componentStateDTO component state DTO
+     */
+    void clearState(ProcessorNode processor, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state map for the specified controller service.
@@ -56,8 +67,9 @@ public interface ComponentStateDAO {
      * Clears the state for the specified controller service.
      *
      * @param controllerService controller service
+     * @param componentStateDTO component state DTO
      */
-    void clearState(ControllerServiceNode controllerService);
+    void clearState(ControllerServiceNode controllerService, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified reporting task.
@@ -71,9 +83,10 @@ public interface ComponentStateDAO {
     /**
      * Clears the state for the specified reporting task.
      *
-     * @param reportingTask reporting task
+     * @param reportingTask     reporting task
+     * @param componentStateDTO component state DTO
      */
-    void clearState(ReportingTaskNode reportingTask);
+    void clearState(ReportingTaskNode reportingTask, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified flow analysis rule.
@@ -88,9 +101,10 @@ public interface ComponentStateDAO {
     /**
      * Clears the state for the specified flow analysis rule.
      *
-     * @param flowAnalysisRule flow analysis rule
+     * @param flowAnalysisRule  flow analysis rule
+     * @param componentStateDTO component state DTO
      */
-    void clearState(FlowAnalysisRuleNode flowAnalysisRule);
+    void clearState(FlowAnalysisRuleNode flowAnalysisRule, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state for the specified parameter provider.
@@ -105,8 +119,9 @@ public interface ComponentStateDAO {
      * Clears the state for the specified parameter provider.
      *
      * @param parameterProvider parameter provider
+     * @param componentStateDTO component state DTO
      */
-    void clearState(ParameterProviderNode parameterProvider);
+    void clearState(ParameterProviderNode parameterProvider, final ComponentStateDTO componentStateDTO);
 
     /**
      * Gets the state map for the specified RemoteProcessGroup.

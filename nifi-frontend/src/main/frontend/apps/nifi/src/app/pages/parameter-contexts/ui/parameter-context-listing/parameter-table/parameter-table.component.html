@@ -96,7 +96,11 @@
                                     </ng-template>
                                     <ng-template #nonBlank let-value>
                                         <div class="flex justify-between items-center">
-                                            <div class="whitespace-nowrap overflow-hidden text-ellipsis">
+                                            <div
+                                                class="whitespace-nowrap overflow-hidden text-ellipsis"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="value">
                                                 {{ value }}
                                             </div>
                                             @if (hasExtraWhitespace(value)) {
