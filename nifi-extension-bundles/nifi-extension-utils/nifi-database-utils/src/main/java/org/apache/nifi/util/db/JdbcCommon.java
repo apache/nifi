@@ -669,7 +669,14 @@ public class JdbcCommon {
                     break;
 
                 case ARRAY: {
-                    addNullableField(builder, columnName, u -> u.type(Schema.createArray(Schema.create(Schema.Type.STRING))));
+                    builder.name(columnName)
+                            .type()
+                            .unionOf()
+                            .nullBuilder().endNull()
+                            .and().bytesType()
+                            .and().type(Schema.createArray(Schema.create(Schema.Type.STRING)))
+                            .endUnion()
+                            .noDefault();
                     break;
                 }
 
