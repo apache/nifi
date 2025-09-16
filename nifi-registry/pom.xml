@@ -264,13 +264,12 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <configuration>
-                        <failOnError>false</failOnError>
+                        <failOnError>true</failOnError>
                         <quiet>true</quiet>
                         <show>private</show>
                         <encoding>UTF-8</encoding>
-                        <quiet>true</quiet>
-                        <javadocVersion>1.8</javadocVersion>
                         <additionalJOption>-J-Xmx512m</additionalJOption>
+                        <doclint>none</doclint>
                     </configuration>
                 </plugin>
             </plugins>
