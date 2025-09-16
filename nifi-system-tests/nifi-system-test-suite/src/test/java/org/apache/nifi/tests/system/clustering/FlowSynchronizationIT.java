@@ -606,14 +606,9 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         // Delete the CountFlowFiles processor, and countB and countC services, disable A.
         getClientUtil().stopProcessor(countFlowFiles);
-        // Ensure the processor has fully stopped before disabling services to avoid race conditions
-        getClientUtil().waitForStoppedProcessor(countFlowFiles.getId());
         getNifiClient().getConnectionClient().deleteConnection(connection);
         getNifiClient().getProcessorClient().deleteProcessor(countFlowFiles);
-        // Disable the specific controller services in dependency order before deletion
-        getClientUtil().disableControllerService(countA);
-        getClientUtil().disableControllerService(countB);
-        getClientUtil().disableControllerService(countC);
+        getClientUtil().disableControllerServices("root", true);
         getNifiClient().getControllerServicesClient().deleteControllerService(countC);
         getNifiClient().getControllerServicesClient().deleteControllerService(countB);
 

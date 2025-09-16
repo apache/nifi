@@ -29,7 +29,7 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.util.thread.VirtualThreadPool;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
 import java.io.UncheckedIOException;
@@ -63,7 +63,7 @@ class StandardServerProvider implements ServerProvider {
     public Server getServer(final NiFiProperties properties) {
         Objects.requireNonNull(properties, "Properties required");
 
-        final VirtualThreadPool threadPool = new VirtualThreadPool(properties.getWebThreads());
+        final QueuedThreadPool threadPool = new QueuedThreadPool(properties.getWebThreads());
         threadPool.setName("NiFi Web Server");
         final Server server = new Server(threadPool);
         addConnectors(server, properties, sslContext);

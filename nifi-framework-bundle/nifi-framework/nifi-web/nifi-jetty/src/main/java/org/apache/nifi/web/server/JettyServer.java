@@ -105,7 +105,7 @@ import org.apache.nifi.web.server.filter.RestApiRequestFilterProvider;
 import org.apache.nifi.web.server.filter.StandardRequestFilterProvider;
 import org.eclipse.jetty.deploy.StandardDeployer;
 import org.eclipse.jetty.ee11.servlet.FilterMapping;
-import org.eclipse.jetty.ee11.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.ResourceServlet;
 import org.eclipse.jetty.ee11.servlet.ServletHandler;
 import org.eclipse.jetty.ee11.webapp.MetaInfConfiguration;
 import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
@@ -673,13 +673,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         try {
             final File docsDir = getDocsDir();
 
-            final ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
+            final ServletHolder docs = new ServletHolder("docs", ResourceServlet.class);
             final Path htmlBaseResource = docsDir.toPath().resolve("html");
             docs.setInitParameter("baseResource", htmlBaseResource.toString());
             docs.setInitParameter("dirAllowed", "false");
             webAppContext.addServlet(docs, "/html/*");
 
-            final ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
+            final ServletHolder restApi = new ServletHolder("rest-api", ResourceServlet.class);
             final File webApiDocsDir = getWebApiDocsDir();
             restApi.setInitParameter("baseResource", webApiDocsDir.getPath());
             restApi.setInitParameter("dirAllowed", "false");
