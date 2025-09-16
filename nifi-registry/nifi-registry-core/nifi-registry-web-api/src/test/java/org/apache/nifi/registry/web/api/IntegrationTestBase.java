@@ -68,10 +68,8 @@ public abstract class IntegrationTestBase {
         private NiFiRegistryProperties testProperties;
 
         @Bean
-        public JettyServletWebServerFactory jettyEmbeddedServletContainerFactory() {
-            JettyServletWebServerFactory jettyContainerFactory = new JettyServletWebServerFactory();
-            jettyContainerFactory.setContextPath(CONTEXT_PATH);
-            return jettyContainerFactory;
+        public org.springframework.boot.web.server.WebServerFactoryCustomizer<org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory> webServerFactoryCustomizer() {
+            return factory -> factory.setContextPath(CONTEXT_PATH);
         }
 
         @Bean
