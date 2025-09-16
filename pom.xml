@@ -705,7 +705,6 @@
                         <quiet>true</quiet>
                         <show>private</show>
                         <encoding>UTF-8</encoding>
-                        <quiet>true</quiet>
                         <additionalJOption>-J-Xmx512m</additionalJOption>
                         <doclint>none</doclint>
                     </configuration>
