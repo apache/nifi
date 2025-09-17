@@ -147,7 +147,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         }
 
         final SnowflakeInternalStageType internalStageType = context.getProperty(INTERNAL_STAGE_TYPE).asAllowableValue(SnowflakeInternalStageType.class);
-        final SnowflakeInternalStageTypeParameters parameters = getSnowflakeInternalStageTypeParameters(context, flowFile);
+        final SnowflakeInternalStageTypeParameters parameters = getSnowflakeInternalStageTypeParameters(internalStageType, context, flowFile);
         final String internalStageName = internalStageType.getStage(parameters);
         final SnowflakeConnectionProviderService connectionProviderService =
                 context.getProperty(SNOWFLAKE_CONNECTION_PROVIDER)
@@ -170,12 +170,16 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private SnowflakeInternalStageTypeParameters getSnowflakeInternalStageTypeParameters(ProcessContext context,
-            FlowFile flowFile) {
+    private SnowflakeInternalStageTypeParameters getSnowflakeInternalStageTypeParameters(final SnowflakeInternalStageType stageType,
+            final ProcessContext context, final FlowFile flowFile) {
         final String database = context.getProperty(DATABASE).evaluateAttributeExpressions(flowFile).getValue();
         final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
-        final String table = context.getProperty(TABLE).evaluateAttributeExpressions(flowFile).getValue();
-        final String stageName = context.getProperty(INTERNAL_STAGE).evaluateAttributeExpressions(flowFile).getValue();
+        final String table = stageType == SnowflakeInternalStageType.TABLE
+                ? context.getProperty(TABLE).evaluateAttributeExpressions(flowFile).getValue()
+                : null;
+        final String stageName = stageType == SnowflakeInternalStageType.NAMED
+                ? context.getProperty(INTERNAL_STAGE).evaluateAttributeExpressions(flowFile).getValue()
+                : null;
         return new SnowflakeInternalStageTypeParameters(database, schema, table, stageName);
     }
 }
