@@ -148,9 +148,8 @@ export class UaEditor {
                         run: () => {
                             if (this.uaEditorForm.dirty && this.uaEditorForm.valid) {
                                 this.okClicked();
-                                return true;
                             }
-                            return false;
+                            return true;
                         }
                     },
                     ...defaultKeymap,
