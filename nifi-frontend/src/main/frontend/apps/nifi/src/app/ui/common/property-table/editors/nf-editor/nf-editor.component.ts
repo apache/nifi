@@ -167,9 +167,8 @@ export class NfEditor {
                         run: () => {
                             if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
                                 this.okClicked();
-                                return true;
                             }
-                            return false;
+                            return true;
                         }
                     },
                     ...defaultKeymap,

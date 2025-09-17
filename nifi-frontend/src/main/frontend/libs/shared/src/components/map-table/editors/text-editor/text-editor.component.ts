@@ -182,9 +182,8 @@ export class TextEditor {
                     run: () => {
                         if (this.textEditorForm.dirty && this.textEditorForm.valid) {
                             this.okClicked();
-                            return true;
                         }
-                        return false;
+                        return true;
                     }
                 },
                 ...defaultKeymap,
