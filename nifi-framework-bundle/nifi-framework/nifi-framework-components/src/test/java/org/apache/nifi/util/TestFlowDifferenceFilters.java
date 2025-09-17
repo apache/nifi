@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -25,8 +29,11 @@ import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -154,5 +161,87 @@ public class TestFlowDifferenceFilters {
 
         // Should not throw and should return false since no local component
         assertFalse(FlowDifferenceFilters.isLocalScheduleStateChange(flowDifference));
+    }
+
+    @Test
+    public void testIsStaticPropertyRemovedFromDefinitionWhenPropertyDropped() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Obsolete Property";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(new PropertyDescriptor.Builder().name("Retained Property").build()));
+        Mockito.when(configurableComponent.getPropertyDescriptor(propertyName)).thenReturn(null);
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "old",
+                null,
+                "Property removed in component definition");
+
+        assertTrue(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+    }
+
+    @Test
+    public void testIsStaticPropertyRemovedFromDefinitionWhenDescriptorStillExists() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Still Supported";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(new PropertyDescriptor.Builder().name(propertyName).build()));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "old",
+                null,
+                "Property still defined");
+
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+    }
+
+    @Test
+    public void testIsStaticPropertyRemovedFromDefinitionWhenDynamicSupported() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Dynamic Property";
+        final String instanceId = "processor-instance";
+
+        final PropertyDescriptor dynamicDescriptor = new PropertyDescriptor.Builder().name(propertyName).dynamic(true).build();
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of());
+        Mockito.when(configurableComponent.getPropertyDescriptor(propertyName)).thenReturn(dynamicDescriptor);
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "old",
+                null,
+                "Dynamic property removed");
+
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
     }
 }

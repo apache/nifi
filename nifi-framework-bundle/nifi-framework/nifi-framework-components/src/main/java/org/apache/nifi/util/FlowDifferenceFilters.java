@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -70,7 +73,8 @@ public class FlowDifferenceFilters {
             || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
             || isRegistryUrlChange(difference)
             || isParameterContextChange(difference)
-            || isLogFileSuffixChange(difference);
+            || isLogFileSuffixChange(difference)
+            || isStaticPropertyRemoved(difference, flowManager);
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
@@ -106,6 +110,16 @@ public class FlowDifferenceFilters {
             default -> null;
         };
 
+    }
+
+    private static boolean supportsDynamicProperties(final ConfigurableComponent component, final String propertyName) {
+        final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
+        if (descriptor != null && descriptor.isDynamic()) {
+            return true;
+        }
+
+        final Class<?> componentClass = component.getClass();
+        return componentClass.isAnnotationPresent(DynamicProperty.class) || componentClass.isAnnotationPresent(DynamicProperties.class);
     }
 
     // The Registry URL may change if, for instance, a registry is moved to a new host, or is made secure, the port changes, etc.
@@ -404,6 +418,67 @@ public class FlowDifferenceFilters {
 
     private static <T> T replaceNull(final T value, final T replacement) {
         return value == null ? replacement : value;
+    }
+
+    /**
+     * Determines whether a property difference is caused by a statically defined property being removed from the component definition.
+     * When a processor or controller service drops a property (for example, as part of a version upgrade that invokes {@code removeProperty}
+     * during migration), the reconciled component in NiFi should not report a "local change" so long as the component does not support
+     * dynamic properties.
+     *
+     * @param difference the flow difference under evaluation
+     * @param flowManager the flow manager used to resolve instantiated components
+     * @return {@code true} if the property is no longer exposed by the component definition and the component does not support dynamic
+     * properties; {@code false} otherwise
+     */
+    public static boolean isStaticPropertyRemoved(final FlowDifference difference, final FlowManager flowManager) {
+        final DifferenceType differenceType = difference.getDifferenceType();
+        if (differenceType != DifferenceType.PROPERTY_REMOVED) {
+            return false;
+        }
+
+        final Optional<String> fieldName = difference.getFieldName();
+        if (!fieldName.isPresent()) {
+            return false;
+        }
+
+        final VersionedComponent componentB = difference.getComponentB();
+
+        if (componentB instanceof InstantiatedVersionedProcessor) {
+            final InstantiatedVersionedProcessor instantiatedProcessor = (InstantiatedVersionedProcessor) componentB;
+            final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceIdentifier());
+            return isStaticPropertyRemoved(fieldName.get(), processorNode);
+        } else if (componentB instanceof InstantiatedVersionedControllerService) {
+            final InstantiatedVersionedControllerService instantiatedControllerService = (InstantiatedVersionedControllerService) componentB;
+            final ControllerServiceNode controllerService = flowManager.getControllerServiceNode(instantiatedControllerService.getInstanceIdentifier());
+            return isStaticPropertyRemoved(fieldName.get(), controllerService);
+        }
+
+        return false;
+    }
+
+    private static boolean isStaticPropertyRemoved(String propertyName, ComponentNode componentNode) {
+        if (componentNode == null) {
+            return false;
+        }
+
+        final ConfigurableComponent configurableComponent = componentNode.getComponent();
+        if (configurableComponent == null) {
+            return false;
+        }
+
+        final boolean staticallyDefined = configurableComponent.getPropertyDescriptors().stream()
+                .map(PropertyDescriptor::getName)
+                .anyMatch(propertyName::equals);
+        if (staticallyDefined) {
+            return false;
+        }
+
+        if (supportsDynamicProperties(configurableComponent, propertyName)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
