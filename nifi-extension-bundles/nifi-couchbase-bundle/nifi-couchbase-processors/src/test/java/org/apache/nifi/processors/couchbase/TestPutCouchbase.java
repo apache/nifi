@@ -142,11 +142,11 @@ public class TestPutCouchbase {
     @Test
     public void testWithFailure() throws CouchbaseException, InitializationException {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE);
+                Collections.singletonMap(TestCouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(exceptionMapping));
-        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException(new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
@@ -167,11 +167,11 @@ public class TestPutCouchbase {
     @Test
     public void testWithRetry() throws CouchbaseException, InitializationException {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.RETRY);
+                Collections.singletonMap(TestCouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.RETRY);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(exceptionMapping));
-        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException(new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
@@ -192,11 +192,11 @@ public class TestPutCouchbase {
     @Test
     public void testWithRollback() throws CouchbaseException, InitializationException {
         final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(CouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.ROLLBACK);
+                Collections.singletonMap(TestCouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.ROLLBACK);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(exceptionMapping));
-        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException(new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
@@ -211,6 +211,28 @@ public class TestPutCouchbase {
         runner.assertQueueNotEmpty();
         runner.assertTransferCount(REL_SUCCESS, 0);
         runner.assertTransferCount(REL_FAILURE, 0);
+        runner.assertTransferCount(REL_RETRY, 0);
+    }
+
+    @Test
+    public void testWithUnknownException() throws CouchbaseException, InitializationException {
+        final CouchbaseClient client = mock(CouchbaseClient.class);
+        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException(new TestCouchbaseException("Test exception")));
+
+        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
+        when(service.getIdentifier()).thenReturn(SERVICE_ID);
+        when(service.getClient(any())).thenReturn(client);
+
+        runner.addControllerService(SERVICE_ID, service);
+        runner.enableControllerService(service);
+        runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_FAILURE);
+        runner.assertTransferCount(REL_SUCCESS, 0);
+        runner.assertTransferCount(REL_FAILURE, 1);
         runner.assertTransferCount(REL_RETRY, 0);
     }
 }

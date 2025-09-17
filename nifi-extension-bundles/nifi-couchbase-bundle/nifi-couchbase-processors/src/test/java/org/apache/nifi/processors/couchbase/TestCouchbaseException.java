@@ -14,25 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.couchbase.exception;
+package org.apache.nifi.processors.couchbase;
 
-import java.util.Map;
+public class TestCouchbaseException extends Exception {
 
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE;
-
-public class CouchbaseErrorHandler {
-
-    private final Map<Class<? extends Exception>, ErrorHandlingStrategy> exceptionMapping;
-
-    public CouchbaseErrorHandler(Map<Class<? extends Exception>, ErrorHandlingStrategy> exceptionMapping) {
-        this.exceptionMapping = exceptionMapping;
-    }
-
-    public ErrorHandlingStrategy getStrategy(Throwable throwable) {
-        return exceptionMapping.getOrDefault(throwable.getClass(), FAILURE);
-    }
-
-    public enum ErrorHandlingStrategy {
-        ROLLBACK, FAILURE, RETRY
+    public TestCouchbaseException(final String message) {
+        super(message);
     }
 }

@@ -174,8 +174,9 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     protected void handleCouchbaseException(CouchbaseClient couchbaseClient, ProcessContext context, ProcessSession session,
                                             ComponentLog logger, FlowFile flowFile, CouchbaseException e, String errorMessage) {
-        logger.error(errorMessage, e.getCause());
-        final CouchbaseErrorHandler.ErrorHandlingStrategy strategy = couchbaseClient.getErrorHandler().getStrategy(e);
+        final Throwable throwable = (e.getCause() != null) ? e.getCause() : e;
+        logger.error(errorMessage, throwable);
+        final CouchbaseErrorHandler.ErrorHandlingStrategy strategy = couchbaseClient.getErrorHandler().getStrategy(throwable);
         switch (strategy) {
             case ROLLBACK -> session.rollback();
             case FAILURE -> {

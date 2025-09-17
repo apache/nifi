@@ -203,7 +203,7 @@ public class TestGetCouchbase {
     public void testWithFailure() throws CouchbaseException, InitializationException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
-        when(client.getDocument(anyString())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.getDocument(anyString())).thenThrow(new CouchbaseException(new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
