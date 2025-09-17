@@ -22,8 +22,6 @@ import org.apache.nifi.key.service.api.PrivateKeyService;
 import org.apache.nifi.processors.snowflake.util.SnowflakeAttributes;
 import org.apache.nifi.processors.snowflake.util.SnowflakeInternalStageType;
 import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
-import org.apache.nifi.processors.standard.ExecuteSQLRecord;
-import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool;
 import org.apache.nifi.snowflake.service.StandardSnowflakeIngestManagerProviderService;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormat;
@@ -57,10 +55,6 @@ import java.util.Properties;
 import static org.apache.nifi.processors.snowflake.GetSnowflakeIngestStatus.REL_FAILURE;
 import static org.apache.nifi.processors.snowflake.GetSnowflakeIngestStatus.REL_RETRY;
 import static org.apache.nifi.processors.snowflake.GetSnowflakeIngestStatus.REL_SUCCESS;
-import static org.apache.nifi.processors.standard.AbstractExecuteSQL.DBCP_SERVICE;
-import static org.apache.nifi.processors.standard.AbstractExecuteSQL.RESULT_ROW_COUNT;
-import static org.apache.nifi.processors.standard.AbstractExecuteSQL.SQL_QUERY;
-import static org.apache.nifi.processors.standard.ExecuteSQLRecord.RECORD_WRITER_FACTORY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -203,28 +197,20 @@ class SnowflakeIngestIT {
     }
 
     private void verifyTableContents() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteSQLRecord.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutSnowflakeInternalStage.class);
         runner.setValidateExpressionUsage(false);
-        configureConnectionProvider(runner, "snowflake-connection");
-        runner.setIncomingConnection(false);
-        runner.setProperty(DBCP_SERVICE, "snowflake-connection");
-        runner.setProperty(SQL_QUERY, "SELECT * FROM " + fullTableName());
-
-        final MockRecordWriter recordWriter = new MockRecordWriter("ID,VALUE", false);
-        runner.addControllerService("writer", recordWriter);
-        runner.enableControllerService(recordWriter);
-        runner.setProperty(RECORD_WRITER_FACTORY, "writer");
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        final MockFlowFile result = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(0);
-        result.assertAttributeEquals(RESULT_ROW_COUNT, "1");
-        final String content = new String(result.getData(), StandardCharsets.UTF_8).replace("\r\n", "\n");
-        assertEquals("ID,VALUE\n1,foo\n", content);
+        final SnowflakeComputingConnectionPool connectionService = configureConnectionProvider(runner, "snowflake-connection");
+        try (Connection connection = connectionService.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT ID, VALUE FROM " + fullTableName())) {
+            assertTrue(resultSet.next(), "Expected row in test table");
+            assertEquals(1, resultSet.getInt("ID"));
+            assertEquals("foo", resultSet.getString("VALUE"));
+            assertTrue(!resultSet.next(), "Unexpected additional rows in test table");
+        }
     }
 
-    private void configureConnectionProvider(final TestRunner runner, final String identifier) throws Exception {
+    private SnowflakeComputingConnectionPool configureConnectionProvider(final TestRunner runner, final String identifier) throws Exception {
         final SnowflakeComputingConnectionPool connectionService = new SnowflakeComputingConnectionPool();
         runner.addControllerService(identifier, connectionService);
         runner.setProperty(connectionService, SnowflakeComputingConnectionPool.CONNECTION_URL_FORMAT, ConnectionUrlFormat.FULL_URL.getValue());
@@ -236,6 +222,7 @@ class SnowflakeIngestIT {
         runner.setProperty(connectionService, SnowflakeProperties.SCHEMA, TEST_SCHEMA);
         environment.role().ifPresent(role -> runner.setProperty(connectionService, "role", role));
         runner.enableControllerService(connectionService);
+        return connectionService;
     }
 
     private void configureIngestManager(final TestRunner runner, final String identifier) throws Exception {
