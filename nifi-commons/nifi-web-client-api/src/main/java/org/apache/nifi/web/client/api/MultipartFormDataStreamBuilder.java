@@ -55,4 +55,12 @@ public interface MultipartFormDataStreamBuilder {
      * @return Builder
      */
     MultipartFormDataStreamBuilder addPart(String name, HttpContentType httpContentType, byte[] bytes);
+
+    default MultipartFormDataStreamBuilder addPart(String name, String fileName, HttpContentType httpContentType, InputStream inputStream) {
+        return addPart(name, httpContentType, inputStream);
+    }
+
+    default MultipartFormDataStreamBuilder addPart(String name, String fileName, HttpContentType httpContentType, byte[] bytes) {
+        return addPart(name, httpContentType, bytes);
+    }
 }
