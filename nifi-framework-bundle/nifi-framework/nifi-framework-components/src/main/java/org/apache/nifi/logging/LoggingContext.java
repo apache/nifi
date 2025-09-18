@@ -16,9 +16,17 @@
  */
 package org.apache.nifi.logging;
 
+import java.util.Map;
 import java.util.Optional;
 
 public interface LoggingContext {
+    /**
+     * Get Attributes
+     *
+     * @return Map of Attribute Name to Value such as Process Group information when provided
+     */
+    Map<String, String> getAttributes();
+
     /**
      * @return the log file name suffix. This will be the discriminating value for the dedicated logging.
      */
