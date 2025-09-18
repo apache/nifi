@@ -28,10 +28,12 @@ public final class AzureCosmosDBUtils {
     public static final String CONSISTENCY_SESSION = "SESSION";
     public static final String CONSISTENCY_CONSISTENT_PREFIX = "CONSISTENT_PREFIX";
     public static final String CONSISTENCY_EVENTUAL = "EVENTUAL";
+    public static final String OLD_URI_DESCRIPTOR_NAME = "azure-cosmos-db-uri";
+    public static final String OLD_DB_ACCESS_KEY_DESCRIPTOR_NAME = "azure-cosmos-db-key";
+    public static final String OLD_CONSISTENCY_DESCRIPTOR_NAME = "azure-cosmos-db-consistency-level";
 
     public static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-uri")
-        .displayName("Cosmos DB URI")
+        .name("Cosmos DB URI")
         .description("Cosmos DB URI, typically in the form of https://{databaseaccount}.documents.azure.com:443/"
             + " Note this host URL is for Cosmos DB with Core SQL API"
             + " from Azure Portal (Overview->URI)")
@@ -41,8 +43,7 @@ public final class AzureCosmosDBUtils {
         .build();
 
     public static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-key")
-        .displayName("Cosmos DB Access Key")
+        .name("Cosmos DB Access Key")
         .description("Cosmos DB Access Key from Azure Portal (Settings->Keys). "
             + "Choose a read-write key to enable database or container creation at run time")
         .required(false)
@@ -51,8 +52,7 @@ public final class AzureCosmosDBUtils {
         .build();
 
     public static final PropertyDescriptor CONSISTENCY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-consistency-level")
-        .displayName("Cosmos DB Consistency Level")
+        .name("Cosmos DB Consistency Level")
         .description("Choose from five consistency levels on the consistency spectrum. "
             + "Refer to Cosmos DB documentation for their differences")
         .required(false)

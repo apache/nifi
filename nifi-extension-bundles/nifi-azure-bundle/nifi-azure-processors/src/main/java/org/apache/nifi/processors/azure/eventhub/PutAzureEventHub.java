@@ -39,6 +39,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -93,16 +94,14 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
     static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor PARTITIONING_KEY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-            .name("partitioning-key-attribute-name")
-            .displayName("Partitioning Key Attribute Name")
+            .name("Partitioning Key Attribute Name")
             .description("If specified, the value from argument named by this field will be used as a partitioning key to be used by event hub.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
     static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("max-batch-size")
-            .displayName("Maximum Batch Size")
+            .name("Maximum Batch Size")
             .description("Maximum number of FlowFiles processed for each Processor invocation")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -184,6 +183,14 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         }
 
         processFlowFileResults(context, session, stopWatch, flowFileResults);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("partitioning-key-attribute-name", PARTITIONING_KEY_ATTRIBUTE_NAME.getName());
+        config.renameProperty("max-batch-size", MAX_BATCH_SIZE.getName());
+        config.renameProperty(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, POLICY_PRIMARY_KEY.getName());
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, USE_MANAGED_IDENTITY.getName());
     }
 
     protected EventHubProducerClient createEventHubProducerClient(final ProcessContext context) throws ProcessException {

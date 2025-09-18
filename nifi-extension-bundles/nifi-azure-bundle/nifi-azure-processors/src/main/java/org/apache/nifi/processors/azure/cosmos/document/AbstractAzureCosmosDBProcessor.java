@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -56,32 +57,28 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-connection-service")
-        .displayName("Cosmos DB Connection Service")
+        .name("Cosmos DB Connection Service")
         .description("If configured, the controller service used to obtain the connection string and access key")
         .required(false)
         .identifiesControllerService(AzureCosmosDBConnectionService.class)
         .build();
 
     static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-name")
-        .displayName("Cosmos DB Name")
+        .name("Cosmos DB Name")
         .description("The database name or id. This is used as the namespace for document collections or containers")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
     static final PropertyDescriptor CONTAINER_ID = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-container-id")
-        .displayName("Cosmos DB Container ID")
+        .name("Cosmos DB Container ID")
         .description("The unique identifier for the container")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
     static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-partition-key")
-        .displayName("Cosmos DB Partition Key")
+        .name("Cosmos DB Partition Key")
         .description("The partition key used to distribute data among servers")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -172,6 +169,17 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
                 this.cosmosClient = null;
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(AzureCosmosDBUtils.OLD_URI_DESCRIPTOR_NAME, AzureCosmosDBUtils.URI.getName());
+        config.renameProperty(AzureCosmosDBUtils.OLD_DB_ACCESS_KEY_DESCRIPTOR_NAME, AzureCosmosDBUtils.DB_ACCESS_KEY.getName());
+        config.renameProperty(AzureCosmosDBUtils.OLD_CONSISTENCY_DESCRIPTOR_NAME, AzureCosmosDBUtils.CONSISTENCY.getName());
+        config.renameProperty("azure-cosmos-db-connection-service", CONNECTION_SERVICE.getName());
+        config.renameProperty("azure-cosmos-db-name", DATABASE_NAME.getName());
+        config.renameProperty("azure-cosmos-db-container-id", CONTAINER_ID.getName());
+        config.renameProperty("azure-cosmos-db-partition-key", PARTITION_KEY.getName());
     }
 
     protected String getURI(final ProcessContext context) {

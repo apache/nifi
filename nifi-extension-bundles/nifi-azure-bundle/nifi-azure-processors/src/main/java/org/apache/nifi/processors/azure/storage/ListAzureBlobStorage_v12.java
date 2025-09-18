@@ -40,6 +40,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
@@ -111,8 +112,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             .build();
 
     public static final PropertyDescriptor BLOB_NAME_PREFIX = new PropertyDescriptor.Builder()
-            .name("blob-name-prefix")
-            .displayName("Blob Name Prefix")
+            .name("Blob Name Prefix")
             .description("Search prefix for listing")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -165,6 +165,14 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     @OnStopped
     public void onStopped() {
         clientFactory = null;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
+        config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
+        config.renameProperty("blob-name-prefix", BLOB_NAME_PREFIX.getName());
     }
 
     @Override

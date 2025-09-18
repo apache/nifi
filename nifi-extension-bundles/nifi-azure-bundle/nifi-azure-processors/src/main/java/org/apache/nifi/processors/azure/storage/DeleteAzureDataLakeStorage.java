@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -56,8 +57,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     public static final AllowableValue FS_TYPE_DIRECTORY = new AllowableValue("directory", "Directory", "The object to be deleted is a directory.");
 
     public static final PropertyDescriptor FILESYSTEM_OBJECT_TYPE = new PropertyDescriptor.Builder()
-            .name("filesystem-object-type")
-            .displayName("Filesystem Object Type")
+            .name("Filesystem Object Type")
             .description("They type of the file system object to be deleted. It can be either folder or file.")
             .allowableValues(FS_TYPE_FILE, FS_TYPE_DIRECTORY)
             .defaultValue(FS_TYPE_FILE)
@@ -110,6 +110,15 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
+        config.renameProperty("filesystem-object-type", FILESYSTEM_OBJECT_TYPE.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
     }
 
     @Override
