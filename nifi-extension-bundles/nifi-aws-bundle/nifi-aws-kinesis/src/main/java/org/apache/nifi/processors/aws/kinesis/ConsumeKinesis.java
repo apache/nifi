@@ -286,12 +286,12 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("FlowFiles that are created when records are successfully read from Kinesis and parsed.")
+            .description("FlowFiles that are created when records are successfully read from Kinesis and parsed")
             .build();
 
     static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
-            .description("FlowFiles that failed to parse using the configured Record Reader.")
+            .description("FlowFiles that failed to parse using the configured Record Reader")
             .build();
 
     private static final Set<Relationship> RAW_FILE_RELATIONSHIPS = Set.of(REL_SUCCESS);
@@ -500,7 +500,11 @@ public class ConsumeKinesis extends AbstractProcessor {
                 getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully. See the logs for more details");
             }
         } catch (final RuntimeException | InterruptedException | ExecutionException | TimeoutException e) {
-            getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully", e);
+            if (e instanceof TimeoutException) {
+                getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully after {} seconds", KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT.getSeconds(), e);
+            } else {
+                getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully", e);
+            }
             gracefulShutdownSucceeded = false;
         }
 
@@ -510,7 +514,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         final long finish = System.nanoTime();
-        getLogger().debug("Shutdown of Kinesis Scheduler finished. Total duration: {} seconds", NANOSECONDS.toSeconds(finish - start));
+        getLogger().debug("Kinesis Scheduler shutdown finished after {} seconds", NANOSECONDS.toSeconds(finish - start));
     }
 
     @Override

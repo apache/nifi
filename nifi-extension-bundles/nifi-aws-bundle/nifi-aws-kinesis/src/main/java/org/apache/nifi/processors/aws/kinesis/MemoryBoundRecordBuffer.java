@@ -191,11 +191,11 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
             if (buffer == null) {
                 // By the time the bufferId is polled, it might have been invalidated. No need to return it to the queue.
-                logger.debug("Buffer with id {} was removed while polling for lease. Continuing to poll.", bufferId);
+                logger.debug("Buffer with id {} was removed while polling for lease. Continuing to poll", bufferId);
             } else if (buffer.isEmpty()) {
                 seenBuffers.add(bufferId);
                 buffersToLease.add(bufferId);
-                logger.debug("Buffer with id {} is empty. Continuing to poll.", bufferId);
+                logger.debug("Buffer with id {} is empty. Continuing to poll", bufferId);
             } else {
                 logger.debug("Acquired lease for buffer {}", bufferId);
                 return Optional.of(new StandardShardBufferLease(bufferId));
@@ -210,7 +210,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         }
 
         if (standardLease.returnedToPool.get()) {
-            logger.warn("Attempting to consume records from a buffer that was already returned to the pool. Ignoring.");
+            logger.warn("Attempting to consume records from a buffer that was already returned to the pool. Ignoring");
             return emptyList();
         }
 
@@ -232,7 +232,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         }
 
         if (standardLease.returnedToPool.get()) {
-            logger.warn("Attempting to commit records from a buffer that was already returned to the pool. Ignoring.");
+            logger.warn("Attempting to commit records from a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
@@ -255,7 +255,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         }
 
         if (standardLease.returnedToPool.get()) {
-            logger.warn("Attempting to rollback records from a buffer that was already returned to the pool. Ignoring.");
+            logger.warn("Attempting to rollback records from a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
@@ -274,7 +274,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         }
 
         if (standardLease.returnedToPool.getAndSet(true)) {
-            logger.warn("Attempting to return a buffer that was already returned to the pool. Ignoring.");
+            logger.warn("Attempting to return a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
@@ -637,11 +637,11 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                     if (attempt > 1) {
                         logger.debug("Checkpoint succeeded on attempt {}", attempt);
                     }
-                    return; // Success, exit retry loop.
+                    return;
                 } catch (final ThrottlingException | InvalidStateException | KinesisClientLibDependencyException e) {
                     if (attempt == MAX_RETRY_ATTEMPTS) {
                         logger.error("Failed to checkpoint after {} attempts, giving up", MAX_RETRY_ATTEMPTS, e);
-                        return; // Max attempts reached, give up.
+                        return;
                     }
 
                     final long delayMillis = calculateRetryDelay(attempt);
@@ -658,7 +658,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                     }
                 } catch (final ShutdownException e) {
                     logger.warn("Failed to checkpoint records due to shutdown. Ignoring checkpoint", e);
-                    return; // Don't retry on shutdown.
+                    return;
                 }
             }
         }
