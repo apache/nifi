@@ -71,6 +71,15 @@ class ReaderRecordProcessorTest {
     private static final String TEST_STREAM_NAME = "stream-test";
     private static final String TEST_SHARD_ID = "shardId-test";
 
+    private static final String USER_JSON_1 = "{\"name\":\"John\",\"age\":30}";
+    private static final String USER_JSON_2 = "{\"name\":\"Jane\",\"age\":25}";
+    private static final String USER_JSON_3 = "{\"name\":\"Bob\",\"age\":35}";
+
+    private static final String CITY_JSON_1 = "{\"name\":\"Seattle\",\"country\":\"US\"}";
+    private static final String CITY_JSON_2 = "{\"name\":\"Warsaw\",\"country\":\"PL\"}";
+
+    private static final String INVALID_JSON = "{invalid json}";
+
     private MockProcessSession session;
     private ComponentLog logger;
 
@@ -100,7 +109,7 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final KinesisClientRecord record = KinesisClientRecord.builder()
-                .data(ByteBuffer.wrap("{\"name\":\"John\",\"age\":30}".getBytes(UTF_8)))
+                .data(ByteBuffer.wrap(USER_JSON_1.getBytes(UTF_8)))
                 .sequenceNumber("1")
                 .subSequenceNumber(2)
                 .approximateArrivalTimestamp(Instant.now())
@@ -137,9 +146,9 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final List<KinesisClientRecord> records = List.of(
-                createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
-                createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"),
-                createKinesisRecord("{\"name\":\"Bob\",\"age\":35}", "3")
+                createKinesisRecord(USER_JSON_1, "1"),
+                createKinesisRecord(USER_JSON_2, "2"),
+                createKinesisRecord(USER_JSON_3, "3")
         );
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -175,8 +184,8 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final List<KinesisClientRecord> records = List.of(
-                createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
-                createKinesisRecord("{\"id\":\"123\",\"value\":\"test\"}", "2")
+                createKinesisRecord(USER_JSON_1, "1"),
+                createKinesisRecord(CITY_JSON_1, "2")
         );
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -198,10 +207,10 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final List<KinesisClientRecord> records = List.of(
-                createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
-                createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"),
-                createKinesisRecord("{\"id\":\"123\",\"value\":\"test\"}", "3"),
-                createKinesisRecord("{\"id\":\"456\",\"value\":\"test2\"}", "4")
+                createKinesisRecord(USER_JSON_1, "1"),
+                createKinesisRecord(USER_JSON_2, "2"),
+                createKinesisRecord(CITY_JSON_1, "3"),
+                createKinesisRecord(CITY_JSON_2, "4")
         );
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -223,7 +232,7 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final List<KinesisClientRecord> records = List.of(
-                createKinesisRecord("{invalid json}", "1")
+                createKinesisRecord(INVALID_JSON, "1")
         );
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -237,7 +246,7 @@ class ReaderRecordProcessorTest {
         assertEquals("1", failureFlowFile.getAttribute(LAST_SEQUENCE_NUMBER));
         assertNotNull(failureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
 
-        failureFlowFile.assertContentEquals("{invalid json}", UTF_8);
+        failureFlowFile.assertContentEquals(INVALID_JSON, UTF_8);
     }
 
     @Test
@@ -245,11 +254,11 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final List<KinesisClientRecord> records = List.of(
-                createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"),
-                createKinesisRecord("{invalid json}", "2"),
-                createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "3"),
-                createKinesisRecord("{another invalid}", "4"),
-                createKinesisRecord("{\"name\":\"Bob\",\"age\":35}", "5")
+                createKinesisRecord(USER_JSON_1, "1"),
+                createKinesisRecord(INVALID_JSON, "2"),
+                createKinesisRecord(USER_JSON_2, "3"),
+                createKinesisRecord(INVALID_JSON, "4"),
+                createKinesisRecord(USER_JSON_3, "5")
         );
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -283,7 +292,7 @@ class ReaderRecordProcessorTest {
 
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(failingReaderFactory, jsonWriter, logger);
 
-        final KinesisClientRecord record = createKinesisRecord("{\"name\":\"John\"}", "1");
+        final KinesisClientRecord record = createKinesisRecord(USER_JSON_1, "1");
         final List<KinesisClientRecord> records = List.of(record);
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -300,7 +309,7 @@ class ReaderRecordProcessorTest {
     void testMalformedRecordExceptionDuringReading() {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(getMalformedRecordExceptionReader(), jsonWriter, logger);
 
-        final KinesisClientRecord record = createKinesisRecord("{\"name\":\"John\"}", "1");
+        final KinesisClientRecord record = createKinesisRecord(USER_JSON_1, "1");
         final List<KinesisClientRecord> records = Collections.singletonList(record);
 
         final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
@@ -318,12 +327,12 @@ class ReaderRecordProcessorTest {
         final ReaderRecordProcessor processor = new ReaderRecordProcessor(jsonReader, jsonWriter, logger);
 
         final List<KinesisClientRecord> records = List.of(
-                createKinesisRecord("{\"name\":\"John\",\"age\":30}", "1"), // Schema A
-                createKinesisRecord("{\"name\":\"Jane\",\"age\":25}", "2"), // Schema A
-                createKinesisRecord("{invalid json}", "3"), // Invalid
-                createKinesisRecord("{\"id\":\"123\",\"value\":\"test\"}", "4"), // Schema B
-                createKinesisRecord("{another invalid}", "5"), // Invalid
-                createKinesisRecord("{\"id\":\"456\",\"value\":\"test2\"}", "6"), // Schema B
+                createKinesisRecord(USER_JSON_1, "1"), // Schema A
+                createKinesisRecord(USER_JSON_2, "2"), // Schema A
+                createKinesisRecord(INVALID_JSON, "3"),
+                createKinesisRecord(CITY_JSON_1, "4"), // Schema B
+                createKinesisRecord(INVALID_JSON, "5"),
+                createKinesisRecord(CITY_JSON_2, "6"), // Schema B
                 createKinesisRecord("{\"category\":\"electronics\",\"price\":99.99}", "7") // Schema C
         );
 
