@@ -197,6 +197,29 @@ The standard logback configuration includes the following appender definitions a
 | `nifi-user.log`        | User log containing authentication and authorization messages
 |=========================
 
+=== Mapped Diagnostic Context Properties
+Logging for extension components such as Processors and Controller Services include variables in the
+link:https://www.slf4j.org/api/org/slf4j/MDC.html[Mapped Diagnostic Context] that provide additional information about
+the component location. link:https://logback.qos.ch/manual/layouts.html#mdc[MDC] values can be added to log messages
+with custom layout configuration.
+
+Component logs provide the following MDC named values:
+
+- `processGroupId` contains the UUID of the Process Group
+- `processGroupIdPath` contains the hierarchy of UUIDs for Process Groups with separators
+- `processGroupName` contains the name of the Process Group
+- `processGroupNamePath` contains of the hierarchy of names for Process Groups with separators
+
+MDC named values can be added to a Logback pattern layout using the `mdc` conversion word.
+
+[source, xml]
+----
+<pattern>%date %level [%thread] %mdc{processGroupId} %logger{40} %msg%n</pattern>
+----
+
+Logs from classes other than extension components do not have MDC named values. Logs formatted using the pattern layout
+will include an empty space when an MDC named value is not found.
+
 === Deprecation Logging
 The `nifi-deprecation.log` contains warning messages describing components and features that will be removed in
 subsequent versions. Deprecation warnings should be evaluated and addressed to avoid breaking changes when upgrading to
