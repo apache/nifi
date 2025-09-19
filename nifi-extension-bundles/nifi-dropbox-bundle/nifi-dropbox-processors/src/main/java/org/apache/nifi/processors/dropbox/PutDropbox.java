@@ -58,6 +58,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -112,8 +114,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .build();
 
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
-            .name("folder")
-            .displayName("Folder")
+            .name("Folder")
             .description("The path of the Dropbox folder to upload files to. "
                     + "The folder will be created if it does not exist yet.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -123,8 +124,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .build();
 
     public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor.Builder()
-            .name("file-name")
-            .displayName("Filename")
+            .name("Filename")
             .description("The full name of the file to upload.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${filename}")
@@ -133,8 +133,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .build();
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("conflict-resolution-strategy")
-            .displayName("Conflict Resolution Strategy")
+            .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the specified Dropbox folder.")
             .required(true)
             .defaultValue(FAIL.getValue())
@@ -142,8 +141,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
-            .name("chunked-upload-size")
-            .displayName("Chunked Upload Size")
+            .name("Chunked Upload Size")
             .description("Defines the size of a chunk. Used when a FlowFile's size exceeds 'Chunked Upload Threshold' and content is uploaded in smaller chunks. "
                     + "It is recommended to specify chunked upload size smaller than 'Chunked Upload Threshold' and as multiples of 4 MB. "
                     + "Maximum allowed value is 150 MB.")
@@ -153,8 +151,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("chunked-upload-threshold")
-            .displayName("Chunked Upload Threshold")
+            .name("Chunked Upload Threshold")
             .description("The maximum size of the content which is uploaded at once. FlowFiles larger than this threshold are uploaded in chunks. "
                     + "Maximum allowed value is 150 MB.")
             .defaultValue("150 MB")
@@ -251,6 +248,16 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
+        config.renameProperty("folder", FOLDER.getName());
+        config.renameProperty("file-name", FILE_NAME.getName());
+        config.renameProperty("conflict-resolution-strategy", CONFLICT_RESOLUTION.getName());
+        config.renameProperty("chunked-upload-size", CHUNKED_UPLOAD_SIZE.getName());
+        config.renameProperty("chunked-upload-threshold", CHUNKED_UPLOAD_THRESHOLD.getName());
     }
 
     private void handleUploadError(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final UploadErrorException e)  {

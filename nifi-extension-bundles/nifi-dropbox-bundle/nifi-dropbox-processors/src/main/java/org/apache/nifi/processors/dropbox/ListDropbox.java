@@ -61,6 +61,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
@@ -93,8 +94,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implements DropboxTrait {
 
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
-            .name("folder")
-            .displayName("Folder")
+            .name("Folder")
             .description("The Dropbox identifier or path of the folder from which to pull list of files." +
                     " 'Folder' should match the following regular expression pattern: /.*|id:.* ." +
                     " Example for folder identifier: id:odTlUvbpIEAAAAAAAAAGGQ." +
@@ -106,8 +106,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             .build();
 
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
-            .name("recursive-search")
-            .displayName("Search Recursively")
+            .name("Search Recursively")
             .description("Indicates whether to list files from subfolders of the Dropbox folder.")
             .required(true)
             .defaultValue("true")
@@ -115,8 +114,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
-            .name("min-age")
-            .displayName("Minimum File Age")
+            .name("Minimum File Age")
             .description("The minimum age a file must be in order to be considered; any files newer than this will be ignored.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -161,6 +159,15 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         dropboxApiClient = getDropboxApiClient(context, getIdentifier());
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
+        config.renameProperty("folder", FOLDER.getName());
+        config.renameProperty("recursive-search", RECURSIVE_SEARCH.getName());
+        config.renameProperty("min-age", MIN_AGE.getName());
     }
 
     @Override

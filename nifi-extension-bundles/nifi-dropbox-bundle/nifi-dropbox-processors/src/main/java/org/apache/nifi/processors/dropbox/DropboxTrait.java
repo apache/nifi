@@ -39,10 +39,10 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 public interface DropboxTrait {
 
     String DROPBOX_HOME_URL = "https://www.dropbox.com/home";
+    String OLD_CREDENTIAL_SERVICE_PROPERTY_NAME = "dropbox-credential-service";
 
     PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
-            .name("dropbox-credential-service")
-            .displayName("Dropbox Credential Service")
+            .name("Dropbox Credential Service")
             .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)." +
                     " See controller service's Additional Details for more information.")
             .identifiesControllerService(DropboxCredentialService.class)

@@ -53,6 +53,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
@@ -81,8 +82,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
-        .name("box-folder-id")
-        .displayName("Folder ID")
+        .name("Folder ID")
         .description("The ID of the folder from which to pull list of files.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -90,8 +90,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         .build();
 
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
-        .name("recursive-search")
-        .displayName("Search Recursively")
+        .name("Search Recursively")
         .description("When 'true', will include list of files from sub-folders." +
             " Otherwise, will return only files that are within the folder defined by the 'Folder ID' property.")
         .required(true)
@@ -100,8 +99,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
-        .name("min-age")
-        .displayName("Minimum File Age")
+        .name("Minimum File Age")
         .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored.")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -129,7 +127,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-        BoxClientService.BOX_CLIENT_SERVICE,
+        AbstractBoxProcessor.BOX_CLIENT_SERVICE,
         FOLDER_ID,
         RECURSIVE_SEARCH,
         MIN_AGE,
@@ -164,9 +162,18 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        BoxClientService boxClientService = context.getProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
         boxAPIConnection = boxClientService.getBoxApiConnection();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName());
+        config.renameProperty("box-folder-id", FOLDER_ID.getName());
+        config.renameProperty("recursive-search", RECURSIVE_SEARCH.getName());
+        config.renameProperty("min-age", MIN_AGE.getName());
     }
 
     @Override

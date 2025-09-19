@@ -17,20 +17,12 @@
 package org.apache.nifi.box.controllerservices;
 
 import com.box.sdk.BoxAPIConnection;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 
 /**
  * Provides Box client objects through which Box API calls can be used.
  */
 public interface BoxClientService extends ControllerService {
-    PropertyDescriptor BOX_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-        .name("box-client-service")
-        .displayName("Box Client Service")
-        .description("Controller Service used to obtain a Box API connection.")
-        .identifiesControllerService(BoxClientService.class)
-        .required(true)
-        .build();
 
     BoxAPIConnection getBoxApiConnection();
 }
