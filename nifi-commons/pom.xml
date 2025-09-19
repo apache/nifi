@@ -70,10 +70,6 @@
         <module>nifi-xml-processing</module>
         <module>nifi-calcite-utils</module>
     </modules>
-    <properties>
-        <gcp.sdk.version>26.38.0</gcp.sdk.version>
-        <guava.version>33.4.8-jre</guava.version>
-    </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
