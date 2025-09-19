@@ -23,6 +23,7 @@ import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -309,5 +310,53 @@ public class VolatileBulletinRepository implements BulletinRepository {
                 bulletinBuffer.add(bulletin);
             }
         }
+    }
+
+    @Override
+    public int clearBulletinsForComponent(final String sourceId, final Instant fromTimestamp) throws IllegalArgumentException {
+        if (sourceId == null) {
+            throw new IllegalArgumentException("Source ID cannot be null");
+        }
+
+        return clearBulletinsForComponents(Collections.singleton(sourceId), fromTimestamp);
+    }
+
+    @Override
+    public int clearBulletinsForComponents(Collection<String> sourceIds, Instant fromTimestamp) throws IllegalArgumentException {
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            throw new IllegalArgumentException("Source IDs cannot be null or empty");
+        }
+
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp cannot be null");
+        }
+
+        int totalCleared = 0;
+
+        // Create filter to match bulletins for any of the given sourceIds and at or before fromTimestamp
+        final Filter<Bulletin> clearFilter = bulletin -> {
+            // Match any of the source IDs
+            if (!sourceIds.contains(bulletin.getSourceId())) {
+                return false;
+            }
+
+            // Clear bulletins that are older than or equal to the specified timestamp
+            // Convert bulletin timestamp (Date) to Instant for comparison
+            return bulletin.getTimestamp() != null && !bulletin.getTimestamp().toInstant().isAfter(fromTimestamp);
+        };
+
+        // Iterate through all bulletin stores to find and clear matching bulletins
+        for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMap.values()) {
+            for (final RingBuffer<Bulletin> ringBuffer : componentMap.values()) {
+                // Count how many bulletins would be cleared first
+                final int countToRemove = ringBuffer.countSelectedElements(clearFilter);
+                totalCleared += countToRemove;
+
+                // Remove the bulletins
+                ringBuffer.removeSelectedElements(clearFilter);
+            }
+        }
+
+        return totalCleared;
     }
 }

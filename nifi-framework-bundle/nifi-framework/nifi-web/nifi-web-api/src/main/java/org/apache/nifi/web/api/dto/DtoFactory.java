@@ -3482,6 +3482,7 @@ public final class DtoFactory {
        dto.setId(bulletin.getId());
        dto.setNodeAddress(bulletin.getNodeAddress());
        dto.setTimestamp(bulletin.getTimestamp());
+       dto.setTimestampIso(bulletin.getTimestamp() != null ? bulletin.getTimestamp().toInstant() : null);
        dto.setGroupId(bulletin.getGroupId());
        dto.setSourceId(bulletin.getSourceId());
        dto.setSourceName(bulletin.getSourceName());

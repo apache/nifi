@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.dto.util;
+package org.apache.nifi.web.api.entity;
 
-import jakarta.xml.bind.annotation.adapters.XmlAdapter;
-import java.time.Instant;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
- * XmlAdapter for (un)marshalling an Instant
+ * A serialized representation of this class can be placed in the entity body of a response from clearing bulletins for multiple components.
  */
-public class InstantAdapter extends XmlAdapter<String, Instant> {
+@XmlRootElement(name = "clearBulletinsForGroupResultsEntity")
+public class ClearBulletinsForGroupResultsEntity extends Entity {
 
-    @Override
-    public String marshal(Instant instant) throws Exception {
-        return instant.toString();
+    private int bulletinsCleared;
+
+    /**
+     * @return The total number of bulletins that were cleared
+     */
+    @Schema(description = "The total number of bulletins that were cleared.")
+    public int getBulletinsCleared() {
+        return bulletinsCleared;
     }
 
-    @Override
-    public Instant unmarshal(String instant) throws Exception {
-        return Instant.parse(instant);
+    public void setBulletinsCleared(int bulletinsCleared) {
+        this.bulletinsCleared = bulletinsCleared;
     }
 }
