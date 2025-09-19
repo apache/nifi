@@ -61,7 +61,7 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
             }
         };
 
-        doReturn(mockBoxClientServicePropertyValue).when(mockProcessContext).getProperty(BoxClientService.BOX_CLIENT_SERVICE);
+        doReturn(mockBoxClientServicePropertyValue).when(mockProcessContext).getProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE);
         doReturn(mockBoxClientService).when(mockBoxClientServicePropertyValue).asControllerService(BoxClientService.class);
         doReturn(mockBoxAPIConnection).when(mockBoxClientService).getBoxApiConnection();
 

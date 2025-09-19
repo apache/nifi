@@ -44,6 +44,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -69,8 +70,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .build();
 
     public static final PropertyDescriptor ACCOUNT_ID = new PropertyDescriptor.Builder()
-        .name("box-account-id")
-        .displayName("Account ID")
+        .name("Account ID")
         .description("The ID of the Box account which the app will act on behalf of.")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -79,8 +79,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .build();
 
     public static final PropertyDescriptor APP_CONFIG_FILE = new PropertyDescriptor.Builder()
-        .name("app-config-file")
-        .displayName("App Config File")
+        .name("App Config File")
         .description("Full path of an App config JSON file. See Additional Details for more information.")
         .required(false)
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -88,8 +87,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .build();
 
     public static final PropertyDescriptor APP_CONFIG_JSON = new PropertyDescriptor.Builder()
-        .name("app-config-json")
-        .displayName("App Config JSON")
+        .name("App Config JSON")
         .description("The raw JSON containing an App config. See Additional Details for more information.")
         .required(false)
         .sensitive(true)
@@ -250,5 +248,12 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         api.setReadTimeout(context.getProperty(READ_TIMEOUT).asTimePeriod(MILLISECONDS).intValue());
 
         return api;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("box-account-id", ACCOUNT_ID.getName());
+        config.renameProperty("app-config-file", APP_CONFIG_FILE.getName());
+        config.renameProperty("app-config-json", APP_CONFIG_JSON.getName());
     }
 }
