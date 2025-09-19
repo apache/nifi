@@ -794,6 +794,7 @@ public final class EntityFactory {
             entity.setSourceId(dto.getSourceId());
             entity.setGroupId(dto.getGroupId());
             entity.setTimestamp(dto.getTimestamp());
+            entity.setTimestampIso(dto.getTimestampIso());
             entity.setNodeAddress(dto.getNodeAddress());
             entity.setCanRead(canRead);
             if (canRead) {

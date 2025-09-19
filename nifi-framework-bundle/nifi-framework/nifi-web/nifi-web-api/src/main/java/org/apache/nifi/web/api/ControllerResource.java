@@ -84,6 +84,11 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsRequestEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
@@ -121,6 +126,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collections;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -350,6 +356,70 @@ public class ControllerResource extends ApplicationResource {
 
                     // build the response
                     return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
+                }
+        );
+    }
+
+    /**
+     * Clears the bulletins for the specified parameter provider.
+     *
+     * @param id                       The id of the parameter provider
+     * @param requestClearBulletinEntity A clearBulletinsRequestEntity
+     * @return A clearBulletinsResultEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/parameter-providers/{id}/bulletins/clear-requests")
+    @Operation(
+            summary = "Clears bulletins for a parameter provider",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ClearBulletinsResultEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid}")
+            }
+    )
+    public Response clearParameterProviderBulletins(
+            @Parameter(description = "The parameter provider id.", required = true)
+            @PathParam("id") final String id,
+            @Parameter(description = "The request to clear bulletins.", required = true)
+            final ClearBulletinsRequestEntity requestClearBulletinEntity) {
+
+        // Verify the request
+        if (requestClearBulletinEntity == null) {
+            throw new IllegalArgumentException("Clear bulletin request must be specified.");
+        }
+
+        final Instant fromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestClearBulletinEntity);
+        }
+
+        final ParameterProviderEntity requestParameterProviderEntity = new ParameterProviderEntity();
+        requestParameterProviderEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestParameterProviderEntity,
+                lookup -> {
+                    final Authorizable authorizable = lookup.getParameterProvider(id).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> { },
+                (parameterProviderEntity) -> {
+                    final Instant execFromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+                    final ClearBulletinsResultEntity entity = serviceFacade.clearBulletinsForComponent(parameterProviderEntity.getId(), execFromTimestamp);
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -1423,7 +1493,70 @@ public class ControllerResource extends ApplicationResource {
         entity.setRequest(dto);
         return entity;
     }
-    //--
+
+    /**
+     * Clears the bulletins for the specified flow analysis rule.
+     *
+     * @param id                       The id of the flow analysis rule
+     * @param requestClearBulletinEntity A clearBulletinsRequestEntity
+     * @return A clearBulletinsResultEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/flow-analysis-rules/{id}/bulletins/clear-requests")
+    @Operation(
+            summary = "Clears bulletins for a flow analysis rule",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ClearBulletinsResultEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid}")
+            }
+    )
+    public Response clearFlowAnalysisRuleBulletins(
+            @Parameter(description = "The flow analysis rule id.", required = true)
+            @PathParam("id") final String id,
+            @Parameter(description = "The request to clear bulletins.", required = true)
+            final ClearBulletinsRequestEntity requestClearBulletinEntity) {
+
+        // Verify the request
+        if (requestClearBulletinEntity == null) {
+            throw new IllegalArgumentException("Clear bulletin request must be specified.");
+        }
+
+        final Instant fromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestClearBulletinEntity);
+        }
+
+        final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity = new FlowAnalysisRuleEntity();
+        requestFlowAnalysisRuleEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestFlowAnalysisRuleEntity,
+                lookup -> {
+                    final ComponentAuthorizable authorizable = lookup.getFlowAnalysisRule(id);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> { },
+                (flowAnalysisRuleEntity) -> {
+                    final Instant execFromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+                    final ClearBulletinsResultEntity entity = serviceFacade.clearBulletinsForComponent(flowAnalysisRuleEntity.getId(), execFromTimestamp);
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
 
     // ----------
     // registries
@@ -2107,6 +2240,70 @@ public class ControllerResource extends ApplicationResource {
 
         // generate the response
         return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Clears the bulletins for the specified registry client.
+     *
+     * @param id                       The id of the registry client
+     * @param requestClearBulletinEntity A clearBulletinsRequestEntity
+     * @return A clearBulletinsResultEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registry-clients/{id}/bulletins/clear-requests")
+    @Operation(
+            summary = "Clears bulletins for a registry client",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ClearBulletinsResultEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /controller/registry-clients/{uuid}")
+            }
+    )
+    public Response clearRegistryClientBulletins(
+            @Parameter(description = "The registry client id.", required = true)
+            @PathParam("id") final String id,
+            @Parameter(description = "The request to clear bulletins.", required = true)
+            final ClearBulletinsRequestEntity requestClearBulletinEntity) {
+
+        // Verify the request
+        if (requestClearBulletinEntity == null) {
+            throw new IllegalArgumentException("Clear bulletin request must be specified.");
+        }
+
+        final Instant fromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestClearBulletinEntity);
+        }
+
+        final FlowRegistryClientEntity requestFlowRegistryClientEntity = new FlowRegistryClientEntity();
+        requestFlowRegistryClientEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestFlowRegistryClientEntity,
+                lookup -> {
+                    final Authorizable authorizable = lookup.getFlowRegistryClient(id).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> { },
+                (flowRegistryClientEntity) -> {
+                    final Instant execFromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+                    final ClearBulletinsResultEntity entity = serviceFacade.clearBulletinsForComponent(flowRegistryClientEntity.getId(), execFromTimestamp);
+                    return generateOkResponse(entity).build();
+                }
+        );
     }
 
     /**

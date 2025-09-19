@@ -98,6 +98,8 @@ import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -123,11 +125,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -1099,6 +1103,16 @@ public class StandardNiFiServiceFacadeTest {
         }
 
         @Override
+        public List<Bulletin> findBulletinsForSource(String sourceId) {
+            List<Bulletin> ans = new ArrayList<>();
+            for (Bulletin b : bulletinList) {
+                if (sourceId.equals(b.getSourceId()))
+                    ans.add(b);
+            }
+            return ans;
+        }
+
+        @Override
         public List<Bulletin> findBulletinsForGroupBySource(String groupId) {
             List<Bulletin> ans = new ArrayList<>();
             for (Bulletin b : bulletinList) {
@@ -1108,6 +1122,120 @@ public class StandardNiFiServiceFacadeTest {
             return ans;
         }
 
+        @Override
+        public int clearBulletinsForComponent(String sourceId, Instant fromTimestamp) {
+            int cleared = 0;
+            final Iterator<Bulletin> iterator = bulletinList.iterator();
+            while (iterator.hasNext()) {
+                final Bulletin bulletin = iterator.next();
+                if (sourceId.equals(bulletin.getSourceId())
+                        && bulletin.getTimestamp() != null
+                        && !bulletin.getTimestamp().toInstant().isAfter(fromTimestamp)) {
+                    iterator.remove();
+                    cleared++;
+                }
+            }
+            return cleared;
+        }
+
+        @Override
+        public int clearBulletinsForComponents(Collection<String> sourceIds, Instant fromTimestamp) {
+            if (sourceIds == null || sourceIds.isEmpty()) {
+                throw new IllegalArgumentException("Source ID cannot be null or empty");
+            }
+
+            int cleared = 0;
+            final Iterator<Bulletin> iterator = bulletinList.iterator();
+            while (iterator.hasNext()) {
+                final Bulletin bulletin = iterator.next();
+                if (sourceIds.contains(bulletin.getSourceId())
+                        && bulletin.getTimestamp() != null
+                        && !bulletin.getTimestamp().toInstant().isAfter(fromTimestamp)) {
+                    iterator.remove();
+                    cleared++;
+                }
+            }
+            return cleared;
+        }
+
+        public void addTestBulletin(String sourceId, String message, Instant timestamp) {
+            TestBulletin bulletin = new TestBulletin(sourceId, message, Date.from(timestamp));
+            bulletinList.add(bulletin);
+        }
+
+    }
+
+    private static class TestBulletin extends Bulletin {
+        private final String sourceId;
+        private final String message;
+        private final Date timestamp;
+
+        public TestBulletin(String sourceId, String message, Date timestamp) {
+            super(System.nanoTime());
+            this.sourceId = sourceId;
+            this.message = message;
+            this.timestamp = timestamp;
+        }
+
+        @Override
+        public String getSourceId() {
+            return sourceId;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
+
+        @Override
+        public Date getTimestamp() {
+            return timestamp;
+        }
+
+        @Override
+        public String getCategory() {
+            return "Test";
+        }
+
+        @Override
+        public String getLevel() {
+            return "INFO";
+        }
+
+        @Override
+        public ComponentType getSourceType() {
+            return ComponentType.PROCESSOR;
+        }
+
+        @Override
+        public String getSourceName() {
+            return "Test Component";
+        }
+
+        @Override
+        public String getGroupId() {
+            return "test-group";
+        }
+
+        @Override
+        public String getGroupName() {
+            return "Test Group";
+        }
+
+        @Override
+        public String getGroupPath() {
+            return "/";
+        }
+
+        @Override
+        public String getNodeAddress() {
+            return null;
+        }
+
+        @Override
+        public String getFlowFileUuid() {
+            return null;
+        }
     }
 
     @Test
@@ -1448,5 +1576,92 @@ public class StandardNiFiServiceFacadeTest {
         // Verify that resetAllCounters was called
         verify(controllerFacade, times(1)).resetAllCounters();
         verify(dtoFactory, times(1)).createCountersDto(any());
+    }
+
+    @Test
+    public void testClearBulletinsForComponent() {
+        final String componentId = "test-component-123";
+        final Instant fromTimestamp = Instant.now();
+
+        MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
+
+        // Add some test bulletins with different timestamps
+        Instant beforeTime = fromTimestamp.minusSeconds(10);
+        Instant afterTime = fromTimestamp.plusSeconds(10);
+
+        bulletinRepository.addTestBulletin(componentId, "Before message", beforeTime);
+        bulletinRepository.addTestBulletin(componentId, "At time message", fromTimestamp);
+        bulletinRepository.addTestBulletin(componentId, "After message", afterTime);
+        bulletinRepository.addTestBulletin("other-component", "Other component message", afterTime);
+
+        serviceFacade.setBulletinRepository(bulletinRepository);
+
+        ClearBulletinsResultEntity result = serviceFacade.clearBulletinsForComponent(componentId, fromTimestamp);
+
+        assertNotNull(result);
+        assertEquals(componentId, result.getComponentId());
+        assertEquals(2, result.getBulletinsCleared()); // Should clear bulletins older than or equal to fromTimestamp
+        assertEquals(2, bulletinRepository.bulletinList.size()); // 2 bulletins should remain (after time + other component)
+    }
+
+    @Test
+    public void testClearBulletinsForComponents() {
+        final String processGroupId = "test-process-group-123";
+        final Instant fromTimestamp = Instant.now();
+        final Set<String> componentIds = Set.of("component-1", "component-2");
+
+        MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
+
+        // Add test bulletins for multiple components
+        Instant beforeTime = fromTimestamp.minusSeconds(10);
+        Instant afterTime = fromTimestamp.plusSeconds(10);
+
+        bulletinRepository.addTestBulletin("component-1", "Component 1 before", beforeTime);
+        bulletinRepository.addTestBulletin("component-1", "Component 1 after", afterTime);
+        bulletinRepository.addTestBulletin("component-2", "Component 2 after", afterTime);
+        bulletinRepository.addTestBulletin("component-3", "Component 3 after", afterTime);
+
+        serviceFacade.setBulletinRepository(bulletinRepository);
+
+        ClearBulletinsForGroupResultsEntity result = serviceFacade.clearBulletinsForComponents(
+                processGroupId, fromTimestamp, componentIds);
+
+        assertNotNull(result);
+        assertEquals(1, result.getBulletinsCleared()); // Should clear 1 bulletin (component-1 before only)
+        assertEquals(3, bulletinRepository.bulletinList.size()); // 3 bulletins should remain (all "after" bulletins)
+    }
+
+    @Test
+    public void testClearBulletinsForComponentWithZeroResult() {
+        final String componentId = "non-existent-component";
+        final Instant fromTimestamp = Instant.now();
+
+        MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
+
+        // Add a bulletin for a different component
+        bulletinRepository.addTestBulletin("other-component", "Other message", Instant.now());
+
+        serviceFacade.setBulletinRepository(bulletinRepository);
+
+        ClearBulletinsResultEntity result = serviceFacade.clearBulletinsForComponent(componentId, fromTimestamp);
+
+        assertNotNull(result);
+        assertEquals(componentId, result.getComponentId());
+        assertEquals(0, result.getBulletinsCleared());
+        assertEquals(1, bulletinRepository.bulletinList.size()); // Original bulletin should remain
+    }
+
+    @Test
+    public void testClearBulletinsForComponentsWithEmptySet() {
+        final String processGroupId = "test-process-group-123";
+        final Instant fromTimestamp = Instant.now();
+        final Set<String> emptyComponentIds = Collections.emptySet();
+
+        MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
+        serviceFacade.setBulletinRepository(bulletinRepository);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            serviceFacade.clearBulletinsForComponents(processGroupId, fromTimestamp, emptyComponentIds);
+        });
     }
 }

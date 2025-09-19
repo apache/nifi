@@ -18,7 +18,6 @@ package org.apache.nifi.web;
 
 import io.prometheus.client.CollectorRegistry;
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.nifi.action.Action;
@@ -326,6 +325,8 @@ import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
@@ -429,6 +430,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -4089,6 +4091,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case PROCESSOR -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
                 case REPORTING_TASK -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
                 case FLOW_ANALYSIS_RULE -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
+                case FLOW_REGISTRY_CLIENT -> authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
                 case PARAMETER_PROVIDER -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
                 case CONTROLLER_SERVICE -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
                 case FLOW_CONTROLLER -> controllerFacade;
@@ -4096,8 +4099,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
                 case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
                 case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
-                default ->
-                        throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this bulletin.").build());
             };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
@@ -7418,5 +7419,54 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired
     public void setAssetManager(final AssetManager assetManager) {
         this.assetManager = assetManager;
+    }
+
+    @Override
+    public ClearBulletinsResultEntity clearBulletinsForComponent(final String componentId, final Instant fromTimestamp) {
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp must be specified");
+        }
+
+        final int bulletinsCleared = bulletinRepository.clearBulletinsForComponent(componentId, fromTimestamp);
+
+        // Get the current bulletins for the component after clearing
+        final List<Bulletin> currentBulletins = bulletinRepository.findBulletinsForSource(componentId);
+        final List<BulletinEntity> bulletinEntities = currentBulletins.stream()
+                .map(bulletin -> entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), authorizeBulletin(bulletin)))
+                .collect(Collectors.toList());
+
+        // Create the response entity
+        final ClearBulletinsResultEntity entity = new ClearBulletinsResultEntity();
+        entity.setComponentId(componentId);
+        entity.setBulletinsCleared(bulletinsCleared);
+        entity.setBulletins(bulletinEntities);
+
+        return entity;
+    }
+
+
+    @Override
+    public ClearBulletinsForGroupResultsEntity clearBulletinsForComponents(final String processGroupId, final Instant fromTimestamp, final Set<String> componentIds) {
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp must be specified");
+        }
+        if (componentIds == null || componentIds.isEmpty()) {
+            throw new IllegalArgumentException("Component IDs must be specified");
+        }
+
+        // Clear bulletins for all components specified
+        final int totalBulletinsCleared = bulletinRepository.clearBulletinsForComponents(componentIds, fromTimestamp);
+
+        // Create the response entity
+        final ClearBulletinsForGroupResultsEntity entity = new ClearBulletinsForGroupResultsEntity();
+        entity.setBulletinsCleared(totalBulletinsCleared);
+
+        return entity;
+    }
+
+    @Override
+    public Set<String> filterComponents(final String groupId, final Function<ProcessGroup, Set<String>> getComponents) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        return getComponents.apply(processGroup);
     }
 }

@@ -100,6 +100,8 @@ import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -160,6 +162,7 @@ import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -3086,5 +3089,38 @@ public interface NiFiServiceFacade {
      * @param assetId the asset id
      */
     AssetEntity deleteAsset(String parameterContextId, String assetId);
+
+    // -----------------------------------------
+    // Bulletin methods
+    // -----------------------------------------
+
+    /**
+     * Clears bulletins for the specified component.
+     *
+     * @param componentId the component id
+     * @param fromTimestamp the timestamp from which to clear bulletins (inclusive), must not be null
+     * @return the clear bulletin result entity
+     */
+    ClearBulletinsResultEntity clearBulletinsForComponent(String componentId, Instant fromTimestamp);
+
+
+    /**
+     * Clears bulletins for the specified components.
+     *
+     * @param processGroupId the process group id
+     * @param fromTimestamp the timestamp from which to clear bulletins (inclusive), must not be null
+     * @param componentIds the component IDs for which to clear bulletins
+     * @return the results of clearing bulletins for each component
+     */
+    ClearBulletinsForGroupResultsEntity clearBulletinsForComponents(String processGroupId, Instant fromTimestamp, Set<String> componentIds);
+
+    /**
+     * Filters components within the specified process group using the provided function.
+     *
+     * @param groupId the id of the process group
+     * @param getComponents function that takes a ProcessGroup and returns a set of component IDs
+     * @return set of component IDs returned by the function
+     */
+    Set<String> filterComponents(String groupId, Function<ProcessGroup, Set<String>> getComponents);
 
 }

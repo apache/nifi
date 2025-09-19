@@ -20,7 +20,9 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class MockBulletinRepository implements BulletinRepository {
@@ -87,5 +89,17 @@ public class MockBulletinRepository implements BulletinRepository {
     @Override
     public long getMaxBulletinId() {
         return -1L;
+    }
+
+    @Override
+    public int clearBulletinsForComponent(String sourceId, Instant fromTimestamp) throws IllegalArgumentException {
+        // Mock implementation - would typically track bulletins and clear them
+        return 0;
+    }
+
+    @Override
+    public int clearBulletinsForComponents(Collection<String> sourceIds, Instant fromTimestamp) throws IllegalArgumentException {
+        // Mock implementation - would typically track bulletins and clear them
+        return 0;
     }
 }
