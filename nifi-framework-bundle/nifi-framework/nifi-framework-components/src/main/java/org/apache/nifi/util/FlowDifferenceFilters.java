@@ -112,12 +112,7 @@ public class FlowDifferenceFilters {
 
     }
 
-    private static boolean supportsDynamicProperties(final ConfigurableComponent component, final String propertyName) {
-        final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
-        if (descriptor != null && descriptor.isDynamic()) {
-            return true;
-        }
-
+    private static boolean supportsDynamicProperties(final ConfigurableComponent component) {
         final Class<?> componentClass = component.getClass();
         return componentClass.isAnnotationPresent(DynamicProperty.class) || componentClass.isAnnotationPresent(DynamicProperties.class);
     }
@@ -474,7 +469,7 @@ public class FlowDifferenceFilters {
             return false;
         }
 
-        if (supportsDynamicProperties(configurableComponent, propertyName)) {
+        if (supportsDynamicProperties(configurableComponent)) {
             return false;
         }
 
