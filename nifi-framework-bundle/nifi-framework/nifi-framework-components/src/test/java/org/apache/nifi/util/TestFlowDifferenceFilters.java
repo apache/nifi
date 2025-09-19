@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
@@ -26,6 +27,9 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
@@ -220,17 +224,13 @@ public class TestFlowDifferenceFilters {
     public void testIsStaticPropertyRemovedFromDefinitionWhenDynamicSupported() {
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
         final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
-        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+        final ConfigurableComponent configurableComponent = new DynamicAnnotationProcessor();
 
         final String propertyName = "Dynamic Property";
         final String instanceId = "processor-instance";
 
-        final PropertyDescriptor dynamicDescriptor = new PropertyDescriptor.Builder().name(propertyName).dynamic(true).build();
-
         Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
         Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
-        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of());
-        Mockito.when(configurableComponent.getPropertyDescriptor(propertyName)).thenReturn(dynamicDescriptor);
 
         final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
         final FlowDifference difference = new StandardFlowDifference(
@@ -241,7 +241,14 @@ public class TestFlowDifferenceFilters {
                 "old",
                 null,
                 "Dynamic property removed");
-
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+    }
+
+    @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
+    private static class DynamicAnnotationProcessor extends AbstractProcessor {
+        @Override
+        public void onTrigger(final ProcessContext context, final ProcessSession session) {
+            // No-op for testing
+        }
     }
 }
