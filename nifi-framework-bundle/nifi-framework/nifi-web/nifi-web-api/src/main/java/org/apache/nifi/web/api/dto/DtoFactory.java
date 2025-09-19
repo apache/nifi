@@ -2803,9 +2803,13 @@ public final class DtoFactory {
 
        final Map<String, VersionedProcessGroup> versionedGroups = flattenProcessGroups(comparison.getFlowA().getContents());
 
-       for (final FlowDifference difference : comparison.getDifferences()) {
+       final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
+       final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
+               FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+
+       for (final FlowDifference difference : comparisonDifferences) {
            // Ignore any environment-specific change
-           if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager)) {
+           if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager, environmentalContext)) {
                continue;
            }
 
