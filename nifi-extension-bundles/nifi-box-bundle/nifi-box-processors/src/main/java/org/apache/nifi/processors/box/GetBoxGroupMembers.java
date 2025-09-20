@@ -34,7 +34,6 @@ import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -66,7 +65,7 @@ import static org.apache.nifi.processors.box.BoxGroupAttributes.GROUP_USER_LOGIN
         @WritesAttribute(attribute = ERROR_CODE, description = "An http error code returned by Box."),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = "An error message returned by Box."),
 })
-public class GetBoxGroupMembers extends AbstractProcessor {
+public class GetBoxGroupMembers extends AbstractBoxProcessor {
 
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name("Group ID")
@@ -78,7 +77,7 @@ public class GetBoxGroupMembers extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            BoxClientService.BOX_CLIENT_SERVICE,
+            BOX_CLIENT_SERVICE,
             GROUP_ID
     );
 
@@ -117,7 +116,7 @@ public class GetBoxGroupMembers extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
     }
 
