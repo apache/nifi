@@ -83,7 +83,6 @@ public class TestQueryRecord {
         return runner;
     }
 
-
     @Test
     public void testRecordPathFunctions() throws InitializationException {
         final Record record = createHierarchicalRecord();
@@ -545,6 +544,117 @@ public class TestQueryRecord {
         final Record output = written.get(0);
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+    @Test
+    public void testSelectOrderRespected() throws InitializationException {
+        final MockRecordParser recordReader = new MockRecordParser();
+        recordReader.addSchemaField("ArticleCode", RecordFieldType.STRING);
+        recordReader.addSchemaField("ProductCode", RecordFieldType.STRING);
+        recordReader.addSchemaField("ArticleName", RecordFieldType.STRING);
+        recordReader.addSchemaField("ProductName", RecordFieldType.STRING);
+        recordReader.addSchemaField("Country", RecordFieldType.STRING);
+        recordReader.addRecord("12345", "10101", "Credit Card", "Porduct Credit", "RO");
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(null);
+
+        final TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT ArticleCode, ArticleName, ProductCode, ProductName, Country FROM FLOWFILE");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record out = written.get(0);
+        assertEquals("12345", out.getAsString("ArticleCode"));
+        assertEquals("Credit Card", out.getAsString("ArticleName"));
+        assertEquals("10101", out.getAsString("ProductCode"));
+        assertEquals("Porduct Credit", out.getAsString("ProductName"));
+        assertEquals("RO", out.getAsString("Country"));
+    }
+
+    @Test
+    public void testUnionAllWithProjection() throws InitializationException {
+        final MockRecordParser recordReader = new MockRecordParser();
+        recordReader.addSchemaField("employeeId", RecordFieldType.STRING);
+        recordReader.addSchemaField("email", RecordFieldType.STRING);
+        recordReader.addSchemaField("englishTrainingTime", RecordFieldType.INT);
+        recordReader.addSchemaField("englishLastOverallProficiencyLevel", RecordFieldType.STRING);
+        recordReader.addSchemaField("frenchTrainingTime", RecordFieldType.INT);
+        recordReader.addSchemaField("frenchLastOverallProficiencyLevel", RecordFieldType.STRING);
+
+        recordReader.addRecord("1234", "xxx.yyyy@zzzz.com", 114828, "B2.1", 406, null);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(null);
+
+        final TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        final String sql = """
+                (
+                  SELECT employeeId,
+                         email,
+                         'en' AS lovCode,
+                         CAST(englishTrainingTime AS INTEGER) AS timeSpent,
+                         englishLastOverallProficiencyLevel AS proficiencyLevel
+                  FROM FLOWFILE
+                  WHERE CAST(englishTrainingTime AS INTEGER) <> 0
+                ) UNION ALL (
+                  SELECT employeeId,
+                         email,
+                         'fr' AS lovCode,
+                         CAST(frenchTrainingTime AS INTEGER) AS timeSpent,
+                         frenchLastOverallProficiencyLevel AS proficiencyLevel
+                  FROM FLOWFILE
+                  WHERE CAST(frenchTrainingTime AS INTEGER) <> 0
+                )
+                """;
+
+        runner.setProperty(REL_NAME, sql);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(2, written.size());
+
+        final Record first = written.get(0);
+        final Record second = written.get(1);
+
+        // Order of UNION ALL output rows may depend on planner, so verify both combinations
+        final boolean enFirst = "en".equals(first.getAsString("lovCode"));
+        final Record en = enFirst ? first : second;
+        final Record fr = enFirst ? second : first;
+
+        assertEquals("en", en.getAsString("lovCode"));
+        assertEquals("1234", en.getAsString("employeeId"));
+        assertEquals("xxx.yyyy@zzzz.com", en.getAsString("email"));
+        assertEquals(114828, en.getAsInt("timeSpent"));
+        assertEquals("B2.1", en.getAsString("proficiencyLevel"));
+
+        assertEquals("fr", fr.getAsString("lovCode"));
+        assertEquals("1234", fr.getAsString("employeeId"));
+        assertEquals("xxx.yyyy@zzzz.com", fr.getAsString("email"));
+        assertEquals(406, fr.getAsInt("timeSpent"));
+        assertEquals(null, fr.getValue("proficiencyLevel"));
     }
 
 

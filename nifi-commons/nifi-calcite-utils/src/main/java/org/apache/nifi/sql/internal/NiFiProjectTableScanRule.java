@@ -19,15 +19,15 @@ package org.apache.nifi.sql.internal;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.List;
 
-class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.Config> {
+public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.Config> {
 
     NiFiProjectTableScanRule(final Config config) {
         super(config);
@@ -35,8 +35,12 @@ class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.Config> 
 
     @Override
     public void onMatch(final RelOptRuleCall call) {
-        final LogicalProject project = call.rel(0);
-        final NiFiTableScan scan = call.rel(1);
+        final Project project = call.rel(0);
+
+        // Attempt to locate NiFiTableScan as immediate input
+        if (!(project.getInput() instanceof NiFiTableScan scan)) {
+            return;
+        }
 
         final int[] fields = getProjectionFields(project.getProjects());
         if (fields == null) {
@@ -66,10 +70,8 @@ class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.Config> 
     }
 
     public interface Config extends RelRule.Config {
-        // This impl comes directly from the Calcite documentation.
         Config DEFAULT = new StandardConfig()
-            .withOperandSupplier(b0 -> b0.operand(LogicalProject.class).oneInput(b1 ->
-                b1.operand(NiFiTableScan.class).noInputs()));
+            .withOperandSupplier(b0 -> b0.operand(Project.class).anyInputs());
 
 
         @Override
