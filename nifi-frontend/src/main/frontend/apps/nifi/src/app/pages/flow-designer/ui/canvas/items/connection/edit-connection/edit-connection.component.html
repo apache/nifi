@@ -16,7 +16,9 @@
   -->
 
 <h2 mat-dialog-title>
-    {{ connectionReadonly || sourceReadonly || destinationReadonly ? 'Connection Details' : 'Edit Connection' }}
+    {{ connectionReadonly 
+    || sourceReadonly  && destinationType != ComponentType.ProcessGroup && destinationType != ComponentType.RemoteProcessGroup
+    || destinationReadonly ? 'Connection Details' : 'Edit Connection' }}
 </h2>
 <form class="edit-connection-form" [formGroup]="editConnectionForm">
     <context-error-banner [context]="ErrorContextKey.CONNECTION"></context-error-banner>
@@ -252,7 +254,9 @@
     </mat-tab-group>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            @if (connectionReadonly || sourceReadonly || destinationReadonly) {
+            @if (connectionReadonly 
+                || sourceReadonly && destinationType != ComponentType.ProcessGroup && destinationType != ComponentType.RemoteProcessGroup
+                || destinationReadonly) {
                 <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
                 <button mat-button mat-dialog-close="CANCELLED">Cancel</button>
