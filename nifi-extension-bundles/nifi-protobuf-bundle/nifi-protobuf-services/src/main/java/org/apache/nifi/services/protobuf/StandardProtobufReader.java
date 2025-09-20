@@ -23,6 +23,8 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -49,6 +51,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -170,6 +174,84 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         return PROTOBUF_SCHEMA_TEXT;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+        final String schemaAccessStrategyValue = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
+
+        // Only validate when using Schema Text property strategy
+        if (SCHEMA_TEXT_PROPERTY.getValue().equals(schemaAccessStrategyValue)) {
+            final PropertyValue schemaTextProperty = validationContext.getProperty(SCHEMA_TEXT);
+            final String schemaTextValue = schemaTextProperty.getValue();
+
+            if (validationContext.isExpressionLanguageSupported(SCHEMA_TEXT.getName())
+                && validationContext.isExpressionLanguagePresent(schemaTextValue)) {
+                return Collections.emptyList();
+            }
+
+            if (schemaTextValue == null || schemaTextValue.isBlank()) {
+                problems.add(new ValidationResult.Builder()
+                    .subject(SCHEMA_TEXT.getDisplayName())
+                    .input(schemaTextValue)
+                    .valid(false)
+                    .explanation("Schema Text cannot be empty when using \"Use 'Schema Text' Property\" strategy")
+                    .build());
+                return problems;
+            }
+
+            try {
+                // Try to compile the schema to validate it's valid protobuf format
+                final String hash = sha256Hex(schemaTextValue);
+                final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
+                    .name(hash + PROTO_EXTENSION)
+                    .build();
+                final Schema compiledSchema = validateSchemaCompiles(schemaIdentifier, schemaTextValue);
+
+                // Validate Message Name if using MESSAGE_NAME_PROPERTY strategy
+                final String messageNameStrategy = validationContext.getProperty(MESSAGE_NAME_RESOLUTION_STRATEGY).getValue();
+                if (MESSAGE_NAME_PROPERTY.getValue().equals(messageNameStrategy)) {
+                    final PropertyValue messageNameProperty = validationContext.getProperty(MESSAGE_NAME);
+                    final String messageNameValue = messageNameProperty.getValue();
+
+                    if (validationContext.isExpressionLanguageSupported(MESSAGE_NAME.getName())
+                        && validationContext.isExpressionLanguagePresent(messageNameValue)) {
+                        return problems;
+                    }
+
+                    if (messageNameValue != null && !messageNameValue.isBlank()) {
+                        // Check if the message name exists in the compiled schema
+                        if (compiledSchema.getType(messageNameValue) == null) {
+                            problems.add(new ValidationResult.Builder()
+                                .subject(MESSAGE_NAME.getDisplayName())
+                                .input(messageNameValue)
+                                .valid(false)
+                                .explanation(String.format("Message name '%s' cannot be found in the provided protobuf schema", messageNameValue))
+                                .build());
+                        }
+                    }
+                }
+
+            } catch (final SchemaCompilationException e) {
+                problems.add(new ValidationResult.Builder()
+                    .subject(SCHEMA_TEXT.getDisplayName())
+                    .input(schemaTextValue)
+                    .valid(false)
+                    .explanation("Invalid protobuf schema format: " + e.getMessage())
+                    .build());
+            }
+        }
+
+        return problems;
+    }
+
+    // Compile the schema to validate it's correct. The method is used only for validation purposes.
+    private Schema validateSchemaCompiles(final SchemaIdentifier schemaIdentifier, final String schemaTextValue) {
+        final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(schemaIdentifier, schemaTextValue, SchemaDefinition.SchemaType.PROTOBUF);
+        // Create a throwaway schema compiler for validation to avoid polluting the main compiler cache.
+        final ProtobufSchemaCompiler validationCompiler = new ProtobufSchemaCompiler(getIdentifier() + "_validation", getLogger());
+        return validationCompiler.compileOrGetFromCache(schemaDefinition);
+    }
+
     private RecordReader createProtobufRecordReader(final Map<String, String> variables, final InputStream in, final SchemaDefinition schemaDefinition) throws IOException {
         final Schema schema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(schema);
@@ -177,7 +259,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         final RecordSchema recordSchema = schemaParser.createSchema(messageName.getFullyQualifiedName());
         return new ProtobufRecordReader(schema, messageName.getFullyQualifiedName(), in, recordSchema);
     }
-
 
     private void setupMessageNameResolver(final ConfigurationContext context) {
         final MessageNameResolverStrategy messageNameResolverStrategy = context.getProperty(MESSAGE_NAME_RESOLUTION_STRATEGY).asAllowableValue(MessageNameResolverStrategy.class);
@@ -252,7 +333,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
             throw new SchemaNotFoundException("Schema name not provided or is blank");
         }
     }
-
 
     enum MessageNameResolverStrategy implements DescribedValue {
 
