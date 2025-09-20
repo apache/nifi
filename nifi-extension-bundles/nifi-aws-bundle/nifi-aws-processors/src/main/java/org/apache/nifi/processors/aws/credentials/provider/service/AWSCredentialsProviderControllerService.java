@@ -36,6 +36,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
@@ -46,6 +47,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.Ex
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.FileCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.ImplicitDefaultCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.NamedProfileCredentialsStrategy;
+import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.WebIdentityCredentialsStrategy;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -68,7 +70,8 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER
 @CapabilityDescription("Defines credentials for Amazon Web Services processors. " +
         "Uses default credentials without configuration. " +
         "Default credentials support EC2 instance profile/role, default user profile, environment variables, etc. " +
-        "Additional options include access key / secret key pairs, credentials file, named profile, and assume role credentials.")
+        "Additional options include access key / secret key pairs, credentials file, named profile, assume role credentials, " +
+        "and OAuth2 OIDC Web Identity-based temporary credentials using the same Assume Role properties.")
 @Tags({ "aws", "credentials", "provider" })
 @Restricted(
     restrictions = {
@@ -220,8 +223,8 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .name("Assume Role Session Time")
         .description("Session time for role based session (between 900 and 3600 seconds). This is used in conjunction with Assume Role ARN.")
         .defaultValue("3600")
-        .required(false)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .required(true)
+        .addValidator(StandardValidators.createLongValidator(900, 3600, true))
         .sensitive(false)
         .dependsOn(ASSUME_ROLE_ARN)
         .build();
@@ -246,6 +249,12 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .dynamicallyModifiesClasspath(true)
         .build();
 
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+        .name("OAuth2 Access Token Provider")
+        .description("Controller Service providing OAuth2/OIDC tokens to exchange for AWS temporary credentials using STS AssumeRoleWithWebIdentity.")
+        .identifiesControllerService(OAuth2AccessTokenProvider.class)
+        .required(false)
+        .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         USE_DEFAULT_CREDENTIALS,
@@ -264,7 +273,8 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         ASSUME_ROLE_STS_ENDPOINT,
         ASSUME_ROLE_STS_SIGNER_OVERRIDE,
         ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME,
-        ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION
+        ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION,
+        OAUTH2_ACCESS_TOKEN_PROVIDER
     );
 
     private volatile ConfigurationContext context;
@@ -272,6 +282,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     private final List<CredentialsStrategy> strategies = List.of(
         // Primary Credential Strategies
+        new WebIdentityCredentialsStrategy(),
         new ExplicitDefaultCredentialsStrategy(),
         new AccessKeyPairCredentialsStrategy(),
         new FileCredentialsStrategy(),
@@ -312,6 +323,9 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     @Override
     public AWSCredentialsProvider getCredentialsProvider() throws ProcessException {
+        if (credentialsProvider == null) {
+            throw new UnsupportedOperationException("AWS Java SDK v1 credentials are not supported by the configured strategy");
+        }
         return credentialsProvider;
     }
 
@@ -354,6 +368,20 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
             }
         }
 
+        // Additional combination checks not handled by individual strategies
+        final boolean oauth2Configured = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+        if (oauth2Configured) {
+            final boolean roleArnSet = validationContext.getProperty(ASSUME_ROLE_ARN).isSet();
+            final boolean roleNameSet = validationContext.getProperty(ASSUME_ROLE_NAME).isSet();
+            if (!roleArnSet || !roleNameSet) {
+                validationFailureResults.add(new ValidationResult.Builder()
+                        .subject(ASSUME_ROLE_ARN.getDisplayName())
+                        .valid(false)
+                        .explanation("Web Identity (OIDC) requires both '" + ASSUME_ROLE_ARN.getDisplayName() + "' and '" + ASSUME_ROLE_NAME.getDisplayName() + "' to be set")
+                        .build());
+            }
+        }
+
         return validationFailureResults;
     }
 
@@ -361,8 +389,16 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     public void onConfigured(final ConfigurationContext context) {
         this.context = context;
 
-        credentialsProvider = createCredentialsProvider(context);
-        getLogger().debug("Using credentials provider: {}", credentialsProvider.getClass());
+        try {
+            credentialsProvider = createCredentialsProvider(context);
+            getLogger().debug("Using credentials provider: {}", credentialsProvider.getClass());
+        } catch (final UnsupportedOperationException e) {
+            // Selected primary strategy may only support AWS SDK v2 (e.g., Web Identity / OIDC)
+            // Leave v1 credentialsProvider unset; v1 callers will receive an UnsupportedOperationException
+            // via getCredentialsProvider(), while v2 callers use getAwsCredentialsProvider().
+            credentialsProvider = null;
+            getLogger().debug("V1 credentials not supported by configured strategy; using AWS SDK v2 provider only");
+        }
     }
 
     private AWSCredentialsProvider createCredentialsProvider(final PropertyContext propertyContext) {
