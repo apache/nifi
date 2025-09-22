@@ -72,8 +72,13 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
         return false;
     }
 
+    /*
+     * Method implementation based on Google Guava com.google.common.hash.Hashing.consistentHash()
+     *
+     * Assigns an index number in the range [0 - (partitions-1)] with a uniform distribution across partitions
+     * while minimizing redistribution if the number of partitions changes.
+     */
     private int findIndex(final long hash, final int partitions) {
-        // Method implementation based on Google Guava com.google.common.hash.Hashing.consistentHash()
         final LinearCongruentialGenerator generator = new LinearCongruentialGenerator(hash);
         int candidate = 0;
 
@@ -84,14 +89,7 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
             if (next >= 0 && next < partitions) {
                 candidate = next;
             } else {
-                final int index;
-                if (candidate == 0) {
-                    index = candidate;
-                } else {
-                    // Adjust index when handling more than one partition
-                    index = candidate - INDEX_OFFSET;
-                }
-                return index;
+                return candidate;
             }
         }
     }
