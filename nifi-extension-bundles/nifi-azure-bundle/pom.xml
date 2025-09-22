@@ -36,7 +36,6 @@
     <modules>
         <module>nifi-azure-processors</module>
         <module>nifi-azure-reporting-task</module>
-        <module>nifi-azure-graph-authorizer</module>
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>
@@ -64,7 +63,7 @@
                 <artifactId>proton-j</artifactId>
                 <version>${qpid.proton.version}</version>
             </dependency>
-            <!-- Set msal4j version for azure-identity and nifi-azure-graph-authorizer -->
+            <!-- Set msal4j version for azure-identity -->
             <dependency>
                 <groupId>com.microsoft.azure</groupId>
                 <artifactId>msal4j</artifactId>

@@ -681,11 +681,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-azure-graph-authorizer</artifactId>
-            <version>2.7.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-parameter-providers</artifactId>
             <version>2.7.0-SNAPSHOT</version>
         </dependency>
