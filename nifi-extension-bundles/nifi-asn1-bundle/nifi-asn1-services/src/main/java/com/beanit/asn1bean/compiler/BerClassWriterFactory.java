@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 
 public class BerClassWriterFactory {
-    public static BerClassWriter createBerClassWriter(HashMap<String, AsnModule> modulesByName, Path asnOutDir) {
+    public static BerClassWriter createBerClassWriter(HashMap<String, AsnModule> modulesByName, Path asnOutDir) { // NOPMD
         BerClassWriter berClassWriter = new BerClassWriter(
                 modulesByName,
                 asnOutDir.toString(),

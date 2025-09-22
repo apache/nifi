@@ -19,7 +19,7 @@ package org.apache.nifi.util;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterLookup;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +30,7 @@ public class MockParameterLookup implements ParameterLookup {
     private final AtomicLong version = new AtomicLong(1);
 
     public MockParameterLookup(final Map<String, String> parameters) {
-        this.parameters = parameters == null ? new HashMap<>() : new HashMap<>(parameters);
+        this.parameters = parameters == null ? Collections.emptyMap() : Collections.unmodifiableMap(parameters);
     }
 
     @Override

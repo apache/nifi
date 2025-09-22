@@ -226,10 +226,6 @@ public class FlowResource extends ApplicationResource {
     @Context
     private ServletContext servletContext;
 
-    public FlowResource() {
-        super();
-    }
-
     /**
      * Populates the remaining fields in the specified process group.
      *
@@ -557,14 +553,13 @@ public class FlowResource extends ApplicationResource {
             @Parameter(
                     description = "The producer for flow file metrics. Each producer may have its own output format.",
                     required = true,
-                    schema = @Schema(allowableValues = {"prometheus", "json"})
+                    schema = @Schema(implementation = FlowMetricsProducer.class)
             )
             @PathParam("producer") final String producer,
             @Parameter(
                     description = "Set of included metrics registries. Duplicate the parameter to include multiple registries. " +
                             "All registries are included by default.",
-
-                    schema = @Schema(allowableValues = {"NIFI", "JVM", "BULLETIN", "CONNECTION", "CLUSTER"})
+                    schema = @Schema(implementation = FlowMetricsRegistry.class)
             )
             @QueryParam("includedRegistries") final Set<FlowMetricsRegistry> includedRegistries,
             @Parameter(

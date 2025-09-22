@@ -35,7 +35,6 @@ import {
 } from '../state/advanced-ui-parameters/advanced-ui-parameters.actions';
 import { selectRulesState } from '../state/rules/rules.selectors';
 import { selectEvaluationContextState } from '../state/evaluation-context/evaluation-context.selectors';
-import { NfEl } from '../ui/ua-editor/modes/nfel';
 
 @Component({
     selector: 'update-attribute',
@@ -48,10 +47,7 @@ export class UpdateAttribute implements OnDestroy {
     evaluationContextState = this.store.selectSignal(selectEvaluationContextState);
     editable = this.store.selectSignal(selectEditable);
 
-    constructor(
-        private store: Store<UpdateAttributeApplicationState>,
-        private nfel: NfEl // note: nfel is referenced here to ensure the el function details are loaded when the application loads
-    ) {
+    constructor(private store: Store<UpdateAttributeApplicationState>) {
         this.store
             .select(selectAdvancedUiParametersFromRoute)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())

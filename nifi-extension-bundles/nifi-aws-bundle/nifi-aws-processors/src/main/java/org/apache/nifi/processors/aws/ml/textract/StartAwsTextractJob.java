@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
@@ -56,8 +57,7 @@ public class StartAwsTextractJob extends AbstractAwsMachineLearningJobStarter<
     public static final String TEXTRACT_TYPE_ATTRIBUTE = "awsTextractType";
 
     public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
-            .name("textract-type")
-            .displayName("Textract Type")
+            .name("Textract Type")
             .required(true)
             .description("Supported values: \"Document Analysis\", \"Document Text Detection\", \"Expense Analysis\"")
             .allowableValues(TextractType.TEXTRACT_TYPES)
@@ -71,6 +71,12 @@ public class StartAwsTextractJob extends AbstractAwsMachineLearningJobStarter<
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("textract-type", TEXTRACT_TYPE.getName());
     }
 
     @Override

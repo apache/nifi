@@ -88,13 +88,13 @@
                                                 <i class="fa fa-align-left"></i>
                                             </button>
                                         </div>
-                                        <div class="relative flex-1">
-                                            <div class="jolt-spec-editor h-full w-full absolute overflow-auto">
-                                                <ngx-codemirror
+                                        <div class="flex flex-col flex-1">
+                                            <div class="h-full">
+                                                <codemirror
                                                     formControlName="specification"
-                                                    [options]="getJoltSpecOptions()"
+                                                    [config]="joltSpecConfig"
                                                     (mousedown)="preventDrag($event)"
-                                                    (codeMirrorLoaded)="initSpecEditor($event)"></ngx-codemirror>
+                                                    (ready)="initSpecEditor($event)" />
                                             </div>
                                         </div>
                                     </div>
@@ -250,11 +250,11 @@
                                                 </button>
                                             </div>
                                             <div class="input-editor">
-                                                <ngx-codemirror
+                                                <codemirror
                                                     formControlName="input"
-                                                    [options]="getExampleDataOptions()"
+                                                    [config]="exampleDataConfig"
                                                     (mousedown)="preventDrag($event)"
-                                                    (codeMirrorLoaded)="initInputEditor($event)"></ngx-codemirror>
+                                                    (ready)="initInputEditor($event)" />
                                             </div>
                                         </div>
                                     </mat-expansion-panel>
@@ -369,17 +369,17 @@
                         </mat-card-header>
                         <mat-card-content class="grow">
                             <div class="h-full flex">
-                                <div class="relative mt-4 flex-1">
-                                    <div class="output-editor h-full w-full absolute overflow-auto">
-                                        <ngx-codemirror
+                                <div class="mt-4 flex flex-col flex-1">
+                                    <div class="h-full">
+                                        <codemirror
                                             [ngModel]="
                                                 joltState.transform().transformationResponse
                                                     ? (joltState.transform().transformationResponse | json)
                                                     : ''
                                             "
                                             [ngModelOptions]="{ standalone: true }"
-                                            [options]="getOutputOptions()"
-                                            (mousedown)="preventDrag($event)"></ngx-codemirror>
+                                            [config]="outputConfig"
+                                            (mousedown)="preventDrag($event)" />
                                     </div>
                                 </div>
                             </div>

@@ -108,7 +108,7 @@ class SNMPTrapReceiverTest {
         when(mockAddress.toString()).thenReturn("127.0.0.1/62");
         when(mockAddress.isValid()).thenReturn(true);
 
-        final Vector<VariableBinding> vbs = new Vector<>();
+        final List<VariableBinding> vbs = new Vector<>();
         doReturn(vbs).when(mockV1Pdu).getVariableBindings();
         when(mockEvent.getPDU()).thenReturn(mockV1Pdu);
         when(mockEvent.getPeerAddress()).thenReturn(mockAddress);
@@ -132,7 +132,7 @@ class SNMPTrapReceiverTest {
         when(mockPdu.getType()).thenReturn(PDU.TRAP);
         when(mockPdu.getErrorIndex()).thenReturn(123);
         when(mockPdu.getErrorStatusText()).thenReturn("test error status text");
-        final Vector<VariableBinding> vbs = new Vector<>();
+        final List<VariableBinding> vbs = new Vector<>();
 
         final Address mockAddress = mock(Address.class);
         when(mockAddress.toString()).thenReturn("127.0.0.1/62");
@@ -164,7 +164,7 @@ class SNMPTrapReceiverTest {
         final Address mockAddress = mock(Address.class);
         when(mockAddress.isValid()).thenReturn(false);
 
-        final Vector<VariableBinding> vbs = new Vector<>();
+        final List<VariableBinding> vbs = new Vector<>();
         doReturn(vbs).when(mockPdu).getVariableBindings();
         when(mockEvent.getPDU()).thenReturn(mockPdu);
         when(mockEvent.getPeerAddress()).thenReturn(mockAddress);

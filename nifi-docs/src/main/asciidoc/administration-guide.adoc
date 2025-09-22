@@ -80,7 +80,7 @@ The binary build of Apache NiFi that is provided by the Apache mirrors does not 
 
 Java 21 is required for building and running Apache NiFi.
 
-The next step is to download a copy of the Apache NiFi source code from the https://nifi.apache.org/download.html[NiFi Downloads page]. The reason you need the source build is that it includes a module called `nifi-assembly` which is the Maven module that builds a binary distribution. Expand the archive and run a Maven clean build. The following example shows how to build a distribution that activates the `graph` and `media` bundle profiles to add in support for graph databases and Apache Tika content and metadata extraction.
+The next step is to download a copy of the Apache NiFi source code from the https://nifi.apache.org/download/[NiFi Downloads page]. The reason you need the source build is that it includes a module called `nifi-assembly` which is the Maven module that builds a binary distribution. Expand the archive and run a Maven clean build. The following example shows how to build a distribution that activates the `graph` and `media` bundle profiles to add in support for graph databases and Apache Tika content and metadata extraction.
 
 `cd <nifi_source_folder>/nifi-assembly`
 
@@ -2865,6 +2865,7 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.flow.configuration.archive.max.count`*|The number of archive files allowed. NiFi will delete the oldest archive files so that only N latest archives can be kept, if this property is specified.
 |`nifi.flowcontroller.autoResumeState`|Indicates whether -upon restart- the components on the NiFi graph should return to their last state. When running in cluster, all nodes should have the same value. The default value is `true`.
 |`nifi.flowcontroller.graceful.shutdown.period`|Indicates the shutdown period. The default value is `10 secs`.
+|`nifi.flowcontroller.registry.sync.interval`|Specifies the recurring interval at which NiFi synchronizes the flow configuration with Flow Registry Clients. The default value is `30 min`.
 |`nifi.flowservice.writedelay.interval`|When many changes are made to the _flow.json_, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
 |`nifi.administrative.yield.duration`|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is `30 secs`.
 |`nifi.bored.yield.duration`|When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is `10 ms`.
@@ -2945,14 +2946,6 @@ NOTE: Switching repository implementations should only be done on an instance wi
 
 |====
 |*Property*|*Description*
-|`nifi.flowfile.repository.wal.implementation`|If the repository implementation is configured to use the `WriteAheadFlowFileRepository`, this property can be used to specify which implementation of the
-Write-Ahead Log should be used. The default value is `org.apache.nifi.wali.SequentialAccessWriteAheadLog`. This version of the write-ahead log was added in version 1.6.0 of Apache NiFi and was developed
-in order to address an issue that exists in the older implementation. In the event of power loss or an operating system crash, the old implementation was susceptible to recovering FlowFiles
-incorrectly. This could potentially lead to the wrong attributes or content being assigned to a FlowFile upon restart, following the power loss or OS crash. However, one can still choose to opt into
-using the previous implementation and accept that risk, if desired (for example, if the new implementation were to exhibit some unexpected error).
-To do so, set the value of this property to `org.wali.MinimalLockingWriteAheadLog`. Another available implementation is `org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog`.
-If the value of this property is changed, upon restart, NiFi will still recover the records written using the previously configured repository and delete the files written by the previously configured
-implementation.
 |`nifi.flowfile.repository.directory`*|The location of the FlowFile Repository. The default value is `./flowfile_repository`.
 |`nifi.flowfile.repository.checkpoint.interval`| The FlowFile Repository checkpoint interval. The default value is `20 secs`.
 |`nifi.flowfile.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
@@ -3848,7 +3841,7 @@ On your existing NiFi installation:
 
 Install the new NiFi into a directory parallel to the existing NiFi installation.
 
-1. Download the link:https://nifi.apache.org/download.html[latest version^] of Apache NiFi.
+1. Download the link:https://nifi.apache.org/download/[latest version^] of Apache NiFi.
 2. Uncompress the NiFi _.tar_ file (`tar -xvzf file-name`) into a directory parallel to your existing NiFi directory. For example, if your existing NiFi installation is installed in `/opt/nifi/existing-nifi/`, install your new NiFi version in `/opt/nifi/new-nifi/`.
 3. If you are upgrading a NiFi cluster, repeat these steps on each node in the cluster.
 

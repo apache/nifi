@@ -91,13 +91,15 @@ public class TestRouteText {
             assertTrue(expectedRelationships.contains(relationship.getName()));
         }
 
-        runner.enqueue(Paths.get("src/test/resources/simple.jpg"));
+        final byte[] binary = new byte[]{-1, -40, -1, -32};
+
+        runner.enqueue(binary);
         runner.run();
 
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
-        final MockFlowFile outOriginal = runner.getFlowFilesForRelationship("original").get(0);
-        outOriginal.assertContentEquals(Paths.get("src/test/resources/simple.jpg"));
+        final MockFlowFile outOriginal = runner.getFlowFilesForRelationship("original").getFirst();
+        outOriginal.assertContentEquals(binary);
     }
 
     @Test

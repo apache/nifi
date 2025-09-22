@@ -104,7 +104,6 @@ public class LogAttribute extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor OUTPUT_FORMAT = new PropertyDescriptor.Builder()
             .name("Output Format")
-            .displayName("Output Format")
             .description("Specifies the format to use for logging FlowFile attributes")
             .required(true)
             .allowableValues(OUTPUT_FORMAT_LINE_PER_ATTRIBUTE, OUTPUT_FORMAT_SINGLE_LINE)
@@ -119,7 +118,6 @@ public class LogAttribute extends AbstractProcessor {
             .build();
     static final PropertyDescriptor LOG_FLOWFILE_PROPERTIES = new PropertyDescriptor.Builder()
             .name("Log FlowFile Properties")
-            .displayName("Log FlowFile Properties")
             .description("Specifies whether or not to log FlowFile \"properties\", such as Entry Date, Lineage Start Date, and content size")
             .required(true)
             .allowableValues("true", "false")

@@ -177,21 +177,11 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getSQLForDataType(int sqlType) {
-        switch (sqlType) {
-            case CHAR:
-            case LONGNVARCHAR:
-            case LONGVARCHAR:
-            case NCHAR:
-            case NVARCHAR:
-            case VARCHAR:
-            case CLOB:
-            case NCLOB:
-            case OTHER:
-            case SQLXML:
+        return switch (sqlType) {
+            case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML ->
                 // Derby must have a max length specified
-                return "VARCHAR(100)";
-            default:
-                return JDBCType.valueOf(sqlType).getName();
-        }
+                    "VARCHAR(100)";
+            default -> JDBCType.valueOf(sqlType).getName();
+        };
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.commons.lang3.Strings;
+import org.apache.nifi.cluster.manager.PermissionsDtoMerger;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -29,31 +30,55 @@ import java.util.Map;
 public class ParameterProviderMerger {
 
     public static void merge(final ParameterProviderEntity target, final ParameterProviderEntity otherEntity) {
+        if (target == null || otherEntity == null) {
+            return;
+        }
+
+        // Merge permissions first to ensure consistent visibility decisions
+        if (target.getPermissions() != null && otherEntity.getPermissions() != null) {
+            PermissionsDtoMerger.mergePermissions(target.getPermissions(), otherEntity.getPermissions());
+        }
+
+        // If either side has no readable component, clear the component on the target
+        if (!Boolean.TRUE.equals(target.getPermissions() != null ? target.getPermissions().getCanRead() : Boolean.TRUE)
+                || target.getComponent() == null || otherEntity.getComponent() == null) {
+            target.setComponent(null);
+            return;
+        }
+
         final Collection<ParameterGroupConfigurationEntity> targetParameterGroupConfigurations = target.getComponent().getParameterGroupConfigurations();
-        if (targetParameterGroupConfigurations != null) {
-            if (otherEntity.getComponent().getParameterGroupConfigurations() != null) {
-                final Iterator<ParameterGroupConfigurationEntity> otherGroupIterator = otherEntity.getComponent().getParameterGroupConfigurations().iterator();
-                for (final ParameterGroupConfigurationEntity parameterGroupConfiguration : targetParameterGroupConfigurations) {
-                    if (!otherGroupIterator.hasNext()) {
-                        continue;
-                    }
-                    ParameterGroupConfigurationEntity otherConfiguration = otherGroupIterator.next();
-                    if (!Strings.CS.equals(parameterGroupConfiguration.getGroupName(), otherConfiguration.getGroupName())) {
-                        continue;
-                    }
-                    final Map<String, ParameterSensitivity> targetParameterSensitivities = parameterGroupConfiguration.getParameterSensitivities();
-                    if (targetParameterSensitivities != null) {
-                        if (otherConfiguration.getGroupName() != null) {
-                            targetParameterSensitivities.keySet().retainAll(otherConfiguration.getParameterSensitivities().keySet());
-                        }
-                        parameterGroupConfiguration.setParameterSensitivities(new LinkedHashMap<>());
-                        targetParameterSensitivities.keySet().stream()
-                                .sorted()
-                                .forEach(paramName -> parameterGroupConfiguration.getParameterSensitivities()
-                                        .put(paramName, targetParameterSensitivities.get(paramName)));
-                    }
-                }
+        final Collection<ParameterGroupConfigurationEntity> otherParameterGroupConfigurations = otherEntity.getComponent().getParameterGroupConfigurations();
+
+        if (targetParameterGroupConfigurations == null || otherParameterGroupConfigurations == null) {
+            return;
+        }
+
+        final Iterator<ParameterGroupConfigurationEntity> otherGroupIterator = otherParameterGroupConfigurations.iterator();
+        for (final ParameterGroupConfigurationEntity parameterGroupConfiguration : targetParameterGroupConfigurations) {
+            if (!otherGroupIterator.hasNext()) {
+                continue;
             }
+
+            final ParameterGroupConfigurationEntity otherConfiguration = otherGroupIterator.next();
+            if (!Strings.CS.equals(parameterGroupConfiguration.getGroupName(), otherConfiguration.getGroupName())) {
+                continue;
+            }
+
+            final Map<String, ParameterSensitivity> targetParameterSensitivities = parameterGroupConfiguration.getParameterSensitivities();
+            final Map<String, ParameterSensitivity> otherParameterSensitivities = otherConfiguration.getParameterSensitivities();
+
+            if (targetParameterSensitivities == null || otherParameterSensitivities == null) {
+                continue;
+            }
+
+            // Keep only the parameters present on both, then sort keys deterministically
+            targetParameterSensitivities.keySet().retainAll(otherParameterSensitivities.keySet());
+
+            parameterGroupConfiguration.setParameterSensitivities(new LinkedHashMap<>());
+            targetParameterSensitivities.keySet().stream()
+                .sorted()
+                .forEach(paramName -> parameterGroupConfiguration.getParameterSensitivities()
+                    .put(paramName, targetParameterSensitivities.get(paramName)));
         }
     }
 }

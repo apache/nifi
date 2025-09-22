@@ -83,7 +83,6 @@ public class DeleteSFTP extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY_PATH = new PropertyDescriptor.Builder()
             .name("Directory Path")
-            .displayName("Directory Path")
             .description("The path to the directory the file to delete is located in.")
             .required(true)
             .defaultValue("${" + CoreAttributes.PATH.key() + "}")
@@ -92,7 +91,6 @@ public class DeleteSFTP extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
-            .displayName("Filename")
             .description("The name of the file to delete.")
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")

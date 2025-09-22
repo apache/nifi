@@ -71,7 +71,6 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Database Name")
-        .displayName("Mongo Database Name")
         .description("The name of the database to use")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -109,7 +108,6 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .displayName("Batch Size")
             .description("The number of elements returned from the server in one batch.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)

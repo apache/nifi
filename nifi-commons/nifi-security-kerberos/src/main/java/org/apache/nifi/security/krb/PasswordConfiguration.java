@@ -19,6 +19,7 @@ package org.apache.nifi.security.krb;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * JAAS Configuration to use when logging in with username/password.
@@ -27,7 +28,7 @@ public class PasswordConfiguration extends Configuration {
 
     @Override
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-        HashMap<String, String> options = new HashMap<>();
+        Map<String, String> options = new HashMap<>();
         options.put("storeKey", "true");
         options.put("refreshKrb5Config", "true");
 

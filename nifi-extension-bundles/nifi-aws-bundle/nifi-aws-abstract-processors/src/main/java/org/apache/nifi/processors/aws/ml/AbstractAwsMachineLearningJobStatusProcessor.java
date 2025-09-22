@@ -48,8 +48,7 @@ public abstract class AbstractAwsMachineLearningJobStatusProcessor<
                     .build();
     public static final PropertyDescriptor TASK_ID =
             new PropertyDescriptor.Builder()
-                    .name("awsTaskId")
-                    .displayName("AWS Task ID")
+                    .name("AWS Task ID")
                     .defaultValue("${awsTaskId}")
                     .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -98,7 +97,8 @@ public abstract class AbstractAwsMachineLearningJobStatusProcessor<
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
-        config.renameProperty("aws-region", REGION.getName());
+        super.migrateProperties(config);
+        config.renameProperty("awsTaskId", TASK_ID.getName());
     }
 
     @Override

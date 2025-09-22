@@ -19,8 +19,11 @@ on:
   push:
     paths:
       - '.github/workflows/docker-tests.yml'
+      - 'pom.xml'
       - 'nifi-assembly/**'
       - 'nifi-docker/**'
+      - 'nifi-registry/pom.xml'
+      - 'nifi-registry/nifi-registry-core/**'
       - 'nifi-registry/nifi-registry-assembly/**'
       - 'nifi-registry/nifi-registry-docker-maven/**'
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
@@ -30,8 +33,11 @@ on:
   pull_request:
     paths:
       - '.github/workflows/docker-tests.yml'
+      - 'pom.xml'
       - 'nifi-assembly/**'
       - 'nifi-docker/**'
+      - 'nifi-registry/pom.xml'
+      - 'nifi-registry/nifi-registry-core/**'
       - 'nifi-registry/nifi-registry-assembly/**'
       - 'nifi-registry/nifi-registry-docker-maven/**'
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
@@ -85,6 +91,8 @@ env:
     -pl nifi-docker/dockermaven
     -pl nifi-registry/nifi-registry-docker-maven/dockermaven
 
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -95,7 +103,7 @@ permissions:
 jobs:
   build_and_test:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Ubuntu Java 21
     steps:
       - name: Checkout Code

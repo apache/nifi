@@ -110,6 +110,9 @@ public class StandardProcessorTestRunner implements TestRunner {
     // This only for testing purposes as we don't want to set env/sys variables in the tests
     private final Map<String, String> environmentVariables = new HashMap<>();
 
+    // This is only for testing purposes to simulate parameters coming from parameter contexts
+    private final Map<String, String> contextParameters = Collections.synchronizedMap(new HashMap<>());
+
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
     }
@@ -126,6 +129,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this(processor, processorName, logger, null);
     }
 
+
     StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
@@ -134,7 +138,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.processorStateManager = new MockStateManager(processor);
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits, allowRecursiveReads);
 
-        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, environmentVariables, contextParameters);
         this.kerberosContext = kerberosContext;
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger, kerberosContext);
@@ -515,7 +519,11 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final InputStream data, final Map<String, String> attributes) {
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor, enforceReadStreamsClosed, processorStateManager);
+        final SharedSessionState sessionState = new SharedSessionState(processor, idGenerator);
+        final MockProcessSession session = MockProcessSession.builder(sessionState, processor)
+                .enforceStreamsClosed(enforceReadStreamsClosed)
+                .stateManager(processorStateManager)
+                .build();
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);
@@ -1057,6 +1065,17 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setEnvironmentVariableValue(String name, String value) {
         environmentVariables.put(name, value);
+    }
+
+    @Override
+    public String getParameterContextValue(final String name) {
+        Objects.requireNonNull(name);
+        return contextParameters.get(name);
+    }
+
+    @Override
+    public void setParameterContextValue(String name, String value) {
+        contextParameters.put(name, value);
     }
 
     /**

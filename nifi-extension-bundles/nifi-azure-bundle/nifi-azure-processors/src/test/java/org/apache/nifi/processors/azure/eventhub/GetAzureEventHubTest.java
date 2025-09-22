@@ -22,12 +22,14 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionEvent;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,10 +40,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -55,7 +59,7 @@ public class GetAzureEventHubTest {
     private static final String CONSUMER_GROUP = "$Default";
     private static final Instant ENQUEUED_TIME = Instant.now();
     private static final long SEQUENCE_NUMBER = 32;
-    private static final long OFFSET = 64;
+    private static final String OFFSET = "64";
     private static final String PARTITION_ID = "0";
     private static final String CONTENT = String.class.getSimpleName();
 
@@ -91,6 +95,21 @@ public class GetAzureEventHubTest {
         testRunner.assertValid();
     }
 
+    @Test
+    void testMigration() {
+        TestRunner testRunner = TestRunners.newTestRunner(GetAzureEventHub.class);
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        final Map<String, String> expected = Map.of(
+                "Event Hub Consumer Group", GetAzureEventHub.CONSUMER_GROUP.getName(),
+                "Event Hub Message Enqueue Time", GetAzureEventHub.ENQUEUE_TIME.getName(),
+                "Partition Recivier Fetch Size", GetAzureEventHub.RECEIVER_FETCH_SIZE.getName(),
+                "Partition Receiver Timeout (millseconds)", GetAzureEventHub.RECEIVER_FETCH_TIMEOUT.getName(),
+                AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, GetAzureEventHub.POLICY_PRIMARY_KEY.getName(),
+                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, GetAzureEventHub.USE_MANAGED_IDENTITY.getName()
+        );
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
     private void configureProxyControllerService() throws InitializationException {
         final String serviceId = "proxyConfigurationService";
         final ProxyConfiguration proxyConfiguration = mock(ProxyConfiguration.class);
@@ -135,7 +154,7 @@ public class GetAzureEventHubTest {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetAzureEventHub.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(CONTENT);
         flowFile.assertAttributeEquals("eventhub.enqueued.timestamp", ENQUEUED_TIME.toString());
-        flowFile.assertAttributeEquals("eventhub.offset", Long.toString(OFFSET));
+        flowFile.assertAttributeEquals("eventhub.offset", OFFSET);
         flowFile.assertAttributeEquals("eventhub.sequence", Long.toString(SEQUENCE_NUMBER));
         flowFile.assertAttributeEquals("eventhub.name", EVENT_HUB_NAME);
     }
@@ -217,7 +236,7 @@ public class GetAzureEventHubTest {
         }
 
         @Override
-        public Long getOffset() {
+        public String getOffsetString() {
             return OFFSET;
         }
 

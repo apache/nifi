@@ -108,6 +108,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
+    @Override
     public void setup() {
         if (scriptNeedsReload.get() || recordSink.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
@@ -124,6 +125,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
      * @param scriptBody An input stream associated with the script content
      * @return Whether the script was successfully reloaded
      */
+    @Override
     protected boolean reloadScript(final String scriptBody) {
         // note we are starting here with a fresh listing of validation
         // results since we are (re)loading a new/updated script. any

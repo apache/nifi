@@ -37,6 +37,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         collection.insertMany(DOCUMENTS);
     }
 
+    @Override
     @AfterEach
     public void teardown() {
         super.teardown();

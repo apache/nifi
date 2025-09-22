@@ -29,6 +29,7 @@ import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
@@ -55,7 +56,6 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Connection Pooling Service")
-            .displayName("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the database for retrieving table information.")
             .required(true)
             .identifiesControllerService(DBCPService.class)
@@ -63,7 +63,6 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
     static final PropertyDescriptor CATALOG_NAME = new PropertyDescriptor.Builder()
             .name("Catalog Name")
-            .displayName("Catalog Name")
             .description("The name of the catalog used to locate the desired table. This may not apply for the database that you are querying. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
             .required(false)
@@ -73,7 +72,6 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
     static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
             .name("Schema Name")
-            .displayName("Schema Name")
             .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly. Also notice that if the same table name exists in multiple "
                     + "schemas and Schema Name is not specified, the service will find those tables and give an error if the different tables have the same column name(s).")
@@ -140,7 +138,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
             final List<RecordField> recordFields = new ArrayList<>();
             while (columnResultSet.next()) {
-                recordFields.add(createRecordFieldFromColumn(columnResultSet));
+                recordFields.add(createRecordFieldFromColumn(columnResultSet, tableName));
             }
 
             // If no columns are found, check that the table exists
@@ -151,7 +149,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         }
     }
 
-    private RecordField createRecordFieldFromColumn(final ResultSet columnResultSet) throws SQLException {
+    private RecordField createRecordFieldFromColumn(final ResultSet columnResultSet, final String tableName) throws SQLException {
         // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
         final String defaultValue = columnResultSet.getString("COLUMN_DEF");
         final String columnName = columnResultSet.getString("COLUMN_NAME");
@@ -162,12 +160,25 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         } else {
             dataType = columnResultSet.getInt("DATA_TYPE");
         }
+        final DataType fieldDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(dataType);
         final String nullableValue = columnResultSet.getString("IS_NULLABLE");
         final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
+
+        final String fieldDefaultValue;
+
+        if (defaultValue == null) {
+            fieldDefaultValue = null;
+        } else if (DataTypeUtils.isCompatibleDataType(defaultValue, fieldDataType)) {
+            fieldDefaultValue = defaultValue;
+        } else {
+            getLogger().info("Table [{}] Column [{}] Default Value [{}] not compatible with Data Type [{}]", tableName, columnName, defaultValue, fieldDataType);
+            fieldDefaultValue = null;
+        }
+
         return new RecordField(
                 columnName,
-                DataTypeUtils.getDataTypeFromSQLTypeValue(dataType),
-                defaultValue,
+                fieldDataType,
+                fieldDefaultValue,
                 isNullable);
     }
 

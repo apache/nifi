@@ -281,7 +281,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
             .name("Output MIME Type")
-            .displayName("Output MIME Type")
             .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Output Destination Attribute' is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -360,8 +359,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             return;
         }
 
-        final ArrayList<String> args = new ArrayList<>();
-        final ArrayList<String> argumentAttributeValue = new ArrayList<>();
+        final List<String> args = new ArrayList<>();
+        final List<String> argumentAttributeValue = new ArrayList<>();
         final boolean putToAttribute = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).isSet();
         final PropertyValue argumentsStrategyPropertyValue = context.getProperty(ARGUMENTS_STRATEGY);
         final boolean useDynamicPropertyArguments = argumentsStrategyPropertyValue.isSet() && argumentsStrategyPropertyValue.getValue().equals(DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());

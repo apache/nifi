@@ -358,11 +358,13 @@ public class ListenHTTPServlet extends HttpServlet {
 
             // put metadata on flowfile
             final String nameVal = request.getHeader(CoreAttributes.FILENAME.key());
-            if (StringUtils.isNotBlank(nameVal)) {
+            // Favor filename extracted from unpackager over filename in header
+            if (StringUtils.isBlank(attributes.get(CoreAttributes.FILENAME.key())) && StringUtils.isNotBlank(nameVal)) {
                 attributes.put(CoreAttributes.FILENAME.key(), nameVal);
             }
 
-            String sourceSystemFlowFileIdentifier = attributes.remove(CoreAttributes.UUID.key());
+            String sourceSystemFlowFileIdentifier = request.getHeader(CoreAttributes.UUID.key()) == null
+                    ? attributes.remove(CoreAttributes.UUID.key()) : request.getHeader(CoreAttributes.UUID.key());
             if (sourceSystemFlowFileIdentifier != null) {
                 sourceSystemFlowFileIdentifier = "urn:nifi:" + sourceSystemFlowFileIdentifier; //NOPMD
             }

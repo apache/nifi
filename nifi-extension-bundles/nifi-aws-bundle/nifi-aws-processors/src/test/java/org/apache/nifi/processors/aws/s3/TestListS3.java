@@ -45,6 +45,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -838,5 +839,27 @@ public class TestListS3 {
         }
 
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(new ObjectListing());
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.ofEntries(Map.entry("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName()),
+                        Map.entry("custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName()),
+                        Map.entry("listing-strategy", ListS3.LISTING_STRATEGY.getName()),
+                        Map.entry("delimiter", ListS3.DELIMITER.getName()),
+                        Map.entry("prefix", ListS3.PREFIX.getName()),
+                        Map.entry("use-versions", ListS3.USE_VERSIONS.getName()),
+                        Map.entry("list-type", ListS3.LIST_TYPE.getName()),
+                        Map.entry("min-age", ListS3.MIN_AGE.getName()),
+                        Map.entry("max-age", ListS3.MAX_AGE.getName()),
+                        Map.entry("write-s3-object-tags", ListS3.WRITE_OBJECT_TAGS.getName()),
+                        Map.entry("requester-pays", ListS3.REQUESTER_PAYS.getName()),
+                        Map.entry("write-s3-user-metadata", ListS3.WRITE_USER_METADATA.getName()),
+                        Map.entry("record-writer", ListS3.RECORD_WRITER.getName()));
+
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 }

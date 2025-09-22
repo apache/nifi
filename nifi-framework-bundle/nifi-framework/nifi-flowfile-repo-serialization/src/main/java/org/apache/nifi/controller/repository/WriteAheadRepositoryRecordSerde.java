@@ -374,17 +374,12 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
     }
 
     private RepositoryRecordType getRecordType(final int serializedUpdateType) {
-        switch (serializedUpdateType) {
-            case ACTION_CREATE:
-                return RepositoryRecordType.CREATE;
-            case ACTION_SWAPPED_IN:
-                return RepositoryRecordType.SWAP_IN;
-            case ACTION_SWAPPED_OUT:
-                return RepositoryRecordType.SWAP_OUT;
-            case ACTION_UPDATE:
-            default:
-                return RepositoryRecordType.UPDATE;
-        }
+        return switch (serializedUpdateType) {
+            case ACTION_CREATE -> RepositoryRecordType.CREATE;
+            case ACTION_SWAPPED_IN -> RepositoryRecordType.SWAP_IN;
+            case ACTION_SWAPPED_OUT -> RepositoryRecordType.SWAP_OUT;
+            default -> RepositoryRecordType.UPDATE;
+        };
     }
 
     @Override

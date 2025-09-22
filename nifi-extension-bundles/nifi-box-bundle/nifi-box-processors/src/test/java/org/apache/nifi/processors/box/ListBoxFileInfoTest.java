@@ -42,6 +42,7 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
 
     private static final String RECORD_WRITER_ID = "record-writer";
 
+    @Override
     @BeforeEach
     void setUp() throws Exception {
         final ListBoxFileInfo testSubject = new ListBoxFileInfo() {

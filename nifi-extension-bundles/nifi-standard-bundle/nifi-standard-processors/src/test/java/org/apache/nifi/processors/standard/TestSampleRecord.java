@@ -266,7 +266,7 @@ public class TestSampleRecord {
         Random randomAge = new Random();
         final List<Record> records = new ArrayList<>(100);
         for (int i = 0; i < 100; i++) {
-            HashMap<String, Object> recordMap = new HashMap<>();
+            Map<String, Object> recordMap = new HashMap<>();
             Object name = UUID.randomUUID();
             Object age = randomAge.nextInt();
             recordMap.put("name", name);

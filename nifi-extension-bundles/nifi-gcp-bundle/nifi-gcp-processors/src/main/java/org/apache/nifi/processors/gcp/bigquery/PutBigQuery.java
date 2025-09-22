@@ -38,6 +38,7 @@ import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.cloud.bigquery.storage.v1.ProtoSchemaConverter;
 import com.google.cloud.bigquery.storage.v1.StorageError;
 import com.google.cloud.bigquery.storage.v1.StreamWriter;
+import com.google.cloud.bigquery.storage.v1.TableFieldSchema;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.cloud.bigquery.storage.v1.WriteStream;
@@ -76,6 +77,7 @@ import java.net.Proxy;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -281,7 +283,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     }
 
     private DynamicMessage recordToProtoMessage(Record record, Descriptors.Descriptor descriptor, boolean skipInvalidRows, TableSchema tableSchema) {
-        Map<String, Object> valueMap = convertMapRecord(record.toMap());
+        Map<String, Object> valueMap = convertMapRecord(record.toMap(), tableSchema.getFieldsList());
         DynamicMessage message = null;
         try {
             message = ProtoUtils.createMessage(descriptor, valueMap, tableSchema);
@@ -359,12 +361,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             this.appendContext = appendContext;
         }
 
+        @Override
         public void onSuccess(AppendRowsResponse response) {
             getLogger().info("Append success with offset: {}", appendContext.getOffset());
             appendSuccessCount.incrementAndGet();
             inflightRequestCount.arriveAndDeregister();
         }
 
+        @Override
         public void onFailure(Throwable throwable) {
             // If the state is INTERNAL, CANCELLED, or ABORTED, you can retry. For more information,
             // see: https://grpc.github.io/grpc-java/javadoc/io/grpc/StatusRuntimeException.html
@@ -381,10 +385,25 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             }
 
             error.compareAndSet(null, Optional.ofNullable(Exceptions.toStorageException(throwable))
-                .map(RuntimeException.class::cast)
-                .orElse(new RuntimeException(throwable)));
+                    .map(RuntimeException.class::cast)
+                    .orElse(new RuntimeException(throwable)));
 
-            getLogger().error("Failure during appending data", throwable);
+            // Provide detailed row-level error logging when available from the client
+            if (throwable instanceof Exceptions.AppendSerializationError) {
+                try {
+                    final Exceptions.AppendSerializationError serializationError = (Exceptions.AppendSerializationError) throwable;
+                    final Map<Integer, String> rowErrors = serializationError.getRowIndexToErrorMessage();
+                    if (rowErrors != null && !rowErrors.isEmpty()) {
+                        final String firstError = rowErrors.values().iterator().next();
+                        getLogger().error("Failure during appending data. First error: %s".formatted(firstError), throwable);
+                    }
+                } catch (Throwable logError) {
+                    getLogger().error("Failure during appending data", throwable);
+                }
+            } else {
+                getLogger().error("Failure during appending data", throwable);
+            }
+
             inflightRequestCount.arriveAndDeregister();
         }
     }
@@ -480,39 +499,109 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
     }
 
-    private static Map<String, Object> convertMapRecord(Map<String, Object> map) {
+    private static Map<String, Object> convertMapRecord(Map<String, Object> map, List<TableFieldSchema> tableFields) {
         Map<String, Object> result = new HashMap<>();
-        for (String key : map.keySet()) {
-            Object obj = map.get(key);
-            // BigQuery is not case sensitive on the column names but the protobuf message
-            // expect all column names to be lower case
-            key = key.toLowerCase();
-            if (obj instanceof MapRecord) {
-                result.put(key, convertMapRecord(((MapRecord) obj).toMap()));
-            } else if (obj instanceof Object[]
-                && ((Object[]) obj).length > 0
-                && ((Object[]) obj)[0] instanceof MapRecord) {
-                List<Map<String, Object>> lmapr = new ArrayList<>();
-                for (Object mapr : ((Object[]) obj)) {
-                    lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
+        for (String rawKey : map.keySet()) {
+            String key = rawKey.toLowerCase();
+            Object obj = map.get(rawKey);
+
+            TableFieldSchema fieldSchema = findFieldSchema(tableFields, key);
+            if (fieldSchema != null && fieldSchema.getType() == TableFieldSchema.Type.STRUCT) {
+                // Nested RECORD type
+                if (obj instanceof MapRecord) {
+                    result.put(key, convertMapRecord(((MapRecord) obj).toMap(), fieldSchema.getFieldsList()));
+                    continue;
+                } else if (obj instanceof Object[] && ((Object[]) obj).length > 0 && ((Object[]) obj)[0] instanceof MapRecord) {
+                    List<Map<String, Object>> list = new ArrayList<>();
+                    for (Object item : (Object[]) obj) {
+                        list.add(convertMapRecord(((MapRecord) item).toMap(), fieldSchema.getFieldsList()));
+                    }
+                    result.put(key, list);
+                    continue;
                 }
-                result.put(key, lmapr);
-            } else if (obj instanceof Timestamp) {
-                result.put(key, ((Timestamp) obj).getTime() * 1000);
-            } else if (obj instanceof Time) {
-                LocalTime time = ((Time) obj).toLocalTime();
-                org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
-                    time.getHour(),
-                    time.getMinute(),
-                    time.getSecond());
-                result.put(key, CivilTimeEncoder.encodePacked64TimeMicros(localTime));
-            } else if (obj instanceof Date) {
-                result.put(key, (int) ((Date) obj).toLocalDate().toEpochDay());
+            } else if (obj instanceof Object[] && ((Object[]) obj).length > 0 && ((Object[]) obj)[0] instanceof MapRecord) {
+                // Repeated RECORDs without proper schema match; best effort
+                List<Map<String, Object>> list = new ArrayList<>();
+                for (Object item : (Object[]) obj) {
+                    list.add(convertMapRecord(((MapRecord) item).toMap(), fieldSchema != null ? fieldSchema.getFieldsList() : List.of()));
+                }
+                result.put(key, list);
+                continue;
+            }
+
+            // Scalar conversions guided by schema when available
+            if (fieldSchema != null) {
+                switch (fieldSchema.getType()) {
+                    case TIMESTAMP:
+                        if (obj instanceof Timestamp) {
+                            result.put(key, ((Timestamp) obj).getTime() * 1000);
+                            break;
+                        }
+                        // fall through to default if not Timestamp
+                    case TIME:
+                        if (obj instanceof Time) {
+                            LocalTime time = ((Time) obj).toLocalTime();
+                            org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
+                                time.getHour(),
+                                time.getMinute(),
+                                time.getSecond());
+                            result.put(key, CivilTimeEncoder.encodePacked64TimeMicros(localTime));
+                            break;
+                        }
+                        // fall through
+                    case DATE:
+                        if (obj instanceof Date) {
+                            result.put(key, (int) ((Date) obj).toLocalDate().toEpochDay());
+                            break;
+                        }
+                        // fall through
+                    case DATETIME:
+                        if (obj instanceof Timestamp) {
+                            LocalDateTime ldt = ((Timestamp) obj).toLocalDateTime();
+                            org.threeten.bp.LocalDateTime civil = org.threeten.bp.LocalDateTime.of(
+                                    ldt.getYear(),
+                                    ldt.getMonthValue(),
+                                    ldt.getDayOfMonth(),
+                                    ldt.getHour(),
+                                    ldt.getMinute(),
+                                    ldt.getSecond(),
+                                    ldt.getNano());
+                            result.put(key, CivilTimeEncoder.encodePacked64DatetimeMicros(civil));
+                            break;
+                        }
+                        // fall through
+                    default:
+                        result.put(key, obj);
+                        break;
+                }
             } else {
-                result.put(key, obj);
+                // No schema available for field; apply basic conversions for JDBC temporal types
+                if (obj instanceof Timestamp) {
+                    result.put(key, ((Timestamp) obj).getTime() * 1000);
+                } else if (obj instanceof Time) {
+                    LocalTime time = ((Time) obj).toLocalTime();
+                    org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
+                            time.getHour(),
+                            time.getMinute(),
+                            time.getSecond());
+                    result.put(key, CivilTimeEncoder.encodePacked64TimeMicros(localTime));
+                } else if (obj instanceof Date) {
+                    result.put(key, (int) ((Date) obj).toLocalDate().toEpochDay());
+                } else {
+                    result.put(key, obj);
+                }
             }
         }
 
         return result;
+    }
+
+    private static TableFieldSchema findFieldSchema(List<TableFieldSchema> fields, String keyLower) {
+        for (TableFieldSchema f : fields) {
+            if (f.getName().equalsIgnoreCase(keyLower)) {
+                return f;
+            }
+        }
+        return null;
     }
 }

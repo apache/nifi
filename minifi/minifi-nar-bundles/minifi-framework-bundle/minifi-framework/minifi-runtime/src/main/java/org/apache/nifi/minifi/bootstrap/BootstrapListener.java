@@ -74,7 +74,7 @@ public class BootstrapListener implements BootstrapCommunicator {
         bootstrapRequestReader = new BootstrapRequestReader(secretKey);
 
         objectMapper = new ObjectMapper();
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         registerHandlers();
     }
 
@@ -117,6 +117,7 @@ public class BootstrapListener implements BootstrapCommunicator {
         sendCommand(STARTED, new String[] {String.valueOf(status)});
     }
 
+    @Override
     public CommandResult sendCommand(String command, String[] args) throws IOException {
         try (Socket socket = new Socket()) {
             socket.setSoTimeout(60000);

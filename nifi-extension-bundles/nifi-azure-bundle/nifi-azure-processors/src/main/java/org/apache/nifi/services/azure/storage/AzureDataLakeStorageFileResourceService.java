@@ -32,6 +32,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -111,6 +112,13 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
         } catch (final DataLakeStorageException | IOException e) {
             throw new ProcessException("Failed to fetch file from ADLS Storage", e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
     }
 
     protected DataLakeServiceClient getStorageClient(Map<String, String> attributes) {

@@ -39,6 +39,7 @@ public class StandardAuthorizerInitializationContext implements AuthorizerInitia
         return identifier;
     }
 
+    @Override
     public AuthorizerLookup getAuthorizerLookup() {
         return authorizerLookup;
     }

@@ -361,7 +361,7 @@ class TestMapRecord {
         fields.add(new RecordField(timestampFieldName, RecordFieldType.TIMESTAMP.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final HashMap<String, Object> item = new HashMap<>();
+        final Map<String, Object> item = new HashMap<>();
         item.put(timestampFieldName, input);
         final MapRecord testRecord = new MapRecord(schema, item);
 

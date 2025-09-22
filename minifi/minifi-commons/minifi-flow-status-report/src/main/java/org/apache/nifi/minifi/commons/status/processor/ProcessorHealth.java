@@ -26,9 +26,6 @@ public class ProcessorHealth implements java.io.Serializable {
     private boolean hasBulletins;
     private List<ValidationError> validationErrorList;
 
-    public ProcessorHealth() {
-    }
-
     public boolean isHasBulletins() {
         return hasBulletins;
     }

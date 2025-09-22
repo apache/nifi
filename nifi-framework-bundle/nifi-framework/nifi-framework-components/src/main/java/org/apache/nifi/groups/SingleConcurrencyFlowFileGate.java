@@ -24,9 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SingleConcurrencyFlowFileGate implements FlowFileGate {
     private final AtomicBoolean claimed = new AtomicBoolean(false);
 
-    public SingleConcurrencyFlowFileGate() {
-    }
-
     @Override
     public boolean tryClaim(final Port port) {
         // Check if the claim is already held and atomically set it to being held.

@@ -19,13 +19,13 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StandardContentViewer } from './standard-content-viewer.component';
 import { StandardContentViewerRoutingModule } from './standard-content-viewer-routing.module';
-import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { Codemirror } from '@nifi/shared';
 
 @NgModule({
     declarations: [StandardContentViewer],
@@ -33,13 +33,13 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
     imports: [
         CommonModule,
         StandardContentViewerRoutingModule,
-        CodemirrorModule,
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
         ReactiveFormsModule,
         MatButtonToggleModule,
-        NgxSkeletonLoaderModule
+        NgxSkeletonLoaderModule,
+        Codemirror
     ]
 })
 export class StandardContentViewerModule {}

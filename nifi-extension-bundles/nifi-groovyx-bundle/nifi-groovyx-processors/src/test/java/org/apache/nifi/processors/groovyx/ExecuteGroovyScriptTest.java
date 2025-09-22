@@ -575,8 +575,8 @@ public class ExecuteGroovyScriptTest {
     }
 
 
-    private HashMap<String, String> map(String key, String value) {
-        HashMap<String, String> attrs = new HashMap<>();
+    private Map<String, String> map(String key, String value) {
+        Map<String, String> attrs = new HashMap<>();
         attrs.put(key, value);
         return attrs;
     }

@@ -69,7 +69,6 @@ public class GCSFileResourceService extends AbstractControllerService implements
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor
             .Builder()
             .name("Bucket")
-            .displayName("Bucket")
             .description(BUCKET_DESC)
             .required(true)
             .defaultValue("${" + BUCKET_ATTR + "}")
@@ -80,7 +79,6 @@ public class GCSFileResourceService extends AbstractControllerService implements
     public static final PropertyDescriptor KEY = new PropertyDescriptor
             .Builder()
             .name("Name")
-            .displayName("Name")
             .description(KEY_DESC)
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")

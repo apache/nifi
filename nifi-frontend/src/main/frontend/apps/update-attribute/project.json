@@ -32,7 +32,6 @@
                     "includePaths": [""]
                 },
                 "scripts": [],
-                "allowedCommonJsDependencies": ["codemirror"],
                 "preserveSymlinks": true
             },
             "configurations": {
@@ -89,7 +88,7 @@
                 },
                 "development": {
                     "buildTarget": "update-attribute:build:development",
-                    "servePath": "/nifi-update-attribute-ui-2.1.0-SNAPSHOT/"
+                    "servePath": "/nifi-update-attribute-ui-2.6.0-SNAPSHOT/"
                 }
             },
             "defaultConfiguration": "development",

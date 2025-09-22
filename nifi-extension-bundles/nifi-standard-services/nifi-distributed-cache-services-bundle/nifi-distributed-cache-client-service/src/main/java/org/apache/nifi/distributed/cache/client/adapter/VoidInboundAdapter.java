@@ -21,12 +21,6 @@ package org.apache.nifi.distributed.cache.client.adapter;
  */
 public class VoidInboundAdapter implements InboundAdapter {
 
-    /**
-     * Constructor.
-     */
-    public VoidInboundAdapter() {
-    }
-
     @Override
     public boolean isComplete() {
         return true;

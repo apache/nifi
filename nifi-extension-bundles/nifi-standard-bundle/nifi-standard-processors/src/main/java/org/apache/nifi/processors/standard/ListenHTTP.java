@@ -88,15 +88,19 @@ import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
-@CapabilityDescription("Starts an HTTP Server and listens on a given base path to transform incoming requests into FlowFiles. "
-        + "The default URI of the Service will be http://{hostname}:{port}/contentListener. Only HEAD and POST requests are "
-        + "supported. GET, PUT, DELETE, OPTIONS and TRACE will result in an error and the HTTP response status code 405; "
-        + "CONNECT will also result in an error and the HTTP response status code 400. "
-        + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with the content \"OK\". "
-        + "The health check functionality can be configured to be accessible via a different port. "
-        + "For details see the documentation of the \"Listening Port for health check requests\" property. "
-        + "A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records. "
-        + "Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).")
+@CapabilityDescription("""
+        Starts an HTTP Server and listens on a given base path to transform incoming requests into FlowFiles.
+        The default URI of the Service will be http://{hostname}:{port}/contentListener. Only HEAD and POST requests are
+        supported. GET, PUT, DELETE, OPTIONS and TRACE will result in an error and the HTTP response status code 405;
+        CONNECT will also result in an error and the HTTP response status code 400.
+        GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with the content \"OK\".
+        The health check functionality can be configured to be accessible via a different port.
+        For details, see the documentation of the \"Listening Port for health check requests\" property.
+        A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records.
+        Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).
+        If the incoming request contains a FlowFileV3 package format, the data will be unpacked automatically into individual
+        FlowFile(s) contained within the package; the original FlowFile names are restored.
+        """)
 @UseCase(
         description = "Unpack FlowFileV3 content received in a POST",
         keywords = {"flowfile", "flowfilev3", "unpack"},

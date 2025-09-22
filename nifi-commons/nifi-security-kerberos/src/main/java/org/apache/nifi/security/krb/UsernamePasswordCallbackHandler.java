@@ -40,6 +40,7 @@ public class UsernamePasswordCallbackHandler implements CallbackHandler {
         Validate.notBlank(this.password);
     }
 
+    @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         for (final Callback callback : callbacks) {
             if (callback instanceof NameCallback) {

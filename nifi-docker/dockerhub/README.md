@@ -18,6 +18,7 @@
 ### 2.0.0
 
 - Changed base image to bellsoft/liberica-openjdk-debian:21 as NiFi 2.0.0 requires Java 21
+- Dropped the plain HTTP support
 
 ### 1.19.0
 
@@ -262,7 +263,7 @@ can be published to the host.
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
 | JVM Debugger             | java.arg.debug                | 8000  |
 
-The JVM Memory initial and maximum heap size can be set using the `NIFI_JVM_HEAP_INIT` and `NIFI_JVM_HEAP_MAX` environment variables. These use values acceptable to the JVM `Xmx` and `Xms` parameters such as `1g` or `512m`.
+The JVM Memory initial and maximum heap size can be set using the `NIFI_JVM_HEAP_INIT` and `NIFI_JVM_HEAP_MAX` environment variables. These use values acceptable to the JVM `Xmx` and `Xms` parameters such as `1g` or `512m`. By default, these parameters are `1g`.
 
 The JVM Debugger can be enabled by setting the environment variable NIFI_JVM_DEBUGGER to any value.
 

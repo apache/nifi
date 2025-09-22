@@ -20,6 +20,7 @@ package org.apache.nifi.processors.parquet;
 
 
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaFormatter;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -28,6 +29,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -65,6 +67,9 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
         @WritesAttribute(attribute = "filename", description = "Sets the filename to the existing filename with the extension replaced by / added to by .parquet"),
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the parquet file.")
 })
+@DeprecationNotice(reason = "ConvertAvroToParquet is no longer needed since there is the AvroReader which along with ParquetRecordSetWriter can be used in ConvertRecord to achieve the same thing.",
+        classNames = {"org.apache.nifi.processors.standard.ConvertRecord",
+        "org.apache.nifi.avro.AvroReader", "org.apache.nifi.parquet.ParquetRecordSetWriter"})
 public class ConvertAvroToParquet extends AbstractProcessor {
 
     // Attributes
@@ -129,7 +134,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
                      final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
                     Schema avroSchema = dataFileReader.getSchema();
-                    getLogger().debug(avroSchema.toString(true));
+                    getLogger().debug(SchemaFormatter.format("json/pretty", avroSchema));
                     ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema );
 
                     try {

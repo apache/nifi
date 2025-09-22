@@ -82,6 +82,8 @@ env:
     -pl -:nifi-processor-bundle-archetype
     -pl -:nifi-service-bundle-archetype
 
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -90,9 +92,9 @@ permissions:
   contents: read
 
 jobs:
-  build_and_test:
+  build:
     timeout-minutes: 120
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Ubuntu Java 21
     steps:
       - name: Checkout Code
@@ -109,8 +111,6 @@ jobs:
           cat /proc/cpuinfo
           cat /proc/meminfo
           df
-          docker info
-
       - name: Build and Run Tests
         env:
           MAVEN_OPTS: >-
@@ -123,7 +123,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: ubuntu-21-failsafe-logs
+          name: integration-tests-failsafe-logs
           path: |
             **/target/failsafe-reports/**/*.txt
           retention-days: 7

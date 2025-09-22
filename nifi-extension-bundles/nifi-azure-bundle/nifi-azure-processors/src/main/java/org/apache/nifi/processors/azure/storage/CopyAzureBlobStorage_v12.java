@@ -51,6 +51,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -79,7 +80,6 @@ import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_STAGE_BLOCK
 import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_UPLOAD_BLOB_BYTES_LONG;
 import static com.azure.storage.common.implementation.Constants.STORAGE_SCOPE;
 import static java.net.HttpURLConnection.HTTP_ACCEPTED;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -123,7 +123,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor SOURCE_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("Source Storage Credentials")
-            .displayName("Source Storage Credentials")
             .description("Credentials Service used to obtain Azure Blob Storage Credentials to read Source Blob information")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
@@ -131,7 +130,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor SOURCE_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .name("Source Container Name")
-            .displayName("Source Container Name")
             .description("Name of the Azure storage container that will be copied")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -140,7 +138,6 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor SOURCE_BLOB_NAME = new PropertyDescriptor.Builder()
             .name("Source Blob Name")
-            .displayName("Source Blob Name")
             .description("Name of the Azure blob that will be copied")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -149,21 +146,25 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     public static final PropertyDescriptor DESTINATION_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(BLOB_STORAGE_CREDENTIALS_SERVICE)
-            .displayName("Destination Storage Credentials")
+            .name("Destination Storage Credentials")
+            .description("Controller Service used to obtain Azure Blob Storage Credentials.")
+            .identifiesControllerService(AzureStorageCredentialsService_v12.class)
+            .required(true)
             .build();
 
     public static final PropertyDescriptor DESTINATION_CONTAINER_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
-            .displayName("Destination Container Name")
+            .name("Destination Container Name")
             .description("Name of the Azure storage container destination defaults to the Source Container Name when not specified")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
     public static final PropertyDescriptor DESTINATION_BLOB_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(BLOB_NAME)
-            .displayName("Destination Blob Name")
+            .name("Destination Blob Name")
             .description("The full name of the destination blob defaults to the Source Blob Name when not specified")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -276,6 +277,15 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, DESTINATION_BLOB_NAME.getName());
+        config.renameProperty(AzureStorageUtils.OLD_CONFLICT_RESOLUTION_DESCRIPTOR_NAME, AzureStorageUtils.CONFLICT_RESOLUTION.getName());
+        config.renameProperty(AzureStorageUtils.OLD_CREATE_CONTAINER_DESCRIPTOR_NAME, AzureStorageUtils.CREATE_CONTAINER.getName());
+        config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, DESTINATION_CONTAINER_NAME.getName());
+        config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, DESTINATION_STORAGE_CREDENTIALS_SERVICE.getName());
     }
 
     private void copy(final BlobClient destinationBlobClient,

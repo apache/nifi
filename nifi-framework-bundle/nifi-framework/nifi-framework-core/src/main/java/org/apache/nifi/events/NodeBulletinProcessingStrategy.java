@@ -17,6 +17,7 @@
 package org.apache.nifi.events;
 
 import java.util.HashSet;
+import java.util.Queue;
 import java.util.Set;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
@@ -27,7 +28,7 @@ import org.apache.nifi.reporting.Bulletin;
  */
 public class NodeBulletinProcessingStrategy implements BulletinProcessingStrategy {
     static final int MAX_ENTRIES = 5;
-    private final CircularFifoQueue<Bulletin> ringBuffer = new CircularFifoQueue<>(MAX_ENTRIES);
+    private final Queue<Bulletin> ringBuffer = new CircularFifoQueue<>(MAX_ENTRIES);
 
     @Override
     public synchronized void update(final Bulletin bulletin) {

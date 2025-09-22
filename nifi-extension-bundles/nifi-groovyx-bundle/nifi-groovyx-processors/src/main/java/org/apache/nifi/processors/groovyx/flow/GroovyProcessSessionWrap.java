@@ -36,6 +36,7 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
     /**
      * function returns wrapped flow file with session for the simplified script access.
      */
+    @Override
     public SessionFile wrap(FlowFile f) {
         if (f == null) {
             return null;

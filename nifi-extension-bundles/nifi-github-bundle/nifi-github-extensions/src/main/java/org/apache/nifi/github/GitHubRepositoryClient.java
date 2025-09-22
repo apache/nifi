@@ -19,6 +19,9 @@
 
 package org.apache.nifi.github;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
@@ -31,12 +34,14 @@ import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.PagedIterable;
+import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
+import org.kohsuke.github.connector.GitHubConnectorResponse;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,14 +63,14 @@ import java.util.stream.Collectors;
  */
 public class GitHubRepositoryClient implements GitRepositoryClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GitHubRepositoryClient.class);
+    private final ComponentLog logger;
 
     private static final String REPOSITORY_CONTENTS_PERMISSION = "contents";
 
     private static final String WRITE_ACCESS = "write";
 
     private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
-    private static final int COMMIT_PAGE_SIZE = 50;
+    private static final int COMMIT_PAGE_SIZE = 10;
 
     private final String repoOwner;
     private final String repoName;
@@ -77,6 +82,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private final boolean canRead;
     private final boolean canWrite;
 
+    private static final int COMMIT_CACHE_SIZE = 1000;
+    private final Cache<String, GitCommit> commitCache = Caffeine.newBuilder()
+            .maximumSize(COMMIT_CACHE_SIZE)
+            .build();
+
     private GitHubRepositoryClient(final Builder builder) throws IOException, FlowRegistryException {
         final String apiUrl = Objects.requireNonNull(builder.apiUrl, "API URL is required");
         final GitHubBuilder gitHubBuilder = new GitHubBuilder().withEndpoint(apiUrl);
@@ -85,6 +95,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         repoOwner = Objects.requireNonNull(builder.repoOwner, "Repository Owner is required");
         repoName = Objects.requireNonNull(builder.repoName, "Repository Name is required");
         authenticationType = Objects.requireNonNull(builder.authenticationType, "Authentication Type is required");
+        logger = Objects.requireNonNull(builder.logger, "ComponentLog required");
 
         // Map of permission to access for tracking App Installation permissions from internal authorization
         final Map<String, String> appPermissions = new LinkedHashMap<>();
@@ -93,6 +104,19 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             case PERSONAL_ACCESS_TOKEN -> gitHubBuilder.withOAuthToken(builder.personalAccessToken);
             case APP_INSTALLATION -> gitHubBuilder.withAuthorizationProvider(getAppInstallationAuthorizationProvider(builder, appPermissions));
         }
+
+        gitHubBuilder.withAbuseLimitHandler(new GitHubAbuseLimitHandler() {
+            @Override
+            public void onError(GitHubConnectorResponse connectorResponse) throws IOException {
+                String message;
+                try (final InputStream stream = connectorResponse.bodyStream()) {
+                    message = new String(stream.readAllBytes());
+                } catch (IOException e) {
+                    message = "Failed to read response body";
+                }
+                logger.error("GitHub API request failed with status code: {}, message: {}", connectorResponse.statusCode(), message);
+            }
+        });
 
         gitHub = gitHubBuilder.build();
 
@@ -163,7 +187,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     public String createContent(final GitCreateContentRequest request) throws IOException, FlowRegistryException {
         final String branch = request.getBranch();
         final String resolvedPath = getResolvedPath(request.getPath());
-        LOGGER.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
+        logger.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
         return execute(() -> {
             try {
                 final GHContentUpdateResponse response = repository.createContent()
@@ -191,7 +215,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
      */
     @Override
     public Set<String> getBranches() throws IOException, FlowRegistryException {
-        LOGGER.debug("Getting branches for repo [{}]", repository.getName());
+        logger.debug("Getting branches for repo [{}]", repository.getName());
         return execute(() -> repository.getBranches().keySet());
     }
 
@@ -210,7 +234,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     public InputStream getContentFromBranch(final String path, final String branch) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
-        LOGGER.debug("Getting content for [{}] from branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
+        logger.debug("Getting content for [{}] from branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
 
         return execute(() -> {
             try {
@@ -237,7 +261,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content for [{}] from commit [{}] in repo [{}] ", resolvedPath, commitSha, repository.getName());
+        logger.debug("Getting content for [{}] from commit [{}] in repo [{}] ", resolvedPath, commitSha, repository.getName());
 
         return execute(() -> {
             try {
@@ -263,17 +287,20 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     public List<GitCommit> getCommits(final String path, final String branch) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
-        LOGGER.debug("Getting commits for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repository.getName());
+        logger.debug("Getting commits for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repository.getName());
 
         return execute(() -> {
             try {
                 final GHRef branchGhRef = repository.getRef(branchRef);
-                final List<GHCommit> ghCommits = repository.queryCommits()
+                final PagedIterable<GHCommit> ghCommitsIterable = repository.queryCommits()
                         .path(resolvedPath)
                         .from(branchGhRef.getObject().getSha())
                         .pageSize(COMMIT_PAGE_SIZE)
-                        .list()
-                        .toList();
+                        .list();
+
+                // Get the first page of commits
+                final PagedIterator<GHCommit> ghCommitsIterator = ghCommitsIterable.iterator();
+                final List<GHCommit> ghCommits = ghCommitsIterator.nextPage();
 
                 final List<GitCommit> commits = new ArrayList<>();
                 for (final GHCommit ghCommit : ghCommits) {
@@ -330,7 +357,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private Set<String> getDirectoryItems(final String directory, final String branch, final Predicate<GHContent> filter) throws IOException, FlowRegistryException {
         final String resolvedDirectory = getResolvedPath(directory);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
-        LOGGER.debug("Getting directory items for [{}] from branch [{}] in repo [{}] ", resolvedDirectory, branch, repository.getName());
+        logger.debug("Getting directory items for [{}] from branch [{}] in repo [{}] ", resolvedDirectory, branch, repository.getName());
 
         return execute(() -> {
             try {
@@ -358,14 +385,14 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     public Optional<String> getContentSha(final String path, final String branch) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
-        LOGGER.debug("Getting content SHA for [{}] from branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
+        logger.debug("Getting content SHA for [{}] from branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
 
         return execute(() -> {
             try {
                 final GHContent ghContent = repository.getFileContent(resolvedPath, branchRef);
                 return Optional.of(ghContent.getSha());
             } catch (final FileNotFoundException e) {
-                LOGGER.warn("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
+                logger.warn("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
                 return Optional.empty();
             }
         });
@@ -385,7 +412,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
         final String resolvedPath = getResolvedPath(filePath);
-        LOGGER.debug("Deleting file [{}] in repo [{}] on branch [{}]", resolvedPath, repository.getName(), branch);
+        logger.debug("Deleting file [{}] in repo [{}] on branch [{}]", resolvedPath, repository.getName(), branch);
         return execute(() -> {
             try {
                 GHContent ghContent = repository.getFileContent(resolvedPath);
@@ -407,13 +434,19 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
-        final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
-        return new GitCommit(
-                ghCommit.getSHA1(),
-                ghCommit.getAuthor().getLogin(),
-                shortInfo.getMessage(),
-                Instant.ofEpochMilli(shortInfo.getCommitDate().getTime())
-        );
+        GitCommit commit = commitCache.getIfPresent(ghCommit.getSHA1());
+        if (commit != null) {
+            return commit;
+        } else {
+            final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
+            commit = new GitCommit(
+                    ghCommit.getSHA1(),
+                    ghCommit.getAuthor().getLogin(),
+                    shortInfo.getMessage(),
+                    Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
+            commitCache.put(ghCommit.getSHA1(), commit);
+            return commit;
+        }
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {
@@ -477,6 +510,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         private String repoPath;
         private String appPrivateKey;
         private String appId;
+        private ComponentLog logger;
 
         public Builder apiUrl(final String apiUrl) {
             this.apiUrl = apiUrl;
@@ -514,6 +548,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         public Builder appPrivateKey(final String appPrivateKey) {
             this.appPrivateKey = appPrivateKey;
+            return this;
+        }
+
+        public Builder logger(final ComponentLog logger) {
+            this.logger = logger;
             return this;
         }
 

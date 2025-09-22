@@ -49,6 +49,7 @@ public class FetchDropboxTest extends AbstractDropboxTest {
     @Mock
     private DbxDownloader<FileMetadata> mockDbxDownloader;
 
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         FetchDropbox testSubject = new FetchDropbox() {

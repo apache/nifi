@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ComboEditor } from './combo-editor.component';
-import { PropertyItem } from '../../property-table.component';
+import { PropertyItem } from '../../property-item';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Parameter } from '@nifi/shared';
 
@@ -174,6 +174,76 @@ describe('ComboEditor', () => {
             jest.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.descriptor.defaultValue);
+        }
+    });
+
+    it('verify form is dirty when using default value', () => {
+        if (item) {
+            item.value = null;
+            item.descriptor.required = false;
+            item.savedValue = 'some-other-value';
+
+            component.item = item;
+            component.parameterConfig = {
+                supportsParameters: false,
+                parameters: null
+            };
+
+            fixture.detectChanges();
+
+            // Form should be dirty because we're using the default value instead of the saved value
+            expect(component.comboEditorForm.dirty).toBe(true);
+            expect(component.configuredValue).toEqual(item.descriptor.defaultValue);
+        }
+    });
+
+    it('verify input order independence - item first then parameterConfig', () => {
+        if (item) {
+            item.value = null;
+            item.descriptor.required = false;
+            item.savedValue = 'some-other-value';
+
+            // Set item first
+            component.item = item;
+
+            // Set parameterConfig second
+            component.parameterConfig = {
+                supportsParameters: true,
+                parameters
+            };
+
+            fixture.detectChanges();
+
+            // Should work correctly regardless of input order
+            expect(component.comboEditorForm.dirty).toBe(true);
+            expect(component.configuredValue).toEqual(item.descriptor.defaultValue);
+            expect(component.supportsParameters).toBe(true);
+            expect(component.parameters).toBe(parameters);
+        }
+    });
+
+    it('verify input order independence - parameterConfig first then item', () => {
+        if (item) {
+            item.value = null;
+            item.descriptor.required = false;
+            item.savedValue = 'some-other-value';
+
+            // Set parameterConfig first
+            component.parameterConfig = {
+                supportsParameters: true,
+                parameters
+            };
+
+            // Set item second
+            component.item = item;
+
+            fixture.detectChanges();
+
+            // Should work correctly regardless of input order
+            expect(component.comboEditorForm.dirty).toBe(true);
+            expect(component.configuredValue).toEqual(item.descriptor.defaultValue);
+            expect(component.supportsParameters).toBe(true);
+            expect(component.parameters).toBe(parameters);
         }
     });
 

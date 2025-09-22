@@ -64,7 +64,6 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     public static final PropertyDescriptor KUSTO_QUERY_SERVICE = new PropertyDescriptor.Builder()
             .name("Kusto Query Service")
-            .displayName("Kusto Query Service")
             .description("Azure Data Explorer Kusto Query Service")
             .required(true)
             .identifiesControllerService(KustoQueryService.class)
@@ -72,7 +71,6 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
             .name("Database Name")
-            .displayName("Database Name")
             .description("Azure Data Explorer Database Name for querying")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -81,7 +79,6 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("Query")
-            .displayName("Query")
             .description("Query to be run against Azure Data Explorer")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

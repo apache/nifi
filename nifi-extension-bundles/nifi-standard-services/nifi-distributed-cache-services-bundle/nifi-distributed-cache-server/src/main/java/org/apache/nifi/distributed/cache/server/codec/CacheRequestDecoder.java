@@ -53,17 +53,17 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
 
     private final ComponentLog log;
 
-    private final int maxLength;
+    private final int maxReadSize;
 
     private final CacheOperation[] supportedOperations;
 
     public CacheRequestDecoder(
             final ComponentLog log,
-            final int maxLength,
+            final int maxReadSize,
             final CacheOperation[] supportedOperations
     ) {
         this.log = log;
-        this.maxLength = maxLength;
+        this.maxReadSize = maxReadSize;
         this.supportedOperations = supportedOperations;
     }
 
@@ -175,8 +175,8 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
 
         if (byteBuf.readableBytes() >= SHORT_LENGTH) {
             final int length = byteBuf.readUnsignedShort();
-            if (length > maxLength) {
-                throw new IllegalArgumentException(String.format("Maximum Operation Length [%d] exceeded [%d]", maxLength, length));
+            if (length > maxReadSize) {
+                throw new IllegalArgumentException(String.format("Maximum Read Size [%d] exceeded [%d]", maxReadSize, length));
             }
             if (byteBuf.readableBytes() >= length) {
                 unicodeString = byteBuf.readCharSequence(length, StandardCharsets.UTF_8).toString();
@@ -202,8 +202,8 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
         final int readableBytes = byteBuf.readableBytes();
         if (readableBytes >= INT_LENGTH) {
             integer = byteBuf.readInt();
-            if (integer > maxLength) {
-                throw new IllegalArgumentException(String.format("Maximum Length [%d] exceeded [%d]", maxLength, integer));
+            if (integer > maxReadSize) {
+                throw new IllegalArgumentException(String.format("Maximum Read Size [%d] exceeded [%d]", maxReadSize, integer));
             }
         } else {
             integer = null;

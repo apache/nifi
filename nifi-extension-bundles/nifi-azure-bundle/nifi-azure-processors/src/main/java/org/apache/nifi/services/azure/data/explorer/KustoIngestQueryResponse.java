@@ -45,5 +45,7 @@ public class KustoIngestQueryResponse {
 
     public KustoIngestQueryResponse(final boolean error) {
         this.error = error;
+        // Initialize queryResult to an empty map to avoid null checks later
+        this.queryResult = Collections.emptyMap();
     }
 }

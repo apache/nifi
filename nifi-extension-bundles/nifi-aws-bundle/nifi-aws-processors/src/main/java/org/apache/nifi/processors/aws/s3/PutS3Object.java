@@ -56,6 +56,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -146,7 +147,6 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
             .name("Content Type")
-            .displayName("Content Type")
             .description("Sets the Content-Type HTTP header indicating the type of content stored in the associated " +
                     "object. The value of this header is a standard MIME type.\n" +
                     "AWS S3 Java client will attempt to determine the correct content type if one hasn't been set" +
@@ -160,7 +160,6 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor CONTENT_DISPOSITION = new PropertyDescriptor.Builder()
             .name("Content Disposition")
-            .displayName("Content Disposition")
             .description("Sets the Content-Disposition HTTP header indicating if the content is intended to be displayed inline or should be downloaded.\n " +
                     "Possible values are 'inline' or 'attachment'. If this property is not specified, object's content-disposition will be set to filename. " +
                     "When 'attachment' is selected, '; filename=' plus object key are automatically appended to form final value 'attachment; filename=\"filename.jpg\"'.")
@@ -170,7 +169,6 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor CACHE_CONTROL = new PropertyDescriptor.Builder()
             .name("Cache Control")
-            .displayName("Cache Control")
             .description("Sets the Cache-Control HTTP header indicating the caching directives of the associated object. Multiple directives are comma-separated.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -224,8 +222,7 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor SERVER_SIDE_ENCRYPTION = new PropertyDescriptor.Builder()
-            .name("server-side-encryption")
-            .displayName("Server Side Encryption")
+            .name("Server Side Encryption")
             .description("Specifies the algorithm used for server side encryption.")
             .required(true)
             .allowableValues(NO_SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
@@ -233,8 +230,7 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor OBJECT_TAGS_PREFIX = new PropertyDescriptor.Builder()
-            .name("s3-object-tags-prefix")
-            .displayName("Object Tags Prefix")
+            .name("Object Tags Prefix")
             .description("Specifies the prefix which would be scanned against the incoming FlowFile's attributes and the matching attribute's " +
                     "name and value would be considered as the outgoing S3 object's Tag name and Tag value respectively. For Ex: If the " +
                     "incoming FlowFile carries the attributes tagS3country, tagS3PII, the tag prefix to be specified would be 'tagS3'")
@@ -244,8 +240,7 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor REMOVE_TAG_PREFIX = new PropertyDescriptor.Builder()
-            .name("s3-object-remove-tags-prefix")
-            .displayName("Remove Tag Prefix")
+            .name("Remove Tag Prefix")
             .description("If set to 'True', the value provided for '" + OBJECT_TAGS_PREFIX.getDisplayName() + "' will be removed from " +
                     "the attribute(s) and then considered as the Tag name. For ex: If the incoming FlowFile carries the attributes tagS3country, " +
                     "tagS3PII and the prefix is set to 'tagS3' then the corresponding tag values would be 'country' and 'PII'")
@@ -254,8 +249,7 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor MULTIPART_TEMP_DIR = new PropertyDescriptor.Builder()
-            .name("s3-temporary-directory-multipart")
-            .displayName("Temporary Directory Multipart State")
+            .name("Temporary Directory Multipart State")
             .description("Directory in which, for multipart uploads, the processor will locally save the state tracking the upload ID and parts "
                     + "uploaded which must both be provided to complete the upload.")
             .required(true)
@@ -328,6 +322,15 @@ public class PutS3Object extends AbstractS3Processor {
     @OnScheduled
     public void setTempDir(final ProcessContext context) {
         this.tempDirMultipart = context.getProperty(MULTIPART_TEMP_DIR).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("server-side-encryption", SERVER_SIDE_ENCRYPTION.getName());
+        config.renameProperty("s3-object-tags-prefix", OBJECT_TAGS_PREFIX.getName());
+        config.renameProperty("s3-object-remove-tags-prefix", REMOVE_TAG_PREFIX.getName());
+        config.renameProperty("s3-temporary-directory-multipart", MULTIPART_TEMP_DIR.getName());
     }
 
     @Override

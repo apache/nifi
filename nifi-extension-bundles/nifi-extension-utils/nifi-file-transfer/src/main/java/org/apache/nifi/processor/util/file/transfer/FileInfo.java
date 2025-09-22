@@ -80,6 +80,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
         return directory;
     }
 
+    @Override
     public long getSize() {
         return size;
     }
@@ -100,6 +101,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
         return group;
     }
 
+    @Override
     public Record toRecord() {
         final Map<String, Object> values = new HashMap<>(8);
         values.put(FILENAME, getFileName());

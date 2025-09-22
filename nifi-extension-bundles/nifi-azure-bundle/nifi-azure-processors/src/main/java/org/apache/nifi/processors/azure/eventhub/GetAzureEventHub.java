@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -45,6 +46,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -87,6 +89,7 @@ import java.util.concurrent.atomic.AtomicReference;
         @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 @SeeAlso(ConsumeAzureEventHub.class)
+@DeprecationNotice(classNames = "org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub")
 public class GetAzureEventHub extends AbstractProcessor implements AzureEventHubComponent {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s/%s/ConsumerGroups/%s/Partitions/%s";
     private static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
@@ -119,8 +122,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
     static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
-            .name("Event Hub Consumer Group")
-            .displayName("Consumer Group")
+            .name("Consumer Group")
             .description("The name of the consumer group to use when pulling events")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -129,8 +131,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .build();
 
     static final PropertyDescriptor ENQUEUE_TIME = new PropertyDescriptor.Builder()
-            .name("Event Hub Message Enqueue Time")
-            .displayName("Message Enqueue Time")
+            .name("Message Enqueue Time")
             .description("A timestamp (ISO-8601 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
                     + "should have been enqueued in the Event Hub to start reading from")
             .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
@@ -138,16 +139,14 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .required(false)
             .build();
     static final PropertyDescriptor RECEIVER_FETCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Partition Recivier Fetch Size")
-            .displayName("Partition Receiver Fetch Size")
+            .name("Partition Receiver Fetch Size")
             .description("The number of events that a receiver should fetch from an Event Hubs partition before returning. The default is " + DEFAULT_FETCH_SIZE)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
     static final PropertyDescriptor RECEIVER_FETCH_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Partition Receiver Timeout (millseconds)")
-            .displayName("Partition Receiver Timeout")
+            .name("Partition Receiver Timeout")
             .description("The amount of time in milliseconds a Partition Receiver should wait to receive the Fetch Size before returning. The default is " + DEFAULT_FETCH_TIMEOUT.toMillis())
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -309,6 +308,16 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Event Hub Consumer Group", CONSUMER_GROUP.getName());
+        config.renameProperty("Event Hub Message Enqueue Time", ENQUEUE_TIME.getName());
+        config.renameProperty("Partition Recivier Fetch Size", RECEIVER_FETCH_SIZE.getName());
+        config.renameProperty("Partition Receiver Timeout (millseconds)", RECEIVER_FETCH_TIMEOUT.getName());
+        config.renameProperty(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, POLICY_PRIMARY_KEY.getName());
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, USE_MANAGED_IDENTITY.getName());
+    }
+
     /**
      * Get Partition Identifiers from Event Hub Consumer Client for polling
      *
@@ -429,7 +438,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final EventData eventData = partitionEvent.getData();
 
         attributes.put("eventhub.enqueued.timestamp", String.valueOf(eventData.getEnqueuedTime()));
-        attributes.put("eventhub.offset", String.valueOf(eventData.getOffset()));
+        attributes.put("eventhub.offset", eventData.getOffsetString());
         attributes.put("eventhub.sequence", String.valueOf(eventData.getSequenceNumber()));
 
         final PartitionContext partitionContext = partitionEvent.getPartitionContext();

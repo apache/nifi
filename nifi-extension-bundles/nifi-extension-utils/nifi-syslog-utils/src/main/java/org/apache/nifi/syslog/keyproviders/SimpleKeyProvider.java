@@ -26,9 +26,6 @@ import java.util.regex.Pattern;
 public class SimpleKeyProvider implements KeyProvider {
     private Pattern pattern;
 
-    public SimpleKeyProvider() {
-    }
-
     @Override
     public String getMessage() {
         return SyslogAttributes.BODY.key();

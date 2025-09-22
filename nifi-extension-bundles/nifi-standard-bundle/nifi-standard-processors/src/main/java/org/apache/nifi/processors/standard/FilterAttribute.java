@@ -75,7 +75,6 @@ public class FilterAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor FILTER_MODE = new PropertyDescriptor.Builder()
             .name("Filter Mode")
-            .displayName("Filter Mode")
             .description("Specifies the strategy to apply on filtered attributes. Either 'Remove' or 'Retain' only the matching attributes.")
             .required(true)
             .allowableValues(FilterMode.class)
@@ -85,7 +84,6 @@ public class FilterAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor MATCHING_STRATEGY = new PropertyDescriptor.Builder()
             .name("Attribute Matching Strategy")
-            .displayName("Attribute Matching Strategy")
             .description("Specifies the strategy to filter attributes by.")
             .required(true)
             .allowableValues(MatchingStrategy.class)
@@ -95,7 +93,6 @@ public class FilterAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor ATTRIBUTE_ENUMERATION = new PropertyDescriptor.Builder()
             .name("Filtered Attributes")
-            .displayName("Filtered Attributes")
             .description("A set of attribute names to filter from FlowFiles. Each attribute name is separated by the comma delimiter ','.")
             .required(true)
             .dependsOn(MATCHING_STRATEGY, MatchingStrategy.ENUMERATION)
@@ -105,7 +102,6 @@ public class FilterAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor ATTRIBUTE_PATTERN = new PropertyDescriptor.Builder()
             .name("Filtered Attributes Pattern")
-            .displayName("Filtered Attributes Pattern")
             .description("A regular expression to match names of attributes to filter from FlowFiles.")
             .required(true)
             .dependsOn(MATCHING_STRATEGY, MatchingStrategy.PATTERN)

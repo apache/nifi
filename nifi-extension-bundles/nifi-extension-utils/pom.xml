@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-extension-bundles</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>nifi-extension-utils</artifactId>
@@ -32,6 +32,7 @@
         <module>nifi-database-utils</module>
         <module>nifi-database-test-utils</module>
         <module>nifi-dbcp-base</module>
+        <module>nifi-dbcp-utils</module>
         <module>nifi-event-listen</module>
         <module>nifi-event-put</module>
         <module>nifi-event-transport</module>

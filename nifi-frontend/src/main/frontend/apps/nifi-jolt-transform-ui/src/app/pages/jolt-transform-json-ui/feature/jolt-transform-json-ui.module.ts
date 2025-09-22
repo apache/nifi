@@ -24,7 +24,6 @@ import { joltTransformJsonUiFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { MatDialogModule } from '@angular/material/dialog';
 import { JoltTransformJsonProcessorDetailsEffects } from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.effects';
-import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,7 +32,7 @@ import { CdkDrag } from '@angular/cdk/drag-drop';
 import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { NifiTooltipDirective, ComponentContext, MapTable } from '@nifi/shared';
+import { NifiTooltipDirective, ComponentContext, MapTable, Codemirror } from '@nifi/shared';
 import { MatInput } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { JoltTransformJsonTransformEffects } from '../state/jolt-transform-json-transform/jolt-transform-json-transform.effects';
@@ -55,7 +54,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             JoltTransformJsonPropertyEffects
         ),
         MatDialogModule,
-        CodemirrorModule,
+        Codemirror,
         ReactiveFormsModule,
         MatCardModule,
         MatButtonModule,

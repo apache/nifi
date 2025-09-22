@@ -110,6 +110,7 @@ public class StandardHandlerProvider implements HandlerProvider {
         final ClassLoader apiClassLoader = getApiClassLoader(properties.getDatabaseDriverDirectory());
         final WebAppContext apiContext = getWebAppContext(libDirectory, workDirectory, apiClassLoader, API_FILE_PATTERN, API_CONTEXT_PATH);
         apiContext.setAttribute(PROPERTIES_PARAMETER, properties);
+        apiContext.setThrowUnavailableOnStartupException(true);
         handlers.addHandler(apiContext);
 
         final WebAppContext docsContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), DOCS_FILE_PATTERN, DOCS_CONTEXT_PATH);

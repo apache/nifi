@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +64,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Authentication Strategy")
-            .displayName("Authentication Strategy")
             .description("Authentication method for access to Azure Data Explorer")
             .required(true)
             .defaultValue(KustoAuthenticationStrategy.MANAGED_IDENTITY.getValue())
@@ -72,7 +72,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor APPLICATION_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("Application Client ID")
-            .displayName("Application Client ID")
             .description("Azure Data Explorer Application Client Identifier for Authentication")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -80,7 +79,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor APPLICATION_KEY = new PropertyDescriptor.Builder()
             .name("Application Key")
-            .displayName("Application Key")
             .description("Azure Data Explorer Application Key for Authentication")
             .required(true)
             .sensitive(true)
@@ -90,7 +88,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor APPLICATION_TENANT_ID = new PropertyDescriptor.Builder()
             .name("Application Tenant ID")
-            .displayName("Application Tenant ID")
             .description("Azure Data Explorer Application Tenant Identifier for Authentication")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -99,7 +96,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     public static final PropertyDescriptor CLUSTER_URI = new PropertyDescriptor.Builder()
             .name("Cluster URI")
-            .displayName("Cluster URI")
             .description("Azure Data Explorer Cluster URI")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -113,9 +109,10 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             CLUSTER_URI
     );
 
-    private static final String STREAMING_POLICY_SHOW_COMMAND = ".show database %s policy streamingingestion";
+    // Query changed as the server can return no result (no policy) or explicitly enabled / disabled scenarios
+    private static final String STREAMING_POLICY_SHOW_COMMAND = ".show database %s policy streamingingestion |  project IsEnabled = todynamic(Policy)['IsEnabled']";
 
-    private static final String COUNT_TABLE_COMMAND = "%s | count";
+    private static final String COUNT_TABLE_COMMAND = "%s | count"; // This will need to be optimized. Large tables may fail on this.
 
     private static final Map<String, String> NIFI_SINK = Map.of("processor", StandardKustoIngestService.class.getSimpleName());
 
@@ -123,7 +120,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     private volatile ManagedStreamingIngestClient managedStreamingIngestClient;
 
-    private volatile Client executionClient;
+    protected volatile Client executionClient;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -256,18 +253,9 @@ public class StandardKustoIngestService extends AbstractControllerService implem
     public boolean isStreamingPolicyEnabled(final String databaseName) {
         final String query = String.format(STREAMING_POLICY_SHOW_COMMAND, databaseName);
         final KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
-
-        boolean streamingPolicyEnabled = false;
-        if (!kustoIngestQueryResponse.getQueryResult().isEmpty()) {
-            final List<String> row = kustoIngestQueryResponse.getQueryResult().get(0);
-            if (!row.isEmpty()) {
-                final String streamingPolicy = row.get(2);
-                if (!streamingPolicy.isEmpty()) {
-                    streamingPolicyEnabled = true;
-                }
-            }
-        }
-        return streamingPolicyEnabled;
+        return kustoIngestQueryResponse.getQueryResult().values().stream()
+                .flatMap(Collection::stream)
+                .anyMatch(val -> "true".equalsIgnoreCase(val));
     }
 
     @Override
@@ -299,10 +287,14 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         final ConnectionStringBuilder builder;
         if (KustoAuthenticationStrategy.APPLICATION_CREDENTIALS == kustoAuthStrategy) {
             builder = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, appId, appKey, appTenant);
-        } else {
+        } else if (KustoAuthenticationStrategy.MANAGED_IDENTITY == kustoAuthStrategy) {
             builder = ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, appId);
+        } else if (KustoAuthenticationStrategy.AZ_CLI_DEV_ONLY == kustoAuthStrategy) {
+            // The new SDK version supports Azure CLI authentication
+            builder = ConnectionStringBuilder.createWithAzureCli(clusterUrl);
+        } else {
+            throw new IllegalArgumentException("Unsupported Kusto Authentication Strategy: " + kustoAuthStrategy);
         }
-
         builder.setConnectorDetails("Kusto.Nifi.Sink", StandardKustoIngestService.class.getPackage().getImplementationVersion(), null, null, false, null, NIFI_SINK);
         return builder;
     }
@@ -313,7 +305,9 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
         KustoIngestQueryResponse kustoIngestQueryResponse;
         try {
-            final KustoOperationResult kustoOperationResult = this.executionClient.executeQuery(databaseName, query);
+            // Requires a change in the new SDK version. This will fail with executeQuery v7.0.0 and up of the SDK
+            boolean isMgmtCommand = query != null && query.startsWith(".");
+            final KustoOperationResult kustoOperationResult = isMgmtCommand ? this.executionClient.executeMgmt(databaseName, query) : this.executionClient.executeQuery(databaseName, query);
             final KustoResultSetTable kustoResultSetTable = kustoOperationResult.getPrimaryResults();
 
             final Map<Integer, List<String>> response = new HashMap<>();
@@ -331,7 +325,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             }
             kustoIngestQueryResponse = new KustoIngestQueryResponse(response);
         } catch (final DataServiceException | DataClientException e) {
-            getLogger().error("Azure Data Explorer Ingest execution failed", e);
+            getLogger().error("Azure Data Explorer Ingest execution failed executing query {} on database {}", query, databaseName, e);
             kustoIngestQueryResponse = new KustoIngestQueryResponse(true);
         }
         return kustoIngestQueryResponse;

@@ -44,9 +44,6 @@ public class FieldValueLogicalPathBuilder {
         private CharSequence indexLeft = DEFAULT_KEY_INDEX_WRAPPER_LEFT;
         private CharSequence indexRight = DEFAULT_KEY_INDEX_WRAPPER_RIGHT;
 
-        public Builder() {
-        }
-
         public Builder withPathDelimiter(CharSequence delimiter) {
             Objects.requireNonNull(delimiter, "delimiter cannot be null");
             this.pathDelimiter = delimiter;

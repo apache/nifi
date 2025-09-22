@@ -37,6 +37,7 @@ public class FieldEvaluator implements Evaluator<List> {
         this.indexEvaluator = indexEvaluator;
     }
 
+    @Override
     public List<HL7Field> evaluate(final Map<String, Object> objectMap) {
         final List<HL7Segment> segments = segmentEvaluator.evaluate(objectMap);
         if (segments == null) {
@@ -61,6 +62,7 @@ public class FieldEvaluator implements Evaluator<List> {
         return fields;
     }
 
+    @Override
     public Class<? extends List> getType() {
         return List.class;
     }

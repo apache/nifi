@@ -595,6 +595,12 @@ public final class NarUnpacker {
      *             if the file could not be created.
      */
     private static void makeFile(final InputStream inputStream, final File file) throws IOException {
+        // Ensure parent directories exist to handle archives where directory entries
+        // appear after file entries (e.g., after jarsigner has reordered entries)
+        final File parent = file.getParentFile();
+        if (parent != null) {
+            Files.createDirectories(parent.toPath());
+        }
         try (final InputStream in = inputStream;
                 final FileOutputStream fos = new FileOutputStream(file)) {
             byte[] bytes = new byte[65536];

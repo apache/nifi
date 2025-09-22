@@ -29,7 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A Serializer that uses Jackson for serializing/deserializing.
@@ -110,9 +110,9 @@ public abstract class JacksonSerializer<T> implements VersionedSerializer<T> {
         logger.debug("headerObjectStr={}", headerObjectStr);
 
         try {
-            final TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {
+            final TypeReference<Map<String, String>> typeRef = new TypeReference<>() {
             };
-            final HashMap<String, String> header = objectMapper.readValue(headerObjectStr, typeRef);
+            final Map<String, String> header = objectMapper.readValue(headerObjectStr, typeRef);
             if (!header.containsKey(DATA_MODEL_VERSION)) {
                 throw new SerializationException("Missing " + DATA_MODEL_VERSION);
             }

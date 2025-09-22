@@ -636,48 +636,22 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     private Authorizable getAccessPolicyByResource(final ResourceType resourceType, final String componentId) {
-        Authorizable authorizable = null;
-        switch (resourceType) {
-            case ControllerService:
-                authorizable = getControllerService(componentId).getAuthorizable();
-                break;
-            case Funnel:
-                authorizable = getFunnel(componentId);
-                break;
-            case InputPort:
-                authorizable = getInputPort(componentId);
-                break;
-            case Label:
-                authorizable = getLabel(componentId);
-                break;
-            case OutputPort:
-                authorizable = getOutputPort(componentId);
-                break;
-            case Processor:
-                authorizable = getProcessor(componentId).getAuthorizable();
-                break;
-            case ProcessGroup:
-                authorizable = getProcessGroup(componentId).getAuthorizable();
-                break;
-            case RegistryClient:
-                authorizable = getFlowRegistryClient(componentId).getAuthorizable();
-                break;
-            case RemoteProcessGroup:
-                authorizable = getRemoteProcessGroup(componentId);
-                break;
-            case ReportingTask:
-                authorizable = getReportingTask(componentId).getAuthorizable();
-                break;
-            case FlowAnalysisRule:
-                authorizable = getFlowAnalysisRule(componentId).getAuthorizable();
-                break;
-            case ParameterContext:
-                authorizable = getParameterContext(componentId);
-                break;
-            case ParameterProvider:
-                authorizable = getParameterProvider(componentId).getAuthorizable();
-                break;
-        }
+        Authorizable authorizable = switch (resourceType) {
+            case ControllerService -> getControllerService(componentId).getAuthorizable();
+            case Funnel -> getFunnel(componentId);
+            case InputPort -> getInputPort(componentId);
+            case Label -> getLabel(componentId);
+            case OutputPort -> getOutputPort(componentId);
+            case Processor -> getProcessor(componentId).getAuthorizable();
+            case ProcessGroup -> getProcessGroup(componentId).getAuthorizable();
+            case RegistryClient -> getFlowRegistryClient(componentId).getAuthorizable();
+            case RemoteProcessGroup -> getRemoteProcessGroup(componentId);
+            case ReportingTask -> getReportingTask(componentId).getAuthorizable();
+            case FlowAnalysisRule -> getFlowAnalysisRule(componentId).getAuthorizable();
+            case ParameterContext -> getParameterContext(componentId);
+            case ParameterProvider -> getParameterProvider(componentId).getAuthorizable();
+            default -> null;
+        };
 
         if (authorizable == null) {
             throw new IllegalArgumentException("An unexpected type of resource in this policy " + resourceType.getValue());

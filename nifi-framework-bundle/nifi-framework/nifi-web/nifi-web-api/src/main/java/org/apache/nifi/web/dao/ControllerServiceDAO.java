@@ -22,6 +22,7 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 
@@ -150,6 +151,7 @@ public interface ControllerServiceDAO {
      * Clears the state of the specified controller service.
      *
      * @param controllerServiceId controller service id
+     * @param componentStateDTO   state of the controller service
      */
-    void clearState(String controllerServiceId);
+    void clearState(String controllerServiceId, ComponentStateDTO componentStateDTO);
 }

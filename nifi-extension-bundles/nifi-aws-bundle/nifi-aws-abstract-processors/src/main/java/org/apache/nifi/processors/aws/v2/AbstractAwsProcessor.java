@@ -138,7 +138,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
         .name("AWS Credentials Provider service")
-        .displayName("AWS Credentials Provider Service")
         .description("The Controller Service that is used to obtain AWS credentials provider")
         .required(true)
         .identifiesControllerService(AWSCredentialsProviderService.class)
@@ -188,6 +187,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("aws-region", REGION.getName());
         migrateAuthenticationProperties(config);
         ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
     }

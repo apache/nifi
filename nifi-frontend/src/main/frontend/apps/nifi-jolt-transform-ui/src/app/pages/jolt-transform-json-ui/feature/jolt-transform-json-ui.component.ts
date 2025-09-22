@@ -16,10 +16,17 @@
  */
 
 import { js_beautify } from 'js-beautify';
-import { Component, OnDestroy, Renderer2 } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiJoltTransformJsonUiState } from '../../../state';
-import { TextTip, isDefinedAndNotNull, MapTableHelperService, MapTableEntry } from '@nifi/shared';
+import {
+    TextTip,
+    isDefinedAndNotNull,
+    MapTableHelperService,
+    MapTableEntry,
+    Codemirror,
+    CodeMirrorConfig
+} from '@nifi/shared';
 import {
     selectClientIdFromRoute,
     selectDisconnectedNodeAcknowledgedFromRoute,
@@ -38,8 +45,29 @@ import {
     resetJoltTransformJsonProcessorDetailsState
 } from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.actions';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { Editor, EditorChange, EditorFromTextArea } from 'codemirror';
-import { CodemirrorComponent } from '@ctrl/ngx-codemirror/codemirror.component';
+import { Extension, EditorState, Prec } from '@codemirror/state';
+import {
+    keymap,
+    highlightActiveLine,
+    lineNumbers,
+    highlightSpecialChars,
+    highlightActiveLineGutter,
+    EditorView,
+    rectangularSelection,
+    crosshairCursor
+} from '@codemirror/view';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import {
+    defaultHighlightStyle,
+    syntaxHighlighting,
+    indentOnInput,
+    bracketMatching,
+    foldKeymap,
+    foldGutter,
+    indentUnit
+} from '@codemirror/language';
+import { json, jsonParseLinter } from '@codemirror/lang-json';
+import { linter } from '@codemirror/lint';
 import {
     resetJoltTransformJsonTransformState,
     transformJoltSpec
@@ -75,18 +103,48 @@ export class JoltTransformJsonUi implements OnDestroy {
     private revision$ = this.store.selectSignal(selectRevisionFromRoute);
     private clientId$ = this.store.selectSignal(selectClientIdFromRoute);
     private disconnectedNodeAcknowledged$ = this.store.selectSignal(selectDisconnectedNodeAcknowledgedFromRoute);
-    private exampleDataOptions = {
-        theme: 'nifi',
-        lineNumbers: true,
-        gutters: ['CodeMirror-lint-markers'],
-        mode: 'application/json',
-        lint: false,
-        extraKeys: {
-            'Shift-Ctrl-F': () => {
-                this.formatInput();
-            }
-        }
+
+    // CodeMirror v6 configurations
+    private _joltSpecConfig: CodeMirrorConfig = {
+        plugins: this.getJoltSpecExtensions(),
+        focusOnInit: false
     };
+
+    private _exampleDataConfig: CodeMirrorConfig = {
+        plugins: this.getExampleDataExtensions(),
+        focusOnInit: false
+    };
+
+    private _outputConfig: CodeMirrorConfig = {
+        plugins: this.getOutputExtensions(),
+        focusOnInit: false,
+        readOnly: true
+    };
+
+    // Dynamic config getters that include editable state
+    get joltSpecConfig(): CodeMirrorConfig {
+        return {
+            ...this._joltSpecConfig,
+            disabled: !this.editable || this._joltSpecConfig.disabled,
+            readOnly: !this.editable || this._joltSpecConfig.readOnly
+        };
+    }
+
+    get exampleDataConfig(): CodeMirrorConfig {
+        return {
+            ...this._exampleDataConfig,
+            disabled: !this.editable,
+            readOnly: !this.editable
+        };
+    }
+
+    get outputConfig(): CodeMirrorConfig {
+        return {
+            ...this._outputConfig,
+            disabled: true,
+            readOnly: true
+        };
+    }
 
     protected readonly TextTip = TextTip;
 
@@ -108,8 +166,7 @@ export class JoltTransformJsonUi implements OnDestroy {
     constructor(
         private formBuilder: FormBuilder,
         private store: Store<NiFiJoltTransformJsonUiState>,
-        private mapTableHelperService: MapTableHelperService,
-        private renderer: Renderer2
+        private mapTableHelperService: MapTableHelperService
     ) {
         // Select the processor id from the query params and GET processor details
         this.store
@@ -177,33 +234,88 @@ export class JoltTransformJsonUi implements OnDestroy {
         this.store.dispatch(resetJoltTransformJsonPropertyState());
     }
 
-    getJoltSpecOptions(): any {
-        return {
-            theme: 'nifi',
-            lineNumbers: true,
-            gutters: ['CodeMirror-lint-markers'],
-            mode: 'application/json',
-            lint: true,
-            extraKeys: {
-                'Shift-Ctrl-F': () => {
-                    this.formatSpecification();
-                }
-            }
-        };
+    getJoltSpecExtensions(): Extension[] {
+        return [
+            lineNumbers(),
+            history(),
+            indentUnit.of('    '),
+            EditorView.lineWrapping,
+            rectangularSelection(),
+            crosshairCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            highlightSpecialChars(),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            bracketMatching(),
+            highlightActiveLine(),
+            [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+            foldGutter(),
+            json(),
+            linter(jsonParseLinter()),
+            EditorView.contentAttributes.of({ 'aria-label': 'Jolt Specification Editor' }),
+            keymap.of([
+                {
+                    key: 'Shift-Mod-f',
+                    run: () => {
+                        this.formatSpecification();
+                        return true;
+                    }
+                },
+                ...defaultKeymap,
+                ...historyKeymap,
+                ...foldKeymap
+            ])
+        ];
     }
 
-    getExampleDataOptions(): any {
-        return this.exampleDataOptions;
+    getExampleDataExtensions(): Extension[] {
+        return [
+            lineNumbers(),
+            history(),
+            indentUnit.of('    '),
+            EditorView.lineWrapping,
+            rectangularSelection(),
+            crosshairCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            highlightSpecialChars(),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            bracketMatching(),
+            highlightActiveLine(),
+            [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+            foldGutter(),
+            json(),
+            linter(jsonParseLinter()),
+            EditorView.contentAttributes.of({ 'aria-label': 'Example Data Editor' }),
+            keymap.of([
+                {
+                    key: 'Shift-Mod-f',
+                    run: () => {
+                        this.formatInput();
+                        return true;
+                    }
+                },
+                ...defaultKeymap,
+                ...historyKeymap,
+                ...foldKeymap
+            ])
+        ];
     }
 
-    getOutputOptions(): any {
-        return {
-            theme: 'nifi',
-            lineNumbers: true,
-            mode: 'application/json',
-            lint: false,
-            readOnly: true
-        };
+    getOutputExtensions(): Extension[] {
+        return [
+            lineNumbers(),
+            EditorView.lineWrapping,
+            EditorState.readOnly.of(true),
+            highlightSpecialChars(),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            bracketMatching(),
+            highlightActiveLine(),
+            [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
+            foldGutter(),
+            json(),
+            EditorView.contentAttributes.of({ 'aria-label': 'Output Viewer' })
+        ];
     }
 
     preventDrag(event: MouseEvent): void {
@@ -347,34 +459,34 @@ export class JoltTransformJsonUi implements OnDestroy {
         return result;
     }
 
-    initSpecEditor(codeEditor: CodemirrorComponent): void {
-        if (codeEditor.codeMirror) {
-            codeEditor.codeMirror.on('change', (cm: Editor, changeObj: EditorChange) => {
-                const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
+    initSpecEditor(codeEditor: Codemirror): void {
+        // Listen to editor value changes to clear messages
+        codeEditor.contentChange.subscribe((value: string) => {
+            const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
 
-                if (!(transform == 'jolt-transform-sort' && changeObj.text.toString() == '')) {
-                    this.clearMessages();
-                }
-            });
-
-            // listen to value changes
-            this.editJoltTransformJSONProcessorForm.controls['specification'].valueChanges.subscribe(() => {
-                this.toggleSpecEditorEnabled(codeEditor.codeMirror);
-            });
-
-            this.editJoltTransformJSONProcessorForm.controls['transform'].valueChanges.subscribe(() => {
-                this.toggleSpecEditorEnabled(codeEditor.codeMirror);
-            });
-        }
-    }
-
-    initInputEditor(codeEditor: any): void {
-        codeEditor.codeMirror.on('change', () => {
-            this.clearMessages();
+            // Only clear messages if it's not a sort transform with empty content
+            if (!(transform == 'jolt-transform-sort' && value === '')) {
+                this.clearMessages();
+            }
         });
 
-        this.editJoltTransformJSONProcessorForm.controls['input'].valueChanges.subscribe(() => {
-            this.exampleDataOptions.lint = true;
+        // Listen to form value changes to toggle editor state
+        this.editJoltTransformJSONProcessorForm.controls['specification'].valueChanges.subscribe(() => {
+            this.toggleSpecEditorEnabled();
+        });
+
+        this.editJoltTransformJSONProcessorForm.controls['transform'].valueChanges.subscribe(() => {
+            this.toggleSpecEditorEnabled();
+        });
+
+        // Initial toggle based on current form state
+        this.toggleSpecEditorEnabled();
+    }
+
+    initInputEditor(codeEditor: Codemirror): void {
+        // Listen to editor value changes to clear messages
+        codeEditor.contentChange.subscribe(() => {
+            this.clearMessages();
         });
     }
 
@@ -382,54 +494,15 @@ export class JoltTransformJsonUi implements OnDestroy {
         this.store.dispatch(resetValidateJoltSpecState());
     }
 
-    private toggleSpecEditorEnabled(specEditor: EditorFromTextArea | undefined) {
-        if (specEditor) {
-            const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
-            const display: HTMLElement = specEditor.getWrapperElement();
+    private toggleSpecEditorEnabled(): void {
+        const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
+        const isReadonly = transform === 'jolt-transform-sort';
 
-            if (transform == 'jolt-transform-sort') {
-                specEditor.setOption('readOnly', 'nocursor');
-                this.renderer.addClass(display, 'disabled');
-                this.toggleDisplayEditorErrors(specEditor, true);
-            } else {
-                specEditor.setOption('readOnly', false);
-                this.renderer.removeClass(display, 'disabled');
-                this.toggleDisplayEditorErrors(specEditor);
-            }
+        // Update the editor's readonly and disabled state
+        this._joltSpecConfig.readOnly = isReadonly;
+        this._joltSpecConfig.disabled = isReadonly;
 
-            this.clearMessages();
-        }
-    }
-
-    private toggleDisplayEditorErrors(specEditor: EditorFromTextArea | undefined, hideErrors: boolean = false) {
-        if (specEditor) {
-            const display: HTMLElement = specEditor.getWrapperElement();
-            const errors: Element[] = Array.from(display.getElementsByClassName('CodeMirror-lint-marker-error'));
-
-            if (hideErrors) {
-                errors.forEach((error: Element) => {
-                    this.renderer.addClass(error, 'hidden');
-                });
-
-                const markErrors: Element[] = Array.from(display.getElementsByClassName('CodeMirror-lint-mark-error'));
-                markErrors.forEach((markError: Element) => {
-                    this.renderer.addClass(markError, 'CodeMirror-lint-mark-error-hide');
-                    this.renderer.removeClass(markError, 'CodeMirror-lint-mark-error');
-                });
-            } else {
-                errors.forEach((error: Element) => {
-                    this.renderer.removeClass(error, 'hidden');
-                });
-
-                const markErrors: Element[] = Array.from(
-                    display.getElementsByClassName('CodeMirror-lint-mark-error-hide')
-                );
-                markErrors.forEach((markError: Element) => {
-                    this.renderer.addClass(markError, 'CodeMirror-lint-mark-error');
-                    this.renderer.removeClass(markError, 'CodeMirror-lint-mark-error-hide');
-                });
-            }
-        }
+        this.clearMessages();
     }
 
     getFormatTooltip() {

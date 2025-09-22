@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
@@ -62,11 +63,14 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
+@DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 @DisabledOnOs({ OS.WINDOWS })
 public class FetchParquetTest {
 
@@ -551,7 +555,7 @@ public class FetchParquetTest {
                 user.put("favorite_number", i);
 
 
-                final GenericData.Array<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
+                final GenericArray<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
                 colors.add("blue" + i);
 
                 user.put("favorite_color", colors);
@@ -579,7 +583,7 @@ public class FetchParquetTest {
                 user.put("favorite_number", i);
 
 
-                final GenericData.Array<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
+                final GenericArray<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
                 colors.add("blue" + i);
 
                 user.put("favorite_color", colors);

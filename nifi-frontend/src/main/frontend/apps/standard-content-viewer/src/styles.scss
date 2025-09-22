@@ -18,14 +18,10 @@
 @use '@angular/material' as mat;
 @use 'sass:map';
 @use 'libs/shared/src/assets/styles/app' as app;
-@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
 @use 'app/pages/standard-content-viewer/feature/standard-content-viewer.component-theme' as standard-content-viewer;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-@use 'codemirror/lib/codemirror.css';
-@use 'codemirror/addon/lint/lint.css';
-@use 'codemirror/addon/fold/foldgutter.css';
 
 @use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
@@ -39,12 +35,10 @@
 
 html {
     @include app.generate-material-theme();
-    @include codemirror-theme.generate-codemirror-theme();
     @include standard-content-viewer.generate-theme();
 
     .darkMode {
         @include app.generate-material-theme();
-        @include codemirror-theme.generate-codemirror-theme();
         @include standard-content-viewer.generate-theme();
     }
 }

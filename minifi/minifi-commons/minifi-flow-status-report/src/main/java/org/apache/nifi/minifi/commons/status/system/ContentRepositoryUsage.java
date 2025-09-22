@@ -25,10 +25,6 @@ public class ContentRepositoryUsage implements java.io.Serializable {
     private long usedSpace;
     private int diskUtilization;
 
-    public ContentRepositoryUsage() {
-
-    }
-
     public String getName() {
         return name;
     }

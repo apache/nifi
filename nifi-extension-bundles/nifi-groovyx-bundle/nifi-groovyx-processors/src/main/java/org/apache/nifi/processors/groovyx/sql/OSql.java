@@ -37,6 +37,7 @@ public class OSql extends Sql {
         super(connection);
     }
 
+    @Override
     protected void setObject(PreparedStatement statement, int i, Object value) throws SQLException {
         try {
             if (value instanceof InParameter) {

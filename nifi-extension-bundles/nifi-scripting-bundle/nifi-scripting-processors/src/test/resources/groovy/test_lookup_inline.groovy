@@ -39,8 +39,8 @@ class GroovyLookupService implements LookupService<String> {
     }
 
     @Override
-    Optional<String> lookup(Map<String, String> coordinates) {
-        final String key = coordinates.values().iterator().next();
+    Optional<String> lookup(Map<String, Object> coordinates) {
+        final String key = coordinates.values().iterator().next()
         Optional.ofNullable(lookupTable[key])
     }
     

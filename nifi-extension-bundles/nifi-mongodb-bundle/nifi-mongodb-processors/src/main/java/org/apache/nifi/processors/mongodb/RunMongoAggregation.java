@@ -71,7 +71,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         ObjectMapper mapper = new ObjectMapper();
         List<Map> querySteps = mapper.readValue(query, List.class);
         for (Map<?, ?> queryStep : querySteps) {
-            BasicDBObject bson = BasicDBObject.parse(mapper.writeValueAsString(queryStep));
+            BasicDBObject bson = BasicDBObject.parse(mapper.writeValueAsString(queryStep)); //NOPMD
             result.add(bson);
         }
 

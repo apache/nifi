@@ -235,6 +235,7 @@ public class GetShopify extends AbstractProcessor {
     private volatile String resourceName;
     private volatile boolean isResetState;
 
+    @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (isConfigurationRestored() && RESET_STATE_PROPERTY_NAMES.contains(descriptor.getName())) {
             isResetState = true;

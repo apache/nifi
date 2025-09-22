@@ -46,6 +46,7 @@ public class WatchServiceMonitorCommand implements Runnable {
     /**
      * Poll Watch Service and process events
      */
+    @Override
     public void run() {
         final WatchKey watchKey = watchService.poll();
         if (watchKey == null) {

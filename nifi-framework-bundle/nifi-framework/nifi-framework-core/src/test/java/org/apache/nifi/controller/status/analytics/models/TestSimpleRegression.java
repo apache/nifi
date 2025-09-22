@@ -20,7 +20,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleRegression {
 
@@ -45,7 +47,7 @@ public class TestSimpleRegression {
         Double[] predictor = {timestamp + 5000};
         Double target = model.predict(predictor);
         assertNotNull(target);
-        assert (target  == 50);
+        assertEquals(50, (double) target);
 
     }
 
@@ -70,7 +72,7 @@ public class TestSimpleRegression {
         Double target = model.predictX(1000.0);
         Double minTimeMillis = 1565343920000.0;
         Double maxTimeMillis = 1565516720000.0;
-        assert (target >= minTimeMillis && target <= maxTimeMillis);
+        assertTrue(target >= minTimeMillis && target <= maxTimeMillis);
 
     }
 
@@ -97,7 +99,7 @@ public class TestSimpleRegression {
         Double rSquared = model.getScores().get("rSquared");
         Double minCount = -1265.0;
         Double maxCount = 3235.0;
-        assert (rSquared > .60);
-        assert (target >= minCount && target <= maxCount);
+        assertTrue(rSquared > .60);
+        assertTrue(target >= minCount && target <= maxCount);
     }
 }

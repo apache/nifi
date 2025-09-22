@@ -69,16 +69,10 @@ public class StandardTocReader implements TocReader {
                     + "expected value of 0 or 1 but got " + compressionFlag);
             }
 
-            final int blockInfoBytes;
-            switch (version) {
-                case 1:
-                    blockInfoBytes = 8;
-                    break;
-                case 2:
-                default:
-                    blockInfoBytes = 16;
-                    break;
-            }
+            final int blockInfoBytes = switch (version) {
+                case 1 -> 8;
+                default -> 16;
+            };
 
             final int numBlocks = (buffer.length - 2) / blockInfoBytes;
             offsets = new long[numBlocks];

@@ -50,10 +50,12 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
     /**
      * @return controller service that is being serialized
      */
+    @Override
     public ControllerServiceDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ControllerServiceDTO component) {
         this.component = component;
     }

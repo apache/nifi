@@ -237,28 +237,20 @@ public class LoadBalanceSession {
 
 
     private ByteBuffer getDataFrame() throws IOException {
-        switch (phase) {
-            case RECOMMEND_PROTOCOL_VERSION:
-                return recommendProtocolVersion();
-            case ABORT_PROTOCOL_NEGOTIATION:
-                return abortProtocolNegotiation();
-            case SEND_CONNECTION_ID:
-                return getConnectionId();
-            case CHECK_SPACE:
-                return checkSpace();
-            case GET_NEXT_FLOWFILE:
-                return getNextFlowFile();
-            case SEND_FLOWFILE_DEFINITION:
-            case SEND_FLOWFILE_CONTENTS:
-                return getFlowFileContent();
-            case SEND_CHECKSUM:
-                return getChecksum();
-            case SEND_TRANSACTION_COMPLETE:
-                return getTransactionComplete();
-            default:
+        return switch (phase) {
+            case RECOMMEND_PROTOCOL_VERSION -> recommendProtocolVersion();
+            case ABORT_PROTOCOL_NEGOTIATION -> abortProtocolNegotiation();
+            case SEND_CONNECTION_ID -> getConnectionId();
+            case CHECK_SPACE -> checkSpace();
+            case GET_NEXT_FLOWFILE -> getNextFlowFile();
+            case SEND_FLOWFILE_DEFINITION, SEND_FLOWFILE_CONTENTS -> getFlowFileContent();
+            case SEND_CHECKSUM -> getChecksum();
+            case SEND_TRANSACTION_COMPLETE -> getTransactionComplete();
+            default -> {
                 logger.debug("Phase of {}, returning null ByteBuffer", phase);
-                return null;
-        }
+                yield null;
+            }
+        };
     }
 
 

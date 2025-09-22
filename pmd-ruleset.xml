@@ -28,14 +28,37 @@ under the License.
     <exclude-pattern>.*/antlr/AttributeExpressionLexer\.java</exclude-pattern>
     <exclude-pattern>.*/antlr/HL7QueryParser\.java</exclude-pattern>
     <exclude-pattern>.*/antlr/HL7QueryLexer\.java</exclude-pattern>
+    <exclude-pattern>.*/antlr/Protobuf3Parser\.java</exclude-pattern>
+    <exclude-pattern>.*/antlr/Protobuf3Lexer\.java</exclude-pattern>
     <exclude-pattern>.*/path/RecordPathParser\.java</exclude-pattern>
     <exclude-pattern>.*/path/RecordPathLexer\.java</exclude-pattern>
     <exclude-pattern>.*/generated/.+?\.java</exclude-pattern>
 
     <rule ref="category/java/bestpractices.xml/AvoidMessageDigestField" />
     <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables" />
+    <rule ref="category/java/bestpractices.xml/DoubleBraceInitialization" />
     <rule ref="category/java/bestpractices.xml/ExhaustiveSwitchHasDefault" />
     <rule ref="category/java/bestpractices.xml/ForLoopCanBeForeach" />
+    <rule ref="category/java/bestpractices.xml/LooseCoupling">
+        <!--Classes below excluded from this rule due to their prevalence within the code base.-->
+        <properties>
+            <property name="allowedTypes"
+                      value="java.util.EnumSet,
+                             java.util.Properties,
+                             java.util.jar.Attributes,
+                             jakarta.ws.rs.core.MultivaluedHashMap,
+                             com.google.api.services.drive.DriveRequest,
+                             com.google.api.services.drive.model.File,
+                             com.google.cloud.bigquery.FieldValueList,
+                             org.bson.BsonDocument,
+                             org.bson.Document,
+                             com.nimbusds.oauth2.sdk.Scope,
+                             org.apache.nifi.attribute.expression.language.ValueLookup,
+                             org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue
+            " />
+        </properties>
+    </rule>
+    <rule ref="category/java/bestpractices.xml/MissingOverride" />
     <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation" />
     <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion" />
     <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
@@ -48,6 +71,7 @@ under the License.
     <rule ref="category/java/codestyle.xml/ExtendsObject" />
     <rule ref="category/java/codestyle.xml/IdenticalCatchBranches" />
     <rule ref="category/java/codestyle.xml/ForLoopShouldBeWhileLoop" />
+    <rule ref="category/java/codestyle.xml/UnnecessaryConstructor" />
     <rule ref="category/java/codestyle.xml/UnnecessaryImport" />
     <rule ref="category/java/codestyle.xml/UnnecessaryModifier">
         <!--The following xpath excludes try with resources that use a final modifier when defining variable(s) -->
@@ -59,6 +83,7 @@ under the License.
     <rule ref="category/java/codestyle.xml/UseDiamondOperator" />
     <rule ref="category/java/codestyle.xml/UseExplicitTypes" />
 
+    <rule ref="category/java/errorprone.xml/AvoidAssertAsIdentifier" />
     <rule ref="category/java/errorprone.xml/AvoidDecimalLiteralsInBigDecimalConstructor" />
     <rule ref="category/java/errorprone.xml/AvoidMultipleUnaryOperators" />
     <rule ref="category/java/errorprone.xml/AvoidUsingOctalValues" />
@@ -73,7 +98,6 @@ under the License.
     <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock" />
     <rule ref="category/java/errorprone.xml/UnconditionalIfStatement" />
     <rule ref="category/java/errorprone.xml/UnnecessaryConversionTemporary" />
-    <rule ref="category/java/errorprone.xml/UselessOperationOnImmutable" />
 
     <rule ref="category/java/multithreading.xml/AvoidThreadGroup" />
     <rule ref="category/java/multithreading.xml/DontCallThreadRun" />

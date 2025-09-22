@@ -219,6 +219,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     protected Map<String, String> maxValueProperties;
 
     // A common validation procedure for DB fetch processors, it stores whether the Table Name and/or Max Value Column properties have expression language
+    @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         // For backwards-compatibility, keep track of whether the table name and max-value column properties are dynamic (i.e. has expression language)
         isDynamicTableName = validationContext.isExpressionLanguagePresent(validationContext.getProperty(TABLE_NAME).getValue());

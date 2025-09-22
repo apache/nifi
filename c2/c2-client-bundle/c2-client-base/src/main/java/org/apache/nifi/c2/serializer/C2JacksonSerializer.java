@@ -40,7 +40,7 @@ public class C2JacksonSerializer implements C2Serializer {
     public C2JacksonSerializer() {
         objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
 
         SimpleModule module = new SimpleModule();

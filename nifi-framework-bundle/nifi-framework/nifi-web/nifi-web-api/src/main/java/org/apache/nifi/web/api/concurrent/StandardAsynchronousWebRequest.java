@@ -53,10 +53,12 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
         this.request = request;
     }
 
+    @Override
     public synchronized UpdateStep getCurrentStep() {
         return (updateSteps == null || updateSteps.size() <= currentStepIndex) ? null : updateSteps.get(currentStepIndex);
     }
 
+    @Override
     public R getRequest() {
         return request;
     }

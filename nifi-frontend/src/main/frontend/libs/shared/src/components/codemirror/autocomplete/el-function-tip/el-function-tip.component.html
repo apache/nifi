@@ -1,0 +1,54 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="el-function-tooltip">
+    @if (data?.elFunction; as elFunction) {
+        <div class="flex flex-col gap-y-3">
+            <div class="el-name text-lg font-bold">{{ elFunction.name }}</div>
+            @if (hasDescription(elFunction)) {
+                <div>{{ elFunction.description }}</div>
+            }
+            <div class="flex flex-col gap-y-1.5">
+                <div class="font-bold">Arguments</div>
+                @if (hasArguments(elFunction)) {
+                    <div>
+                        <ul class="el-arguments">
+                            @for (argument of getArguments(elFunction); track argument) {
+                                <li>
+                                    <span class="el-argument-name">{{ argument }}</span> -
+                                    <span>{{ getArgumentDescription(elFunction, argument) }}</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                } @else {
+                    <div class="unset neutral-color ml-2">None</div>
+                }
+            </div>
+            @if (elFunction.subject) {
+                <div class="flex">
+                    <div class="font-bold w-16">Subject</div>
+                    <div>{{ elFunction.subject }}</div>
+                </div>
+            }
+            <div class="flex">
+                <div class="font-bold w-16">Return</div>
+                <div>{{ elFunction.returnType }}</div>
+            </div>
+        </div>
+    }
+</div>

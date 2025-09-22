@@ -25,15 +25,15 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 public abstract class ValidationContextAdapter implements ValidationContext {
 
-    private ValidationContext innerValidationContext;
+    private final ValidationContext innerValidationContext;
 
     public ValidationContextAdapter(ValidationContext innerValidationContext) {
-        assert innerValidationContext != null;
-        this.innerValidationContext = innerValidationContext;
+        this.innerValidationContext = Objects.requireNonNull(innerValidationContext);
     }
 
     @Override

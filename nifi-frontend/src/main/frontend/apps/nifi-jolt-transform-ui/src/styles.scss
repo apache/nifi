@@ -18,14 +18,11 @@
 @use '@angular/material' as mat;
 @use 'sass:map';
 @use 'libs/shared/src/assets/styles/app' as app;
-@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'app/pages/jolt-transform-json-ui/feature/jolt-transform-json-ui.component-theme' as jolt-transform-json-ui;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-@use 'codemirror/lib/codemirror.css';
-@use 'codemirror/addon/lint/lint.css';
 
 @use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
@@ -40,13 +37,11 @@
 
 html {
     @include app.generate-material-theme();
-    @include codemirror-theme.generate-codemirror-theme();
     @include listing-table.generate-theme();
     @include jolt-transform-json-ui.generate-theme();
 
     .darkMode {
         @include app.generate-material-theme();
-        @include codemirror-theme.generate-codemirror-theme();
         @include listing-table.generate-theme();
         @include jolt-transform-json-ui.generate-theme();
     }

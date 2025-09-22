@@ -16,7 +16,7 @@
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { PropertyItem } from '../../property-table.component';
+import { PropertyItem } from '../../property-item';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -62,6 +62,8 @@ export class ComboEditor {
             this.configuredValue = item.value;
         } else if (item.descriptor.defaultValue != null) {
             this.configuredValue = item.descriptor.defaultValue;
+            // Mark as dirty since we're using default value instead of the saved value
+            this.shouldMarkDirty = true;
         }
 
         this.descriptor = item.descriptor;
@@ -69,13 +71,14 @@ export class ComboEditor {
         this.savedValue = item.savedValue;
 
         this.itemSet = true;
-        this.initialAllowableValues();
+        this.initializeComponent();
     }
 
     @Input() set parameterConfig(parameterConfig: ParameterConfig) {
         this.parameters = parameterConfig.parameters;
         this.supportsParameters = parameterConfig.supportsParameters;
-        this.initialAllowableValues();
+        this.parameterConfigSet = true;
+        this.initializeComponent();
     }
     @Input() width!: number;
     @Input() readonly: boolean = false;
@@ -100,6 +103,8 @@ export class ComboEditor {
     supportsParameters = false;
 
     itemSet = false;
+    parameterConfigSet = false;
+    shouldMarkDirty = false;
     configuredValue: string | null = null;
     savedValue: string | null = null;
     parameters: Parameter[] | null = null;
@@ -113,116 +118,128 @@ export class ComboEditor {
         });
     }
 
-    initialAllowableValues(): void {
-        if (this.itemSet) {
-            this.itemLookup.clear();
-            this.allowableValues = [];
-            this.referencesParametersId = -1;
+    private initializeComponent(): void {
+        // Only initialize when both required inputs are set
+        if (this.itemSet && this.parameterConfigSet) {
+            this.initializeAllowableValues();
 
-            let i = 0;
-            let selectedItem: AllowableValueItem | null = null;
+            // Mark the form as dirty if we used a default value
+            if (this.shouldMarkDirty) {
+                this.comboEditorForm.markAsDirty();
+                this.shouldMarkDirty = false; // Reset flag
+            }
+        }
+    }
 
-            if (!this.descriptor.required) {
-                const noValue: AllowableValueItem = {
-                    id: i++,
-                    disabled: false,
-                    displayName: 'No value',
-                    value: null
-                };
-                this.itemLookup.set(noValue.id, noValue);
-                this.allowableValues.push(noValue);
+    private initializeAllowableValues(): void {
+        this.itemLookup.clear();
+        this.allowableValues = [];
+        this.parameterAllowableValues = [];
+        this.referencesParametersId = -1;
 
-                if (noValue.value == this.configuredValue) {
-                    selectedItem = noValue;
+        let i = 0;
+        let selectedItem: AllowableValueItem | null = null;
+
+        if (!this.descriptor.required) {
+            const noValue: AllowableValueItem = {
+                id: i++,
+                disabled: false,
+                displayName: 'No value',
+                value: null
+            };
+            this.itemLookup.set(noValue.id, noValue);
+            this.allowableValues.push(noValue);
+
+            if (noValue.value == this.configuredValue) {
+                selectedItem = noValue;
+            }
+        }
+
+        if (this.descriptor.allowableValues) {
+            const allowableValueItems: AllowableValueItem[] = this.descriptor.allowableValues.map(
+                (allowableValueEntity) => {
+                    const allowableValue: AllowableValueItem = {
+                        ...allowableValueEntity.allowableValue,
+                        id: i++,
+                        disabled:
+                            !allowableValueEntity.canRead &&
+                            allowableValueEntity.allowableValue.value !== this.savedValue
+                    };
+                    this.itemLookup.set(allowableValue.id, allowableValue);
+
+                    if (allowableValue.value == this.configuredValue) {
+                        selectedItem = allowableValue;
+                    }
+
+                    return allowableValue;
                 }
+            );
+            this.allowableValues.push(...allowableValueItems);
+        }
+
+        if (this.supportsParameters) {
+            // parameters are supported so add the item to support showing
+            // and hiding the parameter options select
+            const referencesParameterOption: AllowableValueItem = {
+                id: i++,
+                disabled: false,
+                displayName: 'Reference Parameter...',
+                value: null
+            };
+            this.allowableValues.push(referencesParameterOption);
+            this.itemLookup.set(referencesParameterOption.id, referencesParameterOption);
+
+            // record the item of the item to more easily identify this item
+            this.referencesParametersId = referencesParameterOption.id;
+
+            // if the current value references a parameter auto select the
+            // references parameter item
+            if (this.referencesParameter(this.configuredValue)) {
+                selectedItem = referencesParameterOption;
+
+                // trigger allowable value changed to show the parameters
+                this.allowableValueChanged(this.referencesParametersId);
             }
 
-            if (this.descriptor.allowableValues) {
-                const allowableValueItems: AllowableValueItem[] = this.descriptor.allowableValues.map(
-                    (allowableValueEntity) => {
-                        const allowableValue: AllowableValueItem = {
-                            ...allowableValueEntity.allowableValue,
-                            id: i++,
-                            disabled:
-                                !allowableValueEntity.canRead &&
-                                allowableValueEntity.allowableValue.value !== this.savedValue
-                        };
-                        this.itemLookup.set(allowableValue.id, allowableValue);
+            if (this.parameters !== null && this.parameters.length > 0) {
+                // capture the value of i which will be the id of the first
+                // parameter
+                this.configuredParameterId = i;
 
-                        if (allowableValue.value == this.configuredValue) {
-                            selectedItem = allowableValue;
-                        }
+                // create allowable values for each parameter
+                this.parameters.forEach((parameter) => {
+                    const parameterItem: AllowableValueItem = {
+                        id: i++,
+                        disabled: false,
+                        displayName: parameter.name,
+                        value: `#{${parameter.name}}`,
+                        description: parameter.description
+                    };
+                    this.parameterAllowableValues.push(parameterItem);
+                    this.itemLookup.set(parameterItem.id, parameterItem);
 
-                        return allowableValue;
+                    // if the configured parameter is still available,
+                    // capture the id, so we can auto select it
+                    if (parameterItem.value === this.configuredValue) {
+                        this.configuredParameterId = parameterItem.id;
                     }
+                });
+                this.parameterAllowableValues.sort((a, b) =>
+                    this.nifiCommon.compareString(a.displayName, b.displayName)
                 );
-                this.allowableValues.push(...allowableValueItems);
-            }
-
-            if (this.supportsParameters) {
-                // parameters are supported so add the item to support showing
-                // and hiding the parameter options select
-                const referencesParameterOption: AllowableValueItem = {
-                    id: i++,
-                    disabled: false,
-                    displayName: 'Reference Parameter...',
-                    value: null
-                };
-                this.allowableValues.push(referencesParameterOption);
-                this.itemLookup.set(referencesParameterOption.id, referencesParameterOption);
-
-                // record the item of the item to more easily identify this item
-                this.referencesParametersId = referencesParameterOption.id;
-
-                // if the current value references a parameter auto select the
-                // references parameter item
-                if (this.referencesParameter(this.configuredValue)) {
-                    selectedItem = referencesParameterOption;
-
-                    // trigger allowable value changed to show the parameters
-                    this.allowableValueChanged(this.referencesParametersId);
+                // if combo still set to reference a parameter, set the default value
+                if (selectedItem?.id == this.referencesParametersId) {
+                    this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId);
                 }
-
-                if (this.parameters !== null && this.parameters.length > 0) {
-                    // capture the value of i which will be the id of the first
-                    // parameter
-                    this.configuredParameterId = i;
-
-                    // create allowable values for each parameter
-                    this.parameters.forEach((parameter) => {
-                        const parameterItem: AllowableValueItem = {
-                            id: i++,
-                            disabled: false,
-                            displayName: parameter.name,
-                            value: `#{${parameter.name}}`,
-                            description: parameter.description
-                        };
-                        this.parameterAllowableValues.push(parameterItem);
-                        this.itemLookup.set(parameterItem.id, parameterItem);
-
-                        // if the configured parameter is still available,
-                        // capture the id, so we can auto select it
-                        if (parameterItem.value === this.configuredValue) {
-                            this.configuredParameterId = parameterItem.id;
-                        }
-                    });
-                    this.parameterAllowableValues.sort((a, b) =>
-                        this.nifiCommon.compareString(a.displayName, b.displayName)
-                    );
-                    // if combo still set to reference a parameter, set the default value
-                    if (selectedItem?.id == this.referencesParametersId) {
-                        this.comboEditorForm.get('parameterReference')?.setValue(this.configuredParameterId);
-                    }
-                }
-            } else {
-                this.parameterAllowableValues = [];
             }
+        } else {
+            this.parameterAllowableValues = [];
+        }
 
-            if (selectedItem) {
-                // mat-select does not have good support for options with null value so we've
-                // introduced a mapping to work around the shortcoming
-                this.comboEditorForm.get('value')?.setValue(selectedItem.id);
-            }
+        if (selectedItem) {
+            // mat-select does not have good support for options with null value so we've
+            // introduced a mapping to work around the shortcoming
+            this.comboEditorForm.get('value')?.setValue(selectedItem.id);
         }
     }
 

@@ -32,7 +32,7 @@
                     "includePaths": [""]
                 },
                 "scripts": [],
-                "allowedCommonJsDependencies": ["codemirror", "jsonlint", "js-beautify"],
+                "allowedCommonJsDependencies": ["js-beautify"],
                 "preserveSymlinks": true
             },
             "configurations": {
@@ -89,7 +89,7 @@
                 },
                 "development": {
                     "buildTarget": "nifi-jolt-transform-ui:build:development",
-                    "servePath": "/nifi-jolt-transform-json-ui-2.1.0-SNAPSHOT/"
+                    "servePath": "/nifi-jolt-transform-json-ui-2.6.0-SNAPSHOT/"
                 }
             },
             "defaultConfiguration": "development",

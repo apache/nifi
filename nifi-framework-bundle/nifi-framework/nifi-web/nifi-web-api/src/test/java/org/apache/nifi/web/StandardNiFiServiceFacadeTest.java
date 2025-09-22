@@ -45,10 +45,13 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -64,6 +67,13 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowRegistryUtil;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowComparator;
+import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
+import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
@@ -87,6 +97,7 @@ import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -125,6 +136,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -143,10 +155,10 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -296,6 +308,66 @@ public class StandardNiFiServiceFacadeTest {
         serviceFacade.setProcessGroupDAO(processGroupDAO);
         serviceFacade.setRuleViolationsManager(ruleViolationsManager);
 
+    }
+
+    @Test
+    public void testGetComponentsAffectedByFlowUpdate_WithNewStatelessProcessGroup_ReproducesNPE() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+        when(processGroup.getAncestorServiceIds()).thenReturn(Collections.emptySet());
+
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(extensionManager);
+
+        final InstantiatedVersionedProcessGroup localRoot = new InstantiatedVersionedProcessGroup("local-root-instance", groupId);
+        when(flowMapper.mapProcessGroup(any(ProcessGroup.class), any(ControllerServiceProvider.class), any(FlowManager.class), eq(true)))
+                .thenReturn(localRoot);
+
+        // Build proposed (updated) flow with a NEW child Process Group configured with Stateless Execution Engine
+        final VersionedProcessGroup proposedRoot = new VersionedProcessGroup();
+        proposedRoot.setIdentifier("root");
+        proposedRoot.setName("root");
+
+        final VersionedProcessGroup newChild = new VersionedProcessGroup();
+        newChild.setIdentifier("child");
+        newChild.setName("child");
+        newChild.setGroupIdentifier("root");
+        newChild.setExecutionEngine(ExecutionEngine.STATELESS);
+        proposedRoot.getProcessGroups().add(newChild);
+
+        final RegisteredFlowSnapshot updatedSnapshot = new RegisteredFlowSnapshot();
+        updatedSnapshot.setFlowContents(proposedRoot);
+
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localRoot);
+        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", proposedRoot);
+        final FlowComparator flowComparator = new StandardFlowComparator(
+                localFlow,
+                proposedFlow,
+                Collections.emptySet(),
+                new StaticDifferenceDescriptor(),
+                Function.identity(),
+                VersionedComponent::getIdentifier,
+                FlowComparatorVersionedStrategy.DEEP);
+
+        final org.apache.nifi.registry.flow.diff.FlowComparison comparison = flowComparator.compare();
+        final boolean hasExecEngineChange = comparison.getDifferences().stream()
+                .anyMatch(d -> d.getDifferenceType() == DifferenceType.EXECUTION_ENGINE_CHANGED
+                        && d.getComponentA() == null
+                        && d.getComponentB() instanceof VersionedProcessGroup
+                        && "child".equals(d.getComponentB().getIdentifier()));
+        assertTrue(hasExecEngineChange, "Expected EXECUTION_ENGINE_CHANGED difference for Stateless child group");
+
+        // Act: Should not throw after fix; no local components are affected by a new Stateless child group
+        final Set<AffectedComponentEntity> affected = serviceFacadeSpy.getComponentsAffectedByFlowUpdate(groupId, updatedSnapshot);
+        assertNotNull(affected);
+        assertTrue(affected.isEmpty(), "No local components should be affected for added Stateless group");
     }
 
     private FlowChangeAction getAction(final Integer actionId, final String processorId) {

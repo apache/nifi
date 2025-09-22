@@ -52,6 +52,7 @@ public class WrapperJoinStrategy extends IndexCorrelatedJoinStrategy {
         return wrapped;
     }
 
+    @Override
     protected RecordSchema createResultSchema(final Record firstOriginalRecord, final Record firstEnrichmentRecord) {
         final List<RecordField> fields = new ArrayList<>();
 

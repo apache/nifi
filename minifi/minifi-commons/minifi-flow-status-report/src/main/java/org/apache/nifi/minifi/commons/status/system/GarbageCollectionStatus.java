@@ -23,9 +23,6 @@ public class GarbageCollectionStatus implements java.io.Serializable {
     private long collectionCount;
     private long collectionTime;
 
-    public GarbageCollectionStatus() {
-    }
-
     public String getName() {
         return name;
     }

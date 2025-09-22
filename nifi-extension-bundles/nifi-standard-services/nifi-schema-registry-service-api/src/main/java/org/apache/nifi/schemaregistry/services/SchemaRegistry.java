@@ -45,4 +45,45 @@ public interface SchemaRegistry extends ControllerService {
      * @return the set of all Schema Fields that are supplied by the RecordSchema that is returned from {@link #retrieveSchema(SchemaIdentifier)}
      */
     Set<SchemaField> getSuppliedSchemaFields();
+
+    /**
+     * Indicates whether this schema registry implementation supports raw schema definition access.
+     * <p>
+     * This method allows clients to determine if the {@link #retrieveSchemaDefinition(SchemaIdentifier)}
+     * method is supported before attempting to call it, avoiding UnsupportedOperationException.
+     * </p>
+     *
+     * @return true if raw schema definition access is supported, false otherwise
+     */
+    default boolean isSchemaDefinitionAccessSupported() {
+        return false;
+    }
+
+    /**
+     * Retrieves the raw schema definition including its textual representation and references.
+     * <p>
+     * This method is used to retrieve the complete schema definition structure, including the raw schema text
+     * and any schema references. Unlike {@link #retrieveSchema(SchemaIdentifier)}, which returns a parsed
+     * {@link RecordSchema} ready for immediate use, this method returns a {@link SchemaDefinition} containing
+     * the raw schema content that can be used for custom schema processing, compilation, or when schema
+     * references need to be resolved.
+     * </p>
+     * <p>
+     * This method is particularly useful for:
+     * <ul>
+     *   <li>Processing schemas that reference other schemas (e.g., Protocol Buffers with imports)</li>
+     *   <li>Custom schema compilation workflows where the raw schema text is needed</li>
+     *   <li>Accessing schema metadata and references for advanced schema processing</li>
+     * </ul>
+     * </p>
+     *
+     * @param schemaIdentifier the schema identifier containing id, name, version, and optionally branch information
+     * @return a {@link SchemaDefinition} containing the raw schema text, type, identifier, and references
+     * @throws IOException if unable to communicate with the backing store
+     * @throws SchemaNotFoundException if unable to find the schema based on the given identifier
+     * @throws UnsupportedOperationException if the schema registry implementation does not support raw schema retrieval
+     */
+    default SchemaDefinition retrieveSchemaDefinition(SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        throw new UnsupportedOperationException("retrieveSchemaRaw is not supported by this SchemaRegistry implementation");
+    }
 }

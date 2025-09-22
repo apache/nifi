@@ -40,6 +40,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
@@ -111,8 +112,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             .build();
 
     public static final PropertyDescriptor BLOB_NAME_PREFIX = new PropertyDescriptor.Builder()
-            .name("blob-name-prefix")
-            .displayName("Blob Name Prefix")
+            .name("Blob Name Prefix")
             .description("Search prefix for listing")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -168,6 +168,14 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     }
 
     @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
+        config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
+        config.renameProperty("blob-name-prefix", BLOB_NAME_PREFIX.getName());
+    }
+
+    @Override
     protected String getPath(final ProcessContext context) {
         return context.getProperty(CONTAINER).evaluateAttributeExpressions().getValue();
     }
@@ -210,6 +218,13 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     @Override
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
+        final BlobServiceClientFactory currentClientFactory;
+        if (ListingMode.CONFIGURATION_VERIFICATION == listingMode) {
+            currentClientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
+        } else {
+            currentClientFactory = clientFactory;
+        }
+
         final String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions().getValue();
         final String prefix = context.getProperty(BLOB_NAME_PREFIX).evaluateAttributeExpressions().getValue();
         final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
@@ -219,7 +234,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
             final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(BLOB_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
             final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
-            final BlobServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
+            final BlobServiceClient storageClient = currentClientFactory.getStorageClient(credentialsDetails);
 
             final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
 

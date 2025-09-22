@@ -30,19 +30,21 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.proxy.ProxyContext;
 import org.apache.nifi.web.client.StandardWebClientService;
-import org.apache.nifi.web.client.redirect.RedirectHandling;
-import org.apache.nifi.web.client.ssl.TlsContext;
+import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
+import org.apache.nifi.web.client.proxy.ProxyContext;
+import org.apache.nifi.web.client.redirect.RedirectHandling;
+import org.apache.nifi.web.client.ssl.TlsContext;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
+
 import java.net.Proxy;
+import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -87,6 +89,14 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .allowableValues(RedirectHandling.values())
             .build();
 
+    static final PropertyDescriptor HTTP_PROTOCOL_VERSION = new PropertyDescriptor.Builder()
+            .name("HTTP Protocol Version")
+            .description("Preferred HTTP protocol version for requests")
+            .required(true)
+            .defaultValue(Version.HTTP_2.name())
+            .allowableValues(Version.values())
+            .build();
+
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("SSL Context Service overrides system default TLS settings for HTTPS communication")
@@ -99,6 +109,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             READ_TIMEOUT,
             WRITE_TIMEOUT,
             REDIRECT_HANDLING_STRATEGY,
+            HTTP_PROTOCOL_VERSION,
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE
     );
@@ -130,6 +141,9 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
         final String redirectHandlingStrategy = context.getProperty(REDIRECT_HANDLING_STRATEGY).getValue();
         final RedirectHandling redirectHandling = RedirectHandling.valueOf(redirectHandlingStrategy);
         standardWebClientService.setRedirectHandling(redirectHandling);
+
+        final Version httpVersion = context.getProperty(HTTP_PROTOCOL_VERSION).asAllowableValue(Version.class);
+        standardWebClientService.setHttpVersion(httpVersion);
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {

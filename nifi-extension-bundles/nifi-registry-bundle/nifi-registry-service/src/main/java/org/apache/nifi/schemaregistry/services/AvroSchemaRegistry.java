@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
+import org.apache.avro.NameValidator;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -76,7 +77,9 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             } else {
                 try {
                     // Use a non-strict parser here, a strict parse can be done (if specified) in customValidate().
-                    final Schema avroSchema = new Schema.Parser().setValidate(false).parse(newValue);
+                    final Schema avroSchema = new Schema.Parser(NameValidator.NO_VALIDATION)
+                            .setValidateDefaults(false)
+                            .parse(newValue);
                     final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(descriptor.getName()).build();
                     final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
                     recordSchemas.put(descriptor.getName(), recordSchema);
@@ -98,7 +101,10 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             String input = entry.getValue();
 
             try {
-                final Schema avroSchema = new Schema.Parser().setValidate(strict).parse(input);
+                final Schema.Parser parser = strict
+                        ? new Schema.Parser(NameValidator.STRICT_VALIDATOR).setValidateDefaults(true)
+                        : new Schema.Parser(NameValidator.NO_VALIDATION).setValidateDefaults(false);
+                final Schema avroSchema = parser.parse(input);
                 AvroTypeUtil.createSchema(avroSchema, input, SchemaIdentifier.EMPTY);
             } catch (final Exception e) {
                 results.add(new ValidationResult.Builder()

@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.nifi.processors.salesforce.util.RecordExtender.ATTRIBUTES_RECORD_SCHEMA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -94,22 +94,17 @@ class TestRecordExtender {
         int referenceId = 0;
         String objectType = "Account";
 
-        MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, new HashMap<>() {{
-            put("testRecordField1", "testRecordValue1");
-            put("testRecordField2", "testRecordValue2");
-        }});
+        MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, Map.of(
+                "testRecordField1", "testRecordValue1",
+                "testRecordField2", "testRecordValue2"
+        ));
 
 
-        MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, new HashMap<>() {{
-            put("attributes",
-                    new MapRecord(ATTRIBUTES_RECORD_SCHEMA, new HashMap<>() {{
-                        put("type", objectType);
-                        put("referenceId", referenceId);
-                    }})
-            );
-            put("testRecordField1", "testRecordValue1");
-            put("testRecordField2", "testRecordValue2");
-        }});
+        MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, Map.of(
+                "attributes", new MapRecord(ATTRIBUTES_RECORD_SCHEMA, Map.of("type", objectType, "referenceId", referenceId)),
+                "testRecordField1", "testRecordValue1",
+                "testRecordField2", "testRecordValue2"
+        ));
 
         MapRecord actualRecord = testSubject.getExtendedRecord(objectType, referenceId, testRecord);
 

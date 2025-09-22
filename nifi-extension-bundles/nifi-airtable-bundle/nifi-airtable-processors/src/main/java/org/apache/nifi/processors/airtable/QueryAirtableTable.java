@@ -98,8 +98,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 public class QueryAirtableTable extends AbstractProcessor {
 
     static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
-            .name("api-url")
-            .displayName("API URL")
+            .name("API URL")
             .description("The URL for the Airtable REST API including the domain and the path to the API (e.g. https://api.airtable.com/v0).")
             .defaultValue(API_V0_BASE_URL)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -110,8 +109,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     // API Keys are deprecated, Airtable now provides Personal Access Tokens instead.
     static final PropertyDescriptor PAT = new PropertyDescriptor.Builder()
-            .name("pat")
-            .displayName("Personal Access Token")
+            .name("Personal Access Token")
             .description("The Personal Access Token (PAT) to use in queries. Should be generated on Airtable's account page.")
             .required(true)
             .sensitive(true)
@@ -120,8 +118,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor BASE_ID = new PropertyDescriptor.Builder()
-            .name("base-id")
-            .displayName("Base ID")
+            .name("Base ID")
             .description("The ID of the Airtable base to be queried.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -129,8 +126,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TABLE_ID = new PropertyDescriptor.Builder()
-            .name("table-id")
-            .displayName("Table ID")
+            .name("Table ID")
             .description("The name or the ID of the Airtable table to be queried.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -138,24 +134,21 @@ public class QueryAirtableTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
-            .name("fields")
-            .displayName("Fields")
+            .name("Fields")
             .description("Comma-separated list of fields to query from the table. Both the field's name and ID can be used.")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     static final PropertyDescriptor CUSTOM_FILTER = new PropertyDescriptor.Builder()
-            .name("custom-filter")
-            .displayName("Custom Filter")
+            .name("Custom Filter")
             .description("Filter records by Airtable's formulas.")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     static final PropertyDescriptor QUERY_TIME_WINDOW_LAG = new PropertyDescriptor.Builder()
-            .name("query-time-window-lag")
-            .displayName("Query Time Window Lag")
+            .name("Query Time Window Lag")
             .description("The amount of lag to be applied to the query time window's end point. Set this property to avoid missing records when the clock of your local machines"
                     + " and Airtable servers' clock are not in sync. Must be greater than or equal to 1 second.")
             .defaultValue("3 s")
@@ -165,24 +158,21 @@ public class QueryAirtableTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
-            .name("web-client-service-provider")
-            .displayName("Web Client Service Provider")
+            .name("Web Client Service Provider")
             .description("Web Client Service Provider to use for Airtable REST API requests")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor QUERY_PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("query-page-size")
-            .displayName("Query Page Size")
+            .name("Query Page Size")
             .description("Number of records to be fetched in a page. Should be between 1 and 100 inclusively.")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createLongValidator(1, 100, true))
             .build();
 
     static final PropertyDescriptor MAX_RECORDS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-            .name("max-records-per-flowfile")
-            .displayName("Max Records Per FlowFile")
+            .name("Max Records Per FlowFile")
             .description("The maximum number of result records that will be included in a single FlowFile. This will allow you to break up very large"
                     + " result sets into multiple FlowFiles. If no value specified, then all records are returned in a single FlowFile.")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -288,6 +278,16 @@ public class QueryAirtableTable extends AbstractProcessor {
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("api-key", PAT.getName());
+        config.renameProperty("api-url", API_URL.getName());
+        config.renameProperty("pat", PAT.getName());
+        config.renameProperty("base-id", BASE_ID.getName());
+        config.renameProperty("table-id", TABLE_ID.getName());
+        config.renameProperty("fields", FIELDS.getName());
+        config.renameProperty("custom-filter", CUSTOM_FILTER.getName());
+        config.renameProperty("query-time-window-lag", QUERY_TIME_WINDOW_LAG.getName());
+        config.renameProperty("web-client-service-provider", WEB_CLIENT_SERVICE_PROVIDER.getName());
+        config.renameProperty("query-page-size", QUERY_PAGE_SIZE.getName());
+        config.renameProperty("max-records-per-flowfile", MAX_RECORDS_PER_FLOWFILE.getName());
     }
 
     private AirtableGetRecordsParameters buildGetRecordsParameters(final ProcessContext context,

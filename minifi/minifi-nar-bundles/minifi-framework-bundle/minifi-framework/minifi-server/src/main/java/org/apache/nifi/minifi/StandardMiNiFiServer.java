@@ -104,6 +104,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
         }
     }
 
+    @Override
     public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
         return StatusConfigReporter.getStatus(getFlowController(), requestString, logger);
     }

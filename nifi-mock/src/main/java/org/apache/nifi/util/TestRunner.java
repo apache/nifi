@@ -1070,6 +1070,27 @@ public interface TestRunner {
     void setEnvironmentVariableValue(String name, String value);
 
     /**
+     * Returns the current value for the given parameter name from the simulated Parameter Context
+     *
+     * @param name the name of the parameter from the Parameter Context whose value should be returned.
+     * @return the current value for the given parameter name from the simulated Parameter Context or <code>null</code> if no value is currently set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    String getParameterContextValue(String name);
+
+    /**
+     * Sets a parameter with the given name and value into the simulated Parameter Context.
+     * This makes available the parameter to the properties of the component being tested through parameter referencing such as <code>#{name}</code>.
+     *
+     * @param parameterName the name of the parameter to set
+     * @param parameterValue the value of the parameter to set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    void setParameterContextValue(final String parameterName, final String parameterValue);
+
+    /**
      * Asserts that all FlowFiles meet all conditions.
      *
      * @param relationshipName relationship name

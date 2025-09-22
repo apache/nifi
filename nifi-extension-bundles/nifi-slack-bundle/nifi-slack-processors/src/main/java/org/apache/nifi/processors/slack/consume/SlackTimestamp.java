@@ -72,6 +72,7 @@ public class SlackTimestamp implements Comparable<SlackTimestamp> {
         return value;
     }
 
+    @Override
     public String toString() {
         return normalizedValue;
     }

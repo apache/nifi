@@ -733,6 +733,7 @@ public abstract class AbstractPort implements Port {
         return portFunction.get();
     }
 
+    @Override
     public void setPortFunction(final PortFunction portFunction) {
         this.portFunction.set(requireNonNull(portFunction));
     }

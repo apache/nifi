@@ -84,7 +84,11 @@
                                     <div class="flex justify-between items-center">
                                         <div
                                             class="whitespace-nowrap overflow-hidden text-ellipsis"
-                                            [title]="resolvedValue">
+                                            nifiTooltip
+                                            [tooltipComponentType]="PropertyValueTip"
+                                            [tooltipInputData]="getPropertyValueTipData(item)"
+                                            [position]="tooltipPosition"
+                                            [delayClose]="false">
                                             {{ resolvedValue }}
                                         </div>
                                         @if (hasExtraWhitespace(resolvedValue)) {
@@ -188,8 +192,8 @@
                         (exit)="closeEditor()"></combo-editor>
                 } @else {
                     <nf-editor
-                        [item]="editorItem"
                         [parameterConfig]="editorParameterConfig"
+                        [item]="editorItem"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"

@@ -27,9 +27,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -128,12 +130,10 @@ public class CalculateParquetOffsetsTest {
     @Test
     public void testSubPartitioningWithCountAndOffset() throws Exception {
         runner.setProperty(PROP_RECORDS_PER_SPLIT, "3");
-        runner.enqueue(PARQUET_PATH, createAttributes(new HashMap<>() {
-            {
-                put(ParquetAttribute.RECORD_COUNT, "7");
-                put(ParquetAttribute.RECORD_OFFSET, "2");
-            }
-        }));
+        runner.enqueue(PARQUET_PATH, createAttributes(Map.of(
+                ParquetAttribute.RECORD_COUNT, "7",
+                ParquetAttribute.RECORD_OFFSET, "2"
+        )));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 3);
 
@@ -256,12 +256,10 @@ public class CalculateParquetOffsetsTest {
     @Test
     public void testEmptyInputWithOffsetAndCountAttributes() {
         runner.setProperty(PROP_RECORDS_PER_SPLIT, "3");
-        runner.enqueue("", createAttributes(new HashMap<>() {
-            {
-                put(ParquetAttribute.RECORD_OFFSET, "2");
-                put(ParquetAttribute.RECORD_COUNT, "4");
-            }
-        }));
+        runner.enqueue("", createAttributes(Map.of(
+                ParquetAttribute.RECORD_OFFSET, "2",
+                ParquetAttribute.RECORD_COUNT, "4"
+        )));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
@@ -319,12 +317,10 @@ public class CalculateParquetOffsetsTest {
     @Test
     public void testUnrecognizedInputWithOffsetAndCountAttributes() throws IOException {
         runner.setProperty(PROP_RECORDS_PER_SPLIT, "3");
-        runner.enqueue(NOT_PARQUET_PATH, createAttributes(new HashMap<>() {
-            {
-                put(ParquetAttribute.RECORD_OFFSET, "2");
-                put(ParquetAttribute.RECORD_COUNT, "4");
-            }
-        }));
+        runner.enqueue(NOT_PARQUET_PATH, createAttributes(Map.of(
+                ParquetAttribute.RECORD_OFFSET, "2",
+                ParquetAttribute.RECORD_COUNT, "4"
+        )));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
@@ -341,9 +337,8 @@ public class CalculateParquetOffsetsTest {
         results.forEach(flowFile -> PRESERVED_ATTRIBUTES.forEach(flowFile::assertAttributeEquals));
     }
 
-    private HashMap<String, String> createAttributes(Map<String, String> additionalAttributes) {
-        return new HashMap<>(PRESERVED_ATTRIBUTES) {{
-            putAll(additionalAttributes);
-        }};
+    private Map<String, String> createAttributes(Map<String, String> additionalAttributes) {
+        return Stream.concat(PRESERVED_ATTRIBUTES.entrySet().stream(), additionalAttributes.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

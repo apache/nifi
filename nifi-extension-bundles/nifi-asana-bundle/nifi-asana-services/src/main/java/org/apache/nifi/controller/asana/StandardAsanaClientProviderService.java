@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
@@ -33,13 +34,8 @@ import static org.apache.nifi.controller.asana.StandardAsanaClient.ASANA_CLIENT_
 @Tags({"asana", "service", "authentication"})
 public class StandardAsanaClientProviderService extends AbstractControllerService implements AsanaClientProviderService {
 
-    protected static final String ASANA_API_URL = "asana-api-url";
-    protected static final String ASANA_PERSONAL_ACCESS_TOKEN = "asana-personal-access-token";
-    protected static final String ASANA_WORKSPACE_NAME = "asana-workspace-name";
-
     protected static final PropertyDescriptor PROP_ASANA_API_BASE_URL = new PropertyDescriptor.Builder()
-            .name(ASANA_API_URL)
-            .displayName("API URL")
+            .name("API URL")
             .description("Base URL of Asana API. Leave it as default, unless you have your own Asana instance "
                     + "serving on a different URL. (typical for on-premise installations)")
             .required(true)
@@ -48,8 +44,7 @@ public class StandardAsanaClientProviderService extends AbstractControllerServic
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_PERSONAL_ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name(ASANA_PERSONAL_ACCESS_TOKEN)
-            .displayName("Personal Access Token")
+            .name("Personal Access Token")
             .description("Similarly to entering your username/password into a website, when you access "
                     + "your Asana data via the API you need to authenticate. Personal Access Token (PAT) "
                     + "is an authentication mechanism for accessing the API. You can generate a PAT from "
@@ -61,8 +56,7 @@ public class StandardAsanaClientProviderService extends AbstractControllerServic
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_WORKSPACE_NAME = new PropertyDescriptor.Builder()
-            .name(ASANA_WORKSPACE_NAME)
-            .displayName("Workspace")
+            .name("Workspace")
             .description("Specify which Asana workspace to use. Case sensitive. "
                     + "A workspace is the highest-level organizational unit in Asana. All projects and tasks "
                     + "have an associated workspace. An organization is a special kind of workspace that "
@@ -96,5 +90,12 @@ public class StandardAsanaClientProviderService extends AbstractControllerServic
     @Override
     public synchronized AsanaClient createClient() {
         return new StandardAsanaClient(personalAccessToken, workspaceName, baseUrl);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("asana-api-url", PROP_ASANA_API_BASE_URL.getName());
+        config.renameProperty("asana-personal-access-token", PROP_ASANA_PERSONAL_ACCESS_TOKEN.getName());
+        config.renameProperty("asana-workspace-name", PROP_ASANA_WORKSPACE_NAME.getName());
     }
 }

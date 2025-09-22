@@ -134,7 +134,7 @@ export class FlowService implements PropertyDescriptorRetriever {
     }
 
     goToRemoteProcessGroup(goToRemoteProcessGroupRequest: GoToRemoteProcessGroupRequest) {
-        window.open(encodeURI(goToRemoteProcessGroupRequest.uri));
+        window.open(encodeURI(goToRemoteProcessGroupRequest.uri), '_blank', 'noreferrer');
     }
 
     createProcessor(processGroupId = 'root', createProcessor: CreateProcessorRequest): Observable<any> {
@@ -472,7 +472,9 @@ export class FlowService implements PropertyDescriptorRetriever {
 
     downloadFlow(downloadFlowRequest: DownloadFlowRequest): void {
         window.open(
-            `${FlowService.API}/process-groups/${downloadFlowRequest.processGroupId}/download?includeReferencedServices=${downloadFlowRequest.includeReferencedServices}`
+            `${FlowService.API}/process-groups/${downloadFlowRequest.processGroupId}/download?includeReferencedServices=${downloadFlowRequest.includeReferencedServices}`,
+            '_blank',
+            'noreferrer'
         );
     }
 }

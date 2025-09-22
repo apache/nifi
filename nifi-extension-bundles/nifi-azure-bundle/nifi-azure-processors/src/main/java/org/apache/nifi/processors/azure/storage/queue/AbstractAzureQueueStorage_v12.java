@@ -32,6 +32,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -53,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
     public static final PropertyDescriptor QUEUE_NAME = new PropertyDescriptor.Builder()
             .name("Queue Name")
-            .displayName("Queue Name")
             .description("Name of the Azure Storage Queue")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -67,7 +67,6 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("Credentials Service")
-            .displayName("Credentials Service")
             .description("Controller Service used to obtain Azure Storage Credentials.")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
@@ -75,7 +74,6 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
 
     public static final PropertyDescriptor REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Request Timeout")
-            .displayName("Request Timeout")
             .description("The timeout for read or write requests to Azure Queue Storage. " +
                     "Defaults to 1 second.")
             .required(true)
@@ -107,6 +105,11 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(AzureStorageUtils.STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME, ENDPOINT_SUFFIX.getName());
     }
 
     @Override

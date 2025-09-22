@@ -24,7 +24,6 @@ import { ComponentType } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 
-import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';

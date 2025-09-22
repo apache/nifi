@@ -25,9 +25,6 @@ import java.util.Map;
  */
 public class StandardRepositoryStatusReport implements RepositoryStatusReport {
 
-    public StandardRepositoryStatusReport() {
-    }
-
     /**
      * Returns a map where the key is the processor ID and the value is the status entry for the processor.
      *

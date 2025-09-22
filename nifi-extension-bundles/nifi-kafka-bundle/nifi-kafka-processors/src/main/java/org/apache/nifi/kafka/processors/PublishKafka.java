@@ -124,7 +124,6 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
 
     public static final PropertyDescriptor FAILURE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Failure Strategy")
-            .displayName("Failure Strategy")
             .description("Specifies how the processor handles a FlowFile if it is unable to publish the data to Kafka")
             .required(true)
             .allowableValues(FailureStrategy.class)

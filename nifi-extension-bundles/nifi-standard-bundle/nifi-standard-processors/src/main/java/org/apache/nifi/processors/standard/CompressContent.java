@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
 import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -130,6 +131,7 @@ import java.util.zip.InflaterInputStream;
         )
     }
 )
+@DeprecationNotice(classNames = {"org.apache.nifi.processors.compress.ModifyCompression"})
 public class CompressContent extends AbstractProcessor {
 
     public static final String COMPRESSION_FORMAT_ATTRIBUTE = "use mime.type attribute";
@@ -289,8 +291,7 @@ public class CompressContent extends AbstractProcessor {
             case COMPRESSION_FORMAT_LZMA -> ".lzma";
             case COMPRESSION_FORMAT_XZ_LZMA2 -> ".xz";
             case COMPRESSION_FORMAT_BZIP2 -> ".bz2";
-            case COMPRESSION_FORMAT_SNAPPY -> ".snappy";
-            case COMPRESSION_FORMAT_SNAPPY_HADOOP -> ".snappy";
+            case COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_HADOOP -> ".snappy";
             case COMPRESSION_FORMAT_SNAPPY_FRAMED -> ".sz";
             case COMPRESSION_FORMAT_LZ4_FRAMED -> ".lz4";
             case COMPRESSION_FORMAT_ZSTD -> ".zst";

@@ -61,7 +61,7 @@ public class TestEmailRecordSink {
      */
     private static final class EmailRecordSinkExtension extends EmailRecordSink {
         private MessagingException e;
-        private final ArrayList<Message> messages = new ArrayList<>();
+        private final List<Message> messages = new ArrayList<>();
 
         @Override
         protected void send(Message msg) throws MessagingException {

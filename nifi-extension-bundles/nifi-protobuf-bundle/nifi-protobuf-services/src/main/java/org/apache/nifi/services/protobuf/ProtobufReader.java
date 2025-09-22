@@ -21,6 +21,7 @@ import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.SchemaLoader;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
@@ -55,6 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"protobuf", "record", "reader", "parser"})
 @CapabilityDescription("Parses a Protocol Buffers message from binary format.")
+@SeeAlso(StandardProtobufReader.class)
 public class ProtobufReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private static final String ANY_PROTO = "google/protobuf/any.proto";
@@ -75,7 +77,6 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
 
     public static final PropertyDescriptor PROTOBUF_DIRECTORY = new PropertyDescriptor.Builder()
             .name("Proto Directory")
-            .displayName("Proto Directory")
             .description("Directory containing Protocol Buffers message definition (.proto) file(s).")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
@@ -84,7 +85,6 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
 
     public static final PropertyDescriptor MESSAGE_TYPE = new PropertyDescriptor.Builder()
             .name("Message Type")
-            .displayName("Message Type")
             .description("Fully qualified name of the Protocol Buffers message type including its package (eg. mypackage.MyMessage). " +
                     "The .proto files configured in '" + PROTOBUF_DIRECTORY.getDisplayName() + "' must contain the definition of this message type.")
             .required(true)
