@@ -170,7 +170,6 @@
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
         <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
-        <guava.version>33.5.0-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -217,11 +216,6 @@
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcmail-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>

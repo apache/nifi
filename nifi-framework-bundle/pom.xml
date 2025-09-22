@@ -24,6 +24,7 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
+        <guava.version>33.5.0-jre</guava.version>
         <org.opensaml.version>5.1.3</org.opensaml.version>
     </properties>
     <modules>
