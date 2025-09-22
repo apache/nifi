@@ -46,7 +46,6 @@ interface VersionedFlowSnapshotMetadata {
 
 @Component({
     selector: 'app-flow-versions-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatTableModule,

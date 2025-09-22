@@ -32,7 +32,6 @@ interface DeleteDropletDialogData {
 
 @Component({
     selector: 'app-delete-droplet-dialog',
-    standalone: true,
     imports: [CommonModule, MatDialogModule, MatButtonModule, ContextErrorBanner],
     templateUrl: './delete-droplet-dialog.component.html',
     styleUrl: './delete-droplet-dialog.component.scss'

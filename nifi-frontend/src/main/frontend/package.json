@@ -81,8 +81,6 @@
         "@types/d3": "^7.4.3",
         "@types/humanize-duration": "^3.27.3",
         "@types/jest": "29.5.13",
-        "@types/jsonlint": "^1.6.3",
-        "@types/node": "18.16.9",
         "@types/uuid": "^10.0.0",
         "@typescript-eslint/eslint-plugin": "7.18.0",
         "@typescript-eslint/parser": "7.18.0",
@@ -102,9 +100,6 @@
         "prettier": "^3.2.5",
         "tailwindcss": "^3.3.6",
         "typescript": "5.7.3"
-    },
-    "optionalDependencies": {
-        "@esbuild/linux-x64": "0.25.2"
     },
     "engines": {
         "node": ">=22.0.0"

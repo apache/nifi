@@ -354,7 +354,7 @@ export class DropletsEffects {
                 ofType(DropletsActions.selectDroplet),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/resources', request.id]);
+                    this.router.navigate(['/explorer', request.id]);
                 })
             ),
         { dispatch: false }

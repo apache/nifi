@@ -126,9 +126,6 @@
                         (click)="select(row)"
                         [class.selected]="isSelected(row)"></tr>
                 </table>
-                <div class="py-5" *ngIf="dataSource.data.length === 0 && buckets.length === 0">
-                    <p class="text-center">There are no buckets to display.</p>
-                </div>
                 <div class="py-5" *ngIf="dataSource.data.length === 0 && buckets.length !== 0">
                     <p class="text-center">There are no resources to display.</p>
                 </div>

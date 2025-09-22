@@ -16,29 +16,12 @@
  */
 
 import { Bucket } from '../../state/buckets';
+import { Link, Revision, Permissions } from '../index';
 
 export const dropletsFeatureKey = 'droplets';
 
 export interface LoadDropletsResponse {
     droplets: Droplet[];
-}
-
-export interface Params {
-    rel: string;
-}
-
-export interface Link {
-    href: string;
-    params: Params;
-}
-
-export interface Revision {
-    version: number;
-}
-
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
 }
 
 export interface Droplet {

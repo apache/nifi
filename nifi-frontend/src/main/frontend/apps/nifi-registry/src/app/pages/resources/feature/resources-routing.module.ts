@@ -29,6 +29,32 @@ const routes: Routes = [
                 component: ResourcesComponent
             }
         ]
+    },
+    // Backward compatibility routes for old NiFi Registry deep links
+    {
+        path: 'grid-list',
+        redirectTo: '',
+        pathMatch: 'full'
+    },
+    {
+        path: 'grid-list/buckets/:bucketId',
+        redirectTo: '',
+        pathMatch: 'full'
+    },
+    {
+        path: 'grid-list/buckets/:bucketId/:dropletType/:dropletId',
+        redirectTo: '',
+        pathMatch: 'full'
+    },
+    {
+        path: 'grid-list/buckets',
+        redirectTo: '',
+        pathMatch: 'full'
+    },
+    // Catch-all for any other grid-list sub-routes
+    {
+        path: 'grid-list/**',
+        redirectTo: ''
     }
 ];
 

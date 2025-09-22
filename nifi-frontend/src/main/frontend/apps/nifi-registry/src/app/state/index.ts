@@ -26,6 +26,24 @@ import { errorFeatureKey, ErrorState } from './error';
 
 export const resourcesFeatureKey = 'resources';
 
+export interface Params {
+    rel: string;
+}
+
+export interface Link {
+    href: string;
+    params: Params;
+}
+
+export interface Revision {
+    version: number;
+}
+
+export interface Permissions {
+    canRead: boolean;
+    canWrite: boolean;
+}
+
 export interface ResourcesState {
     [dropletsFeatureKey]: DropletsState;
     [bucketsFeatureKey]: BucketsState;

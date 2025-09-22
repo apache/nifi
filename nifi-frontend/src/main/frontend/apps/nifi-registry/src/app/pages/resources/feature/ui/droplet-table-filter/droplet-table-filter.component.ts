@@ -43,7 +43,6 @@ export interface DropletTableFilterContext extends DropletTableFilterArgs {
 
 @Component({
     selector: 'droplet-table-filter',
-    standalone: true,
     imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
     templateUrl: './droplet-table-filter.component.html',
     styleUrl: './droplet-table-filter.component.scss'

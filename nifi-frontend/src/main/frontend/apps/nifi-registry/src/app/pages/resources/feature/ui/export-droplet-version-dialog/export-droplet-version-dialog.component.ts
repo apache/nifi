@@ -35,7 +35,6 @@ export interface ExportFlowVersionDialogData {
 
 @Component({
     selector: 'app-export-flow-version-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatFormField,

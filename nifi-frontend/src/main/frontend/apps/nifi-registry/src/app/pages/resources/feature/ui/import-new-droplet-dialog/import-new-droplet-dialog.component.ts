@@ -36,7 +36,6 @@ export interface ImportNewFlowDialogData {
 
 @Component({
     selector: 'app-import-new-flow-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         MatDialogModule,

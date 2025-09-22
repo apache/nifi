@@ -34,7 +34,6 @@ import {
 
 @Component({
     selector: 'droplet-table',
-    standalone: true,
     imports: [CommonModule, MatTableModule, MatSortModule, MatMenuModule, MatButtonModule, MatButtonModule],
     templateUrl: './droplet-table.component.html',
     styleUrl: './droplet-table.component.scss'

@@ -16,24 +16,12 @@
  */
 
 import { Permissions } from '@nifi/shared';
+import { Link, Revision } from '../index';
 
 export const bucketsFeatureKey = 'buckets';
 
 export interface LoadBucketsResponse {
     buckets: Bucket[];
-}
-
-export interface Params {
-    rel: string;
-}
-
-export interface Link {
-    href: string;
-    params: Params;
-}
-
-export interface Revision {
-    version: number;
 }
 
 export interface Bucket {

@@ -21,12 +21,18 @@ import { RouterModule, Routes } from '@angular/router';
 const routes: Routes = [
     {
         path: '',
-        redirectTo: 'resources',
+        redirectTo: 'explorer',
         pathMatch: 'full'
     },
     {
-        path: 'resources',
+        path: 'explorer',
         loadChildren: () => import('./pages/resources/feature/resources.module').then((m) => m.ResourcesModule)
+    },
+    // Backward compatibility: old app's default route
+    {
+        path: 'nifi-registry',
+        redirectTo: 'explorer',
+        pathMatch: 'full'
     }
     // TODO: buckets
     // TODO: Users/groups
