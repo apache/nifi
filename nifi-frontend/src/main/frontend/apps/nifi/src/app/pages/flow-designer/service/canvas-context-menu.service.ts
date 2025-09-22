@@ -279,7 +279,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'upstream-downstream',
         menuItems: [
             {
-                condition: (selection: any) => {
+                condition: () => {
                     // TODO - hasUpstream
                     return false;
                 },
@@ -290,7 +290,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: (selection: any) => {
+                condition: () => {
                     // TODO - hasDownstream
                     return false;
                 },

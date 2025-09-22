@@ -17,18 +17,18 @@
 
 import { NgModule } from '@angular/core';
 import { GlobalAccessPolicies } from './global-access-policies.component';
-import { CommonModule } from '@angular/common';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { GlobalAccessPoliciesRoutingModule } from './global-access-policies-routing.module';
-import { NifiTooltipDirective } from '@nifi/shared';
+import { NifiTooltipDirective, ErrorBanner } from '@nifi/shared';
 import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
-import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
 import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @NgModule({
@@ -36,11 +36,13 @@ import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/c
     exports: [GlobalAccessPolicies],
     imports: [
         CommonModule,
+        AsyncPipe,
         GlobalAccessPoliciesRoutingModule,
         NgxSkeletonLoaderModule,
         MatTableModule,
         MatSortModule,
         MatInputModule,
+        MatFormFieldModule,
         ReactiveFormsModule,
         MatSelectModule,
         NifiTooltipDirective,
