@@ -73,7 +73,7 @@ for thousands of companies worldwide across every industry.
   - Support for Processors in native Python
   - REST API for orchestration and monitoring
 - Secure Configuration
-  - Single sign-on with OpenID Connect or SAML 2
+  - Single sign-on with OpenID Connect or SAML 2.0
   - Flexible authorization policies for role-based access
   - Encrypted communication with TLS and SFTP
 
@@ -173,7 +173,7 @@ to the application log located in `logs/nifi-app.log` under the NiFi installatio
 The following command can be used to find the generated credentials on operating systems with `grep` installed:
 
 ```shell
-grep Generated logs/nifi-app*log
+grep Generated logs/nifi-app*.log
 ```
 
 NiFi logs the generated credentials as follows:
@@ -203,7 +203,7 @@ authority and update the NiFi keystore and truststore configuration.
 
 ## License
 
-Except as otherwise noted this software is licensed under the
+Except as otherwise noted, this software is licensed under the
 [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 Licensed under the Apache License, Version 2.0 (the "License");
