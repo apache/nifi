@@ -81,7 +81,7 @@ public class AbstractBoxFileTest {
 
         testRunner.addControllerService(mockBoxClientService.getIdentifier(), mockBoxClientService);
         testRunner.enableControllerService(mockBoxClientService);
-        testRunner.setProperty(BoxClientService.BOX_CLIENT_SERVICE, mockBoxClientService.getIdentifier());
+        testRunner.setProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE, mockBoxClientService.getIdentifier());
     }
 
     protected BoxFile.Info createFileInfo(String path, Long createdTime) {

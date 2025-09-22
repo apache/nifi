@@ -35,7 +35,6 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -66,7 +65,7 @@ import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.I
         The last known position of the Box Event stream is stored in the processor state and is used to
         resume the stream from the last known position when the processor is restarted.
         """, scopes = { Scope.CLUSTER })
-public class ConsumeBoxEnterpriseEvents extends AbstractProcessor {
+public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
 
     private static final String POSITION_KEY = "position";
     private static final String EARLIEST_POSITION = "0";
@@ -103,7 +102,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            BoxClientService.BOX_CLIENT_SERVICE,
+            BOX_CLIENT_SERVICE,
             EVENT_TYPES,
             START_EVENT_POSITION,
             START_OFFSET
@@ -132,7 +131,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractProcessor {
 
     @OnScheduled
     public void onEnabled(final ProcessContext context) {
-        final BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
 
         eventTypes = context.getProperty(EVENT_TYPES).isSet()

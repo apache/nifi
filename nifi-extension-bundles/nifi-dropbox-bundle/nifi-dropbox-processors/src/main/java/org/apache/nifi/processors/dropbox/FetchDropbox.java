@@ -51,6 +51,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -75,9 +76,8 @@ import org.apache.nifi.proxy.ProxySpec;
 )
 public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
-    public static final PropertyDescriptor FILE = new PropertyDescriptor
-            .Builder().name("file")
-            .displayName("File")
+    public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
+            .name("File")
             .description("The Dropbox identifier or path of the Dropbox file to fetch." +
                     " The 'File' should match the following regular expression pattern: /.*|id:.* ." +
                     " When ListDropbox is used for input, either '${dropbox.id}' (identifying files by Dropbox id)" +
@@ -153,6 +153,12 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         } catch (Exception e) {
             handleError(session, flowFile, fileIdentifier, e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
+        config.renameProperty("file", FILE.getName());
     }
 
     private FileMetadata fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
