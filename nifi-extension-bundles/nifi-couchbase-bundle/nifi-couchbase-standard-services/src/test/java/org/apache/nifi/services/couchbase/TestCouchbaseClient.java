@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.Optional;
 
-import static org.apache.nifi.services.couchbase.utils.DocumentType.Json;
+import static org.apache.nifi.services.couchbase.utils.DocumentType.JSON;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,6 +43,7 @@ import static org.mockito.Mockito.when;
 
 public class TestCouchbaseClient {
 
+    private static final String TEST_DOCUMENT_ID = "test-document-id";
     private static final long TEST_CAS = 1L;
     private static Collection collection;
 
@@ -53,36 +54,33 @@ public class TestCouchbaseClient {
 
     @Test
     void testPutJsonDocument() throws CouchbaseException {
-        final String documentId = "test-document-id";
         final String content = "{\"key\":\"value\"}";
-        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, Json, PersistTo.ONE, ReplicateTo.ONE);
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
 
         final MutationResult result = mock(MutationResult.class);
         when(result.cas()).thenReturn(TEST_CAS);
 
         when(collection.upsert(anyString(), any(), any())).thenReturn(result);
 
-        final CouchbaseUpsertResult upsertResult = client.upsertDocument(documentId, content.getBytes());
+        final CouchbaseUpsertResult upsertResult = client.upsertDocument(TEST_DOCUMENT_ID, content.getBytes());
 
         assertEquals(TEST_CAS, upsertResult.cas());
     }
 
     @Test
     void testPutJsonDocumentValidationFailure() {
-        final String documentId = "test-document-id";
         final String content = "{invalid-json}";
-        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, Json, PersistTo.ONE, ReplicateTo.ONE);
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
 
-        final Exception exception = assertThrows(CouchbaseException.class, () -> client.upsertDocument(documentId, content.getBytes()));
+        final Exception exception = assertThrows(CouchbaseException.class, () -> client.upsertDocument(TEST_DOCUMENT_ID, content.getBytes()));
 
-        assertTrue(exception.getMessage().contains("The provided input is invalid."));
+        assertTrue(exception.getMessage().contains("The provided input is invalid"));
     }
 
     @Test
     void testGetDocument() throws CouchbaseException {
-        final String documentId = "test-document-id";
         final String content = "{\"key\":\"value\"}";
-        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, Json, PersistTo.ONE, ReplicateTo.ONE);
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
 
         final Instant expiryTime = Instant.now();
         final GetResult result = mock(GetResult.class);
@@ -92,7 +90,7 @@ public class TestCouchbaseClient {
 
         when(collection.get(anyString(), any())).thenReturn(result);
 
-        final CouchbaseGetResult getResult = client.getDocument(documentId);
+        final CouchbaseGetResult getResult = client.getDocument(TEST_DOCUMENT_ID);
 
         assertEquals(TEST_CAS, getResult.cas());
         assertArrayEquals(content.getBytes(), getResult.resultContent());

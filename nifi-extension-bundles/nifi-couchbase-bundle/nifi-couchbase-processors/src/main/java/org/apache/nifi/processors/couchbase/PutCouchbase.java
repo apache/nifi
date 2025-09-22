@@ -24,7 +24,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -71,10 +70,7 @@ public class PutCouchbase extends AbstractCouchbaseProcessor {
 
         final long startNanos = System.nanoTime();
         final CouchbaseConnectionService connectionService = context.getProperty(COUCHBASE_CONNECTION_SERVICE).asControllerService(CouchbaseConnectionService.class);
-        final String documentId = context.getProperty(DOCUMENT_ID).isSet()
-                ? context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions().getValue()
-                : flowFile.getAttribute(CoreAttributes.UUID.key());
-
+        final String documentId = context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue();
 
         final CouchbaseContext couchbaseContext = getCouchbaseContext(context, flowFile);
         final CouchbaseClient couchbaseClient = connectionService.getClient(couchbaseContext);

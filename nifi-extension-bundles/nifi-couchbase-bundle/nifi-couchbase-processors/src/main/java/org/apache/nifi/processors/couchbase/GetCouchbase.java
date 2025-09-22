@@ -31,7 +31,6 @@ import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -68,9 +67,7 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
         }
 
         final long startNanos = System.nanoTime();
-        final String documentId = context.getProperty(DOCUMENT_ID).isSet()
-                ? context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue()
-                : new String(readFlowFileContent(session, flowFile), StandardCharsets.UTF_8);
+        final String documentId = context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue();
 
         final CouchbaseContext couchbaseContext = getCouchbaseContext(context, flowFile);
         final CouchbaseClient couchbaseClient = connectionService.getClient(couchbaseContext);

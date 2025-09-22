@@ -22,7 +22,7 @@ public class CouchbaseException extends Exception {
         super(message);
     }
 
-    public CouchbaseException(final Throwable cause) {
+    public CouchbaseException(final String message, final Throwable cause) {
         super(cause);
     }
 }

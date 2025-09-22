@@ -88,7 +88,7 @@ class StandardCouchbaseClient implements CouchbaseClient {
 
             return new CouchbaseGetResult(result.contentAsBytes(), result.cas());
         } catch (Exception e) {
-            throw new CouchbaseException(e);
+            throw new CouchbaseException("An error occurred while getting the document from Couchbase", e);
         }
     }
 
@@ -96,7 +96,7 @@ class StandardCouchbaseClient implements CouchbaseClient {
     public CouchbaseUpsertResult upsertDocument(String documentId, byte[] content) throws CouchbaseException {
         try {
             if (!getInputValidator(documentType).test(content)) {
-                throw new CouchbaseException("The provided input is invalid.");
+                throw new CouchbaseException("The provided input is invalid");
             }
 
             final MutationResult result = collection.upsert(documentId, content,
@@ -107,7 +107,7 @@ class StandardCouchbaseClient implements CouchbaseClient {
 
             return new CouchbaseUpsertResult(result.cas());
         } catch (Exception e) {
-            throw new CouchbaseException(e);
+            throw new CouchbaseException("An error occurred while upserting the document in Couchbase", e);
         }
     }
 
@@ -148,15 +148,15 @@ class StandardCouchbaseClient implements CouchbaseClient {
 
     private Transcoder getTranscoder(DocumentType documentType) {
         return switch (documentType) {
-            case Json -> RawJsonTranscoder.INSTANCE;
-            case Binary -> RawBinaryTranscoder.INSTANCE;
+            case JSON -> RawJsonTranscoder.INSTANCE;
+            case BINARY -> RawBinaryTranscoder.INSTANCE;
         };
     }
 
     private Predicate<byte[]> getInputValidator(DocumentType documentType) {
         return switch (documentType) {
-            case Json -> new JsonValidator();
-            case Binary -> v -> true;
+            case JSON -> new JsonValidator();
+            case BINARY -> v -> true;
         };
     }
 }

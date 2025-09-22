@@ -58,6 +58,12 @@
             <groupId>com.couchbase.client</groupId>
             <artifactId>core-io</artifactId>
             <version>${couchbase.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jspecify</groupId>
+                    <artifactId>jspecify</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

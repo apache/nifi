@@ -16,5 +16,10 @@
  */
 package org.apache.nifi.services.couchbase.utils;
 
+/**
+ *
+ * @param resultContent content of the requested document
+ * @param cas version identifier for a document that's used to provide optimistic concurrency control, preventing simultaneous updates from overwriting each other.
+ */
 public record CouchbaseGetResult(byte[] resultContent, long cas) {
 }

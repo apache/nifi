@@ -43,6 +43,11 @@ import java.util.List;
 @Tags({"nosql", "couchbase", "database", "connection"})
 public class StandardCouchbaseConnectionService extends AbstractControllerService implements CouchbaseConnectionService {
 
+    private volatile Cluster cluster;
+    private String connectionString;
+    private PersistTo persistTo;
+    private ReplicateTo replicateTo;
+
     public static final PropertyDescriptor CONNECTION_STRING = new PropertyDescriptor.Builder()
             .name("Connection String")
             .description("The hostnames or ip addresses of the bootstraping nodes and optional parameters."
@@ -74,16 +79,16 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    public static final PropertyDescriptor PERSIST_TO = new PropertyDescriptor.Builder()
-            .name("Persist To")
+    public static final PropertyDescriptor PERSISTENCE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Persistence Strategy")
             .description("Durability constraint about disk persistence.")
             .required(true)
             .allowableValues(PersistTo.values())
             .defaultValue(PersistTo.NONE.toString())
             .build();
 
-    public static final PropertyDescriptor REPLICATE_TO = new PropertyDescriptor.Builder()
-            .name("Replicate To")
+    public static final PropertyDescriptor REPLICATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Replication Strategy")
             .description("Durability constraint about replication.")
             .required(true)
             .allowableValues(ReplicateTo.values())
@@ -91,23 +96,18 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            CONNECTION_STRING, USERNAME, PASSWORD, SSL_CONTEXT_SERVICE, PERSIST_TO, REPLICATE_TO);
-
-    private volatile Cluster cluster;
+            CONNECTION_STRING, USERNAME, PASSWORD, SSL_CONTEXT_SERVICE, PERSISTENCE_STRATEGY, REPLICATION_STRATEGY);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 
-    private String connectionString;
-    private PersistTo persistTo;
-    private ReplicateTo replicateTo;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        persistTo = PersistTo.valueOf(context.getProperty(PERSIST_TO).getValue());
-        replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATE_TO).getValue());
+        persistTo = PersistTo.valueOf(context.getProperty(PERSISTENCE_STRATEGY).getValue());
+        replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATION_STRATEGY).getValue());
         connectionString = context.getProperty(CONNECTION_STRING).evaluateAttributeExpressions().getValue();
 
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();

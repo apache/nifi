@@ -16,5 +16,9 @@
  */
 package org.apache.nifi.services.couchbase.utils;
 
+/**
+ *
+ * @param cas version identifier for a document that's used to provide optimistic concurrency control, preventing simultaneous updates from overwriting each other.
+ */
 public record CouchbaseUpsertResult(long cas) {
 }

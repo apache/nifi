@@ -50,9 +50,12 @@ import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCO
 
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
+    protected CouchbaseConnectionService connectionService;
+
     public static final PropertyDescriptor DOCUMENT_ID = new PropertyDescriptor.Builder()
-            .name("Document Id")
-            .description("Couchbase document id, or an expression to construct the Couchbase document id.")
+            .name("Document ID")
+            .description("Couchbase document identifier, or an expression to construct the Couchbase document identifier.")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -66,7 +69,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder()
             .name("Bucket Name")
-            .description("The name of bucket.")
+            .description("The name of the bucket where documents will be stored. Each bucket contains a hierarchy of scopes and collections to group keys and values logically.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_BUCKET)
@@ -75,7 +78,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor SCOPE_NAME = new PropertyDescriptor.Builder()
             .name("Scope Name")
-            .description("The name of scope.")
+            .description("The name of the scope  which is a logical namespace within a bucket, serving to categorize and organize related collections.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_SCOPE)
@@ -84,7 +87,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
             .name("Collection Name")
-            .description("The name of collection.")
+            .description("The name of collection which is a logical container within a scope, used to hold documents.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_COLLECTION)
@@ -93,10 +96,10 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
             .name("Document Type")
-            .description("The type of content.")
+            .description("The content type for storing the document.")
             .required(true)
             .allowableValues(DocumentType.values())
-            .defaultValue(DocumentType.Json.toString())
+            .defaultValue(DocumentType.JSON.toString())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -123,7 +126,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
             DOCUMENT_ID
     );
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -134,8 +137,6 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
     }
-
-    protected CouchbaseConnectionService connectionService;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
