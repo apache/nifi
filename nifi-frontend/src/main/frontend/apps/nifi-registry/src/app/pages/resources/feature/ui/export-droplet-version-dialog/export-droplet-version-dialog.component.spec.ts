@@ -16,22 +16,20 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ImportNewFlowVersionDialogComponent } from './import-new-flow-version-dialog.component';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
+import { ExportDropletVersionDialogComponent } from './export-droplet-version-dialog.component';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { DebugElement } from '@angular/core';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+import { Subject } from 'rxjs';
+import { By } from '@angular/platform-browser';
+import { exportDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 
-describe('ImportNewFlowVersionDialogComponent', () => {
-    let component: ImportNewFlowVersionDialogComponent;
-    let fixture: ComponentFixture<ImportNewFlowVersionDialogComponent>;
+describe('ExportDropletVersionDialogComponent', () => {
+    let component: ExportDropletVersionDialogComponent;
+    let fixture: ComponentFixture<ExportDropletVersionDialogComponent>;
+    let debug: DebugElement;
     let store: MockStore;
-    const mockDroplet = {
+    const mockData = {
         bucketIdentifier: '1234',
         bucketName: 'testBucket',
         createdTimestamp: 123456789,
@@ -48,19 +46,9 @@ describe('ImportNewFlowVersionDialogComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [
-                ImportNewFlowVersionDialogComponent,
-                CommonModule,
-                MatDialogModule,
-                FormsModule,
-                ReactiveFormsModule,
-                MatFormFieldModule,
-                MatSelectModule,
-                MatInputModule,
-                MatButtonModule
-            ],
+            imports: [ExportDropletVersionDialogComponent],
             providers: [
-                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockDroplet } },
+                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockData } },
                 {
                     provide: MatDialogRef,
                     useValue: {
@@ -72,9 +60,10 @@ describe('ImportNewFlowVersionDialogComponent', () => {
             ]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(ImportNewFlowVersionDialogComponent);
         store = TestBed.inject(MockStore);
+        fixture = TestBed.createComponent(ExportDropletVersionDialogComponent);
         component = fixture.componentInstance;
+        debug = fixture.debugElement;
         fixture.detectChanges();
     });
 
@@ -82,13 +71,12 @@ describe('ImportNewFlowVersionDialogComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should import a new flow version to the correct bucket', () => {
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
-        const file = new File([''], 'testFile');
-        component.fileToUpload = file;
-        component.name = 'testName';
-        component.description = 'testDescription';
-        component.importNewFlowVersion();
-        expect(dispatchSpy).toHaveBeenCalled();
+    it('should export flow', () => {
+        const exportFlowSpy = jest.spyOn(store, 'dispatch');
+        const exportBtn = debug.query(By.css('[data-test-id=export-btn]')).nativeElement;
+        exportBtn.click();
+        expect(exportFlowSpy).toHaveBeenCalledWith(
+            exportDropletVersion({ request: { droplet: mockData, version: 2 } })
+        );
     });
 });

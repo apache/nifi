@@ -18,6 +18,10 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { bucketsFeatureKey, BucketsState } from './index';
 
-export const selectBucketState = createFeatureSelector<BucketsState>(bucketsFeatureKey);
+import { resourcesFeatureKey, ResourcesState } from '..';
+
+export const selectResourcesState = createFeatureSelector<ResourcesState>(resourcesFeatureKey);
+
+export const selectBucketState = createSelector(selectResourcesState, (state) => state[bucketsFeatureKey]);
 
 export const selectBuckets = createSelector(selectBucketState, (state: BucketsState) => state.buckets);

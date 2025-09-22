@@ -16,19 +16,20 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FlowVersionsDialogComponent } from './flow-versions-dialog.component';
-import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { Subject } from 'rxjs';
+import { ImportNewDropletVersionDialogComponent } from './import-new-droplet-version-dialog.component';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
-import { MatMenuModule } from '@angular/material/menu';
+import { Subject } from 'rxjs';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 
-describe('FlowVersionsDialogComponent', () => {
-    let component: FlowVersionsDialogComponent;
-    let fixture: ComponentFixture<FlowVersionsDialogComponent>;
+describe('ImportNewDropletVersionDialogComponent', () => {
+    let component: ImportNewDropletVersionDialogComponent;
+    let fixture: ComponentFixture<ImportNewDropletVersionDialogComponent>;
     let store: MockStore;
     const mockDroplet = {
         bucketIdentifier: '1234',
@@ -42,32 +43,24 @@ describe('FlowVersionsDialogComponent', () => {
         permissions: { canRead: true, canWrite: true },
         revision: { version: 1 },
         type: 'FLOW',
-        versionCount: 1
-    };
-    const mockVersions = {
-        author: 'anonymous',
-        bucketIdentifier: '311c6295-d8b6-47bd-806e-b5ee27dd8187',
-        flowIdentifier: 'ed9f3f48-751b-4237-a8a7-a4a2020f1efe',
-        link: {
-            href: 'buckets/311c6295-d8b6-47bd-806e-b5ee27dd8187/flows/ed9f3f48-751b-4237-a8a7-a4a2020f1efe/versions/1',
-            params: { rel: 'content' }
-        },
-        timestamp: 1741788614197,
-        version: 1
+        versionCount: 2
     };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
-                FlowVersionsDialogComponent,
-                MatTableModule,
-                MatSortModule,
+                ImportNewDropletVersionDialogComponent,
+                CommonModule,
                 MatDialogModule,
-                MatMenuModule,
+                FormsModule,
+                ReactiveFormsModule,
+                MatFormFieldModule,
+                MatSelectModule,
+                MatInputModule,
                 MatButtonModule
             ],
             providers: [
-                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockDroplet, versions: mockVersions } },
+                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockDroplet } },
                 {
                     provide: MatDialogRef,
                     useValue: {
@@ -79,8 +72,8 @@ describe('FlowVersionsDialogComponent', () => {
             ]
         }).compileComponents();
 
+        fixture = TestBed.createComponent(ImportNewDropletVersionDialogComponent);
         store = TestBed.inject(MockStore);
-        fixture = TestBed.createComponent(FlowVersionsDialogComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
@@ -89,9 +82,13 @@ describe('FlowVersionsDialogComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should export flow', () => {
+    it('should import a new flow version to the correct bucket', () => {
         const dispatchSpy = jest.spyOn(store, 'dispatch');
-        component.exportVersion(2);
-        expect(dispatchSpy).toHaveBeenCalledWith(exportFlowVersion({ request: { droplet: mockDroplet, version: 2 } }));
+        const file = new File([''], 'testFile');
+        component.fileToUpload = file;
+        component.name = 'testName';
+        component.description = 'testDescription';
+        component.importNewFlowVersion();
+        expect(dispatchSpy).toHaveBeenCalled();
     });
 });

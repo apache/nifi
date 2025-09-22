@@ -16,7 +16,7 @@
  */
 
 import { routerReducer, RouterReducerState, DEFAULT_ROUTER_FEATURENAME } from '@ngrx/router-store';
-import { ActionReducerMap } from '@ngrx/store';
+import { Action, ActionReducerMap, combineReducers } from '@ngrx/store';
 import { dropletsFeatureKey, DropletsState } from './droplets';
 import { dropletsReducer } from './droplets/droplets.reducer';
 import { bucketsFeatureKey, BucketsState } from './buckets';
@@ -24,16 +24,26 @@ import { bucketsReducer } from './buckets/buckets.reducer';
 import { errorReducer } from './error/error.reducer';
 import { errorFeatureKey, ErrorState } from './error';
 
-export interface NiFiState {
-    [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
-    [errorFeatureKey]: ErrorState;
+export const resourcesFeatureKey = 'resources';
+
+export interface ResourcesState {
     [dropletsFeatureKey]: DropletsState;
     [bucketsFeatureKey]: BucketsState;
 }
 
-export const rootReducers: ActionReducerMap<NiFiState> = {
+export function reducers(state: ResourcesState | undefined, action: Action) {
+    return combineReducers({
+        [dropletsFeatureKey]: dropletsReducer,
+        [bucketsFeatureKey]: bucketsReducer
+    })(state, action);
+}
+
+export interface NiFiRegistryState {
+    [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
+    [errorFeatureKey]: ErrorState;
+}
+
+export const rootReducers: ActionReducerMap<NiFiRegistryState> = {
     [DEFAULT_ROUTER_FEATURENAME]: routerReducer,
-    [errorFeatureKey]: errorReducer,
-    [dropletsFeatureKey]: dropletsReducer,
-    [bucketsFeatureKey]: bucketsReducer
+    [errorFeatureKey]: errorReducer
 };

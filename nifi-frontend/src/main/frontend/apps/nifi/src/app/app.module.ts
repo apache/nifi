@@ -114,7 +114,9 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
-            autoPause: true
+            autoPause: true,
+            name: 'NiFi',
+            trace: !environment.production
         }),
         MatProgressSpinnerModule,
         MatNativeDateModule,

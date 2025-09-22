@@ -20,14 +20,7 @@ import { BannerErrors, errorFeatureKey, ErrorState } from './index';
 
 export const selectErrorState = createFeatureSelector<ErrorState>(errorFeatureKey);
 
-export const selectFullScreenError = createSelector(selectErrorState, (state: ErrorState) => state.fullScreenError);
-
 export const selectAllBannerErrors = createSelector(selectErrorState, (state: ErrorState) => state.bannerErrors);
 
 export const selectBannerErrors = (context: string) =>
     createSelector(selectAllBannerErrors, (bannerErrors: BannerErrors) => bannerErrors[context] || []);
-
-export const selectRoutedToFullScreenError = createSelector(
-    selectErrorState,
-    (state: ErrorState) => state.routedToFullScreenError
-);

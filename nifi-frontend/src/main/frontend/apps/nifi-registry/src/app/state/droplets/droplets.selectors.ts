@@ -19,11 +19,13 @@ import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { dropletsFeatureKey, DropletsState } from './index';
 import { selectCurrentRoute } from '@nifi/shared';
 
-export const selectDropletState = createFeatureSelector<DropletsState>(dropletsFeatureKey);
+import { resourcesFeatureKey, ResourcesState } from '..';
+
+export const selectResourcesState = createFeatureSelector<ResourcesState>(resourcesFeatureKey);
+
+export const selectDropletState = createSelector(selectResourcesState, (state) => state[dropletsFeatureKey]);
 
 export const selectDroplets = createSelector(selectDropletState, (state: DropletsState) => state.droplets);
-
-export const selectStatus = createSelector(selectDropletState, (state: DropletsState) => state.status);
 
 export const selectDropletIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {

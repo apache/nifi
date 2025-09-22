@@ -18,6 +18,7 @@ limitations under the License.
 <h2 mat-dialog-title>Export Version</h2>
 <div class="export-version-dialog">
     <mat-dialog-content class="pb-2 flex flex-col justify-between start">
+        <context-error-banner [context]="ErrorContextKey.EXPORT_DROPLET_VERSION"></context-error-banner>
         <div class="pb-2 label-name">
             <label>Choose Version</label>
         </div>

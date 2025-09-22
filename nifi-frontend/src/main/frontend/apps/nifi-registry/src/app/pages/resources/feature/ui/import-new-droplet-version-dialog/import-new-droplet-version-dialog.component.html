@@ -15,13 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<h2 mat-dialog-title>Import New Flow Version</h2>
+<h2 mat-dialog-title>Import New Resource Version</h2>
 <div class="import-new-flow-version-dialog">
     <form class="import-new-flow-version-form" [formGroup]="importNewFlowVersionForm">
         <context-error-banner [context]="ErrorContextKey.IMPORT_DROPLET_VERSION"></context-error-banner>
         <mat-dialog-content>
             <div>
-                <mat-label class="mb-2">Flow Name</mat-label>
+                <mat-label class="mb-2">Name</mat-label>
                 <div class="flex justify-between items-center mb-2">
                     <div class="w-full tertiary-color font-medium">
                         {{ droplet.name }} v.{{ droplet.versionCount + 1 }}
@@ -29,7 +29,7 @@ limitations under the License.
                 </div>
             </div>
             <div>
-                <mat-label class="flex mb-2">Flow Definition</mat-label>
+                <mat-label class="flex mb-2">Resource</mat-label>
                 <mat-form-field class="w-full">
                     <input
                         class="pointer"
@@ -56,9 +56,7 @@ limitations under the License.
                             <div>File to upload</div>
                             <div class="flex justify-between items-center">
                                 <div class="tertiary-color font-medium">{{ fileNameAttached }}</div>
-                                <button
-                                    aria-label="Remove attached flow definition"
-                                    (click)="removeAttachedFlowDefinition()">
+                                <button aria-label="Remove attached resource" (click)="removeAttachedFlowDefinition()">
                                     X
                                 </button>
                             </div>

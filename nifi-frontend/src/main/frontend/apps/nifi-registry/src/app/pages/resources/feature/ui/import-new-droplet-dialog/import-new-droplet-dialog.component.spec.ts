@@ -16,7 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ImportNewFlowDialogComponent } from './import-new-flow-dialog.component';
+import { ImportNewDropletDialogComponent } from './import-new-droplet-dialog.component';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
@@ -26,11 +26,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { createNewFlow } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { createNewDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 
-describe('ImportNewFlowDialogComponent', () => {
-    let component: ImportNewFlowDialogComponent;
-    let fixture: ComponentFixture<ImportNewFlowDialogComponent>;
+describe('ImportNewDropletDialogComponent', () => {
+    let component: ImportNewDropletDialogComponent;
+    let fixture: ComponentFixture<ImportNewDropletDialogComponent>;
     let store: MockStore;
     let form: FormGroup;
     const buckets = [
@@ -83,7 +83,7 @@ describe('ImportNewFlowDialogComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
-                ImportNewFlowDialogComponent,
+                ImportNewDropletDialogComponent,
                 CommonModule,
                 MatDialogModule,
                 FormsModule,
@@ -106,7 +106,7 @@ describe('ImportNewFlowDialogComponent', () => {
             ]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(ImportNewFlowDialogComponent);
+        fixture = TestBed.createComponent(ImportNewDropletDialogComponent);
         store = TestBed.inject(MockStore);
         component = fixture.componentInstance;
         form = component.importNewFlowForm;
@@ -130,7 +130,7 @@ describe('ImportNewFlowDialogComponent', () => {
         component.fileToUpload = file;
         component.importNewFlow();
         expect(dispatchSpy).toHaveBeenCalledWith(
-            createNewFlow({
+            createNewDroplet({
                 request: {
                     bucket: buckets[0],
                     file: file,

@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<h2 mat-dialog-title>Import New Flow</h2>
+<h2 mat-dialog-title>Import New Resource</h2>
 <div class="import-new-flow-dialog">
     <form class="import-new-flow-form" [formGroup]="importNewFlowForm">
         <mat-dialog-content>
@@ -21,13 +21,13 @@ limitations under the License.
             <div class="flex justify-between items-center">
                 <div class="w-full flex flex-1 items-center">
                     <mat-form-field class="w-full">
-                        <mat-label>Flow Name</mat-label>
+                        <mat-label>Name</mat-label>
                         <input matInput type="text" placeholder="Create a unique name" formControlName="name" />
                     </mat-form-field>
                     <div class="version-count ml-2">v.1</div>
                 </div>
             </div>
-            <mat-label class="flex mb-2">Flow Def</mat-label>
+            <mat-label class="flex mb-2">Resource</mat-label>
             <mat-form-field class="w-full">
                 <input
                     class="pointer"
@@ -56,7 +56,7 @@ limitations under the License.
                                 <div class="tertiary-color font-medium">{{ fileNameAttached }}</div>
                                 <button
                                     class="pointer"
-                                    aria-label="Remove attached flow definition"
+                                    aria-label="Remove attached resource"
                                     (click)="removeAttachedFlowDefinition()">
                                     X
                                 </button>
@@ -80,7 +80,7 @@ limitations under the License.
                 </mat-form-field>
             </div>
             <mat-form-field class="w-full">
-                <mat-label class="mb-2">Flow Description</mat-label>
+                <mat-label class="mb-2">Description</mat-label>
                 <textarea matInput class="mb-2 w-full" formControlName="description"></textarea>
             </mat-form-field>
         </mat-dialog-content>

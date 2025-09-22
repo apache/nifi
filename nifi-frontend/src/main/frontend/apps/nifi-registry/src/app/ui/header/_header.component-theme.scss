@@ -19,8 +19,29 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme() {
-    .registry-header {
+    .nifi-registry-navigation {
         background-color: var(--mat-sys-secondary);
-        @extend .secondary-contrast;
+
+        .global-menu-icon.global-menu {
+            @extend .secondary-contrast;
+        }
+
+        .global-menu-icon.global-menu:disabled {
+            @extend .secondary-contrast;
+        }
+
+        .current-user {
+            @extend .secondary-contrast;
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        a {
+            @extend .secondary-contrast;
+            text-decoration-color: var(--mat-sys-on-secondary);
+        }
+
+        a:hover {
+            opacity: 0.6;
+        }
     }
 }

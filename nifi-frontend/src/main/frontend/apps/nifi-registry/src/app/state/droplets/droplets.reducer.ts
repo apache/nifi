@@ -19,12 +19,14 @@ import { createReducer, on } from '@ngrx/store';
 import {
     deleteDroplet,
     deleteDropletSuccess,
-    dropletsSnackbarError,
-    importNewFlow,
-    importNewFlowSuccess,
+    importNewDropletVersion,
+    importNewDropletVersionSuccess,
+    createNewDropletSuccess,
     loadDroplets,
     loadDropletsSuccess,
-    dropletsBannerError
+    dropletsBannerError,
+    importVersionForNewDroplet,
+    importNewDropletVersionError
 } from './droplets.actions';
 import { Droplet, DropletsState } from '.';
 import { produce } from 'immer';
@@ -61,11 +63,22 @@ export const dropletsReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(importNewFlow, (state) => ({
+    on(importNewDropletVersion, (state) => ({
         ...state,
         saving: true
     })),
-    on(importNewFlowSuccess, (state, { response }) => {
+    on(createNewDropletSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.droplets.findIndex(
+                (f: Droplet) => response.identifier === f.identifier
+            );
+            if (componentIndex === -1) {
+                draftState.droplets.push(response);
+            }
+            draftState.saving = false;
+        });
+    }),
+    on(importNewDropletVersionSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.droplets.findIndex(
                 (f: Droplet) => response.flow.identifier === f.identifier
@@ -78,8 +91,24 @@ export const dropletsReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(dropletsBannerError, dropletsSnackbarError, (state) => ({
+    on(dropletsBannerError, (state) => ({
         ...state,
         saving: false
-    }))
+    })),
+    on(importVersionForNewDroplet, (state) => ({
+        ...state,
+        saving: true
+    })),
+    on(importNewDropletVersionError, (state, { createdDroplet }) => {
+        return produce(state, (draftState) => {
+            // Remove the created flow from state since it will be deleted
+            const componentIndex: number = draftState.droplets.findIndex(
+                (f: Droplet) => createdDroplet.identifier === f.identifier
+            );
+            if (componentIndex > -1) {
+                draftState.droplets.splice(componentIndex, 1);
+            }
+            draftState.saving = false;
+        });
+    })
 );

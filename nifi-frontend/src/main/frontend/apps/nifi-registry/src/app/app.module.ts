@@ -25,16 +25,15 @@ import {
     provideNoopAnimations
 } from '@angular/platform-browser/animations';
 import { StoreModule } from '@ngrx/store';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { EffectsModule } from '@ngrx/effects';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
-import { DropletsEffects } from './state/droplets/droplets.effects';
-import { BucketsEffects } from './state/buckets/buckets.effects';
 import { ErrorEffects } from './state/error/error.effects';
-import { ResourcesComponent } from './pages/resources/feature/resources.component';
+import { environment } from '../environments/environment';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations = '';
@@ -62,13 +61,19 @@ try {
         AppRoutingModule,
         BrowserAnimationsModule,
         HeaderComponent,
-        ResourcesComponent,
         StoreModule.forRoot(rootReducers),
         StoreRouterConnectingModule.forRoot({
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(DropletsEffects, BucketsEffects, ErrorEffects)
+        EffectsModule.forRoot(ErrorEffects),
+        StoreDevtoolsModule.instrument({
+            maxAge: 25,
+            logOnly: environment.production,
+            autoPause: true,
+            name: 'NiFi Registry',
+            trace: !environment.production
+        })
     ],
     providers: [
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),

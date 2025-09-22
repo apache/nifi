@@ -14,7 +14,7 @@
             "executor": "@nx/angular:application",
             "outputs": ["{options.outputPath}"],
             "options": {
-                "outputPath": "dist/apps/nifi-registry",
+                "outputPath": "dist/nifi-registry",
                 "index": "apps/nifi-registry/src/index.html",
                 "browser": "apps/nifi-registry/src/main.ts",
                 "polyfills": ["zone.js"],
@@ -60,7 +60,7 @@
                     "outputHashing": "none",
                     "assets": [
                         {
-                            "glob": "**/*",
+                            "glob": "**/*.svg",
                             "input": "libs/shared/src/assets/",
                             "output": "./assets"
                         }
@@ -91,7 +91,8 @@
                 "proxyConfig": "apps/nifi-registry/proxy.config.mjs",
                 "buildTarget": "nifi-registry:build",
                 "port": 4204
-            }
+            },
+            "continuous": true
         },
         "extract-i18n": {
             "executor": "@angular-devkit/build-angular:extract-i18n",
@@ -127,14 +128,6 @@
             "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
             "options": {
                 "jestConfig": "apps/nifi-registry/jest.config.ts"
-            }
-        },
-        "serve-static": {
-            "executor": "@nx/web:file-server",
-            "options": {
-                "buildTarget": "nifi-registry:build",
-                "staticFilePath": "dist/apps/nifi-registry/browser",
-                "spa": true
             }
         }
     }

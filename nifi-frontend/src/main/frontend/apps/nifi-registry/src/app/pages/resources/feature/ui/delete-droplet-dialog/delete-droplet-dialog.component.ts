@@ -23,8 +23,8 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { deleteDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MatButtonModule } from '@angular/material/button';
-import { ContextErrorBanner } from '@nifi/shared';
 import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
+import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/common/context-error-banner/context-error-banner.component';
 
 interface DeleteDropletDialogData {
     droplet: Droplet;

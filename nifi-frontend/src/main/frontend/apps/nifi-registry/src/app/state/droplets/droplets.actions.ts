@@ -21,7 +21,7 @@ import {
     Droplet,
     ImportDropletDialog,
     ImportDropletRequest,
-    ImportFlowRequest,
+    ImportDropletVersionRequest,
     LoadDropletsResponse
 } from '.';
 import { ErrorContext } from '../error';
@@ -42,54 +42,70 @@ export const deleteDroplet = createAction('[Droplets] Delete Droplet', props<{ r
 
 export const deleteDropletSuccess = createAction('[Droplets] Delete Droplet Success', props<{ response: Droplet }>());
 
-export const openImportNewFlowDialog = createAction(
-    '[Droplets] Open Import New Flow Dialog',
+export const openImportNewDropletDialog = createAction(
+    '[Droplets] Open Import New Droplet Dialog',
     props<{ request: ImportDropletDialog }>()
 );
 
-export const createNewFlow = createAction('[Droplets] Create New Flow', props<{ request: ImportDropletRequest }>());
-
-export const importNewFlow = createAction('[Droplets] Import New Flow', props<{ request: ImportFlowRequest }>());
-
-export const createNewFlowSuccess = createAction(
-    `[Droplets] Create New Flow Success`,
-    props<{ request: ImportFlowRequest }>()
+export const createNewDroplet = createAction(
+    '[Droplets] Create New Droplet',
+    props<{ request: ImportDropletRequest }>()
 );
 
-export const importNewFlowSuccess = createAction('[Droplets] Import New Flow Success', props<{ response: any }>());
-
-export const openImportNewFlowVersionDialog = createAction(
-    '[Droplets] Open Import New Flow Version Dialog',
-    props<{ request: { droplet: Droplet } }>()
+export const importNewDropletVersion = createAction(
+    '[Droplets] Import New Droplet Version',
+    props<{ request: ImportDropletVersionRequest }>()
 );
 
-export const importNewFlowVersion = createAction(
-    '[Droplets] Import New Flow Version',
-    props<{ request: ImportDropletRequest; flowId: string }>()
+export const createNewDropletSuccess = createAction(
+    `[Droplets] Create New Droplet Success`,
+    props<{ response: Droplet; request: ImportDropletVersionRequest }>()
 );
 
-export const openExportFlowVersionDialog = createAction(
-    `[Droplets] Open Export Flow Version Dialog`,
-    props<{ request: { droplet: Droplet } }>()
-);
-
-export const exportFlowVersion = createAction(
-    `[Droplets] Export Flow Version`,
-    props<{ request: { droplet: Droplet; version: number } }>()
-);
-
-export const exportFlowVersionSuccess = createAction(
-    `[Droplets] Export Flow Version Success`,
+export const importNewDropletVersionSuccess = createAction(
+    '[Droplets] Import New Droplet Version Success',
     props<{ response: any }>()
 );
 
-export const openFlowVersionsDialog = createAction(
-    `[Droplets] Open Flow Versions Dialog`,
+export const openImportNewDropletVersionDialog = createAction(
+    '[Droplets] Open Import New Droplet Version Dialog',
+    props<{ request: { droplet: Droplet } }>()
+);
+
+export const openExportDropletVersionDialog = createAction(
+    `[Droplets] Open Export Droplet Version Dialog`,
+    props<{ request: { droplet: Droplet } }>()
+);
+
+export const exportDropletVersion = createAction(
+    `[Droplets] Export Droplet Version`,
+    props<{ request: { droplet: Droplet; version: number } }>()
+);
+
+export const exportDropletVersionSuccess = createAction(
+    `[Droplets] Export Droplet Version Success`,
+    props<{ response: any }>()
+);
+
+export const openDropletVersionsDialog = createAction(
+    `[Droplets] Open Droplet Versions Dialog`,
     props<{ request: { droplet: Droplet } }>()
 );
 
 export const selectDroplet = createAction(`[Droplets] Select Droplet`, props<{ request: { id: string } }>());
 
-export const dropletsSnackbarError = createAction(`[Droplets] Snackbar Error`, props<{ error: string }>());
-
 export const dropletsBannerError = createAction(`[Droplets] Banner Error`, props<{ errorContext: ErrorContext }>());
+
+export const importNewDropletVersionError = createAction(
+    '[Droplets] Import New Droplet Version Error',
+    props<{ errorContext: ErrorContext; createdDroplet: Droplet }>()
+);
+
+export const importVersionForNewDroplet = createAction(
+    '[Droplets] Import Version For New Droplet',
+    props<{ request: ImportDropletVersionRequest; createdDroplet: Droplet }>()
+);
+
+// Utility no-op action for effects that need to emit a valid action on success. This allows dialogs to add global
+// context errors when the dialog is unable to async GET the data it needs in order to open.
+export const noOp = createAction('[Droplets] No Op');

@@ -24,8 +24,10 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { MatMenuModule } from '@angular/material/menu';
-import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { exportDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../state/error';
 
 interface Data {
     droplet: Droplet;
@@ -45,11 +47,19 @@ interface VersionedFlowSnapshotMetadata {
 @Component({
     selector: 'app-flow-versions-dialog',
     standalone: true,
-    imports: [CommonModule, MatTableModule, MatSortModule, MatDialogModule, MatMenuModule, MatButtonModule],
-    templateUrl: './flow-versions-dialog.component.html',
-    styleUrl: './flow-versions-dialog.component.scss'
+    imports: [
+        CommonModule,
+        MatTableModule,
+        MatSortModule,
+        MatDialogModule,
+        MatMenuModule,
+        MatButtonModule,
+        ContextErrorBanner
+    ],
+    templateUrl: './droplet-versions-dialog.component.html',
+    styleUrl: './droplet-versions-dialog.component.scss'
 })
-export class FlowVersionsDialogComponent extends CloseOnEscapeDialog {
+export class DropletVersionsDialogComponent extends CloseOnEscapeDialog {
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
 
@@ -109,7 +119,7 @@ export class FlowVersionsDialogComponent extends CloseOnEscapeDialog {
     }
 
     exportVersion(version: number) {
-        this.store.dispatch(exportFlowVersion({ request: { droplet: this.data.droplet, version } }));
+        this.store.dispatch(exportDropletVersion({ request: { droplet: this.data.droplet, version } }));
     }
 
     private compareVersion(a: string, b: string): number {
@@ -119,4 +129,6 @@ export class FlowVersionsDialogComponent extends CloseOnEscapeDialog {
             return this.nifiCommon.compareString(a, b);
         }
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

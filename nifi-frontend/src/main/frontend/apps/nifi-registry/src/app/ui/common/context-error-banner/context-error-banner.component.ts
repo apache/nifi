@@ -19,23 +19,24 @@
 
 import { Component, DestroyRef, inject, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NiFiRegistryState } from '../../../state';
 import { Store } from '@ngrx/store';
-import { clearBannerErrors } from '../../state/error/error.actions';
+import { clearBannerErrors } from '../../../state/error/error.actions';
 import { Observable } from 'rxjs';
-import { selectBannerErrors } from '../../state/error/error.selectors';
+import { selectBannerErrors } from '../../../state/error/error.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '../error-banner/error-banner.component';
+import { ErrorBanner } from '@nifi/shared';
+import { ErrorContextKey } from '../../../state/error';
 
 @Component({
     selector: 'context-error-banner',
     imports: [CommonModule, ErrorBanner],
     templateUrl: './context-error-banner.component.html',
-    styleUrl: './context-error-banner.component.scss',
-    standalone: true
+    styleUrl: './context-error-banner.component.scss'
 })
 export class ContextErrorBanner implements OnDestroy {
-    private _context!: string;
-    @Input({ required: true }) set context(context: string) {
+    private _context!: ErrorContextKey;
+    @Input({ required: true }) set context(context: ErrorContextKey) {
         this._context = context;
         this.messages$ = this.store.select(selectBannerErrors(this._context)).pipe(takeUntilDestroyed(this.destroyRef));
     }
@@ -47,7 +48,7 @@ export class ContextErrorBanner implements OnDestroy {
     messages$: Observable<string[]> | null = null;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    constructor(private store: Store<any>) {}
+    constructor(private store: Store<NiFiRegistryState>) {}
 
     ngOnDestroy(): void {
         this.store.dispatch(clearBannerErrors({ context: this.context }));

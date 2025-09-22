@@ -23,9 +23,11 @@ export interface ErrorDetail {
 }
 
 export enum ErrorContextKey {
+    EXPORT_DROPLET_VERSION = 'droplet listing',
     DELETE_DROPLET = 'delete droplet',
     CREATE_DROPLET = 'create droplet',
-    IMPORT_DROPLET_VERSION = 'import droplet version'
+    IMPORT_DROPLET_VERSION = 'import droplet version',
+    GLOBAL = 'global'
 }
 
 export interface ErrorContext {
@@ -40,6 +42,4 @@ export interface BannerErrors {
 
 export interface ErrorState {
     bannerErrors: BannerErrors;
-    fullScreenError: ErrorDetail | null;
-    routedToFullScreenError: boolean;
 }

@@ -27,9 +27,9 @@ import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
 import { Store } from '@ngrx/store';
 import {
     openDeleteDropletDialog,
-    openExportFlowVersionDialog,
-    openFlowVersionsDialog,
-    openImportNewFlowVersionDialog
+    openExportDropletVersionDialog,
+    openDropletVersionsDialog,
+    openImportNewDropletVersionDialog
 } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 
 @Component({
@@ -116,23 +116,23 @@ export class DropletTableComponent implements OnInit {
         return false;
     }
 
-    openImportNewFlowVersionDialog(droplet: Droplet) {
+    openImportNewDropletVersionDialog(droplet: Droplet) {
         this.store.dispatch(
-            openImportNewFlowVersionDialog({
+            openImportNewDropletVersionDialog({
                 request: { droplet }
             })
         );
     }
 
-    openExportFlowVersionDialog(droplet: Droplet) {
-        this.store.dispatch(openExportFlowVersionDialog({ request: { droplet } }));
+    openExportDropletVersionDialog(droplet: Droplet) {
+        this.store.dispatch(openExportDropletVersionDialog({ request: { droplet } }));
     }
 
     openDeleteDialog(droplet: Droplet) {
         this.store.dispatch(openDeleteDropletDialog({ request: { droplet } }));
     }
 
-    openFlowVersionsDialog(droplet: Droplet) {
-        this.store.dispatch(openFlowVersionsDialog({ request: { droplet } }));
+    openDropletVersionsDialog(droplet: Droplet) {
+        this.store.dispatch(openDropletVersionsDialog({ request: { droplet } }));
     }
 }

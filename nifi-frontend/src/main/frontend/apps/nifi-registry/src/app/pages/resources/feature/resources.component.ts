@@ -21,55 +21,32 @@ import {
     selectDroplets,
     selectDropletState
 } from '../../../state/droplets/droplets.selectors';
-import {
-    loadDroplets,
-    openDeleteDropletDialog,
-    openExportFlowVersionDialog,
-    openFlowVersionsDialog,
-    openImportNewFlowDialog,
-    openImportNewFlowVersionDialog,
-    selectDroplet
-} from '../../../state/droplets/droplets.actions';
+import { loadDroplets, openImportNewDropletDialog, selectDroplet } from '../../../state/droplets/droplets.actions';
 import { Droplet } from '../../../state/droplets';
 import { Store } from '@ngrx/store';
 import { MatTableDataSource } from '@angular/material/table';
 import { Observable } from 'rxjs';
 import { Sort } from '@angular/material/sort';
-import { NiFiCommon, selectQueryParams } from '@nifi/shared';
+import { NiFiCommon } from '@nifi/shared';
 import { loadBuckets } from '../../../state/buckets/buckets.actions';
 import { Bucket } from '../../../state/buckets';
 import { selectBuckets } from '../../../state/buckets/buckets.selectors';
-import { DropletTableFilterContext } from './ui/droplet-table-filter/droplet-table-filter.component';
+import {
+    DropletTableFilterColumn,
+    DropletTableFilterContext
+} from './ui/droplet-table-filter/droplet-table-filter.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
-
-import { CommonModule } from '@angular/common';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
-import { MatMenuModule } from '@angular/material/menu';
-import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-table-filter.component';
-import { MatButtonModule } from '@angular/material/button';
-import { DropletTableComponent } from './ui/droplet-table/droplet-table.component';
+import { ErrorContextKey } from '../../../state/error';
 
 @Component({
     selector: 'resources',
-    imports: [
-        CommonModule,
-        MatTableModule,
-        MatSortModule,
-        MatMenuModule,
-        DropletTableFilterComponent,
-        MatButtonModule,
-        MatButtonModule,
-        DropletTableComponent
-    ],
     templateUrl: './resources.component.html',
     styleUrl: './resources.component.scss',
-    standalone: true
+    standalone: false
 })
 export class ResourcesComponent implements OnInit {
-    droplets$: Observable<Droplet[]>;
-    buckets$: Observable<Bucket[]>;
+    droplets$: Observable<Droplet[]> = this.store.select(selectDroplets).pipe(takeUntilDestroyed());
+    buckets$: Observable<Bucket[]> = this.store.select(selectBuckets).pipe(takeUntilDestroyed());
     buckets: Bucket[] = [];
     dataSource: MatTableDataSource<Droplet> = new MatTableDataSource<Droplet>();
     displayedColumns: string[] = [
@@ -80,6 +57,15 @@ export class ResourcesComponent implements OnInit {
         'identifier',
         'versions',
         'actions'
+    ];
+
+    filterableColumns: DropletTableFilterColumn[] = [
+        { key: 'name', label: 'Name' },
+        { key: 'type', label: 'Type' },
+        { key: 'bucketName', label: 'Bucket' },
+        { key: 'bucketIdentifier', label: 'Bucket ID' },
+        { key: 'identifier', label: 'Resource ID' },
+        { key: 'versionCount', label: 'Versions' }
     ];
     sort: Sort = {
         active: 'name',
@@ -93,24 +79,8 @@ export class ResourcesComponent implements OnInit {
 
     constructor(
         private store: Store,
-        private nifiCommon: NiFiCommon,
-        private router: Router,
-        private activatedRoute: ActivatedRoute
-    ) {
-        this.droplets$ = this.store.select(selectDroplets).pipe(takeUntilDestroyed());
-        this.buckets$ = this.store.select(selectBuckets).pipe(takeUntilDestroyed());
-        this.store
-            .select(selectQueryParams)
-            .pipe(takeUntilDestroyed())
-            .subscribe((queryParams) => {
-                if (queryParams) {
-                    this.filterTerm = queryParams['filterTerm'] || '';
-                    this.filterBucket = queryParams['filterBucket'] || 'All';
-                    this.filterColumn = queryParams['filterColumn'] || '';
-                    this.dataSource.filter = JSON.stringify(queryParams);
-                }
-            });
-    }
+        private nifiCommon: NiFiCommon
+    ) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadDroplets());
@@ -141,7 +111,11 @@ export class ResourcesComponent implements OnInit {
                 return true;
             }
 
-            return this.nifiCommon.stringContains((data as any)[`${filterColumn}`], filterTerm, true);
+            const value = (data as any)[filterColumn];
+            if (typeof value === 'number') {
+                return value.toString().includes(filterTerm);
+            }
+            return this.nifiCommon.stringContains(value, filterTerm, true);
         };
     }
 
@@ -181,43 +155,16 @@ export class ResourcesComponent implements OnInit {
         });
     }
 
-    openImportNewFlowDialog() {
-        this.store.dispatch(openImportNewFlowDialog({ request: { buckets: this.buckets } }));
-    }
-
-    openImportNewFlowVersionDialog(droplet: Droplet) {
-        this.store.dispatch(
-            openImportNewFlowVersionDialog({
-                request: { droplet }
-            })
-        );
-    }
-
-    openExportFlowVersionDialog(droplet: Droplet) {
-        this.store.dispatch(openExportFlowVersionDialog({ request: { droplet } }));
-    }
-
-    openDeleteDialog(droplet: Droplet) {
-        this.store.dispatch(openDeleteDropletDialog({ request: { droplet } }));
-    }
-
-    openFlowVersionsDialog(droplet: Droplet) {
-        this.store.dispatch(openFlowVersionsDialog({ request: { droplet } }));
+    openImportNewDropletDialog() {
+        this.store.dispatch(openImportNewDropletDialog({ request: { buckets: this.buckets } }));
     }
 
     applyFilter(filter: DropletTableFilterContext) {
-        const { filterTerm, filterColumn, filterBucket } = filter;
         if (!filter || !this.dataSource) {
             return;
         }
 
         this.dataSource.filter = JSON.stringify(filter);
-
-        this.router.navigate([], {
-            relativeTo: this.activatedRoute,
-            queryParams: { filterTerm, filterColumn, filterBucket },
-            queryParamsHandling: 'merge'
-        });
     }
 
     refreshDropletsListing() {
@@ -234,4 +181,6 @@ export class ResourcesComponent implements OnInit {
             })
         );
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

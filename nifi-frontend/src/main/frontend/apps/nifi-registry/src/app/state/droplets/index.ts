@@ -66,10 +66,6 @@ export interface DeleteDropletRequest {
     droplet: Droplet;
 }
 
-export interface DeleteDropletResponse {
-    droplet: Droplet;
-}
-
 export interface ImportDropletDialog {
     buckets: Bucket[];
 }
@@ -81,12 +77,8 @@ export interface ImportDropletRequest {
     name: string;
 }
 
-export interface ImportFlowRequest {
+export interface ImportDropletVersionRequest {
     href: string;
     file: File;
     description: string;
-}
-
-export interface ImportDropletVersionRequest {
-    file: File;
 }

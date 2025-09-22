@@ -15,9 +15,10 @@
 ~  limitations under the License.
 -->
 
-<h2 mat-dialog-title>Flow Versions</h2>
+<h2 mat-dialog-title>Resource Versions</h2>
 <div class="flow-versions-dialog">
     <mat-dialog-content>
+        <context-error-banner [context]="ErrorContextKey.EXPORT_DROPLET_VERSION"></context-error-banner>
         <div class="listing-table flex-1 relative dialog-tab-content">
             <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                 <table
@@ -72,7 +73,7 @@
                                         (click)="exportVersion(item.version)"
                                         data-test-id="exportBtn">
                                         <i class="fa fa-download primary-color mr-2"></i>
-                                        Export flow version
+                                        Export resource version
                                     </button>
                                 </mat-menu>
                             </div>

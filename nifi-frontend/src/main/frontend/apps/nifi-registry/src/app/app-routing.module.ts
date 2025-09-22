@@ -17,37 +17,20 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { ResourcesComponent } from './pages/resources/feature/resources.component';
-import { Error } from './pages/error/feature/error.component';
 
 const routes: Routes = [
-    {
-        path: 'error',
-        loadComponent: () => Error
-    },
-    {
-        path: 'resources',
-        component: ResourcesComponent,
-        children: [
-            {
-                path: ':id',
-                component: ResourcesComponent
-            }
-        ]
-    },
-    {
-        path: 'nifi-registry',
-        redirectTo: 'resources'
-    },
     {
         path: '',
         redirectTo: 'resources',
         pathMatch: 'full'
     },
     {
-        path: '',
-        loadComponent: () => import('./pages/resources/feature/resources.component').then((m) => m.ResourcesComponent)
+        path: 'resources',
+        loadChildren: () => import('./pages/resources/feature/resources.module').then((m) => m.ResourcesModule)
     }
+    // TODO: buckets
+    // TODO: Users/groups
+    // TODO: Page not found
 ];
 
 @NgModule({

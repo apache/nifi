@@ -45,7 +45,7 @@
                             </div>
                         </td>
                     </ng-container>
-                    <!-- Flow ID Column -->
+                    <!-- Bucket ID Column -->
                     <ng-container matColumnDef="bucketIdentifier">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Bucket ID</th>
                         <td mat-cell *matCellDef="let item">
@@ -56,9 +56,9 @@
                             </div>
                         </td>
                     </ng-container>
-                    <!-- Bucket ID Column -->
+                    <!-- Resource ID Column -->
                     <ng-container matColumnDef="identifier">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Flow ID</th>
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Resource ID</th>
                         <td mat-cell *matCellDef="let item">
                             <div class="overflow-ellipsis overflow-hidden whitespace-nowrap" [title]="item.identifier">
                                 {{ item.identifier }}
@@ -98,21 +98,21 @@
                                     <i class="fa fa-ellipsis-v"></i>
                                 </button>
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
-                                    <button mat-menu-item (click)="openFlowVersionsDialog(item)">
+                                    <button mat-menu-item (click)="openDropletVersionsDialog(item)">
                                         <i class="fa fa-list primary-color mr-2"></i>
                                         See Versions
                                     </button>
-                                    <button mat-menu-item (click)="openImportNewFlowVersionDialog(item)">
+                                    <button mat-menu-item (click)="openImportNewDropletVersionDialog(item)">
                                         <i class="fa fa-upload primary-color mr-2"></i>
-                                        Import new flow version
+                                        Import new version
                                     </button>
-                                    <button mat-menu-item (click)="openExportFlowVersionDialog(item)">
+                                    <button mat-menu-item (click)="openExportDropletVersionDialog(item)">
                                         <i class="fa fa-download primary-color mr-2"></i>
-                                        Export flow version
+                                        Export version
                                     </button>
                                     <button mat-menu-item (click)="openDeleteDialog(item)">
                                         <i class="fa fa-trash primary-color mr-2"></i>
-                                        Delete flow
+                                        Delete resource
                                     </button>
                                 </mat-menu>
                             </div>

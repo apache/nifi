@@ -15,47 +15,7 @@
  * limitations under the License.
  */
 
-import { inject, Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as ErrorActions from './error.actions';
-import { map, tap } from 'rxjs';
-import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Injectable } from '@angular/core';
 
 @Injectable()
-export class ErrorEffects {
-    constructor(
-        private router: Router,
-        private snackBar: MatSnackBar
-    ) {}
-
-    actions$ = inject(Actions);
-
-    fullScreenError$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ErrorActions.fullScreenError),
-                map((action) => action.skipReplaceUrl),
-                tap((skipReplaceUrl) => {
-                    if (skipReplaceUrl) {
-                        this.router.navigate(['/error']);
-                    } else {
-                        this.router.navigate(['/error'], { replaceUrl: true });
-                    }
-                })
-            ),
-        { dispatch: false }
-    );
-
-    snackBarError$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ErrorActions.snackBarError),
-                map((action) => action.error),
-                tap((error) => {
-                    this.snackBar.open(error, 'Dismiss', { duration: 30000 });
-                })
-            ),
-        { dispatch: false }
-    );
-}
+export class ErrorEffects {}

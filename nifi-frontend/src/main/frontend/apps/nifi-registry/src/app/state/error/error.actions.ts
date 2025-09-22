@@ -16,22 +16,10 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ErrorContext, ErrorContextKey, ErrorDetail } from './index';
-
-export const fullScreenError = createAction(
-    '[Error] Full Screen Error',
-    props<{ errorDetail: ErrorDetail; skipReplaceUrl?: boolean }>()
-);
-
-export const snackBarError = createAction('[Error] Snackbar Error', props<{ error: string }>());
+import { ErrorContext, ErrorContextKey } from './index';
 
 export const addBannerError = createAction('[Error] Add Banner Error', props<{ errorContext: ErrorContext }>());
 
 export const clearBannerErrors = createAction('[Error] Clear Banner Errors', props<{ context: ErrorContextKey }>());
 
 export const resetErrorState = createAction('[Error] Reset Error State');
-
-export const setRoutedToFullScreenError = createAction(
-    '[Error] Set Routed To Full Screen Error',
-    props<{ routedToFullScreenError: boolean }>()
-);

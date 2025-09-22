@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,25 @@
  * limitations under the License.
  */
 
-.error-background {
-    background: url(../../../../../../../libs/shared/src/assets/icons/bg-error.png) left top no-repeat;
-}
+import { RouterModule, Routes } from '@angular/router';
+import { NgModule } from '@angular/core';
+import { ResourcesComponent } from './resources.component';
+
+const routes: Routes = [
+    {
+        path: '',
+        component: ResourcesComponent,
+        children: [
+            {
+                path: ':id',
+                component: ResourcesComponent
+            }
+        ]
+    }
+];
+
+@NgModule({
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
+})
+export class ResourcesRoutingModule {}

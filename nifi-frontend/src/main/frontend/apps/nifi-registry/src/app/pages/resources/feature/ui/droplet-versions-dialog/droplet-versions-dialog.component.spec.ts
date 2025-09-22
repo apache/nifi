@@ -16,20 +16,21 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ExportFlowVersionDialogComponent } from './export-flow-version-dialog.component';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { DebugElement } from '@angular/core';
+import { DropletVersionsDialogComponent } from './droplet-versions-dialog.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Subject } from 'rxjs';
-import { By } from '@angular/platform-browser';
-import { exportFlowVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { exportDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
 
-describe('ExportFlowVersionDialogComponent', () => {
-    let component: ExportFlowVersionDialogComponent;
-    let fixture: ComponentFixture<ExportFlowVersionDialogComponent>;
-    let debug: DebugElement;
+describe('DropletVersionsDialogComponent', () => {
+    let component: DropletVersionsDialogComponent;
+    let fixture: ComponentFixture<DropletVersionsDialogComponent>;
     let store: MockStore;
-    const mockData = {
+    const mockDroplet = {
         bucketIdentifier: '1234',
         bucketName: 'testBucket',
         createdTimestamp: 123456789,
@@ -41,14 +42,32 @@ describe('ExportFlowVersionDialogComponent', () => {
         permissions: { canRead: true, canWrite: true },
         revision: { version: 1 },
         type: 'FLOW',
-        versionCount: 2
+        versionCount: 1
+    };
+    const mockVersions = {
+        author: 'anonymous',
+        bucketIdentifier: '311c6295-d8b6-47bd-806e-b5ee27dd8187',
+        flowIdentifier: 'ed9f3f48-751b-4237-a8a7-a4a2020f1efe',
+        link: {
+            href: 'buckets/311c6295-d8b6-47bd-806e-b5ee27dd8187/flows/ed9f3f48-751b-4237-a8a7-a4a2020f1efe/versions/1',
+            params: { rel: 'content' }
+        },
+        timestamp: 1741788614197,
+        version: 1
     };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ExportFlowVersionDialogComponent],
+            imports: [
+                DropletVersionsDialogComponent,
+                MatTableModule,
+                MatSortModule,
+                MatDialogModule,
+                MatMenuModule,
+                MatButtonModule
+            ],
             providers: [
-                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockData } },
+                { provide: MAT_DIALOG_DATA, useValue: { droplet: mockDroplet, versions: mockVersions } },
                 {
                     provide: MatDialogRef,
                     useValue: {
@@ -61,9 +80,8 @@ describe('ExportFlowVersionDialogComponent', () => {
         }).compileComponents();
 
         store = TestBed.inject(MockStore);
-        fixture = TestBed.createComponent(ExportFlowVersionDialogComponent);
+        fixture = TestBed.createComponent(DropletVersionsDialogComponent);
         component = fixture.componentInstance;
-        debug = fixture.debugElement;
         fixture.detectChanges();
     });
 
@@ -72,9 +90,10 @@ describe('ExportFlowVersionDialogComponent', () => {
     });
 
     it('should export flow', () => {
-        const exportFlowSpy = jest.spyOn(store, 'dispatch');
-        const exportBtn = debug.query(By.css('[data-test-id=export-btn]')).nativeElement;
-        exportBtn.click();
-        expect(exportFlowSpy).toHaveBeenCalledWith(exportFlowVersion({ request: { droplet: mockData, version: 2 } }));
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        component.exportVersion(2);
+        expect(dispatchSpy).toHaveBeenCalledWith(
+            exportDropletVersion({ request: { droplet: mockDroplet, version: 2 } })
+        );
     });
 });

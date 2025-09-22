@@ -18,20 +18,16 @@
 import { inject, Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { catchError, from, map, of, switchMap } from 'rxjs';
-import { Store } from '@ngrx/store';
-import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { NiFiState } from '../index';
 import * as BucketsActions from './buckets.actions';
 import { BucketsService } from '../../service/buckets.service';
 import { ErrorHelper } from '../../service/error-helper.service';
-import * as ErrorActions from '../../state/error/error.actions';
+import { ErrorContextKey } from '../error';
+import * as DropletsActions from '../droplets/droplets.actions';
 
 @Injectable()
 export class BucketsEffects {
     constructor(
-        private store: Store<NiFiState>,
-        private router: Router,
         private bucketsService: BucketsService,
         private errorHelper: ErrorHelper
     ) {}
@@ -51,14 +47,19 @@ export class BucketsEffects {
                                 }
                             })
                         ),
-                        catchError((errorResponse: HttpErrorResponse) => {
-                            return of(
-                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
-                            );
-                        })
+                        catchError((errorResponse: HttpErrorResponse) => of(this.bannerError(errorResponse)))
                     )
                 );
             })
         )
     );
+
+    private bannerError(errorResponse: HttpErrorResponse, context: ErrorContextKey = ErrorContextKey.GLOBAL) {
+        return DropletsActions.dropletsBannerError({
+            errorContext: {
+                errors: [this.errorHelper.getErrorString(errorResponse)],
+                context
+            }
+        });
+    }
 }

@@ -18,17 +18,19 @@
 <div class="pb-5 px-5 flex flex-col h-full">
     <div class="h-full flex flex-col">
         <h3 class="primary-color">Resources</h3>
+        <context-error-banner [context]="ErrorContextKey.GLOBAL"></context-error-banner>
         <div class="flex justify-between items-baseline">
             <droplet-table-filter
                 [buckets]="buckets"
                 [filterTerm]="filterTerm"
                 [filterBucket]="filterBucket"
                 [filterColumn]="filterColumn"
+                [filterableColumns]="filterableColumns"
                 [filteredCount]="dataSource.filteredData.length"
                 [totalCount]="dataSource.data.length"
                 (filterChanged)="applyFilter($event)"></droplet-table-filter>
             <div class="flex justify-end">
-                <button mat-icon-button class="primary-icon-button" (click)="openImportNewFlowDialog()">
+                <button mat-icon-button class="primary-icon-button" (click)="openImportNewDropletDialog()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>

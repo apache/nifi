@@ -114,7 +114,7 @@ describe('DropletTableComponent', () => {
         expect(headerRow.cells[1].innerHTML).toContain('Type');
         expect(headerRow.cells[2].innerHTML).toContain('Bucket');
         expect(headerRow.cells[3].innerHTML).toContain('Bucket ID');
-        expect(headerRow.cells[4].innerHTML).toContain('Flow ID');
+        expect(headerRow.cells[4].innerHTML).toContain('Resource ID');
         expect(headerRow.cells[5].innerHTML).toContain('Versions');
     });
 

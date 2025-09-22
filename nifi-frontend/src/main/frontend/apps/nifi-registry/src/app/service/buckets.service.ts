@@ -26,6 +26,17 @@ export class BucketsService {
     constructor(private httpClient: HttpClient) {}
 
     getBuckets(): Observable<any> {
+        // const mockError: HttpErrorResponse = new HttpErrorResponse({
+        //     status: 404,
+        //     statusText: 'Bad Gateway',
+        //     url: `${BucketsService.API}/buckets`,
+        //     error: {
+        //         message: 'Mock error: unable to GET buckets.',
+        //         timestamp: new Date().toISOString()
+        //     }
+        // });
+        // return throwError(() => mockError);
+
         return this.httpClient.get(`${BucketsService.API}/buckets`);
     }
 }

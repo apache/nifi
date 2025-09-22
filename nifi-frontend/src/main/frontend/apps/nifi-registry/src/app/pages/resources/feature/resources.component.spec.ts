@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,37 +16,34 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ResourcesComponent } from './resources.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
-import { MatMenuModule } from '@angular/material/menu';
-import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-table-filter.component';
-import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
+import { provideMockStore } from '@ngrx/store/testing';
+import { ResourcesComponent } from './resources.component';
+import { initialState } from '../../../state/droplets/droplets.reducer';
+import { initialState as initialBucketState } from '../../../state/buckets/buckets.reducer';
+import { resourcesFeatureKey } from '../../../state';
+import { dropletsFeatureKey } from '../../../state/droplets';
+import { bucketsFeatureKey } from '../../../state/buckets';
 
-describe('ResourcesComponent', () => {
+describe('Resources', () => {
     let component: ResourcesComponent;
     let fixture: ComponentFixture<ResourcesComponent>;
 
-    beforeEach(async () => {
-        await TestBed.configureTestingModule({
-            imports: [
-                ResourcesComponent,
-                CommonModule,
-                MatTableModule,
-                MatSortModule,
-                MatMenuModule,
-                DropletTableFilterComponent,
-                MatButtonModule,
-                NgOptimizedImage,
-                MatButtonModule,
-                RouterModule.forRoot([])
-            ],
-            providers: [provideMockStore({})]
-        }).compileComponents();
-
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [ResourcesComponent],
+            imports: [RouterModule],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [resourcesFeatureKey]: {
+                            [dropletsFeatureKey]: initialState,
+                            [bucketsFeatureKey]: initialBucketState
+                        }
+                    }
+                })
+            ]
+        });
         fixture = TestBed.createComponent(ResourcesComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();

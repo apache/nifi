@@ -25,7 +25,7 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
 import { Observable } from 'rxjs';
 import { selectBannerErrors } from '../../../state/error/error.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '../error-banner/error-banner.component';
+import { ErrorBanner } from '@nifi/shared';
 import { ErrorContextKey } from '../../../state/error';
 
 @Component({

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -55,7 +55,7 @@ export class DropletTableFilterComponent implements AfterViewInit {
     private _buckets: Bucket[] = [];
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    set filterableColumns(filterableColumns: DropletTableFilterColumn[]) {
+    @Input() set filterableColumns(filterableColumns: DropletTableFilterColumn[]) {
         this._filterableColumns = filterableColumns;
     }
     get filterableColumns(): DropletTableFilterColumn[] {
@@ -101,12 +101,6 @@ export class DropletTableFilterComponent implements AfterViewInit {
             filterColumn: this._initialFilterColumn || 'name',
             filterBucket: 'All'
         });
-        this._filterableColumns = [
-            { key: 'name', label: 'name' },
-            { key: 'type', label: 'type' },
-            { key: 'bucketIdentifier', label: 'bucket identifier' },
-            { key: 'identifier', label: 'identifier' }
-        ];
     }
 
     ngAfterViewInit() {

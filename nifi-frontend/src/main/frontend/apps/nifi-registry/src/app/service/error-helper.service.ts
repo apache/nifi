@@ -17,81 +17,29 @@
 
 import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import * as ErrorActions from '../state/error/error.actions';
-import { Action } from '@ngrx/store';
 
 @Injectable({ providedIn: 'root' })
 export class ErrorHelper {
-    fullScreenError(errorResponse: HttpErrorResponse, skipReplaceUrl?: boolean): Action {
-        let title: string;
-        let message: string;
-
-        switch (errorResponse.status) {
-            case 401:
-                title = 'Unauthorized';
-                break;
-            case 403:
-                title = 'Insufficient Permissions';
-                break;
-            case 409:
-                title = 'Invalid State';
-                break;
-            case 413:
-                title = 'Payload Too Large';
-                break;
-            case 503:
-            default:
-                title = 'An unexpected error has occurred';
-                break;
-        }
-
-        if (errorResponse.status === 0 || !errorResponse.error) {
-            message =
-                'An error occurred communicating with NiFi. Please check the logs and fix any configuration issues before restarting.';
-        } else if (errorResponse.status === 401) {
-            message = 'Your session has expired. Please navigate home to log in again.';
-        } else {
-            message = this.getErrorString(errorResponse);
-        }
-
-        return ErrorActions.fullScreenError({
-            skipReplaceUrl,
-            errorDetail: {
-                title,
-                message
-            }
-        });
-    }
-
-    showErrorInContext(status: number): boolean {
-        return [400, 403, 404, 409, 413, 503].includes(status);
-    }
-
-    handleLoadingError(status: string, errorResponse: HttpErrorResponse): Action {
-        if (status === 'success') {
-            if (this.showErrorInContext(errorResponse.status)) {
-                return ErrorActions.snackBarError({ error: this.getErrorString(errorResponse) });
-            } else {
-                return this.fullScreenError(errorResponse);
-            }
-        } else {
-            return this.fullScreenError(errorResponse);
-        }
-    }
-
     getErrorString(errorResponse: HttpErrorResponse, prefix?: string): string {
+        // TODO: Update to handle actual error response structure from NiFi Registry REST API
         let errorMessage = 'An unspecified error occurred.';
-        if (errorResponse.status !== 0) {
-            if (errorResponse.error) {
-                errorMessage = errorResponse.error;
-            } else {
-                errorMessage = errorResponse.message || `${errorResponse.status}`;
+        if (errorResponse) {
+            const err = errorResponse.error;
+            if (err) {
+                if (typeof err === 'string') {
+                    errorMessage = err;
+                } else if (typeof err === 'object') {
+                    // Prefer nested message fields from our mock errors
+                    errorMessage = err.message || JSON.stringify(err);
+                } else {
+                    errorMessage = `${err}`;
+                }
+            } else if (errorResponse.message) {
+                errorMessage = errorResponse.message;
+            } else if (errorResponse.status) {
+                errorMessage = `${errorResponse.status} ${errorResponse.statusText || ''}`.trim();
             }
         }
-        if (prefix) {
-            return `${prefix} - [${errorMessage}]`;
-        } else {
-            return errorMessage;
-        }
+        return prefix ? `${prefix} - [${errorMessage}]` : errorMessage;
     }
 }
