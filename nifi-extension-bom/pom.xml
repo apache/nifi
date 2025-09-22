@@ -249,7 +249,7 @@
             <dependency>
                 <groupId>org.eclipse.jdt</groupId>
                 <artifactId>ecj</artifactId>
-                <version>3.42.0</version>
+                <version>3.43.0</version>
                 <scope>provided</scope>
             </dependency>
             <!-- Jetty EE10 Glassfish JSTL and deps -->
