@@ -38,9 +38,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.kinesis.MemoryBoundRecordBuffer.Lease;
 import org.apache.nifi.processors.aws.kinesis.ReaderRecordProcessor.ProcessingResult;
 import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferId;
-import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferLease;
 import org.apache.nifi.processors.aws.region.RegionUtilV2;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -88,15 +88,15 @@ import java.util.concurrent.TimeoutException;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SUB_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.PARTITION_KEY;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SHARD_ID;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
@@ -303,7 +303,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     private volatile Scheduler kinesisScheduler;
 
     private volatile String streamName;
-    private volatile RecordBuffer.ForProcessor recordBuffer;
+    private volatile RecordBuffer.ForProcessor<Lease> recordBuffer;
 
     private volatile Optional<ReaderRecordProcessor> readerRecordProcessor = Optional.empty();
 
@@ -509,7 +509,6 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         if (!gracefulShutdownSucceeded) {
-            getLogger().warn("Falling back to a forceful shutdown of Kinesis Scheduler");
             kinesisScheduler.shutdown();
         }
 
@@ -519,7 +518,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final Optional<ShardBufferLease> leaseAcquired = recordBuffer.acquireBufferLease();
+        final Optional<Lease> leaseAcquired = recordBuffer.acquireBufferLease();
 
         leaseAcquired.ifPresentOrElse(
                 lease -> processRecordsFromBuffer(session, lease),
@@ -527,7 +526,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         );
     }
 
-    private void processRecordsFromBuffer(final ProcessSession session, final ShardBufferLease lease) {
+    private void processRecordsFromBuffer(final ProcessSession session, final Lease lease) {
         try {
             final List<KinesisClientRecord> records = recordBuffer.consumeRecords(lease);
 
@@ -554,7 +553,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    private void commitRecords(final ShardBufferLease lease) {
+    private void commitRecords(final Lease lease) {
         try {
             recordBuffer.commitConsumedRecords(lease);
         } finally {
@@ -562,7 +561,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    private void rollbackRecords(final ShardBufferLease lease) {
+    private void rollbackRecords(final Lease lease) {
         try {
             recordBuffer.rollbackConsumedRecords(lease);
         } finally {

@@ -59,32 +59,32 @@ interface RecordBuffer {
     /**
      * Interface for interactions from {@link ConsumeKinesis} processor to the Record Buffer.
      */
-    interface ForProcessor {
+    interface ForProcessor<LEASE extends ShardBufferLease> {
 
         /**
          * Acquires an exclusive lease for a buffer that has data available for consumption.
          * If no data is available in the buffers, returns an empty Optional.
          * <p>
          * After acquiring a lease, the processor can consume records from the buffer.
-         * After consuming the records the processor must always {@link #returnBufferLease(ShardBufferLease)}.
+         * After consuming the records the processor must always {@link #returnBufferLease(LEASE)}.
          */
-        Optional<ShardBufferLease> acquireBufferLease();
+        Optional<LEASE> acquireBufferLease();
 
         /**
          * Consumes records from the buffer associated with the given lease.
          * The records have to be committed or rolled back later.
          */
-        List<KinesisClientRecord> consumeRecords(ShardBufferLease lease);
+        List<KinesisClientRecord> consumeRecords(LEASE lease);
 
-        void commitConsumedRecords(ShardBufferLease lease);
+        void commitConsumedRecords(LEASE lease);
 
-        void rollbackConsumedRecords(ShardBufferLease lease);
+        void rollbackConsumedRecords(LEASE lease);
 
         /**
          * Returns the lease for a buffer back to the pool making it available for consumption again.
          * The method can be called multiple times with the same lease, but only the first call will actually take an effect.
          */
-        void returnBufferLease(ShardBufferLease lease);
+        void returnBufferLease(LEASE lease);
     }
 
     record ShardBufferId(String shardId, long bufferId) {

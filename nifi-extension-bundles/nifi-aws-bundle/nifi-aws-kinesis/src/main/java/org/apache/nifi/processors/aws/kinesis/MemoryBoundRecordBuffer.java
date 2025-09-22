@@ -53,7 +53,7 @@ import static java.util.Collections.emptyList;
  * A record buffer which limits the maximum memory usage across all shard buffers.
  * If the memory limit is reached, adding new records will block until enough memory is freed.
  */
-final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibrary, RecordBuffer.ForProcessor {
+final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibrary, RecordBuffer.ForProcessor<MemoryBoundRecordBuffer.Lease> {
 
     private final ComponentLog logger;
 
@@ -170,7 +170,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     @Override
-    public Optional<ShardBufferLease> acquireBufferLease() {
+    public Optional<Lease> acquireBufferLease() {
         final Set<ShardBufferId> seenBuffers = new HashSet<>();
 
         while (true) {
@@ -198,23 +198,19 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                 logger.debug("Buffer with id {} is empty. Continuing to poll", bufferId);
             } else {
                 logger.debug("Acquired lease for buffer {}", bufferId);
-                return Optional.of(new StandardShardBufferLease(bufferId));
+                return Optional.of(new Lease(bufferId));
             }
         }
     }
 
     @Override
-    public List<KinesisClientRecord> consumeRecords(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease standardLease)) {
-            throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
-        }
-
-        if (standardLease.returnedToPool.get()) {
+    public List<KinesisClientRecord> consumeRecords(final Lease lease) {
+        if (lease.returnedToPool.get()) {
             logger.warn("Attempting to consume records from a buffer that was already returned to the pool. Ignoring");
             return emptyList();
         }
 
-        final ShardBufferId bufferId = standardLease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId;
 
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
@@ -226,17 +222,13 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     @Override
-    public void commitConsumedRecords(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease standardLease)) {
-            throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
-        }
-
-        if (standardLease.returnedToPool.get()) {
+    public void commitConsumedRecords(final Lease lease) {
+        if (lease.returnedToPool.get()) {
             logger.warn("Attempting to commit records from a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
-        final ShardBufferId bufferId = standardLease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId;
 
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
@@ -249,17 +241,13 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     @Override
-    public void rollbackConsumedRecords(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease standardLease)) {
-            throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
-        }
-
-        if (standardLease.returnedToPool.get()) {
+    public void rollbackConsumedRecords(final Lease lease) {
+        if (lease.returnedToPool.get()) {
             logger.warn("Attempting to rollback records from a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
-        final ShardBufferId bufferId = standardLease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId;
         final ShardBuffer buffer = shardBuffers.get(bufferId);
 
         if (buffer != null) {
@@ -268,28 +256,24 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     @Override
-    public void returnBufferLease(final ShardBufferLease lease) {
-        if (!(lease instanceof StandardShardBufferLease standardLease)) {
-            throw new IllegalArgumentException("Unexpected lease type: " + lease.getClass().getName());
-        }
-
-        if (standardLease.returnedToPool.getAndSet(true)) {
+    public void returnBufferLease(final Lease lease) {
+        if (lease.returnedToPool.getAndSet(true)) {
             logger.warn("Attempting to return a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
-        final ShardBufferId bufferId = standardLease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId;
         buffersToLease.add(bufferId);
 
         logger.debug("The buffer {} is available for lease again", bufferId);
     }
 
-    private static class StandardShardBufferLease implements ShardBufferLease {
+    static final class Lease implements ShardBufferLease {
 
         private final ShardBufferId bufferId;
         private final AtomicBoolean returnedToPool = new AtomicBoolean(false);
 
-        StandardShardBufferLease(final ShardBufferId bufferId) {
+        private Lease(final ShardBufferId bufferId) {
             this.bufferId = bufferId;
         }
 
