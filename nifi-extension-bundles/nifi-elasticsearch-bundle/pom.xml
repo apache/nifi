@@ -108,7 +108,7 @@ language governing permissions and limitations under the License. -->
         <profile>
             <id>elasticsearch8</id>
             <properties>
-                <elasticsearch_docker_image>8.18.2</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.19.4</elasticsearch_docker_image>
             </properties>
         </profile>
         <profile>
