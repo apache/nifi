@@ -27,12 +27,15 @@ import org.apache.nifi.controller.label.StandardLabel;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConfigurableComponent;
 import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -40,14 +43,24 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class FlowDifferenceFilters {
+
+    private static final Pattern PARAMETER_REFERENCE_PATTERN = Pattern.compile("#\\{[A-Za-z0-9\\-_. ]+}");
 
     /**
      * Determines whether or not the Flow Difference depicts an environmental change. I.e., a change that is expected to happen from environment to environment,
@@ -58,6 +71,12 @@ public class FlowDifferenceFilters {
      * @return <code>true</code> if the change is an environment-specific change, <code>false</code> otherwise
      */
     public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
+        return isEnvironmentalChange(difference, localGroup, flowManager, EnvironmentalChangeContext.empty());
+    }
+
+    public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager,
+                                                final EnvironmentalChangeContext context) {
+        final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
             || isSensitivePropertyDueToGhosting(difference, flowManager)
             || isRpgUrlChange(difference)
@@ -74,7 +93,9 @@ public class FlowDifferenceFilters {
             || isRegistryUrlChange(difference)
             || isParameterContextChange(difference)
             || isLogFileSuffixChange(difference)
-            || isStaticPropertyRemoved(difference, flowManager);
+            || isStaticPropertyRemoved(difference, flowManager)
+            || isControllerServiceCreatedForNewProperty(difference, evaluatedContext)
+            || isPropertyParameterizationRename(difference, evaluatedContext);
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
@@ -110,6 +131,14 @@ public class FlowDifferenceFilters {
             default -> null;
         };
 
+    }
+
+    private static ComponentNode getComponent(final FlowManager flowManager, final VersionedComponent component) {
+        if (component instanceof InstantiatedVersionedComponent instantiatedComponent) {
+            return getComponent(flowManager, component.getComponentType(), instantiatedComponent.getInstanceIdentifier());
+        } else {
+            return null;
+        }
     }
 
     private static boolean supportsDynamicProperties(final ConfigurableComponent component) {
@@ -546,5 +575,304 @@ public class FlowDifferenceFilters {
 
     private static boolean isLogFileSuffixChange(final FlowDifference flowDifference) {
         return flowDifference.getDifferenceType() == DifferenceType.LOG_FILE_SUFFIX_CHANGED;
+    }
+
+    public static EnvironmentalChangeContext buildEnvironmentalChangeContext(final Collection<FlowDifference> differences, final FlowManager flowManager) {
+        if (differences == null || differences.isEmpty() || flowManager == null) {
+            return EnvironmentalChangeContext.empty();
+        }
+
+        final Set<String> serviceIdsReferencedByNewProperties = new HashSet<>();
+        final Map<String, List<PropertyDiffInfo>> parameterizedAddsByComponent = new HashMap<>();
+        final Map<String, List<PropertyDiffInfo>> parameterizationRemovalsByComponent = new HashMap<>();
+
+        for (final FlowDifference difference : differences) {
+            if (difference.getDifferenceType() == DifferenceType.PROPERTY_ADDED) {
+                final ComponentNode componentNode = Optional.ofNullable(getComponent(flowManager, difference.getComponentB()))
+                        .orElseGet(() -> getComponent(flowManager, difference.getComponentA()));
+                if (componentNode != null) {
+                    final Optional<String> fieldNameOptional = difference.getFieldName();
+                    if (fieldNameOptional.isPresent()) {
+                        final PropertyDescriptor propertyDescriptor = componentNode.getPropertyDescriptor(fieldNameOptional.get());
+                        if (propertyDescriptor != null && !propertyDescriptor.isDynamic() && propertyDescriptor.getControllerServiceDefinition() != null) {
+                            final Object valueB = difference.getValueB();
+                            if (valueB instanceof String serviceId) {
+                                serviceIdsReferencedByNewProperties.add(serviceId);
+                            }
+                        }
+                    }
+                }
+            } else if (difference.getDifferenceType() == DifferenceType.PROPERTY_PARAMETERIZED
+                    || difference.getDifferenceType() == DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED) {
+
+                final Optional<String> propertyNameOptional = difference.getFieldName();
+                final Optional<String> componentIdOptional = getComponentInstanceIdentifier(difference);
+
+                if (propertyNameOptional.isEmpty() || componentIdOptional.isEmpty()) {
+                    continue;
+                }
+
+                final String componentId = componentIdOptional.get();
+                final Optional<String> propertyValue = difference.getDifferenceType() == DifferenceType.PROPERTY_PARAMETERIZED
+                        ? getParameterReferenceValue(difference, false)
+                        : getParameterReferenceValue(difference, true);
+
+                final PropertyDiffInfo diffInfo = new PropertyDiffInfo(propertyValue, difference);
+
+                if (difference.getDifferenceType() == DifferenceType.PROPERTY_PARAMETERIZED) {
+                    parameterizedAddsByComponent.computeIfAbsent(componentId, key -> new ArrayList<>()).add(diffInfo);
+                } else {
+                    parameterizationRemovalsByComponent.computeIfAbsent(componentId, key -> new ArrayList<>()).add(diffInfo);
+                }
+            }
+        }
+
+        final Set<String> serviceIdsWithMatchingAdditions;
+        if (!serviceIdsReferencedByNewProperties.isEmpty()) {
+            serviceIdsWithMatchingAdditions = differences.stream()
+                    .filter(diff -> diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED)
+                    .map(FlowDifferenceFilters::extractControllerServiceIdentifier)
+                    .filter(Objects::nonNull)
+                    .filter(serviceIdsReferencedByNewProperties::contains)
+                    .collect(Collectors.toSet());
+        } else {
+            serviceIdsWithMatchingAdditions = Collections.emptySet();
+        }
+
+        final Set<FlowDifference> parameterizedPropertyRenameDifferences = new HashSet<>();
+        for (final Map.Entry<String, List<PropertyDiffInfo>> entry : parameterizationRemovalsByComponent.entrySet()) {
+            final String componentId = entry.getKey();
+            final List<PropertyDiffInfo> removals = entry.getValue();
+            final List<PropertyDiffInfo> additions = new ArrayList<>(parameterizedAddsByComponent.getOrDefault(componentId, Collections.emptyList()));
+            if (additions.isEmpty()) {
+                continue;
+            }
+
+            for (final PropertyDiffInfo removalInfo : removals) {
+                final Optional<String> removalValue = removalInfo.propertyValue();
+                if (removalValue.isPresent() && !isParameterReference(removalValue.get())) {
+                    continue;
+                }
+
+                PropertyDiffInfo matchingAddition = null;
+                for (final Iterator<PropertyDiffInfo> iterator = additions.iterator(); iterator.hasNext();) {
+                    final PropertyDiffInfo additionInfo = iterator.next();
+                    final Optional<String> additionValue = additionInfo.propertyValue();
+                    if (additionValue.isPresent() && !isParameterReference(additionValue.get())) {
+                        continue;
+                    }
+
+                    if (valuesMatch(removalValue, additionValue)) {
+                        matchingAddition = additionInfo;
+                        iterator.remove();
+                        break;
+                    }
+                }
+
+                if (matchingAddition != null) {
+                    parameterizedPropertyRenameDifferences.add(removalInfo.difference());
+                    parameterizedPropertyRenameDifferences.add(matchingAddition.difference());
+                }
+            }
+        }
+
+        final EnvironmentalChangeContext environmentalChangeContext;
+        if (serviceIdsWithMatchingAdditions.isEmpty() && parameterizedPropertyRenameDifferences.isEmpty()) {
+            environmentalChangeContext = EnvironmentalChangeContext.empty();
+        } else {
+            environmentalChangeContext = new EnvironmentalChangeContext(serviceIdsWithMatchingAdditions, parameterizedPropertyRenameDifferences);
+        }
+
+        return environmentalChangeContext;
+    }
+
+    public static boolean isControllerServiceCreatedForNewProperty(final FlowDifference difference, final EnvironmentalChangeContext context) {
+        final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
+        return isControllerServiceCreatedForNewPropertyInternal(difference, evaluatedContext);
+    }
+
+    private static boolean isControllerServiceCreatedForNewPropertyInternal(final FlowDifference difference, final EnvironmentalChangeContext context) {
+        if (context.serviceIdsCreatedForNewProperties().isEmpty()) {
+            return false;
+        }
+
+        if (difference.getDifferenceType() == DifferenceType.PROPERTY_ADDED) {
+            final Object valueB = difference.getValueB();
+            return valueB != null && context.serviceIdsCreatedForNewProperties().contains(valueB);
+        }
+
+        if (difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
+            final String serviceIdentifier = extractControllerServiceIdentifier(difference);
+            return serviceIdentifier != null && context.serviceIdsCreatedForNewProperties().contains(serviceIdentifier);
+        }
+
+        return false;
+    }
+
+    private static String extractControllerServiceIdentifier(final FlowDifference difference) {
+        final String identifierFromComponentB = extractControllerServiceIdentifier(difference.getComponentB());
+        if (identifierFromComponentB != null) {
+            return identifierFromComponentB;
+        }
+
+        return extractControllerServiceIdentifier(difference.getComponentA());
+    }
+
+    private static String extractControllerServiceIdentifier(final VersionedComponent component) {
+        if (component instanceof InstantiatedVersionedControllerService) {
+            final InstantiatedVersionedControllerService instantiatedControllerService = (InstantiatedVersionedControllerService) component;
+            final String instanceIdentifier = instantiatedControllerService.getInstanceIdentifier();
+            if (instanceIdentifier != null) {
+                return instanceIdentifier;
+            }
+        }
+
+        if (component instanceof VersionedControllerService) {
+            return component.getIdentifier();
+        }
+
+        return null;
+    }
+
+    public static boolean isPropertyParameterizationRename(final FlowDifference difference, final EnvironmentalChangeContext context) {
+        final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
+        return evaluatedContext.parameterizedPropertyRenames().isEmpty() ? false : evaluatedContext.parameterizedPropertyRenames().contains(difference);
+    }
+
+    private static Optional<String> getComponentInstanceIdentifier(final FlowDifference difference) {
+        final Optional<String> identifierB = getComponentInstanceIdentifier(difference.getComponentB());
+        if (identifierB.isPresent()) {
+            return identifierB;
+        }
+
+        return getComponentInstanceIdentifier(difference.getComponentA());
+    }
+
+    private static Optional<String> getComponentInstanceIdentifier(final VersionedComponent component) {
+        if (component == null) {
+            return Optional.empty();
+        }
+
+        if (component instanceof InstantiatedVersionedComponent) {
+            final String instanceId = ((InstantiatedVersionedComponent) component).getInstanceIdentifier();
+            if (instanceId != null) {
+                return Optional.of(instanceId);
+            }
+        }
+
+        return Optional.ofNullable(component.getIdentifier());
+    }
+
+    private static Optional<String> getParameterReferenceValue(final FlowDifference difference, final boolean fromComponentA) {
+        final VersionedComponent primaryComponent = fromComponentA ? difference.getComponentA() : difference.getComponentB();
+        final VersionedComponent secondaryComponent = fromComponentA ? difference.getComponentB() : difference.getComponentA();
+
+        final Map<String, String> primaryProperties = getProperties(primaryComponent);
+        final Optional<String> parameterReference;
+        if (primaryProperties.isEmpty()) {
+            parameterReference = Optional.empty();
+        } else {
+            final Map<String, String> secondaryProperties = getProperties(secondaryComponent);
+            Optional<String> resolvedReference = Optional.empty();
+
+            final Optional<String> fieldNameOptional = difference.getFieldName();
+            if (fieldNameOptional.isPresent()) {
+                final String fieldName = fieldNameOptional.get();
+                final String propertyValue = primaryProperties.get(fieldName);
+                if (propertyValue != null) {
+                    resolvedReference = Optional.of(propertyValue);
+                }
+            }
+
+            if (resolvedReference.isEmpty()) {
+                for (Map.Entry<String, String> entry : primaryProperties.entrySet()) {
+                    final String propertyName = entry.getKey();
+                    final String propertyValue = entry.getValue();
+                    if (!isParameterReference(propertyValue)) {
+                        continue;
+                    }
+
+                    if (!secondaryProperties.containsKey(propertyName)) {
+                        resolvedReference = Optional.of(propertyValue);
+                        break;
+                    }
+                }
+            }
+
+            parameterReference = resolvedReference;
+        }
+
+        return parameterReference;
+    }
+
+    private static Map<String, String> getProperties(final VersionedComponent component) {
+        final Map<String, String> properties;
+
+        if (component == null) {
+            properties = Collections.emptyMap();
+        } else if (component instanceof VersionedConfigurableComponent configurableComponent) {
+            properties = configurableComponent.getProperties();
+        } else if (component instanceof VersionedProcessor processor) {
+            properties = processor.getProperties();
+        } else if (component instanceof VersionedControllerService controllerService) {
+            properties = controllerService.getProperties();
+        } else if (component instanceof VersionedReportingTask reportingTask) {
+            properties = reportingTask.getProperties();
+        } else {
+            properties = Collections.emptyMap();
+        }
+
+        return properties == null ? Collections.emptyMap() : properties;
+    }
+
+    private static boolean valuesMatch(final Optional<String> first, final Optional<String> second) {
+        return first.isPresent() && second.isPresent() && first.get().equals(second.get());
+    }
+
+    private static boolean isParameterReference(final String propertyValue) {
+        return propertyValue != null && PARAMETER_REFERENCE_PATTERN.matcher(propertyValue).matches();
+    }
+
+    private static final class PropertyDiffInfo {
+        private final Optional<String> propertyValue;
+        private final FlowDifference difference;
+
+        private PropertyDiffInfo(final Optional<String> propertyValue, final FlowDifference difference) {
+            this.propertyValue = propertyValue;
+            this.difference = difference;
+        }
+
+        Optional<String> propertyValue() {
+            return propertyValue;
+        }
+
+        FlowDifference difference() {
+            return difference;
+        }
+    }
+
+    public static final class EnvironmentalChangeContext {
+        private static final EnvironmentalChangeContext EMPTY = new EnvironmentalChangeContext(Collections.emptySet(), Collections.emptySet());
+
+        private final Set<String> serviceIdsCreatedForNewProperties;
+        private final Set<FlowDifference> parameterizedPropertyRenames;
+
+        private EnvironmentalChangeContext(final Set<String> serviceIdsCreatedForNewProperties,
+                                           final Set<FlowDifference> parameterizedPropertyRenames) {
+            this.serviceIdsCreatedForNewProperties = Collections.unmodifiableSet(new HashSet<>(serviceIdsCreatedForNewProperties));
+            this.parameterizedPropertyRenames = Collections.unmodifiableSet(new HashSet<>(parameterizedPropertyRenames));
+        }
+
+        static EnvironmentalChangeContext empty() {
+            return EMPTY;
+        }
+
+        Set<String> serviceIdsCreatedForNewProperties() {
+            return serviceIdsCreatedForNewProperties;
+        }
+
+        Set<FlowDifference> parameterizedPropertyRenames() {
+            return parameterizedPropertyRenames;
+        }
     }
 }

@@ -19,8 +19,10 @@ package org.apache.nifi.util;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -33,11 +35,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -242,6 +246,114 @@ public class TestFlowDifferenceFilters {
                 null,
                 "Dynamic property removed");
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+    }
+
+    @Test
+    public void testControllerServiceCreationPairedWithPropertyAdditionIsEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ControllerServiceNode controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+
+        final String processorId = "processor-instance";
+        final String groupId = "group-id";
+        final String propertyName = "ABC";
+        final String controllerServiceId = "controller-service-id";
+
+        Mockito.when(flowManager.getProcessorNode(processorId)).thenReturn(processorNode);
+        Mockito.when(flowManager.getControllerServiceNode(controllerServiceId)).thenReturn(controllerServiceNode);
+
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .identifiesControllerService(ControllerService.class)
+                .build();
+        Mockito.when(processorNode.getPropertyDescriptor(propertyName)).thenReturn(propertyDescriptor);
+
+        final InstantiatedVersionedProcessor instantiatedProcessor = new InstantiatedVersionedProcessor(processorId, groupId);
+        instantiatedProcessor.setComponentType(ComponentType.PROCESSOR);
+
+        final FlowDifference propertyDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED,
+                instantiatedProcessor,
+                instantiatedProcessor,
+                propertyName,
+                null,
+                controllerServiceId,
+                "Controller service reference added");
+
+        final InstantiatedVersionedControllerService instantiatedControllerService = new InstantiatedVersionedControllerService(controllerServiceId, groupId);
+        instantiatedControllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
+
+        final FlowDifference controllerServiceDifference = new StandardFlowDifference(
+                DifferenceType.COMPONENT_ADDED,
+                null,
+                instantiatedControllerService,
+                null,
+                null,
+                "Controller service created");
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext context = FlowDifferenceFilters.buildEnvironmentalChangeContext(
+                List.of(propertyDifference, controllerServiceDifference), flowManager);
+
+        assertFalse(FlowDifferenceFilters.isControllerServiceCreatedForNewProperty(propertyDifference, FlowDifferenceFilters.EnvironmentalChangeContext.empty()));
+        assertTrue(FlowDifferenceFilters.isControllerServiceCreatedForNewProperty(propertyDifference, context));
+        assertTrue(FlowDifferenceFilters.isControllerServiceCreatedForNewProperty(controllerServiceDifference, context));
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager, context));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(controllerServiceDifference, null, flowManager, context));
+    }
+
+    @Test
+    public void testPropertyRenameWithParameterizationObservedAsEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+
+        final String processorInstanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(processorInstanceId)).thenReturn(processorNode);
+
+        final PropertyDescriptor renamedDescriptor = new PropertyDescriptor.Builder()
+                .name("Access Key ID")
+                .build();
+
+        Mockito.when(processorNode.getPropertyDescriptor("Access Key ID")).thenReturn(renamedDescriptor);
+        Mockito.when(processorNode.getPropertyDescriptor("Access Key")).thenReturn(null);
+
+        final VersionedProcessor versionedProcessorA = new VersionedProcessor();
+        versionedProcessorA.setComponentType(ComponentType.PROCESSOR);
+        versionedProcessorA.setIdentifier("versioned-id");
+        versionedProcessorA.setProperties(Map.of("Access Key", "#{AWS Access Key ID}"));
+
+        final InstantiatedVersionedProcessor instantiatedProcessorB = new InstantiatedVersionedProcessor(processorInstanceId, "group-id");
+        instantiatedProcessorB.setComponentType(ComponentType.PROCESSOR);
+        instantiatedProcessorB.setIdentifier("versioned-id");
+        instantiatedProcessorB.setProperties(Map.of("Access Key ID", "#{AWS Access Key ID}"));
+
+        final FlowDifference parameterizationRemoved = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                versionedProcessorA,
+                instantiatedProcessorB,
+                "Access Key ID",
+                null,
+                null,
+                "Property parameterization removed for Access Key");
+
+        final FlowDifference parameterized = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZED,
+                versionedProcessorA,
+                instantiatedProcessorB,
+                "Access Key ID",
+                null,
+                null,
+                "Property parameterized for Access Key ID");
+
+        final List<FlowDifference> differences = List.of(parameterizationRemoved, parameterized);
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext context = FlowDifferenceFilters.buildEnvironmentalChangeContext(differences, flowManager);
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(parameterizationRemoved, null, flowManager));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(parameterizationRemoved, null, flowManager, context));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(parameterized, null, flowManager, context));
     }
 
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")

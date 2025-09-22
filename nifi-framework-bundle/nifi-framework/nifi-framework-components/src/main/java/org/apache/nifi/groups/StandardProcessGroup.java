@@ -3983,8 +3983,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(),
                 new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
             final FlowComparison comparison = flowComparator.compare();
-            final Set<FlowDifference> differences = comparison.getDifferences().stream()
-                .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager))
+            final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
+            final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+
+            final Set<FlowDifference> differences = comparisonDifferences.stream()
+                .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager, environmentalContext))
                 .collect(Collectors.toCollection(HashSet::new));
 
             LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
