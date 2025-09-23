@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as BannerTextActions from './banner-text.actions';
 import { filter, from, map, switchMap } from 'rxjs';
@@ -27,11 +27,9 @@ import { selectBannerText } from './banner-text.selectors';
 
 @Injectable()
 export class BannerTextEffects {
-    constructor(
-        private actions$: Actions,
-        private bannerTextService: BannerTextService,
-        private store: Store<NiFiState>
-    ) {}
+    private actions$ = inject(Actions);
+    private bannerTextService = inject(BannerTextService);
+    private store = inject<Store<NiFiState>>(Store);
 
     loadBannerText$ = createEffect(() =>
         this.actions$.pipe(

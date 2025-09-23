@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
@@ -46,9 +46,7 @@ import { selectAbout } from '../../../state/about/about.selectors';
     styleUrls: ['./about-dialog.component.scss']
 })
 export class AboutDialog extends CloseOnEscapeDialog {
-    about$ = this.store.select(selectAbout);
+    private store = inject<Store<AboutState>>(Store);
 
-    constructor(private store: Store<AboutState>) {
-        super();
-    }
+    about$ = this.store.select(selectAbout);
 }

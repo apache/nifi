@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import {
@@ -51,6 +51,8 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
     ]
 })
 export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSnapshotEntity> {
+    private nifiCommon = inject(NiFiCommon);
+
     filterableColumns: SummaryTableFilterColumn[] = [
         { key: 'name', label: 'name' },
         { key: 'type', label: 'type' }
@@ -67,10 +69,6 @@ export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSn
         'tasks',
         'actions'
     ];
-
-    constructor(private nifiCommon: NiFiCommon) {
-        super();
-    }
 
     formatName(processor: ProcessorStatusSnapshotEntity): string {
         return processor.processorStatusSnapshot.name;

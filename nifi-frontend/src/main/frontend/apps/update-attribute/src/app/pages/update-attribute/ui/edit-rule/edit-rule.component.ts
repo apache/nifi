@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewInit, Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import {
@@ -44,7 +43,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 @Component({
     selector: 'edit-rule',
     imports: [
-        CommonModule,
         MatSlideToggleModule,
         MatFormFieldModule,
         FormsModule,
@@ -59,6 +57,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrl: './edit-rule.component.scss'
 })
 export class EditRule implements AfterViewInit {
+    private formBuilder = inject(FormBuilder);
+
     @Input() id?: string;
     @Input() set name(name: string) {
         this.currentName = name;
@@ -117,7 +117,7 @@ export class EditRule implements AfterViewInit {
 
     private ruleSaved: boolean = false;
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor() {
         this.nameControl = new FormControl('', Validators.required);
         this.conditionControl = new FormControl({ value: [], disabled: !this.isEditable }, [
             this.conditionsValidator()

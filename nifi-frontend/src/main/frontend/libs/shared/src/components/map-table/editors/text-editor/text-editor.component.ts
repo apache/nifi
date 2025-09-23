@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
@@ -42,7 +41,6 @@ import { MapTableItem } from '../../../../types';
 @Component({
     selector: 'text-editor',
     imports: [
-        CommonModule,
         CdkDrag,
         CdkTrapFocus,
         MatButton,
@@ -57,6 +55,8 @@ import { MapTableItem } from '../../../../types';
     styleUrl: './text-editor.component.scss'
 })
 export class TextEditor {
+    private formBuilder = inject(FormBuilder);
+
     @Input() set item(item: MapTableItem) {
         this.textEditorForm.get('value')?.setValue(item.entry.value);
         const isEmptyString: boolean = item.entry.value === '';
@@ -95,7 +95,7 @@ export class TextEditor {
         };
     }
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor() {
         this.textEditorForm = this.formBuilder.group({
             value: new FormControl(''),
             setEmptyString: new FormControl(false)

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { selectRef } from '../../state/content/content.selectors';
@@ -29,9 +29,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrls: ['./image-viewer.component.scss']
 })
 export class ImageViewer {
+    private store = inject<Store<NiFiState>>(Store);
+
     ref: string | null = null;
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectRef)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())

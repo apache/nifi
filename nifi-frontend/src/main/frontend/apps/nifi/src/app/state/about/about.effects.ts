@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as AboutActions from './about.actions';
 import * as ErrorActions from '../error/error.actions';
@@ -29,12 +29,10 @@ import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class AboutEffects {
-    constructor(
-        private actions$: Actions,
-        private aboutService: AboutService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private aboutService = inject(AboutService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     loadAbout$ = createEffect(() =>
         this.actions$.pipe(

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
@@ -33,6 +33,8 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
     imports: [MatTableModule, MatSortModule, NifiTooltipDirective, MatIconButton, MatMenuTrigger, MatMenu, MatMenuItem]
 })
 export class RegistryClientTable {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set registryClients(registryClientEntities: RegistryClientEntity[]) {
         if (registryClientEntities) {
             this.dataSource.data = this.sortEvents(registryClientEntities, this.sort);
@@ -56,8 +58,6 @@ export class RegistryClientTable {
         active: 'name',
         direction: 'asc'
     };
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     canRead(entity: RegistryClientEntity): boolean {
         return entity.permissions.canRead;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import {
@@ -48,6 +48,8 @@ interface TabLink {
     standalone: false
 })
 export class Cluster implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     private _currentUser!: CurrentUser;
     private _tabLinks: TabLink[] = [
         { label: 'Nodes', link: 'nodes', restricted: false },
@@ -66,7 +68,7 @@ export class Cluster implements OnInit, OnDestroy {
 
     private _userHasSystemReadAccess: boolean | null = null;
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.currentUser$.pipe(takeUntilDestroyed()).subscribe((currentUser) => {
             this._currentUser = currentUser;
             if (!currentUser.controllerPermissions.canRead) {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ManageRemotePortsActions from './manage-remote-ports.actions';
@@ -40,15 +40,13 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ManageRemotePortsEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private manageRemotePortService: ManageRemotePortService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private clusterConnectionService: ClusterConnectionService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private manageRemotePortService = inject(ManageRemotePortService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private clusterConnectionService = inject(ClusterConnectionService);
 
     loadRemotePorts$ = createEffect(() =>
         this.actions$.pipe(

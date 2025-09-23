@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import * as d3 from 'd3';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Store } from '@ngrx/store';
@@ -30,14 +30,14 @@ import { NiFiCommon } from '@nifi/shared';
     providedIn: 'root'
 })
 export class ConnectableBehavior {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
+
     private readonly connect: any;
     private origin: any;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         const self: ConnectableBehavior = this;
 
         // dragging behavior for the connector

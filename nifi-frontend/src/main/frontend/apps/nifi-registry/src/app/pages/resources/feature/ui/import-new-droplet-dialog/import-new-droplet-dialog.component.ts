@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -37,7 +36,6 @@ export interface ImportNewFlowDialogData {
 @Component({
     selector: 'app-import-new-flow-dialog',
     imports: [
-        CommonModule,
         MatDialogModule,
         FormsModule,
         ReactiveFormsModule,
@@ -51,6 +49,11 @@ export interface ImportNewFlowDialogData {
     styleUrl: './import-new-droplet-dialog.component.scss'
 })
 export class ImportNewDropletDialogComponent extends CloseOnEscapeDialog implements OnInit {
+    data = inject<ImportNewFlowDialogData>(MAT_DIALOG_DATA);
+    private store = inject(Store);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
 
     protected readonly ErrorContextKey = ErrorContextKey;
@@ -61,13 +64,10 @@ export class ImportNewDropletDialogComponent extends CloseOnEscapeDialog impleme
     importNewFlowForm: FormGroup;
     fileNameAttached: string | null = '';
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public data: ImportNewFlowDialogData,
-        private store: Store,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super();
+        const data = this.data;
+
         this.buckets = data.buckets;
         this.importNewFlowForm = this.formBuilder.group({
             name: new FormControl('', Validators.required),

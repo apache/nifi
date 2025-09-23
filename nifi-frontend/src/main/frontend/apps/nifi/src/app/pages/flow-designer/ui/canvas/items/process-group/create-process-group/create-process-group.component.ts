@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Inject, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { CreateProcessGroupDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
@@ -66,6 +66,11 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
     styleUrls: ['./create-process-group.component.scss']
 })
 export class CreateProcessGroup extends CloseOnEscapeDialog {
+    private dialogRequest = inject<CreateProcessGroupDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<CanvasState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         this.parameterContextsOptions = [];
         this._parameterContexts = parameterContexts;
@@ -120,12 +125,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
     flowDefinition: File | null = null;
     currentUser$ = this.store.select(selectCurrentUser);
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateProcessGroupDialogRequest,
-        private formBuilder: FormBuilder,
-        private store: Store<CanvasState>,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super();
 
         this.createProcessGroupForm = this.formBuilder.group({

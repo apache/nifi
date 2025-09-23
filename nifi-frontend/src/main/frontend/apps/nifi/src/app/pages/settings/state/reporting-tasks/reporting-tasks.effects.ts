@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ReportingTaskActions from './reporting-tasks.actions';
@@ -53,17 +53,15 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ReportingTasksEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private reportingTaskService: ReportingTaskService,
-        private managementControllerServiceService: ManagementControllerServiceService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private extensionTypesService: ExtensionTypesService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private reportingTaskService = inject(ReportingTaskService);
+    private managementControllerServiceService = inject(ManagementControllerServiceService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadReportingTasks$ = createEffect(() =>
         this.actions$.pipe(

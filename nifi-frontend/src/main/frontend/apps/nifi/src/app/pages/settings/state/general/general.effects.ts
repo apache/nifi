@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as GeneralActions from './general.actions';
@@ -33,13 +33,11 @@ import { SMALL_DIALOG } from '@nifi/shared';
 
 @Injectable()
 export class GeneralEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private controllerService: ControllerService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private controllerService = inject(ControllerService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
 
     loadControllerConfig$ = createEffect(() =>
         this.actions$.pipe(

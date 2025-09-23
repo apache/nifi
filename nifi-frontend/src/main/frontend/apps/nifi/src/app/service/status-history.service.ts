@@ -15,19 +15,17 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from './client.service';
 import { ComponentType } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class StatusHistoryService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getComponentStatusHistory(componentType: ComponentType, componentId: string) {
         let componentPath: string;

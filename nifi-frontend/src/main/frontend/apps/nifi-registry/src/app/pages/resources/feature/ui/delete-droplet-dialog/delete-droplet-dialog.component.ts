@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -32,19 +32,21 @@ interface DeleteDropletDialogData {
 
 @Component({
     selector: 'app-delete-droplet-dialog',
-    imports: [CommonModule, MatDialogModule, MatButtonModule, ContextErrorBanner],
+    imports: [MatDialogModule, MatButtonModule, ContextErrorBanner],
     templateUrl: './delete-droplet-dialog.component.html',
     styleUrl: './delete-droplet-dialog.component.scss'
 })
 export class DeleteDropletDialogComponent extends CloseOnEscapeDialog {
+    data = inject<DeleteDropletDialogData>(MAT_DIALOG_DATA);
+    private store = inject(Store);
+
     protected readonly ErrorContextKey = ErrorContextKey;
     droplet: Droplet;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public data: DeleteDropletDialogData,
-        private store: Store
-    ) {
+    constructor() {
         super();
+        const data = this.data;
+
         this.droplet = data.droplet;
     }
 

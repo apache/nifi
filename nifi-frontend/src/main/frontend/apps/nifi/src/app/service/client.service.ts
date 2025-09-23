@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
 import { SessionStorageService } from '@nifi/shared';
 
@@ -23,9 +23,11 @@ import { SessionStorageService } from '@nifi/shared';
     providedIn: 'root'
 })
 export class Client {
+    private sessionStorage = inject(SessionStorageService);
+
     private clientId: string;
 
-    constructor(private sessionStorage: SessionStorageService) {
+    constructor() {
         let clientId = this.sessionStorage.getItem<string>('clientId');
 
         if (clientId === null) {

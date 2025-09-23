@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
@@ -30,12 +30,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class BulletinBoardEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private bulletinBoardService: BulletinBoardService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private bulletinBoardService = inject(BulletinBoardService);
+    private errorHelper = inject(ErrorHelper);
 
     loadBulletinBoard$ = createEffect(() =>
         this.actions$.pipe(

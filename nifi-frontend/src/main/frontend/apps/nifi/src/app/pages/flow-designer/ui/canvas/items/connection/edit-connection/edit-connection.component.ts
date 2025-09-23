@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
     EditConnectionDialogRequest,
@@ -89,6 +89,12 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     styleUrls: ['./edit-connection.component.scss']
 })
 export class EditConnectionComponent extends TabbedDialog {
+    dialogRequest = inject<EditConnectionDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<NiFiState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private client = inject(Client);
+
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.groupId);
@@ -223,14 +229,9 @@ export class EditConnectionComponent extends TabbedDialog {
     loadBalanceCompressionRequired = false;
     initialCompression: string;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public dialogRequest: EditConnectionDialogRequest,
-        private formBuilder: FormBuilder,
-        private store: Store<NiFiState>,
-        private canvasUtils: CanvasUtils,
-        private client: Client
-    ) {
+    constructor() {
         super('edit-connection-selected-index');
+        const dialogRequest = this.dialogRequest;
 
         const connection: any = dialogRequest.entity.component;
 

@@ -25,12 +25,16 @@ limitations under the License.
         <div class="w-full bucket-dropdown-field">
             <mat-form-field class="flex w-full">
                 <mat-select [(value)]="selectedVersion">
-                    <mat-option
-                        *ngFor="let snapshotMeta of [].constructor(droplet.versionCount); let i = index"
-                        [value]="i + 1">
-                        <span *ngIf="snapshotMeta === i">Latest (Version {{ i + 1 }})</span>
-                        <span *ngIf="snapshotMeta !== i">Version {{ i + 1 }}</span>
-                    </mat-option>
+                    @for (snapshotMeta of [].constructor(droplet.versionCount); track snapshotMeta; let i = $index) {
+                        <mat-option [value]="i + 1">
+                            @if (snapshotMeta === i) {
+                                <span>Latest (Version {{ i + 1 }})</span>
+                            }
+                            @if (snapshotMeta !== i) {
+                                <span>Version {{ i + 1 }}</span>
+                            }
+                        </mat-option>
+                    }
                 </mat-select>
             </mat-form-field>
         </div>

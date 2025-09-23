@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
+
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -36,7 +36,6 @@ import { MatCheckbox } from '@angular/material/checkbox';
 @Component({
     selector: 'change-component-dialog',
     imports: [
-        CommonModule,
         MatDialogTitle,
         ReactiveFormsModule,
         MatDialogContent,
@@ -52,6 +51,11 @@ import { MatCheckbox } from '@angular/material/checkbox';
     styleUrl: './change-color-dialog.component.scss'
 })
 export class ChangeColorDialog extends CloseOnEscapeDialog {
+    private data = inject(MAT_DIALOG_DATA);
+    private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
+    private formBuilder = inject(FormBuilder);
+
     color: string | null = null;
     noColor: boolean = true;
     contrastColor: string | null = null;
@@ -62,13 +66,11 @@ export class ChangeColorDialog extends CloseOnEscapeDialog {
 
     @Output() changeColor = new EventEmitter<ChangeColorRequest[]>();
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private data: ChangeColorRequest[],
-        private canvasUtils: CanvasUtils,
-        private nifiCommon: NiFiCommon,
-        private formBuilder: FormBuilder
-    ) {
+    constructor() {
         super();
+        const data = this.data;
+        const formBuilder = this.formBuilder;
+
         this._data = data;
         let isDefaultColor = true;
 

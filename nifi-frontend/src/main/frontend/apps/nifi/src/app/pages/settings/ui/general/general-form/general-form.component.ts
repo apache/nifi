@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ControllerEntity, GeneralState, UpdateControllerConfigRequest } from '../../../state/general';
 import { Store } from '@ngrx/store';
@@ -48,6 +48,11 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
     styleUrls: ['./general-form.component.scss']
 })
 export class GeneralForm {
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private store = inject<Store<GeneralState>>(Store);
+
     private _controller!: ControllerEntity;
 
     @Input() set controller(controller: ControllerEntity) {
@@ -59,12 +64,7 @@ export class GeneralForm {
     currentUser$ = this.store.select(selectCurrentUser);
     controllerForm: FormGroup;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService,
-        private store: Store<GeneralState>
-    ) {
+    constructor() {
         // build the form
         this.controllerForm = this.formBuilder.group({
             timerDrivenThreadCount: new FormControl('', Validators.required)

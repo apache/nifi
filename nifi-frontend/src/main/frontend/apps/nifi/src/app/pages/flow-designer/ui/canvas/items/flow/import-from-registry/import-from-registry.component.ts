@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject, Input, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, Input, OnInit, signal, WritableSignal, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { ImportFromRegistryDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
@@ -88,6 +88,14 @@ import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
     styleUrls: ['./import-from-registry.component.scss']
 })
 export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
+    private dialogRequest = inject<ImportFromRegistryDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<CanvasState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private errorHelper = inject(ErrorHelper);
+
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
     @Input() getBuckets!: (registryId: string, branch?: string | null) => Observable<BucketEntity[]>;
     @Input() getFlows!: (
@@ -133,16 +141,10 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     loadingVersions: WritableSignal<boolean> = signal(false);
     loadingVersionsError: WritableSignal<string | null> = signal(null);
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: ImportFromRegistryDialogRequest,
-        private formBuilder: FormBuilder,
-        private store: Store<CanvasState>,
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService,
-        private errorHelper: ErrorHelper
-    ) {
+    constructor() {
         super();
+        const dialogRequest = this.dialogRequest;
+
         this.store
             .select(selectTimeOffset)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())

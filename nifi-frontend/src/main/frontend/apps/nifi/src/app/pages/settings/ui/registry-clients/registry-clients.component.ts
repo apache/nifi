@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     selectRegistryClient,
@@ -51,11 +51,13 @@ import { RegistryClientTable } from './registry-client-table/registry-client-tab
     styleUrls: ['./registry-clients.component.scss']
 })
 export class RegistryClients implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     registryClientsState$ = this.store.select(selectRegistryClientsState);
     selectedRegistryClientId$ = this.store.select(selectRegistryClientIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedRegistryClient)
             .pipe(

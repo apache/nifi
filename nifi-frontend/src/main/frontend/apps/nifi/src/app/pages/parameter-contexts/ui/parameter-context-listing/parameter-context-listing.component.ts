@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../state/parameter-context-listing';
 import {
@@ -51,12 +51,14 @@ import { ParameterContextTable } from './parameter-context-table/parameter-conte
     styleUrls: ['./parameter-context-listing.component.scss']
 })
 export class ParameterContextListing implements OnInit {
+    private store = inject<Store<ParameterContextListingState>>(Store);
+
     parameterContextListingState$ = this.store.select(selectParameterContextListingState);
     selectedParameterContextId$ = this.store.select(selectParameterContextIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
-    constructor(private store: Store<ParameterContextListingState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedParameterContext)
             .pipe(

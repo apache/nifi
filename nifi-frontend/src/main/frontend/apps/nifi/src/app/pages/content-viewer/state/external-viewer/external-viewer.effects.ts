@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ExternalViewerActions from './external-viewer.actions';
 import { tap } from 'rxjs';
@@ -23,10 +23,8 @@ import { NavigationExtras, Router } from '@angular/router';
 
 @Injectable()
 export class ExternalViewerEffects {
-    constructor(
-        private actions$: Actions,
-        private router: Router
-    ) {}
+    private actions$ = inject(Actions);
+    private router = inject(Router);
 
     navigateToExternalViewer$ = createEffect(
         () =>

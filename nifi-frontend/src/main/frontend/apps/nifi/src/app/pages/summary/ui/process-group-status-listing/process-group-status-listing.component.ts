@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import { SummaryListingState } from '../../state/summary-listing';
@@ -54,6 +54,8 @@ import { ProcessGroupStatusTable } from './process-group-status-table/process-gr
     styleUrls: ['./process-group-status-listing.component.scss']
 })
 export class ProcessGroupStatusListing {
+    private store = inject<Store<SummaryListingState>>(Store);
+
     processGroupStatusSnapshots$ = this.store.select(selectProcessGroupStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
@@ -70,7 +72,7 @@ export class ProcessGroupStatusListing {
     );
     selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
-    constructor(private store: Store<SummaryListingState>) {
+    constructor() {
         this.store
             .select(selectViewStatusHistory)
             .pipe(

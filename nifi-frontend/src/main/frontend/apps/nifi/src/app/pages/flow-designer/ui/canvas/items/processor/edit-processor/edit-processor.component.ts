@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import {
@@ -111,6 +111,13 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
     styleUrls: ['./edit-processor.component.scss']
 })
 export class EditProcessor extends TabbedDialog {
+    request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private canvasUtils = inject(CanvasUtils);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set processorUpdates(processorUpdates: any | undefined) {
         this.processRunStateUpdates(processorUpdates);
     }
@@ -202,15 +209,9 @@ export class EditProcessor extends TabbedDialog {
     timerDrivenSchedulingPeriod: string;
     runDurationMillis: number;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private canvasUtils: CanvasUtils,
-        private clusterConnectionService: ClusterConnectionService,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super('edit-processor-selected-index');
+        const request = this.request;
 
         const processorProperties: any = request.entity.component.config.properties;
         const properties: Property[] = Object.entries(processorProperties).map((entry: any) => {

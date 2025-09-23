@@ -16,20 +16,20 @@
  */
 
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { filter } from 'rxjs';
 import { MatDialogRef } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'close-on-escape-dialog',
-    imports: [CommonModule],
+    imports: [],
     template: ''
 })
 export abstract class CloseOnEscapeDialog {
     private dialogRef: MatDialogRef<CloseOnEscapeDialog> = inject(MatDialogRef);
 
-    protected constructor() {
+    constructor() {
         if (this.dialogRef) {
             this.dialogRef
                 .keydownEvents()

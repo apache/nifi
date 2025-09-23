@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ProvenanceRequest } from '../state/provenance-event-listing';
@@ -24,12 +24,10 @@ import { Client } from '../../../service/client.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProvenanceService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getSearchOptions(): Observable<any> {
         return this.httpClient.get(`${ProvenanceService.API}/provenance/search-options`);

@@ -73,9 +73,11 @@ limitations under the License.
                         panelClass="bucket-dropdown-select"
                         placeholder="Choose a location"
                         formControlName="bucket">
-                        <mat-option *ngFor="let bucket of writableBuckets" [value]="bucket.identifier">
-                            {{ bucket.name }}
-                        </mat-option>
+                        @for (bucket of writableBuckets; track bucket) {
+                            <mat-option [value]="bucket.identifier">
+                                {{ bucket.name }}
+                            </mat-option>
+                        }
                     </mat-select>
                 </mat-form-field>
             </div>

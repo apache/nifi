@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as LineageActions from './lineage.actions';
@@ -34,14 +34,12 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class LineageEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private provenanceService: ProvenanceService,
-        private errorHelper: ErrorHelper,
-        private nifiCommon: NiFiCommon,
-        private dialog: MatDialog
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private provenanceService = inject(ProvenanceService);
+    private errorHelper = inject(ErrorHelper);
+    private nifiCommon = inject(NiFiCommon);
+    private dialog = inject(MatDialog);
 
     submitLineageQuery$ = createEffect(() =>
         this.actions$.pipe(

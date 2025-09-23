@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -47,6 +47,10 @@ import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
     styleUrls: ['./purge-history.component.scss']
 })
 export class PurgeHistory extends CloseOnEscapeDialog {
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject<Store<FlowConfigurationHistoryListingState>>(Store);
+
     private static readonly DEFAULT_PURGE_TIME: string = '00:00:00';
     private static readonly TIME_REGEX = /^([0-1]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
     purgeHistoryForm: FormGroup;
@@ -55,11 +59,7 @@ export class PurgeHistory extends CloseOnEscapeDialog {
 
     @Output() submitPurgeRequest: EventEmitter<PurgeHistoryRequest> = new EventEmitter<PurgeHistoryRequest>();
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon,
-        private store: Store<FlowConfigurationHistoryListingState>
-    ) {
+    constructor() {
         super();
         const now: Date = new Date();
         const aMonthAgo: Date = new Date();

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
@@ -81,6 +81,15 @@ import { snackBarError } from '../../../../state/error/error.actions';
     standalone: false
 })
 export class Canvas implements OnInit, OnDestroy {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasView = inject(CanvasView);
+    private storage = inject(Storage);
+    private canvasUtils = inject(CanvasUtils);
+    canvasContextMenu = inject(CanvasContextMenu);
+    private canvasActionsService = inject(CanvasActionsService);
+    private dialog = inject(MatDialog);
+    nifiCommon = inject(NiFiCommon);
+
     private svg: any;
     private canvas: any;
 
@@ -89,16 +98,7 @@ export class Canvas implements OnInit, OnDestroy {
 
     flowAnalysisOpen = this.store.selectSignal(selectFlowAnalysisOpen);
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasView: CanvasView,
-        private storage: Storage,
-        private canvasUtils: CanvasUtils,
-        public canvasContextMenu: CanvasContextMenu,
-        private canvasActionsService: CanvasActionsService,
-        private dialog: MatDialog,
-        public nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.store
             .select(selectTransform)
             .pipe(takeUntilDestroyed())

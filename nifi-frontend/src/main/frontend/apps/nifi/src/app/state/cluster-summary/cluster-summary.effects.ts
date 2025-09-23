@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ClusterSummaryActions from './cluster-summary.actions';
@@ -34,13 +34,11 @@ import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ClusterSummaryEffects {
-    constructor(
-        private actions$: Actions,
-        private clusterService: ClusterService,
-        private store: Store<ClusterSummaryState>,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private clusterService = inject(ClusterService);
+    private store = inject<Store<ClusterSummaryState>>(Store);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     loadClusterSummary$ = createEffect(() =>
         this.actions$.pipe(

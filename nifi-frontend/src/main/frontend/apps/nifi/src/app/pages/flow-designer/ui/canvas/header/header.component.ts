@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ComponentType } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
@@ -45,6 +45,9 @@ import { selectFlowAnalysisState } from '../../../state/flow-analysis/flow-analy
     styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent {
+    private store = inject<Store<CanvasState>>(Store);
+    loadingService = inject(LoadingService);
+
     protected readonly ComponentType = ComponentType;
 
     controllerStatus$ = this.store.select(selectControllerStatus);
@@ -55,9 +58,4 @@ export class HeaderComponent {
     canvasPermissions$ = this.store.select(selectCanvasPermissions);
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
     flowAnalysisOpen$ = this.store.select(selectFlowAnalysisOpen);
-
-    constructor(
-        private store: Store<CanvasState>,
-        public loadingService: LoadingService
-    ) {}
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { GeneralState } from '../../state/general';
 import { Store } from '@ngrx/store';
 import { loadControllerConfig, resetGeneralState } from '../../state/general/general.actions';
@@ -31,9 +31,9 @@ import { GeneralForm } from './general-form/general-form.component';
     styleUrls: ['./general.component.scss']
 })
 export class General implements OnInit, OnDestroy {
-    general$ = this.store.select(selectGeneral);
+    private store = inject<Store<GeneralState>>(Store);
 
-    constructor(private store: Store<GeneralState>) {}
+    general$ = this.store.select(selectGeneral);
 
     ngOnInit(): void {
         this.store.dispatch(loadControllerConfig());

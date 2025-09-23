@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
@@ -33,13 +33,11 @@ import { LoadSummaryRequest } from './index';
 
 @Injectable()
 export class SummaryListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private pgStatusService: ProcessGroupStatusService,
-        private errorHelper: ErrorHelper,
-        private router: Router
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private pgStatusService = inject(ProcessGroupStatusService);
+    private errorHelper = inject(ErrorHelper);
+    private router = inject(Router);
 
     loadSummaryListing$ = createEffect(() =>
         this.actions$.pipe(

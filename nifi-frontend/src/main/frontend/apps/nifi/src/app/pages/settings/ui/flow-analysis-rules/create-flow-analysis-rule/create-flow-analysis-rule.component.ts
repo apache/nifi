@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { FlowAnalysisRulesState } from '../../../state/flow-analysis-rules';
@@ -37,16 +37,12 @@ import {
     styleUrls: ['./create-flow-analysis-rule.component.scss']
 })
 export class CreateFlowAnalysisRule extends CloseOnEscapeDialog {
+    private store = inject<Store<FlowAnalysisRulesState>>(Store);
+    private client = inject(Client);
+
     flowAnalysisRulesTypes$ = this.store.select(selectFlowAnalysisRuleTypes);
     flowAnalysisRulesTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
     saving$ = this.store.select(selectSaving);
-
-    constructor(
-        private store: Store<FlowAnalysisRulesState>,
-        private client: Client
-    ) {
-        super();
-    }
 
     createFlowAnalysisRule(flowAnalysisRuleType: DocumentedType): void {
         this.store.dispatch(

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
@@ -48,15 +48,13 @@ export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
     styleUrls: ['./port-status-table.component.scss']
 })
 export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEntity> {
+    private nifiCommon = inject(NiFiCommon);
+
     private _portType!: 'input' | 'output';
 
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
 
     displayedColumns: string[] = [];
-
-    constructor(private nifiCommon: NiFiCommon) {
-        super();
-    }
 
     @Input() set portType(type: 'input' | 'output') {
         if (type === 'input') {

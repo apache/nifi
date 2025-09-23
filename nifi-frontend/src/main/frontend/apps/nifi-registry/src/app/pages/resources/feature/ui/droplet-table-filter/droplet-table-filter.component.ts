@@ -16,7 +16,6 @@
  */
 
 import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -43,11 +42,13 @@ export interface DropletTableFilterContext extends DropletTableFilterArgs {
 
 @Component({
     selector: 'droplet-table-filter',
-    imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
+    imports: [ReactiveFormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule],
     templateUrl: './droplet-table-filter.component.html',
     styleUrl: './droplet-table-filter.component.scss'
 })
 export class DropletTableFilterComponent implements AfterViewInit {
+    private formBuilder = inject(FormBuilder);
+
     filterForm: FormGroup;
     private _initialFilterColumn = 'name';
     private _filterableColumns: DropletTableFilterColumn[] = [];
@@ -94,7 +95,7 @@ export class DropletTableFilterComponent implements AfterViewInit {
 
     @Output() filterChanged: EventEmitter<DropletTableFilterContext> = new EventEmitter<DropletTableFilterContext>();
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor() {
         this.filterForm = this.formBuilder.group({
             filterTerm: '',
             filterColumn: this._initialFilterColumn || 'name',

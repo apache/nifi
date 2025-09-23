@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ErrorActions from './error.actions';
 import { map, tap } from 'rxjs';
@@ -24,11 +24,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable()
 export class ErrorEffects {
-    constructor(
-        private actions$: Actions,
-        private router: Router,
-        private snackBar: MatSnackBar
-    ) {}
+    private actions$ = inject(Actions);
+    private router = inject(Router);
+    private snackBar = inject(MatSnackBar);
 
     fullScreenError$ = createEffect(
         () =>

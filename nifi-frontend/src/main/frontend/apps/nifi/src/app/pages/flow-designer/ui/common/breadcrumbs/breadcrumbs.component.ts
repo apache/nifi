@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
 import { initialState } from '../../../state/flow/flow.reducer';
 
 import { RouterLink } from '@angular/router';
@@ -29,6 +29,8 @@ import { Title } from '@angular/platform-browser';
     styleUrls: ['./breadcrumbs.component.scss']
 })
 export class Breadcrumbs {
+    private title = inject(Title);
+
     @Input() entity: BreadcrumbEntity = initialState.flow.processGroupFlow.breadcrumb;
     @Input() currentProcessGroupId: string = initialState.id;
 
@@ -41,8 +43,6 @@ export class Breadcrumbs {
             this.scrolledToProcessGroupId = this.currentProcessGroupId;
         }
     }
-
-    constructor(private title: Title) {}
 
     prepareBreadcrumbs(): BreadcrumbEntity[] {
         const breadcrumbs: BreadcrumbEntity[] = [];

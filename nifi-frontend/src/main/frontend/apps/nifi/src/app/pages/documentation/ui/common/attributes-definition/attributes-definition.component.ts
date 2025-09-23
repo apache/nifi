@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '@nifi/shared';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { Attribute } from '../../../state/processor-definition';
@@ -27,14 +27,14 @@ import { Attribute } from '../../../state/processor-definition';
     styleUrl: './attributes-definition.component.scss'
 })
 export class AttributesDefinitionComponent {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set attributes(attributes: Attribute[]) {
         this.dataSource.data = this.sortAttributes(attributes);
     }
 
     displayedColumns: string[] = ['name', 'description'];
     dataSource: MatTableDataSource<Attribute> = new MatTableDataSource<Attribute>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     sortAttributes(items: Attribute[]): Attribute[] {
         const data: Attribute[] = items.slice();

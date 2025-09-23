@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, forwardRef, Input, inject } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -71,6 +71,10 @@ export interface ParameterItem {
     ]
 })
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
+    private store = inject<Store<ParameterContextListingState>>(Store);
+    private changeDetector = inject(ChangeDetectorRef);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() canAddParameters = true;
@@ -94,12 +98,6 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     onChange!: (parameters: ParameterEntity[]) => void;
 
     showInheritedParameters: boolean = true;
-
-    constructor(
-        private store: Store<ParameterContextListingState>,
-        private changeDetector: ChangeDetectorRef,
-        private nifiCommon: NiFiCommon
-    ) {}
 
     ngAfterViewInit(): void {
         this.initFilter();

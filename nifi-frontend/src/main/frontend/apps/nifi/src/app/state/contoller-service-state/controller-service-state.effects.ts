@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ControllerServiceActions from './controller-service-state.actions';
@@ -34,13 +34,11 @@ import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ControllerServiceStateEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private dialog: MatDialog,
-        private controllerServiceStateService: ControllerServiceStateService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private dialog = inject(MatDialog);
+    private controllerServiceStateService = inject(ControllerServiceStateService);
+    private errorHelper = inject(ErrorHelper);
 
     submitEnableRequest$ = createEffect(() =>
         this.actions$.pipe(

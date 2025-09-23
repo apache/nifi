@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { NiFiCommon } from '@nifi/shared';
@@ -24,13 +24,11 @@ import { ClusterConnectionService } from '../../../service/cluster-connection.se
 
 @Injectable({ providedIn: 'root' })
 export class ParameterService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private nifiCommon = inject(NiFiCommon);
+    private clusterConnectionService = inject(ClusterConnectionService);
 
-    constructor(
-        private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon,
-        private clusterConnectionService: ClusterConnectionService
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getParameterContext(id: string, includeInheritedParameters: boolean): Observable<any> {
         return this.httpClient.get(`${ParameterService.API}/parameter-contexts/${id}`, {

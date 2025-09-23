@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
@@ -62,17 +62,15 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private client: Client,
-        private managementControllerServiceService: ManagementControllerServiceService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private extensionTypesService: ExtensionTypesService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private client = inject(Client);
+    private managementControllerServiceService = inject(ManagementControllerServiceService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadManagementControllerServices$ = createEffect(() =>
         this.actions$.pipe(

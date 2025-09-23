@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { UpdateAttributeApplicationState } from '../../../state';
 import { isDefinedAndNotNull } from '@nifi/shared';
@@ -43,11 +43,13 @@ import { selectEvaluationContextState } from '../state/evaluation-context/evalua
     standalone: false
 })
 export class UpdateAttribute implements OnDestroy {
+    private store = inject<Store<UpdateAttributeApplicationState>>(Store);
+
     rulesState = this.store.selectSignal(selectRulesState);
     evaluationContextState = this.store.selectSignal(selectEvaluationContextState);
     editable = this.store.selectSignal(selectEditable);
 
-    constructor(private store: Store<UpdateAttributeApplicationState>) {
+    constructor() {
         this.store
             .select(selectAdvancedUiParametersFromRoute)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())

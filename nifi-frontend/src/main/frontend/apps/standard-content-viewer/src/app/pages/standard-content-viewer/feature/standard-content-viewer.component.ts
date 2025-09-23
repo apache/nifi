@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { StandardContentViewerState } from '../../../state';
 import { FormBuilder, FormGroup } from '@angular/forms';
@@ -57,6 +57,10 @@ import { json } from '@codemirror/lang-json';
     standalone: false
 })
 export class StandardContentViewer {
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<StandardContentViewerState>>(Store);
+    private contentViewerService = inject(ContentViewerService);
+
     contentFormGroup: FormGroup;
 
     private _codemirrorConfig: CodeMirrorConfig = {
@@ -81,11 +85,7 @@ export class StandardContentViewer {
     error: string | null = null;
     contentLoaded = false;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private store: Store<StandardContentViewerState>,
-        private contentViewerService: ContentViewerService
-    ) {
+    constructor() {
         this.contentFormGroup = this.formBuilder.group({
             value: '',
             formatted: 'true'

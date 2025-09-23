@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -61,6 +61,12 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
     styleUrls: ['./edit-registry-client.component.scss']
 })
 export class EditRegistryClient extends TabbedDialog {
+    request = inject<EditRegistryClientDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -72,14 +78,9 @@ export class EditRegistryClient extends TabbedDialog {
 
     editRegistryClientForm: FormGroup;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditRegistryClientDialogRequest,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         super('edit-registry-client-selected-index');
+        const request = this.request;
 
         const serviceProperties: any = request.registryClient.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {

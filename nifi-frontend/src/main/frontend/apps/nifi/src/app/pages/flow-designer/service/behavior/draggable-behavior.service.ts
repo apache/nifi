@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import * as d3 from 'd3';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
@@ -34,6 +34,11 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
     providedIn: 'root'
 })
 export class DraggableBehavior {
+    private store = inject<Store<CanvasState>>(Store);
+    private client = inject(Client);
+    private canvasUtils = inject(CanvasUtils);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     private readonly drag: any;
     private snapEnabled = false;
     private snapAlignmentPixels = 8;
@@ -42,12 +47,7 @@ export class DraggableBehavior {
 
     private updatePositionRequestId = 0;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private client: Client,
-        private canvasUtils: CanvasUtils,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         const self: DraggableBehavior = this;
 
         // subscribe to scale updates

@@ -27,7 +27,8 @@ import {
     Output,
     SimpleChanges,
     ViewEncapsulation,
-    forwardRef
+    forwardRef,
+    inject
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Annotation, Compartment, EditorState, Extension } from '@codemirror/state';
@@ -82,6 +83,8 @@ export const ExternalChange = Annotation.define<boolean>();
     ]
 })
 export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAccessor {
+    private elementRef = inject<ElementRef<Element>>(ElementRef);
+
     @Input() documentRoot?: Document | ShadowRoot;
     @Input() config: CodeMirrorConfig = {
         appearance: defaultTheme,
@@ -112,8 +115,6 @@ export class Codemirror implements OnChanges, OnInit, OnDestroy, ControlValueAcc
     private editableCompartment = new Compartment();
     private readOnlyCompartment = new Compartment();
     private pluginCompartment = new Compartment();
-
-    constructor(private elementRef: ElementRef<Element>) {}
 
     get settings(): CodeMirrorConfig {
         return { ...this.defaultConfig, ...this.config };

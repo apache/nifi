@@ -39,6 +39,17 @@ import { ComponentEntityWithDimensions } from '../state/flow';
     providedIn: 'root'
 })
 export class BirdseyeView {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasView = inject(CanvasView);
+    private nifiCommon = inject(NiFiCommon);
+    private canvasUtils = inject(CanvasUtils);
+    private processorManager = inject(ProcessorManager);
+    private processGroupManager = inject(ProcessGroupManager);
+    private remoteProcessGroupManager = inject(RemoteProcessGroupManager);
+    private portManager = inject(PortManager);
+    private funnelManager = inject(FunnelManager);
+    private labelManager = inject(LabelManager);
+
     private destroyRef = inject(DestroyRef);
 
     private birdseyeGroup: any = null;
@@ -51,18 +62,7 @@ export class BirdseyeView {
 
     private initialized = false;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasView: CanvasView,
-        private nifiCommon: NiFiCommon,
-        private canvasUtils: CanvasUtils,
-        private processorManager: ProcessorManager,
-        private processGroupManager: ProcessGroupManager,
-        private remoteProcessGroupManager: RemoteProcessGroupManager,
-        private portManager: PortManager,
-        private funnelManager: FunnelManager,
-        private labelManager: LabelManager
-    ) {
+    constructor() {
         this.store
             .select(selectTransform)
             .pipe(takeUntilDestroyed(this.destroyRef))

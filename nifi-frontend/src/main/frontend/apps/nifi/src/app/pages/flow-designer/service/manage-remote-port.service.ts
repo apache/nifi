@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
@@ -24,13 +24,11 @@ import { Client } from '../../../service/client.service';
 
 @Injectable({ providedIn: 'root' })
 export class ManageRemotePortService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client,
-        private nifiCommon: NiFiCommon
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getRemotePorts(rpgId: string): Observable<any> {
         return this.httpClient.get(`${ManageRemotePortService.API}/remote-process-groups/${rpgId}`);

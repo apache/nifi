@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { loadSummaryListing, resetSummaryState } from '../state/summary-listing/summary-listing.actions';
@@ -37,6 +37,8 @@ interface TabLink {
     standalone: false
 })
 export class Summary implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     tabLinks: TabLink[] = [
         { label: 'Processors', link: 'processors' },
         { label: 'Input Ports', link: 'input-ports' },
@@ -49,7 +51,7 @@ export class Summary implements OnInit, OnDestroy {
     clusterSummary$ = this.store.select(selectClusterSummary);
     selectedClusterNode$ = this.store.select(selectSelectedClusterNode).pipe(isDefinedAndNotNull());
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.clusterSummary$.pipe(takeUntilDestroyed(), isDefinedAndNotNull()).subscribe((clusterSummary) => {
             if (clusterSummary.connectedToCluster) {
                 this.store.dispatch(searchCluster({ request: {} }));

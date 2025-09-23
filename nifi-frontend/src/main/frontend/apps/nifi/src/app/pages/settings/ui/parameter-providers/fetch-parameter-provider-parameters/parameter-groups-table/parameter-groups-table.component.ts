@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ParameterGroupConfiguration } from '../../../../state/parameter-providers';
@@ -29,6 +28,8 @@ import { NiFiCommon } from '@nifi/shared';
     styleUrls: ['./parameter-groups-table.component.scss']
 })
 export class ParameterGroupsTable {
+    private nifiCommon = inject(NiFiCommon);
+
     parameterGroupsDataSource: MatTableDataSource<ParameterGroupConfiguration> =
         new MatTableDataSource<ParameterGroupConfiguration>();
     selectedParameterGroup: ParameterGroupConfiguration | null = null;
@@ -38,8 +39,6 @@ export class ParameterGroupsTable {
         active: 'groupName',
         direction: 'asc'
     };
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     @Input() set parameterGroups(parameterGroups: ParameterGroupConfiguration[]) {
         this.parameterGroupsDataSource.data = this.sortEntities(parameterGroups, this.activeParameterGroupSort);

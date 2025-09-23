@@ -16,7 +16,7 @@
  */
 
 import {
-    afterRender,
+    afterNextRender,
     AfterViewInit,
     Component,
     DestroyRef,
@@ -56,6 +56,11 @@ import { concatLatestFrom } from '@ngrx/operators';
     standalone: false
 })
 export class Documentation implements OnInit, AfterViewInit {
+    private store = inject<Store<NiFiState>>(Store);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+    private documentation = inject(ElementRef);
+
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     processorTypes$ = this.store
@@ -89,12 +94,7 @@ export class Documentation implements OnInit, AfterViewInit {
     reportingTasksExpanded = false;
     parameterProvidersExpanded = false;
 
-    constructor(
-        private store: Store<NiFiState>,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon,
-        private documentation: ElementRef
-    ) {
+    constructor() {
         this.store
             .select(selectDefinitionCoordinatesFromRoute)
             .pipe(
@@ -154,7 +154,7 @@ export class Documentation implements OnInit, AfterViewInit {
             filter: new FormControl(null)
         });
 
-        afterRender(() => {
+        afterNextRender(() => {
             if (!this.scrolledIntoView) {
                 const selectedType = this.documentation.nativeElement.querySelector('a.selected');
                 if (selectedType) {

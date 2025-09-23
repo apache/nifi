@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
@@ -46,19 +45,15 @@ interface VersionedFlowSnapshotMetadata {
 
 @Component({
     selector: 'app-flow-versions-dialog',
-    imports: [
-        CommonModule,
-        MatTableModule,
-        MatSortModule,
-        MatDialogModule,
-        MatMenuModule,
-        MatButtonModule,
-        ContextErrorBanner
-    ],
+    imports: [MatTableModule, MatSortModule, MatDialogModule, MatMenuModule, MatButtonModule, ContextErrorBanner],
     templateUrl: './droplet-versions-dialog.component.html',
     styleUrl: './droplet-versions-dialog.component.scss'
 })
 export class DropletVersionsDialogComponent extends CloseOnEscapeDialog {
+    data = inject<Data>(MAT_DIALOG_DATA);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject(Store);
+
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
 
@@ -69,12 +64,10 @@ export class DropletVersionsDialogComponent extends CloseOnEscapeDialog {
     displayedColumns: string[] = ['version', 'created', 'comments', 'actions'];
     timeOffset = 0;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public data: Data,
-        private nifiCommon: NiFiCommon,
-        private store: Store
-    ) {
+    constructor() {
         super();
+        const data = this.data;
+
         this.dataSource.data = data.versions;
     }
 

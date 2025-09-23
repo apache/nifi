@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { DraggableBehavior } from './draggable-behavior.service';
 import { CanvasUtils } from '../canvas-utils.service';
 import { ConnectableBehavior } from './connectable-behavior.service';
@@ -24,11 +24,9 @@ import { ConnectableBehavior } from './connectable-behavior.service';
     providedIn: 'root'
 })
 export class EditableBehavior {
-    constructor(
-        private draggableBehavior: DraggableBehavior,
-        private connectableBehavior: ConnectableBehavior,
-        private canvasUtils: CanvasUtils
-    ) {}
+    private draggableBehavior = inject(DraggableBehavior);
+    private connectableBehavior = inject(ConnectableBehavior);
+    private canvasUtils = inject(CanvasUtils);
 
     public editable(selection: any): void {
         if (this.canvasUtils.canModify(selection)) {

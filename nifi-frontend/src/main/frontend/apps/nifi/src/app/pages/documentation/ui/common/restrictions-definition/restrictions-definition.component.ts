@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '@nifi/shared';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { Restriction } from '../../../state';
@@ -27,14 +27,14 @@ import { Restriction } from '../../../state';
     styleUrl: './restrictions-definition.component.scss'
 })
 export class RestrictionsDefinitionComponent {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set restrictions(restrictions: Restriction[]) {
         this.dataSource.data = this.sortRestrictions(restrictions);
     }
 
     displayedColumns: string[] = ['required-permission', 'explanation'];
     dataSource: MatTableDataSource<Restriction> = new MatTableDataSource<Restriction>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     sortRestrictions(items: Restriction[]): Restriction[] {
         const data: Restriction[] = items.slice();

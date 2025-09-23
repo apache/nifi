@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as JoltTransformJsonUiActions from './jolt-transform-json-validate.actions';
 import { JoltTransformJsonUiService } from '../../service/jolt-transform-json-ui.service';
@@ -29,11 +29,9 @@ import { resetJoltTransformJsonPropertyState } from '../jolt-transform-json-prop
 
 @Injectable()
 export class JoltTransformJsonValidateEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiJoltTransformJsonUiState>,
-        private joltTransformJsonUiService: JoltTransformJsonUiService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiJoltTransformJsonUiState>>(Store);
+    private joltTransformJsonUiService = inject(JoltTransformJsonUiService);
 
     validateJoltSpec$ = createEffect(() =>
         this.actions$.pipe(

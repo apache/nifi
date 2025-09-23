@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import {
     BulletinsTipInput,
     ControllerServiceReferencingComponent,
@@ -46,14 +46,14 @@ import { MatDialogModule } from '@angular/material/dialog';
     styleUrls: ['./controller-service-references.component.scss']
 })
 export class ControllerServiceReferences {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() disabledLinks: boolean = false;
     @Input() serviceReferences!: ControllerServiceReferencingComponentEntity[];
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
     protected readonly BulletinsTip = BulletinsTip;
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     getUnauthorized(references: ControllerServiceReferencingComponentEntity[]) {
         return references.filter((reference) => !reference.permissions.canRead);

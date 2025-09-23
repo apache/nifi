@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
@@ -59,6 +59,8 @@ export type SupportedColumns =
     styleUrls: ['./connection-status-table.component.scss']
 })
 export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatusSnapshotEntity> {
+    private nifiCommon = inject(NiFiCommon);
+
     filterableColumns: SummaryTableFilterColumn[] = [
         { key: 'sourceName', label: 'source' },
         { key: 'name', label: 'name' },
@@ -77,10 +79,6 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
         'loadBalanceStatus',
         'actions'
     ];
-
-    constructor(private nifiCommon: NiFiCommon) {
-        super();
-    }
 
     override filterPredicate(data: ConnectionStatusSnapshotEntity, filter: string): boolean {
         const { filterTerm, filterColumn } = JSON.parse(filter);

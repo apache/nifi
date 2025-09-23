@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
@@ -45,6 +45,8 @@ import { ProcessGroupTip } from '../../../../../ui/common/tooltips/process-group
     ]
 })
 export class ParameterContextTable {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() initialSortColumn: 'name' | 'provider' | 'description' | 'process groups' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
@@ -67,8 +69,6 @@ export class ParameterContextTable {
 
     displayedColumns: string[] = ['name', 'provider', 'description', 'process groups', 'actions'];
     dataSource: MatTableDataSource<ParameterContextEntity> = new MatTableDataSource<ParameterContextEntity>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     canRead(entity: ParameterContextEntity): boolean {
         return entity.permissions.canRead;

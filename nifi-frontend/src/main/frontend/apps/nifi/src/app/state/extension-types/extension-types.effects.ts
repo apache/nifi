@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ExtensionTypesActions from './extension-types.actions';
 import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
@@ -26,11 +26,9 @@ import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ExtensionTypesEffects {
-    constructor(
-        private actions$: Actions,
-        private extensionTypesService: ExtensionTypesService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private extensionTypesService = inject(ExtensionTypesService);
+    private errorHelper = inject(ErrorHelper);
 
     loadExtensionTypesForCanvas$ = createEffect(() =>
         this.actions$.pipe(

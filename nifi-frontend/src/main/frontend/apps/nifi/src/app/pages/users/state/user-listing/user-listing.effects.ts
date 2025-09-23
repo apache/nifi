@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NiFiState } from '../../../../state';
@@ -40,18 +40,16 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class UserListingEffects {
-    private requestId = 0;
+    private actions$ = inject(Actions);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject<Store<NiFiState>>(Store);
+    private router = inject(Router);
+    private usersService = inject(UsersService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
 
-    constructor(
-        private actions$: Actions,
-        private client: Client,
-        private nifiCommon: NiFiCommon,
-        private store: Store<NiFiState>,
-        private router: Router,
-        private usersService: UsersService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog
-    ) {}
+    private requestId = 0;
 
     loadTenants$ = createEffect(() =>
         this.actions$.pipe(

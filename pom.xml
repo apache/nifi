@@ -101,7 +101,7 @@
         <docker.jdk.image.name>bellsoft/liberica-openjdk-debian</docker.jdk.image.name>
         <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
         <docker.image.tag>21</docker.image.tag>
-        <node.version>v22.1.0</node.version>
+        <node.version>v22.19.0</node.version>
         <frontend.mvn.plugin.version>1.15.1</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
         <nifi-api.version>2.3.0</nifi-api.version>

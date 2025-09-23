@@ -22,7 +22,8 @@ import {
     OnChanges,
     SimpleChanges,
     TemplateRef,
-    ViewContainerRef
+    ViewContainerRef,
+    inject
 } from '@angular/core';
 
 @Directive({
@@ -30,14 +31,12 @@ import {
     standalone: true
 })
 export class RecreateViewDirective implements OnChanges {
+    private templateRef = inject<TemplateRef<unknown>>(TemplateRef);
+    private viewContainer = inject(ViewContainerRef);
+
     @Input('recreateView') key: unknown;
 
     viewRef: EmbeddedViewRef<unknown> | null = null;
-
-    constructor(
-        private templateRef: TemplateRef<unknown>,
-        private viewContainer: ViewContainerRef
-    ) {}
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['key']) {

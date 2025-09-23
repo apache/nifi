@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -75,6 +75,11 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
     styleUrls: ['./edit-parameter-context.component.scss']
 })
 export class EditParameterContext extends TabbedDialog {
+    request = inject<EditParameterContextRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
@@ -92,13 +97,9 @@ export class EditParameterContext extends TabbedDialog {
 
     parameters!: ParameterEntity[];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditParameterContextRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         super(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID);
+        const request = this.request;
 
         if (request.parameterContext) {
             this.isNew = false;

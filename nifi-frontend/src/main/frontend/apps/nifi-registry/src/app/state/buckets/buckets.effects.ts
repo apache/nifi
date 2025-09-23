@@ -27,10 +27,8 @@ import * as DropletsActions from '../droplets/droplets.actions';
 
 @Injectable()
 export class BucketsEffects {
-    constructor(
-        private bucketsService: BucketsService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private bucketsService = inject(BucketsService);
+    private errorHelper = inject(ErrorHelper);
 
     actions$ = inject(Actions);
 

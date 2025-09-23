@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
     selectInputPortIdFromRoute,
     selectInputPortStatusSnapshots,
@@ -49,6 +49,8 @@ import { PortStatusTable } from '../common/port-status-table/port-status-table.c
     styleUrls: ['./input-port-status-listing.component.scss']
 })
 export class InputPortStatusListing {
+    private store = inject<Store<SummaryListingState>>(Store);
+
     portStatusSnapshots$ = this.store.select(selectInputPortStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
@@ -63,8 +65,6 @@ export class InputPortStatusListing {
         map((results) => results.nodeResults)
     );
     selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
-
-    constructor(private store: Store<SummaryListingState>) {}
 
     isInitialLoading(loadedTimestamp: string): boolean {
         return loadedTimestamp == initialState.loadedTimestamp;

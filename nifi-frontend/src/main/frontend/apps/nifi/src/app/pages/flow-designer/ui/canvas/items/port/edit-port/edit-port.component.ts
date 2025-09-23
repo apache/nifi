@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { CanvasState } from '../../../../../state';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -51,21 +51,23 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     styleUrls: ['./edit-port.component.scss']
 })
 export class EditPort extends CloseOnEscapeDialog {
+    request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     saving$ = this.store.select(selectSaving);
 
     editPortForm: FormGroup;
     readonly: boolean;
     portTypeLabel: string;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
-        private formBuilder: FormBuilder,
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         this.readonly =
             !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
 

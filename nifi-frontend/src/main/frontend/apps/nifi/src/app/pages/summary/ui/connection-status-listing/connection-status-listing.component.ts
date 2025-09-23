@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { SummaryListingState } from '../../state/summary-listing';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
@@ -53,6 +53,8 @@ import { ConnectionStatusTable } from './connection-status-table/connection-stat
     styleUrls: ['./connection-status-listing.component.scss']
 })
 export class ConnectionStatusListing {
+    private store = inject<Store<SummaryListingState>>(Store);
+
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     currentUser$ = this.store.select(selectCurrentUser);
@@ -68,7 +70,7 @@ export class ConnectionStatusListing {
     );
     selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
-    constructor(private store: Store<SummaryListingState>) {
+    constructor() {
         this.store
             .select(selectViewStatusHistory)
             .pipe(
