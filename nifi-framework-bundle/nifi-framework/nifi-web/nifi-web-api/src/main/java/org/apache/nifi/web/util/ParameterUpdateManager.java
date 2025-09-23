@@ -53,6 +53,9 @@ import java.util.stream.Collectors;
 public class ParameterUpdateManager {
     private static final Logger logger = LoggerFactory.getLogger(ParameterUpdateManager.class);
 
+    private static final String PROCESSOR_COMPONENT_TYPE = "processor";
+    private static final String STATELESS_PROCESS_GROUP_COMPONENT_TYPE = "stateless process group";
+
     private final NiFiServiceFacade serviceFacade;
     private final DtoFactory dtoFactory;
     private final Authorizer authorizer;
@@ -181,12 +184,16 @@ public class ParameterUpdateManager {
         } finally {
             // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
             if (!asyncRequest.isCancelled()) {
+                reloadAffectedComponents(affectedComponents);
+            }
+
+            if (!asyncRequest.isCancelled()) {
                 enableControllerServices(enabledControllerServices, enabledControllerServices, asyncRequest, componentLifecycle, uri);
             }
 
             if (!asyncRequest.isCancelled()) {
-                restartComponents(runningProcessors, "processor", asyncRequest, componentLifecycle, uri);
-                restartComponents(runningStatelessGroups, "stateless process group", asyncRequest, componentLifecycle, uri);
+                restartComponents(runningProcessors, PROCESSOR_COMPONENT_TYPE, asyncRequest, componentLifecycle, uri);
+                restartComponents(runningStatelessGroups, STATELESS_PROCESS_GROUP_COMPONENT_TYPE, asyncRequest, componentLifecycle, uri);
 
                 asyncRequest.markStepComplete();
             }
@@ -343,5 +350,27 @@ public class ParameterUpdateManager {
         }
 
         return entities;
+    }
+
+    private void reloadAffectedComponents(final Set<AffectedComponentEntity> affectedComponents) {
+        final Set<AffectedComponentEntity> allAffectedServices = affectedComponents.stream()
+            .filter(entity -> entity.getComponent() != null)
+            .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
+            .collect(Collectors.toSet());
+
+        final Set<AffectedComponentEntity> allAffectedProcessors = affectedComponents.stream()
+            .filter(entity -> entity.getComponent() != null)
+            .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(dto.getComponent().getReferenceType()))
+            .collect(Collectors.toSet());
+
+        for (final AffectedComponentEntity controllerServiceEntity : allAffectedServices) {
+            logger.info("Reloading Controller Service {} after having updated Parameter Context", controllerServiceEntity.getId());
+            serviceFacade.reloadControllerService(controllerServiceEntity.getId());
+        }
+
+        for (final AffectedComponentEntity processorEntity : allAffectedProcessors) {
+            logger.info("Reloading Processor {} after having updated Parameter Context", processorEntity.getId());
+            serviceFacade.reloadProcessor(processorEntity.getId());
+        }
     }
 }
