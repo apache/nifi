@@ -755,6 +755,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void reloadControllerService(final String controllerServiceId) {
+        final ControllerServiceNode controllerServiceNode = controllerServiceDAO.getControllerService(controllerServiceId);
+        controllerServiceNode.verifyCanUpdate();
+        controllerServiceNode.reloadAdditionalResourcesIfNecessary();
+    }
+
+    @Override
     public void verifyCreateReportingTask(ReportingTaskDTO reportingTaskDTO) {
         reportingTaskDAO.verifyCreate(reportingTaskDTO);
     }
@@ -2111,6 +2118,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyTerminateProcessor(final String processorId) {
         processorDAO.verifyTerminate(processorId);
+    }
+
+    @Override
+    public void reloadProcessor(final String processorId) {
+        final ProcessorNode processorNode = processorDAO.getProcessor(processorId);
+        processorNode.verifyCanUpdate();
+        processorNode.reloadAdditionalResourcesIfNecessary();
     }
 
     @Override

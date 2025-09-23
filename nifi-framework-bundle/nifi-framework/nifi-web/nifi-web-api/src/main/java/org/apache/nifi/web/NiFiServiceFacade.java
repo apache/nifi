@@ -763,6 +763,13 @@ public interface NiFiServiceFacade {
      */
     ProcessorEntity deleteProcessor(Revision revision, String processorId);
 
+    /**
+     * Reloads the underlying processor if the additional classpath resources have changed.
+     *
+     * @param processorId the id of the processor to reload
+     */
+    void reloadProcessor(String processorId);
+
     // ----------------------------------------
     // Connections methods
     // ----------------------------------------
@@ -2268,6 +2275,13 @@ public interface NiFiServiceFacade {
      * @param controllerServiceId id
      */
     void verifyDeleteControllerService(String controllerServiceId);
+
+    /**
+     * Reloads the underlying controller service if the additional classpath resources have changed.
+     *
+     * @param controllerServiceId the id of the controller service to reload
+     */
+    void reloadControllerService(String controllerServiceId);
 
     // ----------------------------------------
     // Parameter Provider methods
