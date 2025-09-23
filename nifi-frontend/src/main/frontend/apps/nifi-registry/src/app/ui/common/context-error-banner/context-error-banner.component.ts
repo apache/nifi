@@ -19,7 +19,7 @@
 
 import { Component, DestroyRef, inject, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NiFiState } from '../../../state';
+import { NiFiRegistryState } from '../../../state';
 import { Store } from '@ngrx/store';
 import { clearBannerErrors } from '../../../state/error/error.actions';
 import { Observable } from 'rxjs';
@@ -48,7 +48,7 @@ export class ContextErrorBanner implements OnDestroy {
     messages$: Observable<string[]> | null = null;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    constructor(private store: Store<NiFiState>) {}
+    constructor(private store: Store<NiFiRegistryState>) {}
 
     ngOnDestroy(): void {
         this.store.dispatch(clearBannerErrors({ context: this.context }));

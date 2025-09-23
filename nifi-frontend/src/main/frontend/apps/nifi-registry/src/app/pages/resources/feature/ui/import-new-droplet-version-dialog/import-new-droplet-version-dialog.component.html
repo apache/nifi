@@ -1,0 +1,85 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<h2 mat-dialog-title>Import New Resource Version</h2>
+<div class="import-new-flow-version-dialog">
+    <form class="import-new-flow-version-form" [formGroup]="importNewFlowVersionForm">
+        <context-error-banner [context]="ErrorContextKey.IMPORT_DROPLET_VERSION"></context-error-banner>
+        <mat-dialog-content>
+            <div>
+                <mat-label class="mb-2">Name</mat-label>
+                <div class="flex justify-between items-center mb-2">
+                    <div class="w-full tertiary-color font-medium">
+                        {{ droplet.name }} v.{{ droplet.versionCount + 1 }}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <mat-label class="flex mb-2">Resource</mat-label>
+                <mat-form-field class="w-full">
+                    <input
+                        class="pointer"
+                        (click)="flowUploadControl.click()"
+                        matInput
+                        formControlName="newFlowVersionDefinition"
+                        type="text"
+                        placeholder="Choose a file"
+                        [readonly]="true" />
+                    <button
+                        matSuffix
+                        type="button"
+                        class="upload-flow-definition tertiary-color icon icon-template-import mr-2.5 pointer"
+                        title="Browse"
+                        (click)="flowUploadControl.click()">
+                        <input type="file" #flowUploadControl class="hidden" (change)="attachFlowDefinition($event)" />
+                    </button>
+                </mat-form-field>
+            </div>
+            @if (fileToUpload) {
+                <div>
+                    <div class="flex flex-col gap-y-3 mb-3">
+                        <div class="flex flex-col">
+                            <div>File to upload</div>
+                            <div class="flex justify-between items-center">
+                                <div class="tertiary-color font-medium">{{ fileNameAttached }}</div>
+                                <button aria-label="Remove attached resource" (click)="removeAttachedFlowDefinition()">
+                                    X
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            <mat-form-field class="w-full">
+                <mat-label class="mb-2">Version Comments</mat-label>
+                <textarea matInput class="mb-2 w-full" formControlName="newFlowVersionComments"></textarea>
+            </mat-form-field>
+        </mat-dialog-content>
+    </form>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close type="button">Cancel</button>
+        <button
+            [disabled]="!fileToUpload"
+            class="ml-2"
+            data-automation-id="import-new-versioned-flow-button"
+            (click)="importNewFlowVersion()"
+            type="submit"
+            mat-flat-button>
+            Import
+        </button>
+    </mat-dialog-actions>
+</div>

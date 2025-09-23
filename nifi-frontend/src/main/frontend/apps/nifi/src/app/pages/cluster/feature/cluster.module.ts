@@ -24,9 +24,10 @@ import { clusterFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { ClusterListingEffects } from '../state/cluster-listing/cluster-listing.effects';
 import { ClusterRoutingModule } from './cluster-routing.module';
+import { RouterModule } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconButton } from '@angular/material/button';
-import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.component';
+import { ErrorBanner } from '@nifi/shared';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -41,6 +42,7 @@ import { ContextErrorBanner } from '../../../ui/common/context-error-banner/cont
         EffectsModule.forFeature(ClusterListingEffects),
         MatTabsModule,
         MatIconButton,
+        RouterModule,
         ErrorBanner,
         BannerText,
         ContextErrorBanner

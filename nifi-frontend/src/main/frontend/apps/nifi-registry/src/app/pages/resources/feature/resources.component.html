@@ -1,0 +1,57 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+
+<div class="pb-5 px-5 flex flex-col h-full">
+    <div class="h-full flex flex-col">
+        <h3 class="primary-color">Resources</h3>
+        <context-error-banner [context]="ErrorContextKey.GLOBAL"></context-error-banner>
+        <div class="flex justify-between items-baseline">
+            <droplet-table-filter
+                [buckets]="buckets"
+                [filterTerm]="filterTerm"
+                [filterBucket]="filterBucket"
+                [filterColumn]="filterColumn"
+                [filterableColumns]="filterableColumns"
+                [filteredCount]="dataSource.filteredData.length"
+                [totalCount]="dataSource.data.length"
+                (filterChanged)="applyFilter($event)"></droplet-table-filter>
+            <div class="flex justify-end">
+                <button mat-icon-button class="primary-icon-button" (click)="openImportNewDropletDialog()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        @if (droplets$ | async; as droplets) {
+            <droplet-table
+                [buckets]="buckets"
+                [dataSource]="dataSource"
+                [selectedId]="selectedDropletId$ | async"
+                (selectDroplet)="selectDroplet($event)"
+                class="h-full flex"></droplet-table>
+        }
+
+        @if (dropletsState$ | async; as dropletsState) {
+            <div class="flex justify-between mt-2">
+                <div class="text-sm flex items-center gap-x-2">
+                    <button mat-icon-button class="primary-icon-button" (click)="refreshDropletsListing()">
+                        <i class="fa fa-refresh" [class.fa-spin]="dropletsState.status === 'loading'"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>

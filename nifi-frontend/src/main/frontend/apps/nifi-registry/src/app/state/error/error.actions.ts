@@ -15,25 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { NgClass } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
+import { createAction, props } from '@ngrx/store';
+import { ErrorContext, ErrorContextKey } from './index';
 
-@Component({
-    selector: 'error-banner',
-    imports: [MatButtonModule, NgClass],
-    templateUrl: './error-banner.component.html',
-    styleUrls: ['./error-banner.component.scss']
-})
-export class ErrorBanner {
-    @Input() messages: string[] | null = null;
-    @Input() showErrorIcon = true;
-    @Input() showBorder = true;
-    @Input() allowDismiss = true;
+export const addBannerError = createAction('[Error] Add Banner Error', props<{ errorContext: ErrorContext }>());
 
-    @Output() dismiss: EventEmitter<void> = new EventEmitter<void>();
+export const clearBannerErrors = createAction('[Error] Clear Banner Errors', props<{ context: ErrorContextKey }>());
 
-    dismissClicked(): void {
-        this.dismiss.next();
-    }
-}
+export const resetErrorState = createAction('[Error] Reset Error State');

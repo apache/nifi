@@ -22,7 +22,7 @@ import { FlowUpdateRequestEntity } from '../../../../../state/flow';
 import { Observable, of } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
 import { MatProgressBar } from '@angular/material/progress-bar';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { ErrorBanner } from '@nifi/shared';
 
 @Component({
     selector: 'change-version-progress-dialog',

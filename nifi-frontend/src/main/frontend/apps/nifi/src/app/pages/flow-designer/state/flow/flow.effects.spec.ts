@@ -67,8 +67,6 @@ describe('FlowEffects', () => {
     let propertyTableHelperService: PropertyTableHelperService;
     let dialog: MatDialog;
     let store: MockStore;
-    let copyPasteService: CopyPasteService;
-    let canvasView: CanvasView;
     let verify: EventEmitter<VerifyPropertiesRequestContext>;
     let editProcessor: EventEmitter<UpdateProcessorRequest>;
     let startRequest: EventEmitter<StartComponentRequest>;
@@ -875,8 +873,6 @@ describe('FlowEffects', () => {
         action$ = new ReplaySubject<Action>();
         flowService = TestBed.inject(FlowService);
         propertyTableHelperService = TestBed.inject(PropertyTableHelperService);
-        copyPasteService = TestBed.inject(CopyPasteService);
-        canvasView = TestBed.inject(CanvasView);
         dialog = TestBed.inject(MatDialog);
         store = TestBed.inject(MockStore);
         verify = new EventEmitter<VerifyPropertiesRequestContext>();
