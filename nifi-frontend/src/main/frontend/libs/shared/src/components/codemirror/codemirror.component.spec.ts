@@ -71,6 +71,7 @@ jest.mock('@lezer/highlight', () => ({
         variableName: 'variableName',
         function: jest.fn().mockReturnValue('function'),
         special: jest.fn().mockReturnValue('special'),
+        definition: jest.fn().mockReturnValue('definition'),
         labelName: 'labelName',
         typeName: 'typeName',
         className: 'className',
@@ -89,7 +90,18 @@ jest.mock('@lezer/highlight', () => ({
         bool: 'bool',
         processingInstruction: 'processingInstruction',
         inserted: 'inserted',
-        invalid: 'invalid'
+        invalid: 'invalid',
+        name: 'name',
+        separator: 'separator',
+        tagName: 'tagName',
+        attributeName: 'attributeName',
+        attributeValue: 'attributeValue',
+        angleBracket: 'angleBracket',
+        squareBracket: 'squareBracket',
+        content: 'content',
+        meta: 'meta',
+        brace: 'brace',
+        propertyName: 'propertyName'
     }
 }));
 
