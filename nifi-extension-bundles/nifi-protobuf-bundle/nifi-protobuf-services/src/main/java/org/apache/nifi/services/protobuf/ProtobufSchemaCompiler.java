@@ -130,7 +130,8 @@ final class ProtobufSchemaCompiler {
                 logger.debug("Successfully compiled schema for identifier: {}", schemaDefinition.getIdentifier());
                 return compiledSchema;
             } catch (final IllegalStateException e) {
-                throw new SchemaCompilationException(e); // Illegal state exception is thrown by the wire library for schema issues
+                // Illegal state exception is thrown by the wire library for schema issues
+                throw new SchemaCompilationException("Could not compile schema: %s".formatted(schemaDefinition.toString()), e);
             } catch (final Exception e) {
                 throw new RuntimeException("Failed to compile Protobuf schema for identifier: " + schemaDefinition.getIdentifier(), e);
             }

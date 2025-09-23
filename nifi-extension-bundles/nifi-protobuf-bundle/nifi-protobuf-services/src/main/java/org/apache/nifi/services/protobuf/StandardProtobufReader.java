@@ -28,8 +28,10 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.MessageName;
 import org.apache.nifi.schemaregistry.services.MessageNameResolver;
@@ -52,7 +54,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +140,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
         schemaText = context.getProperty(SCHEMA_TEXT);
         schemaBranchName = context.getProperty(SCHEMA_BRANCH_NAME);
         schemaVersion = context.getProperty(SCHEMA_VERSION);
-        schemaCompiler = new ProtobufSchemaCompiler(getIdentifier(), getLogger());
     }
 
     @Override
@@ -161,6 +161,12 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     }
 
     @Override
+    protected void init(final ControllerServiceInitializationContext config) throws InitializationException {
+        super.init(config);
+        schemaCompiler = new ProtobufSchemaCompiler(getIdentifier(), getLogger());
+    }
+
+    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(MESSAGE_NAME_RESOLUTION_STRATEGY);
@@ -176,7 +182,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String schemaAccessStrategyValue = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
 
         // Only validate when using Schema Text property strategy
@@ -184,23 +190,22 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
             final PropertyValue schemaTextProperty = validationContext.getProperty(SCHEMA_TEXT);
             final String schemaTextValue = schemaTextProperty.getValue();
 
-            if (validationContext.isExpressionLanguageSupported(SCHEMA_TEXT.getName())
-                && validationContext.isExpressionLanguagePresent(schemaTextValue)) {
-                return Collections.emptyList();
+            if (validationContext.isExpressionLanguagePresent(schemaTextValue)) {
+                return results;
             }
 
             if (schemaTextValue == null || schemaTextValue.isBlank()) {
-                problems.add(new ValidationResult.Builder()
+                results.add(new ValidationResult.Builder()
                     .subject(SCHEMA_TEXT.getDisplayName())
                     .input(schemaTextValue)
                     .valid(false)
-                    .explanation("Schema Text cannot be empty when using \"Use 'Schema Text' Property\" strategy")
+                    .explanation("Schema Text value is missing")
                     .build());
-                return problems;
+                return results;
             }
 
             try {
-                // Try to compile the schema to validate it's valid protobuf format
+                // Try to compile the schema to validate protobuf format
                 final String hash = sha256Hex(schemaTextValue);
                 final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
                     .name(hash + PROTO_EXTENSION)
@@ -215,13 +220,13 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
                     if (validationContext.isExpressionLanguageSupported(MESSAGE_NAME.getName())
                         && validationContext.isExpressionLanguagePresent(messageNameValue)) {
-                        return problems;
+                        return results;
                     }
 
                     if (messageNameValue != null && !messageNameValue.isBlank()) {
                         // Check if the message name exists in the compiled schema
                         if (compiledSchema.getType(messageNameValue) == null) {
-                            problems.add(new ValidationResult.Builder()
+                            results.add(new ValidationResult.Builder()
                                 .subject(MESSAGE_NAME.getDisplayName())
                                 .input(messageNameValue)
                                 .valid(false)
@@ -232,7 +237,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
                 }
 
             } catch (final SchemaCompilationException e) {
-                problems.add(new ValidationResult.Builder()
+                results.add(new ValidationResult.Builder()
                     .subject(SCHEMA_TEXT.getDisplayName())
                     .input(schemaTextValue)
                     .valid(false)
@@ -241,15 +246,12 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
             }
         }
 
-        return problems;
+        return results;
     }
 
-    // Compile the schema to validate it's correct. The method is used only for validation purposes.
     private Schema validateSchemaCompiles(final SchemaIdentifier schemaIdentifier, final String schemaTextValue) {
         final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(schemaIdentifier, schemaTextValue, SchemaDefinition.SchemaType.PROTOBUF);
-        // Create a throwaway schema compiler for validation to avoid polluting the main compiler cache.
-        final ProtobufSchemaCompiler validationCompiler = new ProtobufSchemaCompiler(getIdentifier() + "_validation", getLogger());
-        return validationCompiler.compileOrGetFromCache(schemaDefinition);
+        return schemaCompiler.compileOrGetFromCache(schemaDefinition);
     }
 
     private RecordReader createProtobufRecordReader(final Map<String, String> variables, final InputStream in, final SchemaDefinition schemaDefinition) throws IOException {

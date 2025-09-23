@@ -110,7 +110,7 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
 
             final ValidationResult invalidResult = verifyExactlyOneValidationError();
 
-            assertTrue(invalidResult.getExplanation().contains("Message name 'test.NonExistentMessage' cannot be found"));
+            assertTrue(invalidResult.getExplanation().contains("test.NonExistentMessage"));
         }
 
         @Test

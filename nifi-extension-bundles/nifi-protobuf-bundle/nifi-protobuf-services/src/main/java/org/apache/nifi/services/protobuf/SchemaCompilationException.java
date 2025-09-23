@@ -17,7 +17,7 @@
 package org.apache.nifi.services.protobuf;
 
 public class SchemaCompilationException extends RuntimeException {
-    public SchemaCompilationException(Throwable cause) {
-        super(cause);
+    public SchemaCompilationException(final String message, final Throwable cause) {
+        super(message, cause);
     }
 }
