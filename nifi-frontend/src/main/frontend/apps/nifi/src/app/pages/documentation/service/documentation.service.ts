@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ProcessorDefinition } from '../state/processor-definition';
@@ -28,9 +28,9 @@ import { FlowAnalysisRuleDefinition } from '../state/flow-analysis-rule-definiti
 
 @Injectable({ providedIn: 'root' })
 export class DocumentationService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getProcessorDefinition(coordinates: DefinitionCoordinates): Observable<ProcessorDefinition> {
         return this.httpClient.get<ProcessorDefinition>(

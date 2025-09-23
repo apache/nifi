@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
 import { PositionBehavior } from '../behavior/position-behavior.service';
@@ -40,6 +40,13 @@ import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
     providedIn: 'root'
 })
 export class ProcessGroupManager implements OnDestroy {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
+    private positionBehavior = inject(PositionBehavior);
+    private selectableBehavior = inject(SelectableBehavior);
+    private editableBehavior = inject(EditableBehavior);
+
     private destroyed$: Subject<boolean> = new Subject();
     private registryClients = this.store.selectSignal(selectRegistryClients);
 
@@ -56,15 +63,6 @@ export class ProcessGroupManager implements OnDestroy {
     private processGroups: [] = [];
     private processGroupContainer: any = null;
     private transitionRequired = false;
-
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private nifiCommon: NiFiCommon,
-        private positionBehavior: PositionBehavior,
-        private selectableBehavior: SelectableBehavior,
-        private editableBehavior: EditableBehavior
-    ) {}
 
     private select() {
         return this.processGroupContainer.selectAll('g.process-group').data(this.processGroups, function (d: any) {

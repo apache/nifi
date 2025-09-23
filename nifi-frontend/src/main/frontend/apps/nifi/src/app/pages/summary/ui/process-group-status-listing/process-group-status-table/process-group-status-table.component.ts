@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
@@ -61,6 +61,8 @@ export type SupportedColumns =
     styleUrls: ['./process-group-status-table.component.scss']
 })
 export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupStatusSnapshotEntity> {
+    private nifiCommon = inject(NiFiCommon);
+
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
 
     displayedColumns: string[] = [
@@ -76,10 +78,6 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
         'tasks',
         'actions'
     ];
-
-    constructor(private nifiCommon: NiFiCommon) {
-        super();
-    }
 
     @Input() rootProcessGroup!: ProcessGroupStatusSnapshot;
 

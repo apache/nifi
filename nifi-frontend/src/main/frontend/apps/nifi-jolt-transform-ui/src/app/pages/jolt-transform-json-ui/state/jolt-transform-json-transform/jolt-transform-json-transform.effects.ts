@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as JoltTransformJsonUiActions from './jolt-transform-json-transform.actions';
 import { JoltTransformJsonUiService } from '../../service/jolt-transform-json-ui.service';
@@ -26,10 +26,8 @@ import { TransformJoltSpecRequest } from './index';
 
 @Injectable()
 export class JoltTransformJsonTransformEffects {
-    constructor(
-        private actions$: Actions,
-        private joltTransformJsonUiService: JoltTransformJsonUiService
-    ) {}
+    private actions$ = inject(Actions);
+    private joltTransformJsonUiService = inject(JoltTransformJsonUiService);
 
     transformJoltSpec$ = createEffect(() =>
         this.actions$.pipe(

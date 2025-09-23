@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { BannerTextEntity } from '../state/banner-text';
 
 @Injectable({ providedIn: 'root' })
 export class BannerTextService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getBannerText(): Observable<BannerTextEntity> {
         return this.httpClient.get<BannerTextEntity>(`${BannerTextService.API}/flow/banners`);

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -71,6 +71,9 @@ interface Helper {
     styleUrl: './cluster-summary-dialog.component.scss'
 })
 export class ClusterSummaryDialog extends CloseOnEscapeDialog {
+    private store = inject<Store<ComponentClusterStatusState>>(Store);
+    private clusterStatusRequest = inject<ComponentClusterStatusRequest>(MAT_DIALOG_DATA);
+
     loading$: Observable<boolean> = this.store
         .select(selectComponentClusterStatusLoadingStatus)
         .pipe(map((status) => status === 'loading'));
@@ -88,11 +91,10 @@ export class ClusterSummaryDialog extends CloseOnEscapeDialog {
         }
     };
 
-    constructor(
-        private store: Store<ComponentClusterStatusState>,
-        @Inject(MAT_DIALOG_DATA) private clusterStatusRequest: ComponentClusterStatusRequest
-    ) {
+    constructor() {
         super();
+        const clusterStatusRequest = this.clusterStatusRequest;
+
         this.componentId = clusterStatusRequest.id;
         this.componentType = clusterStatusRequest.componentType;
 

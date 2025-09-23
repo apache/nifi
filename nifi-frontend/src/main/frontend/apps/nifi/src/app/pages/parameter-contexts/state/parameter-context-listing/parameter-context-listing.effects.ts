@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
@@ -58,15 +58,13 @@ import { EditParameterContext } from '../../../../ui/common/parameter-context/ed
 
 @Injectable()
 export class ParameterContextListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private parameterContextService: ParameterContextService,
-        private dialog: MatDialog,
-        private router: Router,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private parameterContextService = inject(ParameterContextService);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private errorHelper = inject(ErrorHelper);
 
     loadParameterContexts$ = createEffect(() =>
         this.actions$.pipe(

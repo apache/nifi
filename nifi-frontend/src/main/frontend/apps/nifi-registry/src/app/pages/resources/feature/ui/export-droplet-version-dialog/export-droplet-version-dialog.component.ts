@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { MatFormField } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
@@ -35,27 +34,21 @@ export interface ExportFlowVersionDialogData {
 
 @Component({
     selector: 'app-export-flow-version-dialog',
-    imports: [
-        CommonModule,
-        MatFormField,
-        MatSelectModule,
-        MatInputModule,
-        MatDialogModule,
-        MatButtonModule,
-        ContextErrorBanner
-    ],
+    imports: [MatFormField, MatSelectModule, MatInputModule, MatDialogModule, MatButtonModule, ContextErrorBanner],
     templateUrl: './export-droplet-version-dialog.component.html',
     styleUrl: './export-droplet-version-dialog.component.scss'
 })
 export class ExportDropletVersionDialogComponent extends CloseOnEscapeDialog {
+    data = inject<ExportFlowVersionDialogData>(MAT_DIALOG_DATA);
+    private store = inject(Store);
+
     droplet: Droplet;
     selectedVersion: number;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public data: ExportFlowVersionDialogData,
-        private store: Store
-    ) {
+    constructor() {
         super();
+        const data = this.data;
+
         this.droplet = data.droplet;
         this.selectedVersion = this.droplet.versionCount;
     }

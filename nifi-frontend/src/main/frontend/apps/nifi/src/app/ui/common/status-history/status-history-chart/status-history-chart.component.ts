@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
-
+import { Component, EventEmitter, Input, OnDestroy, Output, inject } from '@angular/core';
 import { FieldDescriptor } from '../../../../state/status-history';
 import * as d3 from 'd3';
 import { NiFiCommon } from '@nifi/shared';
@@ -31,6 +30,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrls: ['./status-history-chart.component.scss']
 })
 export class StatusHistoryChart implements OnDestroy {
+    private nifiCommon = inject(NiFiCommon);
+
     private _instances!: Instance[];
     private _selectedDescriptor: FieldDescriptor | null = null;
     private _visibleInstances: VisibleInstances = {};
@@ -80,7 +81,7 @@ export class StatusHistoryChart implements OnDestroy {
 
     nodes: any[] = [];
 
-    constructor(private nifiCommon: NiFiCommon) {
+    constructor() {
         // don't need constantly fire the stats changing as a result of brush drag/move
         this.nodeStats$.pipe(debounceTime(20), takeUntilDestroyed()).subscribe((stats: Stats) => {
             this.nodeStats.next(stats);

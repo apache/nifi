@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import {
     copySuccess,
@@ -77,6 +77,13 @@ export interface CanvasActions {
     providedIn: 'root'
 })
 export class CanvasActionsService {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private canvasView = inject(CanvasView);
+    private dialog = inject(MatDialog);
+    private client = inject(Client);
+    private copyService = inject(CopyPasteService);
+
     private _actions: CanvasActions = {
         delete: {
             id: 'delete',
@@ -532,15 +539,6 @@ export class CanvasActionsService {
     };
 
     currentProcessGroupId = this.store.selectSignal(selectCurrentProcessGroupId);
-
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private canvasView: CanvasView,
-        private dialog: MatDialog,
-        private client: Client,
-        private copyService: CopyPasteService
-    ) {}
 
     private select(selection: d3.Selection<any, any, any, any>) {
         const selectedComponents: SelectedComponent[] = [];

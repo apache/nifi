@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {
     selectDropletIdFromRoute,
     selectDroplets,
@@ -45,6 +45,9 @@ import { ErrorContextKey } from '../../../state/error';
     standalone: false
 })
 export class ResourcesComponent implements OnInit {
+    private store = inject(Store);
+    private nifiCommon = inject(NiFiCommon);
+
     droplets$: Observable<Droplet[]> = this.store.select(selectDroplets).pipe(takeUntilDestroyed());
     buckets$: Observable<Bucket[]> = this.store.select(selectBuckets).pipe(takeUntilDestroyed());
     buckets: Bucket[] = [];
@@ -76,11 +79,6 @@ export class ResourcesComponent implements OnInit {
     filterColumn = '';
     dropletsState$ = this.store.select(selectDropletState);
     selectedDropletId$ = this.store.select(selectDropletIdFromRoute);
-
-    constructor(
-        private store: Store,
-        private nifiCommon: NiFiCommon
-    ) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadDroplets());

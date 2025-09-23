@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RepositoryStorageTable } from '../common/repository-storage-table/repository-storage-table.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import {
@@ -44,6 +44,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrl: './cluster-flow-file-storage-listing.component.scss'
 })
 export class ClusterFlowFileStorageListing {
+    private store = inject<Store<NiFiState>>(Store);
+
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
@@ -61,8 +63,6 @@ export class ClusterFlowFileStorageListing {
             });
         })
     );
-
-    constructor(private store: Store<NiFiState>) {}
 
     isInitialLoading(loadedTimestamp: string): boolean {
         return loadedTimestamp == initialClusterState.loadedTimestamp;

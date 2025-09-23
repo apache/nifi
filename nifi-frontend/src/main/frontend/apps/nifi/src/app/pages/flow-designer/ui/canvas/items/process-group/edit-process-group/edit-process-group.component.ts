@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -62,6 +62,12 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
     styleUrls: ['./edit-process-group.component.scss']
 })
 export class EditProcessGroup extends TabbedDialog {
+    request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private store = inject<Store<CanvasState>>(Store);
+
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         if (parameterContexts !== undefined) {
             this.parameterContextsOptions = [];
@@ -181,14 +187,9 @@ export class EditProcessGroup extends TabbedDialog {
         }
     ];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService,
-        private store: Store<CanvasState>
-    ) {
+    constructor() {
         super('edit-process-group-selected-index');
+        const request = this.request;
 
         this.readonly = !request.entity.permissions.canWrite;
 

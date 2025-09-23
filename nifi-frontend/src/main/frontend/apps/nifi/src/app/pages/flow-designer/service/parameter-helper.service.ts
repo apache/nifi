@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { catchError, EMPTY, filter, map, Observable, switchMap, takeUntil, tap } from 'rxjs';
 import { Store } from '@ngrx/store';
@@ -42,14 +42,12 @@ export interface ConvertToParameterResponse {
     providedIn: 'root'
 })
 export class ParameterHelperService {
-    constructor(
-        private dialog: MatDialog,
-        private store: Store<NiFiState>,
-        private parameterContextService: ParameterContextService,
-        private clusterConnectionService: ClusterConnectionService,
-        private client: Client,
-        private errorHelper: ErrorHelper
-    ) {}
+    private dialog = inject(MatDialog);
+    private store = inject<Store<NiFiState>>(Store);
+    private parameterContextService = inject(ParameterContextService);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private client = inject(Client);
+    private errorHelper = inject(ErrorHelper);
 
     /**
      * Returns a function that can be used to pass into a PropertyTable to convert a Property into a Parameter, inline.

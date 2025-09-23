@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
@@ -37,6 +37,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() selectedConnection: SelectedConnection | null = null;
 
     @Input() set listingRequest(listingRequest: ListingRequest) {
@@ -96,8 +98,6 @@ export class FlowFileTable {
     displayObjectCount = 0;
     queueSizeObjectCount = 0;
     queueSizeByteCount = 0;
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     sortFlowFiles(summaries: FlowFileSummary[]): FlowFileSummary[] {
         const data: FlowFileSummary[] = summaries.slice();

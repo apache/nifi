@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -58,6 +58,9 @@ import { completionKeymap } from '@codemirror/autocomplete';
     styleUrls: ['./ua-editor.component.scss']
 })
 export class UaEditor {
+    private formBuilder = inject(FormBuilder);
+    private nifiLanguageService = inject(CodemirrorNifiLanguageService);
+
     @Input() set value(value: string) {
         this.uaEditorForm.get('value')?.setValue(value);
 
@@ -111,10 +114,7 @@ export class UaEditor {
         };
     }
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiLanguageService: CodemirrorNifiLanguageService
-    ) {
+    constructor() {
         this.uaEditorForm = this.formBuilder.group({
             value: new FormControl('')
         });

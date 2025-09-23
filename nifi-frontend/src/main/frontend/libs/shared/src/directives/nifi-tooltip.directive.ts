@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Directive, ElementRef, HostListener, Input, OnDestroy, Type } from '@angular/core';
+import { Directive, ElementRef, HostListener, Input, OnDestroy, Type, inject } from '@angular/core';
 import { ConnectedPosition, Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { NiFiCommon } from '../services/nifi-common.service';
@@ -25,6 +25,9 @@ import { NiFiCommon } from '../services/nifi-common.service';
     standalone: true
 })
 export class NifiTooltipDirective<T> implements OnDestroy {
+    private element = inject<ElementRef<HTMLElement>>(ElementRef);
+    private overlay = inject(Overlay);
+
     @Input() tooltipComponentType!: Type<T>;
     @Input() tooltipDisabled = false;
     @Input() tooltipInputData: any;
@@ -37,11 +40,6 @@ export class NifiTooltipDirective<T> implements OnDestroy {
     private positionStrategy: PositionStrategy | null = null;
     private overTip = false;
     private openTimer = -1;
-
-    constructor(
-        private element: ElementRef<HTMLElement>,
-        private overlay: Overlay
-    ) {}
 
     @HostListener('mouseenter')
     mouseEnter() {

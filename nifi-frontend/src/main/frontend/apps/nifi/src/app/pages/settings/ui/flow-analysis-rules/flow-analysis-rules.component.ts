@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take } from 'rxjs';
@@ -56,11 +56,13 @@ import { FlowAnalysisRuleTable } from './flow-analysis-rule-table/flow-analysis-
     styleUrls: ['./flow-analysis-rules.component.scss']
 })
 export class FlowAnalysisRules implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     flowAnalysisRuleState$ = this.store.select(selectFlowAnalysisRulesState);
     selectedFlowAnalysisRuleId$ = this.store.select(selectFlowAnalysisRuleIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedFlowAnalysisRule)
             .pipe(

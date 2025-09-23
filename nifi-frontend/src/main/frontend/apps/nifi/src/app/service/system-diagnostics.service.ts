@@ -15,18 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from './client.service';
 
 @Injectable({ providedIn: 'root' })
 export class SystemDiagnosticsService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getSystemDiagnostics(nodewise?: boolean) {
         if (nodewise) {

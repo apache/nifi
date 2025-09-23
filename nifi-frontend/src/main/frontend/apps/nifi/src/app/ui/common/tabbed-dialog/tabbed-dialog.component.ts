@@ -15,21 +15,18 @@
  * limitations under the License.
  */
 
-import { Component, Inject, inject } from '@angular/core';
+import { inject } from '@angular/core';
 import { Storage, CloseOnEscapeDialog } from '@nifi/shared';
 
-@Component({
-    selector: 'tabbed-dialog',
-    standalone: true,
-    template: ''
-})
 export abstract class TabbedDialog extends CloseOnEscapeDialog {
     private storage: Storage = inject(Storage);
+    private dialogId: string;
 
     selectedIndex = 0;
 
-    protected constructor(@Inject(String) private dialogId: string) {
+    constructor(dialogId: string) {
         super();
+        this.dialogId = dialogId;
 
         const previousSelectedIndex = this.storage.getItem<number>(this.dialogId);
         if (previousSelectedIndex != null) {

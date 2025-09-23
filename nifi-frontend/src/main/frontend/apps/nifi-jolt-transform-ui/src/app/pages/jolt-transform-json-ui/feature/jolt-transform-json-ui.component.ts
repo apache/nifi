@@ -16,7 +16,7 @@
  */
 
 import { js_beautify } from 'js-beautify';
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiJoltTransformJsonUiState } from '../../../state';
 import {
@@ -99,6 +99,10 @@ const JS_BEAUTIFY_OPTIONS = {
     standalone: false
 })
 export class JoltTransformJsonUi implements OnDestroy {
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<NiFiJoltTransformJsonUiState>>(Store);
+    private mapTableHelperService = inject(MapTableHelperService);
+
     private processorId$ = this.store.selectSignal(selectProcessorIdFromRoute);
     private revision$ = this.store.selectSignal(selectRevisionFromRoute);
     private clientId$ = this.store.selectSignal(selectClientIdFromRoute);
@@ -163,11 +167,7 @@ export class JoltTransformJsonUi implements OnDestroy {
     createNew: (existingEntries: string[]) => Observable<MapTableEntry> =
         this.mapTableHelperService.createNewEntry('Attribute');
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private store: Store<NiFiJoltTransformJsonUiState>,
-        private mapTableHelperService: MapTableHelperService
-    ) {
+    constructor() {
         // Select the processor id from the query params and GET processor details
         this.store
             .select(selectProcessorIdFromRoute)

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { PropertyItem } from '../../property-item';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -57,6 +57,9 @@ export interface AllowableValueItem extends AllowableValue {
     styleUrls: ['./combo-editor.component.scss']
 })
 export class ComboEditor {
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set item(item: PropertyItem) {
         if (item.value != null) {
             this.configuredValue = item.value;
@@ -109,10 +112,7 @@ export class ComboEditor {
     savedValue: string | null = null;
     parameters: Parameter[] | null = null;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.comboEditorForm = this.formBuilder.group({
             value: new FormControl(null, Validators.required)
         });

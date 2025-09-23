@@ -45,6 +45,8 @@ export interface ClusterTableFilterContext extends ClusterTableFilterArgs {
     styleUrl: './cluster-table-filter.component.scss'
 })
 export class ClusterTableFilter implements AfterViewInit {
+    private formBuilder = inject(FormBuilder);
+
     filterForm: FormGroup;
     private _filteredCount = 0;
     private _totalCount = 0;
@@ -99,7 +101,7 @@ export class ClusterTableFilter implements AfterViewInit {
 
     @Output() filterChanged: EventEmitter<ClusterTableFilterContext> = new EventEmitter<ClusterTableFilterContext>();
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor() {
         this.filterForm = this.formBuilder.group({
             filterTerm: '',
             filterColumn: this._initialFilterColumn || 'address'

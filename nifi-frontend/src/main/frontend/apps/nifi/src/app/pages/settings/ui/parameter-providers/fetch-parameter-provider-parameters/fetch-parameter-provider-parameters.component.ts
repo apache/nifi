@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, DestroyRef, inject, Inject, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -71,6 +71,12 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
     styleUrls: ['./fetch-parameter-provider-parameters.component.scss']
 })
 export class FetchParameterProviderParameters extends CloseOnEscapeDialog implements OnInit {
+    private formBuilder = inject(FormBuilder);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject<Store<ParameterProvidersState>>(Store);
+    request = inject<FetchParameterProviderDialogRequest>(MAT_DIALOG_DATA);
+
     fetchParametersForm: FormGroup;
     parameterProvider: ParameterProviderEntity;
     selectedParameterGroup: ParameterGroupConfiguration | null = null;
@@ -103,14 +109,10 @@ export class FetchParameterProviderParameters extends CloseOnEscapeDialog implem
 
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private clusterConnectionService: ClusterConnectionService,
-        private nifiCommon: NiFiCommon,
-        private store: Store<ParameterProvidersState>,
-        @Inject(MAT_DIALOG_DATA) public request: FetchParameterProviderDialogRequest
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         this.parameterProvider = request.parameterProvider;
 
         this.fetchParametersForm = this.formBuilder.group({});

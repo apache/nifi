@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { BirdseyeView } from '../../../../../service/birdseye-view.service';
 
 @Component({
@@ -25,7 +25,7 @@ import { BirdseyeView } from '../../../../../service/birdseye-view.service';
     styleUrls: ['./birdseye.component.scss']
 })
 export class Birdseye implements OnInit, OnDestroy {
-    constructor(private birdseyeView: BirdseyeView) {}
+    private birdseyeView = inject(BirdseyeView);
 
     ngOnInit(): void {
         const birdseye: any = document.getElementById('birdseye');

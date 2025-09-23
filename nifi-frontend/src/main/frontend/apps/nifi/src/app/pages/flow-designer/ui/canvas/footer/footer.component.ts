@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
@@ -29,8 +29,8 @@ import { AsyncPipe } from '@angular/common';
     styleUrls: ['./footer.component.scss']
 })
 export class FooterComponent {
+    private store = inject<Store<CanvasState>>(Store);
+
     breadcrumbs$ = this.store.select(selectBreadcrumbs);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
-
-    constructor(private store: Store<CanvasState>) {}
 }

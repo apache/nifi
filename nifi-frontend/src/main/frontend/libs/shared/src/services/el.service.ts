@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class ElService {
-    private static readonly DOCS: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly DOCS: string = '../nifi-api';
 
     getElGuide(): Observable<any> {
         return this.httpClient.get(`${ElService.DOCS}/html/expression-language-guide.html`, { responseType: 'text' });

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Snippet, SnippetComponentRequest } from '../state/flow';
@@ -25,13 +25,11 @@ import { Client } from '../../../service/client.service';
 
 @Injectable({ providedIn: 'root' })
 export class SnippetService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     marshalSnippet(components: SnippetComponentRequest[], processGroupId: string): Snippet {
         return components.reduce(

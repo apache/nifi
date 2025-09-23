@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Directive, ElementRef, HostListener, Input, NgZone, Renderer2 } from '@angular/core';
+import { Directive, ElementRef, HostListener, Input, NgZone, Renderer2, inject } from '@angular/core';
 import { fromEvent, Subscription, switchMap, take } from 'rxjs';
 
 @Directive({
@@ -25,16 +25,14 @@ import { fromEvent, Subscription, switchMap, take } from 'rxjs';
     standalone: true
 })
 export class CopyDirective {
+    private elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+    private renderer = inject(Renderer2);
+    private zone = inject(NgZone);
+
     @Input({ required: true }) copy!: string;
 
     private copyButton: HTMLElement | null = null;
     private subscription: Subscription | null = null;
-
-    constructor(
-        private elementRef: ElementRef<HTMLElement>,
-        private renderer: Renderer2,
-        private zone: NgZone
-    ) {}
 
     isClipboardAvailable(): boolean {
         // system clipboard interaction requires the browser to be in a secured context.

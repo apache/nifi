@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take } from 'rxjs';
@@ -59,12 +59,14 @@ import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.
     styleUrls: ['./reporting-tasks.component.scss']
 })
 export class ReportingTasks implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     reportingTaskState$ = this.store.select(selectReportingTasksState);
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedReportingTask)
             .pipe(

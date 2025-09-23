@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class BucketsService {
-    private static readonly API: string = '../nifi-registry-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-registry-api';
 
     getBuckets(): Observable<any> {
         // const mockError: HttpErrorResponse = new HttpErrorResponse({

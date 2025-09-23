@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -68,6 +68,12 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })
 export class EditFlowAnalysisRule extends TabbedDialog {
+    request = inject<EditFlowAnalysisRuleDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() saving$!: Observable<boolean>;
@@ -95,14 +101,9 @@ export class EditFlowAnalysisRule extends TabbedDialog {
         }
     ];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditFlowAnalysisRuleDialogRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private nifiCommon: NiFiCommon,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         super('edit-flow-analysis-rule-selected-index');
+        const request = this.request;
 
         this.readonly =
             !request.flowAnalysisRule.permissions.canWrite || request.flowAnalysisRule.status.runStatus !== 'DISABLED';

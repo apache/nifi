@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -57,6 +57,9 @@ import { selectAbout } from '../../../../state/about/about.selectors';
     standalone: false
 })
 export class ManageRemotePorts implements OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+
     initialSortColumn: 'name' | 'type' | 'tasks' | 'count' | 'size' | 'duration' | 'compression' | 'actions' = 'name';
     initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
@@ -85,10 +88,7 @@ export class ManageRemotePorts implements OnDestroy {
     private currentRpgId!: string;
     protected currentRpg: any | null = null;
 
-    constructor(
-        private store: Store<NiFiState>,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         // load the ports after the flow configuration `timeOffset` and about `timezone` are loaded into the store
         this.store
             .select(selectTimeOffset)

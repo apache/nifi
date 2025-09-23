@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -25,11 +25,15 @@ import { DARK_THEME, LIGHT_THEME, OS_SETTING, Storage, ThemingService } from '@n
 @Component({
     selector: 'app-header',
     standalone: true,
-    imports: [CommonModule, NgOptimizedImage, RouterModule, MatButton, MatMenu, MatMenuItem, MatMenuTrigger],
+    imports: [NgOptimizedImage, RouterModule, MatButton, MatMenu, MatMenuItem, MatMenuTrigger],
     templateUrl: './header.component.html',
     styleUrl: './header.component.scss'
 })
 export class HeaderComponent {
+    private storage = inject(Storage);
+    private themingService = inject(ThemingService);
+    private router = inject(Router);
+
     theme: any | undefined;
     darkModeOn: boolean | undefined;
     LIGHT_THEME: string = LIGHT_THEME;
@@ -37,11 +41,7 @@ export class HeaderComponent {
     OS_SETTING: string = OS_SETTING;
     disableAnimations: string | null;
 
-    constructor(
-        private storage: Storage,
-        private themingService: ThemingService,
-        private router: Router
-    ) {
+    constructor() {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         this.theme = this.storage.getItem('theme');
         this.disableAnimations = this.storage.getItem('disable-animations');

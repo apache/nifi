@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, model } from '@angular/core';
+import { Component, model, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
@@ -57,6 +57,8 @@ import { BreadcrumbEntity } from '../../../../state/shared';
     styleUrl: './flow-analysis-drawer.component.scss'
 })
 export class FlowAnalysisDrawerComponent {
+    private store = inject(Store);
+
     violationsMap = new Map();
     warningRules: FlowAnalysisRule[] = [];
     enforcedRules: FlowAnalysisRule[] = [];
@@ -71,7 +73,7 @@ export class FlowAnalysisDrawerComponent {
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
     processGroupName = '';
 
-    constructor(private store: Store) {
+    constructor() {
         this.store.dispatch(startPollingFlowAnalysis());
         this.flowAnalysisState$.pipe(takeUntilDestroyed()).subscribe((res) => {
             this.clearRulesTracking();

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, OnInit, Output, Signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, Signal, inject } from '@angular/core';
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -32,7 +32,7 @@ import { Observable, of, take } from 'rxjs';
 import { BranchEntity, BucketEntity, RegistryClientEntity } from '../../../../../../../state/shared';
 import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation } from '../../../../../state/flow';
 import { TextTip, NiFiCommon, NifiTooltipDirective, CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { MatInput } from '@angular/material/input';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
@@ -53,8 +53,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         NifiTooltipDirective,
         MatError,
         MatLabel,
-        NgForOf,
-        NgIf,
         MatInput,
         ContextErrorBanner
     ],
@@ -62,6 +60,10 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     styleUrl: './save-version-dialog.component.scss'
 })
 export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
+    private dialogRequest = inject<SaveVersionDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
     @Input() getBuckets: (registryId: string, branch?: string | null) => Observable<BucketEntity[]> = () => of([]);
     @Input({ required: true }) saving!: Signal<boolean>;
@@ -78,12 +80,11 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
 
     private clientBranchingSupportMap: Map<string, boolean> = new Map<string, boolean>();
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: SaveVersionDialogRequest,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super();
+        const dialogRequest = this.dialogRequest;
+        const formBuilder = this.formBuilder;
+
         this.versionControlInformation = dialogRequest.versionControlInformation;
         this.forceCommit = !!dialogRequest.forceCommit;
 

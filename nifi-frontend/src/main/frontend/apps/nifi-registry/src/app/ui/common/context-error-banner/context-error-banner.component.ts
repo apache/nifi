@@ -35,6 +35,8 @@ import { ErrorContextKey } from '../../../state/error';
     styleUrl: './context-error-banner.component.scss'
 })
 export class ContextErrorBanner implements OnDestroy {
+    private store = inject<Store<NiFiRegistryState>>(Store);
+
     private _context!: ErrorContextKey;
     @Input({ required: true }) set context(context: ErrorContextKey) {
         this._context = context;
@@ -47,8 +49,6 @@ export class ContextErrorBanner implements OnDestroy {
 
     messages$: Observable<string[]> | null = null;
     private destroyRef: DestroyRef = inject(DestroyRef);
-
-    constructor(private store: Store<NiFiRegistryState>) {}
 
     ngOnDestroy(): void {
         this.store.dispatch(clearBannerErrors({ context: this.context }));

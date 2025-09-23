@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { EditTenantRequest, EditTenantResponse, UserEntity, UserGroupEntity } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
@@ -63,6 +63,11 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
     styleUrls: ['./edit-tenant-dialog.component.scss']
 })
 export class EditTenantDialog extends CloseOnEscapeDialog {
+    private request = inject<EditTenantRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+
     @Input() saving$!: Observable<boolean>;
     @Output() editTenant: EventEmitter<EditTenantResponse> = new EventEmitter<EditTenantResponse>();
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();
@@ -79,13 +84,10 @@ export class EditTenantDialog extends CloseOnEscapeDialog {
     users: UserEntity[];
     userGroups: UserGroupEntity[];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private request: EditTenantRequest,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon,
-        private client: Client
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         const user: UserEntity | undefined = request.user;
         const userGroup: UserGroupEntity | undefined = request.userGroup;
 

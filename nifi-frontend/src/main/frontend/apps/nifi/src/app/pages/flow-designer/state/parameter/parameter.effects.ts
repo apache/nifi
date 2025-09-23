@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterActions from './parameter.actions';
@@ -50,17 +50,15 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ParameterEffects {
-    private parameterContextDialogRef: MatDialogRef<EditParameterContext, any> | undefined;
+    private actions$ = inject(Actions);
+    private store = inject<Store<CanvasState>>(Store);
+    private parameterService = inject(ParameterService);
+    private parameterContextService = inject(ParameterContextService);
+    private errorHelper = inject(ErrorHelper);
+    private storage = inject(Storage);
+    private dialog = inject(MatDialog);
 
-    constructor(
-        private actions$: Actions,
-        private store: Store<CanvasState>,
-        private parameterService: ParameterService,
-        private parameterContextService: ParameterContextService,
-        private errorHelper: ErrorHelper,
-        private storage: Storage,
-        private dialog: MatDialog
-    ) {}
+    private parameterContextDialogRef: MatDialogRef<EditParameterContext, any> | undefined;
 
     submitParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(

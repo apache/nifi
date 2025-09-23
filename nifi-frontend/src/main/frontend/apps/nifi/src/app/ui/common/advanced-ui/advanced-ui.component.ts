@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, SecurityContext } from '@angular/core';
+import { Component, SecurityContext, inject } from '@angular/core';
 import { NiFiState } from '../../../state';
 import { Store } from '@ngrx/store';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -33,15 +33,15 @@ import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/
     styleUrls: ['./advanced-ui.component.scss']
 })
 export class AdvancedUi {
+    private store = inject<Store<NiFiState>>(Store);
+    private domSanitizer = inject(DomSanitizer);
+    protected systemTokensService = inject(SystemTokensService);
+
     frameSource!: SafeResourceUrl | null;
 
     private params: AdvancedUiParams | null = null;
 
-    constructor(
-        private store: Store<NiFiState>,
-        private domSanitizer: DomSanitizer,
-        protected systemTokensService: SystemTokensService
-    ) {
+    constructor() {
         this.store
             .select(selectRouteData)
             .pipe(takeUntilDestroyed(), isDefinedAndNotNull())

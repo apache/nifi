@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as TransformActions from './transform.actions';
@@ -36,16 +36,14 @@ interface StorageTransform {
 
 @Injectable()
 export class TransformEffects {
-    private static readonly VIEW_PREFIX: string = 'nifi-view-';
+    private actions$ = inject(Actions);
+    private store = inject<Store<CanvasState>>(Store);
+    private storage = inject(Storage);
+    private canvasView = inject(CanvasView);
+    private birdseyeView = inject(BirdseyeView);
+    private labelManager = inject(LabelManager);
 
-    constructor(
-        private actions$: Actions,
-        private store: Store<CanvasState>,
-        private storage: Storage,
-        private canvasView: CanvasView,
-        private birdseyeView: BirdseyeView,
-        private labelManager: LabelManager
-    ) {}
+    private static readonly VIEW_PREFIX: string = 'nifi-view-';
 
     transformComplete$ = createEffect(() =>
         this.actions$.pipe(

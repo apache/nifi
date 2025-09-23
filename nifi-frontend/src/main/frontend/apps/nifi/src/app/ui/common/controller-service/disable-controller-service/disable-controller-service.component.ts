@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject, Input, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, OnDestroy, TemplateRef, ViewChild, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
     ControllerServiceReferencingComponent,
@@ -62,6 +62,9 @@ import {
     styleUrls: ['./disable-controller-service.component.scss']
 })
 export class DisableControllerService extends CloseOnEscapeDialog implements OnDestroy {
+    request = inject<SetEnableControllerServiceDialogRequest>(MAT_DIALOG_DATA);
+    private store = inject<Store<ControllerServiceState>>(Store);
+
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 
     protected readonly TextTip = TextTip;
@@ -75,11 +78,10 @@ export class DisableControllerService extends CloseOnEscapeDialog implements OnD
     @ViewChild('stepInProgress') stepInProgress!: TemplateRef<any>;
     @ViewChild('stepNotStarted') stepNotStarted!: TemplateRef<any>;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: SetEnableControllerServiceDialogRequest,
-        private store: Store<ControllerServiceState>
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         this.store.dispatch(
             setControllerService({
                 request: {

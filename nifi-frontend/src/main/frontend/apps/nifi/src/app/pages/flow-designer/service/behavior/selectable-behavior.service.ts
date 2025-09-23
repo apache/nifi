@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import * as d3 from 'd3';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
@@ -26,7 +26,7 @@ import { SelectedComponent } from '../../state/flow';
     providedIn: 'root'
 })
 export class SelectableBehavior {
-    constructor(private store: Store<CanvasState>) {}
+    private store = inject<Store<CanvasState>>(Store);
 
     public select(event: MouseEvent, g: any): void {
         const components: SelectedComponent[] = g.data().map(function (d: any) {

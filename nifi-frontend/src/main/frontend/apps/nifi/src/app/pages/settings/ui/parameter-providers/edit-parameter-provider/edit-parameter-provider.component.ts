@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
-
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
@@ -75,6 +74,12 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
     styleUrls: ['./edit-parameter-provider.component.scss']
 })
 export class EditParameterProvider extends TabbedDialog {
+    request = inject<EditParameterProviderRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -90,14 +95,9 @@ export class EditParameterProvider extends TabbedDialog {
     editParameterProviderForm: FormGroup;
     readonly: boolean;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditParameterProviderRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private nifiCommon: NiFiCommon,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         super('edit-parameter-provider-selected-index');
+        const request = this.request;
 
         this.readonly = !request.parameterProvider.permissions.canWrite;
 

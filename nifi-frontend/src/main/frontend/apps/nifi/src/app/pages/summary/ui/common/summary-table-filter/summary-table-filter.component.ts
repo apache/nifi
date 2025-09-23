@@ -50,6 +50,8 @@ export interface SummaryTableFilterContext extends SummaryTableFilterArgs {
     styleUrls: ['./summary-table-filter.component.scss']
 })
 export class SummaryTableFilter implements AfterViewInit {
+    private formBuilder = inject(FormBuilder);
+
     filterForm: FormGroup;
     private _filteredCount = 0;
     private _totalCount = 0;
@@ -166,7 +168,7 @@ export class SummaryTableFilter implements AfterViewInit {
         return this._totalCount;
     }
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor() {
         this.filterForm = this.formBuilder.group({
             filterTerm: '',
             filterColumn: this._initialFilterColumn || 'name',

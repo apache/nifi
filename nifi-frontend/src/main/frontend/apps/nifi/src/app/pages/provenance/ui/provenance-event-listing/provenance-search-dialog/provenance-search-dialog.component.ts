@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -49,6 +49,10 @@ import { CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
     styleUrls: ['./provenance-search-dialog.component.scss']
 })
 export class ProvenanceSearchDialog extends CloseOnEscapeDialog {
+    request = inject<ProvenanceSearchDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() timezone!: string;
 
     @Output() submitSearchCriteria: EventEmitter<ProvenanceRequest> = new EventEmitter<ProvenanceRequest>();
@@ -61,12 +65,10 @@ export class ProvenanceSearchDialog extends CloseOnEscapeDialog {
     provenanceOptionsForm: FormGroup;
     searchLocationOptions: SelectOption[] = [];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: ProvenanceSearchDialogRequest,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         const now = new Date();
         this.clearTime(now);
 

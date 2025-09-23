@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Storage, ThemingService } from '@nifi/shared';
 
 @Component({
@@ -25,12 +25,12 @@ import { Storage, ThemingService } from '@nifi/shared';
     standalone: false
 })
 export class AppComponent {
+    private storage = inject(Storage);
+    private themingService = inject(ThemingService);
+
     title = 'update-attribute';
 
-    constructor(
-        private storage: Storage,
-        private themingService: ThemingService
-    ) {
+    constructor() {
         let theme = this.storage.getItem('theme');
 
         // Initially check if dark mode is enabled on system

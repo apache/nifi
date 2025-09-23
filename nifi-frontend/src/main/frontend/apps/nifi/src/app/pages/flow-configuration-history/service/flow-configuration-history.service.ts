@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { HistoryQueryRequest, PurgeHistoryRequest } from '../state/flow-configuration-history-listing';
 
 @Injectable({ providedIn: 'root' })
 export class FlowConfigurationHistoryService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getHistory(request: HistoryQueryRequest): Observable<any> {
         return this.httpClient.get(`${FlowConfigurationHistoryService.API}/flow/history`, { params: { ...request } });

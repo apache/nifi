@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject, Input, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, OnDestroy, TemplateRef, ViewChild, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -69,6 +69,10 @@ import {
     styleUrls: ['./enable-controller-service.component.scss']
 })
 export class EnableControllerService extends CloseOnEscapeDialog implements OnDestroy {
+    request = inject<SetEnableControllerServiceDialogRequest>(MAT_DIALOG_DATA);
+    private store = inject<Store<ControllerServiceState>>(Store);
+    private formBuilder = inject(FormBuilder);
+
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 
     protected readonly TextTip = TextTip;
@@ -85,12 +89,10 @@ export class EnableControllerService extends CloseOnEscapeDialog implements OnDe
     @ViewChild('stepInProgress') stepInProgress!: TemplateRef<any>;
     @ViewChild('stepNotStarted') stepNotStarted!: TemplateRef<any>;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: SetEnableControllerServiceDialogRequest,
-        private store: Store<ControllerServiceState>,
-        private formBuilder: FormBuilder
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         // build the form
         this.enableControllerServiceForm = this.formBuilder.group({
             scope: new FormControl(controllerServiceActionScopes[0].value, Validators.required)

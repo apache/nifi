@@ -44,12 +44,10 @@ import * as ErrorActions from '../../state/error/error.actions';
 
 @Injectable()
 export class DropletsEffects {
-    constructor(
-        private dropletsService: DropletsService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper,
-        private router: Router
-    ) {}
+    private dropletsService = inject(DropletsService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
+    private router = inject(Router);
 
     actions$ = inject(Actions);
 

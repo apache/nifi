@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CounterEntity, CounterListingState } from '../../state/counter-listing';
 import { Store } from '@ngrx/store';
 import {
@@ -38,10 +38,10 @@ import { CounterTable } from './counter-table/counter-table.component';
     styleUrls: ['./counter-listing.component.scss']
 })
 export class CounterListing implements OnInit {
+    private store = inject<Store<CounterListingState>>(Store);
+
     counterListingState$ = this.store.select(selectCounterListingState);
     currentUser$ = this.store.select(selectCurrentUser);
-
-    constructor(private store: Store<CounterListingState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadCounters());

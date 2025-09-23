@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -56,6 +56,15 @@ export class ConnectionRenderOptions {
     providedIn: 'root'
 })
 export class ConnectionManager implements OnDestroy {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private selectableBehavior = inject(SelectableBehavior);
+    private transitionBehavior = inject(TransitionBehavior);
+    private quickSelectBehavior = inject(QuickSelectBehavior);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     private destroyed$: Subject<boolean> = new Subject();
 
     private static readonly DIMENSIONS: Dimension = {
@@ -91,16 +100,7 @@ export class ConnectionManager implements OnDestroy {
 
     private snapEnabled = true;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private selectableBehavior: SelectableBehavior,
-        private transitionBehavior: TransitionBehavior,
-        private quickSelectBehavior: QuickSelectBehavior,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
+    constructor() {
         const self: ConnectionManager = this;
 
         // define the line generator

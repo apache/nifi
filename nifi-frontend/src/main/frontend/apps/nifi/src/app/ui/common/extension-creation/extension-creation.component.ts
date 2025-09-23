@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -53,6 +53,8 @@ import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
     styleUrls: ['./extension-creation.component.scss']
 })
 export class ExtensionCreation extends CloseOnEscapeDialog {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set documentedTypes(documentedTypes: DocumentedType[]) {
         if (this.selectedType == null && documentedTypes.length > 0) {
             this.selectedType = documentedTypes[0];
@@ -82,7 +84,7 @@ export class ExtensionCreation extends CloseOnEscapeDialog {
     dataSource: MatTableDataSource<DocumentedType> = new MatTableDataSource<DocumentedType>();
     selectedType: DocumentedType | null = null;
 
-    constructor(private nifiCommon: NiFiCommon) {
+    constructor() {
         super();
 
         const defaultPredicate = this.dataSource.filterPredicate;

@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -34,11 +33,14 @@ import {
 
 @Component({
     selector: 'droplet-table',
-    imports: [CommonModule, MatTableModule, MatSortModule, MatMenuModule, MatButtonModule, MatButtonModule],
+    imports: [MatTableModule, MatSortModule, MatMenuModule, MatButtonModule, MatButtonModule],
     templateUrl: './droplet-table.component.html',
     styleUrl: './droplet-table.component.scss'
 })
 export class DropletTableComponent implements OnInit {
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject(Store);
+
     @Input() buckets: Bucket[] = [];
     @Input() dataSource: MatTableDataSource<Droplet> = new MatTableDataSource<Droplet>();
     @Input() selectedId: string | null = null;
@@ -58,11 +60,6 @@ export class DropletTableComponent implements OnInit {
         active: 'name',
         direction: 'asc'
     };
-
-    constructor(
-        private nifiCommon: NiFiCommon,
-        private store: Store
-    ) {}
 
     ngOnInit(): void {
         this.sortData(this.sort);

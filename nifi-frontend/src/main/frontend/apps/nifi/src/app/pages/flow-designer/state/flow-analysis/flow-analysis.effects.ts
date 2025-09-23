@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NiFiState } from '../../../../state';
@@ -33,14 +33,12 @@ import { ViolationDetailsDialogComponent } from '../../ui/canvas/header/flow-ana
 
 @Injectable()
 export class FlowAnalysisEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private flowAnalysisService: FlowAnalysisService,
-        private errorHelper: ErrorHelper,
-        private router: Router,
-        private dialog: MatDialog
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private flowAnalysisService = inject(FlowAnalysisService);
+    private errorHelper = inject(ErrorHelper);
+    private router = inject(Router);
+    private dialog = inject(MatDialog);
 
     startPollingFlowAnalysis$ = createEffect(() =>
         this.actions$.pipe(

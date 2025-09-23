@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
@@ -76,6 +76,13 @@ import { BackNavigation } from '../../../state/navigation';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private client = inject(Client);
+    private canvasView = inject(CanvasView);
+    private canvasActionsService = inject(CanvasActionsService);
+    private draggableBehavior = inject(DraggableBehavior);
+
     private updatePositionRequestId = 0;
 
     readonly VERSION_MENU = {
@@ -1363,14 +1370,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
 
     private allMenus: Map<string, ContextMenuDefinition>;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private client: Client,
-        private canvasView: CanvasView,
-        private canvasActionsService: CanvasActionsService,
-        private draggableBehavior: DraggableBehavior
-    ) {
+    constructor() {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);
         this.allMenus.set(this.PROVENANCE_REPLAY.id, this.PROVENANCE_REPLAY);

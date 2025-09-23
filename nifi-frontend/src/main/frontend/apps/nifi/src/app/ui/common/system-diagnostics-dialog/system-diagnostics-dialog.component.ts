@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -49,15 +49,15 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
     styleUrls: ['./system-diagnostics-dialog.component.scss']
 })
 export class SystemDiagnosticsDialog extends TabbedDialog implements OnInit {
+    private store = inject<Store<SystemDiagnosticsState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+
     systemDiagnostics$ = this.store.select(selectSystemDiagnostics);
     loadedTimestamp$ = this.store.select(selectSystemDiagnosticsLoadedTimestamp);
     status$ = this.store.select(selectSystemDiagnosticsStatus);
     sortedGarbageCollections: GarbageCollection[] | null = null;
 
-    constructor(
-        private store: Store<SystemDiagnosticsState>,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super('system-diagnostics-selected-index');
     }
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as QueueActions from './queue.actions';
@@ -37,13 +37,11 @@ import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 
 @Injectable()
 export class QueueEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<CanvasState>,
-        private queueService: QueueService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<CanvasState>>(Store);
+    private queueService = inject(QueueService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     promptEmptyQueueRequest$ = createEffect(
         () =>

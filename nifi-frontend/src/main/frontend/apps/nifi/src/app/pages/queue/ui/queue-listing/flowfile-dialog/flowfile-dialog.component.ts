@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -49,15 +49,15 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
     ]
 })
 export class FlowFileDialog extends TabbedDialog {
+    request = inject<FlowFileDialogRequest>(MAT_DIALOG_DATA);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() contentViewerAvailable!: boolean;
 
     @Output() downloadContent: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewContent: EventEmitter<void> = new EventEmitter<void>();
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: FlowFileDialogRequest,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super('flowfile-dialog-selected-index');
     }
 

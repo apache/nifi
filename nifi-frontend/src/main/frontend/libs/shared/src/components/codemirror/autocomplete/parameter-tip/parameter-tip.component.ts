@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '../../../../services/nifi-common.service';
 import { Parameter, ParameterTipInput } from '../../../../types';
 
@@ -26,9 +26,9 @@ import { Parameter, ParameterTipInput } from '../../../../types';
     styleUrls: ['./parameter-tip.component.scss']
 })
 export class ParameterTip {
-    @Input() data: ParameterTipInput | null = null;
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    @Input() data: ParameterTipInput | null = null;
 
     hasDescription(parameter: Parameter): boolean {
         return !this.nifiCommon.isBlank(parameter.description);

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus,
@@ -45,6 +45,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrl: './cluster-provenance-storage-listing.component.scss'
 })
 export class ClusterProvenanceStorageListing {
+    private store = inject<Store<NiFiState>>(Store);
+
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
@@ -67,8 +69,6 @@ export class ClusterProvenanceStorageListing {
             }, expanded);
         })
     );
-
-    constructor(private store: Store<NiFiState>) {}
 
     isInitialLoading(loadedTimestamp: string): boolean {
         return loadedTimestamp == initialClusterState.loadedTimestamp;

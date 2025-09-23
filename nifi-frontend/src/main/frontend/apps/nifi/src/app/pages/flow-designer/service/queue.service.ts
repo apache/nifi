@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { NiFiCommon } from '@nifi/shared';
@@ -23,12 +23,10 @@ import { DropRequest, SubmitEmptyQueueRequest, SubmitEmptyQueuesRequest } from '
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(
-        private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     submitEmptyQueueRequest(emptyQueueRequest: SubmitEmptyQueueRequest): Observable<any> {
         return this.httpClient.post(

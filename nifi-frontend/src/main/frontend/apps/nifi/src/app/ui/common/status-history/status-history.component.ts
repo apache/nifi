@@ -21,7 +21,6 @@ import {
     DestroyRef,
     HostListener,
     inject,
-    Inject,
     OnInit,
     signal,
     WritableSignal
@@ -80,6 +79,12 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
     styleUrls: ['./status-history.component.scss']
 })
 export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterViewInit {
+    private statusHistoryService = inject(StatusHistoryService);
+    private store = inject<Store<StatusHistoryState>>(Store);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+    private dialogRequest = inject<StatusHistoryRequest>(MAT_DIALOG_DATA);
+
     request: StatusHistoryRequest;
     statusHistoryState$ = this.store.select(selectStatusHistoryState);
     componentDetails$ = this.store.select(selectStatusHistoryComponentDetails);
@@ -119,14 +124,10 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
     selectedDescriptor: FieldDescriptor | null = null;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    constructor(
-        private statusHistoryService: StatusHistoryService,
-        private store: Store<StatusHistoryState>,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon,
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: StatusHistoryRequest
-    ) {
+    constructor() {
         super();
+        const dialogRequest = this.dialogRequest;
+
         this.request = dialogRequest;
         this.statusHistoryForm = this.formBuilder.group({
             fieldDescriptor: '',

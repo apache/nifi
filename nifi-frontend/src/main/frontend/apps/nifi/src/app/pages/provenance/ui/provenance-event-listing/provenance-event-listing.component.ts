@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     GoToProvenanceEventSourceRequest,
@@ -62,6 +62,8 @@ import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
     styleUrls: ['./provenance-event-listing.component.scss']
 })
 export class ProvenanceEventListing implements OnInit, OnDestroy {
+    private store = inject<Store<ProvenanceEventListingState>>(Store);
+
     status$ = this.store.select(selectStatus);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
     provenance$ = this.store.select(selectCompletedProvenance);
@@ -71,7 +73,7 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
     request!: ProvenanceRequest;
     stateReset = false;
 
-    constructor(private store: Store<ProvenanceEventListingState>) {
+    constructor() {
         this.store
             .select(selectSearchableFieldsFromRoute)
             .pipe(

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus,
@@ -37,12 +37,12 @@ import { NodeSnapshot } from '../../../../state/system-diagnostics';
     styleUrl: './cluster-system-listing.component.scss'
 })
 export class ClusterSystemListing {
+    private store = inject<Store<NiFiState>>(Store);
+
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     nodes = this.store.selectSignal(selectSystemNodeSnapshots);
-
-    constructor(private store: Store<NiFiState>) {}
 
     isInitialLoading(loadedTimestamp: string): boolean {
         return loadedTimestamp == initialClusterState.loadedTimestamp;

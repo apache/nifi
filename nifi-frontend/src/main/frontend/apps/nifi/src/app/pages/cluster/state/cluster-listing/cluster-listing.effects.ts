@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ActionCreator, Creator, Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -37,14 +37,12 @@ import { concatLatestFrom } from '@ngrx/operators';
 
 @Injectable()
 export class ClusterListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private errorHelper: ErrorHelper,
-        private router: Router,
-        private clusterService: ClusterService,
-        private dialog: MatDialog
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private errorHelper = inject(ErrorHelper);
+    private router = inject(Router);
+    private clusterService = inject(ClusterService);
+    private dialog = inject(MatDialog);
 
     loadClusterListing$ = createEffect(() =>
         this.actions$.pipe(

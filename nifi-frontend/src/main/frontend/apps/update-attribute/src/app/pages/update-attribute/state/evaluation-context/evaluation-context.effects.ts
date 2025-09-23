@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as EvaluationContextActions from './evaluation-context.actions';
 import { UpdateAttributeService } from '../../service/update-attribute.service';
@@ -32,12 +32,10 @@ import { resetEvaluationContextFailure } from './evaluation-context.actions';
 
 @Injectable()
 export class EvaluationContextEffects {
-    constructor(
-        private actions$: Actions,
-        private snackBar: MatSnackBar,
-        private store: Store<UpdateAttributeApplicationState>,
-        private updateAttributeService: UpdateAttributeService
-    ) {}
+    private actions$ = inject(Actions);
+    private snackBar = inject(MatSnackBar);
+    private store = inject<Store<UpdateAttributeApplicationState>>(Store);
+    private updateAttributeService = inject(UpdateAttributeService);
 
     loadEvaluationContext$ = createEffect(() =>
         this.actions$.pipe(

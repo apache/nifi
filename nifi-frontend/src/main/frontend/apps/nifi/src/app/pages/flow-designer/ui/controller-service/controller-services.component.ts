@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, Observable, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -61,6 +61,8 @@ import { DocumentationRequest } from '../../../../state/documentation';
     standalone: false
 })
 export class ControllerServices implements OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
@@ -70,7 +72,7 @@ export class ControllerServices implements OnDestroy {
 
     private currentProcessGroupId!: string;
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         // load the controller services using the process group id from the route
         this.store
             .select(selectProcessGroupIdFromRoute)

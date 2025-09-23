@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { resetUsersState } from '../state/user-listing/user-listing.actions';
@@ -27,7 +27,7 @@ import { resetUsersState } from '../state/user-listing/user-listing.actions';
     standalone: false
 })
 export class Users implements OnDestroy {
-    constructor(private store: Store<NiFiState>) {}
+    private store = inject<Store<NiFiState>>(Store);
 
     ngOnDestroy(): void {
         this.store.dispatch(resetUsersState());

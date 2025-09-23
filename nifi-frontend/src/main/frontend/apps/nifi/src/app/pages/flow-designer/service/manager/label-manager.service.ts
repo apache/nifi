@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -41,6 +41,16 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
     providedIn: 'root'
 })
 export class LabelManager implements OnDestroy {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private positionBehavior = inject(PositionBehavior);
+    private selectableBehavior = inject(SelectableBehavior);
+    private quickSelectBehavior = inject(QuickSelectBehavior);
+    private editableBehavior = inject(EditableBehavior);
+
     private destroyed$: Subject<boolean> = new Subject();
 
     public static readonly INITIAL_WIDTH: number = 148;
@@ -56,17 +66,7 @@ export class LabelManager implements OnDestroy {
     private labelPointDrag: any;
     private snapEnabled = true;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService,
-        private positionBehavior: PositionBehavior,
-        private selectableBehavior: SelectableBehavior,
-        private quickSelectBehavior: QuickSelectBehavior,
-        private editableBehavior: EditableBehavior
-    ) {
+    constructor() {
         const self: LabelManager = this;
 
         // handle bend point drag events

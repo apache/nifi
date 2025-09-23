@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CreateProcessorDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
@@ -37,14 +37,12 @@ import {
     styleUrls: ['./create-processor.component.scss']
 })
 export class CreateProcessor {
+    private dialogRequest = inject<CreateProcessorDialogRequest>(MAT_DIALOG_DATA);
+    private store = inject<Store<CanvasState>>(Store);
+
     processorTypes$ = this.store.select(selectProcessorTypes);
     processorTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
     saving$ = this.store.select(selectSaving);
-
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateProcessorDialogRequest,
-        private store: Store<CanvasState>
-    ) {}
 
     createProcessor(processorType: DocumentedType): void {
         this.store.dispatch(

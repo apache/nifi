@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NiFiState } from '../../../../state';
@@ -41,14 +41,12 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class AccessPolicyEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private router: Router,
-        private accessPoliciesService: AccessPolicyService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private router = inject(Router);
+    private accessPoliciesService = inject(AccessPolicyService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     setAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
