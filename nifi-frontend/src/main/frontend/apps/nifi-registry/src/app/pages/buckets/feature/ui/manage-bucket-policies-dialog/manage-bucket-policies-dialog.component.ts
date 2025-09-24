@@ -15,34 +15,22 @@
  * limitations under the License.
  */
 
-export const errorFeatureKey = 'error';
+import { Component, inject } from '@angular/core';
+import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
 
-export interface ErrorDetail {
-    title: string;
-    message: string;
+export interface ManageBucketPoliciesDialogData {
+    bucket: Bucket;
 }
 
-export enum ErrorContextKey {
-    EXPORT_DROPLET_VERSION = 'droplet listing',
-    DELETE_DROPLET = 'delete droplet',
-    CREATE_DROPLET = 'create droplet',
-    IMPORT_DROPLET_VERSION = 'import droplet version',
-    CREATE_BUCKET = 'create bucket',
-    UPDATE_BUCKET = 'update bucket',
-    DELETE_BUCKET = 'delete bucket',
-    GLOBAL = 'global'
-}
-
-export interface ErrorContext {
-    context: ErrorContextKey;
-    errors: string[];
-}
-
-export interface BannerErrors {
-    // key should be the ErrorContextKey of the banner error
-    [key: string]: string[];
-}
-
-export interface ErrorState {
-    bannerErrors: BannerErrors;
+@Component({
+    selector: 'manage-bucket-policies-dialog',
+    templateUrl: './manage-bucket-policies-dialog.component.html',
+    styleUrl: './manage-bucket-policies-dialog.component.scss',
+    standalone: true,
+    imports: [MatDialogModule, MatButtonModule]
+})
+export class ManageBucketPoliciesDialogComponent {
+    protected data = inject<ManageBucketPoliciesDialogData>(MAT_DIALOG_DATA);
 }

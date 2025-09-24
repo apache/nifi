@@ -57,10 +57,6 @@ export class HeaderComponent {
         }
     }
 
-    goHome() {
-        this.router.navigateByUrl('/resources');
-    }
-
     toggleTheme(theme: string) {
         this.theme = theme;
         this.storage.setItem('theme', theme);
@@ -71,5 +67,13 @@ export class HeaderComponent {
         this.disableAnimations = disableAnimations;
         this.storage.setItem('disable-animations', this.disableAnimations.toString());
         window.location.reload();
+    }
+
+    navigateToResources() {
+        this.router.navigateByUrl('/explorer');
+    }
+
+    navigateToWorkflow() {
+        this.router.navigateByUrl('/buckets');
     }
 }
