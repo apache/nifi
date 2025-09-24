@@ -64,6 +64,10 @@
                     <artifactId>json</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>software.amazon.glue</groupId>
                     <artifactId>schema-registry-common</artifactId>
                 </exclusion>
@@ -72,6 +76,11 @@
                     <artifactId>schema-registry-serde</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- Overriding old netty-nio-client version with vulnerabilities from amazon-kinesis-client -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>netty-nio-client</artifactId>
         </dependency>
 
         <!-- TEST DEPENDENCIES -->
