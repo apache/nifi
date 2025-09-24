@@ -356,6 +356,57 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(parameterized, null, flowManager, context));
     }
 
+    @Test
+    public void testPropertyRenameWithMatchingValueObservedAsEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+
+        final String processorInstanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(processorInstanceId)).thenReturn(processorNode);
+
+        final String groupId = "group-id";
+        final String versionedId = "versioned-id";
+        final String controllerServiceId = "service-id";
+        final String legacyPropertyName = "box-client-service";
+        final String renamedPropertyName = "Box Client Service";
+
+        final VersionedProcessor versionedProcessor = new VersionedProcessor();
+        versionedProcessor.setComponentType(ComponentType.PROCESSOR);
+        versionedProcessor.setIdentifier(versionedId);
+        versionedProcessor.setProperties(Map.of(legacyPropertyName, controllerServiceId));
+
+        final InstantiatedVersionedProcessor instantiatedProcessor = new InstantiatedVersionedProcessor(processorInstanceId, groupId);
+        instantiatedProcessor.setComponentType(ComponentType.PROCESSOR);
+        instantiatedProcessor.setIdentifier(versionedId);
+        instantiatedProcessor.setProperties(Map.of(renamedPropertyName, controllerServiceId));
+
+        final FlowDifference propertyRemoved = new StandardFlowDifference(
+                DifferenceType.PROPERTY_REMOVED,
+                versionedProcessor,
+                instantiatedProcessor,
+                legacyPropertyName,
+                controllerServiceId,
+                null,
+                "Legacy property removed");
+
+        final FlowDifference propertyAdded = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED,
+                versionedProcessor,
+                instantiatedProcessor,
+                renamedPropertyName,
+                null,
+                controllerServiceId,
+                "Renamed property added");
+
+        final List<FlowDifference> differences = List.of(propertyRemoved, propertyAdded);
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext context = FlowDifferenceFilters.buildEnvironmentalChangeContext(differences, flowManager);
+
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyRemoved, null, flowManager, context));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyAdded, null, flowManager, context));
+    }
+
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
     private static class DynamicAnnotationProcessor extends AbstractProcessor {
         @Override

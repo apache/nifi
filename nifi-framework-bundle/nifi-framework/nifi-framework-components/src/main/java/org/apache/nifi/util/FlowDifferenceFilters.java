@@ -95,7 +95,8 @@ public class FlowDifferenceFilters {
             || isLogFileSuffixChange(difference)
             || isStaticPropertyRemoved(difference, flowManager)
             || isControllerServiceCreatedForNewProperty(difference, evaluatedContext)
-            || isPropertyParameterizationRename(difference, evaluatedContext);
+            || isPropertyParameterizationRename(difference, evaluatedContext)
+            || isPropertyRenameWithMatchingValue(difference, evaluatedContext);
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
@@ -585,6 +586,8 @@ public class FlowDifferenceFilters {
         final Set<String> serviceIdsReferencedByNewProperties = new HashSet<>();
         final Map<String, List<PropertyDiffInfo>> parameterizedAddsByComponent = new HashMap<>();
         final Map<String, List<PropertyDiffInfo>> parameterizationRemovalsByComponent = new HashMap<>();
+        final Map<String, List<PropertyDiffInfo>> propertyAddsByComponent = new HashMap<>();
+        final Map<String, List<PropertyDiffInfo>> propertyRemovalsByComponent = new HashMap<>();
 
         for (final FlowDifference difference : differences) {
             if (difference.getDifferenceType() == DifferenceType.PROPERTY_ADDED) {
@@ -601,6 +604,20 @@ public class FlowDifferenceFilters {
                             }
                         }
                     }
+                }
+
+                final Optional<String> componentIdOptional = getComponentInstanceIdentifier(difference);
+                if (componentIdOptional.isPresent()) {
+                    final PropertyDiffInfo diffInfo = new PropertyDiffInfo(getPropertyValue(difference, false), difference);
+                    propertyAddsByComponent.computeIfAbsent(componentIdOptional.get(), key -> new ArrayList<>()).add(diffInfo);
+                }
+            }
+
+            if (difference.getDifferenceType() == DifferenceType.PROPERTY_REMOVED) {
+                final Optional<String> componentIdOptional = getComponentInstanceIdentifier(difference);
+                if (componentIdOptional.isPresent()) {
+                    final PropertyDiffInfo diffInfo = new PropertyDiffInfo(getPropertyValue(difference, true), difference);
+                    propertyRemovalsByComponent.computeIfAbsent(componentIdOptional.get(), key -> new ArrayList<>()).add(diffInfo);
                 }
             } else if (difference.getDifferenceType() == DifferenceType.PROPERTY_PARAMETERIZED
                     || difference.getDifferenceType() == DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED) {
@@ -676,14 +693,52 @@ public class FlowDifferenceFilters {
             }
         }
 
-        final EnvironmentalChangeContext environmentalChangeContext;
-        if (serviceIdsWithMatchingAdditions.isEmpty() && parameterizedPropertyRenameDifferences.isEmpty()) {
-            environmentalChangeContext = EnvironmentalChangeContext.empty();
-        } else {
-            environmentalChangeContext = new EnvironmentalChangeContext(serviceIdsWithMatchingAdditions, parameterizedPropertyRenameDifferences);
+        final Set<FlowDifference> propertyRenamesWithMatchingValues = new HashSet<>();
+        for (final Map.Entry<String, List<PropertyDiffInfo>> entry : propertyRemovalsByComponent.entrySet()) {
+            final String componentId = entry.getKey();
+            final List<PropertyDiffInfo> removals = entry.getValue();
+            final List<PropertyDiffInfo> additions = new ArrayList<>(propertyAddsByComponent.getOrDefault(componentId, Collections.emptyList()));
+            if (additions.isEmpty()) {
+                continue;
+            }
+
+            for (final PropertyDiffInfo removalInfo : removals) {
+                final Optional<String> removalValue = removalInfo.propertyValue();
+                if (removalValue.isEmpty()) {
+                    continue;
+                }
+
+                PropertyDiffInfo matchingAddition = null;
+                for (final Iterator<PropertyDiffInfo> iterator = additions.iterator(); iterator.hasNext();) {
+                    final PropertyDiffInfo additionInfo = iterator.next();
+                    final Optional<String> additionValue = additionInfo.propertyValue();
+                    if (additionValue.isEmpty()) {
+                        continue;
+                    }
+
+                    if (valuesMatch(removalValue, additionValue)) {
+                        matchingAddition = additionInfo;
+                        iterator.remove();
+                        break;
+                    }
+                }
+
+                if (matchingAddition != null) {
+                    final String removalField = removalInfo.difference().getFieldName().orElse(null);
+                    final String additionField = matchingAddition.difference().getFieldName().orElse(null);
+                    if (!Objects.equals(removalField, additionField)) {
+                        propertyRenamesWithMatchingValues.add(removalInfo.difference());
+                        propertyRenamesWithMatchingValues.add(matchingAddition.difference());
+                    }
+                }
+            }
         }
 
-        return environmentalChangeContext;
+        if (serviceIdsWithMatchingAdditions.isEmpty() && parameterizedPropertyRenameDifferences.isEmpty() && propertyRenamesWithMatchingValues.isEmpty()) {
+            return EnvironmentalChangeContext.empty();
+        }
+
+        return new EnvironmentalChangeContext(serviceIdsWithMatchingAdditions, parameterizedPropertyRenameDifferences, propertyRenamesWithMatchingValues);
     }
 
     public static boolean isControllerServiceCreatedForNewProperty(final FlowDifference difference, final EnvironmentalChangeContext context) {
@@ -737,6 +792,11 @@ public class FlowDifferenceFilters {
     public static boolean isPropertyParameterizationRename(final FlowDifference difference, final EnvironmentalChangeContext context) {
         final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
         return evaluatedContext.parameterizedPropertyRenames().isEmpty() ? false : evaluatedContext.parameterizedPropertyRenames().contains(difference);
+    }
+
+    public static boolean isPropertyRenameWithMatchingValue(final FlowDifference difference, final EnvironmentalChangeContext context) {
+        final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
+        return evaluatedContext.propertyRenamesWithMatchingValues().isEmpty() ? false : evaluatedContext.propertyRenamesWithMatchingValues().contains(difference);
     }
 
     private static Optional<String> getComponentInstanceIdentifier(final FlowDifference difference) {
@@ -805,6 +865,27 @@ public class FlowDifferenceFilters {
         return parameterReference;
     }
 
+    private static Optional<String> getPropertyValue(final FlowDifference difference, final boolean fromComponentA) {
+        final Optional<String> fieldNameOptional = difference.getFieldName();
+        if (fieldNameOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        final VersionedComponent component = fromComponentA ? difference.getComponentA() : difference.getComponentB();
+        final Map<String, String> properties = getProperties(component);
+        final String propertyValue = properties.get(fieldNameOptional.get());
+        if (propertyValue != null) {
+            return Optional.of(propertyValue);
+        }
+
+        final Object differenceValue = fromComponentA ? difference.getValueA() : difference.getValueB();
+        if (differenceValue instanceof String stringValue) {
+            return Optional.of(stringValue);
+        }
+
+        return Optional.empty();
+    }
+
     private static Map<String, String> getProperties(final VersionedComponent component) {
         final Map<String, String> properties;
 
@@ -852,15 +933,18 @@ public class FlowDifferenceFilters {
     }
 
     public static final class EnvironmentalChangeContext {
-        private static final EnvironmentalChangeContext EMPTY = new EnvironmentalChangeContext(Collections.emptySet(), Collections.emptySet());
+        private static final EnvironmentalChangeContext EMPTY = new EnvironmentalChangeContext(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
 
         private final Set<String> serviceIdsCreatedForNewProperties;
         private final Set<FlowDifference> parameterizedPropertyRenames;
+        private final Set<FlowDifference> propertyRenamesWithMatchingValues;
 
         private EnvironmentalChangeContext(final Set<String> serviceIdsCreatedForNewProperties,
-                                           final Set<FlowDifference> parameterizedPropertyRenames) {
+                                           final Set<FlowDifference> parameterizedPropertyRenames,
+                                           final Set<FlowDifference> propertyRenamesWithMatchingValues) {
             this.serviceIdsCreatedForNewProperties = Collections.unmodifiableSet(new HashSet<>(serviceIdsCreatedForNewProperties));
             this.parameterizedPropertyRenames = Collections.unmodifiableSet(new HashSet<>(parameterizedPropertyRenames));
+            this.propertyRenamesWithMatchingValues = Collections.unmodifiableSet(new HashSet<>(propertyRenamesWithMatchingValues));
         }
 
         static EnvironmentalChangeContext empty() {
@@ -873,6 +957,10 @@ public class FlowDifferenceFilters {
 
         Set<FlowDifference> parameterizedPropertyRenames() {
             return parameterizedPropertyRenames;
+        }
+
+        Set<FlowDifference> propertyRenamesWithMatchingValues() {
+            return propertyRenamesWithMatchingValues;
         }
     }
 }
