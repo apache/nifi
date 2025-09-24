@@ -18,8 +18,12 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -36,10 +40,13 @@ import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 
@@ -96,7 +103,8 @@ public class FlowDifferenceFilters {
             || isStaticPropertyRemoved(difference, flowManager)
             || isControllerServiceCreatedForNewProperty(difference, evaluatedContext)
             || isPropertyParameterizationRename(difference, evaluatedContext)
-            || isPropertyRenameWithMatchingValue(difference, evaluatedContext);
+            || isPropertyRenameWithMatchingValue(difference, evaluatedContext)
+            || isSelectedRelationshipChangeForNewRelationship(difference, flowManager);
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
@@ -434,6 +442,97 @@ public class FlowDifferenceFilters {
             }
 
             if (hasConnection(processGroup, processorA, relationshipName)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean isSelectedRelationshipChangeForNewRelationship(final FlowDifference difference, final FlowManager flowManager) {
+        if (difference.getDifferenceType() != DifferenceType.SELECTED_RELATIONSHIPS_CHANGED) {
+            return false;
+        }
+
+        if (!(difference.getComponentA() instanceof VersionedConnection connectionA)) {
+            return false;
+        }
+
+        if (!(difference.getComponentB() instanceof InstantiatedVersionedConnection connectionB)) {
+            return false;
+        }
+
+        final Set<String> selectedA = new HashSet<>(replaceNull(connectionA.getSelectedRelationships(), Collections.emptySet()));
+        final Set<String> selectedB = new HashSet<>(replaceNull(connectionB.getSelectedRelationships(), Collections.emptySet()));
+
+        final Set<String> newlySelected = new HashSet<>(selectedB);
+        newlySelected.removeAll(selectedA);
+        if (newlySelected.isEmpty()) {
+            return false;
+        }
+
+        final Set<String> removedRelationships = new HashSet<>(selectedA);
+        removedRelationships.removeAll(selectedB);
+
+        if (flowManager == null) {
+            return false;
+        }
+
+        final String connectionInstanceId = connectionB.getInstanceIdentifier();
+        final String connectionGroupId = connectionB.getInstanceGroupId();
+        if (connectionInstanceId == null || connectionGroupId == null) {
+            return false;
+        }
+
+        final ProcessGroup processGroup = flowManager.getGroup(connectionGroupId);
+        if (processGroup == null) {
+            return false;
+        }
+
+        final Connection connection = processGroup.getConnection(connectionInstanceId);
+        if (connection == null) {
+            return false;
+        }
+
+        final Connectable source = connection.getSource();
+        if (source == null || source.getConnectableType() != ConnectableType.PROCESSOR) {
+            return false;
+        }
+
+        final ProcessorNode processorNode = flowManager.getProcessorNode(source.getIdentifier());
+        if (processorNode == null) {
+            return false;
+        }
+
+        final Processor processor = processorNode.getProcessor();
+        if (processor != null) {
+            final Class<?> processorClass = processor.getClass();
+            if (processorClass.isAnnotationPresent(DynamicRelationship.class)) {
+                return false;
+            }
+        }
+
+        for (final String relationshipName : newlySelected) {
+            final Relationship relationship = processorNode.getRelationship(relationshipName);
+            if (relationship == null) {
+                return false;
+            }
+
+            if (processorNode.isAutoTerminated(relationship)) {
+                return false;
+            }
+
+            final Set<Connection> relationshipConnections = replaceNull(processorNode.getConnections(relationship), Collections.emptySet());
+            for (final Connection relationshipConnection : relationshipConnections) {
+                if (!relationshipConnection.getIdentifier().equals(connection.getIdentifier())) {
+                    return false;
+                }
+            }
+        }
+
+        for (final String removedRelationshipName : removedRelationships) {
+            final Relationship removedRelationship = processorNode.getRelationship(removedRelationshipName);
+            if (removedRelationship != null) {
                 return false;
             }
         }
