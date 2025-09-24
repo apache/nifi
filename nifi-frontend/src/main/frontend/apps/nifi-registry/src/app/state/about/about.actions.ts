@@ -15,33 +15,14 @@
  * limitations under the License.
  */
 
-export const errorFeatureKey = 'error';
+import { createAction, props } from '@ngrx/store';
+import { LoadAboutResponse } from './index';
 
-export interface ErrorDetail {
-    title: string;
-    message: string;
-}
+export const loadAbout = createAction('[Registry About] Load About');
 
-export enum ErrorContextKey {
-    ABOUT = 'about',
-    EXPORT_DROPLET_VERSION = 'droplet listing',
-    CREATE_DROPLET = 'create droplet',
-    IMPORT_DROPLET_VERSION = 'import droplet version',
-    CREATE_BUCKET = 'create bucket',
-    UPDATE_BUCKET = 'update bucket',
-    GLOBAL = 'global'
-}
+export const loadAboutSuccess = createAction(
+    '[Registry About] Load About Success',
+    props<{ response: LoadAboutResponse }>()
+);
 
-export interface ErrorContext {
-    context: ErrorContextKey;
-    errors: string[];
-}
-
-export interface BannerErrors {
-    // key should be the ErrorContextKey of the banner error
-    [key: string]: string[];
-}
-
-export interface ErrorState {
-    bannerErrors: BannerErrors;
-}
+export const openAboutDialog = createAction('[Registry About] Open About Dialog');

@@ -15,33 +15,26 @@
  * limitations under the License.
  */
 
-export const errorFeatureKey = 'error';
+import { createReducer, on } from '@ngrx/store';
+import { AboutState } from './index';
+import { loadAbout, loadAboutSuccess } from './about.actions';
 
-export interface ErrorDetail {
-    title: string;
-    message: string;
-}
+export const initialState: AboutState = {
+    about: null,
+    status: 'pending'
+};
 
-export enum ErrorContextKey {
-    ABOUT = 'about',
-    EXPORT_DROPLET_VERSION = 'droplet listing',
-    CREATE_DROPLET = 'create droplet',
-    IMPORT_DROPLET_VERSION = 'import droplet version',
-    CREATE_BUCKET = 'create bucket',
-    UPDATE_BUCKET = 'update bucket',
-    GLOBAL = 'global'
-}
-
-export interface ErrorContext {
-    context: ErrorContextKey;
-    errors: string[];
-}
-
-export interface BannerErrors {
-    // key should be the ErrorContextKey of the banner error
-    [key: string]: string[];
-}
-
-export interface ErrorState {
-    bannerErrors: BannerErrors;
-}
+export const aboutReducer = createReducer(
+    initialState,
+    on(loadAbout, (state) => ({
+        ...state,
+        status: 'loading' as const
+    })),
+    on(loadAboutSuccess, (state, { response }) => ({
+        ...state,
+        about: {
+            registryVersion: response.registryAboutVersion
+        },
+        status: 'success' as const
+    }))
+);

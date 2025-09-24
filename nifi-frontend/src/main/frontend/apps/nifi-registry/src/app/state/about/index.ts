@@ -15,33 +15,17 @@
  * limitations under the License.
  */
 
-export const errorFeatureKey = 'error';
+export const aboutFeatureKey = 'about';
 
-export interface ErrorDetail {
-    title: string;
-    message: string;
+export interface LoadAboutResponse {
+    registryAboutVersion: string;
 }
 
-export enum ErrorContextKey {
-    ABOUT = 'about',
-    EXPORT_DROPLET_VERSION = 'droplet listing',
-    CREATE_DROPLET = 'create droplet',
-    IMPORT_DROPLET_VERSION = 'import droplet version',
-    CREATE_BUCKET = 'create bucket',
-    UPDATE_BUCKET = 'update bucket',
-    GLOBAL = 'global'
+export interface About {
+    registryVersion: string;
 }
 
-export interface ErrorContext {
-    context: ErrorContextKey;
-    errors: string[];
-}
-
-export interface BannerErrors {
-    // key should be the ErrorContextKey of the banner error
-    [key: string]: string[];
-}
-
-export interface ErrorState {
-    bannerErrors: BannerErrors;
+export interface AboutState {
+    about: About | null;
+    status: 'pending' | 'loading' | 'success';
 }
