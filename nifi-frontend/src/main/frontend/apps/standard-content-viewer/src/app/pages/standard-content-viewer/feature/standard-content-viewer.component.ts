@@ -19,17 +19,22 @@ import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { StandardContentViewerState } from '../../../state';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { isDefinedAndNotNull, selectQueryParams, CodeMirrorConfig } from '@nifi/shared';
+import {
+    isDefinedAndNotNull,
+    selectQueryParams,
+    CodeMirrorConfig,
+    jsonHighlightStyle,
+    xmlHighlightStyle,
+    yamlHighlightStyle
+} from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ContentViewerService } from '../service/content-viewer.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { EditorState, Extension, Prec } from '@codemirror/state';
 import {
     bracketMatching,
-    defaultHighlightStyle,
     foldGutter,
     foldKeymap,
-    HighlightStyle,
     indentOnInput,
     indentUnit,
     syntaxHighlighting
@@ -43,7 +48,6 @@ import {
     lineNumbers,
     rectangularSelection
 } from '@codemirror/view';
-import { tags as t } from '@lezer/highlight';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { xml } from '@codemirror/lang-xml';
@@ -125,37 +129,6 @@ export class StandardContentViewer {
                 EditorView.contentAttributes.of({ 'aria-label': 'Code Editor' })
             ];
 
-            // Define highlight styles
-            const xmlHighlightStyle = HighlightStyle.define([
-                { tag: t.tagName, color: 'var(--editor-keyword)' },
-                { tag: t.attributeName, color: 'var(--editor-attribute-name)' },
-                { tag: t.attributeValue, color: 'var(--editor-string)' },
-                { tag: t.angleBracket, color: 'var(--editor-bracket)' },
-                { tag: t.keyword, color: 'var(--editor-variable-name)' },
-                { tag: t.typeName, color: 'var(--editor-variable-name) !important' },
-                { tag: t.string, color: 'var(--editor-function)' },
-                { tag: t.number, color: 'var(--editor-constant)' },
-                { tag: t.squareBracket, color: 'var(--editor-special)' },
-                { tag: t.comment, color: 'var(--editor-comment)' },
-                { tag: t.separator, color: 'var(--editor-special)' },
-                { tag: t.content, color: 'var(--editor-text)' },
-                { tag: t.punctuation, color: 'var(--editor-variable-name)' },
-                { tag: t.meta, color: 'var(--editor-function-name-variable-name)' }
-            ]);
-
-            const yamlHighlightStyle = HighlightStyle.define([
-                { tag: t.keyword, color: 'var(--editor-attribute-name)' },
-                { tag: t.comment, color: 'var(--editor-comment)' },
-                { tag: t.separator, color: 'var(--editor-special)' },
-                { tag: t.punctuation, color: 'var(--editor-special)' },
-                { tag: t.squareBracket, color: 'var(--editor-special)' },
-                { tag: t.brace, color: 'var(--editor-special)' },
-                { tag: t.content, color: 'var(--editor-text)' },
-                { tag: t.attributeValue, color: 'var(--editor-special)' },
-                { tag: t.string, color: 'var(--editor-function)' },
-                { tag: t.definition(t.propertyName), color: 'var(--editor-keyword)' }
-            ]);
-
             // Add language-specific extensions based on mimeTypeDisplayName
             const languageExtensions: Extension[] = [];
             switch (this.mimeTypeDisplayName) {
@@ -163,7 +136,7 @@ export class StandardContentViewer {
                 case 'avro':
                     languageExtensions.push(
                         json(),
-                        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                        syntaxHighlighting(jsonHighlightStyle),
                         foldGutter(),
                         keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap])
                     );

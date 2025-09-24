@@ -25,7 +25,8 @@ import {
     MapTableHelperService,
     MapTableEntry,
     Codemirror,
-    CodeMirrorConfig
+    CodeMirrorConfig,
+    jsonHighlightStyle
 } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
@@ -58,7 +59,6 @@ import {
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import {
-    defaultHighlightStyle,
     syntaxHighlighting,
     indentOnInput,
     bracketMatching,
@@ -245,7 +245,7 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            syntaxHighlighting(jsonHighlightStyle),
             bracketMatching(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
@@ -279,7 +279,7 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
             highlightSpecialChars(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            syntaxHighlighting(jsonHighlightStyle),
             bracketMatching(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
@@ -308,7 +308,7 @@ export class JoltTransformJsonUi implements OnDestroy {
             EditorView.lineWrapping,
             EditorState.readOnly.of(true),
             highlightSpecialChars(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            syntaxHighlighting(jsonHighlightStyle),
             bracketMatching(),
             highlightActiveLine(),
             [highlightActiveLineGutter(), Prec.highest(lineNumbers())],
