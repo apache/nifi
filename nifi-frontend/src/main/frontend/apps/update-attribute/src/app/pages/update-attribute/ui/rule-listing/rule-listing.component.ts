@@ -163,7 +163,7 @@ export class RuleListing {
         return (
             rule.id.toLowerCase().includes(filterText) ||
             rule.name.toLowerCase().includes(filterText) ||
-            rule.comments.toLowerCase().includes(filterText) ||
+            (rule.comments ?? '').toLowerCase().includes(filterText) ||
             rule.conditions.some((condition) => this.conditionMatches(condition, filterText)) ||
             rule.actions.some((action) => this.actionMatches(action, filterText))
         );
