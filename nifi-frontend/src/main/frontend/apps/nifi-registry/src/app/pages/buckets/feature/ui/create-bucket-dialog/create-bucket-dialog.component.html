@@ -1,0 +1,67 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+
+<h2 mat-dialog-title>New Bucket</h2>
+<div class="create-bucket-dialog">
+    <form class="create-bucket-form" [formGroup]="bucketForm" (ngSubmit)="onSubmit()">
+        <mat-dialog-content>
+            <context-error-banner [context]="ErrorContextKey.CREATE_BUCKET"></context-error-banner>
+            <div class="flex flex-col gap-y-4">
+                <mat-form-field appearance="outline">
+                    <mat-label>Bucket Name</mat-label>
+                    <input matInput formControlName="name" placeholder="Enter a unique bucket name" />
+                    @if (bucketForm.get('name')?.hasError('required')) {
+                        <mat-error>Name is required</mat-error>
+                    }
+                    @if (bucketForm.get('name')?.hasError('maxlength')) {
+                        <mat-error>Name cannot exceed 255 characters</mat-error>
+                    }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                    <mat-label>Description</mat-label>
+                    <textarea
+                        matInput
+                        formControlName="description"
+                        placeholder="Describe the purpose of this bucket (optional)"
+                        rows="3"></textarea>
+                    @if (bucketForm.get('description')?.hasError('maxlength')) {
+                        <mat-error>Description cannot exceed 1000 characters</mat-error>
+                    }
+                </mat-form-field>
+                <mat-checkbox class="flex items-center" formControlName="allowPublicRead">
+                    <mat-label
+                        >Allow Public Read Access
+                        <i
+                            class="fa fa-info-circle"
+                            [class.primary-color]="supportsPublicRead"
+                            matTooltip="Allows unauthenticated users to read the items in this bucket. Overrides policies granting read access."
+                            aria-label="Public read access information">
+                        </i>
+                    </mat-label>
+                </mat-checkbox>
+                <mat-checkbox class="flex items-center" formControlName="keepDialogOpen">
+                    Keep this dialog open after creating bucket
+                </mat-checkbox>
+            </div>
+        </mat-dialog-content>
+
+        <mat-dialog-actions class="mt-2" align="end">
+            <button mat-button type="button" mat-dialog-close>Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="bucketForm.invalid">Create</button>
+        </mat-dialog-actions>
+    </form>
+</div>

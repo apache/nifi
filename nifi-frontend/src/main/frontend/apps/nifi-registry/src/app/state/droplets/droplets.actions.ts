@@ -92,8 +92,6 @@ export const openDropletVersionsDialog = createAction(
     props<{ request: { droplet: Droplet } }>()
 );
 
-export const selectDroplet = createAction(`[Droplets] Select Droplet`, props<{ request: { id: string } }>());
-
 export const dropletsBannerError = createAction(`[Droplets] Banner Error`, props<{ errorContext: ErrorContext }>());
 
 export const importNewDropletVersionError = createAction(

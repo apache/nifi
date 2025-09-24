@@ -56,7 +56,13 @@ describe('ExportDropletVersionDialogComponent', () => {
                         keydownEvents: () => new Subject<KeyboardEvent>()
                     }
                 },
-                provideMockStore({})
+                provideMockStore({
+                    initialState: {
+                        error: {
+                            bannerErrors: {}
+                        }
+                    }
+                })
             ]
         }).compileComponents();
 
