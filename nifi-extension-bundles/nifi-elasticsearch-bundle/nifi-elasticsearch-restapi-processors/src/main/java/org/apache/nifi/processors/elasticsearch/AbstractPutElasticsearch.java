@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
-    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("All flowfiles that are sent to Elasticsearch without request failures go to this relationship.")
             .build();
