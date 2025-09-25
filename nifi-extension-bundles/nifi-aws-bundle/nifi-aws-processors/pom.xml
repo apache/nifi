@@ -98,7 +98,7 @@
         <dependency>
             <groupId>software.amazon.kinesis</groupId>
             <artifactId>amazon-kinesis-client</artifactId>
-            <version>${aws-kinesis-client-library-version}</version>
+            <version>2.7.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
