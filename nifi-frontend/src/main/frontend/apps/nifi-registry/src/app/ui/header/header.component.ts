@@ -34,6 +34,8 @@ export class HeaderComponent {
     private themingService = inject(ThemingService);
     private router = inject(Router);
 
+    readonly documentationUrl = 'https://nifi.apache.org/docs/nifi-registry-docs/index.html';
+
     theme: any | undefined;
     darkModeOn: boolean | undefined;
     LIGHT_THEME: string = LIGHT_THEME;
