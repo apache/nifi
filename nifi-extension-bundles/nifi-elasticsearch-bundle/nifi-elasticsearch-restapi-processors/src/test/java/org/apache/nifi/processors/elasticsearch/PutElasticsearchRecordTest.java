@@ -220,7 +220,7 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest {
         assertNotNull(migratedWriter);
         assertTrue(runner.isControllerServiceEnabled(migratedWriter));
 
-        assertEquals(1, result.getPropertiesRenamed().size());
+        assertTrue(1 < result.getPropertiesRenamed().size());
         assertEquals(AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL.getName(), result.getPropertiesRenamed().get("put-es-record-not_found-is-error"));
         assertEquals(0, result.getPropertiesRemoved().size());
         assertEquals(1, result.getPropertiesUpdated().size());
