@@ -32,6 +32,7 @@ import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -308,6 +309,55 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.isControllerServiceCreatedForNewProperty(controllerServiceDifference, context));
 
         assertFalse(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager, context));
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(controllerServiceDifference, null, flowManager, context));
+    }
+
+    @Test
+    public void testControllerServiceCreationEnvironmentalChangeWithoutComponentNode() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
+        final String groupId = "group-id";
+        final String propertyName = "Request Rate Manager";
+        final String controllerServiceInstanceId = "service-instance-id";
+        final String controllerServiceVersionedId = "service-versioned-id";
+
+        final InstantiatedVersionedControllerService controllerServiceWithNewProperty = new InstantiatedVersionedControllerService("component-instance", groupId);
+        controllerServiceWithNewProperty.setComponentType(ComponentType.CONTROLLER_SERVICE);
+        controllerServiceWithNewProperty.setIdentifier(controllerServiceVersionedId);
+        controllerServiceWithNewProperty.setProperties(Map.of(propertyName, controllerServiceVersionedId));
+
+        final VersionedPropertyDescriptor versionedPropertyDescriptor = new VersionedPropertyDescriptor();
+        versionedPropertyDescriptor.setName(propertyName);
+        versionedPropertyDescriptor.setDisplayName(propertyName);
+        versionedPropertyDescriptor.setDynamic(false);
+        versionedPropertyDescriptor.setIdentifiesControllerService(true);
+        controllerServiceWithNewProperty.setPropertyDescriptors(Map.of(propertyName, versionedPropertyDescriptor));
+
+        final FlowDifference propertyDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED,
+                null,
+                controllerServiceWithNewProperty,
+                propertyName,
+                null,
+                controllerServiceVersionedId,
+                "Controller service reference added");
+
+        final InstantiatedVersionedControllerService instantiatedControllerService = new InstantiatedVersionedControllerService(controllerServiceInstanceId, groupId);
+        instantiatedControllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
+        instantiatedControllerService.setIdentifier(controllerServiceVersionedId);
+
+        final FlowDifference controllerServiceDifference = new StandardFlowDifference(
+                DifferenceType.COMPONENT_ADDED,
+                null,
+                instantiatedControllerService,
+                null,
+                null,
+                "Controller service created");
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext context = FlowDifferenceFilters.buildEnvironmentalChangeContext(
+                List.of(propertyDifference, controllerServiceDifference), flowManager);
+
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager, context));
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(controllerServiceDifference, null, flowManager, context));
     }
