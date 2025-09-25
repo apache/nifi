@@ -17,22 +17,50 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HeaderComponent } from './header.component';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { NiFiRegistryState } from '../../state';
+import { openAboutDialog } from '../../state/about/about.actions';
+import { MatDialog } from '@angular/material/dialog';
+import { of } from 'rxjs';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
     let fixture: ComponentFixture<HeaderComponent>;
+    let store: MockStore<NiFiRegistryState>;
+    let dialogOpenSpy: jest.Mock;
 
     beforeEach(() => {
+        const matDialogMock = {
+            open: jest.fn().mockReturnValue({ afterClosed: () => of(true) })
+        };
+
         TestBed.configureTestingModule({
-            imports: [HeaderComponent]
+            imports: [HeaderComponent],
+            providers: [
+                provideMockStore(),
+                {
+                    provide: MatDialog,
+                    useValue: matDialogMock
+                }
+            ]
         });
 
         fixture = TestBed.createComponent(HeaderComponent);
         component = fixture.componentInstance;
+        store = TestBed.inject(MockStore);
+        dialogOpenSpy = matDialogMock.open;
+
+        jest.spyOn(store, 'dispatch');
         fixture.detectChanges();
     });
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should dispatch openAboutDialog when viewAbout is called', () => {
+        component.viewAbout();
+        expect(store.dispatch).toHaveBeenCalledWith(openAboutDialog());
+        expect(dialogOpenSpy).not.toHaveBeenCalled();
     });
 });

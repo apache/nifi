@@ -33,6 +33,7 @@ import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
 import { ErrorEffects } from './state/error/error.effects';
+import { AboutEffects } from './state/about/about.effects';
 import { environment } from '../environments/environment';
 
 const entry = localStorage.getItem('disable-animations');
@@ -66,7 +67,7 @@ try {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(ErrorEffects),
+        EffectsModule.forRoot(ErrorEffects, AboutEffects),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,

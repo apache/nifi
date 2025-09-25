@@ -21,6 +21,9 @@ import { Router, RouterModule } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { DARK_THEME, LIGHT_THEME, OS_SETTING, Storage, ThemingService } from '@nifi/shared';
+import { Store } from '@ngrx/store';
+import { NiFiRegistryState } from '../../state';
+import { openAboutDialog } from '../../state/about/about.actions';
 
 @Component({
     selector: 'app-header',
@@ -33,6 +36,7 @@ export class HeaderComponent {
     private storage = inject(Storage);
     private themingService = inject(ThemingService);
     private router = inject(Router);
+    private store = inject<Store<NiFiRegistryState>>(Store);
 
     theme: any | undefined;
     darkModeOn: boolean | undefined;
@@ -69,5 +73,9 @@ export class HeaderComponent {
         this.disableAnimations = disableAnimations;
         this.storage.setItem('disable-animations', this.disableAnimations.toString());
         window.location.reload();
+    }
+
+    viewAbout(): void {
+        this.store.dispatch(openAboutDialog());
     }
 }

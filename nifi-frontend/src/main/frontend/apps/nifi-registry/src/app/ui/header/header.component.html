@@ -41,7 +41,7 @@
                 <mat-menu #globalMenu="matMenu" xPosition="before">
                     <button mat-menu-item class="global-menu-item">Buckets</button>
                     <button mat-menu-item class="global-menu-item">Users/Groups</button>
-                    <button mat-menu-item class="global-menu-item">
+                    <button mat-menu-item class="global-menu-item" (click)="viewAbout()">
                         <i class="fa fa-info-circle primary-color mr-2"></i>
                         About
                     </button>

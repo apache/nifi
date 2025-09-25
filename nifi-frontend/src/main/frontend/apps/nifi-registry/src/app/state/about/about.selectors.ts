@@ -15,32 +15,9 @@
  * limitations under the License.
  */
 
-export const errorFeatureKey = 'error';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { aboutFeatureKey, AboutState } from './index';
 
-export interface ErrorDetail {
-    title: string;
-    message: string;
-}
+export const selectAboutState = createFeatureSelector<AboutState>(aboutFeatureKey);
 
-export enum ErrorContextKey {
-    ABOUT = 'about',
-    EXPORT_DROPLET_VERSION = 'droplet listing',
-    DELETE_DROPLET = 'delete droplet',
-    CREATE_DROPLET = 'create droplet',
-    IMPORT_DROPLET_VERSION = 'import droplet version',
-    GLOBAL = 'global'
-}
-
-export interface ErrorContext {
-    context: ErrorContextKey;
-    errors: string[];
-}
-
-export interface BannerErrors {
-    // key should be the ErrorContextKey of the banner error
-    [key: string]: string[];
-}
-
-export interface ErrorState {
-    bannerErrors: BannerErrors;
-}
+export const selectAbout = createSelector(selectAboutState, (state) => state.about);
