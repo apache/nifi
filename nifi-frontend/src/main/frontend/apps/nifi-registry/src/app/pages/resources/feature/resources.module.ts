@@ -31,6 +31,7 @@ import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-t
 import { MatButtonModule } from '@angular/material/button';
 import { DropletTableComponent } from './ui/droplet-table/droplet-table.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
+import { HeaderComponent } from '../../../ui/header/header.component';
 
 @NgModule({
     declarations: [ResourcesComponent],
@@ -47,7 +48,8 @@ import { ContextErrorBanner } from '../../../ui/common/context-error-banner/cont
         ContextErrorBanner,
         ResourcesRoutingModule,
         StoreModule.forFeature(resourcesFeatureKey, reducers),
-        EffectsModule.forFeature([DropletsEffects, BucketsEffects])
+        EffectsModule.forFeature([DropletsEffects, BucketsEffects]),
+        HeaderComponent
     ]
 })
 export class ResourcesModule {}
