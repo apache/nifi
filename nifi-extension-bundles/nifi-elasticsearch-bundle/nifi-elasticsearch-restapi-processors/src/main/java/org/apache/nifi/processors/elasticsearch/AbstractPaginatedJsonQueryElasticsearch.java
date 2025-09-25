@@ -26,6 +26,7 @@ import org.apache.nifi.elasticsearch.ElasticsearchRequestOptions;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -52,8 +53,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             .build();
 
     public static final PropertyDescriptor PAGINATION_TYPE = new PropertyDescriptor.Builder()
-            .name("el-rest-pagination-type")
-            .displayName("Pagination Type")
+            .name("Pagination Type")
             .description("Pagination method to use. Not all types are available for all Elasticsearch versions, " +
                     "check the Elasticsearch docs to confirm which are applicable and recommended for your service.")
             .allowableValues(PaginationType.class)
@@ -63,8 +63,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             .build();
 
     public static final PropertyDescriptor PAGINATION_KEEP_ALIVE = new PropertyDescriptor.Builder()
-            .name("el-rest-pagination-keep-alive")
-            .displayName("Pagination Keep Alive")
+            .name("Pagination Keep Alive")
             .description("Pagination \"keep_alive\" period. Period Elasticsearch will keep the scroll/pit cursor alive " +
                     "in between requests (this is not the time expected for all pages to be returned, but the maximum " +
                     "allowed time for requests between page retrievals).")
@@ -93,6 +92,13 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         paginationType = context.getProperty(PAGINATION_TYPE).asAllowableValue(PaginationType.class);
         // output as newline delimited JSON (allows for multiple pages of results to be appended to existing FlowFiles without retaining all hits in memory)
         writer = mapper.writer().withRootValueSeparator("\n");
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("el-rest-pagination-type", PAGINATION_TYPE.getName());
+        config.renameProperty("el-rest-pagination-keep-alive", PAGINATION_KEEP_ALIVE.getName());
     }
 
     @Override

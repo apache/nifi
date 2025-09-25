@@ -22,6 +22,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -33,8 +34,7 @@ import java.util.Map;
 
 public interface ElasticSearchClientService extends ControllerService, VerifiableControllerService {
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
-            .name("el-cs-http-hosts")
-            .displayName("HTTP Hosts")
+            .name("HTTP Hosts")
             .description("""
                     A comma-separated list of HTTP hosts that host Elasticsearch query nodes.
                     The HTTP Hosts should be valid URIs including protocol, domain and port for each entry.
@@ -47,8 +47,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("el-cs-ssl-context-service")
-            .displayName("SSL Context Service")
+            .name("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                     + "connections. This service only applies if the Elasticsearch endpoint(s) have been secured with TLS/SSL.")
             .required(false)
@@ -59,8 +58,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP);
 
     PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
-            .name("authorization-scheme")
-            .displayName("Authorization Scheme")
+            .name("Authorization Scheme")
             .description("Authorization Scheme used for optional authentication to Elasticsearch.")
             .allowableValues(AuthorizationScheme.class)
             .defaultValue(AuthorizationScheme.BASIC)
@@ -69,8 +67,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("el-cs-oauth2-token-provider")
-            .displayName("OAuth2 Access Token Provider")
+            .name("OAuth2 Access Token Provider")
             .description("The OAuth2 Access Token Provider used to provide JWTs for Bearer Token Authorization with Elasticsearch.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
             .required(true)
@@ -79,8 +76,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor JWT_SHARED_SECRET = new PropertyDescriptor.Builder()
-            .name("jwt-shared-secret")
-            .displayName("JWT Shared Secret")
+            .name("JWT Shared Secret")
             .description("JWT realm Shared Secret.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
             .required(true)
@@ -89,8 +85,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor RUN_AS_USER = new PropertyDescriptor.Builder()
-            .name("el-cs-run-as-user")
-            .displayName("Run As User")
+            .name("Run As User")
             .description("The username to impersonate within Elasticsearch.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -98,8 +93,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .name("el-cs-username")
-            .displayName("Username")
+            .name("Username")
             .description("The username to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
             .required(true)
@@ -108,8 +102,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("el-cs-password")
-            .displayName("Password")
+            .name("Password")
             .description("The password to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
             .required(true)
@@ -119,8 +112,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor API_KEY_ID = new PropertyDescriptor.Builder()
-            .name("api-key-id")
-            .displayName("API Key ID")
+            .name("API Key ID")
             .description("Unique identifier of the API key.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
             .required(true)
@@ -129,8 +121,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
-            .name("api-key")
-            .displayName("API Key")
+            .name("API Key")
             .description("Encoded API key.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
             .required(true)
@@ -139,8 +130,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el-cs-connect-timeout")
-            .displayName("Connect timeout")
+            .name("Connect timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when trying to connect.")
             .required(true)
             .defaultValue("5000")
@@ -148,8 +138,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el-cs-socket-timeout")
-            .displayName("Read timeout")
+            .name("Read timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when waiting for a response.")
             .required(true)
             .defaultValue("60000")
@@ -157,8 +146,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("el-cs-charset")
-            .displayName("Charset")
+            .name("Charset")
             .description("The charset to use for interpreting the response from Elasticsearch.")
             .required(true)
             .defaultValue("UTF-8")
@@ -172,8 +160,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             "Fields that are missing (present in the schema but not in the record), or that have a value of null/empty, will be written out as a null/empty value");
 
     PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
-            .name("el-cs-suppress-nulls")
-            .displayName("Suppress Null/Empty Values")
+            .name("Suppress Null/Empty Values")
             .description("Specifies how the writer should handle null and empty fields (including objects and arrays)")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
             .defaultValue(ALWAYS_SUPPRESS)
@@ -181,8 +168,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor COMPRESSION = new PropertyDescriptor.Builder()
-            .name("el-cs-enable-compression")
-            .displayName("Enable Compression")
+            .name("Enable Compression")
             .description("Whether the REST client should compress requests using gzip content encoding and add the " +
                     "\"Accept-Encoding: gzip\" header to receive compressed responses")
             .allowableValues("true", "false")
@@ -191,8 +177,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SEND_META_HEADER = new PropertyDescriptor.Builder()
-            .name("el-cs-send-meta-header")
-            .displayName("Send Meta Header")
+            .name("Send Meta Header")
             .description("Whether to send a \"X-Elastic-Client-Meta\" header that describes the runtime environment. " +
                     "It contains information that is similar to what could be found in User-Agent. " +
                     "Using a separate header allows applications to use User-Agent for their own needs, " +
@@ -203,8 +188,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor STRICT_DEPRECATION = new PropertyDescriptor.Builder()
-            .name("el-cs-strict-deprecation")
-            .displayName("Strict Deprecation")
+            .name("Strict Deprecation")
             .description("Whether the REST client should return any response containing at least one warning header as a failure")
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -217,8 +201,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             "Skip dedicated Elasticsearch master nodes for handling request");
 
     PropertyDescriptor NODE_SELECTOR = new PropertyDescriptor.Builder()
-            .name("el-cs-node-selector")
-            .displayName("Node Selector")
+            .name("Node Selector")
             .description("Selects Elasticsearch nodes that can receive requests. Used to keep requests away from dedicated Elasticsearch master nodes")
             .allowableValues(NODE_SELECTOR_ANY, NODE_SELECTOR_SKIP_DEDICATED_MASTERS)
             .defaultValue(NODE_SELECTOR_ANY)
@@ -226,8 +209,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor PATH_PREFIX = new PropertyDescriptor.Builder()
-            .name("el-cs-path-prefix")
-            .displayName("Path Prefix")
+            .name("Path Prefix")
             .description("Sets the path's prefix for every request used by the http client. " +
                     "For example, if this is set to \"/my/path\", then any client request will become \"/my/path/\" + endpoint. " +
                     "In essence, every request's endpoint is prefixed by this pathPrefix. " +
@@ -237,8 +219,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SNIFF_CLUSTER_NODES = new PropertyDescriptor.Builder()
-            .name("el-cs-sniff-cluster-nodes")
-            .displayName("Sniff Cluster Nodes")
+            .name("Sniff Cluster Nodes")
             .description("Periodically sniff for nodes within the Elasticsearch cluster via the Elasticsearch Node Info API. " +
                     "If Elasticsearch security features are enabled (default to \"true\" for 8.x+), the Elasticsearch user must " +
                     "have the \"monitor\" or \"manage\" cluster privilege to use this API." +
@@ -252,8 +233,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SNIFF_ON_FAILURE = new PropertyDescriptor.Builder()
-            .name("el-cs-sniff-failure")
-            .displayName("Sniff on Failure")
+            .name("Sniff on Failure")
             .description("Enable sniffing on failure, meaning that after each failure the Elasticsearch nodes list gets updated " +
                     "straight away rather than at the following ordinary sniffing round")
             .dependsOn(SNIFF_CLUSTER_NODES, "true")
@@ -263,8 +243,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SNIFFER_INTERVAL = new PropertyDescriptor.Builder()
-            .name("el-cs-sniffer-interval")
-            .displayName("Sniffer Interval")
+            .name("Sniffer Interval")
             .description("Interval between Cluster sniffer operations")
             .dependsOn(SNIFF_CLUSTER_NODES, "true")
             .defaultValue("5 mins")
@@ -273,8 +252,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SNIFFER_REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el-cs-sniffer-request-timeout")
-            .displayName("Sniffer Request Timeout")
+            .name("Sniffer Request Timeout")
             .description("Cluster sniffer timeout for node info requests")
             .dependsOn(SNIFF_CLUSTER_NODES, "true")
             .defaultValue("1 sec")
@@ -283,14 +261,41 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SNIFFER_FAILURE_DELAY = new PropertyDescriptor.Builder()
-            .name("el-cs-sniffer-failure-delay")
-            .displayName("Sniffer Failure Delay")
+            .name("Sniffer Failure Delay")
             .description("Delay between an Elasticsearch request failure and updating available Cluster nodes using the Sniffer")
             .dependsOn(SNIFF_ON_FAILURE, "true")
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .build();
+
+    @Override
+    default void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("el-cs-http-hosts", HTTP_HOSTS.getName());
+        config.renameProperty("el-cs-ssl-context-service", PROP_SSL_CONTEXT_SERVICE.getName());
+        config.renameProperty("authorization-scheme", AUTHORIZATION_SCHEME.getName());
+        config.renameProperty("el-cs-oauth2-token-provider", OAUTH2_ACCESS_TOKEN_PROVIDER.getName());
+        config.renameProperty("jwt-shared-secret", JWT_SHARED_SECRET.getName());
+        config.renameProperty("el-cs-run-as-user", RUN_AS_USER.getName());
+        config.renameProperty("el-cs-username", USERNAME.getName());
+        config.renameProperty("el-cs-password", PASSWORD.getName());
+        config.renameProperty("api-key-id", API_KEY_ID.getName());
+        config.renameProperty("api-key", API_KEY.getName());
+        config.renameProperty("el-cs-connect-timeout", CONNECT_TIMEOUT.getName());
+        config.renameProperty("el-cs-socket-timeout", SOCKET_TIMEOUT.getName());
+        config.renameProperty("el-cs-charset", CHARSET.getName());
+        config.renameProperty("el-cs-suppress-nulls", SUPPRESS_NULLS.getName());
+        config.renameProperty("el-cs-enable-compression", COMPRESSION.getName());
+        config.renameProperty("el-cs-send-meta-header", SEND_META_HEADER.getName());
+        config.renameProperty("el-cs-strict-deprecation", STRICT_DEPRECATION.getName());
+        config.renameProperty("el-cs-node-selector", NODE_SELECTOR.getName());
+        config.renameProperty("el-cs-path-prefix", PATH_PREFIX.getName());
+        config.renameProperty("el-cs-sniff-cluster-nodes", SNIFF_CLUSTER_NODES.getName());
+        config.renameProperty("el-cs-sniff-failure", SNIFF_ON_FAILURE.getName());
+        config.renameProperty("el-cs-sniffer-interval", SNIFFER_INTERVAL.getName());
+        config.renameProperty("el-cs-sniffer-request-timeout", SNIFFER_REQUEST_TIMEOUT.getName());
+        config.renameProperty("el-cs-sniffer-failure-delay", SNIFFER_FAILURE_DELAY.getName());
+    }
 
     /**
      * Index a document.
