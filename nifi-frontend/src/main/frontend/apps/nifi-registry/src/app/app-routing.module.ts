@@ -17,6 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { RouteNotFound } from './pages/route-not-found/feature/route-not-found.component';
 
 const routes: Routes = [
     {
@@ -33,10 +34,13 @@ const routes: Routes = [
         path: 'nifi-registry',
         redirectTo: 'explorer',
         pathMatch: 'full'
-    }
+    },
     // TODO: buckets
     // TODO: Users/groups
-    // TODO: Page not found
+    {
+        path: '**',
+        component: RouteNotFound
+    }
 ];
 
 @NgModule({

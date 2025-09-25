@@ -15,8 +15,11 @@
 ~  limitations under the License.
 -->
 
-<div class="pb-5 px-5 flex flex-col h-full">
-    <div class="h-full flex flex-col">
+<div class="flex flex-col h-screen justify-between">
+    <header class="mb-5 nifi-registry-header">
+        <app-header></app-header>
+    </header>
+    <div class="pb-5 px-5 flex-1 flex flex-col">
         <h3 class="primary-color">Resources</h3>
         <context-error-banner [context]="ErrorContextKey.GLOBAL"></context-error-banner>
         <div class="flex justify-between items-baseline">
