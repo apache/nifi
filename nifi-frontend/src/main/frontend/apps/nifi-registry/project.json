@@ -25,6 +25,11 @@
                         "glob": "**/*.svg",
                         "input": "libs/shared/src/assets/",
                         "output": "./assets"
+                    },
+                    {
+                        "glob": "**/*.png",
+                        "input": "libs/shared/src/assets/",
+                        "output": "./assets"
                     }
                 ],
                 "styles": ["apps/nifi-registry/src/styles.scss"],
@@ -61,6 +66,11 @@
                     "assets": [
                         {
                             "glob": "**/*.svg",
+                            "input": "libs/shared/src/assets/",
+                            "output": "./assets"
+                        },
+                        {
+                            "glob": "**/*.png",
                             "input": "libs/shared/src/assets/",
                             "output": "./assets"
                         }

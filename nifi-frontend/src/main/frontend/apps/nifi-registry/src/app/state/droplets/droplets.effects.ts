@@ -38,7 +38,6 @@ import {
 } from '../../pages/resources/feature/ui/export-droplet-version-dialog/export-droplet-version-dialog.component';
 import { DropletVersionsDialogComponent } from '../../pages/resources/feature/ui/droplet-versions-dialog/droplet-versions-dialog.component';
 import { ErrorHelper } from '../../service/error-helper.service';
-import { Router } from '@angular/router';
 import { ErrorContextKey } from '../error';
 import * as ErrorActions from '../../state/error/error.actions';
 
@@ -47,7 +46,6 @@ export class DropletsEffects {
     private dropletsService = inject(DropletsService);
     private dialog = inject(MatDialog);
     private errorHelper = inject(ErrorHelper);
-    private router = inject(Router);
 
     actions$ = inject(Actions);
 
@@ -344,18 +342,6 @@ export class DropletsEffects {
                 )
             )
         )
-    );
-
-    selectDroplet$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(DropletsActions.selectDroplet),
-                map((action) => action.request),
-                tap((request) => {
-                    this.router.navigate(['/explorer', request.id]);
-                })
-            ),
-        { dispatch: false }
     );
 
     dropletsBannerError$ = createEffect(() =>

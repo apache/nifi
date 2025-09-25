@@ -16,8 +16,15 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { loadBuckets, loadBucketsSuccess } from './buckets.actions';
-import { BucketsState } from '.';
+import {
+    createBucketSuccess,
+    deleteBucketSuccess,
+    loadBuckets,
+    loadBucketsSuccess,
+    updateBucketSuccess
+} from './buckets.actions';
+import { Bucket, BucketsState } from '.';
+import { produce } from 'immer';
 
 export const initialState: BucketsState = {
     buckets: [],
@@ -34,5 +41,35 @@ export const bucketsReducer = createReducer(
         ...state,
         buckets: response.buckets,
         status: 'success' as const
-    }))
+    })),
+    on(createBucketSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.buckets.findIndex(
+                (f: Bucket) => response.identifier === f.identifier
+            );
+            if (componentIndex === -1) {
+                draftState.buckets.push(response);
+            }
+        });
+    }),
+    on(deleteBucketSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.buckets.findIndex(
+                (f: Bucket) => response.identifier === f.identifier
+            );
+            if (componentIndex > -1) {
+                draftState.buckets.splice(componentIndex, 1);
+            }
+        });
+    }),
+    on(updateBucketSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.buckets.findIndex(
+                (f: Bucket) => response.identifier === f.identifier
+            );
+            if (componentIndex > -1) {
+                draftState.buckets[componentIndex] = response;
+            }
+        });
+    })
 );
