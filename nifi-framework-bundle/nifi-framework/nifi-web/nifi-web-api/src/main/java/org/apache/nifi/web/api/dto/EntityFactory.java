@@ -238,6 +238,7 @@ public final class EntityFactory {
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setInputRequirement(dto.getInputRequirement());
+            entity.setPhysicalState(dto.getPhysicalState());
             entity.setPosition(dto.getPosition());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);

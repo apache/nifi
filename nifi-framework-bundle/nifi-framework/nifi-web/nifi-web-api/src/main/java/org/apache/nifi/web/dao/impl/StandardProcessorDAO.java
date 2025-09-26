@@ -413,7 +413,15 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                         case DISABLED:
                             processor.verifyCanDisable();
                             break;
+                        case STARTING:
+                        case STOPPING:
+                            // These are internal transition states and should not be set directly via API
+                            throw new IllegalArgumentException("Cannot set processor state to " + purposedScheduledState);
                     }
+                } else if (purposedScheduledState == ScheduledState.STOPPED && processor.getPhysicalScheduledState() == ScheduledState.STARTING) {
+                    // Handle special case: verify stopping a processor that's physically starting
+                    processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                    processor.verifyCanStop();
                 }
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format(
@@ -542,6 +550,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                         case RUN_ONCE:
                             parentGroup.runProcessorOnce(processor, () -> parentGroup.stopProcessor(processor));
                             break;
+                        case STARTING:
+                        case STOPPING:
+                            // These are internal transition states and should not be set directly via API
+                            throw new IllegalStateException("Cannot set processor state to " + purposedScheduledState);
                     }
                 } catch (IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
@@ -551,6 +563,15 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     throw new NiFiCoreException("Unable to update processor run state.", npe);
                 } catch (Exception e) {
                     throw new NiFiCoreException("Unable to update processor run state: " + e, e);
+                }
+            } else if  (purposedScheduledState == ScheduledState.STOPPED && processor.getPhysicalScheduledState() == ScheduledState.STARTING) {
+                // Handle special case: allow stopping a processor that's physically starting
+                try {
+                    parentGroup.stopProcessor(processor);
+                } catch (NullPointerException npe) {
+                    throw new NiFiCoreException("Unable to stop starting processor.", npe);
+                } catch (Exception e) {
+                    throw new NiFiCoreException("Unable to stop starting processor: " + e, e);
                 }
             }
         }

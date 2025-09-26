@@ -3379,6 +3379,7 @@ public final class DtoFactory {
        dto.setBundle(createBundleDto(bundleCoordinate));
        dto.setName(node.getName());
        dto.setState(node.getScheduledState().toString());
+       dto.setPhysicalState(node.getPhysicalScheduledState().toString());
 
        // build the relationship dtos
        final List<RelationshipDTO> relationships = new ArrayList<>();
