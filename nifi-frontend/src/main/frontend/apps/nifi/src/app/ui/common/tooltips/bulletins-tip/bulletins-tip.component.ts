@@ -17,7 +17,7 @@
 
 import { Component, Input } from '@angular/core';
 import { BulletinsTipInput } from '../../../../state/shared';
-import { CopyDirective } from '@nifi/shared';
+import { BulletinEntity, CopyDirective } from '@nifi/shared';
 
 @Component({
     selector: 'bulletins-tip',
@@ -38,5 +38,12 @@ export class BulletinsTip {
             default:
                 return 'bulletin-normal success-color-default';
         }
+    }
+
+    getBulletinCopyMessage(bulletin: BulletinEntity): string {
+        if (bulletin.bulletin.stackTrace) {
+            return bulletin.bulletin.message + '\n\n' + bulletin.bulletin.stackTrace;
+        }
+        return bulletin.bulletin.message;
     }
 }
