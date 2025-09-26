@@ -1995,7 +1995,11 @@ nodes and waits for each node to respond, indicating that it has made the change
 
 ==== Disconnect Nodes
 
-A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. Until the issue with the node is resolved, the DFM will have limited ability to make changes to the remaining cluster's dataflow. Changing component state or adding a component is allowed, but removing a component is not.
+
+A node that was disconnected maybe fully working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+
+It should be noted that a disconnected node's dataflow is allowed to be changed.  Any changes should be done with caution, however, as they will be reverted when the node is re-attached to the cluster.  In addition, if reverting the changes will cause a loss of data then it will not be allowed to rejoin the cluster.  This can occur if a new dataflow has since been made on the disconnected node.
 
 To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
 

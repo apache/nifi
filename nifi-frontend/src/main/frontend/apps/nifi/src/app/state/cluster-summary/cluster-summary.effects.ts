@@ -101,7 +101,7 @@ export class ClusterSummaryEffects {
                 tap(({ connectedToCluster }) => {
                     const message = connectedToCluster
                         ? 'This node just joined the cluster. Any modifications to the data flow made here will replicate across the cluster.'
-                        : 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster.';
+                        : 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster and will revert upon rejoining.';
 
                     const dialogReference = this.dialog.open(OkDialog, {
                         ...MEDIUM_DIALOG,
