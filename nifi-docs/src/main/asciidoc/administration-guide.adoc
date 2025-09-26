@@ -355,8 +355,8 @@ link:https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-name
 
 The semantics match the use of the following Jetty APIs:
 
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setIncludeCipherSuites(java.lang.String\...)[SslContextFactory.setIncludeCipherSuites()]
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setExcludeCipherSuites(java.lang.String\...)[SslContextFactory.setExcludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setIncludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setExcludeCipherSuites()]
 
 [[user_authentication]]
 == User Authentication
@@ -3509,7 +3509,7 @@ blank meaning all requests containing a proxy context path are rejected. Configu
 |`nifi.web.request.timeout`|The request timeout for web requests. Requests running longer than this time will be forced to end with a HTTP 503 Service Unavailable response. Default value is `60 secs`.
 |`nifi.web.request.log.format`|The parameterized format for HTTP request log messages.
 The format property supports the modifiers and codes described in the Jetty
-link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
+link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
 
 The default value uses the Combined Log Format, which follows the
 link:https://en.wikipedia.org/wiki/Common_Log_Format[Common Log Format^] with the addition of `Referer` and `User-Agent`
@@ -4174,4 +4174,3 @@ An example output would look like this:
      "attributeValue" : integer-value
    }
  ]
-

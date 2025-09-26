@@ -45,7 +45,8 @@ public class QueryStringToFragmentFilter implements Filter {
             final URI redirectUri = requestUriBuilder.build();
 
             final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-            httpServletResponse.sendRedirect(redirectUri.toString());
+            httpServletResponse.setStatus(HttpServletResponse.SC_FOUND);
+            httpServletResponse.setHeader("Location", redirectUri.toString());
         } else {
             filterChain.doFilter(request, response);
         }

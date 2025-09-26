@@ -35,7 +35,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.SocketAddress;

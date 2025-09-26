@@ -10,5 +10,12 @@ Common Development and Distribution License 1.1
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
- 
+
+************************
+Eclipse Public License 2.0
+************************
+
+The following binary components are provided under the Eclipse Public License 2.0.
+
+    (EPL 2.0) Jakarta JMS API (jakarta.jms:jakarta.jms-api:jar:3.1.0)
+
