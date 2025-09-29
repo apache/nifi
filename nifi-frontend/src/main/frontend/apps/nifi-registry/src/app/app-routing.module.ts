@@ -32,11 +32,25 @@ const routes: Routes = [
         path: 'buckets',
         loadChildren: () => import('./pages/buckets/feature/buckets.module').then((m) => m.BucketsModule)
     },
-    // Backward compatibility: old app's default route
     {
-        path: 'nifi-registry',
-        redirectTo: 'explorer',
-        pathMatch: 'full'
+        path: 'administration',
+        children: [
+            {
+                path: 'workflow',
+                children: [
+                    {
+                        path: '',
+                        redirectTo: 'buckets',
+                        pathMatch: 'full'
+                    },
+                    {
+                        path: 'manage/bucket/:bucketId',
+                        outlet: 'sidenav',
+                        redirectTo: 'buckets/:bucketId'
+                    }
+                ]
+            }
+        ]
     }
     // TODO: Users/groups
     // TODO: Page not found

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -43,6 +43,7 @@ export interface BucketTableFilterContext {
 })
 export class BucketTableFilterComponent {
     private formBuilder = inject(FormBuilder);
+    private destroyRef = inject(DestroyRef);
 
     filterForm: FormGroup = this.formBuilder.group({
         filterTerm: '',
@@ -84,20 +85,20 @@ export class BucketTableFilterComponent {
     constructor() {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(250), takeUntilDestroyed())
-            .subscribe((term: string) =>
-                this.applyFilter(term ?? '', this.filterForm.get('filterColumn')?.value ?? '', 'filterTerm')
-            );
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
+            .subscribe((term) => this.applyFilter(term, this.filterForm.get('filterColumn')?.value, 'filterTerm'));
 
         this.filterForm
             .get('filterColumn')
             ?.valueChanges.pipe(takeUntilDestroyed())
-            .subscribe((column: string) =>
-                this.applyFilter(this.filterForm.get('filterTerm')?.value ?? '', column ?? '', 'filterColumn')
-            );
+            .subscribe((column) => this.applyFilter(this.filterForm.get('filterTerm')?.value, column, 'filterColumn'));
     }
 
     private applyFilter(filterTerm: string, filterColumn: string, changedField: string) {
-        this.filterChanged.emit({ filterTerm, filterColumn, changedField });
+        this.filterChanged.emit({
+            filterTerm: filterTerm ?? '',
+            filterColumn: filterColumn ?? '',
+            changedField
+        });
     }
 }
