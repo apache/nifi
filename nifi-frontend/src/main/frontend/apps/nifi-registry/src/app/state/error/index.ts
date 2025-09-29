@@ -24,12 +24,10 @@ export interface ErrorDetail {
 
 export enum ErrorContextKey {
     EXPORT_DROPLET_VERSION = 'droplet listing',
-    DELETE_DROPLET = 'delete droplet',
     CREATE_DROPLET = 'create droplet',
     IMPORT_DROPLET_VERSION = 'import droplet version',
     CREATE_BUCKET = 'create bucket',
     UPDATE_BUCKET = 'update bucket',
-    DELETE_BUCKET = 'delete bucket',
     GLOBAL = 'global'
 }
 

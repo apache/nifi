@@ -38,7 +38,6 @@ import { BucketTableFilterComponent } from './ui/bucket-table-filter/bucket-tabl
 import { BucketTableComponent } from './ui/bucket-table/bucket-table.component';
 import { CreateBucketDialogComponent } from './ui/create-bucket-dialog/create-bucket-dialog.component';
 import { EditBucketDialogComponent } from './ui/edit-bucket-dialog/edit-bucket-dialog.component';
-import { DeleteBucketDialogComponent } from './ui/delete-bucket-dialog/delete-bucket-dialog.component';
 import { ManageBucketPoliciesDialogComponent } from './ui/manage-bucket-policies-dialog/manage-bucket-policies-dialog.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -50,7 +49,6 @@ import { ContextErrorBanner } from '../../../ui/common/context-error-banner/cont
         BucketTableComponent,
         CreateBucketDialogComponent,
         EditBucketDialogComponent,
-        DeleteBucketDialogComponent,
         ManageBucketPoliciesDialogComponent,
         ContextErrorBanner,
         CommonModule,

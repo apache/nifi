@@ -27,7 +27,6 @@ import {
     openManageBucketPoliciesDialog
 } from '../../../../../state/buckets/buckets.actions';
 import { Store } from '@ngrx/store';
-import { By } from '@angular/platform-browser';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';

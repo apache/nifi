@@ -58,7 +58,7 @@ describe('BucketTableFilterComponent', () => {
         jest.spyOn(component.filterChanged, 'emit');
         component.filterForm.get('filterTerm')?.setValue('test');
         fixture.detectChanges();
-        tick(250); // Wait for debounceTime
+        tick(500); // Wait for debounceTime
         expect(component.filterChanged.emit).toHaveBeenCalledWith({
             filterTerm: 'test',
             filterColumn: 'name',

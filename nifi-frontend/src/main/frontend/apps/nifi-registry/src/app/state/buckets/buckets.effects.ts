@@ -19,7 +19,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { from, of } from 'rxjs';
+import { from, of, take } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import * as BucketsActions from './buckets.actions';
 import { BucketsService } from '../../service/buckets.service';
@@ -28,10 +28,11 @@ import { ErrorContextKey } from '../error';
 import * as ErrorActions from '../error/error.actions';
 import { CreateBucketDialogComponent } from '../../pages/buckets/feature/ui/create-bucket-dialog/create-bucket-dialog.component';
 import { EditBucketDialogComponent } from '../../pages/buckets/feature/ui/edit-bucket-dialog/edit-bucket-dialog.component';
-import { DeleteBucketDialogComponent } from '../../pages/buckets/feature/ui/delete-bucket-dialog/delete-bucket-dialog.component';
 import { ManageBucketPoliciesDialogComponent } from '../../pages/buckets/feature/ui/manage-bucket-policies-dialog/manage-bucket-policies-dialog.component';
-
-import { LARGE_DIALOG, MEDIUM_DIALOG } from '@nifi/shared';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
+import { deleteBucket } from './buckets.actions';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../../../nifi/src/app/state';
 
 @Injectable()
 export class BucketsEffects {
@@ -39,6 +40,7 @@ export class BucketsEffects {
     private errorHelper = inject(ErrorHelper);
     private dialog = inject(MatDialog);
     private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
 
     loadBuckets$ = createEffect(() =>
         this.actions$.pipe(
@@ -148,10 +150,22 @@ export class BucketsEffects {
             this.actions$.pipe(
                 ofType(BucketsActions.openDeleteBucketDialog),
                 tap(({ request }) => {
-                    this.dialog.open(DeleteBucketDialogComponent, {
-                        ...MEDIUM_DIALOG,
-                        autoFocus: false,
-                        data: { bucket: request.bucket }
+                    const dialogRef = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
+                        data: {
+                            title: 'Delete Bucket',
+                            message: `All items stored in this bucket will be deleted as well.`
+                        }
+                    });
+                    dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(
+                            deleteBucket({
+                                request: {
+                                    bucket: request.bucket,
+                                    version: request.bucket.revision.version
+                                }
+                            })
+                        );
                     });
                 })
             ),
@@ -167,7 +181,7 @@ export class BucketsEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             BucketsActions.deleteBucketFailure(),
-                            this.bannerError(errorResponse, ErrorContextKey.DELETE_BUCKET)
+                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
                         )
                     )
                 )

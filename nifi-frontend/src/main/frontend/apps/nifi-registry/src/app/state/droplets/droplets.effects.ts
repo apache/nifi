@@ -19,11 +19,10 @@ import { inject, Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { catchError, from, map, of, switchMap, tap } from 'rxjs';
-import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from '@nifi/shared';
+import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
+import { MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { DropletsService } from '../../service/droplets.service';
 import * as DropletsActions from './droplets.actions';
-import { DeleteDropletDialogComponent } from '../../pages/resources/feature/ui/delete-droplet-dialog/delete-droplet-dialog.component';
 import {
     ImportNewDropletDialogComponent,
     ImportNewFlowDialogData
@@ -40,12 +39,16 @@ import { DropletVersionsDialogComponent } from '../../pages/resources/feature/ui
 import { ErrorHelper } from '../../service/error-helper.service';
 import { ErrorContextKey } from '../error';
 import * as ErrorActions from '../../state/error/error.actions';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../../../nifi/src/app/state';
+import { deleteDroplet } from './droplets.actions';
 
 @Injectable()
 export class DropletsEffects {
     private dropletsService = inject(DropletsService);
     private dialog = inject(MatDialog);
     private errorHelper = inject(ErrorHelper);
+    private store = inject<Store<NiFiState>>(Store);
 
     actions$ = inject(Actions);
 
@@ -74,14 +77,22 @@ export class DropletsEffects {
             this.actions$.pipe(
                 ofType(DropletsActions.openDeleteDropletDialog),
                 tap(({ request }) => {
-                    this.dialog.open<DeleteDropletDialogComponent, ExportFlowVersionDialogData>(
-                        DeleteDropletDialogComponent,
-                        {
-                            ...SMALL_DIALOG,
-                            autoFocus: false,
-                            data: request
+                    const dialogRef = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
+                        data: {
+                            title: 'Delete resource',
+                            message: `This action will delete all versions of ${request.droplet.name}`
                         }
-                    );
+                    });
+                    dialogRef.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(
+                            deleteDroplet({
+                                request: {
+                                    droplet: request.droplet
+                                }
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
@@ -95,7 +106,10 @@ export class DropletsEffects {
                 from(this.dropletsService.deleteDroplet(request.droplet.link.href)).pipe(
                     map((res) => DropletsActions.deleteDropletSuccess({ response: res })),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.bannerError(errorResponse, ErrorContextKey.DELETE_DROPLET))
+                        of(
+                            DropletsActions.deleteDropletFailure(),
+                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                        )
                     )
                 )
             )
