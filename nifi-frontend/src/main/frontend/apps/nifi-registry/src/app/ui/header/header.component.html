@@ -39,12 +39,21 @@
                     <i class="fa fa-navicon text-[32px]"></i>
                 </button>
                 <mat-menu #globalMenu="matMenu" xPosition="before">
-                    <button mat-menu-item class="global-menu-item">Buckets</button>
-                    <button mat-menu-item class="global-menu-item">Users/Groups</button>
+                    <button mat-menu-item class="global-menu-item"><i class="fa mr-2"></i>Buckets</button>
+                    <button mat-menu-item class="global-menu-item"><i class="fa mr-2"></i>Users/Groups</button>
                     <button mat-menu-item class="global-menu-item">
                         <i class="fa fa-info-circle primary-color mr-2"></i>
                         About
                     </button>
+                    <a
+                        mat-menu-item
+                        class="global-menu-item"
+                        [href]="documentationUrl"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        <i class="fa fa-question-circle primary-color mr-2"></i>
+                        Documentation
+                    </a>
                     <button mat-menu-item [matMenuTriggerFor]="theming">
                         <i class="fa mr-2"></i>
                         Appearance
