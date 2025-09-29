@@ -42,11 +42,6 @@ const routes: Routes = [
                         path: '',
                         redirectTo: '/buckets',
                         pathMatch: 'full'
-                    },
-                    {
-                        path: 'manage/bucket/:bucketId',
-                        redirectTo: '/buckets/:bucketId',
-                        pathMatch: 'full'
                     }
                 ]
             }
