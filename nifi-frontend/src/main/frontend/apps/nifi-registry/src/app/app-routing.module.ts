@@ -40,13 +40,13 @@ const routes: Routes = [
                 children: [
                     {
                         path: '',
-                        redirectTo: 'buckets',
+                        redirectTo: '/buckets',
                         pathMatch: 'full'
                     },
                     {
                         path: 'manage/bucket/:bucketId',
-                        outlet: 'sidenav',
-                        redirectTo: 'buckets/:bucketId'
+                        redirectTo: '/buckets/:bucketId',
+                        pathMatch: 'full'
                     }
                 ]
             }
