@@ -22,7 +22,6 @@ import { PageContent } from '../../../ui/common/page-content/page-content.compon
     selector: 'app-route-not-found',
     templateUrl: './route-not-found.component.html',
     styleUrl: './route-not-found.component.scss',
-    standalone: true,
     imports: [PageContent]
 })
 export class RouteNotFound {}

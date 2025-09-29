@@ -16,12 +16,13 @@
  */
 
 import { Component, Input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'page-content',
     templateUrl: './page-content.component.html',
     styleUrl: './page-content.component.scss',
-    standalone: true
+    imports: [RouterLink]
 })
 export class PageContent {
     @Input() title: string = '';

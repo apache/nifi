@@ -15,7 +15,16 @@
   ~ limitations under the License.
   -->
 
-<div class="page-content">
-    <h1 class="text-2xl font-medium mb-8">{{ title }}</h1>
+<div class="page-content w-1/2 flex flex-col gap-y-5">
+    <div class="flex justify-between items-start gap-x-3">
+        <h3 class="primary-color whitespace-nowrap overflow-hidden text-ellipsis" [title]="title">{{ title }}</h3>
+        <div class="flex gap-x-3">
+            <!--            @if (logoutSupported()) {-->
+            <!-- TODO: Logout               -->
+            <!--                <a (click)="logout()" class="whitespace-nowrap">log out</a>-->
+            <!--            }-->
+            <a [routerLink]="['/']">home</a>
+        </div>
+    </div>
     <ng-content></ng-content>
 </div>
