@@ -16,7 +16,7 @@
  */
 
 import { Component, inject, OnInit } from '@angular/core';
-import { NgOptimizedImage } from '@angular/common';
+import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
@@ -24,11 +24,12 @@ import { DARK_THEME, LIGHT_THEME, OS_SETTING, Storage, ThemingService } from '@n
 import { Store } from '@ngrx/store';
 import { NiFiRegistryState } from '../../state';
 import { loadAbout, openAboutDialog } from '../../state/about/about.actions';
+import { selectAbout } from '../../state/about/about.selectors';
 
 @Component({
     selector: 'app-header',
     standalone: true,
-    imports: [NgOptimizedImage, RouterModule, MatButton, MatMenu, MatMenuItem, MatMenuTrigger],
+    imports: [NgOptimizedImage, RouterModule, MatButton, MatMenu, MatMenuItem, MatMenuTrigger, AsyncPipe],
     templateUrl: './header.component.html',
     styleUrl: './header.component.scss'
 })
@@ -46,6 +47,7 @@ export class HeaderComponent implements OnInit {
     DARK_THEME: string = DARK_THEME;
     OS_SETTING: string = OS_SETTING;
     disableAnimations: string | null;
+    about$ = this.store.select(selectAbout);
 
     constructor() {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
