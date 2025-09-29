@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButton } from '@angular/material/button';
@@ -23,7 +23,7 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { DARK_THEME, LIGHT_THEME, OS_SETTING, Storage, ThemingService } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { NiFiRegistryState } from '../../state';
-import { openAboutDialog } from '../../state/about/about.actions';
+import { loadAbout, openAboutDialog } from '../../state/about/about.actions';
 
 @Component({
     selector: 'app-header',
@@ -32,7 +32,7 @@ import { openAboutDialog } from '../../state/about/about.actions';
     templateUrl: './header.component.html',
     styleUrl: './header.component.scss'
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
     private storage = inject(Storage);
     private themingService = inject(ThemingService);
     private router = inject(Router);
@@ -61,6 +61,18 @@ export class HeaderComponent {
         }
     }
 
+    ngOnInit(): void {
+        this.store.dispatch(loadAbout());
+    }
+
+    navigateToResources() {
+        this.router.navigateByUrl('/explorer');
+    }
+
+    navigateToWorkflow() {
+        this.router.navigateByUrl('/buckets');
+    }
+
     toggleTheme(theme: string) {
         this.theme = theme;
         this.storage.setItem('theme', theme);
@@ -71,14 +83,6 @@ export class HeaderComponent {
         this.disableAnimations = disableAnimations;
         this.storage.setItem('disable-animations', this.disableAnimations.toString());
         window.location.reload();
-    }
-
-    navigateToResources() {
-        this.router.navigateByUrl('/explorer');
-    }
-
-    navigateToWorkflow() {
-        this.router.navigateByUrl('/buckets');
     }
 
     viewAbout(): void {

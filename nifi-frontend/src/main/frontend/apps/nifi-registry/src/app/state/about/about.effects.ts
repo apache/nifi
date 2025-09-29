@@ -43,7 +43,7 @@ export class AboutEffects {
                     this.aboutService.getAbout().pipe(
                         map((response) => AboutActions.loadAboutSuccess({ response })),
                         catchError((errorResponse: HttpErrorResponse) =>
-                            of(this.bannerError(errorResponse, ErrorContextKey.ABOUT))
+                            of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                         )
                     )
                 )
@@ -64,13 +64,4 @@ export class AboutEffects {
             ),
         { dispatch: false }
     );
-
-    private bannerError(errorResponse: HttpErrorResponse, context: ErrorContextKey = ErrorContextKey.GLOBAL) {
-        return ErrorActions.addBannerError({
-            errorContext: {
-                errors: [this.errorHelper.getErrorString(errorResponse)],
-                context
-            }
-        });
-    }
 }

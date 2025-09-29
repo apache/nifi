@@ -23,7 +23,6 @@ export interface ErrorDetail {
 }
 
 export enum ErrorContextKey {
-    ABOUT = 'about',
     EXPORT_DROPLET_VERSION = 'droplet listing',
     CREATE_DROPLET = 'create droplet',
     IMPORT_DROPLET_VERSION = 'import droplet version',

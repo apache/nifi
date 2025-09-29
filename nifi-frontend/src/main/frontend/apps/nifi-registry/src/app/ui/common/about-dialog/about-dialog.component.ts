@@ -26,9 +26,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { AboutState } from '../../../state/about';
 import { selectAbout } from '../../../state/about/about.selectors';
-import { loadAbout } from '../../../state/about/about.actions';
-import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
-import { ErrorContextKey } from '../../../state/error';
 
 @Component({
     selector: 'registry-about-dialog',
@@ -42,8 +39,7 @@ import { ErrorContextKey } from '../../../state/error';
         ReactiveFormsModule,
         MatFormFieldModule,
         MatInputModule,
-        NgOptimizedImage,
-        ContextErrorBanner
+        NgOptimizedImage
     ]
 })
 export class AboutDialogComponent extends CloseOnEscapeDialog {
@@ -51,9 +47,7 @@ export class AboutDialogComponent extends CloseOnEscapeDialog {
 
     constructor() {
         super();
-        this.store.dispatch(loadAbout());
     }
 
     about$ = this.store.select(selectAbout);
-    protected readonly ErrorContextKey = ErrorContextKey;
 }

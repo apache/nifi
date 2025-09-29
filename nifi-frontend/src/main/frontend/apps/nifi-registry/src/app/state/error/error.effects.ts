@@ -17,7 +17,7 @@
 
 import { inject, Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as ErrorActions from '../../../../../nifi/src/app/state/error/error.actions';
+import * as ErrorActions from '../../state/error/error.actions';
 import { map, tap } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
