@@ -44,7 +44,8 @@ import {
     selectParameterContexts,
     selectParameterContextStatus,
     selectSaving,
-    selectUpdateRequest
+    selectUpdateRequest,
+    selectDeleteUpdateRequestInitiated
 } from './parameter-context-listing.selectors';
 import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
@@ -383,6 +384,14 @@ export class ParameterContextListingEffects {
                             );
                         });
 
+                    editDialogReference.componentInstance.cancelUpdateRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe(() => {
+                            this.store.dispatch(
+                                ParameterContextListingActions.stopPollingParameterContextUpdateRequest()
+                            );
+                        });
+
                     editDialogReference.afterClosed().subscribe((response) => {
                         if (response != 'ROUTED') {
                             this.store.dispatch(
@@ -504,6 +513,8 @@ export class ParameterContextListingEffects {
     stopPollingParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.stopPollingParameterContextUpdateRequest),
+            concatLatestFrom(() => this.store.select(selectDeleteUpdateRequestInitiated)),
+            filter(([, deleteUpdateRequestInitiated]) => !deleteUpdateRequestInitiated),
             switchMap(() => of(ParameterContextListingActions.deleteParameterContextUpdateRequest()))
         )
     );
