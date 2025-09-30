@@ -48,7 +48,7 @@ import {
     VerifyPropertiesRequestContext
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
-import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { SelectOption } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
@@ -73,7 +73,13 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-reporting-task.component.scss']
+    styleUrls: ['./edit-reporting-task.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-reporting-task-selected-index'
+        }
+    ]
 })
 export class EditReportingTask extends TabbedDialog {
     request = inject<EditReportingTaskDialogRequest>(MAT_DIALOG_DATA);
@@ -116,7 +122,7 @@ export class EditReportingTask extends TabbedDialog {
     ];
 
     constructor() {
-        super('edit-reporting-task-selected-index');
+        super();
         const request = this.request;
 
         this.readonly =

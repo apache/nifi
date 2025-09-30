@@ -42,7 +42,7 @@ import {
     VerifyPropertiesRequestContext
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
-import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -65,7 +65,13 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-flow-analysis-rule.component.scss']
+    styleUrls: ['./edit-flow-analysis-rule.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-flow-analysis-rule-selected-index'
+        }
+    ]
 })
 export class EditFlowAnalysisRule extends TabbedDialog {
     request = inject<EditFlowAnalysisRuleDialogRequest>(MAT_DIALOG_DATA);
@@ -102,7 +108,7 @@ export class EditFlowAnalysisRule extends TabbedDialog {
     ];
 
     constructor() {
-        super('edit-flow-analysis-rule-selected-index');
+        super();
         const request = this.request;
 
         this.readonly =

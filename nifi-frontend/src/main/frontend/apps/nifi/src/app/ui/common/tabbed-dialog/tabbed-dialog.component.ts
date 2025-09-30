@@ -15,26 +15,41 @@
  * limitations under the License.
  */
 
-import { inject } from '@angular/core';
+import { inject, InjectionToken } from '@angular/core';
 import { Storage, CloseOnEscapeDialog } from '@nifi/shared';
+
+export const TABBED_DIALOG_ID = new InjectionToken<string>('TABBED_DIALOG_ID');
 
 export abstract class TabbedDialog extends CloseOnEscapeDialog {
     private storage: Storage = inject(Storage);
-    private dialogId: string;
+    private dialogId: string = 'tabbed-dialog-selected-index';
 
     selectedIndex = 0;
 
-    constructor(dialogId: string) {
+    constructor() {
         super();
-        this.dialogId = dialogId;
 
-        const previousSelectedIndex = this.storage.getItem<number>(this.dialogId);
-        if (previousSelectedIndex != null) {
-            this.selectedIndex = previousSelectedIndex;
+        // Inject the dialog ID if provided, otherwise use default
+        const injectedDialogId = inject(TABBED_DIALOG_ID, { optional: true });
+        if (injectedDialogId !== null && injectedDialogId !== undefined) {
+            this.dialogId = injectedDialogId;
+        }
+
+        try {
+            const previousSelectedIndex = this.storage.getItem<number>(this.dialogId);
+            if (previousSelectedIndex != null) {
+                this.selectedIndex = previousSelectedIndex;
+            }
+        } catch (error) {
+            // Gracefully handle localStorage errors - use default selectedIndex
         }
     }
 
     tabChanged(selectedTabIndex: number): void {
-        this.storage.setItem<number>(this.dialogId, selectedTabIndex);
+        try {
+            this.storage.setItem<number>(this.dialogId, selectedTabIndex);
+        } catch (error) {
+            // Gracefully handle localStorage errors
+        }
     }
 }

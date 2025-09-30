@@ -30,7 +30,7 @@ import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { openNewParameterContextDialog } from '../../../../../state/parameter/parameter.actions';
@@ -59,7 +59,13 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
         ContextErrorBanner,
         SortObjectByPropertyPipe
     ],
-    styleUrls: ['./edit-process-group.component.scss']
+    styleUrls: ['./edit-process-group.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-process-group-selected-index'
+        }
+    ]
 })
 export class EditProcessGroup extends TabbedDialog {
     request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
@@ -188,7 +194,7 @@ export class EditProcessGroup extends TabbedDialog {
     ];
 
     constructor() {
-        super('edit-process-group-selected-index');
+        super();
         const request = this.request;
 
         this.readonly = !request.entity.permissions.canWrite;
