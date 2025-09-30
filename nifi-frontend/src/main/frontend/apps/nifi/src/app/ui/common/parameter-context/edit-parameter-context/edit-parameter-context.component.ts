@@ -88,6 +88,7 @@ export class EditParameterContext extends TabbedDialog {
 
     @Output() addParameterContext: EventEmitter<any> = new EventEmitter<any>();
     @Output() editParameterContext: EventEmitter<any> = new EventEmitter<any>();
+    @Output() cancelUpdateRequest: EventEmitter<any> = new EventEmitter<any>();
 
     editParameterContextForm: FormGroup;
     readonly: boolean;

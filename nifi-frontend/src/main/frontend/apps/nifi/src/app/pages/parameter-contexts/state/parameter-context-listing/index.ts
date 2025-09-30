@@ -57,5 +57,6 @@ export interface ParameterContextListingState {
     updateRequestEntity: ParameterContextUpdateRequestEntity | null;
     saving: boolean;
     loadedTimestamp: string;
+    deleteUpdateRequestInitiated: boolean;
     status: 'pending' | 'loading' | 'success';
 }

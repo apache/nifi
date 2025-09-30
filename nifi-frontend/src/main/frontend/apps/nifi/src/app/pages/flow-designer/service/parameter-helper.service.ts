@@ -90,10 +90,11 @@ export class ParameterHelperService {
                     convertToParameterDialogReference.componentInstance.saving$ =
                         this.store.select(selectParameterSaving);
 
-                    convertToParameterDialogReference.componentInstance.exit.pipe(
-                        takeUntil(convertToParameterDialogReference.afterClosed()),
-                        tap(() => ParameterActions.stopPollingParameterContextUpdateRequest())
-                    );
+                    convertToParameterDialogReference.componentInstance.exit
+                        .pipe(takeUntil(convertToParameterDialogReference.afterClosed()))
+                        .subscribe(() =>
+                            this.store.dispatch(ParameterActions.stopPollingParameterContextUpdateRequest())
+                        );
 
                     return convertToParameterDialogReference.componentInstance.editParameter.pipe(
                         takeUntil(convertToParameterDialogReference.afterClosed()),
