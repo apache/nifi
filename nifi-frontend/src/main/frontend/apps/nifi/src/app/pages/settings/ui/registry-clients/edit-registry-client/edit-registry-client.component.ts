@@ -37,7 +37,7 @@ import { TextTip, NiFiCommon, CopyDirective } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -58,7 +58,13 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-registry-client.component.scss']
+    styleUrls: ['./edit-registry-client.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-registry-client-selected-index'
+        }
+    ]
 })
 export class EditRegistryClient extends TabbedDialog {
     request = inject<EditRegistryClientDialogRequest>(MAT_DIALOG_DATA);
@@ -79,7 +85,7 @@ export class EditRegistryClient extends TabbedDialog {
     editRegistryClientForm: FormGroup;
 
     constructor() {
-        super('edit-registry-client-selected-index');
+        super();
         const request = this.request;
 
         const serviceProperties: any = request.registryClient.component.properties;

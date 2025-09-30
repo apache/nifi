@@ -43,7 +43,7 @@ import { ParameterContextInheritance } from '../parameter-context-inheritance/pa
 import { ParameterReferences } from '../../parameter-references/parameter-references.component';
 import { RouterLink } from '@angular/router';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
-import { TabbedDialog } from '../../tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../tabbed-dialog/tabbed-dialog.component';
 import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective, Parameter } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
@@ -72,7 +72,13 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-parameter-context.component.scss']
+    styleUrls: ['./edit-parameter-context.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID
+        }
+    ]
 })
 export class EditParameterContext extends TabbedDialog {
     request = inject<EditParameterContextRequest>(MAT_DIALOG_DATA);
@@ -99,7 +105,7 @@ export class EditParameterContext extends TabbedDialog {
     parameters!: ParameterEntity[];
 
     constructor() {
-        super(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID);
+        super();
         const request = this.request;
 
         if (request.parameterContext) {

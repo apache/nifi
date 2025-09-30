@@ -48,7 +48,7 @@ import {
     VerifyPropertiesRequestContext
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
-import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -71,7 +71,13 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         CopyDirective
     ],
     templateUrl: './edit-parameter-provider.component.html',
-    styleUrls: ['./edit-parameter-provider.component.scss']
+    styleUrls: ['./edit-parameter-provider.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-parameter-provider-selected-index'
+        }
+    ]
 })
 export class EditParameterProvider extends TabbedDialog {
     request = inject<EditParameterProviderRequest>(MAT_DIALOG_DATA);
@@ -96,7 +102,7 @@ export class EditParameterProvider extends TabbedDialog {
     readonly: boolean;
 
     constructor() {
-        super('edit-parameter-provider-selected-index');
+        super();
         const request = this.request;
 
         this.readonly = !request.parameterProvider.permissions.canWrite;

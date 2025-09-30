@@ -30,7 +30,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { reloadSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { isDefinedAndNotNull, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 
@@ -46,7 +46,13 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
         ContextErrorBanner
     ],
     templateUrl: './system-diagnostics-dialog.component.html',
-    styleUrls: ['./system-diagnostics-dialog.component.scss']
+    styleUrls: ['./system-diagnostics-dialog.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'system-diagnostics-selected-index'
+        }
+    ]
 })
 export class SystemDiagnosticsDialog extends TabbedDialog implements OnInit {
     private store = inject<Store<SystemDiagnosticsState>>(Store);
@@ -58,7 +64,7 @@ export class SystemDiagnosticsDialog extends TabbedDialog implements OnInit {
     sortedGarbageCollections: GarbageCollection[] | null = null;
 
     constructor() {
-        super('system-diagnostics-selected-index');
+        super();
     }
 
     ngOnInit(): void {
