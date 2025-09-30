@@ -84,11 +84,6 @@
                         (click)="select(row)"
                         [class.selected]="isSelected(row)"></tr>
                 </table>
-                @if (dataSource.data.length === 0) {
-                    <div class="py-5">
-                        <p class="text-center">There are no buckets to display.</p>
-                    </div>
-                }
             </div>
         </div>
     </div>
