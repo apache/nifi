@@ -42,6 +42,8 @@ export const deleteDroplet = createAction('[Droplets] Delete Droplet', props<{ r
 
 export const deleteDropletSuccess = createAction('[Droplets] Delete Droplet Success', props<{ response: Droplet }>());
 
+export const deleteDropletFailure = createAction('[Droplets] Delete Droplet Failure');
+
 export const openImportNewDropletDialog = createAction(
     '[Droplets] Open Import New Droplet Dialog',
     props<{ request: ImportDropletDialog }>()
@@ -91,8 +93,6 @@ export const openDropletVersionsDialog = createAction(
     `[Droplets] Open Droplet Versions Dialog`,
     props<{ request: { droplet: Droplet } }>()
 );
-
-export const selectDroplet = createAction(`[Droplets] Select Droplet`, props<{ request: { id: string } }>());
 
 export const dropletsBannerError = createAction(`[Droplets] Banner Error`, props<{ errorContext: ErrorContext }>());
 

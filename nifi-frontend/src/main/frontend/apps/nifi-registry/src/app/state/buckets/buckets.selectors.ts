@@ -19,9 +19,19 @@ import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { bucketsFeatureKey, BucketsState } from './index';
 
 import { resourcesFeatureKey, ResourcesState } from '..';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectResourcesState = createFeatureSelector<ResourcesState>(resourcesFeatureKey);
 
 export const selectBucketState = createSelector(selectResourcesState, (state) => state[bucketsFeatureKey]);
 
 export const selectBuckets = createSelector(selectBucketState, (state: BucketsState) => state.buckets);
+
+export const selectBucketsState = createSelector(selectBucketState, (state: BucketsState) => state);
+
+export const selectBucketIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params['id'] ?? null;
+    }
+    return null;
+});

@@ -21,7 +21,7 @@ import {
     selectDroplets,
     selectDropletState
 } from '../../../state/droplets/droplets.selectors';
-import { loadDroplets, openImportNewDropletDialog, selectDroplet } from '../../../state/droplets/droplets.actions';
+import { loadDroplets, openImportNewDropletDialog } from '../../../state/droplets/droplets.actions';
 import { Droplet } from '../../../state/droplets';
 import { Store } from '@ngrx/store';
 import { MatTableDataSource } from '@angular/material/table';
@@ -37,6 +37,7 @@ import {
 } from './ui/droplet-table-filter/droplet-table-filter.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorContextKey } from '../../../state/error';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'resources',
@@ -47,6 +48,7 @@ import { ErrorContextKey } from '../../../state/error';
 export class ResourcesComponent implements OnInit {
     private store = inject(Store);
     private nifiCommon = inject(NiFiCommon);
+    private router = inject(Router);
 
     droplets$: Observable<Droplet[]> = this.store.select(selectDroplets).pipe(takeUntilDestroyed());
     buckets$: Observable<Bucket[]> = this.store.select(selectBuckets).pipe(takeUntilDestroyed());
@@ -171,13 +173,7 @@ export class ResourcesComponent implements OnInit {
     }
 
     selectDroplet(droplet: Droplet): void {
-        this.store.dispatch(
-            selectDroplet({
-                request: {
-                    id: droplet.identifier
-                }
-            })
-        );
+        this.router.navigate(['/explorer', droplet.identifier]);
     }
 
     protected readonly ErrorContextKey = ErrorContextKey;

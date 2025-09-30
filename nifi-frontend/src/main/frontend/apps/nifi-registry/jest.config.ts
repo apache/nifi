@@ -17,9 +17,17 @@
 
 export default {
     displayName: 'NiFi Registry',
-    preset: '../../jest.preset.js',
-    setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
+    clearMocks: true,
     coverageDirectory: '../../coverage/apps/nifi-registry',
+    extensionsToTreatAsEsm: ['.ts'],
+
+    preset: '../../jest.preset.js',
+
+    // The test environment that will be used for testing
+    testEnvironment: '@happy-dom/jest-environment',
+
+    setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
+
     transform: {
         '^.+\\.(ts|mjs|js|html)$': [
             'jest-preset-angular',
@@ -29,10 +37,5 @@ export default {
             }
         ]
     },
-    transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
-    snapshotSerializers: [
-        'jest-preset-angular/build/serializers/no-ng-attributes',
-        'jest-preset-angular/build/serializers/ng-snapshot',
-        'jest-preset-angular/build/serializers/html-comment'
-    ]
+    transformIgnorePatterns: []
 };

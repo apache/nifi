@@ -25,7 +25,7 @@
                         priority
                         alt="nifi registry logo"
                         class="pointer p-3"
-                        (click)="goHome()" />
+                        (click)="navigateToResources()" />
                 </div>
                 <div class="h-[64px] w-[112px] mr-6 relative">
                     <img ngSrc="assets/icons/nifi-logo.svg" fill priority alt="NiFi Logo" />
@@ -39,7 +39,12 @@
                     <i class="fa fa-navicon text-[32px]"></i>
                 </button>
                 <mat-menu #globalMenu="matMenu" xPosition="before">
-                    <button mat-menu-item class="global-menu-item"><i class="fa mr-2"></i>Buckets</button>
+                    <button mat-menu-item class="global-menu-item" (click)="navigateToResources()">
+                        <i class="fa mr-2"></i>Resources
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="navigateToWorkflow()">
+                        <i class="fa mr-2"></i>Buckets
+                    </button>
                     <button mat-menu-item class="global-menu-item"><i class="fa mr-2"></i>Users/Groups</button>
                     <button mat-menu-item class="global-menu-item">
                         <i class="fa fa-info-circle primary-color mr-2"></i>

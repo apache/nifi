@@ -15,8 +15,22 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { Component, inject } from '@angular/core';
+import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
 
-.delete-droplet-dialog {
-    @include mat.button-density(-1);
+export interface ManageBucketPoliciesDialogData {
+    bucket: Bucket;
+}
+
+@Component({
+    selector: 'manage-bucket-policies-dialog',
+    templateUrl: './manage-bucket-policies-dialog.component.html',
+    styleUrl: './manage-bucket-policies-dialog.component.scss',
+    standalone: true,
+    imports: [MatDialogModule, MatButtonModule]
+})
+export class ManageBucketPoliciesDialogComponent {
+    protected data = inject<ManageBucketPoliciesDialogData>(MAT_DIALOG_DATA);
 }

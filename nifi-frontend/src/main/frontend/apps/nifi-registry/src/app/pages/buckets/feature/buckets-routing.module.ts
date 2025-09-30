@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,47 +17,23 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { BucketsComponent } from './buckets.component';
 
 const routes: Routes = [
     {
         path: '',
-        redirectTo: 'explorer',
-        pathMatch: 'full'
-    },
-    {
-        path: 'explorer',
-        loadChildren: () => import('./pages/resources/feature/resources.module').then((m) => m.ResourcesModule)
-    },
-    {
-        path: 'buckets',
-        loadChildren: () => import('./pages/buckets/feature/buckets.module').then((m) => m.BucketsModule)
-    },
-    {
-        path: 'administration',
+        component: BucketsComponent,
         children: [
             {
-                path: 'workflow',
-                children: [
-                    {
-                        path: '',
-                        redirectTo: '/buckets',
-                        pathMatch: 'full'
-                    }
-                ]
+                path: ':id',
+                component: BucketsComponent
             }
         ]
     }
-    // TODO: Users/groups
-    // TODO: Page not found
 ];
 
 @NgModule({
-    imports: [
-        RouterModule.forRoot(routes, {
-            paramsInheritanceStrategy: 'always',
-            useHash: true
-        })
-    ],
+    imports: [RouterModule.forChild(routes)],
     exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class BucketsRoutingModule {}
