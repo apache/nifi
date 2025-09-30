@@ -1,0 +1,34 @@
+nifi-couchbase-standard-services-nar
+Copyright 2014-2025 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+    (ASLv2) Couchbase Java SDK
+      The following NOTICE information applies:
+        Couchbase Java SDK
+        Copyright 2014 Couchbase, Inc.
+
+    (ASLv2) Couchbase JVM Core IO
+      The following NOTICE information applies:
+        Couchbase JVM Core IO
+        Copyright 2014 Couchbase, Inc.
+
+    (ASLv2) Non-Blocking Reactive Foundation for the JVM
+      The following NOTICE information applies:
+        Non-Blocking Reactive Foundation for the JVM
+        Copyright 2005 - 2024 Broadcom
+
+************************
+Creative Commons Zero license version 1.0
+************************
+
+The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
+
+    (CC0v1.0) Reactive Streams (org.reactivestreams:reactive-streams:jar:1.0.4 - http://www.reactive-streams.org/)
