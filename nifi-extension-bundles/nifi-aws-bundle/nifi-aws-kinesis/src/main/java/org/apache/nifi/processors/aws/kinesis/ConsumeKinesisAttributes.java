@@ -41,12 +41,21 @@ final class ConsumeKinesisAttributes {
     static final String RECORD_COUNT = "record.count";
     static final String RECORD_ERROR_MESSAGE = "record.error.message";
 
+    /**
+     * Creates a map of FlowFile attributes from the provided Kinesis records.
+     *
+     * @param streamName the name of the Kinesis stream the FileFile records came from.
+     * @param shardId the shard ID the FlowFile records came from.
+     * @param firstRecord the first Kinesis record in the FlowFile.
+     * @param lastRecord the last Kinesis record in the FlowFile.
+     * @return a <b>mutable</b> map with kinesis attributes.
+     */
     static Map<String, String> fromKinesisRecords(
             final String streamName,
             final String shardId,
             final KinesisClientRecord firstRecord,
             final KinesisClientRecord lastRecord) {
-        final Map<String, String> attributes = new HashMap<>(8, 1.0f);
+        final Map<String, String> attributes = new HashMap<>(8);
 
         attributes.put(STREAM_NAME, streamName);
         attributes.put(SHARD_ID, shardId);
