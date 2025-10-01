@@ -47,7 +47,7 @@ const routes: Routes = [
                 ]
             }
         ]
-    }
+    },
     // TODO: Users/groups
     {
         path: '**',
