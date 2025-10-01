@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -64,8 +65,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
-            .name("filename")
-            .displayName("Filename")
+            .name("Filename")
             .description("The name of the file to retrieve")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -74,8 +74,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("The service for writing records to the FlowFile content")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
@@ -262,6 +261,13 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
             return null;
         });
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("filename", FILENAME.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
     }
 
     /**

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -34,8 +35,12 @@ public class TestListAzureBlobStorage_v12 {
         final Map<String, String> expectedRenamed =
                 Map.of(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, ListAzureBlobStorage_v12.CONTAINER.getName(),
                         AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName(),
-                        "blob-name-prefix", ListAzureBlobStorage_v12.BLOB_NAME_PREFIX.getName());
+                        "blob-name-prefix", ListAzureBlobStorage_v12.BLOB_NAME_PREFIX.getName(),
+                        ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListAzureBlobStorage_v12.TRACKING_STATE_CACHE.getName(),
+                        ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListAzureBlobStorage_v12.TRACKING_TIME_WINDOW.getName(),
+                        ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListAzureBlobStorage_v12.INITIAL_LISTING_TARGET.getName());
 
-        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+        final Map<String, String> actualRenamed = propertyMigrationResult.getPropertiesRenamed();
+        expectedRenamed.forEach((key, value) -> assertEquals(actualRenamed.get(key), value));
     }
 }

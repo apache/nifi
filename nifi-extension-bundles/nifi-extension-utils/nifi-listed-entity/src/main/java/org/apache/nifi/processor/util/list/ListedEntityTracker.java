@@ -66,9 +66,13 @@ public class ListedEntityTracker<T extends ListableEntity> {
     protected volatile Map<String, ListedEntity> alreadyListedEntities;
 
     private static final String NOTE = "Used by 'Tracking Entities' strategy.";
+    public static final String OLD_TRACKING_STATE_CACHE_PROPERTY_NAME = "et-state-cache";
+    public static final String OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME = "et-time-window";
+    public static final String OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME = "et-initial-listing-target";
+    public static final String OLD_NODE_IDENTIFIER_PROPERTY_NAME = "et-node-identifier";
+
     public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
-            .name("et-state-cache")
-            .displayName("Entity Tracking State Cache")
+            .name("Entity Tracking State Cache")
             .description(format("Listed entities are stored in the specified cache storage" +
                     " so that this processor can resume listing across NiFi restart or in case of primary node change." +
                     " 'Tracking Entities' strategy require tracking information of all listed entities within the last 'Tracking Time Window'." +
@@ -84,8 +88,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .build();
 
     public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
-            .name("et-time-window")
-            .displayName("Entity Tracking Time Window")
+            .name("Entity Tracking Time Window")
             .description(format("Specify how long this processor should track already-listed entities." +
                     " 'Tracking Entities' strategy can pick any entity whose timestamp is inside the specified time window." +
                     " For example, if set to '30 minutes', any entity having timestamp in recent 30 minutes will be the listing target when this processor runs." +
@@ -106,8 +109,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             "Ignore entities having timestamp older than the specified 'Tracking Time Window' at the initial listing activity.");
 
     public static final PropertyDescriptor INITIAL_LISTING_TARGET = new PropertyDescriptor.Builder()
-            .name("et-initial-listing-target")
-            .displayName("Entity Tracking Initial Listing Target")
+            .name("Entity Tracking Initial Listing Target")
             .description(format("Specify how initial listing should be handled." +
                     " %s", NOTE))
             .allowableValues(INITIAL_LISTING_TARGET_WINDOW, INITIAL_LISTING_TARGET_ALL)
@@ -115,8 +117,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .build();
 
     public static final PropertyDescriptor NODE_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("et-node-identifier")
-            .displayName("Entity Tracking Node Identifier")
+            .name("Entity Tracking Node Identifier")
             .description(format("The configured value will be appended to the cache key" +
                     " so that listing state can be tracked per NiFi node rather than cluster wide" +
                     " when tracking state is scoped to LOCAL. %s", NOTE))

@@ -125,8 +125,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-user-service")
-            .displayName("Kerberos User Service")
+            .name("Kerberos User Service")
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
             .identifiesControllerService(KerberosUserService.class)
             .required(false)
@@ -170,6 +169,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         config.removeProperty("Kerberos Keytab");
         config.removeProperty("kerberos-credentials-service");
         config.removeProperty("Kerberos Relogin Period");
+        config.renameProperty("kerberos-user-service", KERBEROS_USER_SERVICE.getName());
     }
 
     @Override

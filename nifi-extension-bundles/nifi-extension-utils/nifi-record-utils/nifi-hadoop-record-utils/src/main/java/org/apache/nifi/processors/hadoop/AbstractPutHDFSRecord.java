@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -70,15 +71,13 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
 
     public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
-            .name("compression-type")
-            .displayName("Compression Type")
+            .name("Compression Type")
             .description("The type of compression for the file being written.")
             .required(true)
             .build();
 
     public static final PropertyDescriptor OVERWRITE = new PropertyDescriptor.Builder()
-            .name("overwrite")
-            .displayName("Overwrite Files")
+            .name("Overwrite Files")
             .description("Whether or not to overwrite existing files in the same directory with the same name. When set to false, " +
                     "flow files will be routed to failure when a file exists in the same directory with the same name.")
             .allowableValues("true", "false")
@@ -87,32 +86,28 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor UMASK = new PropertyDescriptor.Builder()
-            .name("permissions-umask")
-            .displayName("Permissions umask")
+            .name("Permissions umask")
             .description("A umask represented as an octal number which determines the permissions of files written to HDFS. " +
                     "This overrides the Hadoop Configuration dfs.umaskmode")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder()
-            .name("remote-owner")
-            .displayName("Remote Owner")
+            .name("Remote Owner")
             .description("Changes the owner of the HDFS file to this value after it is written. " +
                     "This only works if NiFi is running as a user that has HDFS super user privilege to change owner")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder()
-            .name("remote-group")
-            .displayName("Remote Group")
+            .name("Remote Group")
             .description("Changes the group of the HDFS file to this value after it is written. " +
                     "This only works if NiFi is running as a user that has HDFS super user privilege to change group")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("The service for reading records from incoming flow files.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
@@ -392,6 +387,17 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
             return null;
         });
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("compression-type", COMPRESSION_TYPE.getName());
+        config.renameProperty("overwrite", OVERWRITE.getName());
+        config.renameProperty("permissions-umask", UMASK.getName());
+        config.renameProperty("remote-owner", REMOTE_OWNER.getName());
+        config.renameProperty("remote-group", REMOTE_GROUP.getName());
+        config.renameProperty("record-reader", RECORD_READER.getName());
     }
 
     /**

@@ -168,6 +168,9 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         config.renameProperty("folder", FOLDER.getName());
         config.renameProperty("recursive-search", RECURSIVE_SEARCH.getName());
         config.renameProperty("min-age", MIN_AGE.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
+        config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, INITIAL_LISTING_TARGET.getName());
     }
 
     @Override

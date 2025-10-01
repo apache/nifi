@@ -117,6 +117,7 @@ public class FetchFTP extends FetchFileTransfer {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        config.renameProperty(OLD_FILE_NOT_FOUND_LOG_LEVEL_PROPERTY_NAME, FILE_NOT_FOUND_LOG_LEVEL.getName());
     }
 
     @Override

@@ -392,6 +392,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         config.renameProperty("requester-pays", REQUESTER_PAYS.getName());
         config.renameProperty("write-s3-user-metadata", WRITE_USER_METADATA.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
+        config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, INITIAL_LISTING_TARGET.getName());
     }
 
     protected ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> createListedEntityTracker() {

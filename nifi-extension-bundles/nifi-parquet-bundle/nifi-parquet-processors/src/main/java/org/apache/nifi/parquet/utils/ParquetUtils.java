@@ -29,6 +29,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.AbstractPutHDFSRecord;
 import org.apache.nifi.processors.parquet.PutParquet;
 import org.apache.parquet.avro.AvroReadSupport;
 import org.apache.parquet.avro.AvroSchemaConverter;
@@ -137,10 +138,8 @@ public class ParquetUtils {
     }
 
     // NOTE: This needs to be named the same as the compression property in AbstractPutHDFSRecord
-    public static final String COMPRESSION_TYPE_PROP_NAME = "compression-type";
-
     public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
-            .name(COMPRESSION_TYPE_PROP_NAME)
+            .name(AbstractPutHDFSRecord.COMPRESSION_TYPE.getName())
             .displayName("Compression Type")
             .description("The type of compression for the file being written.")
             .allowableValues(COMPRESSION_TYPES.toArray(new AllowableValue[0]))
