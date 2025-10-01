@@ -15,40 +15,45 @@
 ~  limitations under the License.
 -->
 
-<div class="pb-5 px-5 flex flex-col h-full">
-    <div class="h-full flex flex-col">
-        <h3 class="primary-color">Buckets</h3>
-        <context-error-banner [context]="ErrorContextKey.GLOBAL"></context-error-banner>
-        <div class="flex justify-between items-baseline">
-            <bucket-table-filter
-                [filterTerm]="filterTerm"
-                [filterColumn]="filterColumn"
-                [filterableColumns]="filterableColumns"
-                [filteredCount]="dataSource.filteredData.length"
-                [totalCount]="dataSource.data.length"
-                (filterChanged)="applyFilter($event)"></bucket-table-filter>
-            <div class="flex justify-end">
-                <button mat-icon-button class="primary-icon-button" (click)="openCreateBucketDialog()">
-                    <i class="fa fa-plus"></i>
-                </button>
-            </div>
-        </div>
-        @if (buckets$ | async; as buckets) {
-            <bucket-table
-                [dataSource]="dataSource"
-                [selectedId]="selectedBucketId$ | async"
-                (selectBucket)="selectBucket($event)"
-                class="h-full flex"></bucket-table>
-        }
-
-        @if (bucketsState$ | async; as bucketsState) {
-            <div class="flex justify-between mt-2">
-                <div class="text-sm flex items-center gap-x-2">
-                    <button mat-icon-button class="primary-icon-button" (click)="refreshBucketsListing()">
-                        <i class="fa fa-refresh" [class.fa-spin]="bucketsState.status === 'loading'"></i>
+<div class="flex flex-col h-screen justify-between">
+    <header class="mb-5 nifi-registry-header">
+        <app-header></app-header>
+    </header>
+    <div class="pb-5 px-5 flex flex-col h-full">
+        <div class="h-full flex flex-col">
+            <h3 class="primary-color">Buckets</h3>
+            <context-error-banner [context]="ErrorContextKey.GLOBAL"></context-error-banner>
+            <div class="flex justify-between items-baseline">
+                <bucket-table-filter
+                    [filterTerm]="filterTerm"
+                    [filterColumn]="filterColumn"
+                    [filterableColumns]="filterableColumns"
+                    [filteredCount]="dataSource.filteredData.length"
+                    [totalCount]="dataSource.data.length"
+                    (filterChanged)="applyFilter($event)"></bucket-table-filter>
+                <div class="flex justify-end">
+                    <button mat-icon-button class="primary-icon-button" (click)="openCreateBucketDialog()">
+                        <i class="fa fa-plus"></i>
                     </button>
                 </div>
             </div>
-        }
+            @if (buckets$ | async; as buckets) {
+                <bucket-table
+                    [dataSource]="dataSource"
+                    [selectedId]="selectedBucketId$ | async"
+                    (selectBucket)="selectBucket($event)"
+                    class="h-full flex"></bucket-table>
+            }
+
+            @if (bucketsState$ | async; as bucketsState) {
+                <div class="flex justify-between mt-2">
+                    <div class="text-sm flex items-center gap-x-2">
+                        <button mat-icon-button class="primary-icon-button" (click)="refreshBucketsListing()">
+                            <i class="fa fa-refresh" [class.fa-spin]="bucketsState.status === 'loading'"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 </div>
