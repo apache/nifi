@@ -552,6 +552,12 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                     return;
                 }
 
+                // Setting the latch first, so that if the buffer is being emptied concurrently in commitConsumedRecords
+                // the latch is guaranteed to be visible to the commitConsumedRecords, and, therefore, opened.
+                // This will eliminate unnecessary downtimes when waiting for a latch to be opened.
+                final CountDownLatch localEmptyBufferLatch = new CountDownLatch(1);
+                this.emptyBufferLatch = localEmptyBufferLatch;
+
                 if (batchesCount.get() == 0) {
                     // Buffer is empty, perform final checkpoint.
                     checkpointSafely(checkpointer);
@@ -560,8 +566,6 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
                 // Wait for the records to be consumed first.
                 try {
-                    final CountDownLatch localEmptyBufferLatch = new CountDownLatch(1);
-                    this.emptyBufferLatch = localEmptyBufferLatch;
                     localEmptyBufferLatch.await(AWAIT_MILLIS, TimeUnit.MILLISECONDS);
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
