@@ -102,12 +102,12 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SH
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
 @CapabilityDescription("""
-        Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) \
+        Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw)
         or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured.
-        AWS Kinesis Client Library can take a few minutes on the first start and several seconds on subsequent start \
+        The processor may take a few minutes on the first start and several seconds on subsequent starts
         to initialise before starting to fetch data.
-        Uses DynamoDB for check pointing and coordination, and CloudWatch (optional) for metrics.
-        Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.""")
+        Uses DynamoDB for check pointing and coordination, and (optional) CloudWatch for metrics.
+        """)
 @WritesAttributes({
         @WritesAttribute(attribute = ConsumeKinesisAttributes.STREAM_NAME,
                 description = "The name of the Kinesis Stream from which all Kinesis Records in the Flow File were read"),
@@ -134,17 +134,15 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SH
 })
 @DefaultSettings(yieldDuration = "100 millis")
 @SystemResourceConsideration(resource = SystemResource.CPU, description = """
-        Kinesis Client Library is used to create a Worker thread for consumption of Kinesis Records.
-        The Worker is initialised and started when this Processor has been scheduled. It runs continually, spawning Kinesis Record Processors as required \
-        to fetch Kinesis Records. The Worker Thread (and any child Record Processor threads) are not controlled by the normal NiFi scheduler as part of the \
-        Concurrent Thread pool and are not released until this processor is stopped.""")
+        The processor uses additional CPU resources when consuming data from Kinesis.
+        The consumption is started immediately after this Processor is scheduled. The consumption ends only when the Processor is stopped.""")
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = """
-        Kinesis Client Library will continually poll for new Records, \
+        The processor will continually poll for new Records,
         requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.""")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = """
         ConsumeKinesis buffers Kinesis Records in memory until they can be processed.
         The maximum size of the buffer is controlled by the 'Max Bytes to Buffer' property.
-        In addition, Kinesis Client Library may cache some amount of data for each shard when the processor's buffer is full.""")
+        In addition, the processor may cache some amount of data for each shard when the processor's buffer is full.""")
 public class ConsumeKinesis extends AbstractProcessor {
 
     private static final Duration HTTP_CLIENTS_CONNECTION_TIMEOUT = Duration.ofSeconds(30);
@@ -175,7 +173,10 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("AWS Credentials Provider Service")
-            .description("The Controller Service that is used to obtain AWS credentials provider.")
+            .description("""
+                    The Controller Service that is used to obtain AWS credentials provider.
+                    Ensure that the credentials provided have access to Kinesis, DynamoDB and (optional) CloudWatch.
+                    """)
             .required(true)
             .identifiesControllerService(AWSCredentialsProviderService.class)
             .build();
@@ -190,7 +191,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
             .name("Processing Strategy")
-            .description("Strategy for processing Kinesis Records and writing serialized output to FlowFiles")
+            .description("Strategy for processing Kinesis Records and writing serialized output to FlowFiles.")
             .required(true)
             .allowableValues(ProcessingStrategy.class)
             .defaultValue(ProcessingStrategy.FLOW_FILE)
@@ -236,10 +237,9 @@ public class ConsumeKinesis extends AbstractProcessor {
             .name("Max Bytes to Buffer")
             .description("""
                     The maximum size of Kinesis Records that can be buffered in memory before being processed by NiFi.
-                    If the buffer size exceeds the limit, the KCL will stop consuming new records until free space is available.
+                    If the buffer size exceeds the limit, the processor will stop consuming new records until free space is available.
 
-                    Using a larger value may improve throughput, but will do so at the expense of using additional heap.
-                    Using a smaller value may back off the Kinesis Client Library (KCL) from consuming records if the buffer is full, which may result in lower throughput.
+                    Using a larger value may increase the throughput, but will do so at the expense of using more memory.
                     """)
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -249,10 +249,10 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
             .name("Checkpoint Interval")
             .description("""
-                    Interval between checkpointing consumed Kinesis records. To checkpoint records on each NiFi session commit, set this value to 0 seconds.
+                    Interval between checkpointing consumed Kinesis records. To checkpoint records each time the Processor is run, set this value to 0 seconds.
 
-                    Checkpointing too frequently may result in performance degradation and higher DynamoDB costs.
-                    Checkpointing too rarely may result in duplicated records whenever a Shard lease is lost or NiFi server restarts.
+                    More frequent checkpoint may reduce performance and increase DynamoDB costs,
+                    but less frequent checkpointing may result in duplicates when a Shard lease is lost or NiFi is restarted.
                     """)
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
