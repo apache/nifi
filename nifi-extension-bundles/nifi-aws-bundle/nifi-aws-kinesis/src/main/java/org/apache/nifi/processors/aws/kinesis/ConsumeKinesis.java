@@ -76,6 +76,7 @@ import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.net.URI;
 import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -574,7 +575,11 @@ public class ConsumeKinesis extends AbstractProcessor {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record));
 
-            flowFile = session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
+            flowFile = session.write(flowFile, out -> {
+                try (final WritableByteChannel channel = Channels.newChannel(out)) {
+                    channel.write(record.data());
+                }
+            });
 
             session.transfer(flowFile, REL_SUCCESS);
         }
