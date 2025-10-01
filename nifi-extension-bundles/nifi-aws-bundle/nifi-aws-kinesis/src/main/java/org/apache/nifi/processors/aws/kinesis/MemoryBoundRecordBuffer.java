@@ -205,12 +205,12 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public List<KinesisClientRecord> consumeRecords(final Lease lease) {
-        if (lease.returnedToPool.get()) {
+        if (lease.isReturnedToPool()) {
             logger.warn("Attempting to consume records from a buffer that was already returned to the pool. Ignoring");
             return emptyList();
         }
 
-        final ShardBufferId bufferId = lease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId();
 
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
@@ -223,12 +223,12 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void commitConsumedRecords(final Lease lease) {
-        if (lease.returnedToPool.get()) {
+        if (lease.isReturnedToPool()) {
             logger.warn("Attempting to commit records from a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
-        final ShardBufferId bufferId = lease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId();
 
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
@@ -242,12 +242,12 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void rollbackConsumedRecords(final Lease lease) {
-        if (lease.returnedToPool.get()) {
+        if (lease.isReturnedToPool()) {
             logger.warn("Attempting to rollback records from a buffer that was already returned to the pool. Ignoring");
             return;
         }
 
-        final ShardBufferId bufferId = lease.bufferId;
+        final ShardBufferId bufferId = lease.bufferId();
         final ShardBuffer buffer = shardBuffers.get(bufferId);
 
         if (buffer != null) {
@@ -257,15 +257,13 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void returnBufferLease(final Lease lease) {
-        if (lease.returnedToPool.getAndSet(true)) {
+        if (lease.returnToPool()) {
+            final ShardBufferId bufferId = lease.bufferId();
+            buffersToLease.add(bufferId);
+            logger.debug("The buffer {} is available for lease again", bufferId);
+        } else {
             logger.warn("Attempting to return a buffer that was already returned to the pool. Ignoring");
-            return;
         }
-
-        final ShardBufferId bufferId = lease.bufferId;
-        buffersToLease.add(bufferId);
-
-        logger.debug("The buffer {} is available for lease again", bufferId);
     }
 
     static final class Lease implements ShardBufferLease {
@@ -280,6 +278,23 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         @Override
         public String shardId() {
             return bufferId.shardId();
+        }
+
+        private ShardBufferId bufferId() {
+            return bufferId;
+        }
+
+        private boolean isReturnedToPool() {
+            return returnedToPool.get();
+        }
+
+        /**
+         * Marks the lease as returned to the pool.
+         * @return true if the lease was not returned before, false otherwise.
+         */
+        private boolean returnToPool() {
+            final boolean wasReturned = returnedToPool.getAndSet(true);
+            return !wasReturned;
         }
     }
 
