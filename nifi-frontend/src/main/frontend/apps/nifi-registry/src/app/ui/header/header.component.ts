@@ -15,24 +15,29 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
-import { NgOptimizedImage } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
+import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { DARK_THEME, LIGHT_THEME, OS_SETTING, Storage, ThemingService } from '@nifi/shared';
+import { Store } from '@ngrx/store';
+import { NiFiRegistryState } from '../../state';
+import { loadAbout, openAboutDialog } from '../../state/about/about.actions';
+import { selectAbout } from '../../state/about/about.selectors';
 
 @Component({
     selector: 'app-header',
     standalone: true,
-    imports: [NgOptimizedImage, RouterModule, MatButton, MatMenu, MatMenuItem, MatMenuTrigger],
+    imports: [NgOptimizedImage, RouterModule, MatButton, MatMenu, MatMenuItem, MatMenuTrigger, AsyncPipe],
     templateUrl: './header.component.html',
     styleUrl: './header.component.scss'
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
     private storage = inject(Storage);
     private themingService = inject(ThemingService);
     private router = inject(Router);
+    private store = inject<Store<NiFiRegistryState>>(Store);
 
     readonly documentationUrl = 'https://nifi.apache.org/docs/nifi-registry-docs/index.html';
 
@@ -42,6 +47,7 @@ export class HeaderComponent {
     DARK_THEME: string = DARK_THEME;
     OS_SETTING: string = OS_SETTING;
     disableAnimations: string | null;
+    about$ = this.store.select(selectAbout);
 
     constructor() {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -57,6 +63,18 @@ export class HeaderComponent {
         }
     }
 
+    ngOnInit(): void {
+        this.store.dispatch(loadAbout());
+    }
+
+    navigateToResources() {
+        this.router.navigateByUrl('/explorer');
+    }
+
+    navigateToWorkflow() {
+        this.router.navigateByUrl('/buckets');
+    }
+
     toggleTheme(theme: string) {
         this.theme = theme;
         this.storage.setItem('theme', theme);
@@ -69,11 +87,7 @@ export class HeaderComponent {
         window.location.reload();
     }
 
-    navigateToResources() {
-        this.router.navigateByUrl('/explorer');
-    }
-
-    navigateToWorkflow() {
-        this.router.navigateByUrl('/buckets');
+    viewAbout(): void {
+        this.store.dispatch(openAboutDialog());
     }
 }

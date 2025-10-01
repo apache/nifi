@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-import { inject, Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as ErrorActions from '../../state/error/error.actions';
-import { map, tap } from 'rxjs';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { createReducer, on } from '@ngrx/store';
+import { AboutState } from './index';
+import { loadAbout, loadAboutSuccess } from './about.actions';
 
-@Injectable()
-export class ErrorEffects {
-    private actions$ = inject(Actions);
-    private snackBar = inject(MatSnackBar);
+export const initialState: AboutState = {
+    about: null,
+    status: 'pending'
+};
 
-    snackBarError$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ErrorActions.snackBarError),
-                map((action) => action.error),
-                tap((error) => {
-                    this.snackBar.open(error, 'Dismiss', { duration: 30000 });
-                })
-            ),
-        { dispatch: false }
-    );
-}
+export const aboutReducer = createReducer(
+    initialState,
+    on(loadAbout, (state) => ({
+        ...state,
+        status: 'loading' as const
+    })),
+    on(loadAboutSuccess, (state, { response }) => ({
+        ...state,
+        about: {
+            registryVersion: response.registryAboutVersion
+        },
+        status: 'success' as const
+    }))
+);
