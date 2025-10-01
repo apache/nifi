@@ -38,6 +38,7 @@ import java.io.OutputStream;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
@@ -120,13 +121,13 @@ final class ReaderRecordProcessor {
         record.data().rewind();
         flowFile = session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
 
-        flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record));
+        final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record);
 
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
         final String errorMessage = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : "NiFi Reader or Writer failed to process Kinesis Record";
-        flowFile = session.putAttribute(flowFile, RECORD_ERROR_MESSAGE, errorMessage);
+        attributes.put(RECORD_ERROR_MESSAGE, errorMessage);
 
-        return flowFile;
+        return session.putAllAttributes(flowFile, attributes);
     }
 
     record ProcessingResult(List<FlowFile> successFlowFiles, List<FlowFile> parseFailureFlowFiles) {
@@ -236,12 +237,12 @@ final class ReaderRecordProcessor {
                 final WriteResult finalResult = writer.finishRecordSet();
                 writer.close();
 
-                FlowFile completedFlowFile = session.putAllAttributes(this.flowFile, ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, firstRecord, lastRecord));
-                completedFlowFile = session.putAllAttributes(completedFlowFile, finalResult.getAttributes());
-                completedFlowFile = session.putAttribute(completedFlowFile, RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
-                completedFlowFile = session.putAttribute(completedFlowFile, MIME_TYPE, writer.getMimeType());
+                final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, firstRecord, lastRecord);
+                attributes.putAll(finalResult.getAttributes());
+                attributes.put(RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
+                attributes.put(MIME_TYPE, writer.getMimeType());
 
-                return completedFlowFile;
+                return session.putAllAttributes(flowFile, attributes);
 
             } catch (final IOException e) {
                 final ProcessException processException = new ProcessException("Failed to complete a FlowFile", e);
