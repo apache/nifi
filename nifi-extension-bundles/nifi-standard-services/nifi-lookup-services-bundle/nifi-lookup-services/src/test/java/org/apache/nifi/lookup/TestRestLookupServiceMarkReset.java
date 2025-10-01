@@ -48,6 +48,7 @@ import java.util.Optional;
 
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
@@ -132,5 +133,41 @@ class TestRestLookupServiceMarkReset {
         final Map<String, Object> coordinates = new LinkedHashMap<>();
         final Optional<Record> result = restLookupService.lookup(coordinates);
         assertTrue(result.isPresent(), "Expected record to be present when reader performs mark/reset beyond buffer limit");
+    }
+
+    @Test
+    void testLookupThrowsWhenMarkResetExceedsBufferSize() throws Exception {
+        // Create a body significantly larger than the configured buffer size (8 MB)
+        final int size = RestLookupService.INPUT_STREAM_BUFFER_SIZE + 50_000;
+        final String body = '{' + "\"data\":\"" + "x".repeat(size) + "\"}";
+
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(HTTP_OK)
+                .body(body)
+                .build());
+
+        // Simulate a RecordReader that misuses mark/reset: sets a tiny read limit,
+        // reads far beyond the BufferedInputStream capacity, then attempts reset.
+        when(recordReaderFactory.createRecordReader(any(), any(), anyLong(), any())).thenAnswer(invocation -> {
+            final InputStream in = invocation.getArgument(1);
+            if (in.markSupported()) {
+                in.mark(1); // Tiny read limit
+                final byte[] buffer = new byte[8192];
+                long total = 0;
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    total += read;
+                    if (total > RestLookupService.INPUT_STREAM_BUFFER_SIZE + 10_000) {
+                        break;
+                    }
+                }
+                // This reset should fail since we read beyond the mark's readlimit and the buffer size
+                in.reset();
+            }
+            return recordReader; // Not expected to be used due to exception
+        });
+
+        // Verify that the lookup wraps the reset failure into LookupFailureException
+        assertThrows(LookupFailureException.class, () -> restLookupService.lookup(new LinkedHashMap<>()));
     }
 }

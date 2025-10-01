@@ -63,6 +63,7 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -210,7 +211,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     static final String MIME_TYPE_KEY = "mime.type";
     static final String BODY_KEY = "request.body";
     static final String METHOD_KEY = "request.method";
-
+    static final Integer INPUT_STREAM_BUFFER_SIZE = 8388608; // 8MB
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         URL,
         RECORD_READER,
@@ -381,10 +382,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
 
             final Record record;
-            try (final InputStream responseStream = responseBody.byteStream();
-                 final InputStream in = new SpoolingMarkedInputStream(responseStream)) {
-                final long length = responseBody.contentLength();
-                record = handleResponse(in, length, context);
+            try (final InputStream is = responseBody.byteStream();
+                 final InputStream bufferedIn = new BufferedInputStream(is, INPUT_STREAM_BUFFER_SIZE)) {
+                record = handleResponse(bufferedIn, responseBody.contentLength(), context);
             }
 
             return Optional.ofNullable(record);
