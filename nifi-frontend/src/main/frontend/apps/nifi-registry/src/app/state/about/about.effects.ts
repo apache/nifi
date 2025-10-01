@@ -25,7 +25,6 @@ import * as AboutActions from './about.actions';
 import { AboutService } from '../../service/about.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { AboutDialogComponent } from '../../ui/common/about-dialog/about-dialog.component';
-import { ErrorContextKey } from '../error';
 import * as ErrorActions from '../error/error.actions';
 
 @Injectable()
