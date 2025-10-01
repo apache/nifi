@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,11 @@ final class ReaderRecordProcessor {
         FlowFile flowFile = session.create();
 
         record.data().rewind();
-        flowFile = session.write(flowFile, out -> Channels.newChannel(out).write(record.data()));
+        flowFile = session.write(flowFile, out -> {
+            try (final WritableByteChannel channel = Channels.newChannel(out)) {
+                channel.write(record.data());
+            }
+        });
 
         final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record);
 
