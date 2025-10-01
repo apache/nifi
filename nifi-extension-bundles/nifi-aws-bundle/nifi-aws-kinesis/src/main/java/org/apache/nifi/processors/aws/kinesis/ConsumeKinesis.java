@@ -306,7 +306,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     private volatile String streamName;
     private volatile RecordBuffer.ForProcessor<Lease> recordBuffer;
 
-    private volatile Optional<ReaderRecordProcessor> readerRecordProcessor = Optional.empty();
+    private volatile @Nullable ReaderRecordProcessor readerRecordProcessor;
 
     // An instance filed, so that it can be read in getRelationships.
     private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.from(
@@ -335,8 +335,8 @@ public class ConsumeKinesis extends AbstractProcessor {
     @OnScheduled
     public void setup(final ProcessContext context) {
         readerRecordProcessor = switch (processingStrategy) {
-            case FLOW_FILE -> Optional.empty();
-            case RECORD -> Optional.of(createReaderRecordProcessor(context));
+            case FLOW_FILE -> null;
+            case RECORD -> createReaderRecordProcessor(context);
         };
 
         final Region region = Region.of(context.getProperty(REGION).getValue());
@@ -487,7 +487,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         recordBuffer = null;
-        readerRecordProcessor = Optional.empty();
+        readerRecordProcessor = null;
     }
 
     private void shutdownScheduler() {
@@ -537,10 +537,12 @@ public class ConsumeKinesis extends AbstractProcessor {
             }
 
             final String shardId = lease.shardId();
-            readerRecordProcessor.ifPresentOrElse(
-                    p -> processRecordsWithReader(p, session, shardId, records),
-                    () -> processRecordsAsRaw(session, shardId, records)
-            );
+            final ReaderRecordProcessor processor = readerRecordProcessor;
+            if (processor != null) {
+                processRecordsWithReader(processor, session, shardId, records);
+            } else {
+                processRecordsAsRaw(session, shardId, records);
+            }
 
             session.adjustCounter("Records Processed", records.size(), false);
 
