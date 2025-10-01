@@ -30,7 +30,6 @@ import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@ang
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { EffectsModule } from '@ngrx/effects';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
-import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
 import { ErrorEffects } from './state/error/error.effects';
 import { AboutEffects } from './state/about/about.effects';
@@ -61,7 +60,6 @@ try {
         BrowserModule,
         AppRoutingModule,
         BrowserAnimationsModule,
-        HeaderComponent,
         StoreModule.forRoot(rootReducers),
         StoreRouterConnectingModule.forRoot({
             routerState: RouterState.Minimal,
