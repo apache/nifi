@@ -61,6 +61,14 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     private final BlockingMemoryTracker memoryTracker;
 
     private final AtomicLong bufferIdCounter = new AtomicLong(0);
+
+    /**
+     * All shard buffers stored by their ids.
+     * <p>
+     * When a buffer is invalidated, it is removed from this map, but its id may still be present in the buffersToLease queue.
+     * Since the buffer can be invalidated concurrently, it's possible for some buffer operations to be called
+     * after the buffer was removed from this map. In that case the operations should take no effect.
+     */
     private final ConcurrentMap<ShardBufferId, ShardBuffer> shardBuffers = new ConcurrentHashMap<>();
 
     /**
