@@ -109,7 +109,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             .build();
 
     static final PropertyDescriptor RESTART_ON_FINISH = new PropertyDescriptor.Builder()
-            .name("Restart On Finish?")
+            .name("Restart On Finish")
             .description("Whether the processor should start another search with the same query once a paginated search has completed.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())

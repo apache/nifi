@@ -105,7 +105,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .build();
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
-            .name("Treat \"Not Found\" as Success")
+            .name("Treat Not Found as Success")
             .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
                     REL_SUCCESSFUL.getName() + "\" relationship, otherwise to the \"" + REL_ERRORS.getName() + "\" relationship. " +
                     "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +

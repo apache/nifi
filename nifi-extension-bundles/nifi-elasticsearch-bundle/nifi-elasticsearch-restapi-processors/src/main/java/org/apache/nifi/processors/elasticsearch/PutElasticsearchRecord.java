@@ -142,7 +142,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .build();
 
     static final PropertyDescriptor AT_TIMESTAMP = new PropertyDescriptor.Builder()
-        .name("@timestamp Value")
+        .name("Timestamp Value")
         .description("The value to use as the @timestamp field (required for Elasticsearch Data Streams)")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -196,7 +196,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .build();
 
     static final PropertyDescriptor AT_TIMESTAMP_RECORD_PATH = new PropertyDescriptor.Builder()
-        .name("@timestamp Record Path")
+        .name("Timestamp Record Path")
         .description("A RecordPath pointing to a field in the record(s) that contains the @timestamp for the document. " +
                 "If left blank the @timestamp will be determined using the main @timestamp property")
         .addValidator(new RecordPathValidator())
@@ -236,7 +236,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             .build();
 
     static final PropertyDescriptor RETAIN_AT_TIMESTAMP_FIELD = new PropertyDescriptor.Builder()
-        .name("Retain @timestamp (Record Path)")
+        .name("Retain Record Timestamp")
         .description("Whether to retain the existing field used as the @timestamp Record Path.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("false")

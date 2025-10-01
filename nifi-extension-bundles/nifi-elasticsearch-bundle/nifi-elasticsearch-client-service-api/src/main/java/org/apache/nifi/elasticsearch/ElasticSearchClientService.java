@@ -138,7 +138,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Read timeout")
+            .name("Read Timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when waiting for a response.")
             .required(true)
             .defaultValue("60000")
@@ -146,7 +146,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("Charset")
+            .name("Character Set")
             .description("The charset to use for interpreting the response from Elasticsearch.")
             .required(true)
             .defaultValue("UTF-8")
@@ -160,7 +160,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             "Fields that are missing (present in the schema but not in the record), or that have a value of null/empty, will be written out as a null/empty value");
 
     PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
-            .name("Suppress Null/Empty Values")
+            .name("Suppress Null and Empty Values")
             .description("Specifies how the writer should handle null and empty fields (including objects and arrays)")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
             .defaultValue(ALWAYS_SUPPRESS)
