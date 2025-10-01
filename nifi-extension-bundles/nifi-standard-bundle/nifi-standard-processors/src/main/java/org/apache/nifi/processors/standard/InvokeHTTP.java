@@ -1259,7 +1259,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     /**
-     * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
+     * Returns a Map of FlowFile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      * Prefix is passed in to allow differentiation for these new attributes.
      */
     private Map<String, String> convertAttributesFromHeaders(final Response responseHttp, final String prefix) {
@@ -1267,15 +1267,21 @@ public class InvokeHTTP extends AbstractProcessor {
         final Map<String, String> attributes = new HashMap<>();
         final String trimmedPrefix = trimToEmpty(prefix);
         final Headers headers = responseHttp.headers();
-        headers.names().forEach((key) -> {
-            final List<String> values = headers.values(key);
-            // we ignore any headers with no actual values (rare)
-            if (!values.isEmpty()) {
-                // create a comma separated string from the values, this is stored in the map
-                final String value = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
-                attributes.put(trimmedPrefix + key, value);
+        for (final String headerName : headers.names()) {
+            // Ignore blank response header names
+            if (headerName.isBlank()) {
+                continue;
             }
-        });
+            final List<String> values = headers.values(headerName);
+            // Ignore empty response header values
+            if (values.isEmpty()) {
+                continue;
+            }
+
+            final String attributeName = trimmedPrefix + headerName;
+            final String delimitedValues = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
+            attributes.put(attributeName, delimitedValues);
+        }
 
         final Handshake handshake = responseHttp.handshake();
         if (handshake != null) {
