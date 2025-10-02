@@ -254,6 +254,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .description("Controller Service providing OAuth2/OIDC tokens to exchange for AWS temporary credentials using STS AssumeRoleWithWebIdentity.")
         .identifiesControllerService(OAuth2AccessTokenProvider.class)
         .required(false)
+        .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(

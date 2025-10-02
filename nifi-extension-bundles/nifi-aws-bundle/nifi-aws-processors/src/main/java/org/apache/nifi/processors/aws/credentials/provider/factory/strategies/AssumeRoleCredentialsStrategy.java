@@ -48,6 +48,7 @@ import java.net.Proxy;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
@@ -86,7 +87,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         // Do not produce cross-strategy validation failures here; required/missing
         // fields are enforced by PropertyDescriptor requirements and selected
         // strategies, and derived selection is handled separately.
-        return null;
+        return Collections.emptyList();
     }
 
     @Override
