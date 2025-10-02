@@ -49,6 +49,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
 
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -167,6 +168,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .build();
 
     private static final String AUTHENTICATOR_SNOWFLAKE_JWT = "SNOWFLAKE_JWT";
+
+    private static final String PEM_CONTENT_FORMAT = "-----BEGIN PRIVATE KEY-----%n%s%n-----END PRIVATE KEY-----%n";
 
     private volatile OAuth2AccessTokenProvider accessTokenProvider;
 
@@ -310,8 +313,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         if (privateKeyServiceProperty.isSet()) {
             final PrivateKeyService privateKeyService = privateKeyServiceProperty.asControllerService(PrivateKeyService.class);
             final PrivateKey privateKey = privateKeyService.getPrivateKey();
-            final byte[] privateKeyEncoded = privateKey.getEncoded();
-            final String privateKeyBase64 = Base64.getEncoder().encodeToString(privateKeyEncoded);
+            final String privateKeyBase64 = getPrivateKeyBase64(privateKey);
             connectionProperties.put(PRIVATE_KEY_BASE64.getPropertyKey(), privateKeyBase64);
             connectionProperties.put(AUTHENTICATOR.getPropertyKey(), AUTHENTICATOR_SNOWFLAKE_JWT);
         }
@@ -361,5 +363,14 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
                 context.getProperty(SNOWFLAKE_CLOUD_REGION).evaluateAttributeExpressions().getValue(),
                 context.getProperty(SNOWFLAKE_CLOUD_TYPE).evaluateAttributeExpressions().getValue()
         );
+    }
+
+    private String getPrivateKeyBase64(final PrivateKey privateKey) {
+        final byte[] privateKeyEncoded = privateKey.getEncoded();
+        final Base64.Encoder encoder = Base64.getEncoder();
+        final String privateKeyEncodedBase64 = encoder.encodeToString(privateKeyEncoded);
+        final String pemPrivateKey = PEM_CONTENT_FORMAT.formatted(privateKeyEncodedBase64);
+        final byte[] pemPrivateKeyBinary = pemPrivateKey.getBytes(StandardCharsets.UTF_8);
+        return encoder.encodeToString(pemPrivateKeyBinary);
     }
 }
