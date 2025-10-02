@@ -1319,7 +1319,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private Optional<HttpMethod> findRequestMethod(String method) {
-        return Arrays.stream(HttpMethod.values())
+        return HttpMethod.getValues().stream()
                 .filter(httpMethod -> httpMethod.name().equals(method))
                 .findFirst();
     }

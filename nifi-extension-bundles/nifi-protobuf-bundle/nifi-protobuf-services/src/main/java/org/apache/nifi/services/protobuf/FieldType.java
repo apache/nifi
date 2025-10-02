@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.services.protobuf;
 
-import java.util.Arrays;
+import java.util.List;
 
 /**
  * Type for proto scalar fields.
@@ -38,6 +38,12 @@ public enum FieldType {
     STRING("string"),
     BYTES("bytes");
 
+    private static final List<FieldType> VALUES = List.of(FieldType.values());
+
+    public static List<FieldType> getValues() {
+        return VALUES;
+    }
+
     private final String type;
 
     FieldType(String type) {
@@ -49,7 +55,7 @@ public enum FieldType {
     }
 
     public static FieldType findValue(final String value) {
-        return Arrays.stream(FieldType.values())
+        return FieldType.getValues().stream()
                 .filter((type -> type.getType().equalsIgnoreCase(value)))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(String.format("ProtoType [%s] not found", value)));

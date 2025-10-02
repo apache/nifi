@@ -16,12 +16,20 @@
  */
 package org.apache.nifi.authorization;
 
+import java.util.List;
+
 /**
  * Actions a user/entity can take on a resource.
  */
 public enum RequestAction {
     READ("read"),
     WRITE("write");
+
+    private static final List<RequestAction> VALUES = List.of(RequestAction.values());
+
+    public static List<RequestAction> getValues() {
+        return VALUES;
+    }
 
     private final String value;
 
@@ -40,7 +48,7 @@ public enum RequestAction {
         } else if (WRITE.toString().equals(action)) {
             return WRITE;
         } else {
-            throw new IllegalArgumentException("Action must be one of [" + READ + ", " + WRITE + "]");
+            throw new IllegalArgumentException("Action '" + action + "' is invalid. Must be one of " + VALUES);
         }
     }
 }

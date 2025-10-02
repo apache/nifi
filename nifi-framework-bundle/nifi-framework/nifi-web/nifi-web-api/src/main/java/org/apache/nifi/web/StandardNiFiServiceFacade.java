@@ -2310,7 +2310,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             resources.add(ResourceFactory.getOperationResource(componentResource));
 
             for (final Resource resource : resources) {
-                for (final RequestAction action : RequestAction.values()) {
+                for (final RequestAction action : RequestAction.getValues()) {
                     try {
                         // since the component is being deleted, also delete any relevant access policies
                         final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(action, resource.getIdentifier());

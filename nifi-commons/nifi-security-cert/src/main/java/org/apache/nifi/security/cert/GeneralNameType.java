@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.security.cert;
 
+import java.util.List;
+
 /**
  * Subject Alternative Name General Name Types defined according to RFC 3280 Section 4.2.1.7
  */
@@ -37,6 +39,12 @@ public enum GeneralNameType {
     IP_ADDRESS(7, "iPAddress", String.class),
 
     REGISTERED_ID(8, "registeredID", byte[].class);
+
+    private static final List<GeneralNameType> VALUES = List.of(GeneralNameType.values());
+
+    public static List<GeneralNameType> getValues() {
+        return VALUES;
+    }
 
     private final int nameType;
 

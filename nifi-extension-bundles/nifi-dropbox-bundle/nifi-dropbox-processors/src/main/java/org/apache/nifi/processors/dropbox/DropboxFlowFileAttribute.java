@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import java.util.List;
 import java.util.function.Function;
 
 public enum DropboxFlowFileAttribute {
@@ -25,6 +26,12 @@ public enum DropboxFlowFileAttribute {
     SIZE(DropboxAttributes.SIZE, fileInfo -> String.valueOf(fileInfo.getSize())),
     TIMESTAMP(DropboxAttributes.TIMESTAMP, fileInfo -> String.valueOf(fileInfo.getTimestamp())),
     REVISION(DropboxAttributes.REVISION, DropboxFileInfo::getRevision);
+
+    private static final List<DropboxFlowFileAttribute> VALUES = List.of(DropboxFlowFileAttribute.values());
+
+    public static List<DropboxFlowFileAttribute> getValues() {
+        return VALUES;
+    }
 
     private final String name;
     private final Function<DropboxFileInfo, String> fromFileInfo;
