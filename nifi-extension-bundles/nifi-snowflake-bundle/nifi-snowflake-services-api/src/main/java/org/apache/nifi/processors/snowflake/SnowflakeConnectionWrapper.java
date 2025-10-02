@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.snowflake;
 
 import net.snowflake.client.jdbc.SnowflakeConnection;
+import net.snowflake.ingest.internal.net.snowflake.client.jdbc.SnowflakeConnectionV1;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -35,7 +36,7 @@ public class SnowflakeConnectionWrapper implements AutoCloseable {
         connection.close();
     }
 
-    public SnowflakeConnection unwrap() throws SQLException {
-        return connection.unwrap(SnowflakeConnection.class);
+    public SnowflakeConnectionV1 unwrap() throws SQLException {
+        return connection.unwrap(SnowflakeConnectionV1.class);
     }
 }
