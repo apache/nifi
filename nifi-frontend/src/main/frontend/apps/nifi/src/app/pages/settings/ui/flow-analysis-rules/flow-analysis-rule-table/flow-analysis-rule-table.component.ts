@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { NgClass } from '@angular/common';
@@ -47,6 +47,8 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
     styleUrls: ['./flow-analysis-rule-table.component.scss']
 })
 export class FlowAnalysisRuleTable {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set flowAnalysisRules(flowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
         this.dataSource.data = this.sortFlowAnalysisRules(flowAnalysisRuleEntities, this.sort);
     }
@@ -79,8 +81,6 @@ export class FlowAnalysisRuleTable {
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<FlowAnalysisRuleEntity> = new MatTableDataSource<FlowAnalysisRuleEntity>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     updateSort(sort: Sort): void {
         this.sort = sort;

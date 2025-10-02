@@ -30,6 +30,7 @@ public class ComponentStateDTO {
     private String stateDescription;
     private StateMapDTO clusterState;
     private StateMapDTO localState;
+    private Boolean dropStateKeySupported;
 
     /**
      * @return The component identifier
@@ -81,5 +82,17 @@ public class ComponentStateDTO {
 
     public void setLocalState(StateMapDTO localState) {
         this.localState = localState;
+    }
+
+    /**
+     * @return Whether dropping state by key is supported for this component.
+     */
+    @Schema(description = "Whether dropping state by key is supported for this component. Defaults to false when not specified by the component.")
+    public Boolean isDropStateKeySupported() {
+        return dropStateKeySupported;
+    }
+
+    public void setDropStateKeySupported(final Boolean dropStateKeySupported) {
+        this.dropStateKeySupported = dropStateKeySupported;
     }
 }

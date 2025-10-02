@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewChecked, Component, Input, OnDestroy, viewChild } from '@angular/core';
+import { AfterViewChecked, Component, Input, OnDestroy, viewChild, inject } from '@angular/core';
 import { ConfigurableExtensionDefinition } from '../../../state';
 import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion';
 import { NiFiState } from '../../../../../state';
@@ -36,6 +36,8 @@ import { MarkdownComponent } from 'ngx-markdown';
     styleUrl: './additional-details.component.scss'
 })
 export class AdditionalDetailsComponent implements AfterViewChecked, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     @Input() set configurableExtensionDefinition(configurableExtensionDefinition: ConfigurableExtensionDefinition) {
         if (
             this.group !== configurableExtensionDefinition.group ||
@@ -66,8 +68,6 @@ export class AdditionalDetailsComponent implements AfterViewChecked, OnDestroy {
 
     private expanded = false;
     private viewChecked = false;
-
-    constructor(private store: Store<NiFiState>) {}
 
     ngAfterViewChecked(): void {
         this.viewChecked = true;

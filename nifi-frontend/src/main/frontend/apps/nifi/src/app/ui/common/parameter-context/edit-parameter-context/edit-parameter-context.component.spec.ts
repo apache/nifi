@@ -16,6 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { EventEmitter } from '@angular/core';
 
 import { EditParameterContext } from './edit-parameter-context.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -258,6 +259,19 @@ describe('EditParameterContext', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should have cancelUpdateRequest EventEmitter', () => {
+        expect(component.cancelUpdateRequest).toBeDefined();
+        expect(component.cancelUpdateRequest).toBeInstanceOf(EventEmitter);
+    });
+
+    it('should emit cancelUpdateRequest when called', () => {
+        const spy = jest.spyOn(component.cancelUpdateRequest, 'emit');
+
+        component.cancelUpdateRequest.emit();
+
+        expect(spy).toHaveBeenCalledTimes(1);
     });
 
     describe('inheritsParameters', () => {

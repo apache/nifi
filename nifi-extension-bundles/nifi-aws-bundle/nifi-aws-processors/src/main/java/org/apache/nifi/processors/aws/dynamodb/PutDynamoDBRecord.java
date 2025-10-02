@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -110,16 +111,14 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             "Uses a generated UUID as value for the partition key. The incoming Records must not contain field with the same name defined by the \"Partition Key Field\".");
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor PARTITION_KEY_STRATEGY = new PropertyDescriptor.Builder()
-            .name("partition-key-strategy")
-            .displayName("Partition Key Strategy")
+            .name("Partition Key Strategy")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(PARTITION_BY_FIELD, PARTITION_BY_ATTRIBUTE, PARTITION_GENERATED)
@@ -128,8 +127,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .build();
 
     static final PropertyDescriptor PARTITION_KEY_FIELD = new PropertyDescriptor.Builder()
-            .name("partition-key-field")
-            .displayName("Partition Key Field")
+            .name("Partition Key Field")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -139,8 +137,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .build();
 
     static final PropertyDescriptor PARTITION_KEY_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("partition-key-attribute")
-            .displayName("Partition Key Attribute")
+            .name("Partition Key Attribute")
             .required(true)
             .dependsOn(PARTITION_KEY_STRATEGY, PARTITION_BY_ATTRIBUTE)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -149,8 +146,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .build();
 
     static final PropertyDescriptor SORT_KEY_STRATEGY = new PropertyDescriptor.Builder()
-            .name("sort-key-strategy")
-            .displayName("Sort Key Strategy")
+            .name("Sort Key Strategy")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(SortKeyStrategy.class)
@@ -159,8 +155,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .build();
 
     static final PropertyDescriptor SORT_KEY_FIELD = new PropertyDescriptor.Builder()
-            .name("sort-key-field")
-            .displayName("Sort Key Field")
+            .name("Sort Key Field")
             .required(true)
             .dependsOn(SORT_KEY_STRATEGY, SortKeyStrategy.BY_FIELD, SortKeyStrategy.BY_SEQUENCE)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -220,6 +215,17 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         } else {
             handleError(context, session, result, outgoingFlowFile);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("partition-key-strategy", PARTITION_KEY_STRATEGY.getName());
+        config.renameProperty("partition-key-field", PARTITION_KEY_FIELD.getName());
+        config.renameProperty("partition-key-attribute", PARTITION_KEY_ATTRIBUTE.getName());
+        config.renameProperty("sort-key-strategy", SORT_KEY_STRATEGY.getName());
+        config.renameProperty("sort-key-field", SORT_KEY_FIELD.getName());
     }
 
     private void handleError(

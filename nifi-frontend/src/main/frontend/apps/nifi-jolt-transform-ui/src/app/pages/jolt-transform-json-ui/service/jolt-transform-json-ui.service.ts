@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SavePropertiesRequest } from '../state/jolt-transform-json-property';
@@ -23,9 +23,9 @@ import { ValidateJoltSpecRequest } from '../state/jolt-transform-json-validate';
 
 @Injectable({ providedIn: 'root' })
 export class JoltTransformJsonUiService {
-    private static readonly API: string = 'api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = 'api';
 
     getProcessorDetails(id: string): Observable<any> {
         return this.httpClient.get(`${JoltTransformJsonUiService.API}/standard/processor/details?processorId=${id}`);

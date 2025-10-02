@@ -20,7 +20,7 @@
     <parent>
         <artifactId>nifi-snowflake-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -36,18 +36,23 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snowflake-services</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snowflake-services-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.snowflake</groupId>
             <artifactId>snowflake-ingest-sdk</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.snowflake</groupId>
+            <artifactId>snowflake-jdbc</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -72,7 +77,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-key-service</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -83,12 +88,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-base</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-proxy-configuration-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-oauth2-provider-api</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

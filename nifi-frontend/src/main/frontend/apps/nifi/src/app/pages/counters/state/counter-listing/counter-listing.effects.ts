@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NiFiState } from '../../../../state';
@@ -32,13 +32,11 @@ import { selectStatus } from './counter-listing.selectors';
 
 @Injectable()
 export class CounterListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private countersService: CountersService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private countersService = inject(CountersService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
 
     loadCounters$ = createEffect(() =>
         this.actions$.pipe(

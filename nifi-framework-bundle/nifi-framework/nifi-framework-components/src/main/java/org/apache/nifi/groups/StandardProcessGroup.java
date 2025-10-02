@@ -214,6 +214,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
     private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
+    private static final String PATH_SEPARATOR = "/";
+    private static final String STANDARD_PROCESS_GROUP_NAME = "StandardProcessGroup";
+
+    private final Map<String, String> loggingAttributes = new ConcurrentHashMap<>();
     private volatile String logFileSuffix;
 
 
@@ -286,6 +290,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParent(final ProcessGroup newParent) {
         parent.set(newParent);
+        setLoggingAttributes();
     }
 
     @Override
@@ -325,6 +330,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         this.name.set(name);
+        setLoggingAttributes();
     }
 
     @Override
@@ -656,15 +662,16 @@ public final class StandardProcessGroup implements ProcessGroup {
         return this.scheduler.getActiveThreadCount(statelessGroupNode) > 0;
     }
 
-    private StateManager getStateManager(final String componentId) {
-        return stateManagerProvider.getStateManager(componentId);
+    private StateManager getStateManager(final ProcessorNode processorNode) {
+        final Class<?> componentClass = processorNode.getProcessor() == null ? null : processorNode.getProcessor().getClass();
+        return stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass);
     }
 
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, node.getProcessor().getClass(), node.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider,
-                    getStateManager(node.getIdentifier()), () -> false, nodeTypeProvider);
+                    getStateManager(node), () -> false, nodeTypeProvider);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -1230,7 +1237,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider,
-                    getStateManager(processor.getIdentifier()), () -> false, nodeTypeProvider);
+                    getStateManager(processor), () -> false, nodeTypeProvider);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);
@@ -3866,8 +3873,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private ProcessContext createProcessContext(final ProcessorNode processorNode) {
+        final org.apache.nifi.processor.Processor processor = processorNode.getProcessor();
+        final Class<?> componentClass = processor == null ? null : processor.getClass();
         return new StandardProcessContext(processorNode, controllerServiceProvider,
-            stateManagerProvider.getStateManager(processorNode.getIdentifier()), () -> false, nodeTypeProvider);
+            stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass), () -> false, nodeTypeProvider);
     }
 
     private ConfigurationContext createConfigurationContext(final ComponentNode component) {
@@ -3974,8 +3983,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(),
                 new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
             final FlowComparison comparison = flowComparator.compare();
-            final Set<FlowDifference> differences = comparison.getDifferences().stream()
-                .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager))
+            final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
+            final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+
+            final Set<FlowDifference> differences = comparisonDifferences.stream()
+                .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager, environmentalContext))
                 .collect(Collectors.toCollection(HashSet::new));
 
             LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
@@ -4349,6 +4362,16 @@ public final class StandardProcessGroup implements ProcessGroup {
         return new QueueSize(count, contentSize);
     }
 
+    /**
+     * Get Map of Attribute Names and Values to provide additional context for logging
+     *
+     * @return Map of Attribute Names and Values
+     */
+    @Override
+    public Map<String, String> getLoggingAttributes() {
+        return Collections.unmodifiableMap(loggingAttributes);
+    }
+
     @Override
     public String getLogFileSuffix() {
         return logFileSuffix;
@@ -4537,6 +4560,65 @@ public final class StandardProcessGroup implements ProcessGroup {
             this.statelessFlowTimeout = statelessFlowTimeout;
         } catch (final Exception e) {
             LOG.warn("Attempted to set Stateless Flow Timeout for {} to invalid value: {}; ignoring this value", this, statelessFlowTimeout);
+        }
+    }
+
+    private void setLoggingAttributes() {
+        loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_ID.attribute, id);
+
+        final String processGroupName = name.get();
+        if (processGroupName == null) {
+            loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, STANDARD_PROCESS_GROUP_NAME);
+        } else {
+            loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, processGroupName);
+            setGroupPath();
+        }
+    }
+
+    private void setGroupPath() {
+        final StringBuilder namePathBuilder = new StringBuilder();
+        namePathBuilder.append(PATH_SEPARATOR);
+        namePathBuilder.append(name.get());
+
+        final StringBuilder idPathBuilder = new StringBuilder();
+        idPathBuilder.append(PATH_SEPARATOR);
+        idPathBuilder.append(id);
+
+        ProcessGroup parentProcessGroup = getParent();
+        while (parentProcessGroup != null) {
+            namePathBuilder.insert(0, PATH_SEPARATOR);
+            namePathBuilder.insert(1, parentProcessGroup.getName());
+
+            idPathBuilder.insert(0, PATH_SEPARATOR);
+            idPathBuilder.insert(1, parentProcessGroup.getIdentifier());
+
+            parentProcessGroup = parentProcessGroup.getParent();
+        }
+
+        final String idPath = idPathBuilder.toString();
+        loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_ID_PATH.attribute, idPath);
+
+        final String namePath = namePathBuilder.toString();
+        loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME_PATH.attribute, namePath);
+    }
+
+    enum LoggingAttribute {
+        PROCESS_GROUP_ID("processGroupId"),
+
+        PROCESS_GROUP_ID_PATH("processGroupIdPath"),
+
+        PROCESS_GROUP_NAME("processGroupName"),
+
+        PROCESS_GROUP_NAME_PATH("processGroupNamePath");
+
+        private final String attribute;
+
+        LoggingAttribute(final String attribute) {
+            this.attribute = attribute;
+        }
+
+        String getAttribute() {
+            return attribute;
         }
     }
 }

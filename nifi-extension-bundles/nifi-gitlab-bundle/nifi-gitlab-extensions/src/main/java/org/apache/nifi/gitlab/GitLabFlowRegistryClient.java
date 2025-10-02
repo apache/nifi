@@ -131,6 +131,7 @@ public class GitLabFlowRegistryClient extends AbstractGitFlowRegistryClient {
     protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException {
         return GitLabRepositoryClient.builder()
                 .clientId(getIdentifier())
+                .logger(getLogger())
                 .apiUrl(context.getProperty(GITLAB_API_URL).getValue())
                 .apiVersion(context.getProperty(GITLAB_API_VERSION).asAllowableValue(GitLabApi.ApiVersion.class))
                 .repoNamespace(context.getProperty(REPOSITORY_NAMESPACE).getValue())

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of, switchMap, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { NewMapTableEntryDialog } from '../components/new-map-table-entry-dialog/new-map-table-entry-dialog.component';
@@ -25,7 +25,7 @@ import { MapTableEntry, MapTableEntryData, SMALL_DIALOG } from '../types';
     providedIn: 'root'
 })
 export class MapTableHelperService {
-    constructor(private dialog: MatDialog) {}
+    private dialog = inject(MatDialog);
 
     /**
      * Returns a function that can be used to pass into a MapTable to support creating a new entry.

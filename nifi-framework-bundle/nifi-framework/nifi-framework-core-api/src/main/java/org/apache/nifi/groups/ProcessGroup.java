@@ -1202,6 +1202,13 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     QueueSize getQueueSize();
 
     /**
+     * Get Map of Attribute Names and Values to provide additional context for logging
+     *
+     * @return Map of Attribute Names and Values
+     */
+    Map<String, String> getLoggingAttributes();
+
+    /**
      * @return the log file suffix of the ProcessGroup for dedicated logging
      */
     String getLogFileSuffix();

@@ -664,10 +664,21 @@ public class JdbcCommon {
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
-                case ARRAY:
                 case BLOB:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
                     break;
+
+                case ARRAY: {
+                    builder.name(columnName)
+                            .type()
+                            .unionOf()
+                            .nullBuilder().endNull()
+                            .and().bytesType()
+                            .and().type(Schema.createArray(Schema.create(Schema.Type.STRING)))
+                            .endUnion()
+                            .noDefault();
+                    break;
+                }
 
                 case -150: // SQLServer may return -150 from the driver even though it's really -156 (sql_variant), treat as a union since we don't know what the values will actually be
                 case -156:

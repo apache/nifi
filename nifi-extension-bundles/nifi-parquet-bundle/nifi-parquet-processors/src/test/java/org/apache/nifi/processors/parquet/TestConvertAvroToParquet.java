@@ -51,13 +51,13 @@ import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for ConvertAvroToParquet processor
- */
+@DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 public class TestConvertAvroToParquet {
 
     private TestRunner runner;

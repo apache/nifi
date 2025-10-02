@@ -49,6 +49,10 @@ import { selectScale } from '../state/transform/transform.selectors';
     providedIn: 'root'
 })
 export class CanvasUtils {
+    private store = inject<Store<CanvasState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+    private overlay = inject(Overlay);
+
     private static readonly TWO_PI: number = 2 * Math.PI;
 
     private destroyRef = inject(DestroyRef);
@@ -68,11 +72,7 @@ export class CanvasUtils {
 
     private readonly humanizeDuration: Humanizer;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private nifiCommon: NiFiCommon,
-        private overlay: Overlay
-    ) {
+    constructor() {
         this.humanizeDuration = humanizer();
 
         this.store

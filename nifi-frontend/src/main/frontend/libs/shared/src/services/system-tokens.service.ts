@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-import { Inject, Injectable } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { Injectable, DOCUMENT, inject } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class SystemTokensService {
-    constructor(@Inject(DOCUMENT) private _document: Document) {}
+    private _document = inject<Document>(DOCUMENT);
 
     appendStyleSheet(iframe: any): void {
         // Ensure the iframe's contentDocument is available

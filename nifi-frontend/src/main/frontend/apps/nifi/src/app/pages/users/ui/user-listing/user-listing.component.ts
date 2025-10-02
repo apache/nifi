@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { UserListingState } from '../../state/user-listing';
@@ -55,12 +55,14 @@ import { MatIconButton } from '@angular/material/button';
     styleUrls: ['./user-listing.component.scss']
 })
 export class UserListing implements OnInit {
+    private store = inject<Store<UserListingState>>(Store);
+
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
     userListingState$ = this.store.select(selectUserListingState);
     selectedTenantId$ = this.store.select(selectTenantIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
 
-    constructor(private store: Store<UserListingState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedTenant)
             .pipe(

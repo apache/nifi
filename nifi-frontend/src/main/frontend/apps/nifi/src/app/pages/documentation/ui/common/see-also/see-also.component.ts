@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
 import { Observable } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
@@ -34,12 +34,10 @@ import { DocumentedType } from '../../../../../state/shared';
     styleUrl: './see-also.component.scss'
 })
 export class SeeAlsoComponent {
-    @Input() extensionTypes: string[] | null = null;
+    private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(
-        private store: Store<NiFiState>,
-        private nifiCommon: NiFiCommon
-    ) {}
+    @Input() extensionTypes: string[] | null = null;
 
     getProcessorFromType(extensionTypes: string[]): Observable<LoadExtensionTypesForDocumentationResponse> {
         return this.store.select(selectExtensionFromTypes(extensionTypes));

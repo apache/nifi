@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, forwardRef, Input } from '@angular/core';
+import { Component, forwardRef, Input, inject } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
@@ -42,6 +42,8 @@ export interface RelationshipItem {
     ]
 })
 export class SourceProcessor implements ControlValueAccessor {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set processor(processor: any) {
         if (processor) {
             this.name = processor.component.name;
@@ -61,8 +63,6 @@ export class SourceProcessor implements ControlValueAccessor {
 
     relationshipItems!: RelationshipItem[];
     selectedRelationships!: string[];
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     processRelationships(): void {
         if (this.relationships) {

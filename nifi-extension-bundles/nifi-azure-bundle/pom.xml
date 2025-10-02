@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-shared-bom</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
@@ -36,7 +36,6 @@
     <modules>
         <module>nifi-azure-processors</module>
         <module>nifi-azure-reporting-task</module>
-        <module>nifi-azure-graph-authorizer</module>
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>
@@ -56,7 +55,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.4.8-jre</version>
+                <version>33.5.0-jre</version>
             </dependency>
             <!-- Override Apache Qpid Proton J for Azure EventHubs to resolve PROTON-2347 -->
             <dependency>
@@ -64,7 +63,7 @@
                 <artifactId>proton-j</artifactId>
                 <version>${qpid.proton.version}</version>
             </dependency>
-            <!-- Set msal4j version for azure-identity and nifi-azure-graph-authorizer -->
+            <!-- Set msal4j version for azure-identity -->
             <dependency>
                 <groupId>com.microsoft.azure</groupId>
                 <artifactId>msal4j</artifactId>

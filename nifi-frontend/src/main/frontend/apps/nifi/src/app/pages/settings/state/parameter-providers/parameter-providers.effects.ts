@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
@@ -73,17 +73,15 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ParameterProvidersEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private client: Client,
-        private dialog: MatDialog,
-        private router: Router,
-        private parameterProviderService: ParameterProviderService,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private managementControllerServiceService: ManagementControllerServiceService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private client = inject(Client);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private parameterProviderService = inject(ParameterProviderService);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private managementControllerServiceService = inject(ManagementControllerServiceService);
+    private errorHelper = inject(ErrorHelper);
 
     loadParameterProviders$ = createEffect(() =>
         this.actions$.pipe(

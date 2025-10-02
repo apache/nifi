@@ -1090,7 +1090,7 @@ public class TestQueryRecord {
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
-        runner.setProperty(REL_NAME, "select name, sum(points) as points from FLOWFILE GROUP BY name");
+        runner.setProperty(REL_NAME, "select name, sum(points) as points from FLOWFILE GROUP BY name ORDER BY points DESC");
         runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 

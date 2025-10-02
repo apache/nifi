@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { ComponentType } from '@nifi/shared';
@@ -33,10 +33,10 @@ import { NgTemplateOutlet } from '@angular/common';
     styleUrls: ['./overview.component.scss']
 })
 export class Overview {
+    private store = inject<Store<NiFiState>>(Store);
+
     generalDocumentation = this.store.selectSignal(selectAllGeneralDocumentation);
     developerDocumentation = this.store.selectSignal(selectAllDeveloperDocumentation);
-
-    constructor(private store: Store<NiFiState>) {}
 
     protected readonly ComponentType = ComponentType;
 }

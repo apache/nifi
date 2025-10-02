@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -49,6 +49,8 @@ import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component'
     styleUrls: ['./parameter-references.component.scss']
 })
 export class ParameterReferences {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() disabledLinks: boolean = false;
     @Input() set parameterReferences(parameterReferences: AffectedComponentEntity[] | undefined) {
         // reset existing state
@@ -79,8 +81,6 @@ export class ParameterReferences {
     // parameter references lookup by process group id
     parameterReferenceMap: Map<string, AffectedComponentEntity[]> = new Map<string, AffectedComponentEntity[]>();
     processGroups: ProcessGroupName[] = [];
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     getUnauthorized(references: AffectedComponentEntity[]) {
         return references.filter((reference) => !reference.permissions.canRead);

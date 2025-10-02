@@ -116,6 +116,7 @@ public class GitHubFlowRegistryClient extends AbstractGitFlowRegistryClient {
     @Override
     protected GitHubRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
         return GitHubRepositoryClient.builder()
+                .logger(getLogger())
                 .apiUrl(context.getProperty(GITHUB_API_URL).getValue())
                 .authenticationType(GitHubAuthenticationType.valueOf(context.getProperty(AUTHENTICATION_TYPE).getValue()))
                 .personalAccessToken(context.getProperty(PERSONAL_ACCESS_TOKEN).getValue())

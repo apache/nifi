@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatCell, MatHeaderCell, MatTableModule } from '@angular/material/table';
 import { ClusterNode } from '../../../state/cluster-listing';
 import { MatSortHeader, MatSortModule, Sort } from '@angular/material/sort';
@@ -49,6 +49,8 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
     styleUrl: './cluster-node-table.component.scss'
 })
 export class ClusterNodeTable extends ClusterTable<ClusterNode> {
+    private nifiCommon = inject(NiFiCommon);
+
     private _currentUser!: CurrentUser;
 
     @Output() disconnectNode: EventEmitter<ClusterNode> = new EventEmitter<ClusterNode>();
@@ -80,10 +82,6 @@ export class ClusterNodeTable extends ClusterTable<ClusterNode> {
     ];
 
     displayedColumns: string[] = ['address', 'activeThreadCount', 'queued', 'status', 'nodeStartTime', 'heartbeat'];
-
-    constructor(private nifiCommon: NiFiCommon) {
-        super();
-    }
 
     formatNodeAddress(item: ClusterNode): string {
         return `${item.address}:${item.apiPort}`;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { EMPTY, Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
@@ -31,14 +31,12 @@ import { ClusterConnectionService } from '../../../service/cluster-connection.se
 
 @Injectable({ providedIn: 'root' })
 export class ControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
+    private clusterConnectionService = inject(ClusterConnectionService);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client,
-        private nifiCommon: NiFiCommon,
-        private clusterConnectionService: ClusterConnectionService
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getControllerServices(processGroupId: string): Observable<any> {
         const uiOnly: any = { uiOnly: true };

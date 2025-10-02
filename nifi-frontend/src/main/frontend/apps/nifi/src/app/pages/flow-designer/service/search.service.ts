@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
@@ -54,9 +54,9 @@ export interface SearchResultsEntity {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     search(query: string, processGroupId: string): Observable<SearchResultsEntity> {
         return this.httpClient.get<SearchResultsEntity>(`${SearchService.API}/flow/search-results`, {

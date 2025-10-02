@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { selectFullScreenError } from '../../../state/error/error.selectors';
 import { NiFiState } from '../../../state';
@@ -30,9 +30,9 @@ import { PageContent } from '../../../ui/common/page-content/page-content.compon
     styleUrls: ['./error.component.scss']
 })
 export class Error implements OnDestroy {
-    errorDetail$ = this.store.select(selectFullScreenError);
+    private store = inject<Store<NiFiState>>(Store);
 
-    constructor(private store: Store<NiFiState>) {}
+    errorDetail$ = this.store.select(selectFullScreenError);
 
     ngOnDestroy(): void {
         this.store.dispatch(resetErrorState());

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { ControllerStatus } from '../../../../state/flow';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -39,6 +39,10 @@ import { CanvasUtils } from '../../../../service/canvas-utils.service';
     styleUrls: ['./flow-status.component.scss']
 })
 export class FlowStatus {
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private canvasUtils = inject(CanvasUtils);
+
     private static readonly FLOW_ANALYSIS_VISIBILITY_KEY: string = 'flow-analysis-visibility';
     private static readonly FLOW_ANALYSIS_KEY: string = 'flow-analysis';
     public flowAnalysisNotificationClass: string = '';
@@ -73,11 +77,7 @@ export class FlowStatus {
 
     protected readonly BulletinsTip = BulletinsTip;
 
-    constructor(
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private canvasUtils: CanvasUtils
-    ) {
+    constructor() {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
                 FlowStatus.FLOW_ANALYSIS_VISIBILITY_KEY

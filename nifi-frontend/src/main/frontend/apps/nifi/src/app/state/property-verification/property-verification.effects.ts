@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { ConfigurationAnalysisResponse, PropertyVerificationState } from './index';
 import { Store } from '@ngrx/store';
@@ -39,15 +39,13 @@ import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, MapTableHelperService
 
 @Injectable()
 export class PropertyVerificationEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<PropertyVerificationState>,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper,
-        private propertyVerificationService: PropertyVerificationService,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private mapTableHelperService: MapTableHelperService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<PropertyVerificationState>>(Store);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
+    private propertyVerificationService = inject(PropertyVerificationService);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private mapTableHelperService = inject(MapTableHelperService);
 
     verifyProperties$ = createEffect(() =>
         this.actions$.pipe(

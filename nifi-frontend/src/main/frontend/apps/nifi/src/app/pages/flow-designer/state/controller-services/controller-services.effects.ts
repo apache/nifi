@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ControllerServicesActions from './controller-services.actions';
@@ -70,20 +70,18 @@ import { ParameterContextService } from '../../../parameter-contexts/service/par
 
 @Injectable()
 export class ControllerServicesEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private client: Client,
-        private controllerServiceService: ControllerServiceService,
-        private parameterContextService: ParameterContextService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService,
-        private extensionTypesService: ExtensionTypesService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private client = inject(Client);
+    private controllerServiceService = inject(ControllerServiceService);
+    private parameterContextService = inject(ParameterContextService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private parameterHelperService = inject(ParameterHelperService);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadControllerServices$ = createEffect(() =>
         this.actions$.pipe(

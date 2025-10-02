@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NiFiState } from '../../../../state';
@@ -33,13 +33,11 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 
 @Injectable()
 export class ComponentClusterStatusEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private errorHelper: ErrorHelper,
-        private clusterStatusService: ComponentClusterStatusService,
-        private dialog: MatDialog
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private errorHelper = inject(ErrorHelper);
+    private clusterStatusService = inject(ComponentClusterStatusService);
+    private dialog = inject(MatDialog);
 
     loadComponentClusterStatusAndOpenDialog$ = createEffect(() =>
         this.actions$.pipe(

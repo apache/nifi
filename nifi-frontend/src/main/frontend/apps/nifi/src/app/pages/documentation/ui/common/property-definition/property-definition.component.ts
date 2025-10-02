@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ComponentType, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import {
@@ -42,6 +42,9 @@ import { RouterLink } from '@angular/router';
     styleUrl: './property-definition.component.scss'
 })
 export class PropertyDefinitionComponent {
+    private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set propertyDescriptor(propertyDescriptor: PropertyDescriptor) {
         this.descriptor = propertyDescriptor;
 
@@ -62,11 +65,6 @@ export class PropertyDefinitionComponent {
 
     descriptor: PropertyDescriptor | null = null;
     serviceImplementations$: Observable<DocumentedType[]> | null = null;
-
-    constructor(
-        private store: Store<NiFiState>,
-        private nifiCommon: NiFiCommon
-    ) {}
 
     formatDefaultValue(descriptor: PropertyDescriptor): string | undefined {
         if (descriptor.allowableValues) {

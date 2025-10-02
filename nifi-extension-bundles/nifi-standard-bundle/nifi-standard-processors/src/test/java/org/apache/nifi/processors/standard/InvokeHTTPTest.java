@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import mockwebserver3.RecordedRequest;
+import okio.ByteString;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -151,6 +152,8 @@ public class InvokeHTTPTest {
 
     private static final String TLS_CONNECTION_TIMEOUT = "60 s";
 
+    private static final String EMPTY_HEADER_NAME = "";
+
     private static SSLContext sslContext;
 
     private static SSLContext trustStoreSslContext;
@@ -206,7 +209,7 @@ public class InvokeHTTPTest {
     }
 
     @AfterEach
-    public void shutdownServer() throws IOException {
+    public void shutdownServer() {
         mockWebServer.close();
     }
 
@@ -429,6 +432,27 @@ public class InvokeHTTPTest {
 
         final MockFlowFile responseFlowFile = getResponseFlowFile();
         responseFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_PLAIN);
+    }
+
+    @Test
+    public void testRunGetHttp200SuccessEmptyHeaderName() {
+        final MockResponse response = new MockResponse.Builder()
+                .code(HTTP_OK)
+                .addHeaderLenient(EMPTY_HEADER_NAME, TEXT_PLAIN)
+                .build();
+        mockWebServer.enqueue(response);
+
+        setUrlProperty();
+        runner.enqueue(FLOW_FILE_CONTENT);
+        runner.run();
+
+        assertResponseSuccessRelationships();
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
+
+        final MockFlowFile responseFlowFile = getResponseFlowFile();
+        final Map<String, String> attributes = responseFlowFile.getAttributes();
+        assertFalse(attributes.isEmpty());
+        assertFalse(attributes.containsKey(EMPTY_HEADER_NAME), "Empty Attribute Name found");
     }
 
     @Test
@@ -809,7 +833,9 @@ public class InvokeHTTPTest {
         final String contentEncoding = request.getHeaders().get(CONTENT_ENCODING_HEADER);
         assertEquals(ContentEncodingStrategy.GZIP.getValue().toLowerCase(), contentEncoding);
 
-        final byte[] body = request.getBody().toByteArray();
+        final ByteString requestBody = request.getBody();
+        assertNotNull(requestBody);
+        final byte[] body = requestBody.toByteArray();
         try (final GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(body))) {
             final String decompressed = IOUtils.toString(gzipInputStream, StandardCharsets.UTF_8);
             assertEquals(FLOW_FILE_CONTENT, decompressed);
@@ -863,7 +889,9 @@ public class InvokeHTTPTest {
         final Pattern multipartPattern = Pattern.compile("^multipart/form-data.+$");
         assertTrue(multipartPattern.matcher(contentType).matches(), "Content Type not matched");
 
-        final String body = request.getBody().utf8();
+        final ByteString requestBody = request.getBody();
+        assertNotNull(requestBody);
+        final String body = requestBody.utf8();
         assertTrue(body.contains(formDataParameter), "Form Data Parameter not found");
     }
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
@@ -33,13 +33,11 @@ import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class SystemDiagnosticsEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private systemDiagnosticsService: SystemDiagnosticsService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private systemDiagnosticsService = inject(SystemDiagnosticsService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     reloadSystemDiagnostics$ = createEffect(() =>
         this.actions$.pipe(

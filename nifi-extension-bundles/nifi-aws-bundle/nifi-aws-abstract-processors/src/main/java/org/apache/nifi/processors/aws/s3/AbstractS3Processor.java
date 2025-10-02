@@ -44,6 +44,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -109,8 +110,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .defaultValue("${s3.permissions.writeacl.users}")
             .build();
     public static final PropertyDescriptor CANNED_ACL = new PropertyDescriptor.Builder()
-            .name("canned-acl")
-            .displayName("Canned ACL")
+            .name("Canned ACL")
             .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
                 "will be ignored if any other ACL/permission/owner property is specified")
             .required(false)
@@ -166,8 +166,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
 
     public static final PropertyDescriptor S3_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
-            .name("custom-signer-class-name")
-            .displayName("Custom Signer Class Name")
+            .name("Custom Signer Class Name")
             .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -176,8 +175,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
 
     public static final PropertyDescriptor S3_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
-            .name("custom-signer-module-location")
-            .displayName("Custom Signer Module Location")
+            .name("Custom Signer Module Location")
             .description("Comma-separated list of paths to files and/or directories which contain the custom signer's JAR file and its dependencies (if any).")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -188,8 +186,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
 
     public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
-            .name("encryption-service")
-            .displayName("Encryption Service")
+            .name("Encryption Service")
             .description("Specifies the Encryption Service Controller used to configure requests. " +
                     "PutS3Object: For backward compatibility, this value is ignored when 'Server Side Encryption' is set. " +
                     "FetchS3Object: Only needs to be configured in case of Server-side Customer Key, Client-side KMS and Client-side Customer Key encryptions.")
@@ -197,15 +194,13 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .identifiesControllerService(AmazonS3EncryptionService.class)
             .build();
     public static final PropertyDescriptor USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
-            .name("use-chunked-encoding")
-            .displayName("Use Chunked Encoding")
+            .name("Use Chunked Encoding")
             .description("Enables / disables chunked encoding for upload requests. Set it to false only if your endpoint does not support chunked uploading.")
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor USE_PATH_STYLE_ACCESS = new PropertyDescriptor.Builder()
-            .name("use-path-style-access")
-            .displayName("Use Path Style Access")
+            .name("Use Path Style Access")
             .description("Path-style access can be enforced by setting this property to true. Set it to true if your endpoint does not support " +
                     "virtual-hosted-style requests, only path-style requests.")
             .allowableValues("true", "false")
@@ -310,6 +305,16 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("canned-acl", CANNED_ACL.getName());
+        config.renameProperty("custom-signer-class-name", S3_CUSTOM_SIGNER_CLASS_NAME.getName());
+        config.renameProperty("custom-signer-module-location", S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
+        config.renameProperty("encryption-service", ENCRYPTION_SERVICE.getName());
+        config.renameProperty("use-chunked-encoding", USE_CHUNKED_ENCODING.getName());
+        config.renameProperty("use-path-style-access", USE_PATH_STYLE_ACCESS.getName());
+    }
 
     private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
         final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();

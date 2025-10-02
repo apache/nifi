@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -48,6 +48,10 @@ import { ExtensionTypesLoadingStatus } from '../../../../../state/extension-type
     styleUrls: ['./create-registry-client.component.scss']
 })
 export class CreateRegistryClient {
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() saving$!: Observable<boolean>;
     @Input() registryClientTypes$!: Observable<DocumentedType[]>;
     @Input() registryClientTypesLoadingStatus$!: Observable<ExtensionTypesLoadingStatus>;
@@ -55,12 +59,6 @@ export class CreateRegistryClient {
         new EventEmitter<CreateRegistryClientRequest>();
 
     protected readonly TextTip = TextTip;
-
-    constructor(
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {}
 
     registryClientTypeSelected(registryClientType: DocumentedType) {
         const request: CreateRegistryClientRequest = {

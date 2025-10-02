@@ -439,6 +439,7 @@ public final class DtoFactory {
        final ComponentStateDTO dto = new ComponentStateDTO();
        dto.setComponentId(componentId);
        dto.setStateDescription(getStateDescription(componentClass));
+       dto.setDropStateKeySupported(getDropStateKeySupported(componentClass));
        dto.setLocalState(createStateMapDTO(Scope.LOCAL, localState));
        dto.setClusterState(createStateMapDTO(Scope.CLUSTER, clusterState));
        return dto;
@@ -457,6 +458,22 @@ public final class DtoFactory {
        } else {
            return null;
        }
+   }
+
+   /**
+    * Gets whether dropping state by key is supported for the component.
+    * Defaults to false when annotation not present or field not specified.
+    *
+    * @param componentClass the component class
+    * @return true if dropping state by key is supported; false otherwise
+    */
+   private boolean getDropStateKeySupported(final Class<?> componentClass) {
+       final Stateful statefulAnnotation = componentClass.getAnnotation(Stateful.class);
+       boolean result = false;
+       if (statefulAnnotation != null) {
+           result = statefulAnnotation.dropStateKeySupported();
+       }
+       return result;
    }
 
    /**
@@ -735,6 +752,14 @@ public final class DtoFactory {
                }
 
                dto.getSelectedRelationships().add(selectedRelationship.getName());
+
+               // Check if this selected relationship is configured to be retried from the source
+               if (connection.getSource().isRelationshipRetried(selectedRelationship)) {
+                   if (dto.getRetriedRelationships() == null) {
+                       dto.setRetriedRelationships(new TreeSet<>(Collator.getInstance(Locale.US)));
+                   }
+                   dto.getRetriedRelationships().add(selectedRelationship.getName());
+               }
            }
        }
 
@@ -2778,9 +2803,13 @@ public final class DtoFactory {
 
        final Map<String, VersionedProcessGroup> versionedGroups = flattenProcessGroups(comparison.getFlowA().getContents());
 
-       for (final FlowDifference difference : comparison.getDifferences()) {
+       final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
+       final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
+               FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+
+       for (final FlowDifference difference : comparisonDifferences) {
            // Ignore any environment-specific change
-           if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager)) {
+           if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager, environmentalContext)) {
                continue;
            }
 
@@ -4485,6 +4514,7 @@ public final class DtoFactory {
        copy.setName(original.getName());
        copy.setParentGroupId(original.getParentGroupId());
        copy.setSelectedRelationships(copy(original.getSelectedRelationships()));
+       copy.setRetriedRelationships(copy(original.getRetriedRelationships()));
        copy.setFlowFileExpiration(original.getFlowFileExpiration());
        copy.setBackPressureObjectThreshold(original.getBackPressureObjectThreshold());
        copy.setBackPressureDataSizeThreshold(original.getBackPressureDataSizeThreshold());

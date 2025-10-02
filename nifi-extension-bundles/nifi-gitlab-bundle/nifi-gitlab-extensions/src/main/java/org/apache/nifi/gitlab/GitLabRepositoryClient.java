@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
@@ -42,8 +43,6 @@ import org.gitlab4j.api.models.RepositoryFile;
 import org.gitlab4j.api.models.TreeItem;
 import org.gitlab4j.models.Constants;
 import org.gitlab4j.models.Constants.Encoding;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,7 +64,7 @@ import java.util.stream.Collectors;
  */
 public class GitLabRepositoryClient implements GitRepositoryClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GitLabRepositoryClient.class);
+    private final ComponentLog logger;
 
     private static final String PERSONAL_ACCESS_TOKENS_SELF_PATH = "/personal_access_tokens/self";
     private static final String PRIVATE_TOKEN_HEADER  = "PRIVATE-TOKEN";
@@ -105,6 +104,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         clientId = Objects.requireNonNull(builder.clientId, "Client Id is required");
         repoNamespace = Objects.requireNonNull(builder.repoNamespace, "Repository Group is required");
         repoName = Objects.requireNonNull(builder.repoName, "Repository Name is required");
+        logger = Objects.requireNonNull(builder.logger, "ComponentLog required");
         repoPath = builder.repoPath;
         projectPath = repoNamespace + "/" + repoName;
 
@@ -131,7 +131,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
             canWrite = false;
         }
 
-        LOGGER.info("Created {} for clientId = [{}], repository [{}], canRead [{}], canWrite [{}]", getClass().getSimpleName(), clientId, projectPath, canRead, canWrite);
+        logger.info("Created {} for clientId = [{}], repository [{}], canRead [{}], canWrite [{}]", getClass().getSimpleName(), clientId, projectPath, canRead, canWrite);
     }
 
     public String getRepoNamespace() {
@@ -154,7 +154,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Set<String> getBranches() throws FlowRegistryException {
-        LOGGER.debug("Getting branches for repository [{}]", projectPath);
+        logger.debug("Getting branches for repository [{}]", projectPath);
         final RepositoryApi repositoryApi = gitLab.getRepositoryApi();
         return execute(() -> repositoryApi.getBranchesStream(projectPath)
                 .map(Branch::getName)
@@ -165,7 +165,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     @Override
     public Set<String> getTopLevelDirectoryNames(final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath("");
-        LOGGER.debug("Getting top-level directories for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        logger.debug("Getting top-level directories for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
 
         final RepositoryApi repositoryApi = gitLab.getRepositoryApi();
         return execute(() -> repositoryApi.getTreeStream(projectPath, resolvedPath, branch)
@@ -178,7 +178,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     @Override
     public Set<String> getFileNames(final String directory, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(directory);
-        LOGGER.debug("Getting filenames for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        logger.debug("Getting filenames for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
 
         final RepositoryApi repositoryApi = gitLab.getRepositoryApi();
         return execute(() -> repositoryApi.getTreeStream(projectPath, resolvedPath, branch)
@@ -191,7 +191,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     @Override
     public List<GitCommit> getCommits(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        logger.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
 
         final CommitsApi commitsApi = gitLab.getCommitsApi();
         return execute(() -> commitsApi.getCommits(projectPath, branch, resolvedPath).stream()
@@ -203,21 +203,21 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        logger.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
         return execute(() -> gitLab.getRepositoryFileApi().getRawFile(projectPath, branch, resolvedPath));
     }
 
     @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content for path [{}] from commit [{}] in repository [{}]", resolvedPath, commitSha, projectPath);
+        logger.debug("Getting content for path [{}] from commit [{}] in repository [{}]", resolvedPath, commitSha, projectPath);
         return execute(() -> gitLab.getRepositoryFileApi().getRawFile(projectPath, commitSha, resolvedPath));
     }
 
     @Override
     public Optional<String> getContentSha(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content SHA for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        logger.debug("Getting content SHA for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
         return execute(() -> gitLab.getRepositoryFileApi().getOptionalFileInfo(projectPath, resolvedPath, branch).map(RepositoryFile::getCommitId));
     }
 
@@ -225,7 +225,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     public String createContent(final GitCreateContentRequest request) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(request.getPath());
         final String branch = request.getBranch();
-        LOGGER.debug("Creating content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, projectPath);
+        logger.debug("Creating content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, projectPath);
 
         return execute(() -> {
             final Optional<RepositoryFile> existingFileInfo = gitLab.getRepositoryFileApi().getOptionalFileInfo(projectPath, resolvedPath, branch);
@@ -252,7 +252,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
                             List.of(commitAction));
 
             final String commitId = commit.getId();
-            LOGGER.debug("Successfully committed file [{}] with commit ID: {}", resolvedPath, commit.getId());
+            logger.debug("Successfully committed file [{}] with commit ID: {}", resolvedPath, commit.getId());
 
             return commitId;
         });
@@ -261,7 +261,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(filePath);
-        LOGGER.debug("Deleting content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, projectPath);
+        logger.debug("Deleting content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, projectPath);
         return execute(() -> {
             final InputStream content = gitLab.getRepositoryFileApi().getRawFile(projectPath, branch, resolvedPath);
             gitLab.getRepositoryFileApi().deleteFile(projectPath, resolvedPath, branch, commitMessage);
@@ -278,11 +278,11 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         try {
             final ProjectApi projectApi = gitLab.getProjectApi();
             final Project project = projectApi.getProject(repoNamespace, repoName);
-            LOGGER.debug("Successfully retrieved project [{}] for client [{}]", projectPath, clientId);
+            logger.debug("Successfully retrieved project [{}] for client [{}]", projectPath, clientId);
             return Optional.of(project);
         } catch (final GitLabApiException e) {
             if (e.getHttpStatus() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                LOGGER.warn("Client [{}] does not have permissions to access repository [{}]", clientId, projectPath);
+                logger.warn("Client [{}] does not have permissions to access repository [{}]", clientId, projectPath);
                 return Optional.empty();
             } else if (e.getHttpStatus() == HttpURLConnection.HTTP_NOT_FOUND) {
                 throw new FlowRegistryException(String.format("Repository [%s] not found", projectPath), e);
@@ -294,12 +294,12 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
     private boolean hasMinimumAccessLevel(final Project project, final AccessLevel accessLevel) {
         final Permissions permissions = project.getPermissions();
-        LOGGER.debug("Checking if client [{}] has access level [{}] in project [{}]", clientId, accessLevel.name(), projectPath);
+        logger.debug("Checking if client [{}] has access level [{}] in project [{}]", clientId, accessLevel.name(), projectPath);
 
         final ProjectAccess projectAccess = permissions.getProjectAccess();
         if (projectAccess != null) {
             final AccessLevel projectAccessLevel = projectAccess.getAccessLevel();
-            LOGGER.debug("Client [{}] has project access level [{}] for project [{}]", clientId, projectAccessLevel.name(), projectPath);
+            logger.debug("Client [{}] has project access level [{}] for project [{}]", clientId, projectAccessLevel.name(), projectPath);
             if (projectAccessLevel.toValue() >= accessLevel.toValue()) {
                 return true;
             }
@@ -308,19 +308,19 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         final ProjectAccess groupAccess = permissions.getGroupAccess();
         if (groupAccess != null) {
             final AccessLevel groupAccessLevel = groupAccess.getAccessLevel();
-            LOGGER.debug("Client [{}] has group access level [{}] for project [{}]", clientId, groupAccessLevel.name(), projectPath);
+            logger.debug("Client [{}] has group access level [{}] for project [{}]", clientId, groupAccessLevel.name(), projectPath);
             if (groupAccessLevel.toValue() >= accessLevel.toValue()) {
                 return true;
             }
         }
 
-        LOGGER.debug("Client [{}] does not have minimum access level [{}] for project [{}]", clientId, accessLevel.name(), projectPath);
+        logger.debug("Client [{}] does not have minimum access level [{}] for project [{}]", clientId, accessLevel.name(), projectPath);
         return false;
     }
 
     private TokenInfo getTokenInfo() {
         final TokenInfo tokenInfo = getPersonalAccessToken().map(this::createTokenInfo).orElse(UNKNOWN_TOKEN);
-        LOGGER.debug("Created token info {} for client [{}]", tokenInfo, clientId);
+        logger.debug("Created token info {} for client [{}]", tokenInfo, clientId);
         return tokenInfo;
     }
 
@@ -336,7 +336,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
             final PersonalAccessToken personalAccessToken = retrievePersonalAccessToken();
             return Optional.of(personalAccessToken);
         } catch (final FlowRegistryException e) {
-            LOGGER.warn("Failed to get personal access token for client [{}]", clientId, e);
+            logger.warn("Failed to get personal access token for client [{}]", clientId, e);
             return Optional.empty();
         }
     }
@@ -357,7 +357,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
             }
         }
 
-        LOGGER.debug("Personal access token response code = {}", responseCode);
+        logger.debug("Personal access token response code = {}", responseCode);
         if (responseCode != HttpURLConnection.HTTP_OK) {
             throw new FlowRegistryException("Unable to retrieve personal access token details: " + responseContent);
         }
@@ -372,7 +372,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     private HttpURLConnection createConnection(final String subPath) throws IOException {
         final String gitLabServerUrl = gitLab.getGitLabServerUrl().endsWith("/") ? gitLab.getGitLabServerUrl().replaceAll("/$", "") : gitLab.getGitLabServerUrl();
         final URL gitLabApiUrl = URI.create(gitLabServerUrl + gitLab.getApiVersion().getApiNamespace() + subPath).toURL();
-        LOGGER.debug("Connecting to GitLab URL [{}] for client [{}]", gitLabApiUrl, clientId);
+        logger.debug("Connecting to GitLab URL [{}] for client [{}]", gitLabApiUrl, clientId);
 
         final HttpURLConnection connection = (HttpURLConnection) gitLabApiUrl.openConnection();
         connection.setRequestProperty(PRIVATE_TOKEN_HEADER, gitLab.getAuthToken());
@@ -454,6 +454,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         private String repoPath;
         private int connectTimeout;
         private int readTimeout;
+        private ComponentLog logger;
 
         public Builder clientId(final String clientId) {
             this.clientId = clientId;
@@ -502,6 +503,11 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
         public Builder readTimeout(final int readTimeout) {
             this.readTimeout = readTimeout;
+            return this;
+        }
+
+        public Builder logger(final ComponentLog logger) {
+            this.logger = logger;
             return this;
         }
 

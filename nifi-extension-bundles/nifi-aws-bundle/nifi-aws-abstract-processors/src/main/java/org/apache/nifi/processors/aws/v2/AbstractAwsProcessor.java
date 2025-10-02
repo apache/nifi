@@ -187,6 +187,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("aws-region", REGION.getName());
         migrateAuthenticationProperties(config);
         ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
     }

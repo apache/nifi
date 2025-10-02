@@ -76,7 +76,8 @@ public class StandardReloadComponent implements ReloadComponent {
         // save the instance class loader to use it for calling OnRemoved on the existing processor
         final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
-        final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(id);
+        final Class<?> componentClass = existingNode.getProcessor() == null ? null : existingNode.getProcessor().getClass();
+        final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(id, componentClass);
         final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(),
             stateManager, () -> false, flowController);
 

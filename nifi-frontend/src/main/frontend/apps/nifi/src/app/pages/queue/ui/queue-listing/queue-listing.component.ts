@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { distinctUntilChanged, filter } from 'rxjs';
 import {
@@ -54,6 +54,8 @@ import { MatIconButton } from '@angular/material/button';
     styleUrls: ['./queue-listing.component.scss']
 })
 export class QueueListing implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     status$ = this.store.select(selectStatus);
     selectedConnection$ = this.store.select(selectSelectedConnection);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
@@ -62,7 +64,7 @@ export class QueueListing implements OnInit, OnDestroy {
     about$ = this.store.select(selectAbout);
     clusterSummary$ = this.store.select(selectClusterSummary);
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectConnectionIdFromRoute)
             .pipe(

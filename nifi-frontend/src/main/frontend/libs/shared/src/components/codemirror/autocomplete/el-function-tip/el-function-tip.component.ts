@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '../../../../services/nifi-common.service';
 import { ElFunction, ElFunctionTipInput } from '../../../../types';
 
@@ -26,9 +26,9 @@ import { ElFunction, ElFunctionTipInput } from '../../../../types';
     styleUrls: ['./el-function-tip.component.scss']
 })
 export class ElFunctionTip {
-    @Input() data: ElFunctionTipInput | null = null;
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    @Input() data: ElFunctionTipInput | null = null;
 
     hasDescription(elFunction: ElFunction): boolean {
         return !this.nifiCommon.isBlank(elFunction.description);

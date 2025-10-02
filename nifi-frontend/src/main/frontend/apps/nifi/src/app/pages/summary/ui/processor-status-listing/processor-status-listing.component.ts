@@ -54,6 +54,8 @@ import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
     styleUrls: ['./processor-status-listing.component.scss']
 })
 export class ProcessorStatusListing implements AfterViewInit, OnDestroy {
+    private store = inject<Store<SummaryListingState>>(Store);
+
     private destroyRef = inject(DestroyRef);
 
     processorStatusSnapshots$ = this.store.select(selectProcessorStatusSnapshots);
@@ -76,7 +78,7 @@ export class ProcessorStatusListing implements AfterViewInit, OnDestroy {
     @ViewChild(ProcessorStatusTable) table!: ProcessorStatusTable;
     private subject: Subject<void> = new Subject<void>();
 
-    constructor(private store: Store<SummaryListingState>) {
+    constructor() {
         this.store
             .select(selectViewStatusHistory)
             .pipe(

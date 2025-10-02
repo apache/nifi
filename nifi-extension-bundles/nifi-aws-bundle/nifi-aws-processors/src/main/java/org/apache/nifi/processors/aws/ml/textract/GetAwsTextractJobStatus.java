@@ -25,6 +25,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -60,14 +61,14 @@ public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatus
     };
 
     public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
-            .name("textract-type")
-            .displayName("Textract Type")
+            .name("Textract Type")
             .required(true)
             .description("Supported values: \"Document Analysis\", \"Document Text Detection\", \"Expense Analysis\"")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(String.format("${%s}", TEXTRACT_TYPE_ATTRIBUTE))
             .addValidator(TEXTRACT_TYPE_VALIDATOR)
             .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             getCommonPropertyDescriptors().stream(),
             Stream.of(TEXTRACT_TYPE)
@@ -116,6 +117,12 @@ public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatus
             getLogger().warn("Failed to get Textract Job status", e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("textract-type", TEXTRACT_TYPE.getName());
     }
 
     private TextractResponse getTask(final TextractType typeOfTextract, final TextractClient client, final String awsTaskId) {

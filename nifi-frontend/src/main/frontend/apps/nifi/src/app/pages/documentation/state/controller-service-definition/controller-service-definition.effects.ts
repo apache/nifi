@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ControllerServiceDefinitionActions from './controller-service-definition.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
@@ -26,11 +26,9 @@ import { ControllerServiceDefinition } from './index';
 
 @Injectable()
 export class ControllerServiceDefinitionEffects {
-    constructor(
-        private actions$: Actions,
-        private documentationService: DocumentationService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private documentationService = inject(DocumentationService);
+    private errorHelper = inject(ErrorHelper);
 
     loadControllerServiceDefinition$ = createEffect(() =>
         this.actions$.pipe(

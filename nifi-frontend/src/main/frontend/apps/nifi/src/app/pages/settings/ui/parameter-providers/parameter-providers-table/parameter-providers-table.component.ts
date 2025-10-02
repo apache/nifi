@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -48,6 +48,8 @@ export type SupportedColumns = 'name' | 'type' | 'bundle';
     styleUrls: ['./parameter-providers-table.component.scss']
 })
 export class ParameterProvidersTable {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() initialSortColumn: SupportedColumns = 'name';
     @Input() initialSortDirection: SortDirection = 'asc';
 
@@ -57,8 +59,6 @@ export class ParameterProvidersTable {
         active: this.initialSortColumn,
         direction: this.initialSortDirection
     };
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     @Input() selectedParameterProviderId!: string;
     @Input() currentUser!: CurrentUser;

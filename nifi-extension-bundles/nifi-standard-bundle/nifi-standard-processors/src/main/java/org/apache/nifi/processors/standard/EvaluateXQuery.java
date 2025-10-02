@@ -295,7 +295,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                             xQueryResults.put(attributeName, value);
                         }
                     } else { // if (DESTINATION_CONTENT.equals(destination)){
-                        if (result.isEmpty()) {
+                        if (result.isEmptySequence()) {
                             logger.info("No XQuery results found {}", flowFile);
                             session.transfer(flowFile, REL_NO_MATCH);
                             continue flowFileLoop;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
@@ -32,13 +32,11 @@ import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class StatusHistoryEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private statusHistoryService: StatusHistoryService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private statusHistoryService = inject(StatusHistoryService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     reloadComponentStatusHistory$ = createEffect(() =>
         this.actions$.pipe(

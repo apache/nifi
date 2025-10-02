@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
     FlowComparisonEntity,
@@ -36,6 +36,8 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
     styleUrl: './local-changes-dialog.scss'
 })
 export class LocalChangesDialog extends CloseOnEscapeDialog {
+    private dialogRequest = inject<LocalChangesDialogRequest>(MAT_DIALOG_DATA);
+
     mode: 'SHOW' | 'REVERT' = 'SHOW';
     versionControlInformation: VersionControlInformationEntity;
     localModifications: FlowComparisonEntity;
@@ -46,8 +48,10 @@ export class LocalChangesDialog extends CloseOnEscapeDialog {
     revert: EventEmitter<LocalChangesDialogRequest> = new EventEmitter<LocalChangesDialogRequest>();
     @Output() goToChange: EventEmitter<NavigateToComponentRequest> = new EventEmitter<NavigateToComponentRequest>();
 
-    constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: LocalChangesDialogRequest) {
+    constructor() {
         super();
+        const dialogRequest = this.dialogRequest;
+
         this.mode = dialogRequest.mode;
         this.versionControlInformation = dialogRequest.versionControlInformation;
         this.localModifications = dialogRequest.localModifications;

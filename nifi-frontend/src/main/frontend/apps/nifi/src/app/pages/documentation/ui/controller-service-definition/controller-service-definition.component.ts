@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
@@ -39,9 +39,11 @@ import { SeeAlsoComponent } from '../common/see-also/see-also.component';
     styleUrl: './controller-service-definition.component.scss'
 })
 export class ControllerServiceDefinition implements OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     controllerServiceDefinitionState: ControllerServiceDefinitionState | null = null;
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectDefinitionCoordinatesFromRouteForComponentType(ComponentType.ControllerService))
             .pipe(

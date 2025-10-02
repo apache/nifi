@@ -197,6 +197,29 @@ The standard logback configuration includes the following appender definitions a
 | `nifi-user.log`        | User log containing authentication and authorization messages
 |=========================
 
+=== Mapped Diagnostic Context Properties
+Logging for extension components such as Processors and Controller Services include variables in the
+link:https://www.slf4j.org/api/org/slf4j/MDC.html[Mapped Diagnostic Context] that provide additional information about
+the component location. link:https://logback.qos.ch/manual/layouts.html#mdc[MDC] values can be added to log messages
+with custom layout configuration.
+
+Component logs provide the following MDC named values:
+
+- `processGroupId` contains the UUID of the Process Group
+- `processGroupIdPath` contains the hierarchy of UUIDs for Process Groups with separators
+- `processGroupName` contains the name of the Process Group
+- `processGroupNamePath` contains of the hierarchy of names for Process Groups with separators
+
+MDC named values can be added to a Logback pattern layout using the `mdc` conversion word.
+
+[source, xml]
+----
+<pattern>%date %level [%thread] %mdc{processGroupId} %logger{40} %msg%n</pattern>
+----
+
+Logs from classes other than extension components do not have MDC named values. Logs formatted using the pattern layout
+will include an empty space when an MDC named value is not found.
+
 === Deprecation Logging
 The `nifi-deprecation.log` contains warning messages describing components and features that will be removed in
 subsequent versions. Deprecation warnings should be evaluated and addressed to avoid breaking changes when upgrading to
@@ -843,42 +866,6 @@ The LdapUserGroupProvider has the following properties:
 |==================================================================================================================================================
 
 NOTE: Any identity mapping rules specified in _nifi.properties_ will also be applied to the user identities. Group names are not mapped.
-
-==== AzureGraphUserGroupProvider
-
-The AzureGraphUserGroupProvider fetches users and groups from Azure Active Directory (AAD) using the Microsoft Graph API.
-
-A subset of groups are fetched based on filter conditions (`Group Filter Prefix`, `Group Filter Suffix`, `Group Filter Substring`, and `Group Filter List Inclusion`) evaluated against the _displayName_ property of the Azure AD group. Member users are then loaded from these groups. At least one filter condition should be specified.
-
-This provider requires an Azure app registration with:
-
-* Microsoft Graph Group.Read.All and User.Read.All API permissions with admin consent
-* A client secret or application password
-* ID token claims for upn and/or email
-
-See link:https://docs.microsoft.com/en-us/graph/auth-v2-service[here^] and link:https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-daemon-app-registration[here^] for more information on how to create a valid app registration.
-
-The AzureGraphUserGroupProvider has the following properties:
-
-[options="header,footer"]
-|==================================================================================================================================================
-| Property Name | Description
-|`Refresh Delay` | Duration of delay between each user and group refresh. Default is `5 mins`.
-|`Authority Endpoint` | The endpoint of the Azure AD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global authority endpoint is `https://login.microsoftonline.com`.
-|`Graph Endpoint` | The endpoint of the Azure Graph API, with the version identifier attached. The base url can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global graph endpoint is `https://graph.microsoft.com/v1.0`, which is also the default setting.
-|`Graph Scope` | The url for the Graph api scope.  See https://learn.microsoft.com/en-us/azure/active-directory/develop/scopes-oidc for an explanation of scopes.  This usually only needs to be changed if you are connecting to a different `Graph Endpoint`.  The Azure global default scope is `https://graph.microsoft.com/.default`, which is also the default setting.
-|`Directory ID` | Tenant ID or Directory ID of the Azure AD tenant. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
-|`Application ID` | Client ID or Application ID of the Azure app registration. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
-|`Client Secret` | A client secret from the Azure app registration. Secrets can be created in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret.
-|`Group Filter Prefix` | Prefix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names starting with the provided prefix.
-|`Group Filter Suffix` | Suffix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names ending with the provided suffix.
-|`Group Filter Substring` | Substring filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names containing the provided substring.
-|`Group Filter List Inclusion` | Comma-separated list of Azure AD groups. If no string-based matching filter (i.e., prefix, suffix, and substring) is specified, set this property to avoid fetching all groups and users in the Azure AD tenant.
-|`Page Size` | Page size to use with the Microsoft Graph API. Set to 0 to disable paging API calls. Default: 50, Max: 999.
-|`Claim for Username` | The property of the user directory object mapped to the NiFi user name field. Default is 'upn'. 'email' is another option when `nifi.security.user.oidc.fallback.claims.identifying.user` is set to 'upn'.
-|==================================================================================================================================================
-
-Like LdapUserGroupProvider, the AzureGraphUserGroupProvider configuration is commented out in the _authorizers.xml_ file. Refer to the comment for a starter configuration.
 
 ==== Composite Implementations
 
@@ -2008,7 +1995,11 @@ nodes and waits for each node to respond, indicating that it has made the change
 
 ==== Disconnect Nodes
 
-A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. Until the issue with the node is resolved, the DFM will have limited ability to make changes to the remaining cluster's dataflow. Changing component state or adding a component is allowed, but removing a component is not.
+
+A node that was disconnected maybe fully working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+
+It should be noted that a disconnected node's dataflow is allowed to be changed.  Any changes should be done with caution, however, as they will be reverted when the node is re-attached to the cluster.  In addition, if reverting the changes will cause a loss of data then it will not be allowed to rejoin the cluster.  This can occur if a new dataflow has since been made on the disconnected node.
 
 To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
 

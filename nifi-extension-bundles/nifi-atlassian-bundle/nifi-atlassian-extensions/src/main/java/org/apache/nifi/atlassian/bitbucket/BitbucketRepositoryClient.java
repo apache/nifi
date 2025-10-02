@@ -20,6 +20,7 @@ package org.apache.nifi.atlassian.bitbucket;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
@@ -30,8 +31,6 @@ import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.StandardHttpContentType;
 import org.apache.nifi.web.client.api.StandardMultipartFormDataStreamBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +55,7 @@ import java.util.Set;
  */
 public class BitbucketRepositoryClient implements GitRepositoryClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketRepositoryClient.class);
+    private final ComponentLog logger;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -81,6 +80,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         webClient = Objects.requireNonNull(builder.webClient, "Web Client is required");
         workspace = Objects.requireNonNull(builder.workspace, "Workspace is required");
         repoName = Objects.requireNonNull(builder.repoName, "Repository Name is required");
+        logger = Objects.requireNonNull(builder.logger, "ComponentLog required");
 
         apiUrl = Objects.requireNonNull(builder.apiUrl, "API Instance is required");
         apiVersion = Objects.requireNonNull(builder.apiVersion, "API Version is required");
@@ -127,7 +127,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             }
         }
 
-        LOGGER.info("Created {} for clientId = [{}], repository [{}]", getClass().getSimpleName(), clientId, repoName);
+        logger.info("Created {} for clientId = [{}], repository [{}]", getClass().getSimpleName(), clientId, repoName);
     }
 
     @Override
@@ -156,7 +156,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     @Override
     public Set<String> getBranches() throws FlowRegistryException {
-        LOGGER.debug("Getting branches for repository [{}]", repoName);
+        logger.debug("Getting branches for repository [{}]", repoName);
 
         // https://api.bitbucket.org/2.0/repositories/{workspace}/{repoName}/refs/branches
         URI uri = getUriBuilder().addPathSegment("refs").addPathSegment("branches").build();
@@ -186,7 +186,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public Set<String> getTopLevelDirectoryNames(final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath("");
-        LOGGER.debug("Getting top-level directories for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
+        logger.debug("Getting top-level directories for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
 
         final Iterator<JsonNode> files = getFiles(branch, resolvedPath);
 
@@ -205,7 +205,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public Set<String> getFileNames(final String directory, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(directory);
-        LOGGER.debug("Getting filenames for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
+        logger.debug("Getting filenames for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
 
         final Iterator<JsonNode> files = getFiles(branch, resolvedPath);
 
@@ -224,7 +224,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public List<GitCommit> getCommits(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
+        logger.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
 
         Iterator<JsonNode> commits = getListCommits(branch, resolvedPath);
 
@@ -240,7 +240,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
+        logger.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
         final Optional<String> lastCommit = getLatestCommit(branch, resolvedPath);
 
         if (lastCommit.isEmpty()) {
@@ -252,7 +252,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content for path [{}] from commit [{}] in repository [{}]", resolvedPath, commitSha, repoName);
+        logger.debug("Getting content for path [{}] from commit [{}] in repository [{}]", resolvedPath, commitSha, repoName);
 
         // https://api.bitbucket.org/2.0/repositories/{workspace}/{repoName}/src/{commit}/{path}
         final URI uri = getUriBuilder().addPathSegment("src").addPathSegment(commitSha).addPathSegment(resolvedPath).build();
@@ -269,7 +269,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public Optional<String> getContentSha(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        LOGGER.debug("Getting content SHA for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
+        logger.debug("Getting content SHA for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
         return getLatestCommit(branch, resolvedPath);
     }
 
@@ -277,7 +277,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     public String createContent(final GitCreateContentRequest request) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(request.getPath());
         final String branch = request.getBranch();
-        LOGGER.debug("Creating content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, repoName);
+        logger.debug("Creating content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, repoName);
 
         final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
         multipartBuilder.addPart(resolvedPath, StandardHttpContentType.APPLICATION_JSON, request.getContent().getBytes(StandardCharsets.UTF_8));
@@ -311,7 +311,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(filePath);
-        LOGGER.debug("Deleting content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, repoName);
+        logger.debug("Deleting content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, repoName);
 
         final InputStream fileToBeDeleted = getContentFromBranch(filePath, branch);
 
@@ -411,7 +411,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private String checkRepoPermissions(BitbucketAuthenticationType authenticationType) throws FlowRegistryException {
         switch (authenticationType) {
             case OAUTH2:
-                LOGGER.debug("Retrieving information about current user");
+                logger.debug("Retrieving information about current user");
 
                 // 'https://api.bitbucket.org/2.0/user/permissions/repositories?q=repository.name="{repoName}"
                 URI uri = this.webClient.getHttpUriBuilder()
@@ -552,6 +552,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         private String workspace;
         private String repoName;
         private String repoPath;
+        private ComponentLog logger;
 
         public Builder clientId(final String clientId) {
             this.clientId = clientId;
@@ -610,6 +611,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
         public Builder repoPath(final String repoPath) {
             this.repoPath = repoPath;
+            return this;
+        }
+
+        public Builder logger(final ComponentLog logger) {
+            this.logger = logger;
             return this;
         }
 

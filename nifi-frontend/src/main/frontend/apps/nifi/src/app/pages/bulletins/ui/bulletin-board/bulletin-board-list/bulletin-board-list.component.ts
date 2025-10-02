@@ -45,6 +45,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrls: ['./bulletin-board-list.component.scss']
 })
 export class BulletinBoardList implements AfterViewInit, OnDestroy {
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     filterTerm = '';
     filterColumn: 'message' | 'name' | 'id' | 'groupId' = 'message';
     filterForm: FormGroup;
@@ -67,10 +70,7 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
 
     @Output() filterChanged: EventEmitter<BulletinBoardFilterArgs> = new EventEmitter<BulletinBoardFilterArgs>();
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: 'message' });
     }
 

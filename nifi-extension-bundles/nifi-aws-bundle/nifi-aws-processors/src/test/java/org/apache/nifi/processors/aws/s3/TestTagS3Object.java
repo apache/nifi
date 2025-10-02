@@ -29,6 +29,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -305,6 +306,19 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        final Map<String, String> expectedRenamed =
+                Map.of("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
+                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName(),
+                        "tag-key", TagS3Object.TAG_KEY.getName(),
+                        "tag-value", TagS3Object.TAG_VALUE.getName(),
+                        "append-tag", TagS3Object.APPEND_TAG.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
     private void mockGetExistingTags(Tag... currentTag) {

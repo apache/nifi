@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ParameterProviderEntity, ParameterProvidersState } from '../../state/parameter-providers';
@@ -46,12 +46,14 @@ import { ParameterProvidersTable } from './parameter-providers-table/parameter-p
     styleUrls: ['./parameter-providers.component.scss']
 })
 export class ParameterProviders implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     currentUser$ = this.store.select(selectCurrentUser);
     parameterProvidersState$ = this.store.select(selectParameterProvidersState);
     selectedParameterProviderId$ = this.store.select(selectParameterProviderIdFromRoute);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedParameterProvider)
             .pipe(

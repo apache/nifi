@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
@@ -44,7 +44,8 @@ import {
     selectParameterContexts,
     selectParameterContextStatus,
     selectSaving,
-    selectUpdateRequest
+    selectUpdateRequest,
+    selectDeleteUpdateRequestInitiated
 } from './parameter-context-listing.selectors';
 import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
@@ -58,15 +59,13 @@ import { EditParameterContext } from '../../../../ui/common/parameter-context/ed
 
 @Injectable()
 export class ParameterContextListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private parameterContextService: ParameterContextService,
-        private dialog: MatDialog,
-        private router: Router,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private parameterContextService = inject(ParameterContextService);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private errorHelper = inject(ErrorHelper);
 
     loadParameterContexts$ = createEffect(() =>
         this.actions$.pipe(
@@ -385,6 +384,14 @@ export class ParameterContextListingEffects {
                             );
                         });
 
+                    editDialogReference.componentInstance.cancelUpdateRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe(() => {
+                            this.store.dispatch(
+                                ParameterContextListingActions.stopPollingParameterContextUpdateRequest()
+                            );
+                        });
+
                     editDialogReference.afterClosed().subscribe((response) => {
                         if (response != 'ROUTED') {
                             this.store.dispatch(
@@ -506,6 +513,8 @@ export class ParameterContextListingEffects {
     stopPollingParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.stopPollingParameterContextUpdateRequest),
+            concatLatestFrom(() => this.store.select(selectDeleteUpdateRequestInitiated)),
+            filter(([, deleteUpdateRequestInitiated]) => !deleteUpdateRequestInitiated),
             switchMap(() => of(ParameterContextListingActions.deleteParameterContextUpdateRequest()))
         )
     );

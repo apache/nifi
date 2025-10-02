@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as AccessActions from './access.actions';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
@@ -32,14 +32,12 @@ import { resetLoginFailure } from './access.actions';
 
 @Injectable()
 export class AccessEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private authService: AuthService,
-        private router: Router,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private authService = inject(AuthService);
+    private router = inject(Router);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     login$ = createEffect(() =>
         this.actions$.pipe(

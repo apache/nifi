@@ -36,6 +36,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -95,8 +96,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("conflict-resolution-strategy")
-            .displayName("Conflict Resolution Strategy")
+            .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
             .defaultValue(FAIL_RESOLUTION)
@@ -104,8 +104,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .build();
 
     protected static final PropertyDescriptor WRITING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("writing-strategy")
-            .displayName("Writing Strategy")
+            .name("Writing Strategy")
             .description("Defines the approach for writing the Azure file.")
             .required(true)
             .allowableValues(WritingStrategy.class)
@@ -113,8 +112,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .build();
 
     public static final PropertyDescriptor BASE_TEMPORARY_PATH = new PropertyDescriptor.Builder()
-            .name("base-temporary-path")
-            .displayName("Base Temporary Path")
+            .name("Base Temporary Path")
             .description("The Path where the temporary directory will be created. The Path name cannot contain a leading '/'." +
                     " The root directory can be designated by the empty string value. Non-existing directories will be created." +
                     "The Temporary File Directory name is " + TEMP_FILE_DIRECTORY)
@@ -202,6 +200,17 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
+        config.renameProperty("conflict-resolution-strategy", CONFLICT_RESOLUTION.getName());
+        config.renameProperty("writing-strategy", WRITING_STRATEGY.getName());
+        config.renameProperty("base-temporary-path", BASE_TEMPORARY_PATH.getName());
     }
 
     private DataLakeFileSystemClient getFileSystemClient(final ProcessContext context, final FlowFile flowFile, final String fileSystem) {

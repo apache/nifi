@@ -431,6 +431,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty("kinesis-stream-name", "Amazon Kinesis Stream Name");
         config.renameProperty("amazon-kinesis-stream-application-name", "Application Name");
         config.renameProperty("amazon-kinesis-stream-initial-position", "Initial Stream Position");

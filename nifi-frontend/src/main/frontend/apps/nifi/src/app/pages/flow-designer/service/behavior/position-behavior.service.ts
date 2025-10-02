@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { TransitionBehavior } from './transition-behavior.service';
 
 @Injectable({ providedIn: 'root' })
 export class PositionBehavior {
-    constructor(private transitionBehavior: TransitionBehavior) {}
+    private transitionBehavior = inject(TransitionBehavior);
 
     public position(updated: any, transition: boolean): any {
         if (updated.empty()) {

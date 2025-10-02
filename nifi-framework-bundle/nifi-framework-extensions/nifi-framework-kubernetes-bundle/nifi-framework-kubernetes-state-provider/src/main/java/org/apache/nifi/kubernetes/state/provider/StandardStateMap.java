@@ -30,7 +30,7 @@ class StandardStateMap implements StateMap {
     private final Optional<String> version;
 
     StandardStateMap(final Map<String, String> data, final Optional<String> version) {
-        this.data = Collections.unmodifiableMap(data);
+        this.data = Collections.unmodifiableMap(data == null ? Collections.emptyMap() : data);
         this.version = version;
     }
 

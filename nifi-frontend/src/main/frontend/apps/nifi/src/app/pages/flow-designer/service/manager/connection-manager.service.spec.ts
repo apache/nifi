@@ -90,4 +90,57 @@ describe('ConnectionManager', () => {
     it('should be created', () => {
         expect(service).toBeTruthy();
     });
+
+    describe('isRetryConfigured', () => {
+        it('should return true when retriedRelationships exist and have length > 0', () => {
+            const connection = {
+                retriedRelationships: ['failure', 'retry']
+            };
+
+            // Access private method via bracket notation for testing
+            const result = (service as any).isRetryConfigured(connection);
+
+            expect(result).toBe(true);
+        });
+
+        it('should return false when retriedRelationships is null', () => {
+            const connection = {
+                retriedRelationships: null
+            };
+
+            const result = (service as any).isRetryConfigured(connection);
+
+            expect(result).toBe(false);
+        });
+
+        it('should return false when retriedRelationships is undefined', () => {
+            const connection = {
+                retriedRelationships: undefined
+            };
+
+            const result = (service as any).isRetryConfigured(connection);
+
+            expect(result).toBe(false);
+        });
+
+        it('should return false when retriedRelationships is empty array', () => {
+            const connection = {
+                retriedRelationships: []
+            };
+
+            const result = (service as any).isRetryConfigured(connection);
+
+            expect(result).toBe(false);
+        });
+
+        it('should return true when retriedRelationships has one relationship', () => {
+            const connection = {
+                retriedRelationships: ['failure']
+            };
+
+            const result = (service as any).isRetryConfigured(connection);
+
+            expect(result).toBe(true);
+        });
+    });
 });

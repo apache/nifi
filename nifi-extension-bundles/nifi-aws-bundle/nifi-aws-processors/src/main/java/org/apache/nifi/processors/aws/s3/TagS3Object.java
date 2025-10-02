@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -66,8 +67,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 public class TagS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor TAG_KEY = new PropertyDescriptor.Builder()
-            .name("tag-key")
-            .displayName("Tag Key")
+            .name("Tag Key")
             .description("The key of the tag that will be set on the S3 Object")
             .addValidator(new StandardValidators.StringLengthValidator(1, 127))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -75,8 +75,7 @@ public class TagS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor TAG_VALUE = new PropertyDescriptor.Builder()
-            .name("tag-value")
-            .displayName("Tag Value")
+            .name("Tag Value")
             .description("The value of the tag that will be set on the S3 Object")
             .addValidator(new StandardValidators.StringLengthValidator(1, 255))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -84,8 +83,7 @@ public class TagS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor APPEND_TAG = new PropertyDescriptor.Builder()
-            .name("append-tag")
-            .displayName("Append Tag")
+            .name("Append Tag")
             .description("If set to true, the tag will be appended to the existing set of tags on the S3 object. " +
                     "Any existing tags with the same key as the new tag will be updated with the specified value. If " +
                     "set to false, the existing tags will be removed and the new tag will be set on the S3 object.")
@@ -206,6 +204,14 @@ public class TagS3Object extends AbstractS3Processor {
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
         session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged");
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("tag-key", TAG_KEY.getName());
+        config.renameProperty("tag-value", TAG_VALUE.getName());
+        config.renameProperty("append-tag", APPEND_TAG.getName());
     }
 
     private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {

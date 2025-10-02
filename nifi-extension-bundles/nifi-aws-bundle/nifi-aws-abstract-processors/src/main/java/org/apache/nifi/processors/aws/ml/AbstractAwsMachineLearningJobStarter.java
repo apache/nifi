@@ -54,8 +54,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
         U extends AwsSyncClientBuilder<U, T> & AwsClientBuilder<U, T>>
         extends AbstractAwsSyncProcessor<T, U> {
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
-            .name("json-payload")
-            .displayName("JSON Payload")
+            .name("JSON Payload")
             .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -70,11 +69,6 @@ public abstract class AbstractAwsMachineLearningJobStarter<
             .description("Upon successful completion, the original FlowFile will be routed to this relationship.")
             .autoTerminateDefault(true)
             .build();
-
-    @Override
-    public void migrateProperties(final PropertyConfiguration config) {
-        config.renameProperty("aws-region", REGION.getName());
-    }
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -133,6 +127,12 @@ public abstract class AbstractAwsMachineLearningJobStarter<
             session.transfer(flowFile, REL_ORIGINAL);
         }
 
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("json-payload", JSON_PAYLOAD.getName());
     }
 
     protected FlowFile postProcessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final R response) {

@@ -10,39 +10,9 @@ Apache Software License v2
 
 The following binary components are provided under the Apache Software License v2
 
-  (ASLv2) Apache Commons Lang
-    The following NOTICE information applies:
-      Apache Commons Lang
-      Copyright 2001-2014 The Apache Software Foundation
-
-      This product includes software from the Spring Framework,
-      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
-
-  (ASLv2) Apache Commons IO
-    The following NOTICE information applies:
-      Apache Commons IO
-      Copyright 2002-2016 The Apache Software Foundation
-
   (ASLv2) Google GSON
     The following NOTICE information applies:
       Copyright 2008 Google Inc.
-
-  (ASLv2) Apache Commons Codec
-    The following NOTICE information applies:
-      Apache Commons Codec
-      Copyright 2002-2014 The Apache Software Foundation
-
-      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
-      contains test data from http://aspell.net/test/orig/batch0.tab.
-      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
-
-      ===============================================================================
-
-      The content of package org.apache.commons.codec.language.bm has been translated
-      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
-      with permission from the original authors.
-      Original source copyright:
-      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:
@@ -67,11 +37,6 @@ The following binary components are provided under the Apache Software License v
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
 
-  (ASLv2) Guava
-      The following NOTICE information applies:
-        Guava
-        Copyright 2015 The Guava Authors
-
   (ASLv2) Apache HttpComponents
       The following NOTICE information applies:
         Apache HttpClient
@@ -90,11 +55,6 @@ The following binary components are provided under the Apache Software License v
         Java Native Access Platform
         Copyright 2013 Timothy Wall, Matthias Bläsing
 
-  (ASLv2) Joda Time
-      The following NOTICE information applies:
-        This product includes software developed by
-        Joda.org (http://www.joda.org/).
-
   (ASLv2) Dropwizard Metrics
       The following NOTICE information applies:
         Dropwizard Metrics
@@ -110,20 +70,10 @@ The following binary components are provided under the Apache Software License v
         Nimbus OAuth 2.0 SDK with OpenID Connect extensions
         Copyright 2012-2020, Connect2id Ltd and contributors.
 
-  (ASLv2) Okio
-      The following NOTICE information applies:
-        Okio
-        Copyright 2013 Square, Inc.
-
   (ASLv2) Apache Qpid Proton-J
       The following NOTICE information applies:
         Apache Qpid Proton-J
         Copyright 2012-2020 The Apache Software Foundation
-
-  (ASLv2) Retrofit
-      The following NOTICE information applies:
-        Retrofit
-        Copyright 2013 Square, Inc.
 
   (ASLv2) RxJava
       The following NOTICE information applies:
@@ -145,45 +95,10 @@ The following binary components are provided under the Apache Software License v
         Adapter: RxJava 2.6.2
         Copyright 2019, Jake Wharton
 
-  (ASLv2) BCrypt Password Hashing Function (at.favre.lib:bcrypt:jar:0.9.0 - https://github.com/patrickfav/bcrypt)
-      The following NOTICE information applies:
-        BCrypt Password Hashing Function 0.9.0
-        Copyright 2018 Patrick Favre-Bulle
-
-  (ASLv2) Bytes Utility Library (at.favre.lib:bytes:jar:1.3.0 - https://github.com/patrickfav/bytes-java)
-      The following NOTICE information applies:
-        Bytes Utility Library 1.3.0
-        Copyright 2017 Patrick Favre-Bulle
-
-  (ASLv2) Converter: Jackson (com.squareup.retrofit2:converter-jackson:jar:2.5.0)
-      The following NOTICE information applies:
-        Converter: Jackson 2.5.0
-        Copyright 2018, Jake Wharton
-
   (ASLv2) Nimbus JOSE+JWT (com.nimbusds:nimbus-jose-jwt:jar:6.0.1 - https://bitbucket.org/connect2id/nimbus-jose-jwt)
       The following NOTICE information applies:
         Nimbus JOSE+JWT 6.0.1
         Copyright 2018, Connect2id Ltd.
-
-  (ASLv2) OkHttp Logging Interceptor (com.squareup.okhttp3:logging-interceptor:jar:3.12.2)
-      The following NOTICE information applies:
-        OkHttp Logging Interceptor 3.12.2
-        Copyright 2019 Square, Inc.
-
-  (ASLv2) OkHttp (com.squareup.okhttp3:okhttp:jar:3.12.6)
-      The following NOTICE information applies:
-        OkHttp 3.12.6
-        Copyright 2019 Square, Inc.
-
-  (ASLv2) OkHttp URLConnection (com.squareup.okhttp3:okhttp-urlconnection:jar:3.12.2)
-      The following NOTICE information applies:
-        OkHttp 3.12.2
-        Copyright 2019 Square, Inc.
-
-  (ASLv2) Woodstox (com.fasterxml.woodstox:woodstox-core:jar:6.1.1 - https://github.com/FasterXML/woodstox)
-      The following NOTICE information applies:
-        Woodstox Core 6.1.1
-        Copyright 2015, FasterXML, LLC
 
   (ASLv2) Non Blocking Reactive Foundation For The JVM (io.projectreactor:reactor-core:jar:3.3.5.RELEASE - https://github.com/reactor/reactor-core)
       The following NOTICE information applies:
@@ -194,19 +109,6 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Reactive Streams Netty Driver
         Copyright 2020, Project Reactor
-
-  (ASLv2) Caffeine (com.github.ben-manes.caffeine:caffeine:jar:2.9.2 - https://github.com/ben-manes/caffeine)
-      The following NOTICE information applies:
-        Caffeine (caching library)
-        Copyright Ben Manes
-
-************************
-Common Development and Distribution License 1.0
-************************
-
-The following binary components are provided under the Common Development and Distribution License 1.0. See project link for details.
-
-  (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
 
 ************************
 Common Development and Distribution License 1.1

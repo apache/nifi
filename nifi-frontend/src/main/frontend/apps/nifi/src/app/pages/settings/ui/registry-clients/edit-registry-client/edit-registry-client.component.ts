@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -37,7 +37,7 @@ import { TextTip, NiFiCommon, CopyDirective } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -58,9 +58,21 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-registry-client.component.scss']
+    styleUrls: ['./edit-registry-client.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-registry-client-selected-index'
+        }
+    ]
 })
 export class EditRegistryClient extends TabbedDialog {
+    request = inject<EditRegistryClientDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
@@ -72,14 +84,9 @@ export class EditRegistryClient extends TabbedDialog {
 
     editRegistryClientForm: FormGroup;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditRegistryClientDialogRequest,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
-        super('edit-registry-client-selected-index');
+    constructor() {
+        super();
+        const request = this.request;
 
         const serviceProperties: any = request.registryClient.component.properties;
         const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {

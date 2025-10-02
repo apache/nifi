@@ -1104,8 +1104,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ProcessorNode procNode : flowManager.getRootGroup().findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
+                final Class<?> componentClass = processor == null ? null : processor.getClass();
                 final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider,
-                        getStateManagerProvider().getStateManager(processor.getIdentifier()), () -> false, this);
+                        getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, this);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, processContext);
             }
         }

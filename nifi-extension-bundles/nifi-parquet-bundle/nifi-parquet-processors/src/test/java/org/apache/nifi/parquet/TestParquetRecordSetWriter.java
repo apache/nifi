@@ -45,6 +45,8 @@ import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,6 +60,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+@DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 public class TestParquetRecordSetWriter {
 
     private static final String SCHEMA_PATH = "src/test/resources/avro/user.avsc";

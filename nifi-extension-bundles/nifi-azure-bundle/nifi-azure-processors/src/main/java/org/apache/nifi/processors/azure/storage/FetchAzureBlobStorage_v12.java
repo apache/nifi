@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -121,8 +122,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             .build();
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("range-start")
-            .displayName("Range Start")
+            .name("Range Start")
             .description("The byte position at which to start reading from the blob. An empty value or a value of " +
                     "zero will start reading at the beginning of the blob.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -131,8 +131,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("range-length")
-            .displayName("Range Length")
+            .name("Range Length")
             .description("The number of bytes to download from the blob, starting from the Range Start. An empty " +
                     "value or a value that extends beyond the end of the blob will read to the end of the blob.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
@@ -203,5 +202,14 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
+        config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
+        config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
+        config.renameProperty("range-start", RANGE_START.getName());
+        config.renameProperty("range-length", RANGE_LENGTH.getName());
     }
 }

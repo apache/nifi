@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
@@ -34,6 +34,10 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
     styleUrls: ['./new-canvas-item.component.scss']
 })
 export class NewCanvasItem {
+    private client = inject(Client);
+    private canvasView = inject(CanvasView);
+    private store = inject<Store<CanvasState>>(Store);
+
     @Input() type!: ComponentType;
     @Input() iconClass = '';
     @Input() iconHoverClass = '';
@@ -54,11 +58,7 @@ export class NewCanvasItem {
 
     private hovering = false;
 
-    constructor(
-        private client: Client,
-        private canvasView: CanvasView,
-        private store: Store<CanvasState>
-    ) {
+    constructor() {
         this.store
             .select(selectDragging)
             .pipe(takeUntilDestroyed())

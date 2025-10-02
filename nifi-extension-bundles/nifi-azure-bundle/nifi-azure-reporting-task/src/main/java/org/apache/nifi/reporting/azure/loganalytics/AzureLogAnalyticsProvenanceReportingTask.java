@@ -25,6 +25,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -73,7 +74,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         "Start reading provenance Events from the end of the stream, ignoring old events");
 
         static final PropertyDescriptor FILTER_EVENT_TYPE = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-event-filter").displayName("Event Type to Include")
+                        .name("Event Type to Include")
                         .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
                                         + "Available event types are "
                                         + Arrays.deepToString(ProvenanceEventType.values())
@@ -83,7 +84,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_EVENT_TYPE_EXCLUDE = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-event-filter-exclude").displayName("Event Type to Exclude")
+                        .name("Event Type to Exclude")
                         .description("Comma-separated list of event types that will be used to exclude the provenance events sent by the reporting task. "
                                         + "Available event types are "
                                         + Arrays.deepToString(ProvenanceEventType.values())
@@ -94,14 +95,14 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_COMPONENT_TYPE = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-type-filter").displayName("Component Type to Include")
+                        .name("Component Type to Include")
                         .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
                                         + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
                         .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_COMPONENT_TYPE_EXCLUDE = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-type-filter-exclude").displayName("Component Type to Exclude")
+                        .name("Component Type to Exclude")
                         .description("Regular expression to exclude the provenance events based on the component type. The events matching the regular "
                                         + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
                                         + "If a component type is included in Component Type to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
@@ -109,14 +110,14 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_COMPONENT_ID = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-id-filter").displayName("Component ID to Include")
+                        .name("Component ID to Include")
                         .description("Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task. If no "
                                         + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
                         .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_COMPONENT_ID_EXCLUDE = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-id-filter-exclude").displayName("Component ID to Exclude")
+                        .name("Component ID to Exclude")
                         .description("Comma-separated list of component UUID that will be used to exclude the provenance events sent by the reporting task. If no "
                                         + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. If a component UUID is included in "
                                         + "Component ID to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
@@ -124,29 +125,29 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_COMPONENT_NAME = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-name-filter").displayName("Component Name to Include")
+                        .name("Component Name to Include")
                         .description("Regular expression to filter the provenance events based on the component name. Only the events matching the regular "
                                         + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
                         .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
 
         static final PropertyDescriptor FILTER_COMPONENT_NAME_EXCLUDE = new PropertyDescriptor.Builder()
-                        .name("s2s-prov-task-name-filter-exclude").displayName("Component Name to Exclude")
+                        .name("Component Name to Exclude")
                         .description("Regular expression to exclude the provenance events based on the component name. The events matching the regular "
                                         + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
                                         + "If a component name is included in Component Name to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
                         .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
 
-        static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder().name("start-position")
-                        .displayName("Start Position")
+        static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
+                        .name("Start Position")
                         .description("If the Reporting Task has never been run, or if its state has been reset by a user, "
                                         + "specifies where in the stream of Provenance Events the Reporting Task should start")
                         .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
                         .defaultValue(BEGINNING_OF_STREAM).required(true).build();
 
-        static final PropertyDescriptor ALLOW_NULL_VALUES = new PropertyDescriptor.Builder().name("include-null-values")
-                        .displayName("Include Null Values")
+        static final PropertyDescriptor ALLOW_NULL_VALUES = new PropertyDescriptor.Builder()
+                        .name("Include Null Values")
                         .description("Indicate if null values should be included in records. Default will be false")
                         .required(true).allowableValues("true", "false").defaultValue("false").build();
 
@@ -276,6 +277,20 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 } catch (final Exception e) {
                         getLogger().error("Failed to publish metrics to Azure Log Analytics", e);
                 }
+        }
+
+        @Override
+        public void migrateProperties(PropertyConfiguration config) {
+                config.renameProperty("s2s-prov-task-event-filter", FILTER_EVENT_TYPE.getName());
+                config.renameProperty("s2s-prov-task-event-filter-exclude", FILTER_EVENT_TYPE_EXCLUDE.getName());
+                config.renameProperty("s2s-prov-task-type-filter", FILTER_COMPONENT_TYPE.getName());
+                config.renameProperty("s2s-prov-task-type-filter-exclude", FILTER_COMPONENT_TYPE_EXCLUDE.getName());
+                config.renameProperty("s2s-prov-task-id-filter", FILTER_COMPONENT_ID.getName());
+                config.renameProperty("s2s-prov-task-id-filter-exclude", FILTER_COMPONENT_ID_EXCLUDE.getName());
+                config.renameProperty("s2s-prov-task-name-filter", FILTER_COMPONENT_NAME.getName());
+                config.renameProperty("s2s-prov-task-name-filter-exclude", FILTER_COMPONENT_NAME_EXCLUDE.getName());
+                config.renameProperty("start-position", START_POSITION.getName());
+                config.renameProperty("include-null-values", ALLOW_NULL_VALUES.getName());
         }
 
         public void processProvenanceData(final ReportingContext context) {

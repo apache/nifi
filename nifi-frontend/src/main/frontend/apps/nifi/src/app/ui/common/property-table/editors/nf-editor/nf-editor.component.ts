@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { PropertyItem } from '../../property-item';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -66,12 +66,23 @@ import { completionKeymap } from '@codemirror/autocomplete';
     styleUrls: ['./nf-editor.component.scss']
 })
 export class NfEditor {
+    private formBuilder = inject(FormBuilder);
+    private nifiLanguageService = inject(CodemirrorNifiLanguageService);
+
     @Input() set item(item: PropertyItem) {
+        let shouldMarkDirty = false;
+        let valueToSet = item.value;
+
         if (item.descriptor.sensitive && item.value !== null) {
             this.nfEditorForm.get('value')?.setValue('Sensitive value set');
             this.showSensitiveHelperText = true;
         } else {
-            this.nfEditorForm.get('value')?.setValue(item.value);
+            // If the current value is null but there's a default value, use the default
+            if (item.value == null && item.descriptor.defaultValue != null) {
+                valueToSet = item.descriptor.defaultValue;
+                shouldMarkDirty = true;
+            }
+            this.nfEditorForm.get('value')?.setValue(valueToSet);
         }
 
         if (item.descriptor.required) {
@@ -80,7 +91,7 @@ export class NfEditor {
             this.nfEditorForm.get('value')?.removeValidators(Validators.required);
         }
 
-        const isEmptyString: boolean = item.value === '';
+        const isEmptyString: boolean = (valueToSet || item.value) === '';
         this.nfEditorForm.get('setEmptyString')?.setValue(isEmptyString);
         this.setEmptyStringChanged();
 
@@ -88,6 +99,11 @@ export class NfEditor {
         this.itemSet = true;
 
         this.initializeCodeMirror();
+
+        // Mark the form as dirty if we used a default value
+        if (shouldMarkDirty) {
+            this.nfEditorForm.markAsDirty();
+        }
     }
 
     @Input() set parameterConfig(parameterConfig: ParameterConfig) {
@@ -133,10 +149,7 @@ export class NfEditor {
         };
     }
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiLanguageService: CodemirrorNifiLanguageService
-    ) {
+    constructor() {
         this.nfEditorForm = this.formBuilder.group({
             value: new FormControl(''),
             setEmptyString: new FormControl(false)
@@ -167,9 +180,8 @@ export class NfEditor {
                         run: () => {
                             if (this.nfEditorForm.dirty && this.nfEditorForm.valid) {
                                 this.okClicked();
-                                return true;
                             }
-                            return false;
+                            return true;
                         }
                     },
                     ...defaultKeymap,

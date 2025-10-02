@@ -1,0 +1,144 @@
+{
+    "name": "nifi-registry",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "generators": {
+        "@schematics/angular:component": {
+            "style": "scss"
+        }
+    },
+    "prefix": "app",
+    "sourceRoot": "apps/nifi-registry/src",
+    "targets": {
+        "build": {
+            "executor": "@nx/angular:application",
+            "outputs": ["{options.outputPath}"],
+            "options": {
+                "outputPath": "dist/nifi-registry",
+                "index": "apps/nifi-registry/src/index.html",
+                "browser": "apps/nifi-registry/src/main.ts",
+                "polyfills": ["zone.js"],
+                "tsConfig": "apps/nifi-registry/tsconfig.app.json",
+                "inlineStyleLanguage": "scss",
+                "assets": [
+                    {
+                        "glob": "**/*.svg",
+                        "input": "libs/shared/src/assets/",
+                        "output": "./assets"
+                    },
+                    {
+                        "glob": "**/*.png",
+                        "input": "libs/shared/src/assets/",
+                        "output": "./assets"
+                    }
+                ],
+                "styles": ["apps/nifi-registry/src/styles.scss"],
+                "stylePreprocessorOptions": {
+                    "includePaths": [""]
+                },
+                "scripts": [],
+                "preserveSymlinks": true
+            },
+            "configurations": {
+                "production": {
+                    "budgets": [
+                        {
+                            "type": "initial",
+                            "maximumWarning": "500kb",
+                            "maximumError": "1mb"
+                        },
+                        {
+                            "type": "anyComponentStyle",
+                            "maximumWarning": "2kb",
+                            "maximumError": "4kb"
+                        }
+                    ],
+                    "outputHashing": "all",
+                    "optimization": true
+                },
+                "development": {
+                    "optimization": false,
+                    "extractLicenses": false,
+                    "sourceMap": true,
+                    "preserveSymlinks": true,
+                    "namedChunks": true,
+                    "outputHashing": "none",
+                    "assets": [
+                        {
+                            "glob": "**/*.svg",
+                            "input": "libs/shared/src/assets/",
+                            "output": "./assets"
+                        },
+                        {
+                            "glob": "**/*.png",
+                            "input": "libs/shared/src/assets/",
+                            "output": "./assets"
+                        }
+                    ],
+                    "fileReplacements": [
+                        {
+                            "replace": "apps/nifi-registry/src/environments/environment.ts",
+                            "with": "apps/nifi-registry/src/environments/environment.development.ts"
+                        }
+                    ]
+                }
+            },
+            "defaultConfiguration": "production"
+        },
+        "serve": {
+            "executor": "@nx/angular:dev-server",
+            "configurations": {
+                "production": {
+                    "buildTarget": "nifi-registry:build:production"
+                },
+                "development": {
+                    "buildTarget": "nifi-registry:build:development",
+                    "servePath": "/nifi-registry"
+                }
+            },
+            "defaultConfiguration": "development",
+            "options": {
+                "proxyConfig": "apps/nifi-registry/proxy.config.mjs",
+                "buildTarget": "nifi-registry:build",
+                "port": 4204
+            },
+            "continuous": true
+        },
+        "extract-i18n": {
+            "executor": "@angular-devkit/build-angular:extract-i18n",
+            "options": {
+                "buildTarget": "nifi-registry:build"
+            }
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint",
+            "outputs": ["{options.outputFile}"]
+        },
+        "lint:fix": {
+            "executor": "@nx/eslint:lint",
+            "options": {
+                "fix": true
+            },
+            "outputs": ["{options.outputFile}"]
+        },
+        "prettier": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier"
+            }
+        },
+        "prettier:format": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npm run prettier-format"
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+            "options": {
+                "jestConfig": "apps/nifi-registry/jest.config.ts"
+            }
+        }
+    }
+}

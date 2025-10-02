@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, inject } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { CdkDrag, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop';
@@ -29,6 +29,8 @@ import { AsyncPipe } from '@angular/common';
     styleUrls: ['./resizable.component.scss']
 })
 export class Resizable implements OnDestroy {
+    private el = inject<ElementRef<HTMLElement>>(ElementRef);
+
     @Output() resized = new EventEmitter<DOMRect>();
     @Input() minHeight = 0;
     @Input() minWidth = 0;
@@ -56,8 +58,6 @@ export class Resizable implements OnDestroy {
     );
 
     sub$ = merge(this.dragMoveAudited$, of(true));
-
-    constructor(private el: ElementRef<HTMLElement>) {}
 
     dragStarted(): void {
         this.startSize$.next(this.el.nativeElement.getBoundingClientRect());

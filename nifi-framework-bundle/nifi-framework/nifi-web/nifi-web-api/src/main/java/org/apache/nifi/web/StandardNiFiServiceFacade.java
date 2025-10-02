@@ -755,6 +755,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void reloadControllerService(final String controllerServiceId) {
+        final ControllerServiceNode controllerServiceNode = controllerServiceDAO.getControllerService(controllerServiceId);
+        controllerServiceNode.verifyCanUpdate();
+        controllerServiceNode.reloadAdditionalResourcesIfNecessary();
+    }
+
+    @Override
     public void verifyCreateReportingTask(ReportingTaskDTO reportingTaskDTO) {
         reportingTaskDAO.verifyCreate(reportingTaskDTO);
     }
@@ -875,8 +882,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearFlowAnalysisRuleState(String flowAnalysisRuleId) {
-        flowAnalysisRuleDAO.clearState(flowAnalysisRuleId);
+    public ComponentStateDTO clearFlowAnalysisRuleState(final String flowAnalysisRuleId, final ComponentStateDTO componentStateDTO) {
+        flowAnalysisRuleDAO.clearState(flowAnalysisRuleId, componentStateDTO);
+        return this.getFlowAnalysisRuleState(flowAnalysisRuleId);
     }
 
     @Override
@@ -2003,8 +2011,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearProcessorState(final String processorId) {
-        processorDAO.clearState(processorId);
+    public ComponentStateDTO clearProcessorState(final String processorId, final ComponentStateDTO componentStateDTO) {
+        processorDAO.clearState(processorId, componentStateDTO);
+        return this.getProcessorState(processorId);
     }
 
     @Override
@@ -2013,8 +2022,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearControllerServiceState(final String controllerServiceId) {
-        controllerServiceDAO.clearState(controllerServiceId);
+    public ComponentStateDTO clearControllerServiceState(final String controllerServiceId, final ComponentStateDTO componentStateDTO) {
+        controllerServiceDAO.clearState(controllerServiceId, componentStateDTO);
+        return this.getControllerServiceState(controllerServiceId);
     }
 
     @Override
@@ -2023,8 +2033,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearReportingTaskState(final String reportingTaskId) {
-        reportingTaskDAO.clearState(reportingTaskId);
+    public ComponentStateDTO clearReportingTaskState(final String reportingTaskId, final ComponentStateDTO componentStateDTO) {
+        reportingTaskDAO.clearState(reportingTaskId, componentStateDTO);
+        return this.getReportingTaskState(reportingTaskId);
     }
 
     @Override
@@ -2033,8 +2044,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearParameterProviderState(final String parameterProviderId) {
-        parameterProviderDAO.clearState(parameterProviderId);
+    public ComponentStateDTO clearParameterProviderState(final String parameterProviderId, final ComponentStateDTO componentStateDTO) {
+        parameterProviderDAO.clearState(parameterProviderId, componentStateDTO);
+        return this.getParameterProviderState(parameterProviderId);
     }
 
     @Override
@@ -2106,6 +2118,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyTerminateProcessor(final String processorId) {
         processorDAO.verifyTerminate(processorId);
+    }
+
+    @Override
+    public void reloadProcessor(final String processorId) {
+        final ProcessorNode processorNode = processorDAO.getProcessor(processorId);
+        processorNode.verifyCanUpdate();
+        processorNode.reloadAdditionalResourcesIfNecessary();
     }
 
     @Override
@@ -5766,6 +5785,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
                 .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
                 .filter(diff -> !FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, flowManager))
+                .filter(diff -> !FlowDifferenceFilters.isStaticPropertyRemoved(diff, flowManager))
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.POSITION_CHANGED)
                 .map(difference -> {
                     final VersionedComponent localComponent = difference.getComponentA();

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { NoRegistryClientsDialogRequest } from '../../../state/flow';
@@ -29,5 +29,5 @@ import { RouterLink } from '@angular/router';
     styleUrls: ['./no-registry-clients-dialog.component.scss']
 })
 export class NoRegistryClientsDialog {
-    constructor(@Inject(MAT_DIALOG_DATA) public request: NoRegistryClientsDialogRequest) {}
+    request = inject<NoRegistryClientsDialogRequest>(MAT_DIALOG_DATA);
 }

@@ -64,7 +64,7 @@ final class ComponentStateCheckpointStoreUtils {
                 .setEventHubName(context.getEventHubName())
                 .setConsumerGroup(context.getConsumerGroup())
                 .setPartitionId(context.getPartitionId())
-                .setOffset(StringUtils.isNotEmpty(parts[0]) ? Long.parseLong(parts[0]) : null)
+                .setOffsetString(StringUtils.isNotEmpty(parts[0]) ? parts[0] : null)
                 .setSequenceNumber(StringUtils.isNotEmpty(parts[1]) ? Long.parseLong(parts[1]) : null);
     }
 
@@ -127,7 +127,7 @@ final class ComponentStateCheckpointStoreUtils {
 
     static String createCheckpointValue(Checkpoint checkpoint) {
         return String.format("%s/%s",
-                checkpoint.getOffset() != null ? checkpoint.getOffset().toString() : "",
+                checkpoint.getOffsetString() != null ? checkpoint.getOffsetString() : "",
                 checkpoint.getSequenceNumber() != null ? checkpoint.getSequenceNumber().toString() : "");
     }
 
@@ -155,7 +155,7 @@ final class ComponentStateCheckpointStoreUtils {
                 ", eventHubName='" + checkpoint.getEventHubName() + '\'' +
                 ", consumerGroup='" + checkpoint.getConsumerGroup() + '\'' +
                 ", partitionId='" + checkpoint.getPartitionId() + '\'' +
-                ", offset=" + checkpoint.getOffset() +
+                ", offset=" + checkpoint.getOffsetString() +
                 ", sequenceNumber=" + checkpoint.getSequenceNumber() +
                 '}';
     }

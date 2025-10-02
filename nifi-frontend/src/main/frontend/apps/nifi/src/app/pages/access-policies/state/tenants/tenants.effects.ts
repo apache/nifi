@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as TenantsActions from './tenants.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
@@ -26,11 +26,9 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class TenantsEffects {
-    constructor(
-        private actions$: Actions,
-        private accessPoliciesService: AccessPolicyService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private accessPoliciesService = inject(AccessPolicyService);
+    private errorHelper = inject(ErrorHelper);
 
     loadTenants$ = createEffect(() =>
         this.actions$.pipe(

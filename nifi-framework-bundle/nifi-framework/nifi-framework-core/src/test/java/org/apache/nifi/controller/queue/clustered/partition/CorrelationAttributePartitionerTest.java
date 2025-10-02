@@ -34,9 +34,9 @@ import static org.mockito.Mockito.when;
 class CorrelationAttributePartitionerTest {
     private static final String PARTITIONING_ATTRIBUTE = "group";
 
-    private static final String FIRST_ATTRIBUTE = "1";
-
-    private static final String SECOND_ATTRIBUTE = "2";
+    private static final String FIRST_ATTRIBUTE = "4";  // value chosen so its hash places it in partition 1
+    private static final String SECOND_ATTRIBUTE = "1"; // value chosen so its hash places it in partition 2
+    private static final String THIRD_ATTRIBUTE = "2";  // value chosen so its hash places it in partition 3
 
     @Mock
     private FlowFileRecord flowFileRecord;
@@ -112,5 +112,11 @@ class CorrelationAttributePartitionerTest {
 
         final QueuePartition fourthSelected = partitioner.getPartition(flowFileRecord, partitions, localPartition);
         assertEquals(firstPartition, fourthSelected);
+
+        // Set Third Attribute for partitioning
+        when(flowFileRecord.getAttribute(eq(PARTITIONING_ATTRIBUTE))).thenReturn(THIRD_ATTRIBUTE);
+
+        final QueuePartition fifthSelected = partitioner.getPartition(flowFileRecord, partitions, localPartition);
+        assertEquals(thirdPartition, fifthSelected);
     }
 }

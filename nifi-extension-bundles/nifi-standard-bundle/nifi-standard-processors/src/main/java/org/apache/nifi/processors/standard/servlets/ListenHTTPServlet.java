@@ -363,7 +363,8 @@ public class ListenHTTPServlet extends HttpServlet {
                 attributes.put(CoreAttributes.FILENAME.key(), nameVal);
             }
 
-            String sourceSystemFlowFileIdentifier = attributes.remove(CoreAttributes.UUID.key());
+            String sourceSystemFlowFileIdentifier = request.getHeader(CoreAttributes.UUID.key()) == null
+                    ? attributes.remove(CoreAttributes.UUID.key()) : request.getHeader(CoreAttributes.UUID.key());
             if (sourceSystemFlowFileIdentifier != null) {
                 sourceSystemFlowFileIdentifier = "urn:nifi:" + sourceSystemFlowFileIdentifier; //NOPMD
             }

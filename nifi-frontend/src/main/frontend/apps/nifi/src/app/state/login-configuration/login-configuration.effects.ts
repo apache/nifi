@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as LoginConfigurationActions from './login-configuration.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
@@ -26,11 +26,9 @@ import { AuthService } from '../../service/auth.service';
 
 @Injectable()
 export class LoginConfigurationEffects {
-    constructor(
-        private actions$: Actions,
-        private authService: AuthService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private authService = inject(AuthService);
+    private errorHelper = inject(ErrorHelper);
 
     loadLoginConfiguration$ = createEffect(() =>
         this.actions$.pipe(

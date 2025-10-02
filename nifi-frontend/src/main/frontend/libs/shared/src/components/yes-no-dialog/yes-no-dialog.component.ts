@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
@@ -28,12 +28,10 @@ import { YesNoDialogRequest } from '../../types';
     styleUrls: ['./yes-no-dialog.component.scss']
 })
 export class YesNoDialog extends CloseOnEscapeDialog {
+    request = inject<YesNoDialogRequest>(MAT_DIALOG_DATA);
+
     @Output() yes: EventEmitter<void> = new EventEmitter<void>();
     @Output() no: EventEmitter<void> = new EventEmitter<void>();
-
-    constructor(@Inject(MAT_DIALOG_DATA) public request: YesNoDialogRequest) {
-        super();
-    }
 
     yesClicked(): void {
         this.yes.next();

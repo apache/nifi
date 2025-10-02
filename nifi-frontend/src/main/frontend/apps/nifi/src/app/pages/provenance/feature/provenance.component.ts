@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { loadProvenanceOptions } from '../state/provenance-event-listing/provenance-event-listing.actions';
@@ -27,7 +27,7 @@ import { loadProvenanceOptions } from '../state/provenance-event-listing/provena
     standalone: false
 })
 export class Provenance implements OnInit {
-    constructor(private store: Store<NiFiState>) {}
+    private store = inject<Store<NiFiState>>(Store);
 
     ngOnInit(): void {
         this.store.dispatch(loadProvenanceOptions());

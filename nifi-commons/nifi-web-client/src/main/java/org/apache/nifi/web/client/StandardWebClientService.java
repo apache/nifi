@@ -43,6 +43,7 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -77,6 +78,8 @@ public class StandardWebClientService implements WebClientService, Closeable {
     private ProxyContext proxyContext;
 
     private TlsContext tlsContext;
+
+    private Version httpVersion;
 
     /**
      * Standard Web Client Service constructor creates a Java HttpClient using default settings
@@ -148,6 +151,17 @@ public class StandardWebClientService implements WebClientService, Closeable {
         Objects.requireNonNull(tlsContext, "TLS Context required");
         Objects.requireNonNull(tlsContext.getTrustManager(), "Trust Manager required");
         this.tlsContext = tlsContext;
+        this.httpClient = buildHttpClient();
+    }
+
+    /**
+     * Set preferred HTTP protocol version for requests
+     *
+     * @param httpVersion HTTP protocol version
+     */
+    public void setHttpVersion(final Version httpVersion) {
+        Objects.requireNonNull(httpVersion, "HTTP Version required");
+        this.httpVersion = httpVersion;
         this.httpClient = buildHttpClient();
     }
 
@@ -259,6 +273,10 @@ public class StandardWebClientService implements WebClientService, Closeable {
                     builder.authenticator(passwordAuthenticator);
                 }
             }
+        }
+
+        if (httpVersion != null) {
+            builder.version(httpVersion);
         }
 
         return builder.build();
@@ -376,6 +394,10 @@ public class StandardWebClientService implements WebClientService, Closeable {
             // Prefer Read Timeout over Write Timeout when specified
             if (readTimeout != null) {
                 requestBuilder.timeout(readTimeout);
+            }
+
+            if (httpVersion != null) {
+                requestBuilder.version(httpVersion);
             }
 
             final HttpRequest.BodyPublisher bodyPublisher = getBodyPublisher();

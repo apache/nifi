@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { ReportingTasksState } from '../../../state/reporting-tasks';
@@ -37,16 +37,12 @@ import {
     styleUrls: ['./create-reporting-task.component.scss']
 })
 export class CreateReportingTask extends CloseOnEscapeDialog {
+    private store = inject<Store<ReportingTasksState>>(Store);
+    private client = inject(Client);
+
     reportingTaskTypes$ = this.store.select(selectReportingTaskTypes);
     reportingTaskTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
     saving$ = this.store.select(selectSaving);
-
-    constructor(
-        private store: Store<ReportingTasksState>,
-        private client: Client
-    ) {
-        super();
-    }
 
     createReportingTask(reportingTaskType: DocumentedType): void {
         this.store.dispatch(

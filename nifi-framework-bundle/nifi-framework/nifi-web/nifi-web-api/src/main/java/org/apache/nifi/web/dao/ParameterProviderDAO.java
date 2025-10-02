@@ -22,6 +22,7 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 
@@ -156,7 +157,8 @@ public interface ParameterProviderDAO extends ParameterProviderLookup {
      * Clears the state of the specified parameter provider.
      *
      * @param parameterProviderId parameter provider id
+     * @param componentStateDTO   state of the parameter provider
      */
-    void clearState(String parameterProviderId);
+    void clearState(final String parameterProviderId, final ComponentStateDTO componentStateDTO);
 
 }

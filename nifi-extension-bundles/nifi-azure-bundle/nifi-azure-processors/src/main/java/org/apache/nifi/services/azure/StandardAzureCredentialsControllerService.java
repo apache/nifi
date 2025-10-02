@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -47,8 +48,7 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             "Managed Identity",
             "Azure Virtual Machine Managed Identity (it can only be used when NiFi is running on Azure)");
     public static final PropertyDescriptor CREDENTIAL_CONFIGURATION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("credential-configuration-strategy")
-            .displayName("Credential Configuration Strategy")
+            .name("Credential Configuration Strategy")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .sensitive(false)
@@ -57,8 +57,7 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .build();
 
     public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("managed-identity-client-id")
-            .displayName("Managed Identity Client ID")
+            .name("Managed Identity Client ID")
             .description("Client ID of the managed identity. The property is required when User Assigned Managed Identity is used for authentication. " +
                     "It must be empty in case of System Assigned Managed Identity.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -98,6 +97,12 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             getLogger().error(errorMsg);
             throw new ProcessException(errorMsg);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("credential-configuration-strategy", CREDENTIAL_CONFIGURATION_STRATEGY.getName());
+        config.renameProperty("managed-identity-client-id", MANAGED_IDENTITY_CLIENT_ID.getName());
     }
 
     private TokenCredential getDefaultAzureCredential() {

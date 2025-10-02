@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import {
     GuardsCheckEnd,
     GuardsCheckStart,
@@ -44,6 +44,12 @@ import { DocumentVisibility } from './state/document-visibility';
     standalone: false
 })
 export class AppComponent implements OnDestroy {
+    private router = inject(Router);
+    private storage = inject(Storage);
+    private themingService = inject(ThemingService);
+    private dialog = inject(MatDialog);
+    private store = inject<Store<NiFiState>>(Store);
+
     title = 'nifi';
     guardLoading = true;
 
@@ -59,13 +65,7 @@ export class AppComponent implements OnDestroy {
         );
     };
 
-    constructor(
-        private router: Router,
-        private storage: Storage,
-        private themingService: ThemingService,
-        private dialog: MatDialog,
-        private store: Store<NiFiState>
-    ) {
+    constructor() {
         this.router.events
             .pipe(
                 takeUntilDestroyed(),
@@ -85,7 +85,7 @@ export class AppComponent implements OnDestroy {
                 concatLatestFrom(() => this.store.select(selectBackNavigation))
             )
             .subscribe(([event, previousBackNavigation]) => {
-                const extras = this.router.getCurrentNavigation()?.extras;
+                const extras = this.router.currentNavigation()?.extras;
                 if (extras?.state?.['backNavigation']) {
                     const backNavigation: BackNavigation = extras?.state?.['backNavigation'];
                     this.store.dispatch(

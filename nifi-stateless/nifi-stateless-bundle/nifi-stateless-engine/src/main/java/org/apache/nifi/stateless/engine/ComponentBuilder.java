@@ -283,7 +283,7 @@ public class ComponentBuilder {
             final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
-            final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
+            final StateManager stateManager = stateManagerProvider.getStateManager(identifier, rawClass);
             final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
                 serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
             serviceImpl.initialize(initContext);

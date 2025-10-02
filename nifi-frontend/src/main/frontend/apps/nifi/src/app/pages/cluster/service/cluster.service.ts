@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ClusterListingResponse, ClusterNodeEntity } from '../state/cluster-listing';
 
 @Injectable({ providedIn: 'root' })
 export class ClusterService {
-    private static readonly API = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API = '../nifi-api';
 
     getClusterListing(): Observable<ClusterListingResponse> {
         return this.httpClient.get(`${ClusterService.API}/controller/cluster`) as Observable<ClusterListingResponse>;

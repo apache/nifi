@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as UserActions from './current-user.actions';
 import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
@@ -31,14 +31,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class CurrentUserEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private router: Router,
-        private userService: CurrentUserService,
-        private authService: AuthService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private router = inject(Router);
+    private userService = inject(CurrentUserService);
+    private authService = inject(AuthService);
+    private errorHelper = inject(ErrorHelper);
 
     loadCurrentUser$ = createEffect(() =>
         this.actions$.pipe(

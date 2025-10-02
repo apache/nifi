@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from './client.service';
 import {
@@ -29,13 +29,11 @@ import { NiFiCommon } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class PropertyVerificationService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client,
-        private nifiCommon: NiFiCommon
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getAnalysis(request: VerifyPropertiesRequestContext): Observable<ConfigurationAnalysisResponse> {
         const body = {

@@ -20,13 +20,19 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.sql.RecordSqlWriter;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.db.JdbcCommon.AvroConversionOptions;
 import org.apache.nifi.util.db.SimpleCommerceDataSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,18 +41,23 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -649,6 +660,37 @@ public class TestExecuteSQLRecord {
         firstFlowFile.assertContentEquals("test");
     }
 
+    @Test
+    public void testArrayOfStringsInference() throws Exception {
+        final ResultSetMetaData meta = mock(ResultSetMetaData.class);
+        when(meta.getColumnCount()).thenReturn(1);
+        when(meta.getColumnLabel(1)).thenReturn("test");
+        when(meta.getColumnName(1)).thenReturn("test");
+        when(meta.getColumnType(1)).thenReturn(Types.ARRAY);
+        when(meta.getTableName(1)).thenReturn("");
+
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(meta);
+        when(rs.next()).thenReturn(true, false);
+
+        final Array array = mock(Array.class);
+        when(array.getArray()).thenReturn(new String[] {"test"});
+        when(rs.getArray(1)).thenReturn(array);
+        when(rs.getObject(1)).thenReturn(array);
+        when(rs.getObject("test")).thenReturn(array);
+
+        final TestRunner localRunner = TestRunners.newTestRunner(ExecuteSQLRecord.class);
+        final RecordSetWriterFactory writerFactory = new JsonRecordSetWriter();
+        localRunner.addControllerService("writer", writerFactory);
+        localRunner.enableControllerService(writerFactory);
+
+        final RecordSqlWriter sqlWriter = new RecordSqlWriter(writerFactory, AvroConversionOptions.builder().useLogicalTypes(false).build(), 0, Map.of());
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final ComponentLog log = new MockComponentLog("test", sqlWriter);
+        sqlWriter.writeResultSet(rs, out, log, null);
+        final String json = out.toString();
+        assertTrue(json.contains("\"test\":[\"test\"]"), "Expected JSON to contain array of strings: " + json);
+    }
 
     /**
      * Simple implementation only for ExecuteSQL processor testing.

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '@nifi/shared';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { Relationship } from '../../../state/processor-definition';
@@ -27,14 +27,14 @@ import { Relationship } from '../../../state/processor-definition';
     styleUrl: './relationships-definition.component.scss'
 })
 export class RelationshipsDefinitionComponent {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set relationships(relationships: Relationship[]) {
         this.dataSource.data = this.sortRelationships(relationships);
     }
 
     displayedColumns: string[] = ['name', 'description'];
     dataSource: MatTableDataSource<Relationship> = new MatTableDataSource<Relationship>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     sortRelationships(items: Relationship[]): Relationship[] {
         const data: Relationship[] = items.slice();

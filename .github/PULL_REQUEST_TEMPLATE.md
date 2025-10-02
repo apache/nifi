@@ -41,6 +41,7 @@ Please indicate the verification steps performed prior to pull request creation.
 
 - [ ] Build completed using `./mvnw clean install -P contrib-check`
   - [ ] JDK 21
+  - [ ] JDK 25
 
 ### Licensing
 

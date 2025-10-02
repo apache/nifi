@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import * as d3 from 'd3';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
@@ -36,6 +36,16 @@ import { Position } from '../state/shared';
     providedIn: 'root'
 })
 export class CanvasView {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private processorManager = inject(ProcessorManager);
+    private processGroupManager = inject(ProcessGroupManager);
+    private remoteProcessGroupManager = inject(RemoteProcessGroupManager);
+    private portManager = inject(PortManager);
+    private funnelManager = inject(FunnelManager);
+    private labelManager = inject(LabelManager);
+    private connectionManager = inject(ConnectionManager);
+
     private static readonly INCREMENT: number = 1.2;
     private static readonly MAX_SCALE: number = 8;
     private static readonly MIN_SCALE: number = 0.2;
@@ -55,17 +65,7 @@ export class CanvasView {
 
     private canvasInitialized: boolean = false;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private processorManager: ProcessorManager,
-        private processGroupManager: ProcessGroupManager,
-        private remoteProcessGroupManager: RemoteProcessGroupManager,
-        private portManager: PortManager,
-        private funnelManager: FunnelManager,
-        private labelManager: LabelManager,
-        private connectionManager: ConnectionManager
-    ) {
+    constructor() {
         const self: CanvasView = this;
         let refreshed: Promise<void> | null;
         let panning = false;

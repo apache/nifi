@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ClusterJvmTable } from './cluster-jvm-table/cluster-jvm-table.component';
 import {
@@ -37,12 +37,12 @@ import { clearJvmNodeSelection, selectJvmNode } from '../../state/cluster-listin
     styleUrl: './cluster-jvm-listing.component.scss'
 })
 export class ClusterJvmListing {
+    private store = inject<Store<NiFiState>>(Store);
+
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     nodes = this.store.selectSignal(selectSystemNodeSnapshots);
-
-    constructor(private store: Store<NiFiState>) {}
 
     isInitialLoading(loadedTimestamp: string): boolean {
         return loadedTimestamp == initialClusterState.loadedTimestamp;

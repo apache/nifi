@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MatButton } from '@angular/material/button';
 import { MatCell, MatCellDef, MatColumnDef, MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -34,6 +34,10 @@ import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
     styleUrl: './change-version-dialog.scss'
 })
 export class ChangeVersionDialog extends CloseOnEscapeDialog {
+    private dialogRequest = inject<ChangeVersionDialogRequest>(MAT_DIALOG_DATA);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject<Store<CanvasState>>(Store);
+
     displayedColumns: string[] = ['version', 'created', 'comments'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
@@ -48,12 +52,10 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
     @Output() changeVersion: EventEmitter<VersionedFlowSnapshotMetadata> =
         new EventEmitter<VersionedFlowSnapshotMetadata>();
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: ChangeVersionDialogRequest,
-        private nifiCommon: NiFiCommon,
-        private store: Store<CanvasState>
-    ) {
+    constructor() {
         super();
+        const dialogRequest = this.dialogRequest;
+
         const flowVersions = dialogRequest.versions.map((entity) => entity.versionedFlowSnapshotMetadata);
         const sortedFlowVersions = this.sortVersions(flowVersions, this.sort);
         this.selectedFlowVersion = sortedFlowVersions[0];

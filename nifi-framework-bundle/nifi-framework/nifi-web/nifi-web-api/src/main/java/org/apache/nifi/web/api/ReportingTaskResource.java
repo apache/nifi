@@ -331,7 +331,7 @@ public class ReportingTaskResource extends ApplicationResource {
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
     @Operation(
@@ -353,10 +353,14 @@ public class ReportingTaskResource extends ApplicationResource {
                     description = "The reporting task id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "Optional component state to perform a selective key removal. If omitted, clears all state.",
+                    required = false
+            ) final ComponentStateEntity componentStateEntity) {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST);
+            return replicate(HttpMethod.POST, componentStateEntity);
         }
 
         final ReportingTaskEntity requestReportTaskEntity = new ReportingTaskEntity();
@@ -371,11 +375,13 @@ public class ReportingTaskResource extends ApplicationResource {
                 },
                 () -> serviceFacade.verifyCanClearReportingTaskState(id),
                 (reportingTaskEntity) -> {
-                    // get the component state
-                    serviceFacade.clearReportingTaskState(reportingTaskEntity.getId());
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearReportingTaskState(reportingTaskEntity.getId(), expectedState);
 
                     // generate the response entity
                     final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
 
                     // generate the response
                     return generateOkResponse(entity).build();

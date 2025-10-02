@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { EvaluationContext, EvaluationContextEntity } from '../state/evaluation-context';
@@ -24,9 +24,9 @@ import { NewRule, Rule, RuleEntity, RulesEntity } from '../state/rules';
 
 @Injectable({ providedIn: 'root' })
 export class UpdateAttributeService {
-    private static readonly API: string = 'api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = 'api';
 
     getEvaluationContext(processorId: string): Observable<EvaluationContextEntity> {
         const params = new HttpParams({

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Dimensions, PasteRequest, PasteRequestContext, PasteRequestEntity } from '../state/flow';
 import { Observable } from 'rxjs';
@@ -34,15 +34,13 @@ import * as d3 from 'd3';
     providedIn: 'root'
 })
 export class CopyPasteService {
+    private httpClient = inject(HttpClient);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private canvasView = inject(CanvasView);
+    private store = inject<Store<NiFiState>>(Store);
+
     private static readonly API: string = '../nifi-api';
     currentProcessGroupId = this.store.selectSignal(selectCurrentProcessGroupId);
-
-    constructor(
-        private httpClient: HttpClient,
-        private clusterConnectionService: ClusterConnectionService,
-        private canvasView: CanvasView,
-        private store: Store<NiFiState>
-    ) {}
 
     copy(copyRequest: CopyRequestContext): Observable<CopyResponseEntity> {
         return this.httpClient.post(

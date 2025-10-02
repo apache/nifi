@@ -245,17 +245,10 @@
     text.connection-to-run-status,
     text.expiration-icon,
     text.load-balance-icon,
+    text.retry-icon,
     text.penalized-icon {
         font-family: FontAwesome;
         font-size: 12px;
-    }
-
-    text.load-balance-icon-184 {
-        transform-origin: 197px 10px 0;
-    }
-
-    text.load-balance-icon-200 {
-        transform-origin: 213px 10px 0;
     }
 
     g.connection rect.backpressure-object > title > tspan,

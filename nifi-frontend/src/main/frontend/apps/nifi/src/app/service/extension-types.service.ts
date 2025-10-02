@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Bundle } from '../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ExtensionTypesService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getProcessorTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/processor-types`);
