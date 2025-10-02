@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowConfigurationHistoryListing } from './flow-configuration-history-listing.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialHistoryState } from '../../state/flow-configuration-history-listing/flow-configuration-history-listing.reducer';
+import { flowConfigurationHistoryListingFeatureKey } from '../../state/flow-configuration-history-listing';
+import { flowConfigurationHistoryFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('FlowConfigurationHistoryListing', () => {
     let component: FlowConfigurationHistoryListing;
@@ -28,7 +34,17 @@ describe('FlowConfigurationHistoryListing', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [FlowConfigurationHistoryListing],
-            providers: [provideMockStore({ initialState: initialHistoryState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationHistoryFeatureKey]: {
+                            [flowConfigurationHistoryListingFeatureKey]: initialHistoryState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(FlowConfigurationHistoryListing);
         component = fixture.componentInstance;

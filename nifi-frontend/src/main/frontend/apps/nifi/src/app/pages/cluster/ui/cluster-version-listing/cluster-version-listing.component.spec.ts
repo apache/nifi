@@ -18,19 +18,27 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ClusterVersionListing } from './cluster-version-listing.component';
-import { ClusterState } from '../../state';
 import { clusterListingFeatureKey } from '../../state/cluster-listing';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
+import { clusterFeatureKey } from '../../state';
 import { provideMockStore } from '@ngrx/store/testing';
 import { selectClusterListing } from '../../state/cluster-listing/cluster-listing.selectors';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ClusterVersionListing', () => {
     let component: ClusterVersionListing;
     let fixture: ComponentFixture<ClusterVersionListing>;
 
     beforeEach(async () => {
-        const initialState: ClusterState = {
-            [clusterListingFeatureKey]: initialClusterState
+        const initialState = {
+            [errorFeatureKey]: initialErrorState,
+            [currentUserFeatureKey]: initialCurrentUserState,
+            [clusterFeatureKey]: {
+                [clusterListingFeatureKey]: initialClusterState
+            }
         };
 
         await TestBed.configureTestingModule({
@@ -41,7 +49,7 @@ describe('ClusterVersionListing', () => {
                     selectors: [
                         {
                             selector: selectClusterListing,
-                            value: initialState[clusterListingFeatureKey]
+                            value: initialState[clusterFeatureKey][clusterListingFeatureKey]
                         }
                     ]
                 })

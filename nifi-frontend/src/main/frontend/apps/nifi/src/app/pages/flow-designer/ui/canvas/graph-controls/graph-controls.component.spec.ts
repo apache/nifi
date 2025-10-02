@@ -28,6 +28,10 @@ import { BreadcrumbEntity } from '../../../state/shared';
 import { MockComponent } from 'ng-mocks';
 import { canvasFeatureKey } from '../../../state';
 import { flowFeatureKey } from '../../../state/flow';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../state/current-user';
 
 describe('GraphControls', () => {
     let component: GraphControls;
@@ -57,6 +61,8 @@ describe('GraphControls', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [canvasFeatureKey]: {
                             [flowFeatureKey]: initialState
                         }

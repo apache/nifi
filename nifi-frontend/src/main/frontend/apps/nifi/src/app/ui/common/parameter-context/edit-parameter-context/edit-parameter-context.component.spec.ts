@@ -24,6 +24,12 @@ import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../pages/parameter-contexts/state/parameter-context-listing/parameter-context-listing.reducer';
+import { parameterContextListingFeatureKey } from '../../../../pages/parameter-contexts/state/parameter-context-listing';
+import { parameterContextsFeatureKey } from '../../../../pages/parameter-contexts/state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ParameterContextEntity, ParameterEntity } from '../../../../state/shared';
 
@@ -241,7 +247,15 @@ describe('EditParameterContext', () => {
             imports: [EditParameterContext, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({ initialState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [parameterContextsFeatureKey]: {
+                            [parameterContextListingFeatureKey]: initialState
+                        }
+                    }
+                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {

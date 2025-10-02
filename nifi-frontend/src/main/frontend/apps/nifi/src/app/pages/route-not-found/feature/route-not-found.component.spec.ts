@@ -23,6 +23,8 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { currentUserFeatureKey } from '../../../state/current-user';
 import { initialState } from '../../../state/current-user/current-user.reducer';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
 
 describe('RouteNotFound', () => {
     let component: RouteNotFound;
@@ -34,6 +36,7 @@ describe('RouteNotFound', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialState
                     }
                 })

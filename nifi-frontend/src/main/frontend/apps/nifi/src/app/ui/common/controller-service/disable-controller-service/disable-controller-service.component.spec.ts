@@ -21,9 +21,12 @@ import { DisableControllerService } from './disable-controller-service.component
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/contoller-service-state/controller-service-state.reducer';
+import { controllerServiceStateFeatureKey } from '../../../../state/contoller-service-state';
 import { ComponentType } from '@nifi/shared';
 import { SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 describe('EnableControllerService', () => {
     let component: DisableControllerService;
@@ -344,7 +347,12 @@ describe('EnableControllerService', () => {
         TestBed.configureTestingModule({
             imports: [DisableControllerService, NoopAnimationsModule],
             providers: [
-                provideMockStore({ initialState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [controllerServiceStateFeatureKey]: initialState
+                    }
+                }),
                 {
                     provide: MAT_DIALOG_DATA,
                     useValue: data

@@ -19,6 +19,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BulletinBoard } from './bulletin-board.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialBulletinBoardState } from '../../state/bulletin-board/bulletin-board.reducer';
+import { bulletinBoardFeatureKey } from '../../state/bulletin-board';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 describe('BulletinBoard', () => {
     let component: BulletinBoard;
@@ -27,7 +30,16 @@ describe('BulletinBoard', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [BulletinBoard],
-            providers: [provideMockStore({ initialState: initialBulletinBoardState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        bulletins: {
+                            [bulletinBoardFeatureKey]: initialBulletinBoardState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(BulletinBoard);
         component = fixture.componentInstance;

@@ -24,6 +24,10 @@ import { initialComponentClusterStatusState } from '../../../state/component-clu
 import { ComponentClusterStatusRequest, ComponentClusterStatusState } from '../../../state/component-cluster-status';
 import { ComponentType } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { summaryFeatureKey } from '../../../state';
+import { componentClusterStatusFeatureKey } from '../../../state/component-cluster-status';
 
 describe('ClusterSummaryDialog', () => {
     let component: ClusterSummaryDialog;
@@ -42,11 +46,16 @@ describe('ClusterSummaryDialog', () => {
                 },
                 provideMockStore({
                     initialState: {
-                        ...initialComponentClusterStatusState,
-                        clusterStatus: {
-                            canRead: true
+                        [errorFeatureKey]: initialErrorState,
+                        [summaryFeatureKey]: {
+                            [componentClusterStatusFeatureKey]: {
+                                ...initialComponentClusterStatusState,
+                                clusterStatus: {
+                                    canRead: true
+                                }
+                            } as ComponentClusterStatusState
                         }
-                    } as ComponentClusterStatusState
+                    }
                 }),
                 { provide: MatDialogRef, useValue: null }
             ]

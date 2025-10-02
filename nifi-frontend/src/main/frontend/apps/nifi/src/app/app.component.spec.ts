@@ -22,6 +22,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideMockStore } from '@ngrx/store/testing';
 import { navigationFeatureKey } from './state/navigation';
 import * as fromNavigation from './state/navigation/navigation.reducer';
+import { initialState as initialErrorState } from './state/error/error.reducer';
+import { errorFeatureKey } from './state/error';
+import { initialState as initialCurrentUserState } from './state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from './state/current-user';
 
 describe('AppComponent', () => {
     beforeEach(() =>
@@ -31,6 +35,8 @@ describe('AppComponent', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [navigationFeatureKey]: fromNavigation.initialState
                     }
                 })

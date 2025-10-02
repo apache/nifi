@@ -19,11 +19,15 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FooterComponent } from './footer.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/flow/flow.reducer';
+import { initialState as initialFlowState } from '../../../state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../state/flow';
+import { canvasFeatureKey } from '../../../state';
 import { selectBreadcrumbs } from '../../../state/flow/flow.selectors';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { BreadcrumbEntity } from '../../../state/shared';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
 
 describe('FooterComponent', () => {
     let component: FooterComponent;
@@ -47,7 +51,12 @@ describe('FooterComponent', () => {
             imports: [RouterModule, RouterTestingModule],
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    },
                     selectors: [
                         {
                             selector: selectBreadcrumbs,

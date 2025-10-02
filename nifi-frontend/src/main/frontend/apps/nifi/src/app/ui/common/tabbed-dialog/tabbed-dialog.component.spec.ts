@@ -288,7 +288,7 @@ describe('TabbedDialog', () => {
                 ]
             }).compileComponents();
 
-            const fixture1 = TestBed.createComponent(TestTabbedDialogComponent);
+            TestBed.createComponent(TestTabbedDialogComponent);
 
             expect(mockStorage1.getItem).toHaveBeenCalledWith('tabbed-dialog-selected-index');
 

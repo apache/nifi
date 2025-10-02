@@ -32,6 +32,10 @@ import { selectLoginConfiguration } from '../../../state/login-configuration/log
 import * as fromLoginConfiguration from '../../../state/login-configuration/login-configuration.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
 import { navigationFeatureKey } from '../../../state/navigation';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialAboutState } from '../../../state/about/about.reducer';
+import { aboutFeatureKey } from '../../../state/about';
 import { popBackNavigation } from '../../../state/navigation/navigation.actions';
 
 describe('Navigation', () => {
@@ -45,6 +49,8 @@ describe('Navigation', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [aboutFeatureKey]: initialAboutState,
                         [currentUserFeatureKey]: fromUser.initialState,
                         [navigationFeatureKey]: fromNavigation.initialState
                     },

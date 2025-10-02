@@ -35,6 +35,10 @@ import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CopyResponseEntity } from '../../../../state/copy';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('Canvas', () => {
     let component: Canvas;
@@ -71,6 +75,8 @@ describe('Canvas', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [canvasFeatureKey]: {
                             [flowFeatureKey]: initialState
                         }

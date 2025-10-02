@@ -19,6 +19,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowAnalysisDrawerComponent } from './flow-analysis-drawer.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { initialState as initialErrorState } from '../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../state/error';
+import { initialState as initialFlowAnalysisState } from '../../../../state/flow-analysis/flow-analysis.reducer';
+import { flowAnalysisFeatureKey } from '../../../../state/flow-analysis';
+import { initialState as initialFlowState } from '../../../../state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../../state/flow';
 
 describe('FlowAnalysisDrawerComponent', () => {
     let component: FlowAnalysisDrawerComponent;
@@ -27,7 +33,17 @@ describe('FlowAnalysisDrawerComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [FlowAnalysisDrawerComponent, NoopAnimationsModule],
-            providers: [provideMockStore({})]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        canvas: {
+                            [flowAnalysisFeatureKey]: initialFlowAnalysisState,
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    }
+                })
+            ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(FlowAnalysisDrawerComponent);

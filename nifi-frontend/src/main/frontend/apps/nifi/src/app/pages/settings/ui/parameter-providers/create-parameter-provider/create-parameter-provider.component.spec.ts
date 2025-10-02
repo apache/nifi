@@ -21,12 +21,15 @@ import { CreateParameterProvider } from './create-parameter-provider.component';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
+import { parameterProvidersFeatureKey } from '../../../state/parameter-providers';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DocumentedType } from '../../../../../state/shared';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { MockComponent } from 'ng-mocks';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { of } from 'rxjs';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
 
 describe('CreateParameterProvider', () => {
     let component: CreateParameterProvider;
@@ -68,7 +71,14 @@ describe('CreateParameterProvider', () => {
                 MockComponent(ExtensionCreation)
             ],
             providers: [
-                provideMockStore({ initialState: initialParameterProvidersState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        settings: {
+                            [parameterProvidersFeatureKey]: initialParameterProvidersState
+                        }
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { GeneralForm } from './general-form.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/general/general.reducer';
+import { generalFeatureKey } from '../../../state/general';
+import { settingsFeatureKey } from '../../../state';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../state/current-user';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 
@@ -32,7 +38,13 @@ describe('GeneralForm', () => {
             imports: [GeneralForm, NoopAnimationsModule],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [settingsFeatureKey]: {
+                            [generalFeatureKey]: initialState
+                        }
+                    }
                 }),
                 {
                     provide: ClusterConnectionService,
