@@ -46,6 +46,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -65,7 +66,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 public class WebIdentityCredentialsStrategy extends AbstractCredentialsStrategy implements CredentialsStrategy {
 
     public WebIdentityCredentialsStrategy() {
-        super("Web Identity (OIDC)", new PropertyDescriptor[]{
+        super("Web Identity", new PropertyDescriptor[]{
                 OAUTH2_ACCESS_TOKEN_PROVIDER,
                 ASSUME_ROLE_ARN,
                 ASSUME_ROLE_NAME
@@ -76,7 +77,7 @@ public class WebIdentityCredentialsStrategy extends AbstractCredentialsStrategy 
     public Collection<ValidationResult> validate(final ValidationContext validationContext, final CredentialsStrategy primaryStrategy) {
         // Avoid cross-strategy validation conflicts: Web Identity reuses Assume Role properties.
         // Controller-level validation enforces required combinations when OAuth2 is configured.
-        return null;
+        return Collections.emptyList();
     }
 
     @Override
@@ -165,12 +166,12 @@ public class WebIdentityCredentialsStrategy extends AbstractCredentialsStrategy 
                     return cached;
                 }
 
-                final String webIdentityJwt = getWebIdentityToken();
+                final String webIdentityToken = getWebIdentityToken();
 
                 final AssumeRoleWithWebIdentityRequest.Builder reqBuilder = AssumeRoleWithWebIdentityRequest.builder()
                         .roleArn(roleArn)
                         .roleSessionName(roleSessionName)
-                        .webIdentityToken(webIdentityJwt);
+                        .webIdentityToken(webIdentityToken);
 
                 if (sessionSeconds != null) {
                     reqBuilder.durationSeconds(sessionSeconds);
@@ -196,19 +197,22 @@ public class WebIdentityCredentialsStrategy extends AbstractCredentialsStrategy 
             // Prefer id_token when available
             final Map<String, Object> additional = accessToken.getAdditionalParameters();
             if (additional != null) {
-                final Object idTokenObj = additional.get("id_token");
-                if (idTokenObj instanceof String && !((String) idTokenObj).isEmpty()) {
-                    return (String) idTokenObj;
+                final String idToken = (String) additional.get("id_token");
+                if (idToken != null) {
+                    if (StringUtils.isBlank(idToken)) {
+                        throw new IllegalStateException("OAuth2AccessTokenProvider returned an empty id_token");
+                    } else {
+                        return idToken;
+                    }
                 }
             }
 
-            final String token = accessToken.getAccessToken();
-
-            if (StringUtils.isBlank(token)) {
+            final String accessTokenValue = accessToken.getAccessToken();
+            if (StringUtils.isBlank(accessTokenValue)) {
                 throw new IllegalStateException("No usable token found in AccessToken (id_token or access_token)");
+            } else {
+                return accessTokenValue;
             }
-
-            return token;
         }
     }
 }

@@ -223,6 +223,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .description("Controller Service providing OAuth2/OIDC tokens to exchange for AWS temporary credentials using STS AssumeRoleWithWebIdentity.")
         .identifiesControllerService(OAuth2AccessTokenProvider.class)
         .required(false)
+        .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
 
@@ -342,6 +343,17 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
                         .subject(ASSUME_ROLE_ARN.getDisplayName())
                         .valid(false)
                         .explanation("Web Identity (OIDC) requires both '" + ASSUME_ROLE_ARN.getDisplayName() + "' and '" + ASSUME_ROLE_NAME.getDisplayName() + "' to be set")
+                        .build());
+            }
+        }
+
+        if (validationContext.getProperty(ASSUME_ROLE_ARN).isSet()) {
+            final Integer maxSessionTime = validationContext.getProperty(MAX_SESSION_TIME).asInteger();
+            if (maxSessionTime != null && (maxSessionTime < 900 || maxSessionTime > 3600)) {
+                validationFailureResults.add(new ValidationResult.Builder()
+                        .subject(MAX_SESSION_TIME.getDisplayName())
+                        .valid(false)
+                        .explanation(MAX_SESSION_TIME.getDisplayName() + " must be between 900 and 3600 seconds")
                         .build());
             }
         }

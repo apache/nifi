@@ -37,8 +37,8 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
@@ -89,22 +89,11 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
     @Override
     public Collection<ValidationResult> validate(final ValidationContext validationContext,
                                                  final CredentialsStrategy primaryStrategy) {
-        final Collection<ValidationResult> validationFailureResults  = new ArrayList<>();
-
-        final boolean assumeRoleArnIsSet = validationContext.getProperty(ASSUME_ROLE_ARN).isSet();
-
-        if (assumeRoleArnIsSet) {
-            final Integer maxSessionTime = validationContext.getProperty(MAX_SESSION_TIME).asInteger();
-
-            // Session time only b/w 900 to 3600 sec (see software.amazon.awssdk.services.sts.model.AssumeRoleRequest#durationSeconds)
-            if (maxSessionTime < 900 || maxSessionTime > 3600) {
-                validationFailureResults.add(new ValidationResult.Builder().valid(false).input(maxSessionTime + "")
-                        .explanation(MAX_SESSION_TIME.getDisplayName() +
-                                " must be between 900 and 3600 seconds").build());
-            }
-        }
-
-        return validationFailureResults;
+        // Assume Role participates as a derived strategy or reused property group.
+        // Do not produce cross-strategy validation failures here; required/missing
+        // fields are enforced by PropertyDescriptor requirements and selected
+        // strategies, and derived selection is handled separately.
+        return Collections.emptyList();
     }
 
     @Override
