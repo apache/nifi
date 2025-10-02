@@ -18,13 +18,19 @@
 <div class="flex flex-col gap-y-4">
     <div class="flex flex-col mb-5">
         <div>From Processor</div>
-        <div [title]="name" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div
+            [title]="name"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="processor-name-display">
             {{ name }}
         </div>
     </div>
     <div class="flex flex-col mb-5">
         <div>Within Group</div>
-        <div [title]="groupName" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div
+            [title]="groupName"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="group-name-display">
             {{ groupName }}
         </div>
     </div>
@@ -39,10 +45,14 @@
                                 [(ngModel)]="item.selected"
                                 name="selected-{{ i }}"
                                 (change)="handleChanged()"
-                                [disabled]="isDisabled">
-                                <span [class.neutral-color]="!item.available" [class.unset]="!item.available">{{
-                                    item.relationshipName
-                                }}</span>
+                                [disabled]="isDisabled"
+                                data-qa="relationship-checkbox">
+                                <span
+                                    [class.neutral-color]="!item.available"
+                                    [class.unset]="!item.available"
+                                    data-qa="relationship-name">
+                                    {{ item.relationshipName }}
+                                </span>
                             </mat-checkbox>
                         </div>
                     </div>
