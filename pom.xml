@@ -112,7 +112,7 @@
         <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
 
         <!-- Frontend tooling -->
-        <frontend.mvn.plugin.version>1.15.1</frontend.mvn.plugin.version>
+        <frontend.mvn.plugin.version>1.15.4</frontend.mvn.plugin.version>
         <node.version>v22.19.0</node.version>
 
         <!-- NiFi build -->
@@ -121,7 +121,7 @@
 
         <!-- AWS SDK -->
         <com.amazonaws.version>1.12.791</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.34.3</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.34.8</software.amazon.awssdk.version>
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.10.0</org.apache.commons.cli.version>
@@ -163,7 +163,7 @@
 
         <!-- Logging and observability -->
         <log4j2.version>2.25.2</log4j2.version>
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.5.19</logback.version>
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
@@ -179,7 +179,7 @@
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.29.1</nimbus-oauth2-oidc.version>
+        <nimbus-oauth2-oidc.version>11.29.2</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.82</org.bouncycastle.version>
 
         <!-- Utilities -->
@@ -197,13 +197,13 @@
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>6.5.5</spring.security.version>
         <spring.version>6.2.11</spring.version>
-        <swagger.annotations.version>2.2.37</swagger.annotations.version>
+        <swagger.annotations.version>2.2.38</swagger.annotations.version>
 
         <!-- Testing and quality -->
-        <junit.version>5.13.4</junit.version>
+        <junit.version>6.0.0</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <pmd.version>7.17.0</pmd.version>
-        <checkstyle.version>11.0.1</checkstyle.version>
+        <checkstyle.version>11.1.0</checkstyle.version>
         <testcontainers.version>1.21.3</testcontainers.version>
     </properties>
     <dependencyManagement>
@@ -632,7 +632,7 @@
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-commons</artifactId>
-                <version>1.13.4</version>
+                <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
@@ -730,7 +730,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.5.1</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -832,7 +832,7 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.37</version>
+                    <version>2.2.38</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
