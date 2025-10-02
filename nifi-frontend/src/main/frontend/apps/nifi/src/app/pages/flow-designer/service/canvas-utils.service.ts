@@ -1955,7 +1955,15 @@ export class CanvasUtils {
         let stoppable = false;
         const selectionData = selection.datum();
         if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
-            stoppable = selectionData.status.aggregateSnapshot.runStatus === 'Running';
+            const runStatus = selectionData.status.aggregateSnapshot.runStatus;
+
+            // For processors, also check if physical state is Starting when runStatus is Invalid
+            if (this.isProcessor(selection) && runStatus === 'Invalid') {
+                const physicalState = selectionData.physicalState;
+                stoppable = physicalState === 'STARTING';
+            } else {
+                stoppable = runStatus === 'Running';
+            }
         }
         return stoppable;
     }
