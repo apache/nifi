@@ -25,11 +25,11 @@ import { ChangeVersionDialogRequest, VersionControlInformation } from '../../../
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
-import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip } from '@nifi/shared';
 
 @Component({
     selector: 'change-version-dialog',
-    imports: [MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule],
+    imports: [MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule, NifiTooltipDirective],
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'
 })
@@ -38,7 +38,7 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
     private nifiCommon = inject(NiFiCommon);
     private store = inject<Store<CanvasState>>(Store);
 
-    displayedColumns: string[] = ['version', 'created', 'comments'];
+    displayedColumns: string[] = ['current', 'version', 'created', 'comments'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
     selectedFlowVersion: VersionedFlowSnapshotMetadata | null = null;
@@ -137,4 +137,10 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
         }
         return this.selectedFlowVersion.version !== this.versionControlInformation.version;
     }
+
+    isCurrentVersion(flowVersion: VersionedFlowSnapshotMetadata): boolean {
+        return flowVersion.version === this.versionControlInformation.version;
+    }
+
+    protected readonly TextTip = TextTip;
 }
