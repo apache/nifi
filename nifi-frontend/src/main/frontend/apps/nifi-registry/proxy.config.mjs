@@ -16,7 +16,7 @@
  */
 
 const target = {
-    target: 'http://localhost:18080',
+    target: 'https://localhost:18443',
     secure: false,
     logLevel: 'debug',
     changeOrigin: true,

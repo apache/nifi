@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,26 +17,12 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { BucketsComponent } from './buckets.component';
-import { adminWorkflowActivateGuard } from '../../../service/guard/admin-workflow.guard';
+import { LoginComponent } from './login.component';
 
-const routes: Routes = [
-    {
-        path: '',
-        component: BucketsComponent,
-        canActivate: [adminWorkflowActivateGuard],
-        children: [
-            {
-                path: ':id',
-                component: BucketsComponent,
-                canActivate: [adminWorkflowActivateGuard]
-            }
-        ]
-    }
-];
+const routes: Routes = [{ path: '', component: LoginComponent }];
 
 @NgModule({
     imports: [RouterModule.forChild(routes)],
     exports: [RouterModule]
 })
-export class BucketsRoutingModule {}
+export class LoginRoutingModule {}

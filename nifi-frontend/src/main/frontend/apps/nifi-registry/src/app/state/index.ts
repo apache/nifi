@@ -25,6 +25,8 @@ import { errorReducer } from './error/error.reducer';
 import { errorFeatureKey, ErrorState } from './error';
 import { aboutFeatureKey, AboutState } from './about';
 import { aboutReducer } from './about/about.reducer';
+import { currentUserFeatureKey, CurrentUserState } from './current-user';
+import { currentUserReducer } from './current-user/current-user.reducer';
 
 export const resourcesFeatureKey = 'resources';
 
@@ -44,6 +46,7 @@ export interface Revision {
 export interface Permissions {
     canRead: boolean;
     canWrite: boolean;
+    canDelete: boolean;
 }
 
 export interface ResourcesState {
@@ -62,10 +65,12 @@ export interface NiFiRegistryState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
     [errorFeatureKey]: ErrorState;
     [aboutFeatureKey]: AboutState;
+    [currentUserFeatureKey]: CurrentUserState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiRegistryState> = {
     [DEFAULT_ROUTER_FEATURENAME]: routerReducer,
     [errorFeatureKey]: errorReducer,
-    [aboutFeatureKey]: aboutReducer
+    [aboutFeatureKey]: aboutReducer,
+    [currentUserFeatureKey]: currentUserReducer
 };

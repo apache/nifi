@@ -33,7 +33,19 @@
             </div>
             <div class="flex justify-between items-center gap-x-1">
                 <div class="flex flex-col justify-between items-end gap-y-1">
-                    <!-- TODO: current user/anonymous user                       -->
+                    @if (currentUser(); as user) {
+                        @if (user.anonymous) {
+                            @if (allowLogin(user)) {
+                                <div class="current-user">{{ user.identity }}</div>
+                                <a (click)="login()">log in</a>
+                            }
+                        } @else {
+                            <div class="current-user">{{ user.identity }}</div>
+                            @if (logoutSupported()) {
+                                <a (click)="logout()">log out</a>
+                            }
+                        }
+                    }
                 </div>
                 <button mat-button [matMenuTriggerFor]="globalMenu" class="global-menu-icon global-menu">
                     <i class="fa fa-navicon text-[32px]"></i>

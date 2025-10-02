@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,28 +15,18 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { BucketsComponent } from './buckets.component';
-import { adminWorkflowActivateGuard } from '../../../service/guard/admin-workflow.guard';
+import { createSelector } from '@ngrx/store';
+import { accessFeatureKey, AccessState } from './index';
+import { selectLoginState } from '../index';
 
-const routes: Routes = [
-    {
-        path: '',
-        component: BucketsComponent,
-        canActivate: [adminWorkflowActivateGuard],
-        children: [
-            {
-                path: ':id',
-                component: BucketsComponent,
-                canActivate: [adminWorkflowActivateGuard]
-            }
-        ]
-    }
-];
+export const selectAccessState = createSelector(selectLoginState, (state) => state?.[accessFeatureKey]);
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class BucketsRoutingModule {}
+export const selectLoginFailure = createSelector(
+    selectAccessState,
+    (state: AccessState | undefined) => state?.failure ?? null
+);
+
+export const selectLoginPending = createSelector(
+    selectAccessState,
+    (state: AccessState | undefined) => state?.pending ?? false
+);
