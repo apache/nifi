@@ -25,7 +25,7 @@ limitations under the License.
         <div class="w-full bucket-dropdown-field">
             <mat-form-field class="flex w-full">
                 <mat-select [(value)]="selectedVersion">
-                    @for (snapshotMeta of [].constructor(droplet.versionCount); track snapshotMeta; let i = $index) {
+                    @for (snapshotMeta of [].constructor(droplet.versionCount); track i; let i = $index) {
                         <mat-option [value]="i + 1">
                             @if (snapshotMeta === i) {
                                 <span>Latest (Version {{ i + 1 }})</span>

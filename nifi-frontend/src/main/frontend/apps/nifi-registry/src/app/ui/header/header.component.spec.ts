@@ -20,6 +20,13 @@ import { HeaderComponent } from './header.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { NiFiRegistryState } from '../../state';
 import { openAboutDialog } from '../../state/about/about.actions';
+import { selectAbout } from '../../state/about/about.selectors';
+import { aboutFeatureKey } from '../../state/about';
+import { initialState as aboutInitialState } from '../../state/about/about.reducer';
+import { logout } from '../../state/current-user/current-user.actions';
+import { selectCurrentUser, selectLogoutSupported } from '../../state/current-user/current-user.selectors';
+import { currentUserFeatureKey } from '../../state/current-user';
+import { initialState as currentUserInitialState } from '../../state/current-user/current-user.reducer';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
@@ -37,7 +44,15 @@ describe('HeaderComponent', () => {
         TestBed.configureTestingModule({
             imports: [HeaderComponent],
             providers: [
-                provideMockStore(),
+                provideMockStore({
+                    initialState: {
+                        [currentUserFeatureKey]: currentUserInitialState,
+                        [aboutFeatureKey]: aboutInitialState,
+                        error: {
+                            bannerErrors: {}
+                        }
+                    }
+                }),
                 {
                     provide: MatDialog,
                     useValue: matDialogMock
@@ -50,7 +65,12 @@ describe('HeaderComponent', () => {
         store = TestBed.inject(MockStore);
         dialogOpenSpy = matDialogMock.open;
 
+        store.overrideSelector(selectCurrentUser, currentUserInitialState.currentUser);
+        store.overrideSelector(selectLogoutSupported, currentUserInitialState.currentUser.canLogout);
+        store.overrideSelector(selectAbout, aboutInitialState.about);
+
         jest.spyOn(store, 'dispatch');
+        store.refreshState();
         fixture.detectChanges();
     });
 
@@ -62,5 +82,10 @@ describe('HeaderComponent', () => {
         component.viewAbout();
         expect(store.dispatch).toHaveBeenCalledWith(openAboutDialog());
         expect(dialogOpenSpy).not.toHaveBeenCalled();
+    });
+
+    it('should dispatch logout when logout is called', () => {
+        component.logout();
+        expect(store.dispatch).toHaveBeenCalledWith(logout());
     });
 });

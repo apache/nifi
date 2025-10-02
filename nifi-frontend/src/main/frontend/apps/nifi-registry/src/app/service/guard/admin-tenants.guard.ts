@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,28 +15,14 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { BucketsComponent } from './buckets.component';
-import { adminWorkflowActivateGuard } from '../../../service/guard/admin-workflow.guard';
+import { CanActivateFn, CanMatchFn } from '@angular/router';
+import { buildCanActivateGuard, buildCanMatchGuard } from './base-guard.utils';
+import { CurrentUser } from '../../state/current-user';
 
-const routes: Routes = [
-    {
-        path: '',
-        component: BucketsComponent,
-        canActivate: [adminWorkflowActivateGuard],
-        children: [
-            {
-                path: ':id',
-                component: BucketsComponent,
-                canActivate: [adminWorkflowActivateGuard]
-            }
-        ]
-    }
-];
+const canReadTenants = (currentUser: CurrentUser): boolean => {
+    const permissions = currentUser.resourcePermissions;
+    return permissions.tenants.canRead || permissions.anyTopLevelResource.canRead;
+};
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class BucketsRoutingModule {}
+export const adminTenantsGuard: CanMatchFn = buildCanMatchGuard(canReadTenants);
+export const adminTenantsActivateGuard: CanActivateFn = buildCanActivateGuard(canReadTenants);

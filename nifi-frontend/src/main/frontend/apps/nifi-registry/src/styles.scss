@@ -20,6 +20,7 @@
 
 @use 'libs/shared/src/assets/styles/app' as app;
 @use 'app/ui/header/header.component-theme' as header;
+@use 'app/pages/login/feature/login.component-theme' as login;
 
 @use 'font-awesome';
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
@@ -38,10 +39,12 @@ html {
     @include app.generate-material-theme();
     @include listing-table.generate-theme();
     @include header.generate-theme();
+    @include login.generate-theme();
 
     .dark-theme {
         @include app.generate-material-theme();
         @include listing-table.generate-theme();
         @include header.generate-theme();
+        @include login.generate-theme();
     }
 }

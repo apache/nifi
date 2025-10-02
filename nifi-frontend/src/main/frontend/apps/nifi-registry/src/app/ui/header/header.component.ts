@@ -23,6 +23,9 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { DARK_THEME, LIGHT_THEME, OS_SETTING, Storage, ThemingService } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { NiFiRegistryState } from '../../state';
+import { selectCurrentUser, selectLogoutSupported } from '../../state/current-user/current-user.selectors';
+import { logout } from '../../state/current-user/current-user.actions';
+import { CurrentUser } from '../../state/current-user';
 import { loadAbout, openAboutDialog } from '../../state/about/about.actions';
 import { selectAbout } from '../../state/about/about.selectors';
 
@@ -47,6 +50,8 @@ export class HeaderComponent implements OnInit {
     DARK_THEME: string = DARK_THEME;
     OS_SETTING: string = OS_SETTING;
     disableAnimations: string | null;
+    currentUser = this.store.selectSignal(selectCurrentUser);
+    logoutSupported = this.store.selectSignal(selectLogoutSupported);
     about$ = this.store.select(selectAbout);
 
     constructor() {
@@ -89,5 +94,21 @@ export class HeaderComponent implements OnInit {
 
     viewAbout(): void {
         this.store.dispatch(openAboutDialog());
+    }
+
+    allowLogin(user: CurrentUser | null): boolean {
+        if (!user) {
+            return false;
+        }
+
+        return user.anonymous && user.loginSupported;
+    }
+
+    login(): void {
+        this.router.navigateByUrl('/login');
+    }
+
+    logout(): void {
+        this.store.dispatch(logout());
     }
 }

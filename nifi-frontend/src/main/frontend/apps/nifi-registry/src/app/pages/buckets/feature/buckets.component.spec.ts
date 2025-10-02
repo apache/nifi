@@ -25,6 +25,11 @@ import { ContextErrorBanner } from '../../../ui/common/context-error-banner/cont
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
+import { HeaderComponent } from '../../../ui/header/header.component';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { initialState as currentUserInitialState } from '../../../state/current-user/current-user.reducer';
+import { aboutFeatureKey } from '../../../state/about';
+import { initialState as aboutInitialState } from '../../../state/about/about.reducer';
 
 describe('BucketsComponent', () => {
     let component: BucketsComponent;
@@ -38,7 +43,8 @@ describe('BucketsComponent', () => {
                 BucketTableFilterComponent,
                 ContextErrorBanner,
                 MatButtonModule,
-                MatIconModule
+                MatIconModule,
+                HeaderComponent
             ],
             providers: [
                 provideMockStore({
@@ -49,6 +55,8 @@ describe('BucketsComponent', () => {
                                 status: 'pending'
                             }
                         },
+                        [currentUserFeatureKey]: currentUserInitialState,
+                        [aboutFeatureKey]: aboutInitialState,
                         error: {
                             bannerErrors: {}
                         }

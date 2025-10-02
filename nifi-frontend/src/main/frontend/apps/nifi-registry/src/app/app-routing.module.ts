@@ -18,6 +18,15 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { RouteNotFound } from './pages/route-not-found/feature/route-not-found.component';
+import {
+    resourcesGuard,
+    resourcesActivateGuard,
+    adminTenantsGuard,
+    adminTenantsActivateGuard,
+    adminWorkflowGuard,
+    adminWorkflowActivateGuard,
+    loginGuard
+} from './service/guard';
 
 const routes: Routes = [
     {
@@ -26,29 +35,58 @@ const routes: Routes = [
         pathMatch: 'full'
     },
     {
+        path: 'nifi-registry',
+        redirectTo: 'explorer',
+        pathMatch: 'full'
+    },
+    {
+        path: 'login',
+        canActivate: [loginGuard],
+        loadChildren: () => import('./pages/login/feature/login.module').then((m) => m.LoginModule)
+    },
+    {
         path: 'explorer',
-        loadChildren: () => import('./pages/resources/feature/resources.module').then((m) => m.ResourcesModule)
+        loadChildren: () => import('./pages/resources/feature/resources.module').then((m) => m.ResourcesModule),
+        canMatch: [resourcesGuard],
+        canActivate: [resourcesActivateGuard]
     },
     {
         path: 'buckets',
-        loadChildren: () => import('./pages/buckets/feature/buckets.module').then((m) => m.BucketsModule)
+        loadChildren: () => import('./pages/buckets/feature/buckets.module').then((m) => m.BucketsModule),
+        canMatch: [adminWorkflowGuard],
+        canActivate: [adminWorkflowActivateGuard]
     },
     {
         path: 'administration',
         children: [
             {
+                path: '',
+                redirectTo: 'workflow',
+                pathMatch: 'full'
+            },
+            {
                 path: 'workflow',
-                children: [
-                    {
-                        path: '',
-                        redirectTo: '/buckets',
-                        pathMatch: 'full'
-                    }
-                ]
+                canMatch: [adminWorkflowGuard],
+                canActivate: [adminWorkflowActivateGuard],
+                loadChildren: () => import('./pages/buckets/feature/buckets.module').then((m) => m.BucketsModule)
+            },
+            {
+                path: 'users',
+                canMatch: [adminTenantsGuard],
+                canActivate: [adminTenantsActivateGuard],
+                loadChildren: () => import('./pages/buckets/feature/buckets.module').then((m) => m.BucketsModule)
             }
         ]
     },
-    // TODO: Users/groups
+    {
+        path: 'explorer/grid-list',
+        redirectTo: 'explorer',
+        pathMatch: 'full'
+    },
+    {
+        path: 'explorer/grid-list/**',
+        redirectTo: 'explorer'
+    },
     {
         path: '**',
         component: RouteNotFound
