@@ -559,19 +559,15 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     throw new NiFiCoreException(ise.getMessage(), ise);
                 } catch (RejectedExecutionException ree) {
                     throw new NiFiCoreException("Unable to schedule all tasks for the specified processor.", ree);
-                } catch (NullPointerException npe) {
-                    throw new NiFiCoreException("Unable to update processor run state.", npe);
                 } catch (Exception e) {
-                    throw new NiFiCoreException("Unable to update processor run state: " + e, e);
+                    throw new NiFiCoreException("Unable to update processor [%s] run state: %s".formatted(processor, e), e);
                 }
             } else if  (purposedScheduledState == ScheduledState.STOPPED && processor.getPhysicalScheduledState() == ScheduledState.STARTING) {
                 // Handle special case: allow stopping a processor that's physically starting
                 try {
                     parentGroup.stopProcessor(processor);
-                } catch (NullPointerException npe) {
-                    throw new NiFiCoreException("Unable to stop starting processor.", npe);
                 } catch (Exception e) {
-                    throw new NiFiCoreException("Unable to stop starting processor: " + e, e);
+                    throw new NiFiCoreException("Unable to stop starting processor [%s]: %s".formatted(processor, e), e);
                 }
             }
         }
