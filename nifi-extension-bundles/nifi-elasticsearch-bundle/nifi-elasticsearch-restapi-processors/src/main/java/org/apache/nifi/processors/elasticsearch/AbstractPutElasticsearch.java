@@ -32,6 +32,7 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -77,8 +78,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .build();
 
     static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
-            .name("put-es-output-error-responses")
-            .displayName("Output Error Responses")
+            .name("Output Error Responses")
             .description("If this is enabled, response messages from Elasticsearch marked as \"error\" will be output to the \"" + REL_ERROR_RESPONSES.getName() + "\" relationship." +
                     "This does not impact the output of flowfiles to the \"" + REL_SUCCESSFUL.getName() + "\" or \"" + REL_ERRORS.getName() + "\" relationships")
             .allowableValues("true", "false")
@@ -87,8 +87,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("put-es-record-batch-size")
-            .displayName("Batch Size")
+            .name("Batch Size")
             .description("The preferred number of FlowFiles to send over in a single batch")
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -97,8 +96,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .build();
 
     public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
-            .name("put-es-record-index-op")
-            .displayName("Index Operation")
+            .name("Index Operation")
             .description("The type of the operation used to index (create, delete, index, update, upsert)")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -107,8 +105,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .build();
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
-            .name("put-es-not_found-is-error")
-            .displayName("Treat \"Not Found\" as Success")
+            .name("Treat Not Found as Success")
             .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
                     REL_SUCCESSFUL.getName() + "\" relationship, otherwise to the \"" + REL_ERRORS.getName() + "\" relationship. " +
                     "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
@@ -141,6 +138,15 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     @Override
     public Set<Relationship> getRelationships() {
         return relationships.get();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        ElasticsearchRestProcessor.super.migrateProperties(config);
+        config.renameProperty("put-es-output-error-responses", OUTPUT_ERROR_RESPONSES.getName());
+        config.renameProperty("put-es-record-batch-size", BATCH_SIZE.getName());
+        config.renameProperty("put-es-record-index-op", INDEX_OP.getName());
+        config.renameProperty("put-es-not_found-is-error", NOT_FOUND_IS_SUCCESSFUL.getName());
     }
 
     @Override

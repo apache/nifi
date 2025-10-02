@@ -38,6 +38,7 @@ import org.apache.nifi.elasticsearch.ElasticsearchRequestOptions;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -96,8 +97,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
     );
 
     public static final PropertyDescriptor ID = new PropertyDescriptor.Builder()
-            .name("get-es-id")
-            .displayName("Document Id")
+            .name("Document Id")
             .description("The _id of the document to retrieve.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -105,8 +105,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             .build();
 
     static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
-            .name("get-es-destination")
-            .displayName("Destination")
+            .name("Destination")
             .description("Indicates whether the retrieved document is written to the FlowFile content or a FlowFile attribute.")
             .required(true)
             .allowableValues(FLOWFILE_CONTENT, FLOWFILE_ATTRIBUTE)
@@ -114,8 +113,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             .build();
 
     static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-            .name("get-es-attribute-name")
-            .displayName("Attribute Name")
+            .name("Attribute Name")
             .description("The name of the FlowFile attribute to use for the retrieved document output.")
             .required(true)
             .defaultValue("elasticsearch.doc")
@@ -134,8 +132,15 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
 
     public static final String VERIFICATION_STEP_DOCUMENT_EXISTS = "Elasticsearch Document Exists";
 
-    static final List<PropertyDescriptor> DESCRIPTORS =
-            List.of(ID, INDEX, TYPE, DESTINATION, ATTRIBUTE_NAME, CLIENT_SERVICE);
+    static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            ID,
+            INDEX,
+            TYPE,
+            DESTINATION,
+            ATTRIBUTE_NAME,
+            CLIENT_SERVICE
+    );
+
     static final Set<Relationship> RELATIONSHIPS = Set.of(REL_DOC, REL_FAILURE, REL_RETRY, REL_NOT_FOUND);
 
     private ObjectMapper mapper;
@@ -281,8 +286,16 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        ElasticsearchRestProcessor.super.migrateProperties(config);
+        config.renameProperty("get-es-id", ID.getName());
+        config.renameProperty("get-es-destination", DESTINATION.getName());
+        config.renameProperty("get-es-attribute-name", ATTRIBUTE_NAME.getName());
+    }
+
     private void handleElasticsearchException(final ElasticsearchException ese, FlowFile input, final ProcessSession session,
-                                               final String index, final String type, final String id) {
+                                              final String index, final String type, final String id) {
         if (ese.isNotFound()) {
             if (input != null) {
                 session.transfer(input, REL_NOT_FOUND);
