@@ -248,7 +248,6 @@ export class ControllerServiceTable {
     }
 
     deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
         this.deleteControllerService.next(entity);
     }
 
