@@ -27,32 +27,31 @@ nifi-registry.properties is located in nifi-registry/nifi-registry-assembly/targ
 
 For running a NiFi Registry on localhost, you should already have test keys and certs in your locally built clone of the nifi registry source code repository:
 
-    /path/to/nifi-registry/nifi-registry-web-api/src/test/resources/keys/
-      +-- localhost-ks.jks
-      +-- localhost-ts.jks
+    /path/to/nifi/nifi-registry/nifi-registry-core/nifi-registry-web-api/src/test/resources/keys
+      +-- registry-ks.jks
+      +-- ca-ts.jks
 
 You need to copy those files into nifi-registry/nifi-registry-assembly/target/nifi-registry-2.7.0-SNAPSHOT-bin/nifi-registry-2.7.0-SNAPSHOT/conf/.
 
 The NiFi Registry Server will need to know about the key store, which has its key/cert pair, and the trust store, which has the certificate for the root CA that generated the key/cert pair. To configure this, set the following properties in your nifi-registry.properties file:
 
     nifi.registry.web.https.host=localhost
-    nifi.registry.web.https.port=8443
+    nifi.registry.web.https.port=18443
 
-    nifi.registry.security.keystore=/path/to/nifi-registry/nifi-registry-web-api/src/test/resources/keys/localhost-ks.jks
+    nifi.registry.security.keystore=./conf/registry-ks.jks
     nifi.registry.security.keystoreType=JKS
-    nifi.registry.security.keystorePasswd=localhostKeystorePassword
-    nifi.registry.security.keyPasswd=localhostKeystorePassword
-    nifi.registry.security.truststore=/path/to/nifi-registry/nifi-registry-web-api/src/test/resources/keys/localhost-ts.jks
+    nifi.registry.security.keystorePasswd=password
+    nifi.registry.security.keyPasswd=password
+    nifi.registry.security.truststore=./conf/ca-ts.jks
     nifi.registry.security.truststoreType=JKS
-    nifi.registry.security.truststorePasswd=localhostTruststorePassword
+    nifi.registry.security.truststorePasswd=password
     nifi.registry.security.needClientAuth=false
-
     nifi.registry.security.authorizers.configuration.file=./conf/authorizers.xml
     nifi.registry.security.authorizer=managed-authorizer
     nifi.registry.security.identity.providers.configuration.file=./conf/identity-providers.xml
     nifi.registry.security.identity.provider=ldap-identity-provider
 
-This will make the NiFi Registry available at https://localhost:8443.
+This will make the NiFi Registry available at https://localhost:18443.
 
 Now stop any running nifi registy you have running locally. In nifi-registry/nifi-registry-assembly/target/nifi-registry-2.7.0-SNAPSHOT-bin/nifi-registry-2.7.0-SNAPSHOT/conf/ update the authorizers.xml and identity-providers.xml with the following:
 
