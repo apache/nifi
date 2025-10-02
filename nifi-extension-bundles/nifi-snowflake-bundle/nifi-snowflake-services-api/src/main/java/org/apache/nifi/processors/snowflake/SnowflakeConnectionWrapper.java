@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import net.snowflake.client.jdbc.SnowflakeConnection;
 import net.snowflake.ingest.internal.net.snowflake.client.jdbc.SnowflakeConnectionV1;
 
 import java.sql.Connection;
