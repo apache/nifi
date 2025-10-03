@@ -57,6 +57,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -313,13 +314,13 @@ public class DataTypeUtils {
             case TIME -> isTimeTypeCompatible(value, dataType.getFormat());
             case TIMESTAMP -> isTimestampTypeCompatible(value, dataType.getFormat());
             case STRING -> isStringTypeCompatible(value);
+            case UUID -> isUUIDTypeCompatible(value);
             case ENUM -> isEnumTypeCompatible(value, (EnumDataType) dataType);
             case MAP -> isMapTypeCompatible(value);
             case CHOICE -> {
                 final DataType chosenDataType = chooseDataType(value, (ChoiceDataType) dataType);
                 yield chosenDataType != null;
             }
-            default -> false;
         };
     }
 
@@ -716,12 +717,12 @@ public class DataTypeUtils {
                 childValue = ((Map) value).get(childField.getFieldName());
             }
 
-            if (childValue == null && !childField.isNullable()) {
-                logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                return false;
-            }
             if (childValue == null) {
-                continue; // consider compatible
+                if (strict && !childField.isNullable()) {
+                    logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema under strict validation", childField.getFieldName());
+                    return false;
+                }
+                continue; // consider compatible and rely on downstream validation
             }
 
             if (!isCompatibleDataType(childValue, childField.getDataType(), strict)) {
@@ -1143,7 +1144,29 @@ public class DataTypeUtils {
         return new Date(zdtUTC.toInstant().toEpochMilli());
     }
 
+    private static final DateTimeFormatter[] DEFAULT_DATE_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_OFFSET_DATE.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_DATE.withResolverStyle(ResolverStyle.STRICT)
+    };
+
+    private static final DateTimeFormatter[] DEFAULT_TIME_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_LOCAL_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_OFFSET_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_TIME.withResolverStyle(ResolverStyle.STRICT)
+    };
+
+    private static final DateTimeFormatter[] DEFAULT_DATETIME_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_INSTANT.withResolverStyle(ResolverStyle.STRICT)
+    };
+
     public static boolean isDateTypeCompatible(final Object value, final String format) {
+        return isDateTypeCompatible(value, format, true);
+    }
+
+    public static boolean isDateTypeCompatible(final Object value, final String format, final boolean allowDefaultFormats) {
         if (value == null) {
             return false;
         }
@@ -1152,17 +1175,87 @@ public class DataTypeUtils {
             return true;
         }
 
-        if (value instanceof String) {
-            if (format == null) {
-                return isInteger((String) value);
-            }
-
-            try {
-                DateTimeFormatter.ofPattern(format).parse(value.toString());
-                return true;
-            } catch (final DateTimeParseException e) {
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
                 return false;
             }
+
+            if (format != null && !format.isBlank()) {
+                return isParsable(trimmed, DateTimeFormatter.ofPattern(format).withResolverStyle(ResolverStyle.STRICT));
+            }
+
+            if (!allowDefaultFormats) {
+                return isInteger(trimmed);
+            }
+
+            return isParsable(trimmed, DEFAULT_DATE_FORMATTERS);
+        }
+
+        return false;
+    }
+
+    public static boolean isTimeTypeCompatible(final Object value, final String format) {
+        return isTimeTypeCompatible(value, format, true);
+    }
+
+    public static boolean isTimeTypeCompatible(final Object value, final String format, final boolean allowDefaultFormats) {
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof java.util.Date || value instanceof Number) {
+            return true;
+        }
+
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
+                return false;
+            }
+
+            if (format != null && !format.isBlank()) {
+                return isParsable(trimmed, DateTimeFormatter.ofPattern(format).withResolverStyle(ResolverStyle.STRICT));
+            }
+
+            if (!allowDefaultFormats) {
+                return isInteger(trimmed);
+            }
+
+            return isParsable(trimmed, DEFAULT_TIME_FORMATTERS);
+        }
+
+        return false;
+    }
+
+    public static boolean isTimestampTypeCompatible(final Object value, final String format) {
+        return isTimestampTypeCompatible(value, format, true);
+    }
+
+    public static boolean isTimestampTypeCompatible(final Object value, final String format, final boolean allowDefaultFormats) {
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof java.util.Date || value instanceof Number) {
+            return true;
+        }
+
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
+                return false;
+            }
+
+            if (format != null && !format.isBlank()) {
+                return isParsable(trimmed, DateTimeFormatter.ofPattern(format).withResolverStyle(ResolverStyle.STRICT));
+            }
+
+            if (!allowDefaultFormats) {
+                return isInteger(trimmed);
+            }
+
+            return isParsable(trimmed, DEFAULT_DATETIME_FORMATTERS);
         }
 
         return false;
@@ -1182,12 +1275,50 @@ public class DataTypeUtils {
         return true;
     }
 
-    public static boolean isTimeTypeCompatible(final Object value, final String format) {
-        return isDateTypeCompatible(value, format);
+    private static boolean isParsable(final String value, final DateTimeFormatter... formatters) {
+        for (final DateTimeFormatter formatter : formatters) {
+            try {
+                formatter.parse(value);
+                return true;
+            } catch (final DateTimeParseException e) {
+                continue;
+            }
+        }
+        return false;
     }
 
-    public static boolean isTimestampTypeCompatible(final Object value, final String format) {
-        return isDateTypeCompatible(value, format);
+    public static boolean isUUIDTypeCompatible(final Object value) {
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof UUID) {
+            return true;
+        }
+
+        if (value instanceof byte[] bytes) {
+            return bytes.length == 16;
+        }
+
+        if (value instanceof Byte[] array) {
+            return array.length == 16;
+        }
+
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
+                return false;
+            }
+
+            try {
+                UUID.fromString(trimmed);
+                return true;
+            } catch (final IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     public static BigInteger toBigInt(final Object value, final String fieldName) {

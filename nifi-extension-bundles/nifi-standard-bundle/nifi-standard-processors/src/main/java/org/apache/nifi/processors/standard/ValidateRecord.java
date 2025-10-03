@@ -65,6 +65,7 @@ import org.apache.nifi.serialization.record.validation.ValidationError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -317,6 +318,7 @@ public class ValidateRecord extends AbstractProcessor {
             final Set<String> missingFields = new HashSet<>();
             final Set<String> invalidFields = new HashSet<>();
             final Set<String> otherProblems = new HashSet<>();
+            final List<String> recordErrorDetails = new ArrayList<>();
 
             try {
                 Record record;
@@ -349,6 +351,7 @@ public class ValidateRecord extends AbstractProcessor {
                             // Add all of the validation errors to our Set<ValidationError> but only keep up to MAX_VALIDATION_ERRORS because if
                             // we keep too many then we both use up a lot of heap and risk outputting so much information in the Provenance Event
                             // that it is too noisy to be useful.
+                            final List<String> perRecordMessages = new ArrayList<>();
                             for (final ValidationError validationError : result.getValidationErrors()) {
                                 final Optional<String> fieldName = validationError.getFieldName();
 
@@ -378,6 +381,16 @@ public class ValidateRecord extends AbstractProcessor {
                                         otherProblems.add(validationError.getExplanation());
                                         break;
                                 }
+
+                                final StringBuilder detailBuilder = new StringBuilder();
+                                fieldName.ifPresent(fn -> detailBuilder.append(fn).append(" - "));
+                                detailBuilder.append(validationError.getExplanation());
+                                perRecordMessages.add(detailBuilder.toString());
+                            }
+
+                            if (!perRecordMessages.isEmpty()) {
+                                final String recordDetail = "Record #" + recordCount + ": " + String.join("; ", perRecordMessages);
+                                recordErrorDetails.add(recordDetail);
                             }
 
                             writeRecord(invalidWriter, record);
@@ -390,38 +403,28 @@ public class ValidateRecord extends AbstractProcessor {
                 }
 
                 if (invalidWriter != null) {
-                    // Build up a String that explains why the records were invalid, so that we can add this to the Provenance Event.
-                    final StringBuilder errorBuilder = new StringBuilder();
-                    errorBuilder.append("Records in this FlowFile were invalid for the following reasons: ");
+                    final StringBuilder errorBuilder = new StringBuilder("Records in this FlowFile were invalid.");
+
+                    if (!recordErrorDetails.isEmpty()) {
+                        errorBuilder.append(" Details by record: ").append(String.join(" | ", recordErrorDetails));
+                    }
+
+                    final List<String> summaryParts = new ArrayList<>();
                     if (!missingFields.isEmpty()) {
-                        errorBuilder.append("The following ").append(missingFields.size()).append(" fields were missing: ").append(missingFields.toString());
+                        summaryParts.add("Missing fields (" + missingFields.size() + "): " + missingFields);
                     }
-
                     if (!extraFields.isEmpty()) {
-                        if (!errorBuilder.isEmpty()) {
-                            errorBuilder.append("; ");
-                        }
-
-                        errorBuilder.append("The following ").append(extraFields.size())
-                            .append(" fields were present in the Record but not in the schema: ").append(extraFields.toString());
+                        summaryParts.add("Unexpected fields (" + extraFields.size() + "): " + extraFields);
                     }
-
                     if (!invalidFields.isEmpty()) {
-                        if (!errorBuilder.isEmpty()) {
-                            errorBuilder.append("; ");
-                        }
-
-                        errorBuilder.append("The following ").append(invalidFields.size())
-                            .append(" fields had values whose type did not match the schema: ").append(invalidFields.toString());
+                        summaryParts.add("Fields with invalid values (" + invalidFields.size() + "): " + invalidFields);
+                    }
+                    if (!otherProblems.isEmpty()) {
+                        summaryParts.add("Other issues (" + otherProblems.size() + "): " + otherProblems);
                     }
 
-                    if (!otherProblems.isEmpty()) {
-                        if (!errorBuilder.isEmpty()) {
-                            errorBuilder.append("; ");
-                        }
-
-                        errorBuilder.append("The following ").append(otherProblems.size())
-                            .append(" additional problems were encountered: ").append(otherProblems.toString());
+                    if (!summaryParts.isEmpty()) {
+                        errorBuilder.append(" Summary: ").append(String.join(" ; ", summaryParts));
                     }
 
                     final String validationErrorString = errorBuilder.toString();
