@@ -175,6 +175,8 @@ public class InvokeHTTP extends AbstractProcessor {
     private static final Pattern FORM_DATA_NAME_PARAMETER_PATTERN = Pattern.compile("post:form:(?<formDataName>.*)$");
     private static final String FORM_DATA_NAME_GROUP = "formDataName";
 
+    private static final List<HttpMethod> HTTP_METHOD_VALUES = List.of(HttpMethod.values());
+
     private static final Set<String> IGNORED_REQUEST_ATTRIBUTES = Set.of(
             STATUS_CODE,
             STATUS_MESSAGE,
@@ -1319,7 +1321,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private Optional<HttpMethod> findRequestMethod(String method) {
-        return Arrays.stream(HttpMethod.values())
+        return HTTP_METHOD_VALUES.stream()
                 .filter(httpMethod -> httpMethod.name().equals(method))
                 .findFirst();
     }
