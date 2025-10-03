@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -183,13 +182,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         final List<String> baseUrls = getBaseURLs(context);
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-        final SSLContext sslContext;
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
-        if (sslContextProvider == null) {
-            sslContext = null;
-        } else {
-            sslContext = sslContextProvider.createContext();
-        }
 
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
@@ -206,7 +199,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
                         );
 
         final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis,
-                sslContext, username, password, getLogger(), httpHeaders);
+                sslContextProvider, username, password, getLogger(), httpHeaders);
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
