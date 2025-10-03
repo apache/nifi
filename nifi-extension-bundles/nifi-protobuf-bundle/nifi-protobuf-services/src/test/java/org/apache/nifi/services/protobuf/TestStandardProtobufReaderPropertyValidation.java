@@ -84,6 +84,62 @@ class TestStandardProtobufReaderPropertyValidation extends StandardProtobufReade
             enableAllControllerServices();
             runner.assertValid(standardProtobufReader);
         }
+
+        @Test
+        void testInvalidSchemaTextFormat() {
+            runner.setProperty(standardProtobufReader, SCHEMA_TEXT, "invalid protobuf schema");
+            final ValidationResult invalidResult = verifyExactlyOneValidationError();
+
+            assertTrue(invalidResult.getExplanation().contains("Invalid protobuf schema format"));
+        }
+
+        @Test
+        void testInvalidMessageNameInSchema() {
+            final String validProtobufSchema = """
+                syntax = "proto3";
+                package test;
+                message Person {
+                  string name = 1;
+                  int32 age = 2;
+                }
+                """;
+
+            runner.setProperty(standardProtobufReader, SCHEMA_TEXT, validProtobufSchema);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME, "test.NonExistentMessage");
+
+            final ValidationResult invalidResult = verifyExactlyOneValidationError();
+
+            assertTrue(invalidResult.getExplanation().contains("test.NonExistentMessage"));
+        }
+
+        @Test
+        void testValidMessageNameInSchema() {
+            final String validProtobufSchema = """
+                syntax = "proto3";
+                package test;
+                message Person {
+                  string name = 1;
+                  int32 age = 2;
+                }
+                """;
+
+            runner.setProperty(standardProtobufReader, SCHEMA_TEXT, validProtobufSchema);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME, "test.Person");
+
+            runner.assertValid(standardProtobufReader);
+        }
+
+        @Test
+        void testSkipValidationWhenExpressionLanguagePresent() {
+            runner.setProperty(standardProtobufReader, SCHEMA_TEXT, "${invalid.protobuf.schema}");
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME_RESOLUTION_STRATEGY, MESSAGE_NAME_PROPERTY);
+            runner.setProperty(standardProtobufReader, MESSAGE_NAME, "${message.name}");
+
+            // Should be valid because expression language is present
+            runner.assertValid(standardProtobufReader);
+        }
     }
 
     @Nested
