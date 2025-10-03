@@ -29,10 +29,12 @@ import java.util.Set;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
 public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
     public static final String GCP_OPERATION_KEY = "operationKey";
@@ -80,6 +82,11 @@ public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
             getLogger().error("Failed to create vision client.", e);
             throw new ProcessException("Failed to create vision client.", e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GCP_CREDENTIALS_PROVIDER_SERVICE.getName());
     }
 
     protected ImageAnnotatorClient getVisionClient() {

@@ -30,6 +30,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.graph.GraphClientService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -72,8 +73,7 @@ import java.util.stream.Collectors;
 public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("client-service")
-            .displayName("Client Service")
+            .name("Client Service")
             .description("The graph client service for connecting to a graph database.")
             .identifiesControllerService(GraphClientService.class)
             .addValidator(Validator.VALID)
@@ -81,8 +81,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             .build();
 
     public static final PropertyDescriptor READER_SERVICE = new PropertyDescriptor.Builder()
-            .name("reader-service")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("The record reader to use with this processor.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
@@ -90,8 +89,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             .build();
 
     public static final PropertyDescriptor WRITER_SERVICE = new PropertyDescriptor.Builder()
-            .name("writer-service")
-            .displayName("Failed Record Writer")
+            .name("Failed Record Writer")
             .description("The record writer to use for writing failed records.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
@@ -99,8 +97,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             .build();
 
     public static final PropertyDescriptor SUBMISSION_SCRIPT = new PropertyDescriptor.Builder()
-            .name("record-script")
-            .displayName("Graph Record Script")
+            .name("Graph Record Script")
             .description("Script to perform the business logic on graph, using flow file attributes and custom properties " +
                     "as variable-value pairs in its logic.")
             .required(true)
@@ -169,6 +166,14 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         recordReaderFactory = context.getProperty(READER_SERVICE).asControllerService(RecordReaderFactory.class);
         recordSetWriterFactory = context.getProperty(WRITER_SERVICE).asControllerService(RecordSetWriterFactory.class);
         recordPathCache = new RecordPathCache(100);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("client-service", CLIENT_SERVICE.getName());
+        config.renameProperty("reader-service", READER_SERVICE.getName());
+        config.renameProperty("writer-service", WRITER_SERVICE.getName());
+        config.renameProperty("record-script", SUBMISSION_SCRIPT.getName());
     }
 
     private Object getRecordValue(Record record, RecordPath recordPath) {
