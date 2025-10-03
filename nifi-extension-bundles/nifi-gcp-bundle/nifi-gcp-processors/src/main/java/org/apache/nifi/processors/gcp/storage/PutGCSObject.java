@@ -37,6 +37,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -147,8 +148,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 })
 public class PutGCSObject extends AbstractGCSProcessor {
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
-        .name("gcs-bucket")
-        .displayName("Bucket")
+        .name("Bucket")
         .description(BUCKET_DESC)
         .required(true)
         .defaultValue("${" + BUCKET_ATTR + "}")
@@ -157,8 +157,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
         .build();
 
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
-        .name("gcs-key")
-        .displayName("Key")
+        .name("Key")
         .description(KEY_DESC)
         .required(true)
         .defaultValue("${filename}")
@@ -167,8 +166,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
         .build();
 
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
-        .name("gcs-content-type")
-        .displayName("Content Type")
+        .name("Content Type")
         .description("Content Type for the file, i.e. text/plain")
         .defaultValue("${mime.type}")
         .required(false)
@@ -178,8 +176,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
 
 
     public static final PropertyDescriptor CRC32C = new PropertyDescriptor.Builder()
-        .name("gcs-object-crc32c")
-        .displayName("CRC32C Checksum")
+        .name("CRC32C Checksum")
         .description("CRC32C Checksum (encoded in Base64, big-Endian order) of the file for server-side validation.")
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -187,8 +184,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
         .build();
 
     public static final PropertyDescriptor GZIPCONTENT = new PropertyDescriptor.Builder()
-        .name("gzip.content.enabled")
-        .displayName("GZIP Compression Enabled")
+        .name("GZIP Compression Enabled")
         .description("Signals to the GCS Blob Writer whether GZIP compression during transfer is desired. " +
             "False means do not gzip and can boost performance in many cases.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -236,8 +232,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
     );
 
     public static final PropertyDescriptor ACL = new PropertyDescriptor.Builder()
-            .name("gcs-object-acl")
-            .displayName("Object ACL")
+            .name("Object ACL")
             .description("Access Control to be attached to the object uploaded. Not providing this will revert to bucket defaults.")
             .required(false)
             .allowableValues(
@@ -251,8 +246,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor ENCRYPTION_KEY = new PropertyDescriptor.Builder()
-            .name("gcs-server-side-encryption-key")
-            .displayName("Server Side Encryption Key")
+            .name("Server Side Encryption Key")
             .description("An AES256 Encryption Key (encoded in base64) for server-side encryption of the object.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -262,8 +256,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
 
 
     public static final PropertyDescriptor OVERWRITE = new PropertyDescriptor.Builder()
-            .name("gcs-overwrite-object")
-            .displayName("Overwrite Object")
+            .name("Overwrite Object")
             .description("If false, the upload to GCS will succeed only if the object does not exist.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -281,8 +274,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
     );
 
     public static final PropertyDescriptor CONTENT_DISPOSITION_TYPE = new PropertyDescriptor.Builder()
-            .name("gcs-content-disposition-type")
-            .displayName("Content Disposition Type")
+            .name("Content Disposition Type")
             .description("Type of RFC-6266 Content Disposition to be attached to the object")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -311,6 +303,20 @@ public class PutGCSObject extends AbstractGCSProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("gcs-bucket", BUCKET.getName());
+        config.renameProperty("gcs-key", KEY.getName());
+        config.renameProperty("gcs-content-type", CONTENT_TYPE.getName());
+        config.renameProperty("gcs-object-crc32c", CRC32C.getName());
+        config.renameProperty("gzip.content.enabled", GZIPCONTENT.getName());
+        config.renameProperty("gcs-object-acl", ACL.getName());
+        config.renameProperty("gcs-server-side-encryption-key", ENCRYPTION_KEY.getName());
+        config.renameProperty("gcs-overwrite-object", OVERWRITE.getName());
+        config.renameProperty("gcs-content-disposition-type", CONTENT_DISPOSITION_TYPE.getName());
     }
 
     @Override

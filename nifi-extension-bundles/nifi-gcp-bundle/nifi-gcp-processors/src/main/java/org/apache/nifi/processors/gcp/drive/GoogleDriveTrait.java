@@ -48,12 +48,13 @@ public interface GoogleDriveTrait {
     String DRIVE_SHORTCUT_MIME_TYPE = "application/vnd.google-apps.shortcut";
     String DRIVE_URL = "https://drive.google.com/open?id=";
     String APPLICATION_NAME = "NiFi";
+    String OLD_CONNECT_TIMEOUT_PROPERTY_NAME = "connect-timeout";
+    String OLD_READ_TIMEOUT_PROPERTY_NAME = "read-timeout";
 
     JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("connect-timeout")
-            .displayName("Connect Timeout")
+            .name("Connect Timeout")
             .description("Maximum wait time for connection to Google Drive service.")
             .required(true)
             .defaultValue("20 sec")
@@ -62,8 +63,7 @@ public interface GoogleDriveTrait {
             .build();
 
     PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("read-timeout")
-            .displayName("Read Timeout")
+            .name("Read Timeout")
             .description("Maximum wait time for response from Google Drive service.")
             .required(true)
             .defaultValue("60 sec")

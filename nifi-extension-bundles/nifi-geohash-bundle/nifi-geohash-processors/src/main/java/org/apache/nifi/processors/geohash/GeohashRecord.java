@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -89,8 +90,7 @@ public class GeohashRecord extends AbstractProcessor {
     }
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
-            .name("mode")
-            .displayName("Mode")
+            .name("Mode")
             .description("Specifies whether to encode latitude/longitude to geohash or decode geohash to latitude/longitude")
             .required(true)
             .allowableValues(ProcessingMode.values())
@@ -98,8 +98,7 @@ public class GeohashRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor ROUTING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("routing-strategy")
-            .displayName("Routing Strategy")
+            .name("Routing Strategy")
             .description("Specifies how to route flowfiles after encoding or decoding being performed. "
                     + "SKIP will enrich those records that can be enriched and skip the rest. "
                     + "The SKIP strategy will route a flowfile to failure only if unable to parse the data. "
@@ -114,24 +113,21 @@ public class GeohashRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the record reader service to use for reading incoming data")
             .required(true)
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the record writer service to use for writing data")
             .required(true)
             .identifiesControllerService(RecordSetWriterFactory.class)
             .build();
 
     public static final PropertyDescriptor LATITUDE_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("latitude-record-path")
-            .displayName("Latitude Record Path")
+            .name("Latitude Record Path")
             .description("In the ENCODE mode, this property specifies the record path to retrieve the latitude values. "
                     + "Latitude values should be in the range of [-90, 90]; invalid values will be logged at warn level. "
                     + "In the DECODE mode, this property specifies the record path to put the latitude value")
@@ -141,8 +137,7 @@ public class GeohashRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor LONGITUDE_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("longitude-record-path")
-            .displayName("Longitude Record Path")
+            .name("Longitude Record Path")
             .description("In the ENCODE mode, this property specifies the record path to retrieve the longitude values; "
                     + "Longitude values should be in the range of [-180, 180]; invalid values will be logged at warn level. "
                     + "In the DECODE mode, this property specifies the record path to put the longitude value")
@@ -152,8 +147,7 @@ public class GeohashRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor GEOHASH_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("geohash-record-path")
-            .displayName("Geohash Record Path")
+            .name("Geohash Record Path")
             .description("In the ENCODE mode, this property specifies the record path to put the geohash value; "
                     + "in the DECODE mode, this property specifies the record path to retrieve the geohash value")
             .required(true)
@@ -162,8 +156,7 @@ public class GeohashRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor GEOHASH_FORMAT = new PropertyDescriptor.Builder()
-            .name("geohash-format")
-            .displayName("Geohash Format")
+            .name("Geohash Format")
             .description("In the ENCODE mode, this property specifies the desired format for encoding geohash; "
                     + "in the DECODE mode, this property specifies the format of geohash provided")
             .required(true)
@@ -172,8 +165,7 @@ public class GeohashRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor GEOHASH_LEVEL = new PropertyDescriptor.Builder()
-            .name("geohash-level")
-            .displayName("Geohash Level")
+            .name("Geohash Level")
             .description("The integer precision level(1-12) desired for encoding geohash")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(1, 12, true))
@@ -374,6 +366,19 @@ public class GeohashRecord extends AbstractProcessor {
 
         //Transfer Flowfiles by routing strategy
         routingStrategyExecutor.transferFlowFiles(session, input, output, notMatched);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("mode", MODE.getName());
+        config.renameProperty("routing-strategy", ROUTING_STRATEGY.getName());
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("latitude-record-path", LATITUDE_RECORD_PATH.getName());
+        config.renameProperty("longitude-record-path", LONGITUDE_RECORD_PATH.getName());
+        config.renameProperty("geohash-record-path", GEOHASH_RECORD_PATH.getName());
+        config.renameProperty("geohash-format", GEOHASH_FORMAT.getName());
+        config.renameProperty("geohash-level", GEOHASH_LEVEL.getName());
     }
 
     private interface RoutingStrategyExecutor {

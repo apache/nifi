@@ -272,8 +272,8 @@ public class PutBigQueryTest {
 
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, iteration);
 
-        runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(0).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(entityCountFirst));
-        runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(1).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(entityCountSecond));
+        runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(0).assertAttributeEquals(PutBigQuery.JOB_NB_RECORDS_ATTR, Integer.toString(entityCountFirst));
+        runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(1).assertAttributeEquals(PutBigQuery.JOB_NB_RECORDS_ATTR, Integer.toString(entityCountSecond));
     }
 
     @Test

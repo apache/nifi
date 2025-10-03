@@ -29,6 +29,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -52,9 +53,9 @@ import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_BIGQU
  */
 public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryOptions> implements VerifiableProcessor  {
 
-    static final int BUFFER_SIZE = 65536;
-
     private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("bigquery.tables.updateData");
+    private static final String DATASET_ATTR = "Dataset";
+    private static final String TABLE_NAME_ATTR = "Table Name";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to this relationship after a successful Google BigQuery operation.")
@@ -69,38 +70,33 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     );
 
     public static final PropertyDescriptor DATASET = new PropertyDescriptor.Builder()
-            .name(BigQueryAttributes.DATASET_ATTR)
-            .displayName("Dataset")
-            .description(BigQueryAttributes.DATASET_DESC)
+            .name(DATASET_ATTR)
+            .description("BigQuery dataset name (Note - The dataset must exist in GCP)")
             .required(true)
-            .defaultValue("${" + BigQueryAttributes.DATASET_ATTR + "}")
+            .defaultValue("${" + DATASET_ATTR + "}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name(BigQueryAttributes.TABLE_NAME_ATTR)
-            .displayName("Table Name")
-            .description(BigQueryAttributes.TABLE_NAME_DESC)
+            .name(TABLE_NAME_ATTR)
+            .description("BigQuery table name")
             .required(true)
-            .defaultValue("${" + BigQueryAttributes.TABLE_NAME_ATTR + "}")
+            .defaultValue("${" + TABLE_NAME_ATTR + "}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor IGNORE_UNKNOWN = new PropertyDescriptor.Builder()
-            .name(BigQueryAttributes.IGNORE_UNKNOWN_ATTR)
-            .displayName("Ignore Unknown Values")
-            .description(BigQueryAttributes.IGNORE_UNKNOWN_DESC)
-            .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("false")
             .build();
 
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("bq.dataset", DATASET.getName());
+        config.renameProperty("bq.table.name", TABLE_NAME.getName());
     }
 
     @Override

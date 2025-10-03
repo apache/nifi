@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -48,8 +49,7 @@ import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PUBSU
 public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor implements VerifiableProcessor {
 
     public static final PropertyDescriptor BATCH_SIZE_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("gcp-pubsub-publish-batch-size")
-            .displayName("Batch Size Threshold")
+            .name("Batch Size Threshold")
             .description("Indicates the number of messages the cloud service should bundle together in a batch. If not set and left empty, only one message " +
                     "will be used in a batch")
             .required(true)
@@ -58,8 +58,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
             .build();
 
     public static final PropertyDescriptor BATCH_BYTES_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("gcp-batch-bytes")
-            .displayName("Batch Bytes Threshold")
+            .name("Batch Bytes Threshold")
             .description("Publish request gets triggered based on this Batch Bytes Threshold property and"
                     + " the " + BATCH_SIZE_THRESHOLD.getDisplayName() + " property, whichever condition is met first.")
             .required(true)
@@ -69,8 +68,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
             .build();
 
     public static final PropertyDescriptor BATCH_DELAY_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("gcp-pubsub-publish-batch-delay")
-            .displayName("Batch Delay Threshold")
+            .name("Batch Delay Threshold")
             .description("Indicates the delay threshold to use for batching. After this amount of time has elapsed " +
                     "(counting from the first element added), the elements will be wrapped up in a batch and sent. " +
                     "This value should not be set too high, usually on the order of milliseconds. Otherwise, calls " +
@@ -80,9 +78,8 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor API_ENDPOINT = new PropertyDescriptor
-            .Builder().name("api-endpoint")
-            .displayName("API Endpoint")
+    public static final PropertyDescriptor API_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("API Endpoint")
             .description("Override the gRPC endpoint in the form of [host:port]")
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -108,6 +105,15 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("gcp-pubsub-publish-batch-size", BATCH_SIZE_THRESHOLD.getName());
+        config.renameProperty("gcp-batch-bytes", BATCH_BYTES_THRESHOLD.getName());
+        config.renameProperty("gcp-pubsub-publish-batch-delay", BATCH_DELAY_THRESHOLD.getName());
+        config.renameProperty("api-endpoint", API_ENDPOINT.getName());
     }
 
     @Override

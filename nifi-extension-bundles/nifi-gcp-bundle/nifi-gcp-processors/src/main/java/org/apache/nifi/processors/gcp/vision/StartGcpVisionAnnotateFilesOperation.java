@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"Google", "Cloud", "Machine Learning", "Vision"})
@@ -40,8 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 })
 public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVisionOperation<AsyncBatchAnnotateFilesRequest.Builder> {
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
-            .name("json-payload")
-            .displayName("JSON Payload")
+            .name("JSON Payload")
             .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -79,6 +79,12 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("json-payload", JSON_PAYLOAD.getName());
     }
 
     @Override

@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -40,8 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends AbstractGcpVisionProcessor {
     public static final PropertyDescriptor OPERATION_KEY = new PropertyDescriptor.Builder()
-            .name("operationKey")
-            .displayName("GCP Operation Key")
+            .name("GCP Operation Key")
             .description("The unique identifier of the Vision operation.")
             .defaultValue("${operationKey}")
             .required(true)
@@ -107,6 +107,12 @@ abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
             getLogger().error("Fail to get GCP Vision operation's status", e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("operationKey", OPERATION_KEY.getName());
     }
 
     abstract protected GeneratedMessageV3 deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException;
