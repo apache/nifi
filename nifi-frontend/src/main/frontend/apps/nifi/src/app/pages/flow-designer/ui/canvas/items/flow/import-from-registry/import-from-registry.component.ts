@@ -195,8 +195,8 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
 
     registryChanged(registryId: string): void {
         this.supportsBranching = this.clientBranchingSupportMap.get(registryId) || false;
+        this.clearBranches();
         if (this.supportsBranching) {
-            this.clearBranches();
             this.loadBranches(registryId);
         } else {
             this.clearBuckets();
