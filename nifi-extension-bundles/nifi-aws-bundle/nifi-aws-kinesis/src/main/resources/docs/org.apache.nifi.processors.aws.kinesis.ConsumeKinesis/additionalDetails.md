@@ -15,6 +15,107 @@
 
 # ConsumeKinesis
 
+## IAM permissions required for ConsumeKinesis
+
+You must add the following permissions to the IAM role or user configured in _AWS Credentials Provider Service_.
+
+Cloudwatch permissions are needed only when _Metrics Publishing_ is set to _CloudWatch_.
+
+| Service                     | Actions                                                                                               | Resources (ARNs)                                                                                                                                                                                                                                                             | Purpose                                                                                                                                                                                                 |
+|-----------------------------|-------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Amazon Kinesis Data Streams | DescribeStream<br>DescribeStreamSummary<br>RegisterStreamConsumer                                     | Kinesis data stream from which `ConsumeKinesis` will process the data.<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}`                                                                                                                                          | Before attempting to read records, the consumer checks if the data stream exists, if it's active, and if the shards are contained in the data stream. Registers consumers to a shard.                   |
+| Amazon Kinesis Data Streams | GetRecords<br>GetShardIterator<br>ListShards                                                          | Kinesis data stream from which `ConsumeKinesis` will process the data.<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}`                                                                                                                                          | Reads records from a shard.                                                                                                                                                                             |
+| Amazon Kinesis Data Streams | SubscribeToShard<br>DescribeStreamConsumer                                                            | Kinesis data stream from which `ConsumeKinesis` will process the data. Add this action only if you use enhanced fan-out (EFO) consumers.<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/*`                                                             | Subscribes to a shard for enhanced fan-out (EFO) consumers.                                                                                                                                             |
+| Amazon DynamoDB             | CreateTable<br>DescribeTable<br>UpdateTable<br>Scan<br>GetItem<br>PutItem<br>UpdateItem<br>DeleteItem | Lease table (metadata table in DynamoDB created by `ConsumeKinesis`.<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}`                                                                                                                                       | These actions are required for `ConsumeKinesis` to manage the lease table created in DynamoDB.                                                                                                          |
+| Amazon DynamoDB             | CreateTable<br>DescribeTable<br>Scan<br>GetItem<br>PutItem<br>UpdateItem<br>DeleteItem                | Worker metrics and coordinator state table (metadata tables in DynamoDB) created by `ConsumeKinesis`.<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-WorkerMetricStats`<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-CoordinatorState` | These actions are required for `ConsumeKinesis` to manage the worker metrics and coordinator state metadata tables in DynamoDB.                                                                         |
+| Amazon DynamoDB             | Query                                                                                                 | Global secondary index on the lease table.<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}/index/*`                                                                                                                                                         | This action is required for `ConsumeKinesis` to read the global secondary index of the lease table created in DynamoDB.                                                                                 |
+| Amazon CloudWatch           | PutMetricData                                                                                         | `*`                                                                                                                                                                                                                                                                          | Upload metrics to CloudWatch that are useful for monitoring the application. The asterisk (*) is used because there is no specific resource in CloudWatch on which the PutMetricData action is invoked. |
+
+The following is an example policy document for `ConsumeKinesis`.
+
+```json
+{
+    "Version":"2012-10-17",		 	 	 
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kinesis:DescribeStream",
+                "kinesis:DescribeStreamSummary",
+                "kinesis:RegisterStreamConsumer",
+                "kinesis:GetRecords",
+                "kinesis:GetShardIterator",
+                "kinesis:ListShards"
+            ],
+            "Resource": [
+                "arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kinesis:SubscribeToShard",
+                "kinesis:DescribeStreamConsumer"
+            ],
+            "Resource": [
+                "arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:CreateTable",
+                "dynamodb:DescribeTable",
+                "dynamodb:UpdateTable",
+                "dynamodb:GetItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:PutItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:Scan"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:CreateTable",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:PutItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:Scan"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-WorkerMetricStats",
+                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-CoordinatorState"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:Query"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}/index/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricData"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+**Note:** Replace "{Region}", "{Account}", "{Stream Name}", and "{Application Name}" in the ARNs with your own AWS region, 
+AWS account number, Kinesis data stream name, and `ConsumeKinesis` _Application Name_ property respectively.
+
 ## Record processing
 
 When _Processing Strategy_ property is set to _RECORD_, _ConsumeKinesis_ operates in Record mode.

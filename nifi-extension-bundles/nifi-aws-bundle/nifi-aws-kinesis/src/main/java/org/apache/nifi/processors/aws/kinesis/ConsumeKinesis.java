@@ -176,6 +176,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             .description("""
                     The Controller Service that is used to obtain AWS credentials provider.
                     Ensure that the credentials provided have access to Kinesis, DynamoDB and (optional) CloudWatch.
+                    (See processor's additional details for more information.)
                     """)
             .required(true)
             .identifiesControllerService(AWSCredentialsProviderService.class)
@@ -203,7 +204,8 @@ public class ConsumeKinesis extends AbstractProcessor {
                     The Record Reader to use for parsing the data received from Kinesis.
 
                     The Record Reader is responsible for providing schemas for the records. If the schemas change frequently,
-                    it might hinder performance of the processor. (See processor's additional details for more information.)""")
+                    it might hinder performance of the processor. (See processor's additional details for more information.)
+                    """)
             .required(true)
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
             .identifiesControllerService(RecordReaderFactory.class)

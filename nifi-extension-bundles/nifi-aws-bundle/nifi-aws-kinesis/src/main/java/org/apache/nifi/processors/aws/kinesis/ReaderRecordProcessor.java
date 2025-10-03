@@ -129,8 +129,7 @@ final class ReaderRecordProcessor {
         final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record);
 
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
-        final String errorMessage = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : "NiFi Reader or Writer failed to process Kinesis Record";
-        attributes.put(RECORD_ERROR_MESSAGE, errorMessage);
+        attributes.put(RECORD_ERROR_MESSAGE, cause.toString());
 
         return session.putAllAttributes(flowFile, attributes);
     }
