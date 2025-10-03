@@ -79,7 +79,7 @@ public class StandardCertificateAttributeReader implements CertificateAttributeR
 
         final int resolvedNameType = getResolvedNameType(nameType);
 
-        for (final GeneralNameType generalNameType : GeneralNameType.getValues()) {
+        for (final GeneralNameType generalNameType : GeneralNameType.values()) {
             if (generalNameType.getNameType() == resolvedNameType) {
                 generalNameTypeFound = generalNameType;
                 break;

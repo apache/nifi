@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -118,7 +119,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .required(false)
             .build();
 
-    static final List<String> ALLOWED_INDEX_OPERATIONS = IndexOperationRequest.Operation.getValues().stream()
+    static final List<String> ALLOWED_INDEX_OPERATIONS = Stream.of(IndexOperationRequest.Operation.values())
             .map(operation -> operation.getValue().toLowerCase())
             .toList();
 

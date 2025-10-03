@@ -40,7 +40,7 @@ public class StandardProtobufModule extends ProtobufModule {
         final TelemetryMessageSerializer telemetryMessageSerializer = new TelemetryMessageSerializer(protobufJacksonConfig);
         final SimpleSerializers serializers = new SimpleSerializers();
 
-        for (final HexadecimalMessageType hexadecimalMessageType : HexadecimalMessageType.getValues()) {
+        for (final HexadecimalMessageType hexadecimalMessageType : HexadecimalMessageType.values()) {
             final Class<? extends Message> messageType = hexadecimalMessageType.getMessageType();
             serializers.addSerializer(messageType, telemetryMessageSerializer);
         }

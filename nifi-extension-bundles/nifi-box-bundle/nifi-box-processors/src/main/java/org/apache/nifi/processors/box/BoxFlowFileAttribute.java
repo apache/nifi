@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.box;
 
-import java.util.List;
 import java.util.function.Function;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
@@ -26,12 +25,6 @@ public enum BoxFlowFileAttribute {
     PATH(CoreAttributes.PATH.key(), BoxFileInfo::getPath),
     SIZE(BoxFileAttributes.SIZE, fileInfo -> String.valueOf(fileInfo.getSize())),
     TIMESTAMP(BoxFileAttributes.TIMESTAMP, fileInfo -> String.valueOf(fileInfo.getTimestamp()));
-
-    private static final List<BoxFlowFileAttribute> VALUES = List.of(BoxFlowFileAttribute.values());
-
-    public static List<BoxFlowFileAttribute> getValues() {
-        return VALUES;
-    }
 
     private final String name;
     private final Function<BoxFileInfo, String> fromFileInfo;

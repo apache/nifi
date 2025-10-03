@@ -52,7 +52,7 @@ public class StandardMessageDeserializerFactory extends MessageDeserializerFacto
     private boolean isHexadecimalMessageType(final Class<?> rawClass) {
         boolean found = false;
 
-        for (final HexadecimalMessageType hexadecimalMessageType : HexadecimalMessageType.getValues()) {
+        for (final HexadecimalMessageType hexadecimalMessageType : HexadecimalMessageType.values()) {
             final Class<? extends Message> messageType = hexadecimalMessageType.getMessageType();
             if (messageType.isAssignableFrom(rawClass)) {
                 found = true;

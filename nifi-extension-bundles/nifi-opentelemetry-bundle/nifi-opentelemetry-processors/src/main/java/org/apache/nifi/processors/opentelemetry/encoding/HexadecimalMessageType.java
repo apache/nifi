@@ -21,8 +21,6 @@ import io.opentelemetry.proto.logs.v1.LogRecord;
 import io.opentelemetry.proto.metrics.v1.Exemplar;
 import io.opentelemetry.proto.trace.v1.Span;
 
-import java.util.List;
-
 /**
  * Message Types requiring hexadecimal encoding and decoding
  */
@@ -34,12 +32,6 @@ public enum HexadecimalMessageType {
     EXEMPLAR(Exemplar.class),
 
     LOG_RECORD(LogRecord.class);
-
-    private static final List<HexadecimalMessageType> VALUES = List.of(HexadecimalMessageType.values());
-
-    public static List<HexadecimalMessageType> getValues() {
-        return VALUES;
-    }
 
     private final Class<? extends Message> messageType;
 

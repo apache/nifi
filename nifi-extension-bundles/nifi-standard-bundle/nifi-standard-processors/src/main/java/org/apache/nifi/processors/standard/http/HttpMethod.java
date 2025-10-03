@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard.http;
 
-import java.util.List;
-
 /**
  * HTTP Method reusable enumerated values
  */
@@ -35,12 +33,6 @@ public enum HttpMethod {
     POST(true),
 
     PUT(true);
-
-    private static final List<HttpMethod> VALUES = List.of(HttpMethod.values());
-
-    public static List<HttpMethod> getValues() {
-        return VALUES;
-    }
 
     private final boolean requestBodySupported;
 

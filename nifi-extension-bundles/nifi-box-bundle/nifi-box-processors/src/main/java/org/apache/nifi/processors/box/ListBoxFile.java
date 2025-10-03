@@ -152,7 +152,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     ) {
         final Map<String, String> attributes = new HashMap<>();
 
-        for (BoxFlowFileAttribute attribute : BoxFlowFileAttribute.getValues()) {
+        for (BoxFlowFileAttribute attribute : BoxFlowFileAttribute.values()) {
             Optional.ofNullable(attribute.getValue(entity))
                 .ifPresent(value -> attributes.put(attribute.getName(), value));
         }

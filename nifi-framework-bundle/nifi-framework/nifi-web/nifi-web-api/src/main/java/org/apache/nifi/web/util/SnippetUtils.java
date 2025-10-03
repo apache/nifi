@@ -826,7 +826,7 @@ public final class SnippetUtils {
             final Resource originalResource = entry.getKey();
             final Resource cloneResource = entry.getValue();
 
-            for (final RequestAction action : RequestAction.getValues()) {
+            for (final RequestAction action : RequestAction.values()) {
                 final AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(action, originalResource.getIdentifier());
 
                 // if there is a component specific policy we want to clone it for the new component
@@ -919,7 +919,7 @@ public final class SnippetUtils {
         resources.add(ResourceFactory.getPolicyResource(componentResource));
 
         for (final Resource resource : resources) {
-            for (final RequestAction action : RequestAction.getValues()) {
+            for (final RequestAction action : RequestAction.values()) {
                 final AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(action, resource.getIdentifier());
                 if (accessPolicy != null) {
                     try {

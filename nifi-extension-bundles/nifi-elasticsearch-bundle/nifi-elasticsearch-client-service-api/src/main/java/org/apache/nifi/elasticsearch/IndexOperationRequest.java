@@ -96,10 +96,6 @@ public class IndexOperationRequest {
 
         private static final List<Operation> VALUES = List.of(Operation.values());
 
-        public static List<Operation> getValues() {
-            return VALUES;
-        }
-
         private final String value;
 
         Operation(final String value) {

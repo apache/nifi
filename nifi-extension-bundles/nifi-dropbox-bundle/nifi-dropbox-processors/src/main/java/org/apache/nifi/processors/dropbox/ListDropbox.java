@@ -181,7 +181,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
 
-        for (DropboxFlowFileAttribute attribute : DropboxFlowFileAttribute.getValues()) {
+        for (DropboxFlowFileAttribute attribute : DropboxFlowFileAttribute.values()) {
             Optional.ofNullable(attribute.getValue(entity))
                     .ifPresent(value -> attributes.put(attribute.getName(), value));
         }

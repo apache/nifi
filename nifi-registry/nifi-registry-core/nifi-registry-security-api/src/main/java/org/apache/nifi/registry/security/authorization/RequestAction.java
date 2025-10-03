@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.security.authorization;
 
-import java.util.List;
+import java.util.StringJoiner;
 
 /**
  * Actions a user/entity can take on a resource.
@@ -26,13 +26,7 @@ public enum RequestAction {
     WRITE("write"),
     DELETE("delete");
 
-    private static final List<RequestAction> VALUES = List.of(RequestAction.values());
-
-    public static List<RequestAction> getValues() {
-        return VALUES;
-    }
-
-    private final String value;
+    private String value;
 
     RequestAction(String value) {
         this.value = value;
@@ -51,7 +45,12 @@ public enum RequestAction {
         } else if (RequestAction.DELETE.toString().equalsIgnoreCase(action)) {
             return RequestAction.DELETE;
         } else {
-            throw new IllegalArgumentException("Action '" + action + "' is invalid. Must be one of " + VALUES);
+            StringJoiner stringJoiner = new StringJoiner(", ");
+            for (RequestAction ra : RequestAction.values()) {
+                stringJoiner.add(ra.toString());
+            }
+            String allowableValues = stringJoiner.toString();
+            throw new IllegalArgumentException("Action '" + action + "' is invalid. Must be one of [" + allowableValues + "]");
         }
     }
 }
