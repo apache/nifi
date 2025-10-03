@@ -51,14 +51,14 @@ export class HeaderComponent implements OnInit {
 
     constructor() {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        this.theme = this.storage.getItem('theme');
+        this.theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
         this.disableAnimations = this.storage.getItem('disable-animations');
 
         if (window.matchMedia) {
             // Watch for changes of the preference
             window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
                 this.darkModeOn = e.matches;
-                this.theme = this.storage.getItem('theme');
+                this.theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
             });
         }
     }
