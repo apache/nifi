@@ -43,12 +43,14 @@
                         @for (allowableValue of descriptor.allowableValues; track allowableValue.value) {
                             <li>
                                 {{ allowableValue.displayName }}
-                                <i
-                                    class="fa fa-info-circle primary-color"
-                                    nifiTooltip
-                                    [tooltipComponentType]="TextTip"
-                                    [tooltipInputData]="allowableValue.description"
-                                    [delayClose]="false"></i>
+                                @if (allowableValue.description) {
+                                    <i
+                                        class="fa fa-info-circle primary-color"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        [tooltipInputData]="allowableValue.description"
+                                        [delayClose]="false"></i>
+                                }
                             </li>
                         }
                     </ul>
