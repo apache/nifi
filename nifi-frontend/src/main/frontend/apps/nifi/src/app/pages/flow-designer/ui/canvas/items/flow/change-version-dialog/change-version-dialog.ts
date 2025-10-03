@@ -29,7 +29,16 @@ import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip } from '
 
 @Component({
     selector: 'change-version-dialog',
-    imports: [MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule, NifiTooltipDirective],
+    imports: [
+        MatButton,
+        MatCell,
+        MatCellDef,
+        MatColumnDef,
+        MatDialogModule,
+        MatSortModule,
+        MatTableModule,
+        NifiTooltipDirective
+    ],
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'
 })

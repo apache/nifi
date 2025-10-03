@@ -159,7 +159,7 @@ describe('ChangeVersionDialog', () => {
             const currentVersionIcon = fixture.debugElement.query(By.css('[data-qa="current-version-icon"]'));
 
             expect(currentVersionIcon).toBeTruthy();
-            expect(currentVersionIcon.attributes['matTooltip']).toBe('Currently installed version');
+            expect(currentVersionIcon.attributes['tooltipInputData']).toBe('Currently installed version');
             expect(currentVersionIcon.nativeElement.classList).toContain('fa-check');
         });
 
