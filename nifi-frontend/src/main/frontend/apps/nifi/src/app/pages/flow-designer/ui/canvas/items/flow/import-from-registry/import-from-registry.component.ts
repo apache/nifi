@@ -199,7 +199,6 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         if (this.supportsBranching) {
             this.loadBranches(registryId);
         } else {
-            this.clearBuckets();
             this.loadBuckets(registryId);
         }
     }
