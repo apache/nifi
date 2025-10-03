@@ -27,7 +27,7 @@ public class JdbcProperties {
     public static final String OLD_DEFAULT_SCALE_PROPERTY_NAME = "dbf-default-scale";
 
     public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
-            .name("Normalize Table/Column Names")
+            .name("Normalize Table and Column Names")
             .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
                     + "will be changed to underscores in order to build a valid Avro record.")
             .allowableValues("true", "false")

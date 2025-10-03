@@ -86,7 +86,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor UMASK = new PropertyDescriptor.Builder()
-            .name("Permissions umask")
+            .name("Permissions Umask")
             .description("A umask represented as an octal number which determines the permissions of files written to HDFS. " +
                     "This overrides the Hadoop Configuration dfs.umaskmode")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)

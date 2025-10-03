@@ -37,6 +37,7 @@ import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.key.service.api.PrivateKeyService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -199,6 +200,17 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             MIN_EVICTABLE_IDLE_TIME,
             SOFT_MIN_EVICTABLE_IDLE_TIME
     );
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
+        config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
+        config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());
+        config.renameProperty(DBCPProperties.OLD_MAX_CONN_LIFETIME_PROPERTY_NAME, MAX_CONN_LIFETIME.getName());
+        config.renameProperty(DBCPProperties.OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME, EVICTION_RUN_PERIOD.getName());
+        config.renameProperty(DBCPProperties.OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, MIN_EVICTABLE_IDLE_TIME.getName());
+        config.renameProperty(DBCPProperties.OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, SOFT_MIN_EVICTABLE_IDLE_TIME.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -139,7 +139,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Connection timeout")
+            .name("Connection Timeout")
             .description("The amount of time to wait to connect to Email server")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)

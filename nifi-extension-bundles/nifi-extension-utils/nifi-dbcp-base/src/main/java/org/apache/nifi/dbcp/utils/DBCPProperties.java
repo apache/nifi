@@ -110,7 +110,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
-            .name("Validation query")
+            .name("Validation Query")
             .description("Validation query used to validate connections before returning them. "
                     + "When connection is invalid, it gets dropped and new valid connection will be returned. "
                     + "Note!! Using validation might have some performance penalty.")
@@ -130,7 +130,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
-            .name("Max Idle Connections")
+            .name("Maximum Idle Connections")
             .description("The maximum number of connections that can remain idle in the pool without extra ones being " +
                     "released. Set to any negative value to allow unlimited idle connections.")
             .defaultValue(DefaultDataSourceValues.MAX_IDLE.getValue())
@@ -140,7 +140,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
-            .name("Max Connection Lifetime")
+            .name("Maximum Connection Lifetime")
             .description("The maximum lifetime of a connection. After this time is exceeded the " +
                     "connection will fail the next activation, passivation or validation test. A value of zero or less " +
                     "means the connection has an infinite lifetime.")

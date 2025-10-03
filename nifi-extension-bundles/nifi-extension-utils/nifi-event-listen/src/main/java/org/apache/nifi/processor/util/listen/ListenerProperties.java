@@ -125,7 +125,7 @@ public class ListenerProperties {
             .required(true)
             .build();
     public static final PropertyDescriptor WORKER_THREADS = new PropertyDescriptor.Builder()
-            .name("Max Number of Worker Threads")
+            .name("Worker Threads")
             .description("The maximum number of worker threads available for servicing TCP connections.")
             .addValidator(StandardValidators.createLongValidator(1, 65535, true))
             .defaultValue("2")
