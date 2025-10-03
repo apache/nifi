@@ -25,6 +25,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.EnumDataType;
+import org.apache.nifi.serialization.record.validation.DefaultValidationError;
+import org.apache.nifi.serialization.record.validation.FieldValidator;
+import org.apache.nifi.serialization.record.validation.RecordValidator;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
@@ -45,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -436,6 +440,108 @@ public class TestStandardSchemaValidator {
         assertTrue(result.isValid());
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
+    }
+
+    @Test
+    public void testFieldValidatorIsApplied() {
+        final AtomicBoolean invoked = new AtomicBoolean(false);
+        final FieldValidator validator = new FieldValidator() {
+            @Override
+            public Collection<ValidationError> validate(final RecordField field, final String path, final Object value) {
+                invoked.set(true);
+                return List.of(DefaultValidationError.builder()
+                        .fieldName(path)
+                        .inputValue(value)
+                        .type(ValidationErrorType.INVALID_FIELD)
+                        .explanation("value must be 'pass'")
+                        .build());
+            }
+
+            @Override
+            public String getDescription() {
+                return "validator for testFieldValidatorIsApplied";
+            }
+        };
+
+        final RecordField recordField = new RecordField("value", RecordFieldType.STRING.getDataType(), null, Collections.emptySet(), false, List.of(validator));
+        final RecordSchema schema = new SimpleRecordSchema(List.of(recordField));
+        final MapRecord record = new MapRecord(schema, Map.of("value", "fail"));
+
+        final StandardSchemaValidator validatorService = new StandardSchemaValidator(new SchemaValidationContext(schema, false, true));
+        final SchemaValidationResult result = validatorService.validate(record);
+
+        assertTrue(invoked.get());
+        assertFalse(result.isValid());
+        final ValidationError validationError = result.getValidationErrors().iterator().next();
+        assertEquals(ValidationErrorType.INVALID_FIELD, validationError.getType());
+        assertEquals("/value", validationError.getFieldName().orElse(""));
+    }
+
+    @Test
+    public void testFieldValidatorNotInvokedWhenValueNull() {
+        final AtomicBoolean invoked = new AtomicBoolean(false);
+        final FieldValidator validator = new FieldValidator() {
+            @Override
+            public Collection<ValidationError> validate(final RecordField field, final String path, final Object value) {
+                invoked.set(true);
+                return List.of(DefaultValidationError.builder()
+                        .fieldName(path)
+                        .inputValue(value)
+                        .type(ValidationErrorType.INVALID_FIELD)
+                        .explanation("should not be invoked")
+                        .build());
+            }
+
+            @Override
+            public String getDescription() {
+                return "validator for testFieldValidatorNotInvokedWhenValueNull";
+            }
+        };
+
+        final RecordField recordField = new RecordField("value", RecordFieldType.STRING.getDataType(), null, Collections.emptySet(), true, List.of(validator));
+        final RecordSchema schema = new SimpleRecordSchema(List.of(recordField));
+        final Map<String, Object> values = new HashMap<>();
+        values.put("value", null);
+        final MapRecord record = new MapRecord(schema, values);
+
+        final StandardSchemaValidator validatorService = new StandardSchemaValidator(new SchemaValidationContext(schema, false, true));
+        final SchemaValidationResult result = validatorService.validate(record);
+
+        assertFalse(invoked.get());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testRecordValidatorIsApplied() {
+        final RecordField recordField = new RecordField("value", RecordFieldType.STRING.getDataType());
+        final SimpleRecordSchema schema = new SimpleRecordSchema(List.of(recordField));
+
+        final RecordValidator recordValidator = new RecordValidator() {
+            @Override
+            public Collection<ValidationError> validate(final Record record, final RecordSchema recordSchema, final String fieldPath) {
+                return List.of(DefaultValidationError.builder()
+                        .fieldName(fieldPath + "/value")
+                        .inputValue(record.getValue("value"))
+                        .type(ValidationErrorType.INVALID_FIELD)
+                        .explanation("value must equal 'expected'")
+                        .build());
+            }
+
+            @Override
+            public String getDescription() {
+                return "record validator for testRecordValidatorIsApplied";
+            }
+        };
+        schema.setRecordValidators(List.of(recordValidator));
+
+        final MapRecord record = new MapRecord(schema, Map.of("value", "actual"));
+        final StandardSchemaValidator validatorService = new StandardSchemaValidator(new SchemaValidationContext(schema, true, true));
+        final SchemaValidationResult result = validatorService.validate(record);
+
+        assertFalse(result.isValid());
+        final ValidationError validationError = result.getValidationErrors().iterator().next();
+        assertEquals("/value", validationError.getFieldName().orElse(""));
+        assertEquals(ValidationErrorType.INVALID_FIELD, validationError.getType());
     }
 
     private void whenValueIsAcceptedAsDataTypeThenConsideredAsValid(final Object value, final RecordFieldType schemaDataType) {
