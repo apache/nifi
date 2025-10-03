@@ -17,13 +17,20 @@
 package org.apache.nifi.kubernetes.state.provider;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.ConfigMapList;
+import io.fabric8.kubernetes.api.model.StatusBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServerExtension;
 import io.fabric8.mockwebserver.dsl.HttpMethod;
 import io.fabric8.mockwebserver.http.RecordedRequest;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -38,9 +45,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -51,7 +58,14 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @EnableKubernetesMockClient(crud = true)
@@ -162,6 +176,65 @@ class KubernetesConfigMapStateProviderTest {
         assertEquals(state, stateRetrieved);
 
         assertConfigMapFound();
+    }
+
+    @Test
+    void testSetStateConflict() {
+        final KubernetesClient mockClient = mock(KubernetesClient.class);
+        final MixedOperation<ConfigMap, ConfigMapList, Resource<ConfigMap>> mockConfigMaps = mock(MixedOperation.class);
+        final NonNamespaceOperation<ConfigMap, ConfigMapList, Resource<ConfigMap>> mockNamespacedConfigMaps = mock(NonNamespaceOperation.class);
+        final Resource<ConfigMap> mockResource = mock(Resource.class);
+
+        when(mockClient.configMaps()).thenReturn(mockConfigMaps);
+        when(mockConfigMaps.resource(any(ConfigMap.class))).thenReturn(mockResource);
+        when(mockConfigMaps.inNamespace(DEFAULT_NAMESPACE)).thenReturn(mockNamespacedConfigMaps);
+        when(mockNamespacedConfigMaps.withName(anyString())).thenReturn(mockResource);
+
+        final String conflictMessageTemplate = "Operation cannot be fulfilled on configmaps \"nifi-component-%s\": "
+                + "the object has been modified; please apply your changes to the latest version and try again";
+        final String conflictMessage = String.format(conflictMessageTemplate, COMPONENT_ID);
+        final KubernetesClientException conflictException = new KubernetesClientException(
+                conflictMessage,
+                HttpURLConnection.HTTP_CONFLICT,
+                new StatusBuilder()
+                        .withApiVersion("v1")
+                        .withCode(HttpURLConnection.HTTP_CONFLICT)
+                        .withKind("Status")
+                        .withReason("Conflict")
+                        .withMessage(conflictMessage)
+                        .build()
+        );
+
+        when(mockResource.update()).thenThrow(conflictException);
+        final ConfigMap latestConfigMap = new ConfigMapBuilder()
+                .withNewMetadata()
+                .withNamespace(DEFAULT_NAMESPACE)
+                .withName(String.format("nifi-component-%s", COMPONENT_ID))
+                .withResourceVersion("42")
+                .endMetadata()
+                .build();
+        when(mockResource.get()).thenReturn(latestConfigMap);
+
+        provider = new KubernetesConfigMapStateProvider() {
+            @Override
+            protected KubernetesClient getKubernetesClient() {
+                return mockClient;
+            }
+        };
+
+        setContext();
+        provider.initialize(context);
+
+        final Map<String, String> state = Collections.singletonMap(STATE_PROPERTY, STATE_VALUE);
+
+        final IOException exception = assertThrows(IOException.class, () -> provider.setState(state, COMPONENT_ID));
+        assertEquals(String.format("Failed to update state for Component with ID [%s]", COMPONENT_ID), exception.getMessage());
+        assertTrue(exception.getCause() instanceof KubernetesClientException);
+        assertEquals(conflictException, exception.getCause());
+
+        verify(mockResource, atLeastOnce()).update();
+        verify(mockResource, never()).create();
+        verify(mockResource, atLeastOnce()).get();
     }
 
     @Test
