@@ -100,10 +100,14 @@ export class SourceRemoteProcessGroup implements ControlValueAccessor {
         // mark the component as touched if not already
         if (!this.isTouched) {
             this.isTouched = true;
-            this.onTouched();
+            if (this.onTouched) {
+                this.onTouched();
+            }
         }
 
         // emit the changes
-        this.onChange(this.selectedOutputPort);
+        if (this.onChange) {
+            this.onChange(this.selectedOutputPort);
+        }
     }
 }

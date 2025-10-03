@@ -15,18 +15,21 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col gap-y-4">
+<div class="flex flex-col gap-y-4" data-qa="source-remote-process-group-container">
     @if (noPorts) {
-        <div class="flex flex-col mb-5">
+        <div class="flex flex-col mb-5" data-qa="no-ports-section">
             <div>From Output</div>
             @if (noPorts) {
-                <mat-error>{{ groupName }} does not have any local output ports.</mat-error>
+                <mat-error data-qa="no-ports-error">{{ groupName }} does not have any local output ports.</mat-error>
             }
         </div>
     } @else {
-        <mat-form-field>
+        <mat-form-field data-qa="output-port-section">
             <mat-label>From Output</mat-label>
-            <mat-select [(ngModel)]="selectedOutputPort" (selectionChange)="handleChanged()">
+            <mat-select
+                [(ngModel)]="selectedOutputPort"
+                (selectionChange)="handleChanged()"
+                data-qa="output-port-select">
                 @for (item of outputPortItems; track item) {
                     @if (item.description) {
                         <mat-option
@@ -49,7 +52,10 @@
     }
     <div class="flex flex-col mb-5">
         <div>Within Group</div>
-        <div [title]="groupName" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div
+            [title]="groupName"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="group-name-display">
             {{ groupName }}
         </div>
     </div>

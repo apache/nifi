@@ -18,11 +18,14 @@
 <div class="flex flex-col gap-y-4">
     <div class="flex flex-col mb-5">
         <div>From Funnel</div>
-        <div class="tertiary-color font-medium">funnel</div>
+        <div class="tertiary-color font-medium" data-qa="funnel-label">funnel</div>
     </div>
     <div class="flex flex-col mb-5">
         <div>Within Group</div>
-        <div [title]="groupName" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div
+            [title]="groupName"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="group-name-display">
             {{ groupName }}
         </div>
     </div>
