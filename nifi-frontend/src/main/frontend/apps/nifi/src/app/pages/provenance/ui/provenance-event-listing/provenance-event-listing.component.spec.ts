@@ -20,6 +20,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProvenanceEventListing } from './provenance-event-listing.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/provenance-event-listing/provenance-event-listing.reducer';
+import { provenanceEventListingFeatureKey } from '../../state/provenance-event-listing';
+import { provenanceFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialLineageState } from '../../state/lineage/lineage.reducer';
+import { lineageFeatureKey } from '../../state/lineage';
+import { initialState as initialClusterSummaryState } from '../../../../state/cluster-summary/cluster-summary.reducer';
+import { clusterSummaryFeatureKey } from '../../../../state/cluster-summary';
 
 describe('ParameterContextListing', () => {
     let component: ProvenanceEventListing;
@@ -28,7 +36,18 @@ describe('ParameterContextListing', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ProvenanceEventListing],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [clusterSummaryFeatureKey]: initialClusterSummaryState,
+                        [provenanceFeatureKey]: {
+                            [provenanceEventListingFeatureKey]: initialState,
+                            [lineageFeatureKey]: initialLineageState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(ProvenanceEventListing);
         component = fixture.componentInstance;

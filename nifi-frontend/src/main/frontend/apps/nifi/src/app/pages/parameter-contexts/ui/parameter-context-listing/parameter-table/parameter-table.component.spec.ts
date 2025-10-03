@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ParameterItem, ParameterTable } from './parameter-table.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/parameter-context-listing/parameter-context-listing.reducer';
+import { parameterContextListingFeatureKey } from '../../../state/parameter-context-listing';
+import { parameterContextsFeatureKey } from '../../../state';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../state/current-user';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditParameterResponse } from '../../../../../state/shared';
 import { Observable, of } from 'rxjs';
@@ -32,7 +38,17 @@ describe('ParameterTable', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ParameterTable, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [parameterContextsFeatureKey]: {
+                            [parameterContextListingFeatureKey]: initialState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(ParameterTable);
         component = fixture.componentInstance;

@@ -26,6 +26,12 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { canvasFeatureKey } from '../../../../../state';
+import { flowFeatureKey } from '../../../../../state/flow';
 import { Sort } from '@angular/material/sort';
 
 interface SetupOptions {
@@ -92,7 +98,13 @@ describe('ChangeVersionDialog', () => {
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: dialogData },
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    },
                     selectors: [
                         {
                             selector: selectTimeOffset,

@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NewCanvasItem } from './new-canvas-item.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/flow/flow.reducer';
+import { initialState as initialErrorState } from '../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../state/current-user';
+import { canvasFeatureKey } from '../../../../state';
+import { flowFeatureKey } from '../../../../state/flow';
 
 describe('NewCanvasItem', () => {
     let component: NewCanvasItem;
@@ -30,7 +36,13 @@ describe('NewCanvasItem', () => {
             imports: [NewCanvasItem],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

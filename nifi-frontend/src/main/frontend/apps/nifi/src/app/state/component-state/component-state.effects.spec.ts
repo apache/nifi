@@ -30,6 +30,10 @@ import * as ErrorActions from '../error/error.actions';
 import { ComponentState, ComponentStateEntity, ClearStateEntryRequest } from './index';
 import { selectComponentUri, selectComponentState } from './component-state.selectors';
 import { ErrorContextKey } from '../error';
+import { initialState as initialErrorState } from '../error/error.reducer';
+import { errorFeatureKey } from '../error';
+import { initialState as initialCurrentUserState } from '../current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../current-user';
 
 describe('ComponentStateEffects', () => {
     let actions$: Observable<Action>;
@@ -75,7 +79,12 @@ describe('ComponentStateEffects', () => {
             providers: [
                 ComponentStateEffects,
                 provideMockActions(() => actions$),
-                provideMockStore(),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState
+                    }
+                }),
                 { provide: ComponentStateService, useValue: componentStateServiceSpy },
                 { provide: ErrorHelper, useValue: errorHelperSpy }
             ]

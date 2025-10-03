@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ManagementControllerServices } from './management-controller-services.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
+import { managementControllerServicesFeatureKey } from '../../state/management-controller-services';
+import { settingsFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ManagementControllerServices', () => {
     let component: ManagementControllerServices;
@@ -30,7 +36,13 @@ describe('ManagementControllerServices', () => {
             imports: [ManagementControllerServices],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [settingsFeatureKey]: {
+                            [managementControllerServicesFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

@@ -27,6 +27,10 @@ import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { settingsFeatureKey } from '../state';
 import { generalFeatureKey } from '../state/general';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Settings', () => {
@@ -46,6 +50,8 @@ describe('Settings', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [settingsFeatureKey]: {
                             [generalFeatureKey]: initialState
                         }

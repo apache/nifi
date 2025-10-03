@@ -23,6 +23,10 @@ import { EditParameterProviderRequest } from '../../../state/parameter-providers
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { settingsFeatureKey } from '../../../state';
+import { parameterProvidersFeatureKey } from '../../../state/parameter-providers';
 
 describe('EditParameterProvider', () => {
     let component: EditParameterProvider;
@@ -161,7 +165,12 @@ describe('EditParameterProvider', () => {
                     useValue: data
                 },
                 provideMockStore({
-                    initialState: initialParameterProvidersState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [settingsFeatureKey]: {
+                            [parameterProvidersFeatureKey]: initialParameterProvidersState
+                        }
+                    }
                 }),
                 { provide: MatDialogRef, useValue: null }
             ]

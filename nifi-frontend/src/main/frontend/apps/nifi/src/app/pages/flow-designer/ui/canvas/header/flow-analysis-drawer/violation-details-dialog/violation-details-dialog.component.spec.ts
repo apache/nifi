@@ -19,6 +19,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ViolationDetailsDialogComponent } from './violation-details-dialog.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../../../state/flow';
 
 describe('ViolationDetailsDialogComponent', () => {
     let component: ViolationDetailsDialogComponent;
@@ -89,7 +93,14 @@ describe('ViolationDetailsDialogComponent', () => {
                     provide: MatDialogRef,
                     useValue: {}
                 },
-                provideMockStore({})
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        canvas: {
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    }
+                })
             ]
         }).compileComponents();
 

@@ -20,6 +20,8 @@ import { TestBed } from '@angular/core/testing';
 import { FlowAnalysisService } from './flow-analysis.service';
 import { provideMockStore } from '@ngrx/store/testing';
 import { HttpClient } from '@angular/common/http';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
 
 describe('FlowAnalysisService', () => {
     let service: FlowAnalysisService;
@@ -27,7 +29,11 @@ describe('FlowAnalysisService', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             providers: [
-                provideMockStore({}),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                }),
                 {
                     provide: HttpClient,
                     useValue: {}
