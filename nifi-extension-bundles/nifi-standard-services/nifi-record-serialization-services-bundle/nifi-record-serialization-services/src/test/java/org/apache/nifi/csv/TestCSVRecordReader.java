@@ -304,7 +304,7 @@ public class TestCSVRecordReader {
     @Test
     public void testExplicitTemporalFormatsStillCoerce() throws IOException, MalformedRecordException {
         // Ensure the stricter compatibility checks added in DataTypeUtils still allow coercion when date/time formats are provided explicitly.
-        final String text = "date,time,timestamp\\n2024-01-15,01:02:03,2024-01-15 01:02:03";
+        final String text = "date,time,timestamp\n2024-01-15,01:02:03,2024-01-15 01:02:03";
 
         final List<RecordField> fields = List.of(
                 new RecordField("date", RecordFieldType.DATE.getDataType()),
