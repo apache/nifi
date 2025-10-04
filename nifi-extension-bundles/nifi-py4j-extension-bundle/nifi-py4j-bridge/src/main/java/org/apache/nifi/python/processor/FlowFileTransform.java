@@ -19,6 +19,6 @@ package org.apache.nifi.python.processor;
 
 public interface FlowFileTransform extends PythonProcessor {
 
-    FlowFileTransformResult transformFlowFile(InputFlowFile flowFile);
+    Object transformFlowFile(InputFlowFile flowFile);
 
 }

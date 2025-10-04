@@ -30,6 +30,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import py4j.Py4JNetworkException;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -52,12 +55,9 @@ public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final FlowFileSourceResult result;
+        final Object resultObject;
         try {
-            result = getTransform().createFlowFile();
-            if (result == null) {
-                return;
-            }
+            resultObject = getTransform().createFlowFile();
         } catch (final Py4JNetworkException e) {
             throw new ProcessException("Failed to communicate with Python Process", e);
         } catch (final Exception e) {
@@ -65,21 +65,28 @@ public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
             return;
         }
 
-        try {
-            final String relationshipName = result.getRelationship();
-            final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
-            final Map<String, String> attributes = result.getAttributes();
-            final byte[] contents = result.getContents();
+        final List<FlowFileSourceResult> results = normalizeResults(resultObject);
+        if (results.isEmpty()) {
+            return;
+        }
 
-            FlowFile output = createFlowFile(session, attributes, contents);
+        for (final FlowFileSourceResult result : results) {
+            try {
+                final String relationshipName = result.getRelationship();
+                final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
+                final Map<String, String> attributes = result.getAttributes();
+                final byte[] contents = result.getContents();
 
-            if (REL_SUCCESS.getName().equals(relationshipName)) {
-                session.transfer(output, REL_SUCCESS);
-            } else {
-                session.transfer(output, relationship);
+                FlowFile output = createFlowFile(session, attributes, contents);
+
+                if (REL_SUCCESS.getName().equals(relationshipName)) {
+                    session.transfer(output, REL_SUCCESS);
+                } else {
+                    session.transfer(output, relationship);
+                }
+            } finally {
+                result.free();
             }
-        } finally {
-            result.free();
         }
     }
 
@@ -97,5 +104,49 @@ public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
     @Override
     protected Set<Relationship> getImplicitRelationships() {
         return implicitRelationships;
+    }
+
+    private List<FlowFileSourceResult> normalizeResults(final Object resultObject) {
+        if (resultObject == null) {
+            return List.of();
+        }
+
+        if (resultObject instanceof FlowFileSourceResult flowFileSourceResult) {
+            return List.of(flowFileSourceResult);
+        }
+
+        final List<FlowFileSourceResult> results = new ArrayList<>();
+
+        if (resultObject instanceof Iterable<?> iterable) {
+            for (Object element : iterable) {
+                addResult(results, element);
+            }
+            return results;
+        }
+
+        if (resultObject.getClass().isArray()) {
+            if (resultObject.getClass().getComponentType().isPrimitive()) {
+                throw new ProcessException("Python processor returned primitive array when FlowFileSourceResult was expected");
+            }
+
+            final Object[] array = (Object[]) resultObject;
+            Arrays.stream(array).forEach(element -> addResult(results, element));
+            return results;
+        }
+
+        throw new ProcessException("Python processor returned unsupported result type " + resultObject.getClass());
+    }
+
+    private void addResult(final List<FlowFileSourceResult> results, final Object element) {
+        if (element == null) {
+            getLogger().warn("Python processor {} returned null FlowFileSourceResult which will be ignored", this);
+            return;
+        }
+
+        if (!(element instanceof FlowFileSourceResult flowFileSourceResult)) {
+            throw new ProcessException("Python processor returned unsupported element type " + element.getClass());
+        }
+
+        results.add(flowFileSourceResult);
     }
 }

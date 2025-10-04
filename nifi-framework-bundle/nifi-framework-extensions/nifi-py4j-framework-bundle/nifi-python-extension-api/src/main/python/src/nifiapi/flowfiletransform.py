@@ -30,11 +30,35 @@ class FlowFileTransform(ABC):
         self.process_context = ProcessContext(context)
 
     def transformFlowFile(self, flowfile):
-        return self.transform(self.process_context, flowfile)
+        result = self.transform(self.process_context, flowfile)
+        return self.__normalize_results(result)
 
     @abstractmethod
     def transform(self, context, flowFile):
         pass
+
+    def __normalize_results(self, result):
+        if result is None:
+            return None
+
+        if isinstance(result, FlowFileTransformResult):
+            return result
+
+        if isinstance(result, (list, tuple)):
+            java_list = JvmHolder.jvm.java.util.ArrayList()
+            for entry in result:
+                if entry is not None:
+                    java_list.add(entry)
+            return java_list
+
+        if hasattr(result, '__iter__'):
+            java_list = JvmHolder.jvm.java.util.ArrayList()
+            for entry in result:
+                if entry is not None:
+                    java_list.add(entry)
+            return java_list
+
+        return result
 
 
 class FlowFileTransformResult:

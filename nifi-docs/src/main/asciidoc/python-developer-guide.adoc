@@ -223,6 +223,12 @@ The constructor has a single required positional argument, the `relationship` to
 the FlowFile are to be updated, the FlowFile's new contents should be returned via the `contents` argument. Any FlowFile attributes that
 are to be added or modified may additionally provided using the `attributes` argument.
 
+The method may also return an iterable (for example, a list or generator) of `FlowFileTransformResult` instances. In this case the
+framework clones the original FlowFile once per result, applies the contents and attributes described by that result, and transfers each
+clone to the requested relationship. After the iterable has been processed the original FlowFile is routed to the `original`
+relationship (unless that relationship is auto-terminated). Returning the `failure` relationship is only supported when a single result
+is produced.
+
 
 
 [[record-transform]]
@@ -328,6 +334,10 @@ empty `FlowFileSourceResult`. When `create()` returns with `None`, the processor
 When there is nothing to return, it might be useful to yield the processor's resources and not schedule the processor
 to run for the period of time defined by the processor's Yield Duration. This can be achieved by calling
 `context.yield_resources()` from the processor's `create` method right before returning `None`.
+
+A source processor may also return an iterable of `FlowFileSourceResult` objects. Each entry in the iterable causes the framework to
+create a new FlowFile, apply the specified contents and attributes, and transfer it to the requested relationship. Returning `None` or
+an empty iterable results in no FlowFiles being created for that invocation.
 
 
 [[property-descriptors]]
