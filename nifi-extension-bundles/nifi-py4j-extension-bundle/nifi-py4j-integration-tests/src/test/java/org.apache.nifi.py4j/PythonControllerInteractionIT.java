@@ -775,6 +775,41 @@ public class PythonControllerInteractionIT {
         output.assertContentEquals(expectedContent);
     }
 
+    @Test
+    public void testGeneratePagesCreatesMultipleFlowFiles() {
+        final TestRunner runner = createProcessor("GeneratePages");
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 3);
+
+        final List<MockFlowFile> outputs = runner.getFlowFilesForRelationship("success");
+        for (int i = 0; i < outputs.size(); i++) {
+            final MockFlowFile flowFile = outputs.get(i);
+            flowFile.assertContentEquals("page-" + i);
+            flowFile.assertAttributeEquals("page.index", String.valueOf(i));
+        }
+    }
+
+    @Test
+    public void testSplitLinesCreatesMultipleFlowFiles() {
+        final TestRunner runner = createFlowFileTransform("SplitLines");
+        runner.enqueue("alpha\nbeta\ngamma");
+
+        runner.run();
+
+        runner.assertTransferCount("original", 1);
+        runner.assertTransferCount("success", 3);
+
+        final List<MockFlowFile> outputs = runner.getFlowFilesForRelationship("success");
+        outputs.get(0).assertContentEquals("alpha");
+        outputs.get(0).assertAttributeEquals("split.index", "0");
+        outputs.get(1).assertContentEquals("beta");
+        outputs.get(1).assertAttributeEquals("split.index", "1");
+        outputs.get(2).assertContentEquals("gamma");
+        outputs.get(2).assertAttributeEquals("split.index", "2");
+    }
+
     private TestRunner createStateManagerTesterProcessor(String methodToTest) {
         final TestRunner runner = createProcessor("TestStateManager");
         runner.setProperty("StateManager Method To Test", methodToTest);

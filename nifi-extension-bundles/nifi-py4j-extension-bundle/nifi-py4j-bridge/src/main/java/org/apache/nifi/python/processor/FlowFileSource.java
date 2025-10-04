@@ -19,6 +19,6 @@ package org.apache.nifi.python.processor;
 
 public interface FlowFileSource extends PythonProcessor {
 
-    FlowFileSourceResult createFlowFile();
+    Object createFlowFile();
 
 }

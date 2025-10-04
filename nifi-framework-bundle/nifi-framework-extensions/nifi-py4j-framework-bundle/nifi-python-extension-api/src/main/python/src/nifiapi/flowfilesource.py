@@ -30,11 +30,35 @@ class FlowFileSource(ABC):
         self.process_context = ProcessContext(context)
 
     def createFlowFile(self):
-        return self.create(self.process_context)
+        result = self.create(self.process_context)
+        return self.__normalize_results(result)
 
     @abstractmethod
     def create(self, context):
         pass
+
+    def __normalize_results(self, result):
+        if result is None:
+            return None
+
+        if isinstance(result, FlowFileSourceResult):
+            return result
+
+        if isinstance(result, (list, tuple)):
+            java_list = JvmHolder.jvm.java.util.ArrayList()
+            for entry in result:
+                if entry is not None:
+                    java_list.add(entry)
+            return java_list
+
+        if hasattr(result, '__iter__'):
+            java_list = JvmHolder.jvm.java.util.ArrayList()
+            for entry in result:
+                if entry is not None:
+                    java_list.add(entry)
+            return java_list
+
+        return result
 
 class FlowFileSourceResult:
     class Java:
