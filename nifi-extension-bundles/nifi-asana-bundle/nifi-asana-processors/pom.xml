@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client</artifactId>
-            <version>1.36.0</version>
+            <version>1.47.1</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
