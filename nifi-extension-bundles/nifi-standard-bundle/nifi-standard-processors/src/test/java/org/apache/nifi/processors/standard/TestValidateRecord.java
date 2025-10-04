@@ -29,6 +29,7 @@ import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.DateTimeUtils;
@@ -241,7 +242,7 @@ public class TestValidateRecord {
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName(), "csv-header-derived");
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.IGNORE_CSV_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());

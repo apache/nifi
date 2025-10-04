@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -104,8 +105,7 @@ public class ParseEvtx extends AbstractProcessor {
     @VisibleForTesting
     static final PropertyDescriptor GRANULARITY = new PropertyDescriptor.Builder()
             .required(true)
-            .name("granularity")
-            .displayName("Granularity")
+            .name("Granularity")
             .description("Output flow file for each Record, Chunk, or File encountered in the event log")
             .defaultValue(CHUNK)
             .allowableValues(RECORD, CHUNK, FILE)
@@ -184,6 +184,11 @@ public class ParseEvtx extends AbstractProcessor {
             });
             session.transfer(flowFile, REL_ORIGINAL);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("granularity", GRANULARITY.getName());
     }
 
     protected void processFileGranularity(ProcessSession session, ComponentLog componentLog, FlowFile original, String basename,

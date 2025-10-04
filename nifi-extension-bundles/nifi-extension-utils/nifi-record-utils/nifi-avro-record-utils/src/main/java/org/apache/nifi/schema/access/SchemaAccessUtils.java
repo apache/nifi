@@ -49,9 +49,16 @@ public class SchemaAccessUtils {
 
     public static final AllowableValue INFER_SCHEMA = new AllowableValue("infer", "Infer from Result");
 
+    public static final String OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME = "schema-access-strategy";
+    public static final String OLD_SCHEMA_REGISTRY_PROPERTY_NAME = "schema-registry";
+    public static final String OLD_SCHEMA_NAME_PROPERTY_NAME = "schema-name";
+    public static final String OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME = "schema-branch";
+    public static final String OLD_SCHEMA_VERSION_PROPERTY_NAME = "schema-version";
+    public static final String OLD_SCHEMA_TEXT_PROPERTY_NAME = "schema-text";
+    public static final String OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME = "schema-reference-reader";
+
     public static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
-            .name("schema-access-strategy")
-            .displayName("Schema Access Strategy")
+            .name("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
             .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, SCHEMA_REFERENCE_READER_PROPERTY)
             .defaultValue(SCHEMA_NAME_PROPERTY.getValue())
@@ -59,8 +66,7 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
-            .name("schema-registry")
-            .displayName("Schema Registry")
+            .name("Schema Registry")
             .description("Specifies the Controller Service to use for the Schema Registry")
             .identifiesControllerService(SchemaRegistry.class)
             .required(false)
@@ -68,8 +74,7 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-            .name("schema-name")
-            .displayName("Schema Name")
+            .name("Schema Name")
             .description("Specifies the name of the schema to lookup in the Schema Registry property")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -79,8 +84,7 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_BRANCH_NAME = new PropertyDescriptor.Builder()
-            .name("schema-branch")
-            .displayName("Schema Branch")
+            .name("Schema Branch")
             .description("Specifies the name of the branch to use when looking up the schema in the Schema Registry property. " +
                     "If the chosen Schema Registry does not support branching, this value will be ignored.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -90,8 +94,7 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor.Builder()
-            .name("schema-version")
-            .displayName("Schema Version")
+            .name("Schema Version")
             .description("Specifies the version of the schema to lookup in the Schema Registry. " +
                     "If not specified then the latest version of the schema will be retrieved.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -101,8 +104,7 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
-            .name("schema-text")
-            .displayName("Schema Text")
+            .name("Schema Text")
             .description("The text of an Avro-formatted Schema")
             .addValidator(new AvroSchemaValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -112,8 +114,7 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_REFERENCE_READER = new PropertyDescriptor.Builder()
-            .name("schema-reference-reader")
-            .displayName("Schema Reference Reader")
+            .name("Schema Reference Reader")
             .description("Service implementation responsible for reading FlowFile attributes or content to determine the Schema Reference Identifier")
             .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_REFERENCE_READER_PROPERTY)
             .identifiesControllerService(SchemaReferenceReader.class)

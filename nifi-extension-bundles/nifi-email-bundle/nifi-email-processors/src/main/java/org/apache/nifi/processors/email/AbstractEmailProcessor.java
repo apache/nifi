@@ -22,6 +22,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -70,48 +71,42 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             "Use OAuth2 to acquire access token"
     );
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
-            .name("host")
-            .displayName("Host Name")
+            .name("Host Name")
             .description("Network address of Email server (e.g., pop.gmail.com, imap.gmail.com . . .)")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("port")
-            .displayName("Port")
+            .name("Port")
             .description("Numeric value identifying Port of Email server (e.g., 993)")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor AUTHORIZATION_MODE = new PropertyDescriptor.Builder()
-            .name("authorization-mode")
-            .displayName("Authorization Mode")
+            .name("Authorization Mode")
             .description("How to authorize sending email on the user's behalf.")
             .required(true)
             .allowableValues(PASSWORD_BASED_AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
             .defaultValue(PASSWORD_BASED_AUTHORIZATION_MODE)
             .build();
     public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider")
-            .displayName("OAuth2 Access Token Provider")
+            .name("OAuth2 Access Token Provider")
             .description("OAuth2 service that can provide access tokens.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .dependsOn(AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
             .required(true)
             .build();
     public static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
-            .name("user")
-            .displayName("User Name")
+            .name("User Name")
             .description("User Name used for authentication and authorization with Email server.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("password")
-            .displayName("Password")
+            .name("Password")
             .description("Password used for authentication and authorization with Email server.")
             .dependsOn(AUTHORIZATION_MODE, PASSWORD_BASED_AUTHORIZATION_MODE)
             .required(true)
@@ -120,8 +115,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .sensitive(true)
             .build();
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
-            .name("folder")
-            .displayName("Folder")
+            .name("Folder")
             .description("Email folder to retrieve messages from (e.g., INBOX)")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -129,8 +123,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
-            .name("fetch.size")
-            .displayName("Fetch Size")
+            .name("Fetch Size")
             .description("Specify the maximum number of Messages to fetch per call to Email Server.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -138,8 +131,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     public static final PropertyDescriptor SHOULD_DELETE_MESSAGES = new PropertyDescriptor.Builder()
-            .name("delete.messages")
-            .displayName("Delete Messages")
+            .name("Delete Messages")
             .description("Specify whether mail messages should be deleted after retrieval.")
             .required(true)
             .allowableValues("true", "false")
@@ -147,8 +139,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("connection.timeout")
-            .displayName("Connection timeout")
+            .name("Connection Timeout")
             .description("The amount of time to wait to connect to Email server")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -236,6 +227,20 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         if (emailMessage != null) {
             this.transfer(emailMessage, context, processSession);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("host", HOST.getName());
+        config.renameProperty("port", PORT.getName());
+        config.renameProperty("authorization-mode", AUTHORIZATION_MODE.getName());
+        config.renameProperty("oauth2-access-token-provider", OAUTH2_ACCESS_TOKEN_PROVIDER.getName());
+        config.renameProperty("user", USER.getName());
+        config.renameProperty("password", PASSWORD.getName());
+        config.renameProperty("folder", FOLDER.getName());
+        config.renameProperty("fetch.size", FETCH_SIZE.getName());
+        config.renameProperty("delete.messages", SHOULD_DELETE_MESSAGES.getName());
+        config.renameProperty("connection.timeout", CONNECTION_TIMEOUT.getName());
     }
 
     @Override

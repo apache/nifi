@@ -63,6 +63,7 @@ import org.apache.nifi.sql.NiFiTableSchema;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.db.JdbcProperties;
 
 import java.io.Closeable;
 import java.io.InputStream;
@@ -247,6 +248,8 @@ public class QueryRecord extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.removeProperty("cache-schema");
+        config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
+        config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
     }
 
     @Override

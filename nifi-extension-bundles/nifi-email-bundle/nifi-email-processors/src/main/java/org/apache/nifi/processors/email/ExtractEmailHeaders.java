@@ -52,6 +52,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -87,8 +88,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
     public static final String EMAIL_ATTACHMENT_COUNT = "email.attachment_count";
 
     public static final PropertyDescriptor CAPTURED_HEADERS = new PropertyDescriptor.Builder()
-            .name("CAPTURED_HEADERS")
-            .displayName("Additional Header List")
+            .name("Additional Header List")
             .description("COLON separated list of additional headers to be extracted from the flowfile content." +
                     "NOTE the header key is case insensitive and will be matched as lower-case." +
                     " Values will respect email contents.")
@@ -103,8 +103,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
     private static final AllowableValue NONSTRICT_ADDRESSING = new AllowableValue("false", "Non-Strict Address Parsing",
         "Accept emails, even if the address is poorly formed and doesn't strictly comply with RFC Validation.");
     public static final PropertyDescriptor STRICT_PARSING = new PropertyDescriptor.Builder()
-            .name("STRICT_ADDRESS_PARSING")
-            .displayName("Email Address Parsing")
+            .name("Email Address Parsing")
             .description("If \"strict\", strict address format parsing rules are applied to mailbox and mailbox list fields, " +
                     "such as \"to\" and \"from\" headers, and FlowFiles with poorly formed addresses will be routed " +
                     "to the failure relationship, similar to messages that fail RFC compliant format validation. " +
@@ -227,6 +226,12 @@ public class ExtractEmailHeaders extends AbstractProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("CAPTURED_HEADERS", CAPTURED_HEADERS.getName());
+        config.renameProperty("STRICT_ADDRESS_PARSING", STRICT_PARSING.getName());
     }
 
     private static void putAddressListInAttributes(

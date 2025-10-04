@@ -97,6 +97,7 @@ public class GetSFTP extends GetFileTransfer {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         SFTPTransfer.migrateAlgorithmProperties(config);
+        config.renameProperty(SFTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, SFTPTransfer.FOLLOW_SYMLINK.getName());
     }
 
     @Override

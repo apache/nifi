@@ -173,6 +173,9 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
         config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
         config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
         config.renameProperty("blob-name-prefix", BLOB_NAME_PREFIX.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
+        config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, INITIAL_LISTING_TARGET.getName());
     }
 
     @Override

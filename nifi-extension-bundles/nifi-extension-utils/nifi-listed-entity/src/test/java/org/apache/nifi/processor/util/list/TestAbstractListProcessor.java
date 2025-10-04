@@ -405,8 +405,7 @@ public class TestAbstractListProcessor {
                 .addValidator(Validator.VALID)
                 .build();
         private static final PropertyDescriptor LISTING_FILTER = new PropertyDescriptor.Builder()
-                .name("listing-filter")
-                .displayName("Listing Filter")
+                .name("Listing Filter")
                 .description("Filters listed entities by name.")
                 .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
                 .build();

@@ -67,12 +67,12 @@ public class RollbackOnFailure {
         this.transactional = transactional;
     }
 
+    public static final String OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME = "rollback-on-failure";
     public static final PropertyDescriptor ROLLBACK_ON_FAILURE = createRollbackOnFailureProperty("");
 
     public static  PropertyDescriptor createRollbackOnFailureProperty(String additionalDescription) {
         return new PropertyDescriptor.Builder()
-                .name("rollback-on-failure")
-                .displayName("Rollback On Failure")
+                .name("Rollback On Failure")
                 .description("Specify how to handle error." +
                         " By default (false), if an error occurs while processing a FlowFile, the FlowFile will be routed to" +
                         " 'failure' or 'retry' relationship based on error type, and processor can continue with next FlowFile." +
