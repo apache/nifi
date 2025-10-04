@@ -30,11 +30,6 @@
     </modules>
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty</artifactId>
-                <version>${netty.3.version}</version>
-            </dependency>
             <!-- Override commons-beanutils -->
             <dependency>
                 <groupId>commons-beanutils</groupId>

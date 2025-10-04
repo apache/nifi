@@ -169,7 +169,6 @@
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.3.version>3.10.6.Final</netty.3.version>
         <netty.4.version>4.2.6.Final</netty.4.version>
         <okhttp.version>5.1.0</okhttp.version>
         <okio.version>3.16.0</okio.version>
