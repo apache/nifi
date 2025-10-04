@@ -77,6 +77,16 @@ export class SeeAlsoComponent {
             };
         }
 
+        documentedType = documentedTypes.registryClientTypes.find(
+            (documentedType) => extensionType === documentedType.type
+        );
+        if (documentedType) {
+            return {
+                documentedType,
+                componentType: ComponentType.FlowRegistryClient
+            };
+        }
+
         documentedType = documentedTypes.parameterProviderTypes.find(
             (documentedType) => extensionType === documentedType.type
         );

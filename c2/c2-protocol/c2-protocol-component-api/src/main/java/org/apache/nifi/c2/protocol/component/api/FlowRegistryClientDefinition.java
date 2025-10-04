@@ -14,23 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.extension.manifest;
+package org.apache.nifi.c2.protocol.component.api;
 
 /**
- * Possible types of extensions.
+ * Definition describing a Flow Registry Client extension.
  */
-public enum ExtensionType {
-
-    PROCESSOR,
-
-    CONTROLLER_SERVICE,
-
-    REPORTING_TASK,
-
-    FLOW_ANALYSIS_RULE,
-
-    PARAMETER_PROVIDER,
-
-    FLOW_REGISTRY_CLIENT;
-
+public class FlowRegistryClientDefinition extends ConfigurableExtensionDefinition {
+    private static final long serialVersionUID = 1L;
 }
