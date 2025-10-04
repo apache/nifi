@@ -89,6 +89,7 @@ export const extensionTypesReducer = createReducer(
         processorTypes: response.processorTypes,
         controllerServiceTypes: response.controllerServiceTypes,
         reportingTaskTypes: response.reportingTaskTypes,
+        registryClientTypes: response.registryClientTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
         status: 'success' as const

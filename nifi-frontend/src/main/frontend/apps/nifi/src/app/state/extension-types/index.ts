@@ -47,6 +47,7 @@ export interface LoadExtensionTypesForDocumentationResponse {
     processorTypes: DocumentedType[];
     controllerServiceTypes: DocumentedType[];
     reportingTaskTypes: DocumentedType[];
+    registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
 }
