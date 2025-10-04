@@ -32,14 +32,4 @@
         <module>nifi-schema-inference-utils</module>
         <module>nifi-yaml-record-utils</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty</artifactId>
-                <version>${netty.3.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>
