@@ -389,6 +389,25 @@ def getDynamicPropertyDescriptor(self, propertyname):
 If this method is not implemented and a user adds a property other than those that are explicitly supported, the Processor will become
 invalid. Of course, we might also specify explicit validators that can be used, etc.
 
+==== Referencing Controller Services
+
+Python processors can reference existing Java controller services using the same mechanism as Java processors. Set the
+`controller_service_definition` parameter on a `PropertyDescriptor` to the fully qualified class name of the controller service
+interface that should be exposed in the drop-down. For example:
+
+----
+self.lookup_service = PropertyDescriptor(
+    name='Lookup Service',
+    description='String lookup service used to enrich incoming records.',
+    required=True,
+    controller_service_definition='org.apache.nifi.lookup.StringLookupService'
+)
+----
+
+Within the processor implementation the configured service instance can be retrieved via the usual property accessors, for
+example `context.getProperty(self.lookup_service.name).asControllerService()`. NiFi ensures that only controller services
+implementing the referenced interface are eligible for selection. While simple class names work when type names are unique, using
+the fully qualified interface name avoids ambiguity when multiple controller services share the same simple name.
 
 
 [[relationships]]
