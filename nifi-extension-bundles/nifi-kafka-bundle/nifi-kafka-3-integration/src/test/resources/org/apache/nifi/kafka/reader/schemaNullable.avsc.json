@@ -1,0 +1,15 @@
+{
+  "name": "test",
+  "type": "record",
+  "fields": [
+    {
+      "name": "text",
+      "type": "string"
+    },
+    {
+      "name": "ordinal",
+      "type": ["null", "long"],
+      "default": null
+    }
+  ]
+}
