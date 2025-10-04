@@ -28,6 +28,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -142,6 +145,30 @@ class PutElasticsearchRecord_IT extends AbstractElasticsearch_IT<AbstractPutElas
     }
 
     @Test
+    void testMultipleBatchesWithoutRecursiveReads() {
+        final String json = generateRecordsJson(2000);
+
+        runner.setProperty(ElasticsearchRestProcessor.INDEX, "test-multiple-batches-no-recursive");
+        runner.setProperty(PutElasticsearchRecord.BATCH_SIZE, "100");
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id");
+        runner.setAllowRecursiveReads(false);
+
+        runner.enqueue(json);
+        runner.run();
+
+        runner.assertTransferCount(ElasticsearchRestProcessor.REL_FAILURE, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 0);
+
+        final List<MockFlowFile> successful = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_SUCCESSFUL);
+        assertEquals(20, successful.size());
+        final int totalRecordCount = successful.stream()
+                .mapToInt(flowFile -> Integer.parseInt(flowFile.getAttribute("record.count")))
+                .sum();
+        assertEquals(2000, totalRecordCount);
+    }
+
+    @Test
     void testUpdateError() {
         final String json = """
                 {"id": "123", "foo": "bar"}
@@ -199,5 +226,18 @@ class PutElasticsearchRecord_IT extends AbstractElasticsearch_IT<AbstractPutElas
         final String errorContent = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_ERRORS).getFirst().getContent();
         assertTrue(errorContent.contains("\"id\":\"123\""), errorContent);
         assertTrue(errorContent.contains("\"script\":{"), errorContent);
+    }
+
+    private String generateRecordsJson(final int recordCount) {
+        final StringBuilder builder = new StringBuilder(recordCount * 32);
+        builder.append('[');
+        for (int i = 0; i < recordCount; i++) {
+            builder.append("{\"id\":\"").append(i).append("\",\"value\":").append(i).append('}');
+            if (i < recordCount - 1) {
+                builder.append(',');
+            }
+        }
+        builder.append(']');
+        return builder.toString();
     }
 }
