@@ -775,6 +775,35 @@ public class PythonControllerInteractionIT {
         output.assertContentEquals(expectedContent);
     }
 
+    @Test
+    public void testConditionalProcessorWithDependencies() {
+        final TestRunner runner = createFlowFileTransform("ConditionalProcessor");
+
+        // Text mode with uppercase dependency
+        runner.setProperty("Output Mode", "text");
+        runner.setProperty("Uppercase", "true");
+        runner.setProperty("Payload Text", "${filename}");
+        runner.enqueue("body", Map.of("filename", "nifi"));
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        MockFlowFile textOutput = runner.getFlowFilesForRelationship("success").getFirst();
+        textOutput.assertContentEquals("NIFI");
+        textOutput.assertAttributeEquals("output.mode", "text");
+
+        // Reset and exercise JSON branch (requires JSON Field Name dependency)
+        runner.clearTransferState();
+        runner.setProperty("Output Mode", "json");
+        runner.setProperty("JSON Field Name", "msg");
+        runner.enqueue("body", Map.of("filename", "payload"));
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        MockFlowFile jsonOutput = runner.getFlowFilesForRelationship("success").getFirst();
+        jsonOutput.assertContentEquals("{\"msg\": \"payload\"}");
+        jsonOutput.assertAttributeEquals("output.mode", "json");
+    }
+
     private TestRunner createStateManagerTesterProcessor(String methodToTest) {
         final TestRunner runner = createProcessor("TestStateManager");
         runner.setProperty("StateManager Method To Test", methodToTest);

@@ -14,9 +14,12 @@
 # limitations under the License.
 
 from enum import Enum
+import re
+
+from py4j.protocol import Py4JJavaError
+
 from nifiapi.componentstate import StateManager
 from nifiapi.__jvm__ import JvmHolder
-import re
 
 EMPTY_STRING_ARRAY = JvmHolder.gateway.new_array(JvmHolder.jvm.java.lang.String, 0)
 EMPTY_ALLOWABLE_VALUE_ARRAY = JvmHolder.gateway.new_array(JvmHolder.jvm.org.apache.nifi.components.AllowableValue, 0)
@@ -329,14 +332,23 @@ class ProcessContext(PropertyContext):
     def __init__(self, java_context):
         self.java_context = java_context
 
-        descriptors = java_context.getProperties().keySet()
+        try:
+            descriptors = java_context.getProperties().keySet()
+        except AttributeError:
+            descriptors = getattr(java_context, 'getSupportedPropertyDescriptors')()
         self.name = java_context.getName()
         self.property_values = {}
         self.descriptor_value_map = {}
 
         for descriptor in descriptors:
-            property_value = java_context.getProperty(descriptor.getName())
-            string_value = property_value.getValue()
+            string_value = None
+            property_value = None
+            try:
+                property_value = java_context.getProperty(descriptor.getName())
+                string_value = property_value.getValue()
+            except (AssertionError, Py4JJavaError):
+                # Dependencies for this property are not satisfied; skip adding it
+                continue
 
             property_value = self.create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
             self.property_values[descriptor.getName()] = property_value
@@ -359,13 +371,22 @@ class ValidationContext(PropertyContext):
     def __init__(self, java_context):
         self.java_context = java_context
 
-        descriptors = java_context.getProperties().keySet()
+        try:
+            descriptors = java_context.getProperties().keySet()
+        except AttributeError:
+            descriptors = getattr(java_context, 'getSupportedPropertyDescriptors')()
         self.property_values = {}
         self.descriptor_value_map = {}
 
         for descriptor in descriptors:
-            property_value = java_context.getProperty(descriptor)
-            string_value = property_value.getValue()
+            string_value = None
+            property_value = None
+            try:
+                property_value = java_context.getProperty(descriptor)
+                string_value = property_value.getValue()
+            except (AssertionError, Py4JJavaError):
+                # Dependencies for this property are not satisfied; skip adding it
+                continue
 
             property_value = self.create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
             self.property_values[descriptor.getName()] = property_value
