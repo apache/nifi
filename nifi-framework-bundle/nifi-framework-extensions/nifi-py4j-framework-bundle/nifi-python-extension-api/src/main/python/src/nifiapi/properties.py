@@ -16,7 +16,7 @@
 from enum import Enum
 import re
 
-from py4j.protocol import Py4JJavaError
+from py4j.protocol import Py4JError
 
 from nifiapi.componentstate import StateManager
 from nifiapi.__jvm__ import JvmHolder
@@ -254,6 +254,8 @@ class PropertyDescriptor:
         return builder.build()
 
 
+
+
     def __get_allowable_values(self, gateway):
         if self.allowableValues is None:
             return None
@@ -296,6 +298,106 @@ class PropertyDescriptor:
         builder.identifiesExternalResource(cardinality, types[0], types[1:])
 
 
+def _collect_descriptor_metadata(java_context):
+    descriptor_list = []
+    descriptor_lookup = {}
+    value_lookup = {}
+
+    try:
+        java_properties = java_context.getProperties()
+    except AttributeError:
+        java_properties = None
+
+    if java_properties is not None:
+        for entry in java_properties.entrySet():
+            descriptor = entry.getKey()
+            name = descriptor.getName()
+            if name not in descriptor_lookup:
+                descriptor_list.append(descriptor)
+            descriptor_lookup[name] = descriptor
+
+            configured_value = entry.getValue()
+            value_lookup[name] = configured_value if configured_value is not None else descriptor.getDefaultValue()
+
+    try:
+        supported_descriptor_supplier = getattr(java_context, 'getSupportedPropertyDescriptors')
+    except AttributeError:
+        supported_descriptor_supplier = None
+
+    supported_descriptors = None
+    if callable(supported_descriptor_supplier):
+        try:
+            supported_descriptors = supported_descriptor_supplier()
+        except Py4JError:
+            supported_descriptors = None
+
+    if supported_descriptors is not None:
+        for descriptor in supported_descriptors:
+            name = descriptor.getName()
+            if name not in descriptor_lookup:
+                descriptor_list.append(descriptor)
+                descriptor_lookup[name] = descriptor
+            if name not in value_lookup:
+                value_lookup[name] = descriptor.getDefaultValue()
+
+    return descriptor_list, descriptor_lookup, value_lookup
+
+
+def _dependent_values_iter(dependency):
+    dependent_values = dependency.getDependentValues()
+    if dependent_values is None:
+        return None
+    return [value for value in dependent_values]
+
+
+def _dependencies_satisfied(descriptor, descriptor_lookup, value_lookup, cache, visiting):
+    name = descriptor.getName()
+    if name in cache:
+        return cache[name]
+
+    if name in visiting:
+        # Circular dependency detected; treat as unsatisfied to avoid infinite recursion
+        cache[name] = False
+        return False
+
+    dependencies = descriptor.getDependencies()
+    if dependencies is None or dependencies.isEmpty():
+        cache[name] = True
+        return True
+
+    visiting.add(name)
+
+    for dependency in dependencies:
+        dependency_name = dependency.getPropertyName()
+        dependency_descriptor = descriptor_lookup.get(dependency_name)
+        if dependency_descriptor is None:
+            cache[name] = False
+            visiting.remove(name)
+            return False
+
+        if not _dependencies_satisfied(dependency_descriptor, descriptor_lookup, value_lookup, cache, visiting):
+            cache[name] = False
+            visiting.remove(name)
+            return False
+
+        dependency_value = value_lookup.get(dependency_name)
+        dependent_values = _dependent_values_iter(dependency)
+        if dependent_values is None:
+            if dependency_value is None:
+                cache[name] = False
+                visiting.remove(name)
+                return False
+        else:
+            if dependency_value not in dependent_values:
+                cache[name] = False
+                visiting.remove(name)
+                return False
+
+    visiting.remove(name)
+    cache[name] = True
+    return True
+
+
 class PropertyContext:
     __trivial_attribute_reference__ = re.compile(r"\$\{([^${}\[\],:;/*\' \t\r\n\\d][^${}\[\],:;/*\' \t\r\n]*)}")
     __escaped_attribute_reference__ = re.compile(r"\$\{'([^${}\[\],:;/*\' \t\r\n\\d][^${}\[\],:;/*\'\t\r\n]*)'}")
@@ -331,24 +433,24 @@ class ProcessContext(PropertyContext):
 
     def __init__(self, java_context):
         self.java_context = java_context
+        descriptors, descriptor_lookup, value_lookup = _collect_descriptor_metadata(java_context)
+        dependency_cache = {}
 
-        try:
-            descriptors = java_context.getProperties().keySet()
-        except AttributeError:
-            descriptors = getattr(java_context, 'getSupportedPropertyDescriptors')()
-        self.name = java_context.getName()
+        get_name = getattr(java_context, 'getName', None)
+        self.name = get_name() if callable(get_name) else None
         self.property_values = {}
         self.descriptor_value_map = {}
 
         for descriptor in descriptors:
-            string_value = None
-            property_value = None
-            try:
-                property_value = java_context.getProperty(descriptor.getName())
-                string_value = property_value.getValue()
-            except (AssertionError, Py4JJavaError):
-                # Dependencies for this property are not satisfied; skip adding it
+            if not _dependencies_satisfied(descriptor, descriptor_lookup, value_lookup, dependency_cache, set()):
                 continue
+
+            property_value = java_context.getProperty(descriptor.getName())
+            string_value = property_value.getValue()
+            if string_value is None:
+                string_value = value_lookup.get(descriptor.getName())
+            else:
+                value_lookup[descriptor.getName()] = string_value
 
             property_value = self.create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
             self.property_values[descriptor.getName()] = property_value
@@ -370,23 +472,21 @@ class ValidationContext(PropertyContext):
 
     def __init__(self, java_context):
         self.java_context = java_context
-
-        try:
-            descriptors = java_context.getProperties().keySet()
-        except AttributeError:
-            descriptors = getattr(java_context, 'getSupportedPropertyDescriptors')()
+        descriptors, descriptor_lookup, value_lookup = _collect_descriptor_metadata(java_context)
+        dependency_cache = {}
         self.property_values = {}
         self.descriptor_value_map = {}
 
         for descriptor in descriptors:
-            string_value = None
-            property_value = None
-            try:
-                property_value = java_context.getProperty(descriptor)
-                string_value = property_value.getValue()
-            except (AssertionError, Py4JJavaError):
-                # Dependencies for this property are not satisfied; skip adding it
+            if not _dependencies_satisfied(descriptor, descriptor_lookup, value_lookup, dependency_cache, set()):
                 continue
+
+            property_value = java_context.getProperty(descriptor)
+            string_value = property_value.getValue()
+            if string_value is None:
+                string_value = value_lookup.get(descriptor.getName())
+            else:
+                value_lookup[descriptor.getName()] = string_value
 
             property_value = self.create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
             self.property_values[descriptor.getName()] = property_value
