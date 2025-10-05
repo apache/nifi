@@ -283,6 +283,33 @@ If the partition has more than one field in the dictionary, all fields in the di
 the Records to be written to the same output FlowFile.
 
 
+==== Working with Nested Records
+
+Manipulating just a small portion of an incoming record is a very common use case for `RecordTransform` processors. A
+practical approach is to rely on a dictionary traversal helper such as the https://pypi.org/project/glom/[glom] library.
+Python processors can declare third-party dependencies via the `dependencies` attribute on `ProcessorDetails`; NiFi downloads
+those packages when the processor is first loaded.
+
+The sample `HashRecordField` processor illustrates the pattern. It expects the processor configuration to supply a glom-style path
+(for example `customer.address.street` or `items.0.price`). That string can be passed directly to `glom(...)` to read values and
+`assign(...)` to update them without hand-coding dictionary traversal logic:
+
+----
+from glom import assign, glom
+
+_MISSING = object()
+path_spec = 'my.example'  # Glom-style path
+value = glom(record, path_spec, default=_MISSING)
+if value not in (None, _MISSING) and not isinstance(value, (dict, list)):
+    hashed = hashlib.sha256(str(value).encode('utf-8')).hexdigest()
+    assign(record, path_spec, hashed, missing=lambda: None)
+----
+
+The `HashRecordField` processor expects the Record Path property to contain a glom-style string such as `customer.address.street` or
+`items.0.price`. Supplying the same string to `glom(...)` and `assign(...)` makes it easy to read and update nested fields while
+`RecordTransformResult` persists the modified record using the configured Record Writer.
+
+
 [[flowfile-source]]
 === FlowFileSource
 

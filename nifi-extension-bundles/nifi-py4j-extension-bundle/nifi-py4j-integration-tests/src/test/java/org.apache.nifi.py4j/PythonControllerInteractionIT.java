@@ -17,6 +17,8 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 import org.apache.nifi.components.state.Scope;
@@ -470,8 +472,75 @@ public class PythonControllerInteractionIT {
     }
 
 
+    @Test
+    public void testHashRecordFieldHappyPath() throws InitializationException {
+        final TestRunner runner = createRecordTransformRunner("HashRecordField");
+        runner.setProperty("Record Path", "my.example");
+
+        final String json = "[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]";
+        runner.enqueue(json);
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final String expectedHash = DigestUtils.sha256Hex("value");
+        out.assertContentEquals("[{\"foo\":\"foo\",\"my\":{\"example\":\"" + expectedHash + "\"}}]");
+    }
+
+    @Test
+    public void testHashRecordFieldMissingField() throws InitializationException {
+        final TestRunner runner = createRecordTransformRunner("HashRecordField");
+        runner.setProperty("Record Path", "does.not.exist");
+
+        final String json = "[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]";
+        runner.enqueue(json);
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        out.assertContentEquals("[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]");
+    }
+
+    @Test
+    public void testHashRecordFieldNonScalar() throws InitializationException {
+        final TestRunner runner = createRecordTransformRunner("HashRecordField");
+        runner.setProperty("Record Path", "my");
+
+        final String json = "[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]";
+        runner.enqueue(json);
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        out.assertContentEquals("[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]");
+    }
+
+    @Test
+    public void testHashRecordFieldLongValue() throws InitializationException {
+        final TestRunner runner = createRecordTransformRunner("HashRecordField");
+        runner.setProperty("Record Path", "count");
+
+        final String json = "[{\"count\":7}]";
+        runner.enqueue(json);
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("original", 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final String expectedHash = DigestUtils.sha256Hex("7");
+        out.assertContentEquals("[{\"count\":\"" + expectedHash + "\"}]");
+    }
+
+
     private TestRunner createRecordTransformRunner(final String type) throws InitializationException {
-        final TestRunner runner = createProcessor("SetRecordField");
+        final TestRunner runner = createProcessor(type);
         runner.setValidateExpressionUsage(false);
 
         final JsonTreeReader reader = new JsonTreeReader();
@@ -486,6 +555,7 @@ public class PythonControllerInteractionIT {
 
         return runner;
     }
+
 
     @Test
     public void testRecordTransformWithInnerRecord() throws InitializationException {
