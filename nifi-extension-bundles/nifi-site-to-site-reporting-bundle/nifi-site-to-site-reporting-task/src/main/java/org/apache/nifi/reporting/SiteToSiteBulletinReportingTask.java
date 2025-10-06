@@ -32,12 +32,12 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;

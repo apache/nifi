@@ -26,7 +26,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatTabsModule } from '@angular/material/tabs';
 import { FlowFileDialogRequest } from '../../../state/queue-listing';
 import { CopyDirective, NiFiCommon } from '@nifi/shared';
-import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'flowfile-dialog',
@@ -46,6 +46,12 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
         FormsModule,
         KeyValuePipe,
         CopyDirective
+    ],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'flowfile-dialog-selected-index'
+        }
     ]
 })
 export class FlowFileDialog extends TabbedDialog {
@@ -58,7 +64,7 @@ export class FlowFileDialog extends TabbedDialog {
     @Output() viewContent: EventEmitter<void> = new EventEmitter<void>();
 
     constructor() {
-        super('flowfile-dialog-selected-index');
+        super();
     }
 
     formatDurationValue(duration: number): string {

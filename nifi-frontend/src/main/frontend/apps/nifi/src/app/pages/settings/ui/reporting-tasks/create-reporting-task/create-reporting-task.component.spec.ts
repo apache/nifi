@@ -21,12 +21,17 @@ import { CreateReportingTask } from './create-reporting-task.component';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialExtensionsTypesState } from '../../../../../state/extension-types/extension-types.reducer';
+import { extensionTypesFeatureKey } from '../../../../../state/extension-types';
+import { initialState as initialReportingTasksState } from '../../../state/reporting-tasks/reporting-tasks.reducer';
+import { reportingTasksFeatureKey } from '../../../state/reporting-tasks';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { MockComponent } from 'ng-mocks';
 import { DocumentedType } from '../../../../../state/shared';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { of } from 'rxjs';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
 
 describe('CreateReportingTask', () => {
     let component: CreateReportingTask;
@@ -55,7 +60,15 @@ describe('CreateReportingTask', () => {
                 MockComponent(ExtensionCreation)
             ],
             providers: [
-                provideMockStore({ initialState: initialExtensionsTypesState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState,
+                        settings: {
+                            [reportingTasksFeatureKey]: initialReportingTasksState
+                        }
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

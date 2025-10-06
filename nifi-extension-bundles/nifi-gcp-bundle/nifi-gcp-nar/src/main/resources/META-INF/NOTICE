@@ -114,7 +114,6 @@ Common Development and Distribution License 1.1
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
 
 ************************
 Common Development and Distribution License 1.0
@@ -122,8 +121,6 @@ Common Development and Distribution License 1.0
 
 The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
 
-    (CDDL 1.0) JavaServlet(TM) Specification (javax.servlet:servlet-api:jar:2.5 - no url available)
-    (CDDL 1.0) Javax Transaction API (javax.transaction:transaction-api:jar:1.1 - no url available)
 
 *****************
 Public Domain

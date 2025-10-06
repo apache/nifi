@@ -173,8 +173,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     public static final AllowableValue PRECISION_MINUTES = new AllowableValue("minutes", "Minutes", "For a target system that only supports precision in minutes.");
 
     public static final PropertyDescriptor TARGET_SYSTEM_TIMESTAMP_PRECISION = new Builder()
-            .name("target-system-timestamp-precision")
-            .displayName("Target System Timestamp Precision")
+            .name("Target System Timestamp Precision")
             .description("Specify timestamp precision at the target system."
                     + " Since this processor uses timestamp of entities to decide which should be listed, it is crucial to use the right timestamp precision.")
             .required(true)
@@ -215,8 +214,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " are accurate.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
-            .name("listing-strategy")
-            .displayName("Listing Strategy")
+            .name("Listing Strategy")
             .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
             .required(true)
             .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
@@ -224,8 +222,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. " +
                     "If the Record Writer is specified, all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
             .required(false)
@@ -276,6 +273,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.removeProperty("Distributed Cache Service");
+        config.renameProperty("target-system-timestamp-precision", TARGET_SYSTEM_TIMESTAMP_PRECISION.getName());
+        config.renameProperty("listing-strategy", LISTING_STRATEGY.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
     }
 
     @Override

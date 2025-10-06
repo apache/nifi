@@ -29,6 +29,7 @@ import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.DateTimeUtils;
@@ -241,7 +242,7 @@ public class TestValidateRecord {
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName(), "csv-header-derived");
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.IGNORE_CSV_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
@@ -546,6 +547,8 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "true");
         final Path timestampPath = Paths.get("src/test/resources/TestValidateRecord/timestamp.json");
+
+        // 1) Valid with explicit schema + slash format
         runner.enqueue(timestampPath);
         runner.run();
 
@@ -553,33 +556,36 @@ public class TestValidateRecord {
         final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
 
-        // Test with a timestamp that has an invalid format.
+        // 2) Inferred schema — run this BEFORE the invalid-format scenario to avoid order-dependence
         runner.clearTransferState();
 
-        runner.disableControllerService(jsonReader);
-        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd HH:mm:ss");
-        runner.enqueue(timestampPath);
-        runner.enableControllerService(jsonReader);
-
-        runner.run();
-
-        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
-        invalidFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
-
-        // Test with an Inferred Schema.
         runner.disableControllerService(jsonReader);
         runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
         runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
         runner.enableControllerService(jsonReader);
 
-        runner.clearTransferState();
         runner.enqueue(timestampPath);
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
         final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFileInferredSchema.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
+
+        // 3) Invalid timestamp format
+        runner.clearTransferState();
+
+        runner.disableControllerService(jsonReader);
+        // IMPORTANT: switch the READER back to schema-text strategy before changing the format
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd HH:mm:ss");
+        runner.enableControllerService(jsonReader);
+
+        runner.enqueue(timestampPath);
+        runner.run();
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
+        invalidFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
     }
 
     @Test

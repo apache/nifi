@@ -17,7 +17,7 @@
 
 package org.apache.nifi.elasticsearch;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -93,6 +93,9 @@ public class IndexOperationRequest {
         Index("index"),
         Update("update"),
         Upsert("upsert");
+
+        private static final List<Operation> VALUES = List.of(Operation.values());
+
         private final String value;
 
         Operation(final String value) {
@@ -104,9 +107,12 @@ public class IndexOperationRequest {
         }
 
         public static Operation forValue(final String value) {
-            return Arrays.stream(Operation.values())
-                    .filter(o -> o.getValue().equalsIgnoreCase(value)).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown Index Operation %s", value)));
+            for (final Operation operation : VALUES) {
+                if (operation.value.equalsIgnoreCase(value)) {
+                    return operation;
+                }
+            }
+            throw new IllegalArgumentException(String.format("Unknown Index Operation %s", value));
         }
     }
 

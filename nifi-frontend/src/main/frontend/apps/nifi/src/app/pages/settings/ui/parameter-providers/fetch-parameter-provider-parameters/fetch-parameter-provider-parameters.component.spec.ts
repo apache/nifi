@@ -22,8 +22,12 @@ import { FetchParameterProviderDialogRequest } from '../../../state/parameter-pr
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
+import { parameterProvidersFeatureKey } from '../../../state/parameter-providers';
+import { settingsFeatureKey } from '../../../state';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
 
 describe('FetchParameterProviderParameters', () => {
     let component: FetchParameterProviderParameters;
@@ -163,7 +167,12 @@ describe('FetchParameterProviderParameters', () => {
                     useValue: data
                 },
                 provideMockStore({
-                    initialState: initialParameterProvidersState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [settingsFeatureKey]: {
+                            [parameterProvidersFeatureKey]: initialParameterProvidersState
+                        }
+                    }
                 }),
                 {
                     provide: ClusterConnectionService,

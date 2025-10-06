@@ -15,14 +15,16 @@
 ~  limitations under the License.
 -->
 
-<h2 mat-dialog-title>Delete resource?</h2>
-<div class="delete-droplet-dialog">
-    <context-error-banner [context]="ErrorContextKey.DELETE_DROPLET"></context-error-banner>
-    <mat-dialog-content>
-        <p class="test">This action will delete all versions of {{ droplet.name }}</p>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>No</button>
-        <button mat-flat-button (click)="deleteDroplet(droplet)" class="ml-2" data-test-id="delete-btn">Yes</button>
-    </mat-dialog-actions>
-</div>
+<h2 mat-dialog-title>Manage Bucket Policies</h2>
+<mat-dialog-content>
+    <div class="flex flex-col gap-y-4">
+        <p>
+            TODO: Manage policies for bucket: <strong>{{ data.bucket.name }}</strong>
+        </p>
+        <!--        TODO: Manage policies for bucket         -->
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-flat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

@@ -37,6 +37,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -108,8 +109,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             .build();
 
     static final PropertyDescriptor RESTART_ON_FINISH = new PropertyDescriptor.Builder()
-            .name("restart-on-finish")
-            .displayName("Restart On Finish?")
+            .name("Restart On Finish")
             .description("Whether the processor should start another search with the same query once a paginated search has completed.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
@@ -155,6 +155,12 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
         if (context.getProperty(RESTART_ON_FINISH).isSet()) {
             this.restartOnFinish = context.getProperty(RESTART_ON_FINISH).asBoolean();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("restart-on-finish", RESTART_ON_FINISH.getName());
     }
 
     @Override

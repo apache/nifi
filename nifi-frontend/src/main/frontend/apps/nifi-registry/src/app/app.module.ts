@@ -27,13 +27,15 @@ import {
 import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
+import { registryAuthInterceptor } from './service/interceptors/registry-auth.interceptor';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { EffectsModule } from '@ngrx/effects';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
-import { HeaderComponent } from './ui/header/header.component';
 import { rootReducers } from './state';
 import { ErrorEffects } from './state/error/error.effects';
+import { AboutEffects } from './state/about/about.effects';
 import { environment } from '../environments/environment';
+import { CurrentUserEffects } from './state/current-user/current-user.effects';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations = '';
@@ -60,13 +62,12 @@ try {
         BrowserModule,
         AppRoutingModule,
         BrowserAnimationsModule,
-        HeaderComponent,
         StoreModule.forRoot(rootReducers),
         StoreRouterConnectingModule.forRoot({
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(ErrorEffects),
+        EffectsModule.forRoot(ErrorEffects, CurrentUserEffects, AboutEffects),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
@@ -79,7 +80,7 @@ try {
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),
         { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
         provideHttpClient(
-            withInterceptors([]),
+            withInterceptors([registryAuthInterceptor]),
             withXsrfConfiguration({
                 cookieName: '__Secure-Request-Token',
                 headerName: 'Request-Token'

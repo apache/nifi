@@ -22,6 +22,10 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { documentationFeatureKey } from '../../state';
 import { reportingTaskDefinitionFeatureKey } from '../../state/reporting-task-definition';
 import { initialState } from '../../state/reporting-task-definition/reporting-task-definition.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ReportingTaskDefinition', () => {
     let component: ReportingTaskDefinition;
@@ -33,6 +37,8 @@ describe('ReportingTaskDefinition', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [documentationFeatureKey]: {
                             [reportingTaskDefinitionFeatureKey]: initialState
                         }

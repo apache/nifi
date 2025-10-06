@@ -31,13 +31,16 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.sql.DefaultAvroSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.util.db.AvroUtil.CodecType;
 import org.apache.nifi.util.db.JdbcCommon;
+import org.apache.nifi.util.db.JdbcProperties;
 
 import java.util.List;
 import java.util.Set;
@@ -142,28 +145,41 @@ public class ExecuteSQL extends AbstractExecuteSQL {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            DBCP_SERVICE,
+            SQL_PRE_QUERY,
+            SQL_QUERY,
+            SQL_POST_QUERY,
+            QUERY_TIMEOUT,
+            NORMALIZE_NAMES_FOR_AVRO,
+            USE_AVRO_LOGICAL_TYPES,
+            COMPRESSION_FORMAT,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE,
+            MAX_ROWS_PER_FLOW_FILE,
+            OUTPUT_BATCH_SIZE,
+            FETCH_SIZE,
+            AUTO_COMMIT,
+            CONTENT_OUTPUT_STRATEGY
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     public ExecuteSQL() {
-        relationships = Set.of(
-                REL_SUCCESS,
-                REL_FAILURE
-        );
-        propDescriptors = List.of(
-                DBCP_SERVICE,
-                SQL_PRE_QUERY,
-                SQL_QUERY,
-                SQL_POST_QUERY,
-                QUERY_TIMEOUT,
-                NORMALIZE_NAMES_FOR_AVRO,
-                USE_AVRO_LOGICAL_TYPES,
-                COMPRESSION_FORMAT,
-                DEFAULT_PRECISION,
-                DEFAULT_SCALE,
-                MAX_ROWS_PER_FLOW_FILE,
-                OUTPUT_BATCH_SIZE,
-                FETCH_SIZE,
-                AUTO_COMMIT,
-                CONTENT_OUTPUT_STRATEGY
-        );
+        relationships = RELATIONSHIPS;
+        propDescriptors = PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(JdbcProperties.OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME, NORMALIZE_NAMES_FOR_AVRO.getName());
+        config.renameProperty(JdbcProperties.OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME, USE_AVRO_LOGICAL_TYPES.getName());
+        config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
+        config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
     }
 
     @Override

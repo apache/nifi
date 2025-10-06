@@ -34,6 +34,16 @@ public final class DBCPProperties {
     private DBCPProperties() {
     }
 
+    public static final String OLD_DB_DRIVER_LOCATION_PROPERTY_NAME = "database-driver-locations";
+    public static final String OLD_VALIDATION_QUERY_PROPERTY_NAME = "Validation-query";
+    public static final String OLD_MIN_IDLE_PROPERTY_NAME = "dbcp-min-idle-conns";
+    public static final String OLD_MAX_IDLE_PROPERTY_NAME = "dbcp-max-idle-conns";
+    public static final String OLD_MAX_CONN_LIFETIME_PROPERTY_NAME = "dbcp-max-conn-lifetime";
+    public static final String OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME = "dbcp-time-between-eviction-runs";
+    public static final String OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME = "dbcp-min-evictable-idle-time";
+    public static final String OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME = "dbcp-soft-min-evictable-idle-time";
+    public static final String OLD_KERBEROS_USER_SERVICE_PROPERTY_NAME = "kerberos-user-service";
+
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("Database Connection URL")
             .description("A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
@@ -69,8 +79,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("database-driver-locations")
-            .displayName("Database Driver Location(s)")
+            .name("Database Driver Location(s)")
             .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
@@ -101,8 +110,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
-            .name("Validation-query")
-            .displayName("Validation query")
+            .name("Validation Query")
             .description("Validation query used to validate connections before returning them. "
                     + "When connection is invalid, it gets dropped and new valid connection will be returned. "
                     + "Note!! Using validation might have some performance penalty.")
@@ -112,8 +120,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
-            .displayName("Minimum Idle Connections")
-            .name("dbcp-min-idle-conns")
+            .name("Minimum Idle Connections")
             .description("The minimum number of connections that can remain idle in the pool without extra ones being " +
                     "created. Set to or zero to allow no idle connections.")
             .defaultValue(DefaultDataSourceValues.MIN_IDLE.getValue())
@@ -123,8 +130,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
-            .displayName("Max Idle Connections")
-            .name("dbcp-max-idle-conns")
+            .name("Maximum Idle Connections")
             .description("The maximum number of connections that can remain idle in the pool without extra ones being " +
                     "released. Set to any negative value to allow unlimited idle connections.")
             .defaultValue(DefaultDataSourceValues.MAX_IDLE.getValue())
@@ -134,8 +140,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
-            .displayName("Max Connection Lifetime")
-            .name("dbcp-max-conn-lifetime")
+            .name("Maximum Connection Lifetime")
             .description("The maximum lifetime of a connection. After this time is exceeded the " +
                     "connection will fail the next activation, passivation or validation test. A value of zero or less " +
                     "means the connection has an infinite lifetime.")
@@ -146,8 +151,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
-            .displayName("Time Between Eviction Runs")
-            .name("dbcp-time-between-eviction-runs")
+            .name("Time Between Eviction Runs")
             .description("The time period to sleep between runs of the idle connection evictor thread. When " +
                     "non-positive, no idle connection evictor thread will be run.")
             .defaultValue(DefaultDataSourceValues.EVICTION_RUN_PERIOD.getValue())
@@ -157,8 +161,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
-            .displayName("Minimum Evictable Idle Time")
-            .name("dbcp-min-evictable-idle-time")
+            .name("Minimum Evictable Idle Time")
             .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
             .defaultValue(DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME.getValue())
             .required(false)
@@ -167,8 +170,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
-            .displayName("Soft Minimum Evictable Idle Time")
-            .name("dbcp-soft-min-evictable-idle-time")
+            .name("Soft Minimum Evictable Idle Time")
             .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for " +
                     "eviction by the idle connection evictor, with the extra condition that at least a minimum number of" +
                     " idle connections remain in the pool. When the not-soft version of this option is set to a positive" +
@@ -183,8 +185,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-user-service")
-            .displayName("Kerberos User Service")
+            .name("Kerberos User Service")
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
             .identifiesControllerService(KerberosUserService.class)
             .required(false)

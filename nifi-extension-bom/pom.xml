@@ -72,10 +72,10 @@
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Jetty EE10 Servlet and dependencies -->
+            <!-- Jetty EE11 Servlet and dependencies -->
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-servlet</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-servlet</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -91,10 +91,10 @@
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Jetty EE10 Webapp and deps -->
+            <!-- Jetty EE11 Webapp and deps -->
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-webapp</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-webapp</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -111,10 +111,10 @@
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Jetty EE10 Servlets and Deps-->
+            <!-- Jetty EE11 Servlets and Deps-->
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-servlets</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-servlets</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -125,29 +125,29 @@
                 <scope>provided</scope>
             </dependency>
 
-            <!-- Jetty EE10 Annotations and Deps -->
+            <!-- Jetty EE11 Annotations and Deps -->
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-annotations</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-annotations</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.annotation</groupId>
                 <artifactId>jakarta.annotation-api</artifactId>
-                <version>2.1.1</version>
+                <version>3.0.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-plus</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-plus</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.enterprise</groupId>
                 <artifactId>jakarta.enterprise.cdi-api</artifactId>
-                <version>4.0.1</version>
+                <version>4.1.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -159,13 +159,13 @@
             <dependency>
                 <groupId>jakarta.enterprise</groupId>
                 <artifactId>jakarta.enterprise.lang-model</artifactId>
-                <version>4.0.1</version>
+                <version>4.1.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.interceptor</groupId>
                 <artifactId>jakarta.interceptor-api</artifactId>
-                <version>2.1.0</version>
+                <version>2.2.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -204,12 +204,13 @@
                 <version>9.8</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Jetty EE10 Apache JSP and deps -->
+            <!-- Jetty EE11 Apache JSP and deps -->
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-apache-jsp</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-apache-jsp</artifactId>
+                <version>${jetty.version}</version>
+                <scope>provided</scope>
                 <exclusions>
-                    <!-- Exclude legacy Mortbay coordinates; use mortbay-apache-* instead -->
                     <exclusion>
                         <groupId>org.mortbay.jasper</groupId>
                         <artifactId>apache-jsp</artifactId>
@@ -219,31 +220,29 @@
                         <artifactId>apache-el</artifactId>
                     </exclusion>
                 </exclusions>
-                <version>${jetty.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>mortbay-apache-jsp</artifactId>
-                <version>10.1.44.1</version>
+                <version>11.0.10.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>mortbay-apache-el</artifactId>
-                <version>10.1.44.1</version>
+                <version>11.0.10.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.el</groupId>
                 <artifactId>jakarta.el-api</artifactId>
-                <version>5.0.1</version>
+                <version>6.0.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.servlet.jsp</groupId>
                 <artifactId>jakarta.servlet.jsp-api</artifactId>
-                <version>3.1.1</version>
+                <version>4.0.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -252,10 +251,10 @@
                 <version>3.43.0</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Jetty EE10 Glassfish JSTL and deps -->
+            <!-- Jetty EE11 Glassfish JSTL and deps -->
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-glassfish-jstl</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-glassfish-jstl</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -336,8 +335,8 @@
             <artifactId>jetty-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlet</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlet</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -348,8 +347,8 @@
             <artifactId>jetty-session</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-webapp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-webapp</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -360,24 +359,24 @@
             <artifactId>jetty-deploy</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlets</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlets</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-util</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-annotations</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-annotations</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-plus</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-plus</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.enterprise</groupId>
@@ -420,8 +419,8 @@
             <artifactId>asm-tree</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-apache-jsp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-apache-jsp</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
@@ -444,8 +443,8 @@
             <artifactId>ecj</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-glassfish-jstl</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-glassfish-jstl</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.servlet.jsp.jstl</groupId>
@@ -492,17 +491,17 @@
                         <dependency>org.eclipse.jetty:jetty-server</dependency>
                         <dependency>org.eclipse.jetty:jetty-http</dependency>
                         <dependency>org.eclipse.jetty:jetty-io</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-servlet</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-servlet</dependency>
                         <dependency>org.eclipse.jetty:jetty-security</dependency>
                         <dependency>org.eclipse.jetty:jetty-session</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-webapp</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-webapp</dependency>
                         <dependency>org.eclipse.jetty:jetty-xml</dependency>
                         <dependency>org.eclipse.jetty:jetty-deploy</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-servlets</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-servlets</dependency>
                         <dependency>org.eclipse.jetty:jetty-util</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-annotations</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-annotations</dependency>
                         <dependency>jakarta.annotation:jakarta.annotation-api</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-plus</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-plus</dependency>
                         <dependency>jakarta.enterprise:jakarta.enterprise.cdi-api</dependency>
                         <dependency>jakarta.inject:jakarta.inject-api</dependency>
                         <dependency>jakarta.enterprise:jakarta.enterprise.lang-model</dependency>
@@ -513,13 +512,13 @@
                         <dependency>org.ow2.asm:asm:jar</dependency>
                         <dependency>org.ow2.asm:asm-commons</dependency>
                         <dependency>org.ow2.asm:asm-tree</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-apache-jsp</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-apache-jsp</dependency>
                         <dependency>org.mortbay.jasper:mortbay-apache-jsp</dependency>
                         <dependency>org.mortbay.jasper:mortbay-apache-el</dependency>
                         <dependency>jakarta.el:jakarta.el-api</dependency>
                         <dependency>jakarta.servlet.jsp:jakarta.servlet.jsp-api</dependency>
                         <dependency>org.eclipse.jdt:ecj</dependency>
-                        <dependency>org.eclipse.jetty.ee10:jetty-ee10-glassfish-jstl</dependency>
+                        <dependency>org.eclipse.jetty.ee11:jetty-ee11-glassfish-jstl</dependency>
                         <dependency>jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api</dependency>
                         <dependency>org.glassfish.web:jakarta.servlet.jsp.jstl</dependency>
                         <dependency>org.eclipse.jetty:jetty-alpn-server</dependency>

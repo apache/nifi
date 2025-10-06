@@ -39,7 +39,7 @@ describe('DropletVersionsDialogComponent', () => {
         link: { href: 'testHref', params: { rel: 'testRel' } },
         modifiedTimestamp: 123456789,
         name: 'testName',
-        permissions: { canRead: true, canWrite: true },
+        permissions: { canRead: true, canWrite: true, canDelete: true },
         revision: { version: 1 },
         type: 'FLOW',
         versionCount: 1
@@ -75,7 +75,13 @@ describe('DropletVersionsDialogComponent', () => {
                         keydownEvents: () => new Subject<KeyboardEvent>()
                     }
                 },
-                provideMockStore({})
+                provideMockStore({
+                    initialState: {
+                        error: {
+                            bannerErrors: {}
+                        }
+                    }
+                })
             ]
         }).compileComponents();
 

@@ -247,8 +247,7 @@ export class ControllerServiceTable {
         return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && this.canModifyParent(entity);
     }
 
-    deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    deleteClicked(entity: ControllerServiceEntity): void {
         this.deleteControllerService.next(entity);
     }
 

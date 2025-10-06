@@ -20,7 +20,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SystemDiagnosticsDialog } from './system-diagnostics-dialog.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialSystemDiagnosticsState } from '../../../state/system-diagnostics/system-diagnostics.reducer';
+import { systemDiagnosticsFeatureKey } from '../../../state/system-diagnostics';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 import { MatDialogRef } from '@angular/material/dialog';
+import { initialState as initialAboutState } from '../../../state/about/about.reducer';
+import { aboutFeatureKey } from '../../../state/about';
 
 describe('SystemDiagnosticsDialog', () => {
     let component: SystemDiagnosticsDialog;
@@ -30,7 +37,14 @@ describe('SystemDiagnosticsDialog', () => {
         TestBed.configureTestingModule({
             imports: [SystemDiagnosticsDialog],
             providers: [
-                provideMockStore({ initialState: initialSystemDiagnosticsState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [aboutFeatureKey]: initialAboutState,
+                        [systemDiagnosticsFeatureKey]: initialSystemDiagnosticsState
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

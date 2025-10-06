@@ -18,6 +18,8 @@
 import { createAction, props } from '@ngrx/store';
 import { ErrorContext, ErrorContextKey } from './index';
 
+export const snackBarError = createAction('[Error] Snackbar Error', props<{ error: string }>());
+
 export const addBannerError = createAction('[Error] Add Banner Error', props<{ errorContext: ErrorContext }>());
 
 export const clearBannerErrors = createAction('[Error] Clear Banner Errors', props<{ context: ErrorContextKey }>());

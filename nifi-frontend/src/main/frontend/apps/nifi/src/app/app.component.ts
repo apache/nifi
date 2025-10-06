@@ -25,7 +25,7 @@ import {
     Router
 } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Storage, ThemingService } from '@nifi/shared';
+import { OS_SETTING, Storage, ThemingService } from '@nifi/shared';
 import { MatDialog } from '@angular/material/dialog';
 import { NiFiState } from './state';
 import { Store } from '@ngrx/store';
@@ -102,7 +102,7 @@ export class AppComponent implements OnDestroy {
                 }
             });
 
-        let theme = this.storage.getItem('theme');
+        let theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
 
         // Initially check if dark mode is enabled on system
         const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -113,7 +113,7 @@ export class AppComponent implements OnDestroy {
         if (window.matchMedia) {
             // Watch for changes of the preference
             window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-                theme = this.storage.getItem('theme');
+                theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
                 this.themingService.toggleTheme(e.matches, theme);
             });
         }

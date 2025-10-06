@@ -24,19 +24,27 @@ import { ClusterNodeListing } from '../ui/cluster-node-listing/cluster-node-list
 import { MatTabsModule } from '@angular/material/tabs';
 import { selectClusterListing } from '../state/cluster-listing/cluster-listing.selectors';
 import { clusterListingFeatureKey } from '../state/cluster-listing';
-import { ClusterState } from '../state';
+import { clusterFeatureKey } from '../state';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 
 describe('Cluster', () => {
     let component: Cluster;
     let fixture: ComponentFixture<Cluster>;
 
     beforeEach(() => {
-        const initialState: ClusterState = {
-            [clusterListingFeatureKey]: initialClusterState
+        const initialState = {
+            [errorFeatureKey]: initialErrorState,
+            [currentUserFeatureKey]: initialCurrentUserState,
+            [clusterFeatureKey]: {
+                [clusterListingFeatureKey]: initialClusterState
+            }
         };
         TestBed.configureTestingModule({
             declarations: [Cluster],
@@ -54,7 +62,7 @@ describe('Cluster', () => {
                     selectors: [
                         {
                             selector: selectClusterListing,
-                            value: initialState[clusterListingFeatureKey]
+                            value: initialState[clusterFeatureKey][clusterListingFeatureKey]
                         }
                     ]
                 })

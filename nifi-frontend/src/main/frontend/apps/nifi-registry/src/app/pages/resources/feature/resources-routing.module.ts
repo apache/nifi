@@ -18,15 +18,18 @@
 import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { ResourcesComponent } from './resources.component';
+import { resourcesActivateGuard } from '../../../service/guard/resources.guard';
 
 const routes: Routes = [
     {
         path: '',
         component: ResourcesComponent,
+        canActivate: [resourcesActivateGuard],
         children: [
             {
                 path: ':id',
-                component: ResourcesComponent
+                component: ResourcesComponent,
+                canActivate: [resourcesActivateGuard]
             }
         ]
     },

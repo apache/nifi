@@ -18,6 +18,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { Bucket } from '../state/buckets';
+import { CreateBucketRequest, DeleteBucketRequest } from '../state/buckets/buckets.actions';
 
 @Injectable({ providedIn: 'root' })
 export class BucketsService {
@@ -25,7 +27,7 @@ export class BucketsService {
 
     private static readonly API: string = '../nifi-registry-api';
 
-    getBuckets(): Observable<any> {
+    getBuckets(): Observable<Bucket[]> {
         // const mockError: HttpErrorResponse = new HttpErrorResponse({
         //     status: 404,
         //     statusText: 'Bad Gateway',
@@ -37,6 +39,61 @@ export class BucketsService {
         // });
         // return throwError(() => mockError);
 
-        return this.httpClient.get(`${BucketsService.API}/buckets`);
+        return this.httpClient.get<Bucket[]>(`${BucketsService.API}/buckets`);
+    }
+
+    createBucket(request: CreateBucketRequest): Observable<Bucket> {
+        // const mockError: HttpErrorResponse = new HttpErrorResponse({
+        //     status: 404,
+        //     statusText: 'Bad Gateway',
+        //     url: `${BucketsService.API}/buckets`,
+        //     error: {
+        //         message: 'Mock error: unable to create bucket.',
+        //         timestamp: new Date().toISOString()
+        //     }
+        // });
+        // return throwError(() => mockError);
+
+        return this.httpClient.post<Bucket>(`${BucketsService.API}/buckets`, {
+            ...request,
+            revision: {
+                version: 0
+            }
+        });
+    }
+
+    updateBucket(request: { bucket: Bucket }): Observable<Bucket> {
+        // const mockError: HttpErrorResponse = new HttpErrorResponse({
+        //     status: 404,
+        //     statusText: 'Bad Gateway',
+        //     url: `${BucketsService.API}/buckets`,
+        //     error: {
+        //         message: 'Mock error: unable to update bucket.',
+        //         timestamp: new Date().toISOString()
+        //     }
+        // });
+        // return throwError(() => mockError);
+
+        return this.httpClient.put<Bucket>(
+            `${BucketsService.API}/buckets/${request.bucket.identifier}`,
+            request.bucket
+        );
+    }
+
+    deleteBucket(request: DeleteBucketRequest): Observable<Bucket> {
+        // const mockError: HttpErrorResponse = new HttpErrorResponse({
+        //     status: 404,
+        //     statusText: 'Bad Gateway',
+        //     url: `${BucketsService.API}/buckets`,
+        //     error: {
+        //         message: 'Mock error: unable to delete bucket.',
+        //         timestamp: new Date().toISOString()
+        //     }
+        // });
+        // return throwError(() => mockError);
+
+        return this.httpClient.delete<Bucket>(
+            `${BucketsService.API}/buckets/${request.bucket.identifier}?version=${request.version}`
+        );
     }
 }

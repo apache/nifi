@@ -10,4 +10,4 @@ Common Development and Distribution License 1.1
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - https://servlet-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Servlet API (jakarta.servlet:jakarta.servlet-api:jar:6.0.0 - https://jakarta.ee/specifications/servlet/)

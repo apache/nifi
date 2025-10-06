@@ -33,6 +33,7 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessContext;
@@ -218,6 +219,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     private static final String ERROR_MESSAGE_ATTR = "error.message";
     private static final String ERROR_CODE_ATTR = "error.code";
     private static final String ERROR_SQL_STATE_ATTR = "error.sql.state";
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

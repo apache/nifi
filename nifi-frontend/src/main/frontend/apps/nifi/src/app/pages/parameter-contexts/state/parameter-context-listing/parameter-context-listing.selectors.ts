@@ -64,3 +64,8 @@ export const selectContext = (id: string) =>
     createSelector(selectParameterContexts, (parameterContexts: ParameterContextEntity[]) =>
         parameterContexts.find((entity) => id == entity.id)
     );
+
+export const selectDeleteUpdateRequestInitiated = createSelector(
+    selectParameterContextListingState,
+    (state: ParameterContextListingState) => state.deleteUpdateRequestInitiated
+);

@@ -16,7 +16,7 @@
  */
 
 import { Component, inject } from '@angular/core';
-import { Storage, ThemingService } from '@nifi/shared';
+import { OS_SETTING, Storage, ThemingService } from '@nifi/shared';
 
 @Component({
     selector: 'nifi-jolt-transform-json-ui',
@@ -31,7 +31,7 @@ export class AppComponent {
     title = 'nifi-jolt-transform-json-ui';
 
     constructor() {
-        let theme = this.storage.getItem('theme');
+        let theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
 
         // Initially check if dark mode is enabled on system
         const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -42,7 +42,7 @@ export class AppComponent {
         if (window.matchMedia) {
             // Watch for changes of the preference
             window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-                theme = this.storage.getItem('theme');
+                theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
                 this.themingService.toggleTheme(e.matches, theme);
             });
         }

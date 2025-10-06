@@ -29,11 +29,12 @@ import { RouterLink } from '@angular/router';
 import { MatFormField } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatLabel } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'login-form',
     templateUrl: './login-form.component.html',
-    imports: [RouterLink, ReactiveFormsModule, MatFormField, MatInput, MatLabel],
+    imports: [RouterLink, ReactiveFormsModule, MatFormField, MatInput, MatLabel, MatButtonModule],
     styleUrls: ['./login-form.component.scss']
 })
 export class LoginForm {

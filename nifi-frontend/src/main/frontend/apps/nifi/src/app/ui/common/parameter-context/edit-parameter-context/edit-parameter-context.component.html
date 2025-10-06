@@ -179,7 +179,7 @@
             @if (requestEntity.request.complete) {
                 <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
-                <button mat-button mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close (click)="cancelUpdateRequest.emit()">Cancel</button>
             }
         </mat-dialog-actions>
     } @else {
@@ -188,7 +188,7 @@
                 @if (readonly) {
                     <button mat-flat-button mat-dialog-close>Close</button>
                 } @else {
-                    <button mat-button mat-dialog-close>Cancel</button>
+                    <button mat-button mat-dialog-close (click)="cancelUpdateRequest.emit()">Cancel</button>
                     <button
                         [disabled]="
                             !editParameterContextForm.dirty ||

@@ -149,7 +149,11 @@
                             <i class="fa fa-question-circle primary-color mr-2"></i>
                             Help
                         </button>
-                        <button mat-menu-item class="global-menu-item" (click)="viewAbout()">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            (click)="viewAbout()"
+                            [disabled]="!(about$ | async)">
                             <i class="fa fa-info-circle primary-color mr-2"></i>
                             About
                         </button>
@@ -163,27 +167,39 @@
                         </button>
                     </mat-menu>
                     <mat-menu #theming="matMenu" xPosition="before">
-                        <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [class.selected]="theme === LIGHT_THEME"
+                            (click)="toggleTheme(LIGHT_THEME)">
                             @if (theme === LIGHT_THEME) {
-                                <i class="fa fa-check primary-color mr-2"></i>
+                                <i class="fa fa-check mr-2"></i>
                             }
                             @if (theme !== LIGHT_THEME) {
                                 <i class="fa mr-2"></i>
                             }
                             Light
                         </button>
-                        <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [class.selected]="theme === DARK_THEME"
+                            (click)="toggleTheme(DARK_THEME)">
                             @if (theme === DARK_THEME) {
-                                <i class="fa fa-check primary-color mr-2"></i>
+                                <i class="fa fa-check mr-2"></i>
                             }
                             @if (theme !== DARK_THEME) {
                                 <i class="fa mr-2"></i>
                             }
                             Dark
                         </button>
-                        <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [class.selected]="theme === OS_SETTING"
+                            (click)="toggleTheme(OS_SETTING)">
                             @if (theme === OS_SETTING || theme === null) {
-                                <i class="fa fa-check primary-color mr-2"></i>
+                                <i class="fa fa-check mr-2"></i>
                             }
                             @if (theme !== OS_SETTING && theme !== null) {
                                 <i class="fa mr-2"></i>
@@ -192,25 +208,37 @@
                         </button>
                     </mat-menu>
                     <mat-menu #animations="matMenu" xPosition="before">
-                        <button mat-menu-item class="global-menu-item" (click)="toggleAnimations('false')">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [class.selected]="disableAnimations === 'false'"
+                            (click)="toggleAnimations('false')">
                             @if (disableAnimations === 'false') {
-                                <i class="fa fa-check primary-color mr-2"></i>
+                                <i class="fa fa-check mr-2"></i>
                             } @else {
                                 <i class="fa mr-2"></i>
                             }
                             Enabled
                         </button>
-                        <button mat-menu-item class="global-menu-item" (click)="toggleAnimations('true')">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [class.selected]="disableAnimations === 'true'"
+                            (click)="toggleAnimations('true')">
                             @if (disableAnimations === 'true') {
-                                <i class="fa fa-check primary-color mr-2"></i>
+                                <i class="fa fa-check mr-2"></i>
                             } @else {
                                 <i class="fa mr-2"></i>
                             }
                             Disabled
                         </button>
-                        <button mat-menu-item class="global-menu-item" (click)="toggleAnimations()">
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [class.selected]="disableAnimations === null"
+                            (click)="toggleAnimations()">
                             @if (disableAnimations === null) {
-                                <i class="fa fa-check primary-color mr-2"></i>
+                                <i class="fa fa-check mr-2"></i>
                             } @else {
                                 <i class="fa mr-2"></i>
                             }

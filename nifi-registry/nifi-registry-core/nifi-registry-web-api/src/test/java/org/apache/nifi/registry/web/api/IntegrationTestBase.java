@@ -31,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 
@@ -68,10 +67,8 @@ public abstract class IntegrationTestBase {
         private NiFiRegistryProperties testProperties;
 
         @Bean
-        public JettyServletWebServerFactory jettyEmbeddedServletContainerFactory() {
-            JettyServletWebServerFactory jettyContainerFactory = new JettyServletWebServerFactory();
-            jettyContainerFactory.setContextPath(CONTEXT_PATH);
-            return jettyContainerFactory;
+        public org.springframework.boot.web.server.WebServerFactoryCustomizer<org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory> webServerFactoryCustomizer() {
+            return factory -> factory.setContextPath(CONTEXT_PATH);
         }
 
         @Bean

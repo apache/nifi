@@ -44,4 +44,32 @@
             opacity: 0.6;
         }
     }
+
+    .global-menu-item {
+        &.selected {
+            @include mat.menu-overrides(
+                (
+                    item-icon-color: var(--mat-sys-primary),
+                    item-label-text-color: var(--mat-sys-primary)
+                )
+            );
+
+            .fa {
+                color: var(--mat-sys-primary);
+            }
+        }
+
+        &.selected:hover {
+            @include mat.menu-overrides(
+                (
+                    item-icon-color: var(--mat-sys-primary),
+                    item-label-text-color: var(--mat-sys-primary)
+                )
+            );
+
+            .fa {
+                color: var(--mat-sys-primary);
+            }
+        }
+    }
 }

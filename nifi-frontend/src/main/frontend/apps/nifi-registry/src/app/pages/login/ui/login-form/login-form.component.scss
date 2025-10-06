@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
-
-.delete-droplet-dialog {
-    @include mat.button-density(-1);
+.login-form {
+    .mat-mdc-form-field {
+        width: 100%;
+    }
 }

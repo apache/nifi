@@ -78,7 +78,7 @@ import {
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../../../../state/property-verification';
-import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { BulletinsTip } from '../../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -108,7 +108,13 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
         CopyDirective,
         NgClass
     ],
-    styleUrls: ['./edit-processor.component.scss']
+    styleUrls: ['./edit-processor.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-processor-selected-index'
+        }
+    ]
 })
 export class EditProcessor extends TabbedDialog {
     request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
@@ -210,7 +216,7 @@ export class EditProcessor extends TabbedDialog {
     runDurationMillis: number;
 
     constructor() {
-        super('edit-processor-selected-index');
+        super();
         const request = this.request;
 
         const processorProperties: any = request.entity.component.config.properties;

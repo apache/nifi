@@ -20,6 +20,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowAnalysisRules } from './flow-analysis-rules.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow-analysis-rules/flow-analysis-rules.reducer';
+import { flowAnalysisRulesFeatureKey } from '../../state/flow-analysis-rules';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 describe('FlowAnalysisRules', () => {
     let component: FlowAnalysisRules;
@@ -30,7 +33,12 @@ describe('FlowAnalysisRules', () => {
             imports: [FlowAnalysisRules],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        settings: {
+                            [flowAnalysisRulesFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

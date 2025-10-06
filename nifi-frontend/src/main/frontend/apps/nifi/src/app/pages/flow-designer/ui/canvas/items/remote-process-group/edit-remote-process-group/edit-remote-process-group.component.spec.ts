@@ -22,7 +22,13 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ComponentType } from '@nifi/shared';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/flow/flow.reducer';
+import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../../../state/flow';
+import { canvasFeatureKey } from '../../../../../state';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 
 describe('EditRemoteProcessGroup', () => {
     let component: EditRemoteProcessGroup;
@@ -77,7 +83,15 @@ describe('EditRemoteProcessGroup', () => {
                     provide: MAT_DIALOG_DATA,
                     useValue: data
                 },
-                provideMockStore({ initialState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

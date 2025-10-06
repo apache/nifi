@@ -355,8 +355,8 @@ link:https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-name
 
 The semantics match the use of the following Jetty APIs:
 
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setIncludeCipherSuites(java.lang.String\...)[SslContextFactory.setIncludeCipherSuites()]
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setExcludeCipherSuites(java.lang.String\...)[SslContextFactory.setExcludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setIncludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setExcludeCipherSuites()]
 
 [[user_authentication]]
 == User Authentication
@@ -1995,7 +1995,11 @@ nodes and waits for each node to respond, indicating that it has made the change
 
 ==== Disconnect Nodes
 
-A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. Until the issue with the node is resolved, the DFM will have limited ability to make changes to the remaining cluster's dataflow. Changing component state or adding a component is allowed, but removing a component is not.
+
+A node that was disconnected maybe fully working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+
+It should be noted that a disconnected node's dataflow is allowed to be changed.  Any changes should be done with caution, however, as they will be reverted when the node is re-attached to the cluster.  In addition, if reverting the changes will cause a loss of data then it will not be allowed to rejoin the cluster.  This can occur if a new dataflow has since been made on the disconnected node.
 
 To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
 
@@ -3509,7 +3513,7 @@ blank meaning all requests containing a proxy context path are rejected. Configu
 |`nifi.web.request.timeout`|The request timeout for web requests. Requests running longer than this time will be forced to end with a HTTP 503 Service Unavailable response. Default value is `60 secs`.
 |`nifi.web.request.log.format`|The parameterized format for HTTP request log messages.
 The format property supports the modifiers and codes described in the Jetty
-link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
+link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
 
 The default value uses the Combined Log Format, which follows the
 link:https://en.wikipedia.org/wiki/Common_Log_Format[Common Log Format^] with the addition of `Referer` and `User-Agent`
@@ -4174,4 +4178,3 @@ An example output would look like this:
      "attributeValue" : integer-value
    }
  ]
-

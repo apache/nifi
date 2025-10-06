@@ -26,7 +26,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { CopyDirective, NiFiCommon } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
-import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../tabbed-dialog/tabbed-dialog.component';
 
 @Component({
     selector: 'provenance-event-dialog',
@@ -44,6 +44,12 @@ import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
         NgTemplateOutlet,
         FormsModule,
         CopyDirective
+    ],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-provenance-event-selected-index'
+        }
     ]
 })
 export class ProvenanceEventDialog extends TabbedDialog {
@@ -59,7 +65,7 @@ export class ProvenanceEventDialog extends TabbedDialog {
     onlyShowModifiedAttributes = false;
 
     constructor() {
-        super('edit-provenance-event-selected-index');
+        super();
     }
 
     formatDurationValue(duration: number): string {

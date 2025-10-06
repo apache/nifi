@@ -86,7 +86,7 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
@@ -174,6 +174,8 @@ public class InvokeHTTP extends AbstractProcessor {
     protected static final String FORM_DATA_NAME_BASE = "post:form";
     private static final Pattern FORM_DATA_NAME_PARAMETER_PATTERN = Pattern.compile("post:form:(?<formDataName>.*)$");
     private static final String FORM_DATA_NAME_GROUP = "formDataName";
+
+    private static final List<HttpMethod> HTTP_METHOD_VALUES = List.of(HttpMethod.values());
 
     private static final Set<String> IGNORED_REQUEST_ATTRIBUTES = Set.of(
             STATUS_CODE,
@@ -1259,7 +1261,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     /**
-     * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
+     * Returns a Map of FlowFile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      * Prefix is passed in to allow differentiation for these new attributes.
      */
     private Map<String, String> convertAttributesFromHeaders(final Response responseHttp, final String prefix) {
@@ -1267,15 +1269,21 @@ public class InvokeHTTP extends AbstractProcessor {
         final Map<String, String> attributes = new HashMap<>();
         final String trimmedPrefix = trimToEmpty(prefix);
         final Headers headers = responseHttp.headers();
-        headers.names().forEach((key) -> {
-            final List<String> values = headers.values(key);
-            // we ignore any headers with no actual values (rare)
-            if (!values.isEmpty()) {
-                // create a comma separated string from the values, this is stored in the map
-                final String value = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
-                attributes.put(trimmedPrefix + key, value);
+        for (final String headerName : headers.names()) {
+            // Ignore blank response header names
+            if (headerName.isBlank()) {
+                continue;
             }
-        });
+            final List<String> values = headers.values(headerName);
+            // Ignore empty response header values
+            if (values.isEmpty()) {
+                continue;
+            }
+
+            final String attributeName = trimmedPrefix + headerName;
+            final String delimitedValues = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
+            attributes.put(attributeName, delimitedValues);
+        }
 
         final Handshake handshake = responseHttp.handshake();
         if (handshake != null) {
@@ -1313,7 +1321,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private Optional<HttpMethod> findRequestMethod(String method) {
-        return Arrays.stream(HttpMethod.values())
+        return HTTP_METHOD_VALUES.stream()
                 .filter(httpMethod -> httpMethod.name().equals(method))
                 .findFirst();
     }

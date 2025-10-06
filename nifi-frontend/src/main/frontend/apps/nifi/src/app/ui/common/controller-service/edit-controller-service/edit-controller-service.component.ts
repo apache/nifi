@@ -50,7 +50,7 @@ import {
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../state/property-verification';
-import { TabbedDialog } from '../../tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../state/error';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 
@@ -76,7 +76,13 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-controller-service.component.scss']
+    styleUrls: ['./edit-controller-service.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-controller-service-selected-index'
+        }
+    ]
 })
 export class EditControllerService extends TabbedDialog {
     request = inject<EditControllerServiceDialogRequest>(MAT_DIALOG_DATA);
@@ -132,7 +138,7 @@ export class EditControllerService extends TabbedDialog {
     ];
 
     constructor() {
-        super('edit-controller-service-selected-index');
+        super();
         const request = this.request;
 
         this.readonly =

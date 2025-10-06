@@ -22,7 +22,13 @@ import { ImportFromRegistryDialogRequest } from '../../../../../state/flow';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '@nifi/shared';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/flow/flow.reducer';
+import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../../../state/flow';
+import { canvasFeatureKey } from '../../../../../state';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
@@ -116,7 +122,15 @@ describe('ImportFromRegistry', () => {
             imports: [ImportFromRegistry, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({ initialState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    }
+                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {

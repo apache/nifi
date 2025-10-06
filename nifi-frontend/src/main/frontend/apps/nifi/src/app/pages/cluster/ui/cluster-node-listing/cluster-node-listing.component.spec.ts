@@ -21,16 +21,24 @@ import { ClusterNodeListing } from './cluster-node-listing.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
 import { selectClusterListing } from '../../state/cluster-listing/cluster-listing.selectors';
-import { ClusterState } from '../../state';
 import { clusterListingFeatureKey } from '../../state/cluster-listing';
+import { clusterFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ClusterNodeListing', () => {
     let component: ClusterNodeListing;
     let fixture: ComponentFixture<ClusterNodeListing>;
 
     beforeEach(async () => {
-        const initialState: ClusterState = {
-            [clusterListingFeatureKey]: initialClusterState
+        const initialState = {
+            [errorFeatureKey]: initialErrorState,
+            [currentUserFeatureKey]: initialCurrentUserState,
+            [clusterFeatureKey]: {
+                [clusterListingFeatureKey]: initialClusterState
+            }
         };
         await TestBed.configureTestingModule({
             imports: [ClusterNodeListing],
@@ -40,7 +48,7 @@ describe('ClusterNodeListing', () => {
                     selectors: [
                         {
                             selector: selectClusterListing,
-                            value: initialState[clusterListingFeatureKey]
+                            value: initialState[clusterFeatureKey][clusterListingFeatureKey]
                         }
                     ]
                 })

@@ -27,6 +27,12 @@ import { DocumentedType } from '../../../../../../../state/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { canvasFeatureKey } from '../../../../../state';
+import { flowFeatureKey } from '../../../../../state/flow';
 
 describe('CreateConnection', () => {
     let component: CreateConnection;
@@ -371,7 +377,15 @@ describe('CreateConnection', () => {
             imports: [CreateConnection, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({ initialState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    }
+                }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {

@@ -24,6 +24,10 @@ import { Birdseye } from './birdseye/birdseye.component';
 import { canvasFeatureKey } from '../../../../state';
 import { flowFeatureKey } from '../../../../state/flow';
 import { MockComponent } from 'ng-mocks';
+import { initialState as initialErrorState } from '../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../state/current-user';
 
 describe('NavigationControl', () => {
     let component: NavigationControl;
@@ -35,6 +39,8 @@ describe('NavigationControl', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [canvasFeatureKey]: {
                             [flowFeatureKey]: initialState
                         }

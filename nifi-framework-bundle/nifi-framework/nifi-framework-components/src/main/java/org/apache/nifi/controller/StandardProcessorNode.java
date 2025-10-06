@@ -1330,8 +1330,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void verifyCanStop() {
-        if (getScheduledState() != ScheduledState.RUNNING) {
-            throw new IllegalStateException(this + " cannot be stopped because is not scheduled to run");
+        final ScheduledState logicalState = getScheduledState();
+        final ScheduledState physicalState = getPhysicalScheduledState();
+
+        if (logicalState != ScheduledState.RUNNING && physicalState != ScheduledState.STARTING) {
+            throw new IllegalStateException(this + " cannot be stopped because is not scheduled to run and is not starting");
         }
     }
 

@@ -19,8 +19,8 @@
     <packaging>jar</packaging>
 
     <properties>
-        <neo4j.driver.version>5.28.9</neo4j.driver.version>
-        <neo4j.docker.version>5.19</neo4j.docker.version>
+        <neo4j.driver.version>6.0.1</neo4j.driver.version>
+        <neo4j.docker.version>2025.09</neo4j.docker.version>
     </properties>
 
     <dependencies>
