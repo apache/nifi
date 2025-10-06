@@ -36,7 +36,6 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -430,6 +429,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
 
+        Map<String, String> formParameters = new HashMap<>();
         for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (!descriptor.isDynamic() || !descriptor.getName().startsWith(FORM_PREFIX)) {
                 continue;
@@ -440,16 +440,13 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
                 continue;
             }
 
-            PropertyValue propertyValue = context.getProperty(descriptor);
-            if (propertyValue == null) {
-                continue;
-            }
-
-            String evaluatedValue = propertyValue.evaluateAttributeExpressions().getValue();
+            String evaluatedValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
             if (evaluatedValue != null) {
-                customFormParameters.put(parameterName, evaluatedValue);
+                formParameters.put(parameterName, evaluatedValue);
             }
         }
+
+        customFormParameters = formParameters;
     }
 
     private boolean isRefreshRequired() {
