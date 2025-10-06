@@ -76,5 +76,3 @@ export const openManageBucketPoliciesDialog = createAction(
     '[Buckets] Open Manage Bucket Policies Dialog',
     props<{ request: { bucket: Bucket } }>()
 );
-
-export const bucketNoOp = createAction('[Buckets] No Op');

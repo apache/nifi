@@ -23,6 +23,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { BucketsRoutingModule } from './buckets-routing.module';
 import { BucketsComponent } from './buckets.component';
 import { BucketsEffects } from '../../../state/buckets/buckets.effects';
+import { PoliciesEffects } from '../../../state/policies/policies.effects';
 import { reducers, resourcesFeatureKey } from '../../../state';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
@@ -67,7 +68,7 @@ import { HeaderComponent } from '../../../ui/header/header.component';
         MatDialogModule,
         BucketsRoutingModule,
         StoreModule.forFeature(resourcesFeatureKey, reducers),
-        EffectsModule.forFeature([BucketsEffects]),
+        EffectsModule.forFeature([BucketsEffects, PoliciesEffects]),
         HeaderComponent
     ]
 })

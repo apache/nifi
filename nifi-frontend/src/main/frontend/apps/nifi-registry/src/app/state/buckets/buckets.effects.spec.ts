@@ -331,8 +331,18 @@ describe('BucketsEffects', () => {
     });
 
     describe('openManageBucketPoliciesDialog$', () => {
-        it('should open manage bucket policies dialog', (done) => {
+        it('should open manage bucket policies dialog and dispatch policy actions', (done) => {
             const bucket = createBucket();
+            const mockDialogRef = {
+                componentInstance: {
+                    savePolicies: {
+                        pipe: jest.fn().mockReturnValue({ subscribe: jest.fn() })
+                    }
+                },
+                afterClosed: jest.fn().mockReturnValue(of(undefined))
+            };
+
+            dialog.open.mockReturnValue(mockDialogRef as any);
 
             actions$ = of(BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }));
 
@@ -341,9 +351,12 @@ describe('BucketsEffects', () => {
                     ManageBucketPoliciesDialogComponent,
                     expect.objectContaining({
                         autoFocus: false,
-                        data: { bucket }
+                        data: expect.objectContaining({
+                            bucket
+                        })
                     })
                 );
+                expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
                 done();
             });
         });
