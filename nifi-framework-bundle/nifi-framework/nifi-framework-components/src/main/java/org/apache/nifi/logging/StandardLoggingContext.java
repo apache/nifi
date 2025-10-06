@@ -19,6 +19,7 @@ package org.apache.nifi.logging;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class StandardLoggingContext implements LoggingContext {
@@ -26,8 +27,21 @@ public class StandardLoggingContext implements LoggingContext {
 
     private volatile GroupedComponent component;
 
+    /**
+     * Standard Logging Context default constructor for separate component initialization
+     *
+     */
+    public StandardLoggingContext() {
+        this.component = null;
+    }
+
+    /**
+     * Standard Logging Context constructor with Grouped Component required
+     *
+     * @param component Grouped Component required
+     */
     public StandardLoggingContext(final GroupedComponent component) {
-        this.component = component;
+        this.component = Objects.requireNonNull(component, "Group Component required");
     }
 
     /**

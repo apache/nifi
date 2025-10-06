@@ -90,7 +90,7 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
             }
 
         } catch (final Throwable t) {
-            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask(), new StandardLoggingContext(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask(), new StandardLoggingContext());
             componentLog.error("Error running task {}", taskNode.getReportingTask(), t);
             if (componentLog.isDebugEnabled()) {
                 componentLog.error("", t);
