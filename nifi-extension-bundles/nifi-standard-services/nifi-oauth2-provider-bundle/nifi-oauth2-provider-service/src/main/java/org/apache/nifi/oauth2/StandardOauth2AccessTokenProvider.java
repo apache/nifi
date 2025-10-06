@@ -26,6 +26,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -39,6 +42,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -58,14 +62,24 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+@SupportsSensitiveDynamicProperties
 @Tags({"oauth2", "provider", "authorization", "access token", "http"})
 @CapabilityDescription("Provides OAuth 2.0 access tokens that can be used as Bearer authorization header in HTTP requests." +
     " Can use either Resource Owner Password Credentials Grant or Client Credentials Grant." +
     " Client authentication can be done with either HTTP Basic authentication or in the request body.")
+@DynamicProperties({
+    @DynamicProperty(
+        name = "FORM.Request parameter name",
+        value = "Request parameter value",
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
+        description = "Custom parameters that should be added to the body of the request against the token endpoint."
+    )
+})
 public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider, VerifiableControllerService {
     public static final PropertyDescriptor AUTHORIZATION_SERVER_URL = new PropertyDescriptor.Builder()
         .name("Authorization Server URL")
@@ -218,6 +232,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     );
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String FORM_PREFIX = "FORM.";
 
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -237,6 +252,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private volatile String resource;
     private volatile String audience;
     private volatile long refreshWindowSeconds;
+    private volatile Map<String, String> customFormParameters = new HashMap<>();
 
     private volatile AccessToken accessDetails;
 
@@ -260,6 +276,22 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith(FORM_PREFIX)) {
+            return new PropertyDescriptor.Builder()
+                .required(false)
+                .name(propertyDescriptorName)
+                .description("The value of the form parameter to add to the request body.")
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .build();
+        }
+
+        return null;
     }
 
     @OnEnabled
@@ -396,6 +428,25 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
 
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
+
+        Map<String, String> formParameters = new HashMap<>();
+        for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            if (!descriptor.isDynamic() || !descriptor.getName().startsWith(FORM_PREFIX)) {
+                continue;
+            }
+
+            String parameterName = descriptor.getName().substring(FORM_PREFIX.length());
+            if (parameterName.isEmpty()) {
+                continue;
+            }
+
+            String evaluatedValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
+            if (evaluatedValue != null) {
+                formParameters.put(parameterName, evaluatedValue);
+            }
+        }
+
+        customFormParameters = formParameters;
     }
 
     private boolean isRefreshRequired() {
@@ -438,6 +489,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         if (audience != null) {
             formBuilder.add("audience", audience);
         }
+        customFormParameters.forEach(formBuilder::add);
     }
 
     private AccessToken requestToken(FormBody.Builder formBuilder) {
