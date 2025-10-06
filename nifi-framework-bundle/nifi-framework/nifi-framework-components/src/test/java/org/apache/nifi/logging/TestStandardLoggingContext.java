@@ -38,7 +38,7 @@ class TestStandardLoggingContext {
 
     @Test
     void testNullComponent_ShouldReturnOptionalEmpty() {
-        LoggingContext context = new StandardLoggingContext(null);
+        LoggingContext context = new StandardLoggingContext();
 
         assertTrue(context.getLogFileSuffix().isEmpty());
     }

@@ -210,7 +210,7 @@ public class StandardReloadComponent implements ReloadComponent {
         final ReportingTaskNode newNode = flowController.getFlowManager().createReportingTask(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // set the new reporting task into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -260,7 +260,7 @@ public class StandardReloadComponent implements ReloadComponent {
         final FlowAnalysisRuleNode newNode = flowController.getFlowManager().createFlowAnalysisRule(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // set the new flow analysis rule into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getFlowAnalysisRule(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getFlowAnalysisRule(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -308,7 +308,7 @@ public class StandardReloadComponent implements ReloadComponent {
         }
 
         // set the new parameter provider into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -349,8 +349,8 @@ public class StandardReloadComponent implements ReloadComponent {
         final FlowRegistryClientNode newNode = flowController.getFlowManager().createFlowRegistryClient(newType, id, bundleCoordinate, additionalUrls, true, false, null);
         extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
 
-        // set the new flow registyr client into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent(), new StandardLoggingContext(null));
+        // set the new flow registry client into the existing node
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
