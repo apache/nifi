@@ -16,7 +16,15 @@
  */
 
 import { inject } from '@angular/core';
-import { ActivatedRouteSnapshot, CanActivateFn, CanMatchFn, Router, RouterStateSnapshot, UrlSegment, UrlTree } from '@angular/router';
+import {
+    ActivatedRouteSnapshot,
+    CanActivateFn,
+    CanMatchFn,
+    Router,
+    RouterStateSnapshot,
+    UrlSegment,
+    UrlTree
+} from '@angular/router';
 import { Store } from '@ngrx/store';
 import { NiFiRegistryState } from '../../state';
 import { RegistryAuthService } from '../registry-auth.service';
@@ -47,7 +55,12 @@ export const showAccessDenied = (store: Store, router: Router): UrlTree => {
     return router.parseUrl(fallbackUrl);
 };
 
-const redirectToLogin = (store: Store, router: Router, authService: RegistryAuthService, requestedUrl: string): UrlTree => {
+const redirectToLogin = (
+    store: Store,
+    router: Router,
+    authService: RegistryAuthService,
+    requestedUrl: string
+): UrlTree => {
     authService.setRedirectUrl(requestedUrl || fallbackUrl);
     return router.parseUrl('/login');
 };
@@ -72,10 +85,7 @@ const evaluateAuthorization = (
     return showAccessDenied(store, router);
 };
 
-const authorize = (
-    requestedUrl: string,
-    authorizationCheck: AuthorizationCheck
-): Observable<boolean | UrlTree> => {
+const authorize = (requestedUrl: string, authorizationCheck: AuthorizationCheck): Observable<boolean | UrlTree> => {
     const store = inject(Store<NiFiRegistryState>);
     const router = inject(Router);
     const authService = inject(RegistryAuthService);
@@ -120,4 +130,5 @@ export const buildCanActivateGuard = (authorizationCheck: AuthorizationCheck): C
         authorize(computeRequestedUrlFromState(state), authorizationCheck);
 };
 
-export const buildGuard = (authorizationCheck: AuthorizationCheck): CanMatchFn => buildCanMatchGuard(authorizationCheck);
+export const buildGuard = (authorizationCheck: AuthorizationCheck): CanMatchFn =>
+    buildCanMatchGuard(authorizationCheck);
