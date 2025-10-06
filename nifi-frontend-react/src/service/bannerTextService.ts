@@ -1,17 +1,16 @@
 // BannerTextService migrated from Angular with RxJS
 import { ajax } from 'rxjs/ajax';
-import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+
+import type { BannerText } from '../state/bannerTextSlice';
 
 export const API = '../nifi-api';
 
-export interface BannerTextEntity {
-  // Define properties based on expected API response
-  banners?: any;
+export interface BannerTextResponse {
+  banners: BannerText;
+  [key: string]: unknown;
 }
 
-export function getBannerText$(): Observable<BannerTextEntity> {
-  return ajax.getJSON<BannerTextEntity>(`${API}/flow/banners`).pipe(
-    map(response => response)
-  );
+export function getBannerText$(): Observable<BannerTextResponse> {
+  return ajax.getJSON<BannerTextResponse>(`${API}/flow/banners`);
 }

@@ -3,17 +3,19 @@ import { ajax } from 'rxjs/ajax';
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
+import type { LoginConfiguration } from '../state/loginConfigurationSlice';
+
 export const API = '../nifi-api';
 
 export interface LoginConfigResponse {
-  // Define properties based on expected API response
-  config?: any;
+  authenticationConfiguration: LoginConfiguration;
+  [key: string]: unknown;
 }
 
 export function getLoginConfiguration$(): Observable<LoginConfigResponse> {
-  return ajax.getJSON<LoginConfigResponse>(`${API}/authentication/configuration`).pipe(
-    map(response => response)
-  );
+  return ajax
+    .getJSON<LoginConfigResponse>(`${API}/authentication/configuration`)
+    .pipe(map((response) => response));
 }
 
 export function login$(username: string, password: string): Observable<string> {
