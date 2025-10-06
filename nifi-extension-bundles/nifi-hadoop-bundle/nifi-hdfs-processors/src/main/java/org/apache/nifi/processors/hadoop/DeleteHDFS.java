@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -86,8 +87,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor FILE_OR_DIRECTORY = new PropertyDescriptor.Builder()
-            .name("file_or_directory")
-            .displayName("Path")
+            .name("Path")
             .description("The HDFS file or directory to delete. A wildcard expression may be used to only delete certain files")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -95,8 +95,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor RECURSIVE = new PropertyDescriptor.Builder()
-            .name("recursive")
-            .displayName("Recursive")
+            .name("Recursive")
             .description("Remove contents of a non-empty directory recursively")
             .allowableValues("true", "false")
             .required(true)
@@ -221,6 +220,13 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             return null;
         });
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("file_or_directory", FILE_OR_DIRECTORY.getName());
+        config.renameProperty("recursive", RECURSIVE.getName());
     }
 
     protected Relationship getSuccessRelationship() {

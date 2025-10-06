@@ -30,6 +30,7 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hazelcast.services.cache.HazelcastCache;
 import org.apache.nifi.hazelcast.services.cachemanager.HazelcastCacheManager;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
@@ -54,8 +55,7 @@ import java.util.concurrent.TimeUnit;
 public class HazelcastMapCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
 
     public static final PropertyDescriptor HAZELCAST_CACHE_MANAGER = new PropertyDescriptor.Builder()
-            .name("hazelcast-cache-manager")
-            .displayName("Hazelcast Cache Manager")
+            .name("Hazelcast Cache Manager")
             .description("A Hazelcast Cache Manager which manages connections to Hazelcast and provides cache instances.")
             .identifiesControllerService(HazelcastCacheManager.class)
             .required(true)
@@ -63,8 +63,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor HAZELCAST_CACHE_NAME = new PropertyDescriptor.Builder()
-            .name("hazelcast-cache-name")
-            .displayName("Hazelcast Cache Name")
+            .name("Hazelcast Cache Name")
             .description("The name of a given cache. A Hazelcast cluster may handle multiple independent caches, each identified by a name." +
                     " Clients using caches with the same name are working on the same data structure within Hazelcast.")
             .required(true)
@@ -73,8 +72,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor HAZELCAST_ENTRY_TTL = new PropertyDescriptor.Builder()
-            .name("hazelcast-entry-ttl")
-            .displayName("Hazelcast Entry Lifetime")
+            .name("Hazelcast Entry Lifetime")
             .description("Indicates how long the written entries should exist in Hazelcast. Setting it to '0 secs' means that the data" +
                     "will exists until its deletion or until the Hazelcast server is shut down. Using `EmbeddedHazelcastCacheManager` as" +
                     "cache manager will not provide policies to limit the size of the cache.")
@@ -188,6 +186,13 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     @Override
     public void close() {
         getLogger().debug("Closing {}", getClass().getSimpleName());
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("hazelcast-cache-manager", HAZELCAST_CACHE_MANAGER.getName());
+        config.renameProperty("hazelcast-cache-name", HAZELCAST_CACHE_NAME.getName());
+        config.renameProperty("hazelcast-entry-ttl", HAZELCAST_ENTRY_TTL.getName());
     }
 
     @Override

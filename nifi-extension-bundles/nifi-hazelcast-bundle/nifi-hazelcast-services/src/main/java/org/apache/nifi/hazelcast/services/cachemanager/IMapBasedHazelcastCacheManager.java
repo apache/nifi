@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hazelcast.services.cache.HazelcastCache;
 import org.apache.nifi.hazelcast.services.cache.IMapBasedHazelcastCache;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -47,8 +48,7 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
     protected static final double DEFAULT_CLIENT_BACKOFF_MULTIPLIER = 1.5;
 
     public static final PropertyDescriptor HAZELCAST_CLUSTER_NAME = new PropertyDescriptor.Builder()
-            .name("hazelcast-cluster-name")
-            .displayName("Hazelcast Cluster Name")
+            .name("Hazelcast Cluster Name")
             .description("Name of the Hazelcast cluster.")
             .defaultValue("nifi") // Hazelcast's default is "dev", "nifi" overwrites this.
             .required(true)
@@ -86,6 +86,11 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
             instance.shutdown();
             instance = null;
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("hazelcast-cluster-name", HAZELCAST_CLUSTER_NAME.getName());
     }
 
     protected HazelcastInstance getClientInstance(
