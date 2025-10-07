@@ -106,6 +106,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
 
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        super.migrateProperties(propertyConfiguration);
         propertyConfiguration.removeProperty(OBSOLETE_SCHEMA_PROTOCOL_VERSION);
 
         final Optional<String> schemaWriteStrategyFound = propertyConfiguration.getPropertyValue(SCHEMA_WRITE_STRATEGY);
