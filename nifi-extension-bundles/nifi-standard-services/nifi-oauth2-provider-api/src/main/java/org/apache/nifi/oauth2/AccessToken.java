@@ -25,7 +25,7 @@ public class AccessToken {
     private String accessToken;
     private String refreshToken;
     private String tokenType;
-    private long expiresIn;
+    private Long expiresIn;
     private String scope;
 
     private final Instant fetchTime;
@@ -33,10 +33,10 @@ public class AccessToken {
     private final Map<String, Object> additionalParameters = new HashMap<>();
 
     public AccessToken() {
-        this.fetchTime = Instant.now();
+        this.fetchTime = now();
     }
 
-    public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scope) {
+    public AccessToken(String accessToken, String refreshToken, String tokenType, Long expiresIn, String scope) {
         this();
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
@@ -69,11 +69,11 @@ public class AccessToken {
         this.tokenType = tokenType;
     }
 
-    public long getExpiresIn() {
+    public Long getExpiresIn() {
         return expiresIn;
     }
 
-    public void setExpiresIn(long expiresIn) {
+    public void setExpiresIn(Long expiresIn) {
         this.expiresIn = expiresIn;
     }
 
@@ -90,8 +90,12 @@ public class AccessToken {
     }
 
     public boolean isExpired() {
-        final Instant expirationTime = fetchTime.plusSeconds(expiresIn);
-        return now().isAfter(expirationTime);
+        if (expiresIn == null) {
+            return false;
+        } else {
+            final Instant expirationTime = fetchTime.plusSeconds(expiresIn);
+            return now().isAfter(expirationTime);
+        }
     }
 
     Instant now() {

@@ -428,7 +428,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
             AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
             accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
-            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1);
+            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1L);
 
             this.accessDetails = accessDetailsWithRefreshTokenOnly;
         }
@@ -456,11 +456,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private boolean isRefreshRequired() {
-        final Instant expirationRefreshTime = accessDetails.getFetchTime()
-                .plusSeconds(accessDetails.getExpiresIn())
-                .minusSeconds(refreshWindowSeconds);
+        if (accessDetails.getExpiresIn() == null) {
+            return false;
+        } else {
+            final Instant expirationRefreshTime = accessDetails.getFetchTime()
+                    .plusSeconds(accessDetails.getExpiresIn())
+                    .minusSeconds(refreshWindowSeconds);
 
-        return Instant.now().isAfter(expirationRefreshTime);
+            return Instant.now().isAfter(expirationRefreshTime);
+        }
     }
 
     private void acquireAccessDetails() {
