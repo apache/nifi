@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.processors.iceberg;
 
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.processors.iceberg.record.DelegatedRecord;
-import org.apache.nifi.processors.iceberg.record.StandardStructTypeProvider;
-import org.apache.nifi.processors.iceberg.record.StructTypeProvider;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.iceberg.IcebergCatalog;
 import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.nifi.services.iceberg.IcebergWriter;
@@ -122,8 +120,6 @@ public class PutIcebergRecord extends AbstractProcessor {
 
     private static final long MAXIMUM_BYTES = 536870912;
 
-    private static final StructTypeProvider structTypeProvider = new StandardStructTypeProvider();
-
     private final Clock clock = Clock.systemDefaultZone();
 
     private volatile Catalog catalog;
@@ -166,6 +162,8 @@ public class PutIcebergRecord extends AbstractProcessor {
         final AtomicReference<Relationship> relationship = new AtomicReference<>(SUCCESS);
 
         final Table table = getTable(tableIdentifier);
+        final Schema schema = table.schema();
+        final Types.StructType struct = schema.asStruct();
         final IcebergRowWriter rowWriter = icebergWriter.getRowWriter(table);
 
         for (final FlowFile flowFile : flowFiles) {
@@ -173,9 +171,6 @@ public class PutIcebergRecord extends AbstractProcessor {
                     InputStream inputStream = session.read(flowFile);
                     RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())
             ) {
-                final RecordSchema recordSchema = recordReader.getSchema();
-                final Types.StructType struct = structTypeProvider.getStructType(recordSchema);
-
                 final AtomicLong recordsProcessed = new AtomicLong();
                 try {
                     writeRecords(recordReader, rowWriter, struct, recordsProcessed);

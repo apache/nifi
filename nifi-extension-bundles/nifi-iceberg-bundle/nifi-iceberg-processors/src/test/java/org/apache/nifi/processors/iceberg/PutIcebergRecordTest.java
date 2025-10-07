@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.iceberg;
 
+import org.apache.iceberg.Schema;
+import org.apache.iceberg.types.Types;
 import org.apache.nifi.services.iceberg.IcebergCatalog;
 import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.nifi.services.iceberg.IcebergWriter;
@@ -74,6 +76,10 @@ class PutIcebergRecordTest {
 
     private static final RecordSchema RECORD_SCHEMA = new SimpleRecordSchema(List.of(
             new RecordField(FIELD_NAME, RecordFieldType.STRING.getDataType())
+    ));
+
+    private static final Schema TABLE_SCHEMA = new Schema(List.of(
+            Types.NestedField.required(1, FIELD_NAME, Types.StringType.get())
     ));
 
     private static final Record STANDARD_RECORD = new MapRecord(RECORD_SCHEMA, Map.of(FIELD_NAME, FIELD_VALUE));
@@ -175,11 +181,11 @@ class PutIcebergRecordTest {
     private void setLoadTable() {
         when(catalog.tableExists(eq(TABLE_IDENTIFIER))).thenReturn(true);
         when(catalog.loadTable(eq(TABLE_IDENTIFIER))).thenReturn(table);
+        when(table.schema()).thenReturn(TABLE_SCHEMA);
     }
 
     private void setRecordReader() throws Exception {
         when(recordReaderFactory.createRecordReader(any(FlowFile.class), any(), any())).thenReturn(recordReader);
-        when(recordReader.getSchema()).thenReturn(RECORD_SCHEMA);
     }
 
     private void setWriter() throws Exception {
