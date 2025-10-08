@@ -323,7 +323,7 @@ public enum ProcessorStatusDescriptor {
                 }
 
                 final long procMillis = TimeUnit.MILLISECONDS.convert(procNanos, TimeUnit.NANOSECONDS);
-                // Convert processing milliseconds to 1 if nanoseconds is not 0 to avoid ArithmeticException
+                // Convert processing milliseconds to 1 if nanoseconds is 0 to avoid ArithmeticException
                 final long convertedProcessingMilliseconds = procMillis == 0 ? 1 : procMillis;
 
                 return metricMillis * 100 / convertedProcessingMilliseconds;
